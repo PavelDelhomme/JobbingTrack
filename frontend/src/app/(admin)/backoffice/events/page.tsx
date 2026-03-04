@@ -49,7 +49,7 @@ export default function EventsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setEvents(cached)
+        setEvents(Array.isArray(cached) ? (cached as Event[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         eventService.getAll({ limit: 100 }).then(response => {

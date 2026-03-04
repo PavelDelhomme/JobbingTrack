@@ -45,6 +45,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Alias pour les appels API Gateway / monitoring
+app.get('/api/v1/dashboard/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'dashboard-service',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    port: PORT
+  });
+});
+
 // Routes
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);

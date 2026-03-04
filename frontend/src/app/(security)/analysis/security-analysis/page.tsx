@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -174,16 +175,6 @@ export default function SecurityAnalysisPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
   }
 
   const getRiskColor = (risk: string) => {
@@ -430,7 +421,7 @@ export default function SecurityAnalysisPage() {
               </div>
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {securityLogs.length > 0 ? securityLogs.slice(0, 5).map((log, index) => {
-                  const time = formatDate(log.timestamp)
+                  const time = formatLocalDateTime(log.timestamp)
                   return (
                     <div key={index} className={`p-3 rounded-lg border ${
                       log.level === 'critical' || log.level === 'error' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :

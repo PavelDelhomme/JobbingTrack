@@ -166,6 +166,14 @@ test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)
 		cd $(FRONTEND_DIR) && npm run test:e2e || true; \
 	fi
 
+# Tests E2E émulateur mobile + inscription / vérification email (contre backoffice + API)
+PLAYWRIGHT_BASE_URL ?= http://localhost:5003
+API_URL_E2E ?= http://localhost:5002
+test-e2e-mobile-email: ## Tests E2E : mobile-emulator + email-verification-monitor
+	@echo "🎭 Tests E2E (émulateur mobile + inscription / Email Monitor)..."
+	@echo "   Base URL: $(PLAYWRIGHT_BASE_URL) | API: $(API_URL_E2E)"
+	@cd $(FRONTEND_DIR) && PLAYWRIGHT_BASE_URL="$(PLAYWRIGHT_BASE_URL)" API_URL="$(API_URL_E2E)" npx playwright test tests/e2e/mobile-emulator.spec.ts tests/e2e/email-verification-monitor.spec.ts --project=chromium
+
 test-all-frontend: ## Tous les tests (dans conteneur Docker)
 	@echo "🧪 Tous les tests frontend..."
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \

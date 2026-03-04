@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AdminLayout } from '@/components/features'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import axios from 'axios'
 
 interface SecurityLog {
@@ -241,7 +242,7 @@ export default function SecurityLogsPage() {
                       {log.sourceIP || '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(log.timestamp).toLocaleString('en-US')}
+                      {formatLocalDateTime(log.timestamp)}
                     </td>
                   </tr>
                 ))}

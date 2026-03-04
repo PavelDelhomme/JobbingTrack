@@ -411,10 +411,10 @@ export default function BackofficePage() {
           setStats((prev: any) => ({
             ...prev,
             averageResponseTime: (typeof avgResponseTime === 'number' && !Number.isNaN(avgResponseTime)) ? avgResponseTime : prev.averageResponseTime,
-            errorRate: errorRate > 0 ? errorRate : prev.errorRate,
-            recentErrors: recentErrors > 0 ? recentErrors : prev.recentErrors,
-            systemHealth: allMetrics.health?.availability_percent 
-              ? Math.round(allMetrics.health.availability_percent) 
+            errorRate: Number(errorRate) > 0 ? Number(errorRate) : prev.errorRate,
+            recentErrors: Number(recentErrors) > 0 ? Number(recentErrors) : prev.recentErrors,
+            systemHealth: allMetrics.health?.availability_percent
+              ? Math.round(Number(allMetrics.health.availability_percent))
               : prev.systemHealth
           }))
         }
@@ -499,7 +499,7 @@ export default function BackofficePage() {
         const cached = await cacheManager?.get(cacheKey, { ttl: 15000 }) // Cache 15 secondes
         
         if (cached) {
-          setStats(cached)
+          setStats(cached as typeof stats)
           setLoadingStats(false)
           // ✅ OPTIMISATION : Rafraîchir en arrière-plan sans bloquer
           Promise.all([
@@ -651,7 +651,7 @@ export default function BackofficePage() {
         const cached = await cacheManager?.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
         
         if (cached && mounted) {
-          setServicesWithMetrics(cached)
+          setServicesWithMetrics(Array.isArray(cached) ? cached : [])
           // Rafraîchir en arrière-plan
           timeoutId = setTimeout(async () => {
             try {
@@ -719,6 +719,7 @@ export default function BackofficePage() {
               // Pas de nouvelles données Docker, garder les anciennes valeurs
               return prevService || service
             })
+            return updated
           })
         }
         // ✅ Ne rien faire si pas de données - garder les valeurs existantes

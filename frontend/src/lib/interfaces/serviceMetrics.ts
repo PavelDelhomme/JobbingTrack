@@ -9,6 +9,7 @@ export interface ServiceMetrics {
   status: string
   responseTime?: number | string
   responseTimeMs?: number | null
+  uptime?: number | string
   version?: string
   error?: string
   health?: {

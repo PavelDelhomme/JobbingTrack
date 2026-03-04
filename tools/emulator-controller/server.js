@@ -190,8 +190,18 @@ const routes = {
       const gradleCache = ensureWritableFlutterGradle();
       if (gradleCache) baseEnv.FLUTTER_GRADLE_BUILD_PATH = gradleCache;
       await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
+      // Supprimer les sorties APK existantes pour éviter "Zip already contains entry ... cannot overwrite"
+      const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
+      if (fs.existsSync(outputsDir)) {
+        try {
+          fs.rmSync(path.join(outputsDir, 'apk'), { recursive: true, force: true });
+          fs.rmSync(path.join(outputsDir, 'flutter-apk'), { recursive: true, force: true });
+        } catch (_) { /* ignore */ }
+      }
       const { stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv });
-      const apkPath = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : apkPathLegacy;
       const exists = fs.existsSync(apkPath);
       const ok = exists && code === 0;
       const stdoutStr = typeof stdout === 'string' ? stdout : String(stdout || '');
@@ -215,8 +225,10 @@ const routes = {
       if (!deviceId) {
         return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
       }
-      const apkPath = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
-      if (!fs.existsSync(apkPath)) {
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : (fs.existsSync(apkPathLegacy) ? apkPathLegacy : null);
+      if (!apkPath || !fs.existsSync(apkPath)) {
         return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
       }
       const execOpts = { cwd: MOBILE_PATH };
@@ -231,6 +243,20 @@ const routes = {
       await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
       await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
       send(res, 200, { success: true, message: 'App installée, fermée puis relancée (adb reverse activé sur ports API)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Arrête l'app (force-stop) sans la relancer. Utile après un build APK pour réactiver "Installer et lancer". */
+  async '/stop-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, { cwd: MOBILE_PATH });
+      send(res, 200, { success: true, message: 'App arrêtée (force-stop)' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
@@ -411,13 +437,14 @@ const routes = {
         nodes.push({ text: getText('text'), contentDesc: getText('content-desc'), className: getText('class'), bounds: getText('bounds'), resourceId: getText('resource-id'), clickable });
       }
 
+      const safe = (s) => (s == null || s === undefined ? '' : String(s));
       const matches = nodes.filter((n) => {
         if (text) {
           const t = text.toLowerCase();
-          if (n.text.toLowerCase().includes(t) || n.contentDesc.toLowerCase().includes(t)) return true;
+          if (safe(n.text).toLowerCase().includes(t) || safe(n.contentDesc).toLowerCase().includes(t)) return true;
         }
-        if (contentDesc && n.contentDesc.toLowerCase().includes(contentDesc.toLowerCase())) return true;
-        if (className && n.className.includes(className)) return true;
+        if (contentDesc && safe(n.contentDesc).toLowerCase().includes(String(contentDesc).toLowerCase())) return true;
+        if (className && safe(n.className).includes(className)) return true;
         return false;
       });
 
@@ -451,33 +478,80 @@ const routes = {
       const deviceId = body && body.deviceId;
       const hint = body && body.hint;
       const text = body && body.text;
+      const index = Math.max(0, parseInt(body && body.index, 10) || 0);
       if (!deviceId || !hint || typeof text !== 'string') {
         return send(res, 400, { success: false, error: 'Body { "deviceId", "hint": "Email", "text": "value" } requis' });
       }
       const xml = await uiaDumpWithRetry(deviceId);
       const nodeRegex = /<node[^>]*>/g;
-      let match, target = null;
+      const hintLower = hint.toLowerCase();
+      const matchStr = (attr) => attr && attr.toLowerCase().includes(hintLower);
+      const editableTrue = (n) => /editable="true"/.test(n) || /class="[^"]*EditText[^"]*"/.test(n);
+      const targets = [];
+      const targetsEditable = [];
+      const targetCurrentTexts = [];
+      let match;
       while ((match = nodeRegex.exec(xml)) !== null) {
         const n = match[0];
-        const hintMatch = n.match(/hint="([^"]*)"/);
-        if (hintMatch && hintMatch[1].toLowerCase().includes(hint.toLowerCase())) {
+        const h = (n.match(/hint="([^"]*)"/) || [])[1];
+        const t = (n.match(/text="([^"]*)"/) || [])[1];
+        const c = (n.match(/content-desc="([^"]*)"/) || [])[1];
+        const ok = matchStr(h) || matchStr(t) || matchStr(c);
+        if (ok) {
           const boundsMatch = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
-          if (boundsMatch) { target = boundsMatch; break; }
+          if (boundsMatch) {
+            const currentText = (t || '').trim();
+            targets.push(boundsMatch);
+            targetCurrentTexts.push(currentText);
+            if (editableTrue(n)) targetsEditable.push(boundsMatch);
+          }
         }
       }
+      const list = targetsEditable.length > 0 ? targetsEditable : targets;
+      const target = list[index];
       if (!target) {
-        return send(res, 200, { success: false, error: `Field with hint "${hint}" not found` });
+        return send(res, 200, { success: false, error: `Field with hint/text "${hint}" not found${targets.length ? ` (${targets.length} match(es), ${targetsEditable.length} editable, index ${index})` : ''}` });
       }
+      const targetIdxInAll = targets.indexOf(target);
+      const currentFieldText = targetIdxInAll >= 0 && targetCurrentTexts[targetIdxInAll] !== undefined ? targetCurrentTexts[targetIdxInAll] : '';
       const cx = Math.round((parseInt(target[1]) + parseInt(target[3])) / 2);
       const cy = Math.round((parseInt(target[2]) + parseInt(target[4])) / 2);
       await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
-      await new Promise(r => setTimeout(r, 300));
+      let trimmed = typeof text === 'string' ? text.trim() : String(text).trim();
+      const isEmailField = (hint && String(hint).toLowerCase().includes('email')) || (trimmed.includes('@'));
+      if (isEmailField) {
+        await new Promise(r => setTimeout(r, 600));
+      } else {
+        await new Promise(r => setTimeout(r, 400));
+      }
       await execPromise(`adb -s ${deviceId} shell input keyevent KEYCODE_MOVE_END`);
-      for (let i = 0; i < 60; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
-      await new Promise(r => setTimeout(r, 100));
-      const escaped = text.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
-      await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
-      send(res, 200, { success: true, message: `Typed "${text.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });
+      const delCount = currentFieldText.length > 0 ? Math.min(120, currentFieldText.length + 15) : 0;
+      for (let i = 0; i < delCount; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+      await new Promise(r => setTimeout(r, 150));
+      if (isEmailField && /[0-9]$/.test(trimmed)) trimmed = trimmed.slice(0, -1);
+      const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
+      const escaped = esc(trimmed);
+      if (isEmailField && trimmed.length >= 3 && trimmed.slice(-3) === 'com') {
+        const part1 = trimmed.slice(0, -2);
+        const part1Esc = esc(part1);
+        await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
+        await new Promise(r => setTimeout(r, 280));
+        await execPromise(`adb -s ${deviceId} shell input text "om"`);
+      } else {
+        await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
+        if (isEmailField && trimmed.length > 0) {
+          await new Promise(r => setTimeout(r, 220));
+          const lastTwo = trimmed.slice(-2);
+          const suffix = lastTwo === 'om' ? 'om' : (trimmed.slice(-1) && /[a-zA-Z]/.test(trimmed.slice(-1)) ? trimmed.slice(-1) : '');
+          const nBack = suffix === 'om' ? 3 : 2;
+          for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+          if (suffix) {
+            await new Promise(r => setTimeout(r, 120));
+            await execPromise(`adb -s ${deviceId} shell input text "${suffix === 'om' ? 'om' : esc(suffix)}"`);
+          }
+        }
+      }
+      send(res, 200, { success: true, message: `Typed "${trimmed.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });
     } catch (e) {
       send(res, 200, { success: false, error: (e && e.message) || String(e) });
     }
@@ -533,6 +607,12 @@ const routes = {
   async '/health'(req, res) {
     send(res, 200, { ok: true, service: 'emulator-controller', mobilePath: MOBILE_PATH });
   },
+
+  /** Liste des routes enregistrées (GET) — pour vérifier que /stop-app est bien présent après redémarrage du contrôleur. */
+  async '/routes'(req, res) {
+    const list = Object.keys(routes).filter((k) => typeof routes[k] === 'function');
+    send(res, 200, { routes: list, hasStopApp: list.includes('/stop-app') });
+  },
 };
 
 const server = http.createServer((req, res) => {
@@ -554,7 +634,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

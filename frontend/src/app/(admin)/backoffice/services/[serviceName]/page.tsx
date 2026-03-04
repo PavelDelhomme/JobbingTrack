@@ -10,6 +10,7 @@ import {
   RefreshCw, Terminal, BarChart3, Zap, Network
 } from 'lucide-react';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 export default function ServiceDetailPage() {
@@ -167,15 +168,16 @@ export default function ServiceDetailPage() {
         if (metrics && metrics.servicesList) {
           const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName || s.name === serviceName || s.rawName === serviceName);
           if (service && metrics.chartData) {
+            const serviceKey = service.rawName ?? service.name ?? '';
             // Construire l'historique depuis chartData pour ce service
             const history = metrics.chartData
               .map((point: any) => ({
                 timestamp: point.time || point.timestamp,
-                cpu_percent: point.services?.[service.rawName]?.cpu || service.metrics?.cpu?.percentage || 0,
-                memory_percent: point.services?.[service.rawName]?.memory || service.metrics?.memory?.percentage || 0,
-                memory_usage_mb: point.services?.[service.rawName]?.memory_mb || service.metrics?.memory?.usageMb || 0,
-                network_rx_mb: point.services?.[service.rawName]?.network_rx || service.metrics?.network?.rx_mb || 0,
-                network_tx_mb: point.services?.[service.rawName]?.network_tx || service.metrics?.network?.tx_mb || 0
+                cpu_percent: point.services?.[serviceKey]?.cpu || service.metrics?.cpu?.percentage || 0,
+                memory_percent: point.services?.[serviceKey]?.memory || service.metrics?.memory?.percentage || 0,
+                memory_usage_mb: point.services?.[serviceKey]?.memory_mb || service.metrics?.memory?.usageMb || 0,
+                network_rx_mb: point.services?.[serviceKey]?.network_rx || service.metrics?.network?.rx_mb || 0,
+                network_tx_mb: point.services?.[serviceKey]?.network_tx || service.metrics?.network?.tx_mb || 0
               }))
               .filter((h: any) => h.timestamp)
               .slice(-50); // Derniers 50 points
@@ -442,8 +444,7 @@ export default function ServiceDetailPage() {
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)}%`, 'CPU']}
                     labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
+                      return formatLocalDateTime(label);
                     }}
                   />
                   <Area 
@@ -483,8 +484,7 @@ export default function ServiceDetailPage() {
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)}%`, 'Mémoire']}
                     labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
+                      return formatLocalDateTime(label);
                     }}
                   />
                   <Area 
@@ -518,8 +518,7 @@ export default function ServiceDetailPage() {
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)} MB`]}
                     labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
+                      return formatLocalDateTime(label);
                     }}
                   />
                   <Legend />
@@ -622,20 +621,11 @@ export default function ServiceDetailPage() {
                     const timestamp = timestampMatch ? timestampMatch[1] : null;
                     const message = timestampMatch ? timestampMatch[2] : line;
                     
-                    // Formater la date pour l'affichage
+                    // Formater la date pour l'affichage (heure locale utilisateur)
                     let formattedDate = '';
                     if (timestamp) {
                       try {
-                        const date = new Date(timestamp);
-                        formattedDate = date.toLocaleString('fr-FR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          fractionalSecondDigits: 3
-                        });
+                        formattedDate = formatLocalDateTime(timestamp);
                       } catch (e) {
                         formattedDate = timestamp;
                       }

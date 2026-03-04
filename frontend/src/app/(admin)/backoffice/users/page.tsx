@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { 
-  Users, Search, Plus, Edit, Trash2, Shield, 
+import { formatLocalDate } from '@/lib/utils/date';
+import {
+  Users, Search, Plus, Edit, Trash2, Shield,
   Mail, Phone, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2
 } from 'lucide-react';
 import axios from 'axios';
@@ -51,7 +52,7 @@ export default function UsersManagementPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setUsers(cached)
+        setUsers(Array.isArray(cached) ? (cached as User[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         loadUsersFresh(token, cacheKey, cacheManager).catch(() => {}) // Ignorer les erreurs
@@ -389,7 +390,7 @@ export default function UsersManagementPage() {
                           </div>
                           {user.lastLogin && (
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Dernière connexion: {new Date(user.lastLogin).toLocaleDateString()}
+                              Dernière connexion: {formatLocalDate(user.lastLogin)}
                             </div>
                           )}
                         </div>
@@ -429,7 +430,7 @@ export default function UsersManagementPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {formatLocalDate(user.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

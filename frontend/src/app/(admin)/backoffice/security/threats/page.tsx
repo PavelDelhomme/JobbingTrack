@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { AlertTriangle, Shield, Ban, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
@@ -208,7 +209,7 @@ export default function ThreatsPage() {
                           </span>
                         </td>
                         <td className="p-3">
-                          {new Date(threat.detectedAt).toLocaleString('fr-FR')}
+                          {formatLocalDateTime(threat.detectedAt)}
                         </td>
                         <td className="p-3">
                           {threat.blocked ? (

@@ -9,8 +9,16 @@ import { executeStep } from './adb-steps';
 /** Étapes critiques : si l'une échoue, le parcours s'arrête immédiatement (pas de suite inutile). */
 const CRITICAL_STEP_IDS = new Set([
   'ensure_logged_out',
+  'fill_register_form',
+  'fill_register_form_gmail',
+  'fill_register_form_proton',
+  'fill_register_form_bluemail',
   'fill_login_form',
   'fill_login_form_user1',
+  'fill_login_form_gmail',
+  'fill_login_form_proton',
+  'fill_login_form_bluemail',
+  'submit_register',
   'submit_login',
   'view_dashboard_ui',
   'ensure_on_dashboard',
@@ -77,13 +85,31 @@ export class AdbRunner {
       callbacks?.onProgress?.(i + 1, steps.length);
 
       const t0 = Date.now();
+      const isAbortError = (err: any) => err?.name === 'AbortError' || /abort|NS_BINDING_ABORTED/i.test(String(err?.message ?? ''));
+
       try {
-        const msg = await executeStep(stepId, this.adb);
+        let msg: string;
+        try {
+          msg = await executeStep(stepId, this.adb, { isCancelled: () => this.cancelled });
+        } catch (firstErr: any) {
+          if (!this.cancelled && isAbortError(firstErr)) {
+            this.log(`  ⚠ Requête interrompue (NS_BINDING_ABORTED / Abort), retry une fois...`);
+            await new Promise((r) => setTimeout(r, 800));
+            msg = await executeStep(stepId, this.adb, { isCancelled: () => this.cancelled });
+          } else {
+            throw firstErr;
+          }
+        }
         results[i] = { ...results[i], status: 'success', message: msg, durationMs: Date.now() - t0 };
         this.log(`  ✅ ${results[i].name}: ${msg}`);
       } catch (e: any) {
-        results[i] = { ...results[i], status: 'error', message: e.message, durationMs: Date.now() - t0 };
-        this.log(`  ❌ ${results[i].name}: ${e.message}`);
+        results[i] = { ...results[i], status: 'error', message: e?.message || String(e), durationMs: Date.now() - t0 };
+        this.log(`  ❌ ${results[i].name}: ${e?.message || String(e)}`);
+        if (this.cancelled) {
+          this.log('Parcours annulé par l\'utilisateur.');
+          callbacks?.onStepEnd?.(i, results[i]);
+          break;
+        }
         if (CRITICAL_STEP_IDS.has(stepId)) {
           this.log(`  ⛔ Étape critique en échec — parcours arrêté.`);
           callbacks?.onStepEnd?.(i, results[i]);
@@ -92,6 +118,7 @@ export class AdbRunner {
       }
 
       callbacks?.onStepEnd?.(i, results[i]);
+      if (this.cancelled) break;
     }
 
     this.adb.setAbortSignal(null);

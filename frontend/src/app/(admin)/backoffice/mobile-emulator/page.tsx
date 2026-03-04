@@ -13,8 +13,9 @@ import {
   WifiOff,
   Loader2,
   Image as ImageIcon,
+  FlaskConical,
 } from 'lucide-react';
-import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, PRIMARY_MOBILE_JOURNEY_KEYS, getMobileTestCredentials } from '@/lib/adb';
+import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, VERIFICATION_EMAIL_SCENARIO_KEYS, VERIFICATION_EMAIL_ACCOUNTS, getMobileTestCredentials } from '@/lib/adb';
 import type { StepResult } from '@/lib/adb';
 
 const CONTROLLER_URL_DEFAULT =
@@ -47,9 +48,13 @@ export default function MobileEmulatorPage() {
   const [apkBuilt, setApkBuilt] = useState(false);
   const [appRunning, setAppRunning] = useState(false);
   const [journeyRunning, setJourneyRunning] = useState(false);
+  const [journeyStepResults, setJourneyStepResults] = useState<StepResult[]>([]);
+  const [journeyProgress, setJourneyProgress] = useState({ current: 0, total: 0 });
   const [liveViewOn, setLiveViewOn] = useState(false);
+  const [buildElapsedSeconds, setBuildElapsedSeconds] = useState(0);
   const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
+  const buildAbortRef = useRef<AbortController | null>(null);
 
   const base = () => controllerUrl.replace(/\/$/, '');
   const addLog = (msg: string) => setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -139,41 +144,86 @@ export default function MobileEmulatorPage() {
 
   const buildApk = async () => {
     setLoading('build');
+    setBuildElapsedSeconds(0);
     addLog('Build APK en cours... (peut prendre 1-2 min, timeout 5 min)');
     const BUILD_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
     const abort = new AbortController();
+    buildAbortRef.current = abort;
     const timeoutId = setTimeout(() => abort.abort(), BUILD_TIMEOUT_MS);
-    // Proxy same-origin ; on envoie l'URL du contrôleur (celle de l'UI) pour que le serveur l'utilise
-    const url = '/api/emulator-proxy/build-apk';
+    const controllerBase = base();
+    const directUrl = `${controllerBase}/build-apk`;
+
+    const handleResponse = (res: Response, data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string }, source: string) => {
+      if (data.success) {
+        setApkBuilt(true);
+        if (selectedDevice) {
+          fetchJson<{ success?: boolean }>('/stop-app', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }) })
+            .then(() => { setAppRunning(false); addLog('App arretee — vous pouvez cliquer sur Installer et lancer.'); })
+            .catch(() => {});
+        }
+      }
+      addLog(data.message || (data.success ? 'Build reussi.' : data.error || 'Build echoue.'));
+      if (!res.ok && data.error) addLog(`Erreur: ${data.error}`);
+      if (!res.ok && data._triedUrl) addLog(`URL appelee: ${data._triedUrl}`);
+      if (!data.success && data.stderr) addLog(`stderr: ${data.stderr.slice(-800)}`);
+      if (!data.success && data.stdout) addLog(`stdout: ${data.stdout.slice(-500)}`);
+    };
+
     try {
-      const res = await fetch(url, {
+      // 1) Appel direct au contrôleur (évite timeout proxy / Docker). Le contrôleur a CORS *.
+      let res: Response;
+      let data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string };
+      try {
+        res = await fetch(directUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: abort.signal,
+        });
+        data = (await res.json().catch(() => ({}))) as typeof data;
+        if (res.ok || res.status === 502) {
+          clearTimeout(timeoutId);
+          handleResponse(res, data, 'direct');
+          return;
+        }
+      } catch (directErr) {
+        addLog('Appel direct au controleur echoue, passage par le proxy...');
+      }
+
+      // 2) Fallback : proxy same-origin (pour backoffice en Docker si le navigateur ne peut pas joindre le contrôleur)
+      res = await fetch('/api/emulator-proxy/build-apk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ controllerBaseUrl: base() }),
+        body: JSON.stringify({ controllerBaseUrl: controllerBase }),
         signal: abort.signal,
       });
       clearTimeout(timeoutId);
-      const data = (await res.json()) as { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string };
-      if (data.success) setApkBuilt(true);
-      addLog(data.message || (data.success ? 'Build reussi.' : data.error || 'Build echoue.'));
-      if (!res.ok && data.error) addLog(`Erreur proxy: ${data.error}`);
+      data = (await res.json()) as typeof data;
+      handleResponse(res, data, 'proxy');
       if (!res.ok && data._triedUrl) {
-        addLog(`URL appelee: ${data._triedUrl}`);
-        addLog('Conseil : dans .env (cote serveur) definissez EMULATOR_CONTROLLER_URL puis redemarrez Next.');
-        addLog('  Dev local : EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055');
-        addLog('  Docker    : EMULATOR_CONTROLLER_URL=http://host.docker.internal:5055');
+        addLog('Conseil : verifiez que le controleur tourne (cd tools/emulator-controller && node server.js)');
+        addLog('  Puis lancez a la main si besoin : cd mobile && flutter build apk --debug');
       }
-      if (!data.success && data.stderr) addLog(`stderr: ${data.stderr.slice(-800)}`);
-      if (!data.success && data.stdout) addLog(`stdout: ${data.stdout.slice(-500)}`);
     } catch (e) {
       clearTimeout(timeoutId);
       const msg = e instanceof Error ? e.message : String(e);
       addLog(`Erreur build: ${msg}`);
       if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('aborted')) {
-        addLog('Conseil : verifiez EMULATOR_CONTROLLER_URL (cote serveur) ou lancez : cd mobile && flutter build apk --debug');
+        addLog('Le controleur est injoignable ou le build a depasse le delai.');
+        addLog('Lancez le build a la main sur la machine ou tourne le controleur :');
+        addLog('  cd mobile && flutter build apk --debug');
       }
     } finally {
       setLoading(null);
+      setBuildElapsedSeconds(0);
+      buildAbortRef.current = null;
+    }
+  };
+
+  const cancelBuild = () => {
+    if (buildAbortRef.current) {
+      buildAbortRef.current.abort();
+      addLog('Build annulé.');
     }
   };
 
@@ -321,12 +371,40 @@ export default function MobileEmulatorPage() {
     }
     const url = `${base()}/screenshot?device=${encodeURIComponent(selectedDevice)}&t=`;
     setScreenshotUrl(url + Date.now());
-    screenshotInterval.current = setInterval(() => { setScreenshotUrl(url + Date.now()); }, 1500);
+    const intervalMs = journeyRunning ? 3000 : 1500;
+    screenshotInterval.current = setInterval(() => { setScreenshotUrl(url + Date.now()); }, intervalMs);
     return () => { if (screenshotInterval.current) { clearInterval(screenshotInterval.current); screenshotInterval.current = null; } };
   }, [selectedDevice, controllerOk, controllerUrl, journeyRunning, liveViewOn]);
 
+  useEffect(() => {
+    if (loading !== 'build') return;
+    const interval = setInterval(() => setBuildElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
   return (
     <AdminLayout>
+      {/* Overlay pendant le build APK : bloque navigation et clics (sauf Annuler) */}
+      {loading === 'build' && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" aria-modal="true" role="dialog" aria-label="Build APK en cours">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md mx-4 flex flex-col items-center gap-6">
+            <Loader2 className="h-12 w-12 animate-spin text-amber-500" />
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100 text-center">Build APK en cours...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center font-mono tabular-nums">
+              Écoulé : {Math.floor(buildElapsedSeconds / 60)}:{String(buildElapsedSeconds % 60).padStart(2, '0')}
+            </p>
+            <ul className="text-left text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+              <li>Nettoyage du projet (flutter clean)</li>
+              <li>Compilation Gradle (1 à 2 min)</li>
+              <li>Génération de l’APK debug</li>
+            </ul>
+            <p className="text-xs text-gray-500 dark:text-gray-500 text-center">Ne fermez pas cette page. Vous ne pouvez pas naviguer tant que le build n&apos;est pas terminé ou annulé.</p>
+            <button type="button" onClick={cancelBuild} className="px-6 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition">
+              Annuler le build
+            </button>
+          </div>
+        </div>
+      )}
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -437,6 +515,8 @@ export default function MobileEmulatorPage() {
 
         {controllerOk && selectedDevice && (
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm dark:shadow-none dark:ring-1 dark:ring-gray-800 p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3 flex-wrap">
               <ImageIcon className="h-5 w-5 text-indigo-500" /> Rendu en direct
               <span className="text-xs font-normal text-gray-500 dark:text-gray-500 ml-2">clic = tap | glisser = scroll/swipe</span>
@@ -464,6 +544,25 @@ export default function MobileEmulatorPage() {
                 className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition">Home</button>
               <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 187 }) }).catch(() => {})}
                 className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition">Recents</button>
+                </div>
+              </div>
+              {journeyRunning && journeyStepResults.length > 0 && (
+                <div className="w-full lg:w-72 flex-shrink-0">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    Étapes du parcours ({journeyProgress.current}/{journeyProgress.total})
+                  </h3>
+                  <ul className="space-y-1 max-h-[60vh] overflow-y-auto rounded-lg bg-gray-100 dark:bg-gray-800 p-2 text-xs font-medium">
+                    {journeyStepResults.map((s, i) => (
+                      <li key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded ${s.status === 'running' ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200' : s.status === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : s.status === 'error' ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {s.status === 'running' && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />}
+                        {s.status === 'ok' && <span className="text-emerald-500">✓</span>}
+                        {s.status === 'error' && <span className="text-red-500">✗</span>}
+                        <span className="truncate">{s.name || s.id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -487,7 +586,7 @@ export default function MobileEmulatorPage() {
           </p>
         </div>
 
-        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} />
+        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} stepResults={journeyStepResults} progress={journeyProgress} onStepResultsChange={setJourneyStepResults} onProgressChange={setJourneyProgress} />
       </div>
     </AdminLayout>
   );
@@ -497,18 +596,31 @@ export default function MobileEmulatorPage() {
 /* Parcours utilisateur mobile - utilise @/lib/adb                    */
 /* ------------------------------------------------------------------ */
 
-function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange }: {
+function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange, stepResults: externalStepResults, progress: externalProgress, onStepResultsChange, onProgressChange }: {
   addLog: (m: string) => void;
   controllerUrl: string;
   deviceId: string;
   authToken: string | null;
   onJourneyRunningChange: (running: boolean) => void;
+  stepResults?: StepResult[];
+  progress?: { current: number; total: number };
+  onStepResultsChange?: (r: StepResult[] | ((prev: StepResult[]) => StepResult[])) => void;
+  onProgressChange?: (p: { current: number; total: number }) => void;
 }) {
-  const [selected, setSelected] = useState('mobile_complete');
+  const [showParcoursConfig, setShowParcoursConfig] = useState(false);
+  const [e2eRunning, setE2eRunning] = useState(false);
+  const [e2eOutput, setE2eOutput] = useState<string | null>(null);
+  const [e2eSuccess, setE2eSuccess] = useState<boolean | null>(null);
+  const [selected, setSelected] = useState('mobile_register_verify_gmail');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [cleanUserBetweenScenarios, setCleanUserBetweenScenarios] = useState(false);
   const [running, setRunning] = useState(false);
-  const [stepResults, setStepResults] = useState<StepResult[]>([]);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [localStepResults, setLocalStepResults] = useState<StepResult[]>([]);
+  const [localProgress, setLocalProgress] = useState({ current: 0, total: 0 });
+  const stepResults = externalStepResults ?? localStepResults;
+  const setStepResults = onStepResultsChange ?? setLocalStepResults;
+  const progress = externalProgress ?? localProgress;
+  const setProgress = onProgressChange ?? setLocalProgress;
   const runnerRef = useRef<AdbRunner | null>(null);
 
   const scenario = MOBILE_SCENARIOS[selected];
@@ -548,6 +660,42 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
         addLog('Erreur: API generate-test-data — ' + (e instanceof Error ? e.message : String(e)) + '. Parcours annule.');
         onJourneyRunningChange(false);
         return;
+      }
+    }
+
+    // Nettoyage utilisateur de test (uniquement si option activée et scénario inscription + vérif email)
+    const apiBase = process.env.NEXT_PUBLIC_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+    if (VERIFICATION_EMAIL_SCENARIO_KEYS.includes(selected) && cleanUserBetweenScenarios && authToken) {
+      const emailMap: Record<string, string> = {
+        mobile_register_verify_gmail: VERIFICATION_EMAIL_ACCOUNTS.gmail.email,
+        mobile_register_verify_proton: VERIFICATION_EMAIL_ACCOUNTS.proton.email,
+        mobile_register_verify_bluemail: VERIFICATION_EMAIL_ACCOUNTS.bluemail.email,
+      };
+      const emailToClean = emailMap[selected];
+      if (emailToClean) {
+        try {
+          const usersRes = await fetch(`${apiBase}/api/v1/auth/users`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+          const usersData = await usersRes.json().catch(() => ({}));
+          const users = usersData?.users ?? usersData?.data ?? [];
+          const user = Array.isArray(users) ? users.find((u: { email?: string }) => u.email === emailToClean) : null;
+          if (user?.id) {
+            const delRes = await fetch(`${apiBase}/api/v1/auth/users/${user.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${authToken}` },
+            });
+            if (delRes.ok) {
+              addLog(`Utilisateur de test supprime (${emailToClean}) pour repartir propre.`);
+            } else {
+              addLog(`Suppression utilisateur ${emailToClean} echouee: ${delRes.status}`);
+            }
+          } else {
+            addLog(`Aucun utilisateur trouve pour ${emailToClean}, on continue.`);
+          }
+        } catch (e) {
+          addLog('Nettoyage utilisateur: ' + (e instanceof Error ? e.message : String(e)));
+        }
       }
     }
 
@@ -626,6 +774,29 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
     complet: 'bg-amber-500',
   };
 
+  const runE2eTests = async () => {
+    setE2eRunning(true);
+    setE2eOutput(null);
+    setE2eSuccess(null);
+    try {
+      const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5003';
+      const apiURL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
+      const res = await fetch('/api/test/run-playwright-mobile-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseURL, apiURL }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setE2eSuccess(!!data.success);
+      setE2eOutput(data.output ?? data.error ?? 'Aucune sortie.');
+    } catch (e) {
+      setE2eSuccess(false);
+      setE2eOutput(e instanceof Error ? e.message : 'Erreur réseau');
+    } finally {
+      setE2eRunning(false);
+    }
+  };
+
   return (
     <div className="bg-gray-50 dark:bg-gray-900 rounded-xl dark:ring-1 dark:ring-indigo-500/20 p-6 text-sm">
       <h3 className="font-semibold mb-3 text-gray-900 dark:text-indigo-300 flex items-center gap-2">
@@ -633,6 +804,9 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
         <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-indigo-200 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400">interaction UI reelle</span>
         <span className="text-[10px] font-normal text-gray-500 dark:text-gray-500 ml-auto">{Object.keys(MOBILE_SCENARIOS).length} parcours</span>
       </h3>
+      <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-2">
+        Les tests mobile passent par ces scénarios : sélectionnez un parcours puis <strong>Lancer le parcours</strong> pour exécuter les actions en direct sur l’appareil.
+      </p>
 
       {!deviceId && (
         <div className="mb-3 p-2.5 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-800 dark:text-amber-300 text-xs ring-1 ring-amber-300 dark:ring-amber-700/50">
@@ -640,11 +814,17 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
         </div>
       )}
 
-      {/* Parcours principaux : toujours visibles et lancables */}
-      <div className="mb-4">
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Parcours principaux</p>
-        <div className="flex flex-wrap gap-2">
-          {PRIMARY_MOBILE_JOURNEY_KEYS.map((key) => {
+      <div className="mb-3 p-2.5 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-gray-700 dark:text-gray-300 text-xs">
+        Pour tester <strong>inscription + envoi email de vérification</strong> (Gmail, Proton, BlueMail) <strong>en direct sur votre téléphone</strong> : choisissez un parcours ci-dessous, cliquez sur <strong>Lancer le parcours</strong>. Les actions s’exécutent en live sur l’appareil. Consultez{' '}
+        <a href="/backoffice/email-monitor" className="text-indigo-600 dark:text-indigo-400 underline">Email Monitor</a>
+        {' '}(rafraîchi en temps réel) pour voir l’email envoyé ; l’utilisateur peut ensuite se connecter après vérification.
+      </div>
+
+      {/* Inscription + vérification email : à tester en direct sur le téléphone */}
+      <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl ring-1 ring-purple-200 dark:ring-purple-800/50">
+        <p className="text-xs font-semibold text-purple-800 dark:text-purple-300 mb-2">Inscription + vérification email (en direct sur le téléphone)</p>
+        <div className="flex flex-wrap gap-2 items-center">
+          {VERIFICATION_EMAIL_SCENARIO_KEYS.map((key) => {
             const s = MOBILE_SCENARIOS[key];
             if (!s) return null;
             return (
@@ -652,17 +832,31 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
                 key={key}
                 onClick={() => !running && setSelected(key)}
                 disabled={running}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${selected === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-indigo-400 dark:hover:ring-indigo-500'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${selected === key ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-400'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                 {s.name}
               </button>
             );
           })}
+          <label className="ml-auto flex items-center gap-2 text-xs text-purple-800 dark:text-purple-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={cleanUserBetweenScenarios}
+              onChange={(e) => setCleanUserBetweenScenarios(e.target.checked)}
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+            Nettoyer l&apos;utilisateur de test avant le parcours
+          </label>
         </div>
+        <p className="mt-2 text-[11px] text-purple-700 dark:text-purple-400">
+          Flux attendu : Accepter les conditions → S&apos;inscrire → écran &quot;Vérifiez votre email&quot; → ouvrir Gmail/Proton/OVH sur l&apos;appareil → cliquer le lien → retour app → Se connecter → Dashboard. Vérifiez les envois dans{' '}
+          <a href="/backoffice/email-monitor" className="underline">Email Monitor</a> et dans votre boîte réelle.
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 mr-1">Filtre :</span>
         <button onClick={() => setCategoryFilter('all')}
           className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${categoryFilter === 'all' ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'}`}>
           Tous
@@ -676,7 +870,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
       </div>
 
       <p className="text-[11px] text-gray-500 dark:text-gray-500 mb-2">Tous les parcours</p>
-      <div className="flex flex-wrap gap-1.5 mb-4 max-h-32 overflow-y-auto">
+      <div className="flex flex-wrap gap-1.5 mb-4 max-h-40 overflow-y-auto">
         {filteredScenarios.map(([key, s]) => (
           <button key={key} onClick={() => !running && setSelected(key)} disabled={running}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${selected === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-indigo-400 dark:hover:ring-indigo-500'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -709,7 +903,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
       )}
 
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={runJourney} disabled={running || !deviceId}
+        <button data-testid="run-journey-btn" onClick={runJourney} disabled={running || !deviceId}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {running ? 'En cours...' : 'Lancer le parcours'}
@@ -724,7 +918,48 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
           <a href="/backoffice/user-journey" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Tous les parcours</a>
           <a href="/backoffice/user-journey/custom" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Personnalise</a>
           <a href="/backoffice/user-journey/reports" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Rapports</a>
+          <a href="/backoffice/email-monitor" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Email Monitor</a>
         </div>
+      </div>
+
+      {/* Tests E2E navigateur (optionnel) */}
+      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg ring-1 ring-amber-200 dark:ring-amber-800/50">
+        <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+          <FlaskConical className="h-4 w-4" />
+          Tests automatisés navigateur (optionnel)
+        </h4>
+        <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-2">
+          Le test principal est d’exécuter un parcours sur le téléphone ci-dessus. Optionnel : lancer des tests Playwright (page backoffice + Email Monitor) pour la CI.
+        </p>
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            type="button"
+            onClick={runE2eTests}
+            disabled={e2eRunning}
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium flex items-center gap-1.5"
+          >
+            {e2eRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+            {e2eRunning ? 'Tests en cours...' : 'Lancer tests E2E (navigateur)'}
+          </button>
+          <span className="text-[11px] text-gray-500 dark:text-gray-500">
+            Ou en terminal : <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">make test-e2e-mobile-email</code>
+          </span>
+        </div>
+        {e2eSuccess === true && (
+          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-green-800 dark:text-green-300 text-xs">
+            Tous les tests sont passés.
+          </div>
+        )}
+        {e2eSuccess === false && (
+          <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-red-800 dark:text-red-300 text-xs">
+            Certains tests ont échoué.
+          </div>
+        )}
+        {e2eOutput != null && (
+          <pre className="mt-2 p-2 bg-gray-900 text-gray-100 rounded text-[10px] overflow-auto max-h-48 whitespace-pre-wrap">
+            {e2eOutput}
+          </pre>
+        )}
       </div>
 
       {progress.total > 0 && (
@@ -739,9 +974,9 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
       )}
 
       {stepResults.length > 0 && (
-        <div className="max-h-72 overflow-y-auto space-y-1">
+        <div className="max-h-72 overflow-y-auto space-y-1" data-testid="journey-step-results">
           {stepResults.map((step, i) => (
-            <div key={i} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
+            <div key={i} data-testid={step.status === 'success' ? 'step-success' : step.status === 'error' ? 'step-error' : undefined} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
               step.status === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800/50' :
               step.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800/50' :
               step.status === 'running' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800/50 animate-pulse' : 'text-gray-500 dark:text-gray-600'
@@ -753,6 +988,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
           ))}
         </div>
       )}
+
     </div>
   );
 }

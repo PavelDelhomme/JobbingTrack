@@ -39,7 +39,7 @@ export default function ApplicationsTab() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setApplications(cached)
+        setApplications(Array.isArray(cached) ? (cached as Application[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         applicationService.getAll({ limit: 100 }).then(response => {

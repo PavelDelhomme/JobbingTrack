@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Derniere mise a jour** : 23 fevrier 2026
+**Derniere mise a jour** : 4 mars 2026
 
 Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
@@ -10,6 +10,9 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 | Erreur | Composant | Impact | Action |
 |--------|-----------|--------|--------|
+| `ERROR: role "jobbingtrack" already exists` / `database "jobbingtrack" already exists` | Postgres (init / make db-fix-role) | Bruit dans les logs | SQL idempotent dans `makefiles/database/Makefile` (DO $$ ... EXCEPTION WHEN duplicate_object) |
+| `relation "public.deployments" does not exist` | deployment-service / Postgres | Requetes deployment-service echouent | Creer table : `make db-push-all` ou push Prisma deployment-service |
+| Build APK : `Zip ... already contains entry 'META-INF/...', cannot overwrite` | Emulateur backoffice | Build APK echoue | Supprimer sorties APK avant build dans `tools/emulator-controller/server.js` |
 | `relation "public.user_events" does not exist` | dashboard-service / page User Analytics | Page User Analytics inaccessible | Creer les tables (`user_events`, `user_sessions`, `user_errors`, `user_performances`, `device_infos`) ou desactiver la page |
 | `getaddrinfo ENOTFOUND loki` | metrics-aggregator | Requetes erreurs par conteneur echouent | Loki non deploye. Degrader proprement ou ajouter Loki |
 | `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable. Plusieurs services definissent le meme enum |

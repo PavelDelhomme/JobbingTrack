@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
+import { formatLocalDateTime, formatLocalDate } from '@/lib/utils/date'
 import { applicationService } from '@/lib/api'
 
 interface Application {
@@ -182,7 +183,7 @@ export default function BackofficeApplicationDetailPage() {
                       <span>→</span>
                       <span className="font-medium">{h.newStatus?.code ?? '—'}</span>
                       {h.comment && <span className="text-gray-500">({h.comment})</span>}
-                      <span className="text-gray-500">{new Date(h.changedAt).toLocaleString('fr-FR')}</span>
+                      <span className="text-gray-500">{formatLocalDateTime(h.changedAt)}</span>
                     </li>
                   ))}
                 </ul>
@@ -230,9 +231,9 @@ export default function BackofficeApplicationDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">📅 Dates</h2>
               <div className="space-y-2 text-sm">
-                {application.applicationDate && <DetailRow label="Date candidature" value={new Date(application.applicationDate).toLocaleDateString('fr-FR')} />}
-                <DetailRow label="Créée le" value={new Date(application.createdAt).toLocaleDateString('fr-FR')} />
-                <DetailRow label="Modifiée le" value={new Date(application.updatedAt).toLocaleDateString('fr-FR')} />
+                {application.applicationDate && <DetailRow label="Date candidature" value={formatLocalDate(application.applicationDate)} />}
+                <DetailRow label="Créée le" value={formatLocalDate(application.createdAt)} />
+                <DetailRow label="Modifiée le" value={formatLocalDate(application.updatedAt)} />
               </div>
             </div>
           </div>

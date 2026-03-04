@@ -50,3 +50,4 @@ Depuis le backoffice, utilisez l’URL du host, par exemple : **http://host.dock
 - `POST /install-run` – Body `{ "deviceId": "emulator-5554" }` – Installe l’APK et lance l’app
 - `POST /run-flutter` – Body `{ "deviceId": "emulator-5554" }` – `flutter run -d deviceId`
 - `GET /screenshot?device=emulator-5554` – Capture d’écran PNG de l’appareil
+- `POST /tap-field-and-type` – Body `{ "deviceId", "hint", "text", "index" }` – Tap sur un champ (hint/text), vide, puis saisie. Pour l’email (formulaire inscription), un seul `input text` est utilisé ; si le clavier de l’appareil corrompt la saisie (ex. "6" en trop), essayer un autre clavier dans les paramètres Android ou valider le flux via l’API : `cd tests && npm run test:inscription-gmail`.

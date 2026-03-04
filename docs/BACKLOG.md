@@ -46,10 +46,12 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité moyenne – API et fonctionnalités
 
+- [ ] **Backoffice – Email Monitor** : vérifier que tous les emails envoyés (vérification, reset password, etc.) s'affichent correctement dans la page email-monitor ; tester complètement la partie email-monitor (filtres par type, liste, rafraîchissement).
 - [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
 - [ ] **Documentation API** : Swagger/OpenAPI.
 - [ ] **Rapports par catégorie** : organiser `tests/results/` en sous-dossiers.
 - [ ] **Lancement tests depuis hub** : clic + vérification résultat.
+- [ ] **Backoffice – règles d'envoi email par action** : configurer dynamiquement quels emails envoyer pour quelle action (inscription, entretien créé, relance, etc.) — voir `docs/emails/MAIL.md` § Récap.
 
 ## Priorité basse – Mobile et émulateur
 

@@ -21,13 +21,13 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
     name: 'Login rapide',
     description: 'Deconnexion si besoin -> saisir identifiants -> connexion -> dashboard',
     category: 'auth',
-    steps: ['ensure_logged_out', 'fill_login_form', 'submit_login', 'view_dashboard_ui'],
+    steps: ['go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'fill_login_form', 'submit_login', 'view_dashboard_ui'],
   },
   mobile_registration: {
     name: 'Inscription complete',
-    description: 'Deconnexion -> inscription -> formulaire -> login -> dashboard',
+    description: 'Deconnexion -> inscription -> accepter conditions -> formulaire -> login -> dashboard',
     category: 'auth',
-    steps: ['ensure_logged_out', 'scroll_to_register', 'go_to_register', 'fill_register_form', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui'],
+    steps: ['go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'scroll_to_register', 'go_to_register', 'fill_register_form', 'accept_register_terms', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui'],
   },
   mobile_password_reset: {
     name: 'Reset mot de passe',
@@ -35,11 +35,44 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
     category: 'auth',
     steps: ['ensure_logged_out', 'tap_forgot_password', 'fill_forgot_email', 'submit_forgot', 'go_back_to_login'],
   },
+  mobile_register_verify_gmail: {
+    name: 'Inscription + vérif. email (Gmail)',
+    description: 'Inscription avec redacted@example.invalid → accepter conditions → valider → ouvrir Gmail → ouvrir mail → cliquer lien → retour app → connexion avec le même email',
+    category: 'verification',
+    steps: [
+      'go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'scroll_to_register', 'go_to_register',
+      'fill_register_form_gmail', 'accept_register_terms', 'submit_register',
+      'wait_for_pending_verification_screen', 'wait_after_register', 'open_gmail', 'gmail_open_first_email', 'gmail_tap_verification_link',
+      'return_to_app', 'wait_short', 'fill_login_form_gmail', 'submit_login', 'view_dashboard_ui',
+    ],
+  },
+  mobile_register_verify_proton: {
+    name: 'Inscription + vérif. email (Proton)',
+    description: 'Inscription avec redacted@example.invalid → accepter conditions → valider → ouvrir Proton → mail → lien → retour app → connexion',
+    category: 'verification',
+    steps: [
+      'go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'scroll_to_register', 'go_to_register',
+      'fill_register_form_proton', 'accept_register_terms', 'submit_register',
+      'wait_for_pending_verification_screen', 'wait_after_register', 'open_proton', 'gmail_open_first_email', 'gmail_tap_verification_link',
+      'return_to_app', 'wait_short', 'fill_login_form_proton', 'submit_login', 'view_dashboard_ui',
+    ],
+  },
+  mobile_register_verify_bluemail: {
+    name: 'Inscription + vérif. email (BlueMail)',
+    description: 'Inscription avec candidatures@example.invalid → accepter conditions → valider → ouvrir BlueMail → mail → lien → retour app → connexion',
+    category: 'verification',
+    steps: [
+      'go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'scroll_to_register', 'go_to_register',
+      'fill_register_form_bluemail', 'accept_register_terms', 'submit_register',
+      'wait_for_pending_verification_screen', 'wait_after_register', 'open_bluemail', 'gmail_open_first_email', 'gmail_tap_verification_link',
+      'return_to_app', 'wait_short', 'fill_login_form_bluemail', 'submit_login', 'view_dashboard_ui',
+    ],
+  },
   mobile_login_logout: {
     name: 'Login + Deconnexion',
     description: 'Cycle complet connexion -> dashboard -> deconnexion',
     category: 'auth',
-    steps: ['ensure_logged_out', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'wait_short', 'logout'],
+    steps: ['go_to_home_then_launch_app', 'wait_for_app_ready', 'ensure_logged_out', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'wait_short', 'logout'],
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -504,6 +537,9 @@ export const SCENARIO_CATEGORIES = {
 export const PRIMARY_MOBILE_JOURNEY_KEYS: string[] = [
   'mobile_registration',       // Inscription complète
   'mobile_password_reset',    // Reset mot de passe
+  'mobile_register_verify_gmail',   // Inscription + vérif. email (Gmail)
+  'mobile_register_verify_proton',   // Inscription + vérif. email (Proton)
+  'mobile_register_verify_bluemail', // Inscription + vérif. email (BlueMail)
   'mobile_first_use',         // Première utilisation
   'mobile_daily_use',         // Usage quotidien
   'mobile_complete_with_data', // Parcours complet avec données générées
@@ -512,10 +548,21 @@ export const PRIMARY_MOBILE_JOURNEY_KEYS: string[] = [
   'mobile_complete',          // Parcours complet (admin)
 ];
 
+/** Clés des parcours inscription + vérification email (vérifier dans backoffice email-monitor). */
+export const VERIFICATION_EMAIL_SCENARIO_KEYS: string[] = [
+  'mobile_register_verify_gmail',
+  'mobile_register_verify_proton',
+  'mobile_register_verify_bluemail',
+];
+
 export const STEP_LABELS: Record<string, string> = {
   // Setup
   disable_heads_up_notifications: 'Desactiver bandeaux notifications',
   dismiss_notification_shade: 'Fermer volet notifications',
+
+  // App ready (accueil + lancement + attente splash)
+  go_to_home_then_launch_app: 'Accueil appareil puis lancer l\'app',
+  wait_for_app_ready: 'Attendre ecran connexion ou dashboard',
 
   // Auth
   ensure_logged_out: 'Deconnexion si necessaire',
@@ -527,15 +574,27 @@ export const STEP_LABELS: Record<string, string> = {
   scroll_to_register: 'Scroll vers inscription',
   go_to_register: 'Aller a Inscription',
   fill_register_form: 'Remplir formulaire inscription',
+  fill_register_form_gmail: 'Remplir inscription (Gmail)',
+  fill_register_form_proton: 'Remplir inscription (Proton)',
+  fill_register_form_bluemail: 'Remplir inscription (BlueMail)',
+  accept_register_terms: 'Accepter conditions d\'utilisation',
   submit_register: 'Valider inscription',
+  wait_for_pending_verification_screen: 'Attendre écran "Vérifiez votre email"',
   go_to_login: 'Retour Connexion',
 
   // Login
   fill_login_form: 'Saisir email + mot de passe',
   fill_login_form_user1: 'Saisir identifiants user1 (données de test)',
+  fill_login_form_gmail: 'Saisir identifiants (Gmail)',
+  fill_login_form_proton: 'Saisir identifiants (Proton)',
+  fill_login_form_bluemail: 'Saisir identifiants (BlueMail)',
   submit_login: 'Tap Se connecter',
   open_bluemail: 'Ouvrir BlueMail',
   open_gmail: 'Ouvrir Gmail',
+  wait_after_register: 'Attendre envoi email vérification',
+  gmail_open_first_email: 'Ouvrir premier email vérification',
+  gmail_tap_verification_link: 'Cliquer lien vérification',
+  open_proton: 'Ouvrir Proton Mail',
   return_to_app: 'Retour app JobbingTrack',
 
   // Forgot password
@@ -663,10 +722,8 @@ export const STEP_LABELS: Record<string, string> = {
   verify_calendar_events: 'Verifier evenements calendrier',
 
   // Email app (tests email sur appareil)
-  open_gmail: 'Ouvrir Gmail',
   open_email_app: 'Ouvrir application email',
   verify_email_received: 'Verifier reception email',
-  return_to_app: 'Retourner a JobbingTrack',
 
   // Statistiques
   go_to_statistiques_via_drawer: 'Statistiques via drawer',

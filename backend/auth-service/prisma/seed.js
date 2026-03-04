@@ -56,6 +56,35 @@ async function main() {
   console.log('🔐 Compte de test:')
   console.log(`   Email: ${adminEmail}`)
   console.log(`   Mot de passe: ${adminPassword}`)
+
+  // Utilisateur classique (rôle USER) pour les tests API "utilisateur mobile" (getTestUser)
+  const testUserEmail = process.env.TEST_USER_EMAIL || 'testuser@jobbingtrack.test'
+  const testUserPassword = process.env.TEST_USER_PASSWORD || 'TestPassword123!'
+  const testUserHashed = await bcrypt.hash(testUserPassword, 10)
+  const classicUser = await prisma.user.upsert({
+    where: { email: testUserEmail },
+    update: {
+      password: testUserHashed,
+      firstName: 'TestUser',
+      lastName: 'Fonctionnel',
+      phone: '+33600000000',
+      role: 'USER',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    },
+    create: {
+      email: testUserEmail,
+      password: testUserHashed,
+      firstName: 'TestUser',
+      lastName: 'Fonctionnel',
+      phone: '+33600000000',
+      role: 'USER',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    }
+  })
+  console.log('✅ Utilisateur classique (tests API):', classicUser.email)
+  console.log('   Rôle:', classicUser.role, '| Pré-vérifié: oui')
 }
 
 main()

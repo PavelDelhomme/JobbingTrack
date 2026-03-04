@@ -5,6 +5,9 @@ import path from 'path';
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || '';
 const inDocker = !!(reportDir || process.env.TESTS_RESULTS_DIR || process.env.DOCKER);
+// Cibler le frontend Docker (port 5003) quand PLAYWRIGHT_BASE_URL est défini (ex. make restart-service SERVICE=frontend puis tests)
+const baseURLFromEnv = process.env.PLAYWRIGHT_BASE_URL;
+const baseURL = baseURLFromEnv || (inDocker ? 'http://localhost:3000' : 'http://localhost:3000');
 const outputDir = reportDir ? path.join(reportDir, 'test-results') : 'test-results';
 const htmlReportDir = reportDir ? path.join(reportDir, 'playwright-report') : 'playwright-report';
 const jsonReportPath = reportDir ? path.join(reportDir, 'test-results.json') : 'test-results.json';
@@ -33,8 +36,8 @@ export default defineConfig({
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL: en Docker l'app tourne déjà sur 3000, sinon 3000 (Next.js dev par défaut). */
-    baseURL: inDocker ? 'http://localhost:3000' : 'http://localhost:3000',
+    /* Base URL: PLAYWRIGHT_BASE_URL (ex. http://localhost:5003 pour frontend Docker), sinon 3000. */
+    baseURL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -90,7 +93,10 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests. En Docker, réutiliser le serveur déjà sur 3000 (évite EADDRINUSE). */
-  webServer: inDocker
+  /* Si PLAYWRIGHT_BASE_URL est défini (ex. http://localhost:5003), on réutilise ce serveur sans en lancer un. */
+  webServer: baseURLFromEnv
+    ? [{ command: 'echo', url: baseURLFromEnv, reuseExistingServer: true, timeout: 10_000 }]
+    : inDocker
     ? [
         {
           command: 'echo',

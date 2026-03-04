@@ -1,6 +1,7 @@
 export interface SystemMetrics {
   cpu: {
     usage: number | string
+    usage_percent?: number | string
     cores: number | string
     model: string
     containers_only?: number | string
@@ -12,6 +13,7 @@ export interface SystemMetrics {
     used: number | string
     free: number | string
     usage: number | string
+    usage_percent?: number | string
     usage_mb?: number | string
     limit_mb?: number | string
   }

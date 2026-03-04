@@ -200,7 +200,7 @@ export default function NetworkPerformancePage() {
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(v) => `${v} Mo`} tick={{ fontSize: 12 }} />
-                  <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''} formatter={(v: number, name: string) => [`${Number(v).toFixed(2)} Mo`, name === 'rxMb' ? 'RX (Mo)' : 'TX (Mo)']} />
+                  <Tooltip labelFormatter={(_, payload: unknown) => (payload as Array<{ payload?: { datetime?: string } }>)?.[0]?.payload?.datetime ?? ''} formatter={((v: number, name: string) => [`${Number(v).toFixed(2)} Mo`, name === 'rxMb' ? 'RX (Mo)' : 'TX (Mo)']) as (v: number, name: string) => [string, string]} />
                   <Legend />
                   <Line type="monotone" dataKey="rxMb" stroke="#8B5CF6" strokeWidth={2} name="RX (Mo)" dot={false} />
                   <Line type="monotone" dataKey="txMb" stroke="#F59E0B" strokeWidth={2} name="TX (Mo)" dot={false} />

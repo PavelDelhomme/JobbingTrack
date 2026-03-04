@@ -20,6 +20,7 @@ const welcomeTemplate = require('./email/templates/welcome.template');
 const resetPasswordTemplate = require('./email/templates/resetPassword.template');
 const verificationTemplate = require('./email/templates/verification.template');
 const passwordChangedTemplate = require('./email/templates/passwordChanged.template');
+const { getPublicFrontendUrl } = require('../utils/frontendUrlForEmails');
 
 class EmailService {
   constructor() {
@@ -193,7 +194,7 @@ class EmailService {
    */
   async sendWelcomeEmail(user) {
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const frontendUrl = getPublicFrontendUrl();
       const appName = 'JobbingTrack';
       const userName = user.firstName || 'Utilisateur';
 
@@ -386,7 +387,7 @@ class EmailService {
    */
   async sendPasswordChangedEmail(user) {
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const frontendUrl = getPublicFrontendUrl();
       const appName = 'JobbingTrack';
       const userName = user.firstName || 'Utilisateur';
       const changeTime = new Date().toLocaleString('fr-FR', {
