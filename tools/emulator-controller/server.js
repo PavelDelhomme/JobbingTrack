@@ -262,6 +262,12 @@ const routes = {
     }
   },
 
+  /** Redémarre le processus du contrôleur (pour charger la dernière version du code). Le client doit relancer make emulator-controller. */
+  async '/restart'(req, res, _body, _url) {
+    send(res, 200, { success: true, message: 'Redémarrage du contrôleur dans 1s. Relancez : make emulator-controller' });
+    setTimeout(() => process.exit(0), 1000);
+  },
+
   /** Ferme l'app (force-stop) puis la relance sans réinstaller. Délai avant retour pour laisser uiautomator prêt. */
   async '/force-restart-app'(req, res, body) {
     try {
@@ -634,7 +640,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });
