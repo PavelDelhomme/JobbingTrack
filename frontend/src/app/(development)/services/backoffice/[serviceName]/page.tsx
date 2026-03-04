@@ -6,6 +6,7 @@ import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { RefreshCw, Activity, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 interface ServiceLog {
@@ -196,7 +197,7 @@ export default function ServiceDetailPage() {
               logs.map((log, idx) => (
                 <div key={idx} className="mb-1 flex gap-3 text-xs">
                   <span className="text-gray-500 shrink-0">
-                    {new Date(log.timestamp).toLocaleString()}
+                    {formatLocalDateTime(log.timestamp)}
                   </span>
                   <Badge 
                     variant="outline" 

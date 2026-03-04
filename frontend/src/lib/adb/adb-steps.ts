@@ -16,7 +16,79 @@ export function getMobileTestCredentials(): { email: string; password: string } 
   };
 }
 
-export async function executeStep(stepId: string, adb: AdbClient): Promise<string> {
+/** Emails utilisés pour les parcours inscription + vérification email (Gmail, Proton, BlueMail). */
+export const VERIFICATION_EMAIL_ACCOUNTS = {
+  gmail: {
+    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL : 'pauldelhomme.pro@gmail.com',
+    password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD : 'password123',
+    app: 'Gmail'
+  },
+  proton: {
+    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL : 'paul.delhomme@proton.me',
+    password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD : 'password123',
+    app: 'Proton Mail'
+  },
+  bluemail: {
+    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL : 'candidatures@delhomme.ovh',
+    password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD : 'password123',
+    app: 'BlueMail'
+  },
+} as const;
+
+/** Essaie plusieurs hints (et index) pour remplir un champ jusqu'à ce qu'un matche (dump Flutter variable). */
+async function typeInFieldWithHints(
+  adb: AdbClient,
+  hints: { hint: string; index?: number }[],
+  value: string
+): Promise<string> {
+  let lastErr: Error | null = null;
+  for (const { hint, index = 0 } of hints) {
+    try {
+      return await adb.typeInField(hint, value, index);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr ?? new Error('Aucun champ trouvé');
+}
+
+/** Essaie plusieurs libellés pour tap jusqu'à ce qu'un matche. */
+async function tapWithFallbacks(adb: AdbClient, texts: string[], index = 0): Promise<string> {
+  let lastErr: Error | null = null;
+  for (const text of texts) {
+    try {
+      return await adb.tap(text, index);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr ?? new Error('Élément introuvable');
+}
+
+/** Hints formulaire inscription (register_screen.dart). Variantes car dump Flutter varie. "Nom" matche "Prénom" → index 1 pour le 2e. */
+/** Mot de passe : 1er champ = index 0, 2e (confirmer) = index 1 quand on matche "Mot de passe". */
+const REGISTER_FIRST_NAME_HINTS = [{ hint: 'Prénom' }, { hint: 'Votre prénom' }, { hint: 'prénom' }];
+const REGISTER_LAST_NAME_HINTS = [{ hint: 'Votre nom' }, { hint: 'Nom', index: 1 }];
+const REGISTER_EMAIL_HINTS = [{ hint: 'Email' }, { hint: 'votre.email' }, { hint: 'exemple.com' }];
+const REGISTER_PASSWORD_HINTS = [
+  { hint: 'Mot de passe Minimum 8 caractères' },
+  { hint: 'Minimum 8 caractères' }, { hint: 'Minimum 8' }, { hint: 'Minimum' }, { hint: 'caractères' },
+  { hint: 'Mot de passe', index: 0 },
+];
+const REGISTER_CONFIRM_HINTS = [
+  { hint: 'Confirmer le mot de passe Retapez votre mot de passe' },
+  { hint: 'Retapez votre mot de passe' }, { hint: 'Retapez votre' }, { hint: 'Retapez' },
+  { hint: 'Confirmer le mot de passe' }, { hint: 'Confirmer' },
+  { hint: 'Mot de passe', index: 1 },
+];
+
+export interface ExecuteStepOptions {
+  isCancelled?: () => boolean;
+}
+
+export async function executeStep(stepId: string, adb: AdbClient, options?: ExecuteStepOptions): Promise<string> {
+  const checkCancel = () => { if (options?.isCancelled?.()) throw new Error('Parcours annulé'); };
+
   switch (stepId) {
 
     // ═══════════════════════════════════════════════════════════════
@@ -56,7 +128,61 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
     //  AUTH
     // ═══════════════════════════════════════════════════════════════
 
+    case 'go_to_home_then_launch_app': {
+      const pkg = 'com.example.jobbingtrack_mobile';
+      await adb.keyevent(3); // KEYCODE_HOME
+      await adb.wait(2000);
+      await adb.shellCommand(`am start -n ${pkg}/.MainActivity`);
+      await adb.wait(3000);
+      return 'Accueil puis app lancee';
+    }
+
+    case 'wait_for_app_ready': {
+      const timeoutMs = 45000;
+      const pollMs = 2000;
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        checkCancel();
+        if (await adb.uiContains('Se connecter')) return 'App prete (ecran connexion)';
+        if (await adb.uiContains('Bonjour')) return 'App prete (dashboard)';
+        // Déblocage : ancien build ou serveur injoignable → on force le passage à l'écran connexion
+        if (await adb.uiContains('Serveur introuvable') || await adb.uiContains('Continuer sans')) {
+          try {
+            await adb.tap('Continuer');
+            await adb.wait(3000);
+            if (await adb.uiContains('Se connecter')) return 'App prete (apres Continuer sans verification)';
+          } catch {
+            try {
+              await adb.tap('sans vérification');
+              await adb.wait(3000);
+              if (await adb.uiContains('Se connecter')) return 'App prete (apres tap)';
+            } catch {}
+          }
+        }
+        if (await adb.uiContains('Connexion au serveur')) {
+          await adb.wait(pollMs);
+          continue;
+        }
+        await adb.wait(pollMs);
+      }
+      return 'Timeout: app non chargee (rebuild APK + adb reverse tcp:5002 tcp:5002 si appareil physique)';
+    }
+
     case 'ensure_logged_out': {
+      // Ne pas confondre "Connexion au serveur" (splash) avec le bouton déconnexion
+      const onSplash = await adb.uiContains('Connexion au serveur');
+      if (onSplash) {
+        const timeoutMs = 20000;
+        const pollMs = 2000;
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          checkCancel();
+          await adb.wait(pollMs);
+          if (await adb.uiContains('Se connecter')) break;
+          if (await adb.uiContains('Bonjour')) break;
+          if (!(await adb.uiContains('Connexion au serveur'))) break;
+        }
+      }
       const onDashboard = await adb.uiContains('Bonjour');
       if (onDashboard) {
         await adb.tap('connexion');
@@ -88,7 +214,12 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
     }
 
     case 'logout': {
-      if (await adb.uiContains('connexion')) {
+      if (await adb.uiContains('Bonjour')) {
+        await adb.tap('connexion');
+        await adb.wait(4000);
+        return 'Deconnexion effectuee';
+      }
+      if (await adb.uiContains('connexion') && !(await adb.uiContains('Connexion au serveur'))) {
         await adb.tap('connexion');
         await adb.wait(4000);
         return 'Deconnexion effectuee';
@@ -121,40 +252,168 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
 
     case 'go_to_register': {
       await adb.wait(500);
+      await adb.logScreenSummary('Avant go_to_register');
       try { await adb.tap('inscrire'); } catch {
         await adb.scrollDown(1200);
         await adb.wait(1000);
         await adb.tap('inscrire');
       }
       await adb.wait(2500);
+      await adb.logScreenSummary('Après go_to_register');
       return 'Ecran inscription affiche';
     }
 
     case 'fill_register_form': {
       const { email, password } = getMobileTestCredentials();
-      await adb.typeInField('pr', 'Test');
+      await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
       await adb.wait(600);
-      await adb.typeInField('Nom', 'Mobile');
+      await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Mobile');
       await adb.wait(600);
-      await adb.typeInField('Email', email);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
       await adb.wait(600);
-      await adb.typeInField('Minimum', password);
+      await adb.scrollDown(500);
+      await adb.wait(400);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
       await adb.wait(600);
-      await adb.typeInField('Retapez', password);
+      await typeInFieldWithHints(adb, REGISTER_CONFIRM_HINTS, password);
       await adb.wait(500);
       await adb.closeKeyboard();
       await adb.wait(800);
-      try { await adb.tap('conditions'); } catch {}
       await adb.wait(500);
       return 'Formulaire rempli';
     }
 
-    case 'submit_register': {
-      await adb.scrollDown(1200);
+    case 'accept_register_terms': {
+      await adb.wait(400);
+      await adb.logScreenSummary('Avant accept_register_terms');
+      await tapWithFallbacks(adb, [
+        "Accepter les conditions d'utilisation",
+        "J'accepte les conditions d'utilisation et la politique",
+        "conditions d'utilisation et la politique",
+      ]);
+      await adb.wait(600);
+      await adb.logScreenSummary('Après accept_register_terms');
+      return 'Conditions acceptées';
+    }
+
+    case 'fill_register_form_gmail': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      await adb.logScreenSummary('Avant fill_register_form_gmail');
+      await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
+      adb.logMessage('[Champ] Prénom = Test');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Gmail');
+      adb.logMessage('[Champ] Nom = Gmail');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      adb.logMessage(`[Champ] Email = ${email}`);
+      await adb.wait(600);
+      await adb.scrollDown(500);
+      await adb.wait(400);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      adb.logMessage('[Champ] Mot de passe = ****');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_CONFIRM_HINTS, password);
+      adb.logMessage('[Champ] Confirmation = ****');
+      await adb.wait(500);
+      await adb.closeKeyboard();
       await adb.wait(800);
-      try { await adb.tap('inscrire'); } catch { await adb.tap("S'inscrire"); }
-      await adb.wait(4000);
+      await adb.wait(500);
+      await adb.logScreenSummary('Après fill_register_form_gmail');
+      return `Formulaire rempli (${email})`;
+    }
+
+    case 'fill_register_form_proton': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Proton');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      await adb.wait(600);
+      await adb.scrollDown(500);
+      await adb.wait(400);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_CONFIRM_HINTS, password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      await adb.wait(500);
+      return `Formulaire rempli (${email})`;
+    }
+
+    case 'fill_register_form_bluemail': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'BlueMail');
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      await adb.wait(600);
+      await adb.scrollDown(500);
+      await adb.wait(400);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      await adb.wait(600);
+      await typeInFieldWithHints(adb, REGISTER_CONFIRM_HINTS, password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      await adb.wait(500);
+      return `Formulaire rempli (${email})`;
+    }
+
+    case 'submit_register': {
+      checkCancel();
+      await adb.closeKeyboard();
+      await adb.wait(500);
+      await adb.logScreenSummary('Avant submit_register');
+      try {
+        await tapWithFallbacks(adb, ["Valider inscription", "S'inscrire", 'inscrire', 'Inscrire', 'Valider']);
+      } catch {
+        await adb.scrollDown(600);
+        await adb.wait(400);
+        await tapWithFallbacks(adb, ["Valider inscription", "S'inscrire", 'inscrire', 'Inscrire', 'Valider']);
+      }
+      await adb.wait(2000);
+      const timeoutMs = 12000;
+      const pollMs = 1000;
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        checkCancel();
+        if (await adb.uiContains('Vérifiez votre email')) return 'Inscription envoyée — Veuillez confirmer le compte en cliquant le lien dans votre boîte mail.';
+        if (await adb.uiContains('Vérification requise')) return 'Inscription envoyée — Confirmez le compte via le lien reçu par mail.';
+        if (await adb.uiContains('lien de vérification')) return 'Inscription envoyée — Ouvrez votre boîte mail et cliquez le lien.';
+        if (await adb.uiContains('Aller à la connexion')) return 'Inscription envoyée — Confirmez via le mail.';
+        if (await adb.uiContains('Connexion') && !(await adb.uiContains('Créer un compte'))) return 'Inscription envoyée — Confirmez le compte via le mail.';
+        const stillOnForm = await adb.uiContains('Créer un compte') || await adb.uiContains('S\'inscrire');
+        if (stillOnForm) {
+          await adb.wait(pollMs);
+          continue;
+        }
+        return 'Inscription soumise';
+      }
+      const stillOnForm = await adb.uiContains('Créer un compte');
+      if (stillOnForm) {
+        await adb.logScreenSummary('Échec submit_register (resté sur formulaire)');
+        throw new Error('L\'inscription n\'a pas abouti : l\'app est restée sur "Créer un compte". Vérifiez que l’email ne contient pas de caractère parasite (ex. 6 en fin d’adresse) et que le backend envoie l’email.');
+      }
       return 'Inscription soumise';
+    }
+
+    case 'wait_for_pending_verification_screen': {
+      const timeoutMs = 15000;
+      const pollMs = 800;
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        checkCancel();
+        if (await adb.uiContains('Vérifiez votre email')) return 'Vérifiez votre email — Ouvrez votre boîte mail (Gmail/Proton) et cliquez le lien de confirmation.';
+        if (await adb.uiContains('Vérification requise')) return 'Vérification requise — Ouvrez votre boîte mail et cliquez le lien.';
+        if (await adb.uiContains('lien de vérification')) return 'Lien de vérification envoyé — Ouvrez votre boîte mail.';
+        if (await adb.uiContains('Aller à la connexion')) return 'Ouvrez votre boîte mail et confirmez le compte.';
+        await adb.wait(pollMs);
+      }
+      throw new Error('Écran "Vérifiez votre email" non vu après inscription (timeout). Vérifiez que l’email ne contient pas de caractère parasite (ex. 6) et que le backend envoie l’email.');
     }
 
     case 'go_to_login': {
@@ -194,8 +453,44 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
       return 'Identifiants user1 saisis';
     }
 
+    case 'fill_login_form_gmail': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      await adb.wait(500);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      await adb.wait(800);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      return `Identifiants saisis (${email})`;
+    }
+
+    case 'fill_login_form_proton': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      await adb.wait(500);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      await adb.wait(800);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      return `Identifiants saisis (${email})`;
+    }
+
+    case 'fill_login_form_bluemail': {
+      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      await adb.wait(500);
+      await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
+      await adb.wait(800);
+      await typeInFieldWithHints(adb, REGISTER_PASSWORD_HINTS, password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      return `Identifiants saisis (${email})`;
+    }
+
     case 'submit_login': {
-      await adb.tap('connecter');
+      await tapWithFallbacks(adb, ['Se connecter', 'connecter', 'Connexion']);
       await adb.wait(4000);
       return 'Connexion effectuee';
     }
@@ -218,6 +513,40 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
       }
       await adb.wait(3000);
       return 'Gmail ouvert';
+    }
+
+    case 'wait_after_register': {
+      const totalMs = 15000;
+      const chunkMs = 500;
+      for (let elapsed = 0; elapsed < totalMs; elapsed += chunkMs) {
+        checkCancel();
+        await adb.wait(chunkMs);
+      }
+      return 'Attente envoi email vérification (15s)';
+    }
+
+    case 'gmail_open_first_email': {
+      await adb.wait(3000);
+      await tapWithFallbacks(adb, ['JobbingTrack', 'vérification', 'Vérifiez', 'verification', 'Confirm', 'Confirmer', 'Vérifiez votre', 'email']);
+      await adb.wait(4000);
+      return 'Premier email vérification ouvert';
+    }
+
+    case 'gmail_tap_verification_link': {
+      await adb.wait(2000);
+      await tapWithFallbacks(adb, ['Vérifier', 'Vérifiez', 'Confirm', 'confirmer', 'Lien', 'lien', 'valider', 'Cliquez', 'Confirmer mon compte', 'Ouvrir']);
+      await adb.wait(5000);
+      return 'Lien vérification cliqué';
+    }
+
+    case 'open_proton': {
+      try {
+        await adb.shellCommand('am start -n ch.protonmail.android/.MainActivity');
+      } catch {
+        await adb.shellCommand('am start -a android.intent.action.MAIN -p ch.protonmail.android');
+      }
+      await adb.wait(3000);
+      return 'Proton Mail ouvert';
     }
 
     case 'return_to_app': {

@@ -32,7 +32,7 @@ export default function InterviewsTab() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setInterviews(cached)
+        setInterviews(Array.isArray(cached) ? (cached as Interview[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         interviewService.getAll({ limit: 100 }).then(response => {

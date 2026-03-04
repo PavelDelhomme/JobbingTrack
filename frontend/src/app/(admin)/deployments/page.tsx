@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AdminLayout } from '@/components/features'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import { useAuth } from '@/lib/hooks/auth'
 import axios from 'axios'
 
@@ -80,15 +81,7 @@ export default function DeploymentsPage() {
     return `${hours}h ${minutes}min`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatLocalDateTime(dateString)
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -473,22 +473,21 @@ _up-full-internal:
 	# Correction DB
 	$(MAKE) db-fix-role
 	
+	# ✅ db-push-all AVANT de démarrer les services "full" (deployment-service, etc.) pour que la table deployments existe
+	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
+	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
+	
 	# Démarrer frontend
 	@echo "🚀 Démarrage du frontend..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	
-	# Démarrer TOUS les autres services avec le profil 'full' (SANS monitoring-c et metrics-aggregator pour l'instant)
+	# Démarrer TOUS les autres services avec le profil 'full' (table deployments déjà créée ci-dessus)
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
-	# Attendre que tous les conteneurs soient démarrés (nécessaire pour db-push-all qui exécute Prisma dans chaque conteneur)
+	# Attendre que tous les conteneurs soient démarrés
 	@echo "⏳ Attente que tous les services soient démarrés (8s)..."
 	@sleep 8
-	
-	# ✅ UN SEUL db-push-all : Prisma push (9 services) + init-system-metrics + init-key-tables
-	# Fait AVANT monitoring/metrics-aggregator pour que container_metrics_snapshots existe dès le premier run
-	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
-	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
 	
 	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
 	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
@@ -1339,15 +1338,24 @@ ps: ## Liste les conteneurs actifs
 	@echo "================================"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) ps)
 
+# Logs : dernières lignes sans suivi (sort immédiatement)
+logs-tail: ## Affiche les N dernières lignes de logs puis quitte (LINES=200 par défaut)
+	@echo "📋 Dernières lignes des logs JobbingTrack (puis sortie)"
+	@echo "======================================================"
+	@echo "💡 Pour suivre en continu : make logs  (puis Ctrl+C pour quitter)"
+	@echo ""
+	@N=$${LINES:-200}; cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -t --tail=$$N 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
+
 # Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
-logs: ## Affiche tous les logs en temps réel (tags colorés)
-	@echo "📋 Logs en temps réel des services JobbingTrack"
-	@echo "==============================================="
-	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests (tests)  |  make logs-metrics"
+# S'exécute indéfiniment jusqu'à Ctrl+C (suivi continu).
+logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
+	@echo "📋 Logs en temps réel des services JobbingTrack (suivi continu)"
+	@echo "==============================================================="
+	@echo "⏹️  Pour arrêter : Ctrl+C  |  Pour voir les dernières lignes sans suivi : make logs-tail"
+	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
-	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta"
-	@echo "   Erreurs (rouge): ERROR/FATAL, HTTP 404/5xx, tables absentes, « does not exist », Erreur insertion/sauvegarde"
-	@echo "   Timestamps: date/heure affichées (format ISO)"
+	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [PERSISTENCE]/[AUTH]=vert, Erreurs=rouge"
 	@echo ""
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)

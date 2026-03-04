@@ -9,6 +9,7 @@ const path = require('path');
 const logger = require('../../utils/logger');
 const { PrismaClient } = require('@prisma/client');
 const { prisma } = require('../../utils/prismaClient');
+const { getPublicFrontendUrl } = require('../../utils/frontendUrlForEmails');
 
 const execAsync = promisify(exec);
 
@@ -298,7 +299,7 @@ class PythonEmailService {
       logger.info(`[PythonEmailService] Envoi email reset password à ${userEmail}`);
       
       // Logger l'email avant l'envoi
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const frontendUrl = getPublicFrontendUrl();
       const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
       
       emailLog = await this.logEmail({
@@ -359,8 +360,8 @@ class PythonEmailService {
       
       logger.info(`[PythonEmailService] Envoi email vérification à ${userEmail}`);
       
-      // Logger l'email avant l'envoi
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      // Logger l'email avant l'envoi (URL publique = IP machine si HOST_IP défini)
+      const frontendUrl = getPublicFrontendUrl();
       const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
       
       emailLog = await this.logEmail({

@@ -2,7 +2,7 @@
   "config": {
     "configFile": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/playwright.config.ts",
     "rootDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
-    "forbidOnly": true,
+    "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-setup.ts",
     "globalTeardown": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-teardown.ts",
@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 1
+      "actualWorkers": 2
     },
     "preserveOutput": "always",
     "reporter": [
@@ -34,7 +34,7 @@
         }
       ],
       [
-        "github",
+        "list",
         null
       ]
     ],
@@ -47,9 +47,9 @@
       {
         "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
         "repeatEach": 1,
-        "retries": 2,
+        "retries": 0,
         "metadata": {
-          "actualWorkers": 1
+          "actualWorkers": 2
         },
         "id": "setup",
         "name": "setup",
@@ -63,9 +63,9 @@
       {
         "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
         "repeatEach": 1,
-        "retries": 2,
+        "retries": 0,
         "metadata": {
-          "actualWorkers": 1
+          "actualWorkers": 2
         },
         "id": "no-auth",
         "name": "no-auth",
@@ -80,9 +80,9 @@
       {
         "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
         "repeatEach": 1,
-        "retries": 2,
+        "retries": 0,
         "metadata": {
-          "actualWorkers": 1
+          "actualWorkers": 2
         },
         "id": "chromium",
         "name": "chromium",
@@ -118,7 +118,7 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.56.0",
-    "workers": 1,
+    "workers": 8,
     "webServer": null
   },
   "suites": [
@@ -130,7 +130,7 @@
       "specs": [
         {
           "title": "authenticate as admin",
-          "ok": false,
+          "ok": true,
           "tags": [],
           "tests": [
             {
@@ -143,145 +143,18 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 30196,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts",
-                        "column": 14,
-                        "line": 23
-                      },
-                      "message": "Error: page.waitForURL: Test timeout of 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/backoffice**\" until \"load\"\n============================================================\n\n  21 |   await page.locator('button[type=\"submit\"]').click();\n  22 |\n> 23 |   await page.waitForURL('**/backoffice**', { timeout: 30000 });\n     |              ^\n  24 |   await expect(page.locator('body')).toBeVisible();\n  25 |\n  26 |   await page.context().storageState({ path: AUTH_FILE });\n    at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts:23:14"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 6604,
+                  "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-03-03T06:53:09.065Z",
+                  "startTime": "2026-03-03T23:18:09.799Z",
                   "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup/test-failed-1.png"
-                    },
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup/video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup/error-context.md"
-                    }
-                  ]
-                },
-                {
-                  "workerIndex": 1,
-                  "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 30440,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts",
-                        "column": 14,
-                        "line": 23
-                      },
-                      "message": "Error: page.waitForURL: Test timeout of 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/backoffice**\" until \"load\"\n============================================================\n\n  21 |   await page.locator('button[type=\"submit\"]').click();\n  22 |\n> 23 |   await page.waitForURL('**/backoffice**', { timeout: 30000 });\n     |              ^\n  24 |   await expect(page.locator('body')).toBeVisible();\n  25 |\n  26 |   await page.context().storageState({ path: AUTH_FILE });\n    at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts:23:14"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-03-03T06:53:39.889Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/test-failed-1.png"
-                    },
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/trace.zip"
-                    }
-                  ]
-                },
-                {
-                  "workerIndex": 2,
-                  "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 30158,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts",
-                        "column": 14,
-                        "line": 23
-                      },
-                      "message": "Error: page.waitForURL: Test timeout of 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/backoffice**\" until \"load\"\n============================================================\n\n  21 |   await page.locator('button[type=\"submit\"]').click();\n  22 |\n> 23 |   await page.waitForURL('**/backoffice**', { timeout: 30000 });\n     |              ^\n  24 |   await expect(page.locator('body')).toBeVisible();\n  25 |\n  26 |   await page.context().storageState({ path: AUTH_FILE });\n    at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts:23:14"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 2,
-                  "startTime": "2026-03-03T06:54:11.235Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry2/test-failed-1.png"
-                    },
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry2/video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry2/error-context.md"
-                    }
-                  ]
+                  "attachments": []
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
           "id": "17e3fe6f4d9d8bd79c6b-1580989d32f149e984ed",
@@ -292,20 +165,20 @@
       ]
     },
     {
-      "title": "mobile-emulator.spec.ts",
-      "file": "mobile-emulator.spec.ts",
+      "title": "email-verification-monitor.spec.ts",
+      "file": "email-verification-monitor.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Backoffice — Émulateur mobile",
-          "file": "mobile-emulator.spec.ts",
-          "line": 8,
+          "title": "Inscription + vérification email (Email Monitor)",
+          "file": "email-verification-monitor.spec.ts",
+          "line": 22,
           "column": 6,
           "specs": [
             {
-              "title": "affiche la page Émulateur mobile après connexion",
+              "title": "inscription des 3 comptes puis vérification dans Email Monitor",
               "ok": true,
               "tags": [],
               "tests": [
@@ -315,17 +188,31 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8659,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-03T23:18:17.106Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "d9c0c4a040cecf7e5491-b51488f4939f16a1a1fd",
-              "file": "mobile-emulator.spec.ts",
-              "line": 14,
+              "id": "6ee7474bfbb70e3ad464-70406505e804aa04ff6a",
+              "file": "email-verification-monitor.spec.ts",
+              "line": 23,
               "column": 7
             },
             {
-              "title": "affiche la section parcours principaux avec au moins un parcours",
+              "title": "Email Monitor affiche les filtres et le type Vérification",
               "ok": true,
               "tags": [],
               "tests": [
@@ -335,181 +222,27 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 3731,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-03T23:18:17.095Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "d9c0c4a040cecf7e5491-d2490b6bd951440e561b",
-              "file": "mobile-emulator.spec.ts",
-              "line": 19,
-              "column": 7
-            },
-            {
-              "title": "affiche le bouton Lancer le parcours",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-ffcc19486e1b4d84a442",
-              "file": "mobile-emulator.spec.ts",
-              "line": 26,
-              "column": 7
-            },
-            {
-              "title": "bouton Lancer le parcours désactivé ou message si aucun appareil",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-94fe11cb5483c10097eb",
-              "file": "mobile-emulator.spec.ts",
-              "line": 30,
-              "column": 7
-            },
-            {
-              "title": "affiche la liste des parcours (tous les parcours ou filtre)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-922aaa8ff193420c68fe",
-              "file": "mobile-emulator.spec.ts",
-              "line": 39,
-              "column": 7
-            },
-            {
-              "title": "les 8 parcours principaux sont présents",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-0222907b83587ccb7d91",
-              "file": "mobile-emulator.spec.ts",
-              "line": 46,
-              "column": 7
-            },
-            {
-              "title": "affiche un statut contrôleur (connecté ou injoignable)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-7f280aeb4f9b217f824d",
-              "file": "mobile-emulator.spec.ts",
-              "line": 62,
-              "column": 7
-            }
-          ]
-        },
-        {
-          "title": "Backoffice — Émulateur mobile (parcours avec données)",
-          "file": "mobile-emulator.spec.ts",
-          "line": 72,
-          "column": 6,
-          "specs": [
-            {
-              "title": "sélection du parcours complet avec données",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-280e199ff9ec067d9e55",
-              "file": "mobile-emulator.spec.ts",
-              "line": 78,
-              "column": 7
-            },
-            {
-              "title": "sélection du parcours Inscription complète",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-85cb7a497f7b11f38361",
-              "file": "mobile-emulator.spec.ts",
-              "line": 85,
-              "column": 7
-            },
-            {
-              "title": "sélection du parcours Archives & Corbeille",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d9c0c4a040cecf7e5491-06a65b065733e420499b",
-              "file": "mobile-emulator.spec.ts",
-              "line": 91,
+              "id": "6ee7474bfbb70e3ad464-fa77e9d891468acff4ba",
+              "file": "email-verification-monitor.spec.ts",
+              "line": 63,
               "column": 7
             }
           ]
@@ -519,11 +252,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-03T06:53:07.830Z",
-    "duration": 93666.62400000001,
-    "expected": 0,
-    "skipped": 10,
-    "unexpected": 1,
+    "startTime": "2026-03-03T23:18:01.769Z",
+    "duration": 24173.14,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
     "flaky": 0
   }
 }

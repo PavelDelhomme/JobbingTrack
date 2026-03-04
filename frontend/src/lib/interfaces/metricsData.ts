@@ -43,6 +43,19 @@ export interface HealthOverview {
   containers_total?: number
 }
 
+/** Données exposées par monitoring-c / metrics-aggregator (système) */
+export interface MonitoringCOverview {
+  avg_response_time_ms?: number | null
+  avg_cpu_percent?: number
+  avg_memory_percent?: number
+  container_count?: number
+  load_score?: number
+  availability_percent?: number | string
+  network?: NetworkMetricsOverview
+  error_rate_per_min?: number | string
+  services_errors?: Record<string, unknown>
+}
+
 export interface MetricsData {
   services: { [key: string]: ServiceMetrics }
   servicesList?: ServiceMetrics[]
@@ -54,5 +67,9 @@ export interface MetricsData {
   errors?: ErrorMetricsOverview
   health?: HealthOverview
   overallLoadScore?: number
+  /** Données système depuis monitoring-c (metrics-aggregator) */
+  monitoringC?: MonitoringCOverview
+  /** Données pour graphiques (historique par service) */
+  chartData?: Array<Record<string, unknown>>
   history?: Array<Record<string, any>>
 }

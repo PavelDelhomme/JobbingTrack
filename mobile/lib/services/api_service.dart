@@ -15,38 +15,49 @@ class ApiService {
 
   static String? _resolvedBaseUrl;
 
+  /// URL de l'API. Par défaut en local : 127.0.0.1 (adb reverse) ou 10.0.2.2 (émulateur).
   static String get baseUrl {
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
     if (_resolvedBaseUrl != null) return _resolvedBaseUrl!;
-    return 'http://localhost:$_apiPort';
+    return 'http://127.0.0.1:$_apiPort';
   }
 
   static set baseUrl(String url) => _resolvedBaseUrl = url;
 
-  /// Tente de trouver un baseUrl fonctionnel (localhost via adb reverse, 10.0.2.2 pour émulateur, IP LAN).
+  /// Tente de trouver un baseUrl fonctionnel.
+  /// Ordre : 127.0.0.1 (appareil avec adb reverse), 10.0.2.2 (émulateur), localhost.
+  /// Si aucune ne répond, on passe quand même à l'écran de connexion (pas de blocage).
   static Future<bool> autoDetectApi() async {
-    final candidates = [
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) {
+      _resolvedBaseUrl = fromEnv;
+      debugPrint('[API] URL prod (dart-define): $fromEnv');
+      return true;
+    }
+    const localCandidates = [
+      'http://127.0.0.1:$_apiPort',  // Appareil physique avec adb reverse tcp:5002 tcp:5002
+      'http://10.0.2.2:$_apiPort',   // Émulateur Android : machine hôte
       'http://localhost:$_apiPort',
-      'http://10.0.2.2:$_apiPort',
-      'http://127.0.0.1:$_apiPort',
     ];
-    for (final url in candidates) {
+    for (final url in localCandidates) {
       try {
-        debugPrint('[API] Test connexion: $url/health');
+        debugPrint('[API] Test: $url/health');
         final res = await http
             .get(Uri.parse('$url/health'))
-            .timeout(const Duration(seconds: 3));
+            .timeout(const Duration(seconds: 2));
         if (res.statusCode == 200) {
           _resolvedBaseUrl = url;
-          debugPrint('[API] Connexion OK: $url');
+          debugPrint('[API] OK: $url');
           return true;
         }
       } catch (_) {
         debugPrint('[API] Echec: $url');
       }
     }
-    debugPrint('[API] Aucune URL fonctionnelle trouvée, fallback localhost');
-    _resolvedBaseUrl = candidates.first;
-    return false;
+    _resolvedBaseUrl = localCandidates.first;
+    debugPrint('[API] Aucune URL OK, passage à l\'écran connexion avec: $_resolvedBaseUrl');
+    return true;
   }
 
   static Future<http.Response> _get(String path, {Map<String, String>? headers}) {

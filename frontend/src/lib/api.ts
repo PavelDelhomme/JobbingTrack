@@ -234,7 +234,7 @@ export const authService = {
 };
 
 export const applicationService = {
-    getAll: () => apiClient.get('/applications'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/applications', { params }),
     getById: (id: string) => apiClient.get(`/applications/${id}`),
     create: (data: any) => apiClient.post('/applications', data),
     update: (id: string, data: any) => apiClient.put(`/applications/${id}`, data),
@@ -253,7 +253,7 @@ export const applicationService = {
 };
 
 export const companyService = {
-    getAll: () => apiClient.get('/companies'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/companies', { params }),
     getById: (id: string) => apiClient.get(`/companies/${id}`),
     create: (data: any) => apiClient.post('/companies', data),
     update: (id: string, data: any) => apiClient.put(`/companies/${id}`, data),
@@ -261,7 +261,7 @@ export const companyService = {
 };
 
 export const contactService = {
-    getAll: () => apiClient.get('/contacts'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/contacts', { params }),
     getById: (id: string) => apiClient.get(`/contacts/${id}`),
     create: (data: any) => apiClient.post('/contacts', data),
     update: (id: string, data: any) => apiClient.put(`/contacts/${id}`, data),
@@ -279,7 +279,7 @@ export const contactService = {
 };
 
 export const interviewService = {
-    getAll: () => apiClient.get('/interviews'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/interviews', { params }),
     getById: (id: string) => apiClient.get(`/interviews/${id}`),
     create: (data: any) => apiClient.post('/interviews', data),
     update: (id: string, data: any) => apiClient.put(`/interviews/${id}`, data),
@@ -296,7 +296,7 @@ export const followUpService = {
 };
 
 export const callService = {
-    getAll: () => apiClient.get('/calls'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/calls', { params }),
     getById: (id: string) => apiClient.get(`/calls/${id}`),
     create: (data: any) => apiClient.post('/calls', data),
     update: (id: string, data: any) => apiClient.put(`/calls/${id}`, data),

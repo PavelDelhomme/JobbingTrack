@@ -8,6 +8,24 @@ Application mobile Flutter pour JobbingTrack.
 
 ---
 
+## 🌐 URL de l'API (local vs production)
+
+**En local** : le splash ne bloque plus. L'app essaie dans l'ordre :
+- `127.0.0.1:5002` (appareil physique avec **adb reverse tcp:5002 tcp:5002**)
+- `10.0.2.2:5002` (émulateur Android)
+- `localhost:5002`
+
+Puis elle affiche toujours l'écran de connexion. Si l'API ne répond pas, depuis l'écran de connexion vous pouvez **tapper sur « API: ... »** en bas pour saisir l'IP du PC (ex. 192.168.1.42).
+
+**Rebuild obligatoire** après ces changements : `flutter build apk --debug` puis « Installer et lancer » depuis l'émulateur backoffice.
+
+**En production** :
+```bash
+flutter build apk --dart-define=API_BASE_URL=https://api.votredomaine.com
+```
+
+---
+
 ## 📊 Système de Monitoring et Analytics (En Développement)
 
 ### 🎯 Objectif

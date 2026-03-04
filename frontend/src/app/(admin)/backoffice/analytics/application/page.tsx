@@ -32,8 +32,8 @@ export default function ApplicationPerformancePage() {
           statisticsService.getCurrentStatistics().catch(() => null),
         ]);
         if (!cancelled) {
-          setMetrics(metricsRes ?? null);
-          setAppStats(statsRes ? (statsRes as Record<string, unknown>) : null);
+          setMetrics(metricsRes ? (metricsRes as unknown as Record<string, unknown>) : null);
+          setAppStats(statsRes ? (statsRes as unknown as Record<string, unknown>) : null);
         }
       } catch (e) {
         if (!cancelled) setMetrics(null);

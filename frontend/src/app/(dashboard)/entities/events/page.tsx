@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import { eventService } from '@/lib/api'
 import { EventTypeBadge } from '@/components/badges'
 
@@ -137,7 +138,7 @@ export default function EventsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(event.occurredAt).toLocaleString('fr-FR')}
+                      {formatLocalDateTime(event.occurredAt)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {event.applicationId ? 'Candidature' :
@@ -176,7 +177,7 @@ export default function EventsPage() {
                 </div>
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  <p>🕒 {new Date(event.occurredAt).toLocaleString('fr-FR')}</p>
+                  <p>🕒 {formatLocalDateTime(event.occurredAt)}</p>
                   <p>🔗 {event.applicationId ? 'Candidature' :
                          event.companyId ? 'Entreprise' :
                          event.contactId ? 'Contact' : 'Aucune'}</p>

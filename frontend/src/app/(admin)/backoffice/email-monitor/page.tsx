@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import {
   Mail,
   Send,
@@ -57,6 +58,9 @@ export default function EmailMonitorPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(50);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
@@ -64,6 +68,15 @@ export default function EmailMonitorPage() {
   useEffect(() => {
     loadEmails();
   }, [page, filter, typeFilter]);
+
+  // Monitoring temps réel : rafraîchissement automatique tant que la page est visible
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      loadEmails(true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, page, filter, typeFilter]);
 
   // Filtrer les emails
   useEffect(() => {
@@ -80,12 +93,13 @@ export default function EmailMonitorPage() {
     setFilteredEmails(filtered);
   }, [emails, filter, typeFilter]);
 
-  const loadEmails = async () => {
-    setIsLoading(true);
+  const loadEmails = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    setLoadError(null);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.warn('Aucun token trouvé');
+        setLoadError('Connectez-vous pour voir les logs d\'emails.');
         setEmails([]);
         setIsLoading(false);
         return;
@@ -110,8 +124,18 @@ export default function EmailMonitorPage() {
         }
       });
 
+      if (response.status === 401) {
+        setLoadError('Session expirée ou non autorisée. Reconnectez-vous.');
+        setEmails([]);
+        setIsLoading(false);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        setLoadError(`API ${response.status}: ${response.statusText}. Vérifiez que la gateway (${API_URL}) et auth-service sont démarrés.`);
+        setEmails([]);
+        setIsLoading(false);
+        return;
       }
 
       const data = await response.json();
@@ -119,15 +143,17 @@ export default function EmailMonitorPage() {
       if (data.success) {
         setEmails(data.data || []);
         setTotal(data.pagination?.total || 0);
+        setLastRefreshAt(new Date());
       } else {
-        console.error('Erreur chargement emails:', data.error);
+        setLoadError(data.error || 'Erreur chargement');
         setEmails([]);
       }
     } catch (error) {
-      console.error('Erreur chargement emails:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      setLoadError(`Impossible de joindre l'API (${API_URL}). ${msg}`);
       setEmails([]);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -253,11 +279,25 @@ export default function EmailMonitorPage() {
               Email Monitor
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Surveillez tous les emails envoyés par JobbingTrack
+              Surveillez tous les emails envoyés par JobbingTrack. Pour les parcours « Inscription + vérif. email » (Gmail/Proton/BlueMail), filtrez par type <strong>Vérification</strong> pour vérifier que l&apos;email a bien été envoyé.
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            {lastRefreshAt && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Dernière MAJ : {lastRefreshAt.toLocaleTimeString('fr-FR')}
+              </span>
+            )}
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-600"
+              />
+              Rafraîchissement auto (8 s)
+            </label>
             <Button
               onClick={refreshEmails}
               disabled={isLoading}
@@ -404,9 +444,18 @@ export default function EmailMonitorPage() {
                 <div className="text-center py-12 text-gray-500">
                   <Mail className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>Aucun email trouvé</p>
-                  <p className="text-sm mt-2">
-                    Les emails envoyés apparaîtront ici
-                  </p>
+                  {loadError ? (
+                    <p className="text-sm mt-2 text-amber-600 dark:text-amber-400">{loadError}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm mt-2">
+                        Les emails envoyés (inscription, vérification, reset password) apparaîtront ici.
+                      </p>
+                      <p className="text-xs mt-2 text-gray-400">
+                        Après un parcours « Inscription + vérif. email » réussi, l’email de vérification doit être loggé. Vérifiez que auth-service tourne et que la table EmailLog existe (Prisma).
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 filteredEmails.map((email) => (
@@ -465,7 +514,7 @@ export default function EmailMonitorPage() {
                             {email.status === 'FAILED' ? (
                               <span className="text-red-600 dark:text-red-400">Échoué : {email.error || 'Erreur inconnue'}</span>
                             ) : email.sentAt ? (
-                              <span>Envoyé : {new Date(email.sentAt).toLocaleString('fr-FR')}</span>
+                              <span>Envoyé : {formatLocalDateTime(email.sentAt)}</span>
                             ) : (
                               <span className="text-gray-500 dark:text-gray-400">En attente...</span>
                             )}
@@ -473,13 +522,13 @@ export default function EmailMonitorPage() {
                           {email.openedAt && (
                             <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                               <Eye className="h-4 w-4" />
-                              <span>Ouvert : {new Date(email.openedAt).toLocaleString('fr-FR')} ({email.openCount || 0}x)</span>
+                              <span>Ouvert : {formatLocalDateTime(email.openedAt)} ({email.openCount || 0}x)</span>
                             </div>
                           )}
                           {email.clickedAt && (
                             <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                               <Send className="h-4 w-4" />
-                              <span>Cliqué : {new Date(email.clickedAt).toLocaleString('fr-FR')} ({email.clickCount || 0}x)</span>
+                              <span>Cliqué : {formatLocalDateTime(email.clickedAt)} ({email.clickCount || 0}x)</span>
                             </div>
                           )}
                         </div>
@@ -558,6 +607,7 @@ export default function EmailMonitorPage() {
             <div className="space-y-2 text-sm">
               <p>
                 <strong>Voir les emails envoyés</strong> : Cette page affiche tous les emails envoyés par JobbingTrack.
+                Lorsque « Rafraîchissement auto » est activé, la liste et les statistiques sont mises à jour toutes les 8 secondes (monitoring temps réel).
               </p>
               <p>
                 <strong>Configuration actuelle</strong> : 

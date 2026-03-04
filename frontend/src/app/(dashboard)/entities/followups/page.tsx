@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { followUpService } from '@/lib/api'
@@ -215,10 +216,10 @@ export default function FollowUpsPage() {
                       <FollowUpStatusBadge status={followup.status} completed={followup.completed} />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(followup.scheduledDate).toLocaleString('fr-FR')}
+                      {formatLocalDateTime(followup.scheduledDate)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {followup.sentAt ? new Date(followup.sentAt).toLocaleString('fr-FR') : '-'}
+                      {followup.sentAt ? formatLocalDateTime(followup.sentAt) : '-'}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       {!followup.completed ? (
@@ -271,9 +272,9 @@ export default function FollowUpsPage() {
                 </div>
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  <p>📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR')}</p>
+                  <p>📅 Prévue : {formatLocalDateTime(followup.scheduledDate)}</p>
                   {followup.sentAt && (
-                    <p>📤 Envoyée : {new Date(followup.sentAt).toLocaleString('fr-FR')}</p>
+                    <p>📤 Envoyée : {formatLocalDateTime(followup.sentAt)}</p>
                   )}
                   {followup.response && (
                     <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-900 dark:text-green-100">

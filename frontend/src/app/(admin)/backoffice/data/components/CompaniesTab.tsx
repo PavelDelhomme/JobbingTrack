@@ -39,7 +39,7 @@ export default function CompaniesTab() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setCompanies(cached)
+        setCompanies(Array.isArray(cached) ? (cached as Company[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         companyService.getAll({ limit: 100 }).then(response => {

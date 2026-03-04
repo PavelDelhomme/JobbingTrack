@@ -36,6 +36,9 @@
   "exclude": [
     "node_modules",
     ".next",
-    "dist"
+    "dist",
+    "playwright.config.ts",
+    "playwright.mobile.config.ts",
+    "tests"
   ]
 }

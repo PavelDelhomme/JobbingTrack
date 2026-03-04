@@ -61,6 +61,46 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  void _showApiUrlDialog(BuildContext context) {
+    final current = ApiService.baseUrl
+        .replaceFirst(RegExp(r'^https?://'), '')
+        .replaceFirst(RegExp(r':\d+$'), '');
+    final controller = TextEditingController(text: current);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('URL de l\'API'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Hôte (ex: 192.168.1.42 ou 127.0.0.1)',
+            hintText: '127.0.0.1',
+          ),
+          keyboardType: TextInputType.url,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final host = controller.text.trim();
+              if (host.isNotEmpty) {
+                ApiService.baseUrl = 'http://$host:5002';
+                Navigator.of(ctx).pop();
+                setState(() {});
+                _showSnackBar('API: $host:5002');
+              }
+            },
+            child: const Text('Appliquer'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,10 +337,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                // Indicateur serveur (debug)
-                Text(
-                  'API: ${ApiService.baseUrl}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                // Indicateur serveur + lien pour changer l'URL (si besoin, ex: 192.168.x.x)
+                GestureDetector(
+                  onTap: () => _showApiUrlDialog(context),
+                  child: Text(
+                    'API: ${ApiService.baseUrl}',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[400], decoration: TextDecoration.underline),
+                  ),
                 ),
 
                 const SizedBox(height: 24),

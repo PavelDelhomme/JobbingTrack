@@ -248,12 +248,15 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
 	@echo "✅ Base de données restaurée"
 
-# Réparer rôle/DB Postgres
+# Réparer rôle/DB Postgres (SQL idempotent pour éviter ERROR dans les logs)
+# Utilise l'utilisateur du conteneur (jobbingtrack) : avec POSTGRES_USER=jobbingtrack, le rôle "postgres" n'existe pas.
+# Pour CREATE DATABASE il faut être connecté à une autre base (postgres) ; sinon on utilise jobbingtrack.
 db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE USER jobbingtrack WITH PASSWORD 'jobbingtrack123';" 2>/dev/null || echo "  Rôle jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;" 2>/dev/null || echo "  Base jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d jobbingtrack -c 'DO $$$$ BEGIN CREATE USER jobbingtrack WITH PASSWORD '\''jobbingtrack123'\''; EXCEPTION WHEN duplicate_object THEN NULL; END $$$$;'
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d postgres -t -A -c "SELECT 1 FROM pg_database WHERE datname = 'jobbingtrack';" 2>/dev/null | grep -q 1 || \
+		docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d postgres -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
 	@echo "✅ Rôle et base de données vérifiés"
 
 create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur

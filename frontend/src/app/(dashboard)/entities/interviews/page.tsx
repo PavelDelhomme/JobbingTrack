@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import { interviewService } from '@/lib/api'
 
 interface Interview {
@@ -126,7 +127,7 @@ export default function InterviewsPage() {
                       <InterviewTypeBadge type={interview.type} />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(interview.scheduledAt).toLocaleString('fr-FR')}
+                      {formatLocalDateTime(interview.scheduledAt)}
                     </td>
                     <td className="px-6 py-4">
                       <InterviewStatusBadge status={interview.status} />
@@ -172,7 +173,7 @@ export default function InterviewsPage() {
                         <InterviewStatusBadge status={interview.status} />
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {new Date(interview.scheduledAt).toLocaleString('fr-FR')}
+                        {formatLocalDateTime(interview.scheduledAt)}
                       </p>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatLocalDate } from '@/lib/utils/date'
 import { callService } from '@/lib/api'
 
 interface Call {
@@ -31,7 +32,7 @@ export default function CallsTab() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setCalls(cached)
+        setCalls(Array.isArray(cached) ? (cached as Call[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         callService.getAll({ limit: 100 }).then(response => {
@@ -123,9 +124,9 @@ export default function CallsTab() {
                     {call.type}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {call.scheduledAt 
-                      ? new Date(call.scheduledAt).toLocaleDateString('fr-FR')
-                      : new Date(call.createdAt).toLocaleDateString('fr-FR')
+{call.scheduledAt
+                      ? formatLocalDate(call.scheduledAt)
+                      : formatLocalDate(call.createdAt)
                     }
                   </td>
                   <td className="px-6 py-4">

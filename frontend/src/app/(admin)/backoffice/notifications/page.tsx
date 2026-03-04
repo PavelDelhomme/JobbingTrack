@@ -33,7 +33,7 @@ export default function NotificationsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setNotifications(cached)
+        setNotifications(Array.isArray(cached) ? (cached as any[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         axios.get(`${API_URL}/api/v1/notifications?limit=100`, {

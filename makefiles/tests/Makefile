@@ -762,6 +762,35 @@ test-e2e: ## Tests E2E Playwright (délègue à test-e2e-frontend)
 	$(call check_help_read,test-e2e)
 	@$(MAKE) test-e2e-frontend
 
+# Tests E2E emails (inscription + vérif email, mails réels possibles)
+test-e2e-email-workflows: ## Tests E2E workflows email (MailHog + emails réels via TEST_REAL_EMAILS)
+	$(call check_help_read,test-e2e-email-workflows)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║      ✉️  TESTS E2E WORKFLOWS EMAIL - JobbingTrack      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test couvre :"
+	@echo "   • Inscription + envoi email de vérification"
+	@echo "   • Vérification via EmailLog (token) puis login"
+	@echo "   • Mode MailHog (dev) + mode SMTP réel (OVH/Gmail/Proton) via TEST_REAL_EMAILS"
+	@echo ""
+	@echo "⚙️  Configuration :"
+	@echo "   • STACK démarrée (make up-full)"
+	@echo "   • Auth-service avec EmailLog synchronisé (make db-push-auth ou make db-push-all)"
+	@echo "   • Pour tester des boîtes réelles :"
+	@echo "       make test-e2e-email-workflows TEST_REAL_EMAILS=\"pauldelhomme.pro@gmail.com,paul.delhomme@proton.me,test@delhomme.ovh\""
+	@echo ""
+	@cd tests && TEST_REAL_EMAILS="$(TEST_REAL_EMAILS)" npx playwright test e2e/specs/email-workflows.spec.ts --project=chromium
+	@echo ""
+	@echo "✅ Tests E2E email-workflows terminés"
+
+# Specs dédiés mobile : vérification email par fournisseur (Gmail, Proton, BlueMail)
+test-e2e-mobile-email-verification: ## Tests E2E mobile – inscription + vérif email (Gmail, Proton, BlueMail)
+	$(call check_help_read,test-e2e-mobile-email-verification)
+	@echo "📱 Specs mobile email (e2e/specs/mobile/) – Gmail, Proton, BlueMail"
+	@cd tests && TEST_REAL_EMAILS="$(TEST_REAL_EMAILS)" npx playwright test e2e/specs/mobile/ --project=chromium
+	@echo "✅ Tests E2E mobile email verification terminés"
+
 # ================================================================
 # 🔒 TEST SÉCURITÉ - Tests de sécurité (WAF, auth, injection, etc.)
 # ================================================================

@@ -453,11 +453,11 @@ export default function ContainersAnalyticsPage() {
                 <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
                 <Tooltip
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''}
-                  formatter={(value: number | null, name: string) => [
-                    value != null ? `${Number(value).toFixed(2)}%` : '—',
+                  labelFormatter={(_, payload: unknown) => (payload as Array<{ payload?: { datetime?: string } }>)?.[0]?.payload?.datetime ?? ''}
+                  formatter={((value: unknown, name: string) => [
+                    value != null && typeof value === 'number' ? `${Number(value).toFixed(2)}%` : '—',
                     name === 'cpu' ? 'CPU' : 'Mémoire',
-                  ]}
+                  ]) as (value: unknown, name: string) => [string, string]}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="cpu" stroke="#3B82F6" strokeWidth={2} name="CPU %" dot={false} connectNulls />

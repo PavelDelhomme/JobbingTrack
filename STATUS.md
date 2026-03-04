@@ -1,6 +1,21 @@
 # JobbingTrack - Statut du projet
 
-**Derniere mise a jour** : 3 mars 2026
+**Derniere mise a jour** : 4 mars 2026
+
+---
+
+## A verifier / Erreurs connues (BDD Postgres, build APK)
+
+- **Postgres — rôles / DB** : au démarrage ou lors de `make db-fix-role`, les logs du conteneur affichent `ERROR: role "jobbingtrack" already exists` et `ERROR: database "jobbingtrack" already exists` car le script exécute `CREATE USER` / `CREATE DATABASE` sans idempotence. À faire : utiliser du SQL idempotent (ex. `DO $$ ... EXCEPTION WHEN duplicate_object THEN NULL; END $$`) pour ne plus générer d’erreurs dans les logs. Voir `makefiles/database/Makefile` cible `db-fix-role`.
+- **Postgres — table `deployments`** : le deployment-service envoie des requêtes vers `public.deployments` alors que la table n’existe pas (relation "public.deployments" does not exist). À faire : appliquer le schéma Prisma du deployment-service sur la BDD partagée (`make db-push-all` ou push ciblé deployment-service) pour créer la table `deployments`.
+- **Build APK (interface backoffice)** : le build pouvait échouer avec `Zip file ... already contains entry 'META-INF/...', cannot overwrite`. Correctif appliqué : avant `flutter build apk`, suppression des sorties `build/app/outputs/apk` et `flutter-apk` ; détection de l’APK dans les deux emplacements possibles (flutter-apk / apk/debug). **Pendant le build** : overlay plein écran qui bloque la navigation et les clics (seul « Annuler le build » est utilisable). Si l’erreur Zip réapparaît, lancer `cd mobile && flutter clean && rm -rf build/app/outputs` puis relancer le build.
+- **make logs** : suivi continu ; Ctrl+C pour quitter. Dernières lignes sans suivi : `make logs-tail` ou `make logs-tail LINES=500`.
+- **Email inscription mobile** : plus de 6 en fin d'email (chiffre en dernière position supprimé avant saisie pour champs email).
+- **Parcours mobile** : étapes du parcours affichées à côté du rendu en direct pendant l'exécution.
+- **Specs E2E mobile email** : `tests/e2e/specs/mobile/` (Gmail, Proton, BlueMail). `make test-e2e-mobile-email-verification`. Voir `tests/e2e/README.md`.
+- **Logs Postgres (locale)** : image passée à `postgres:15` (Debian) pour avoir les locales correctes ; avec `postgres:15-alpine` on avait « no usable system locales ». Si le volume existe déjà, le premier démarrage avec la nouvelle image peut réutiliser les données (même version majeure).
+- **Logs Postgres (trust auth)** : « enabling trust authentication for local connections » = en dev les connexions locales sans mot de passe sont autorisées (normal, pas une erreur).
+- **Logs Redis** : « Memory overcommit must be enabled » = réglage noyau sur l’hôte (`sysctl vm.overcommit_memory=1`). Sans impact en dev local.
 
 ---
 
@@ -92,12 +107,15 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Import CSV/JSON (avec validation et preview)
 - [ ] Interface backoffice pour export/import
 
-#### 3.5 Verification email utilisateur
+#### 3.5 Verification email utilisateur (parcours inscription — en cours)
 - [x] Endpoint `POST /api/v1/auth/verify-email/:token` fonctionnel
 - [x] Envoi email verification a l'inscription
 - [ ] Page de confirmation "Email verifie" (frontend)
 - [x] Login refusé (401, code EMAIL_NOT_VERIFIED) si email non vérifié
-- [x] Test E2E workflows email : `tests/e2e/specs/email-workflows.spec.ts` (inscription → vérification via MailHog → login ; login refusé sans vérification)
+- [x] Test E2E workflows email : `tests/e2e/specs/email-workflows.spec.ts` (inscription → vérification via MailHog ou EmailLog → login ; login refusé sans vérification)
+- [x] Liens dans les emails : `HOST_IP` pour remplacer localhost en dev (liens utilisables depuis le téléphone) ; en prod, `FRONTEND_URL` domaine.
+- [ ] **Validation parcours complet** : inscription depuis backoffice/émulateur → écran « Vérifiez votre email » → ouverture mail (Gmail/Proton) sur l’appareil → clic lien → retour app → connexion → Dashboard. Vérifier aussi Email Monitor et réception réelle (SMTP OVH / Gmail).
+- [x] **Correctif « 6 » en fin d’email (parcours inscription)** : dans `tools/emulator-controller` route `/tap-field-and-type`, pour le champ email : trim du texte, 120 DEL pour vider le champ, puis après saisie un BACKSPACE + retape du « m » final (KEYCODE_M) si l’email se termine par « m » (contourne le « 6 » ajouté par certains claviers Android).
 
 #### 3.6 Pagination et tri des listes
 - [ ] Pagination coherente sur toutes les listes (page, limit, total, pages)
@@ -123,6 +141,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Tests swipe et actions rapides sur listes mobiles
 - [ ] Tests export/import donnees
 - [ ] Tests verification email
+- [x] **Test automatisé inscription Gmail + log email** : script `tests/run-inscription-gmail-email-check.js` — inscription `pauldelhomme.pro@gmail.com` via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
 - [ ] Tests pagination et tri
 
 #### 3.8 Architecture des tests — FAIT

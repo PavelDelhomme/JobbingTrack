@@ -122,9 +122,9 @@ export default function PerformancesPage() {
                 ? Number(d.total_network_tx_bytes)
                 : null,
         }))
-        .filter((d) => d.timestamp)
+        .filter((d: { timestamp: string }) => d.timestamp)
         .sort(
-          (a, b) =>
+          (a: { timestamp: string }, b: { timestamp: string }) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
       setRawData(sorted);
@@ -324,13 +324,13 @@ export default function PerformancesPage() {
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip
-                    labelFormatter={(_, payload) =>
-                      payload?.[0]?.payload?.datetime ?? ''
+                    labelFormatter={(_, payload: unknown) =>
+                      (payload as Array<{ payload?: { datetime?: string } }>)?.[0]?.payload?.datetime ?? ''
                     }
-                    formatter={(value: number, name: string) => [
+                    formatter={((value: number, name: string) => [
                       `${Number(value).toFixed(2)}%`,
                       name === 'cpu' ? 'CPU' : 'Mémoire',
-                    ]}
+                    ]) as (value: number, name: string) => [string, string]}
                   />
                   <Legend />
                   <Line
@@ -375,13 +375,13 @@ export default function PerformancesPage() {
                     />
                     <YAxis tickFormatter={(v) => `${v} Mo`} tick={{ fontSize: 12 }} />
                     <Tooltip
-                      labelFormatter={(_, payload) =>
-                        payload?.[0]?.payload?.datetime ?? ''
+                      labelFormatter={(_, payload: unknown) =>
+                        (payload as Array<{ payload?: { datetime?: string } }>)?.[0]?.payload?.datetime ?? ''
                       }
-                      formatter={(value: number, name: string) => [
+                      formatter={((value: number, name: string) => [
                         value != null ? `${Number(value).toFixed(2)} Mo` : '—',
                         name === 'networkRxMb' ? 'RX' : 'TX',
-                      ]}
+                      ]) as (value: number, name: string) => [string, string]}
                     />
                     <Legend />
                     <Line

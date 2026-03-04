@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/screens/pending_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -63,12 +64,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (mounted) {
         _showSnackBar('Inscription réussie ! Vérifiez votre email', isSuccess: true);
-        
-        // Rediriger vers la page de connexion après 2 secondes
-        await Future.delayed(const Duration(seconds: 2));
-        
+        final email = _emailController.text.trim();
+        await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/login');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => PendingVerificationScreen(email: email),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -235,7 +238,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Veuillez entrer votre email';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            final trimmed = value.trim();
+                            if (RegExp(r'[0-9]$').hasMatch(trimmed)) {
+                              return 'L\'email ne doit pas se terminer par un chiffre. Corrigez la saisie (caractère parasite).';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
                               return 'Email invalide';
                             }
                             return null;
@@ -245,7 +252,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
 
                         // Mot de passe
-                        TextFormField(
+                        Semantics(
+                          label: 'Mot de passe Minimum 8 caractères',
+                          child: TextFormField(
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
@@ -279,11 +288,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return null;
                           },
                         ),
+                        ),
 
                         const SizedBox(height: 16),
 
                         // Confirmation mot de passe
-                        TextFormField(
+                        Semantics(
+                          label: 'Confirmer le mot de passe Retapez votre mot de passe',
+                          child: TextFormField(
                           controller: _confirmPasswordController,
                           decoration: InputDecoration(
                             labelText: 'Confirmer le mot de passe',
@@ -318,19 +330,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return null;
                           },
                         ),
+                        ),
 
                         const SizedBox(height: 16),
 
                         // Conditions d'utilisation
                         Row(
                           children: [
-                            Checkbox(
-                              value: _acceptTerms,
-                              onChanged: (value) {
-                                setState(() {
-                                  _acceptTerms = value ?? false;
-                                });
-                              },
+                            Semantics(
+                              label: "Accepter les conditions d'utilisation",
+                              child: Checkbox(
+                                value: _acceptTerms,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _acceptTerms = value ?? false;
+                                  });
+                                },
+                              ),
                             ),
                             Expanded(
                               child: GestureDetector(
@@ -339,11 +355,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     _acceptTerms = !_acceptTerms;
                                   });
                                 },
-                                child: Text(
-                                  'J\'accepte les conditions d\'utilisation et la politique de confidentialité',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
+                                child: Semantics(
+                                  label: "J'accepte les conditions d'utilisation et la politique de confidentialité",
+                                  child: Text(
+                                    'J\'accepte les conditions d\'utilisation et la politique de confidentialité',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[700],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -353,12 +372,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Bouton d'inscription
+                        // Bouton d'inscription (Semantics pour automation / dump accessibilité)
                         SizedBox(
                           width: double.infinity,
                           height: 50,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _register,
+                          child: Semantics(
+                            label: "S'inscrire",
+                            button: true,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue[600],
                               foregroundColor: Colors.white,
@@ -382,6 +404,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                            ),
                           ),
                         ),
                       ],

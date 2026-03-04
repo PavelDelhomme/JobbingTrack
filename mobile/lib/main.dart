@@ -133,8 +133,7 @@ class _SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<_SplashScreen> {
-  String _status = 'Connexion au serveur...';
-  bool _failed = false;
+  String _status = 'Connexion...';
 
   @override
   void initState() {
@@ -143,17 +142,10 @@ class _SplashScreenState extends State<_SplashScreen> {
   }
 
   Future<void> _init() async {
-    debugPrint('[SPLASH] Détection API...');
-    final ok = await ApiService.autoDetectApi();
-    debugPrint('[SPLASH] API détectée: $ok -> ${ApiService.baseUrl}');
-    if (ok && mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    } else if (mounted) {
-      setState(() {
-        _status = 'Serveur introuvable.\nVérifiez que adb reverse est actif\nou saisissez l\'IP manuellement.';
-        _failed = true;
-      });
-    }
+    debugPrint('[SPLASH] Vérification API...');
+    await ApiService.autoDetectApi();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override
@@ -169,75 +161,13 @@ class _SplashScreenState extends State<_SplashScreen> {
               const SizedBox(height: 16),
               Text('JobbingTrack', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800])),
               const SizedBox(height: 24),
-              if (!_failed) const CircularProgressIndicator(),
+              const CircularProgressIndicator(),
               const SizedBox(height: 16),
               Text(_status, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
-              if (_failed) ...[
-                const SizedBox(height: 24),
-                _IpInput(onConnect: (url) {
-                  ApiService.baseUrl = url;
-                  setState(() { _status = 'Connexion...'; _failed = false; });
-                  _init();
-                }),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    setState(() { _status = 'Nouvelle tentative...'; _failed = false; });
-                    _init();
-                  },
-                  child: const Text('Réessayer la détection automatique'),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pushReplacementNamed('/login'),
-                  child: const Text('Continuer sans vérification'),
-                ),
-              ],
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _IpInput extends StatefulWidget {
-  final void Function(String url) onConnect;
-  const _IpInput({required this.onConnect});
-
-  @override
-  State<_IpInput> createState() => _IpInputState();
-}
-
-class _IpInputState extends State<_IpInput> {
-  final _ctrl = TextEditingController(text: '192.168.');
-
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _ctrl,
-            decoration: InputDecoration(
-              labelText: 'IP du PC (ex: 192.168.1.42)',
-              prefixText: 'http://',
-              suffixText: ':5002',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-        ),
-        const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: () => widget.onConnect('http://${_ctrl.text.trim()}:5002'),
-          child: const Text('Connecter'),
-        ),
-      ],
     );
   }
 }

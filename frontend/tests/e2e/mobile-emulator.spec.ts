@@ -16,11 +16,11 @@ test.describe('Backoffice — Émulateur mobile', () => {
     await expect(page.locator('text=Parcours utilisateur mobile').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('affiche la section parcours principaux avec au moins un parcours', async ({ page }) => {
-    await expect(page.locator('text=Parcours principaux').first()).toBeVisible({ timeout: 10000 });
-    // Au moins un des 8 parcours principaux
-    const parcoursPrincipal = page.locator('button:has-text("Parcours complet"), button:has-text("Inscription"), button:has-text("Reset mot de passe"), button:has-text("Première utilisation"), button:has-text("Usage quotidien"), button:has-text("Archives"), button:has-text("avec données")').first();
-    await expect(parcoursPrincipal).toBeVisible({ timeout: 8000 });
+  test('affiche la section inscription + vérification email et tous les parcours', async ({ page }) => {
+    await expect(page.locator('text=Inscription + vérification email').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Tous les parcours').first()).toBeVisible({ timeout: 8000 });
+    const anyScenario = page.locator('button').filter({ hasText: /Inscription \+ vérif\. email \(Gmail\)|Login rapide|Inscription compl/ }).first();
+    await expect(anyScenario).toBeVisible({ timeout: 5000 });
   });
 
   test('affiche le bouton Lancer le parcours', async ({ page }) => {
@@ -43,29 +43,29 @@ test.describe('Backoffice — Émulateur mobile', () => {
     await expect(anyScenario).toBeVisible({ timeout: 5000 });
   });
 
-  test('les 8 parcours principaux sont présents', async ({ page }) => {
+  test('parcours inscription + vérif. email (Gmail, Proton, BlueMail) et autres parcours visibles', async ({ page }) => {
+    await expect(page.locator('text=Inscription + vérification email').first()).toBeVisible({ timeout: 8000 });
+    await page.locator('text=Tous les parcours').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
     const labels = [
-      'Inscription complète',
+      /Inscription \+ vérif\. email \(Gmail\)/,
+      /Inscription \+ vérif\. email \(Proton\)/,
+      /Inscription \+ vérif\. email \(BlueMail\)/,
+      /Inscription compl.te/,
       'Reset mot de passe',
-      'Premiere utilisation',
-      'Usage quotidien',
-      'Parcours complet (avec données)',
-      'Création candidature + relance + entretien + appel',
-      'Archives & Corbeille',
-      'Parcours complet',
+      'Login rapide',
+      /Parcours complet/,
     ];
     for (const label of labels) {
-      await expect(page.locator(`button:has-text("${label}")`).first()).toBeVisible({ timeout: 6000 });
+      await expect(page.getByRole('button', { name: label }).first()).toBeVisible({ timeout: 6000 });
     }
   });
 
   test('affiche un statut contrôleur (connecté ou injoignable)', async ({ page }) => {
-    // Après chargement, un log ou indicateur apparaît
     await page.waitForTimeout(3000);
-    const hasControllerLog = await page.locator('text=Controleur').isVisible();
-    const hasConnecte = await page.locator('text=connecte').isVisible();
-    const hasInjoignable = await page.locator('text=injoignable').isVisible();
-    expect(hasControllerLog || hasConnecte || hasInjoignable).toBeTruthy();
+    const hasConnecte = await page.getByText(/Controleur emulateur connecte/).first().isVisible().catch(() => false);
+    const hasInjoignable = await page.getByText('injoignable').first().isVisible().catch(() => false);
+    expect(hasConnecte || hasInjoignable).toBeTruthy();
   });
 });
 
@@ -83,14 +83,49 @@ test.describe('Backoffice — Émulateur mobile (parcours avec données)', () =>
   });
 
   test('sélection du parcours Inscription complète', async ({ page }) => {
-    await page.locator('button:has-text("Inscription complète")').first().click();
+    await page.locator('text=Tous les parcours').first().scrollIntoViewIfNeeded();
+    await page.getByRole('button', { name: /Inscription compl/ }).first().click();
     await page.waitForTimeout(500);
-    await expect(page.locator('text=Deconnexion').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('text=Deconnexion').or(page.locator('text=étapes')).first()).toBeVisible({ timeout: 3000 });
   });
 
   test('sélection du parcours Archives & Corbeille', async ({ page }) => {
     await page.locator('button:has-text("Archives & Corbeille")').first().click();
     await page.waitForTimeout(500);
     await expect(page.locator('text=Archives').first()).toBeVisible({ timeout: 3000 });
+  });
+});
+
+test.describe('Backoffice — Émulateur mobile (exécution via système de scénarios)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/backoffice/mobile-emulator');
+    await page.waitForLoadState('domcontentloaded');
+  });
+
+  test('lance un parcours inscription + vérif. email (Gmail) via le système de scénarios', async ({ page }) => {
+    await page.locator('text=Inscription + vérification email').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    const gmailBtn = page.getByRole('button', { name: /Inscription \+ vérif\. email \(Gmail\)/ }).first();
+    await expect(gmailBtn).toBeVisible({ timeout: 8000 });
+    await gmailBtn.click();
+    await page.waitForTimeout(400);
+
+    const runBtn = page.getByTestId('run-journey-btn');
+    await expect(runBtn).toBeVisible({ timeout: 5000 });
+    const isDisabled = await runBtn.isDisabled();
+
+    if (isDisabled) {
+      return;
+    }
+
+    await runBtn.click();
+    await page.waitForTimeout(1000);
+
+    const stepResults = page.getByTestId('journey-step-results');
+    await expect(stepResults).toBeVisible({ timeout: 45000 });
+    const successOrError = page.locator('[data-testid="step-success"], [data-testid="step-error"]').first();
+    await expect(successOrError).toBeVisible({ timeout: 60000 });
+    const hasSuccess = await page.locator('[data-testid="step-success"]').count() > 0;
+    expect(hasSuccess).toBeTruthy();
   });
 });

@@ -6,9 +6,9 @@ services:
   # SERVICES ESSENTIELS (pas de profile = toujours démarrés)
   # =====================================
 
-  # Base de données principale
+  # Base de données principale (image Debian pour locales correctes ; Alpine affiche "no usable system locales")
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: jobbingtrack-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -28,7 +28,7 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Redis pour le cache et les sessions
+  # Redis pour le cache et les sessions (WARNING Memory overcommit = réglage hôte : sysctl vm.overcommit_memory=1)
   redis:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
@@ -255,6 +255,7 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - APP_URL=${APP_URL:-http://localhost:5003}
+      - HOST_IP=${HOST_IP:-localhost}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
@@ -619,7 +620,7 @@ services:
       - full
     restart: no
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/dashboard/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

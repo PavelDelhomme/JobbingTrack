@@ -124,5 +124,6 @@ Commandes utiles (auth-service) : voir **`backend/auth-service/PYTHON_EMAIL_SETU
 2. Valider les flows **reset password** et **vérification compte** (inscription).
 3. Vérifier toutes les pages backoffice (Configuration, Déliverabilité, Historique, Templates, Email Monitor) et les intégrer au tableau de bord / analytics.
 4. Lancer les tests mail et le parcours utilisateur ; ajouter les données de test nécessaires.
+5. **Backoffice – règles d'envoi par action (à faire)** : configurer dynamiquement quels emails sont envoyés pour quelle action (ex. inscription, entretien créé, relance auto) — page ou écran de configuration par type d'événement.
 
 Pour le détail des étapes et la checklist à jour : **`STATUS.md`**, section « Mail / Emails – objectif et à faire ».

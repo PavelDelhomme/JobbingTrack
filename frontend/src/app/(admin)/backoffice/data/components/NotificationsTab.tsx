@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatLocalDateTime } from '@/lib/utils/date'
 import { notificationService } from '@/lib/api'
 
 interface Notification {
@@ -104,7 +105,7 @@ export default function NotificationsTab() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {n.createdAt
-                      ? new Date(n.createdAt).toLocaleString('fr-FR')
+                      ? formatLocalDateTime(n.createdAt)
                       : '—'}
                   </td>
                 </tr>

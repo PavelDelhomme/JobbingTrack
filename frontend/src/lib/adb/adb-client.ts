@@ -72,21 +72,61 @@ export class AdbClient {
     return ctrl.signal;
   }
 
+  private isNetworkError(e: unknown): boolean {
+    if (e instanceof TypeError && (e.message === 'Failed to fetch' || e.message?.includes('fetch'))) return true;
+    if (e instanceof Error && 'name' in e && (e as DOMException).name === 'NetworkError') return true;
+    return false;
+  }
+
   private async post<T = any>(path: string, body: Record<string, any>): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: this.deviceId, ...body }),
-      signal: this.getFetchSignal(),
-    });
-    return res.json();
+    const maxRetries = 2;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(`${this.baseUrl}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: this.deviceId, ...body }),
+          signal: this.getFetchSignal(),
+        });
+        return await res.json();
+      } catch (e) {
+        lastErr = e;
+        if (attempt < maxRetries && this.isNetworkError(e)) {
+          this.log(`NetworkError, retry ${attempt + 1}/${maxRetries} dans 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastErr;
+  }
+
+  private async getWithRetry<T = any>(path: string, params?: Record<string, string>): Promise<T> {
+    const maxRetries = 2;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const url = new URL(`${this.baseUrl}${path}`);
+        if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+        const res = await fetch(url.toString(), { signal: this.getFetchSignal() });
+        return await res.json();
+      } catch (e) {
+        lastErr = e;
+        if (attempt < maxRetries && this.isNetworkError(e)) {
+          this.log(`NetworkError GET, retry ${attempt + 1}/${maxRetries} dans 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastErr;
   }
 
   private async get<T = any>(path: string, params?: Record<string, string>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-    const res = await fetch(url.toString(), { signal: this.getFetchSignal() });
-    return res.json();
+    return this.getWithRetry<T>(path, params);
   }
 
   // ─── Actions elementaires ──────────────────────────────────────
@@ -103,8 +143,8 @@ export class AdbClient {
     this.log(`tap (${x}, ${y})`);
   }
 
-  async typeInField(hint: string, value: string): Promise<string> {
-    const r = await this.post<AdbTypeResult>('/tap-field-and-type', { hint, text: value });
+  async typeInField(hint: string, value: string, index = 0): Promise<string> {
+    const r = await this.post<AdbTypeResult>('/tap-field-and-type', { hint, text: value, index });
     if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
     this.log(`type "${hint}" = "${value.slice(0, 20)}${value.length > 20 ? '...' : ''}"`);
     return r.message || '';
@@ -157,6 +197,33 @@ export class AdbClient {
   async uiContains(text: string): Promise<boolean> {
     const xml = await this.uiDump();
     return xml.toLowerCase().includes(text.toLowerCase());
+  }
+
+  /** Résumé des textes visibles (pour logs de diagnostic). */
+  async getScreenSummary(maxItems = 14): Promise<string> {
+    const nodes = await this.uiNodes();
+    const items: string[] = [];
+    for (const n of nodes) {
+      if (n.text?.trim()) items.push(n.text.trim().slice(0, 50));
+      if (n.contentDesc?.trim() && n.contentDesc !== n.text) items.push(n.contentDesc.trim().slice(0, 50));
+    }
+    const unique = [...new Set(items)].filter(Boolean).slice(0, maxItems);
+    return unique.join(' | ') || '(aucun texte)';
+  }
+
+  /** Log le résumé de l'écran actuel (champs / titres visibles) pour diagnostic. */
+  async logScreenSummary(prefix = 'Écran'): Promise<void> {
+    try {
+      const summary = await this.getScreenSummary();
+      this.log(`[${prefix}] ${summary}`);
+    } catch (e) {
+      this.log(`[${prefix}] (dump échoué: ${e instanceof Error ? e.message : String(e)})`);
+    }
+  }
+
+  /** Envoie un message dans le log du runner (pour diagnostic depuis les steps). */
+  logMessage(msg: string): void {
+    this.log(msg);
   }
 
   async uiNodes(): Promise<AdbUiNode[]> {

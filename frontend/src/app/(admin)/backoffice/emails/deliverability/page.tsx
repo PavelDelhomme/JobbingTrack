@@ -38,6 +38,8 @@ interface SMTPTestResult {
     port: string
     secure: boolean
     from: string
+    user?: string
+    suggestion?: string
   }
 }
 

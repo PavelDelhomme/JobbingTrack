@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
+import { formatLocalDateTime, formatLocalDate } from '@/lib/utils/date'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { applicationService } from '@/lib/api'
@@ -175,8 +176,8 @@ export default function ApplicationsPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {app.applicationDate
-                        ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
-                        : new Date(app.createdAt).toLocaleDateString('fr-FR')
+                        ? formatLocalDate(app.applicationDate)
+                        : formatLocalDate(app.createdAt)
                       }
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
@@ -230,8 +231,8 @@ export default function ApplicationsPage() {
                   <span>{app.type}</span>
                   <span>
                     {app.applicationDate
-                      ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
-                      : new Date(app.createdAt).toLocaleDateString('fr-FR')
+                      ? formatLocalDate(app.applicationDate)
+                      : formatLocalDate(app.createdAt)
                     }
                   </span>
                 </div>

@@ -31,7 +31,7 @@ export default function FollowupsTab() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 })
 
       if (cached) {
-        setFollowups(cached)
+        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : [])
         setLoading(false)
         followUpService.getAll({ limit: 100 }).then(response => {
           const list = response.data.followups || []
