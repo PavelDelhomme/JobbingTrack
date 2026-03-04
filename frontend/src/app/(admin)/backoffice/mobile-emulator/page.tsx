@@ -57,6 +57,16 @@ export default function MobileEmulatorPage() {
   const buildAbortRef = useRef<AbortController | null>(null);
 
   const base = () => controllerUrl.replace(/\/$/, '');
+  /** URL du lanceur (port 5056) pour Démarrer / Arrêter le contrôleur depuis l'interface. */
+  const launcherBase = () => {
+    try {
+      const u = new URL(controllerUrl.replace(/\/$/, '') || 'http://localhost:5055');
+      u.port = '5056';
+      return u.origin;
+    } catch {
+      return 'http://localhost:5056';
+    }
+  };
   const addLog = (msg: string) => setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
   const fetchJson = async <T,>(path: string, opts?: RequestInit): Promise<T> => {
@@ -78,7 +88,45 @@ export default function MobileEmulatorPage() {
       else addLog('Controleur a repondu mais ok=false.');
     } catch {
       setControllerOk(false);
-      addLog('Controleur injoignable. Lancez: cd tools/emulator-controller && node server.js');
+      addLog('Contrôleur injoignable. Utilisez « Démarrer le contrôleur » ci-dessous (ou lancez make emulator-controller une fois).');
+    }
+  };
+
+  const startController = async () => {
+    setLoading('start-controller');
+    try {
+      const r = await fetch(`${launcherBase()}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const d = await r.json().catch(() => ({}));
+      if (d.success) {
+        addLog(d.message || 'Contrôleur démarré.');
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        await checkHealth();
+      } else {
+        addLog(d.error || 'Échec démarrage contrôleur.');
+      }
+    } catch (e) {
+      addLog('Lanceur injoignable (port 5056). Lancez une fois : make emulator-controller');
+      if (e instanceof Error && e.message) addLog(e.message);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const stopController = async () => {
+    setLoading('stop-controller');
+    try {
+      const r = await fetch(`${launcherBase()}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const d = await r.json().catch(() => ({}));
+      if (d.success) {
+        setControllerOk(false);
+        addLog(d.message || 'Contrôleur arrêté.');
+      } else {
+        addLog(d.error || 'Échec arrêt contrôleur.');
+      }
+    } catch (e) {
+      addLog('Erreur arrêt contrôleur : ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -161,6 +209,23 @@ export default function MobileEmulatorPage() {
             .then(() => { setAppRunning(false); addLog('App arretee — vous pouvez cliquer sur Installer et lancer.'); })
             .catch(() => {});
         }
+        // Redémarrer le contrôleur pour charger la dernière version (APK + code contrôleur). Si le lanceur tourne, il redémarre le contrôleur automatiquement.
+        fetch(`${controllerBase}/restart`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+          .then((r) => {
+            if (r.status === 404) {
+              addLog('Route /restart absente (contrôleur ancien). Lancez make emulator-controller une fois pour utiliser le lanceur.');
+              return { success: false };
+            }
+            return r.json().catch(() => ({}));
+          })
+          .then((restartData: { success?: boolean }) => {
+            if (restartData.success) {
+              setControllerOk(false);
+              addLog('Contrôleur en redémarrage (automatique si le lanceur tourne).');
+              setTimeout(() => checkHealth(), 4500);
+            }
+          })
+          .catch(() => {});
       }
       addLog(data.message || (data.success ? 'Build reussi.' : data.error || 'Build echoue.'));
       if (!res.ok && data.error) addLog(`Erreur: ${data.error}`);
@@ -424,13 +489,40 @@ export default function MobileEmulatorPage() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent transition" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Même hôte que la page (ex. si vous ouvrez 127.0.0.1:5003, mettez 127.0.0.1:5055)</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {controllerOk === true && <Wifi className="h-5 w-5 text-emerald-500" />}
               {controllerOk === false && <WifiOff className="h-5 w-5 text-red-500" />}
               <button type="button" onClick={checkHealth} disabled={loading !== null}
                 className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-gray-300 dark:hover:bg-gray-700 transition">
                 <RefreshCw className="h-4 w-4" /> Verifier
               </button>
+              {controllerOk === false && (
+                <button type="button" onClick={startController} disabled={loading !== null}
+                  className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-emerald-700 transition"
+                  title="Démarre le contrôleur (nécessite que le lanceur tourne : make emulator-controller une fois)">
+                  {loading === 'start-controller' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Démarrer le contrôleur
+                </button>
+              )}
+              {controllerOk === true && (
+                <>
+                  <button type="button" onClick={stopController} disabled={loading !== null}
+                    className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-red-700 transition"
+                    title="Arrête le contrôleur (relance possible via Démarrer le contrôleur)">
+                    {loading === 'stop-controller' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />} Arrêter le contrôleur
+                  </button>
+                  <button type="button" onClick={async () => {
+                    try {
+                      const r = await fetch(`${base()}/restart`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                      const d = await r.json().catch(() => ({}));
+                      if (d.success) { setControllerOk(false); addLog('Contrôleur en redémarrage (automatique dans quelques secondes).'); setTimeout(checkHealth, 4000); }
+                    } catch (e) { addLog('Erreur restart: ' + (e instanceof Error ? e.message : String(e))); }
+                  }} disabled={loading !== null}
+                    className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-amber-700 transition"
+                    title="Redémarre le contrôleur (charge la dernière version du code)">
+                    Redémarrer contrôleur
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -507,8 +599,8 @@ export default function MobileEmulatorPage() {
 
           {controllerOk === false && (
             <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-sm text-amber-800 dark:text-amber-200">
-              <p className="font-medium">Controleur non connecte</p>
-              <p className="mt-1">Lancez : <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">make emulator-controller</code></p>
+              <p className="font-medium">Contrôleur arrêté ou non connecté</p>
+              <p className="mt-1">Cliquez sur <strong>Démarrer le contrôleur</strong> ci-dessus. Une fois : <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">make emulator-controller</code> dans un terminal.</p>
             </div>
           )}
         </div>
@@ -586,7 +678,7 @@ export default function MobileEmulatorPage() {
           </p>
         </div>
 
-        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} stepResults={journeyStepResults} progress={journeyProgress} onStepResultsChange={setJourneyStepResults} onProgressChange={setJourneyProgress} />
+        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} stepResults={journeyStepResults} progress={journeyProgress} onStepResultsChange={setJourneyStepResults} onProgressChange={setJourneyProgress} controllerOk={controllerOk} apkBuilt={apkBuilt} appRunning={appRunning} />
       </div>
     </AdminLayout>
   );
@@ -596,7 +688,7 @@ export default function MobileEmulatorPage() {
 /* Parcours utilisateur mobile - utilise @/lib/adb                    */
 /* ------------------------------------------------------------------ */
 
-function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange, stepResults: externalStepResults, progress: externalProgress, onStepResultsChange, onProgressChange }: {
+function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange, stepResults: externalStepResults, progress: externalProgress, onStepResultsChange, onProgressChange, controllerOk, apkBuilt, appRunning }: {
   addLog: (m: string) => void;
   controllerUrl: string;
   deviceId: string;
@@ -606,6 +698,9 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
   progress?: { current: number; total: number };
   onStepResultsChange?: (r: StepResult[] | ((prev: StepResult[]) => StepResult[])) => void;
   onProgressChange?: (p: { current: number; total: number }) => void;
+  controllerOk?: boolean | null;
+  apkBuilt?: boolean;
+  appRunning?: boolean;
 }) {
   const [showParcoursConfig, setShowParcoursConfig] = useState(false);
   const [e2eRunning, setE2eRunning] = useState(false);
@@ -813,6 +908,21 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
           Selectionnez un appareil ADB ci-dessus pour activer les parcours.
         </div>
       )}
+      {deviceId && controllerOk !== true && (
+        <div className="mb-3 p-2.5 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-800 dark:text-amber-300 text-xs ring-1 ring-amber-300 dark:ring-amber-700/50">
+          Contrôleur injoignable. Cliquez sur « Verifier » ou relancez : make emulator-controller
+        </div>
+      )}
+      {deviceId && controllerOk === true && !apkBuilt && (
+        <div className="mb-3 p-2.5 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-800 dark:text-amber-300 text-xs ring-1 ring-amber-300 dark:ring-amber-700/50">
+          Faites « Build APK » puis « Installer et lancer » avant de lancer un parcours.
+        </div>
+      )}
+      {deviceId && controllerOk === true && apkBuilt && !appRunning && (
+        <div className="mb-3 p-2.5 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-800 dark:text-amber-300 text-xs ring-1 ring-amber-300 dark:ring-amber-700/50">
+          Cliquez sur « Installer et lancer » pour démarrer l’app sur l’appareil, puis lancez le parcours.
+        </div>
+      )}
 
       <div className="mb-3 p-2.5 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-gray-700 dark:text-gray-300 text-xs">
         Pour tester <strong>inscription + envoi email de vérification</strong> (Gmail, Proton, BlueMail) <strong>en direct sur votre téléphone</strong> : choisissez un parcours ci-dessous, cliquez sur <strong>Lancer le parcours</strong>. Les actions s’exécutent en live sur l’appareil. Consultez{' '}
@@ -903,7 +1013,8 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
       )}
 
       <div className="flex items-center gap-2 mb-4">
-        <button data-testid="run-journey-btn" onClick={runJourney} disabled={running || !deviceId}
+        <button data-testid="run-journey-btn" onClick={runJourney} disabled={running || !deviceId || controllerOk !== true || !apkBuilt || !appRunning}
+          title={!deviceId ? 'Sélectionnez un appareil' : controllerOk !== true ? 'Contrôleur injoignable' : !apkBuilt ? 'Build APK d\'abord' : !appRunning ? 'Installer et lancer l\'app d\'abord' : undefined}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {running ? 'En cours...' : 'Lancer le parcours'}

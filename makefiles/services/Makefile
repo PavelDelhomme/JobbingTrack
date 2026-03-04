@@ -578,16 +578,21 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	fi
 	@echo ""
 	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
-	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/launcher.js" ] && command -v node >/dev/null 2>&1; then \
 		_port_check=0; \
-		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
-		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5056 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5056 ') && _port_check=1; \
 		if [ "$$_port_check" = "1" ]; then \
-			echo "   ✅ Contrôleur déjà en cours (port 5055). Backoffice → Émulateur mobile."; \
+			echo "   ✅ Lanceur + contrôleur déjà en cours (5056 + 5055). Backoffice → Émulateur mobile."; \
 		else \
-			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
-			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile pour le rendu en direct."; \
+			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node launcher.js > /tmp/emulator-controller.log 2>&1 & \
+			echo "   ✅ Lanceur + contrôleur démarrés (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur depuis l'interface."; \
 		fi; \
+	elif [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Contrôleur déjà en cours (5055)."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Contrôleur démarré (5055)."; fi; \
 	else \
 		echo "   ℹ️  Optionnel : lancez 'make emulator-controller' pour l'émulateur mobile."; \
 	fi
@@ -602,16 +607,16 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 	@$(MAKE) _up-full-internal
 	@echo ""
 	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
-	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/launcher.js" ] && command -v node >/dev/null 2>&1; then \
 		_port_check=0; \
-		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5056 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Lanceur + contrôleur déjà en cours."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node launcher.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Lanceur + contrôleur démarrés (5056 + 5055)."; fi; \
+	elif [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
 		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
-		if [ "$$_port_check" = "1" ]; then \
-			echo "   ✅ Contrôleur déjà en cours (port 5055)."; \
-		else \
-			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
-			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile."; \
-		fi; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Contrôleur déjà en cours."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Contrôleur démarré (5055)."; fi; \
 	else \
 		echo "   ℹ️  Optionnel : make emulator-controller pour l'émulateur mobile."; \
 	fi
