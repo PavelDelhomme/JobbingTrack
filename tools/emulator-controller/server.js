@@ -144,6 +144,24 @@ async function uiaDumpWithRetry(deviceId, timeoutMs = 25000) {
   throw lastErr;
 }
 
+/** Retourne la date de modification la plus récente des fichiers sous dir (récursif), ou 0 si absent. */
+function getNewestMtime(dir) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return 0;
+  let max = 0;
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) {
+      const sub = getNewestMtime(full);
+      if (sub > max) max = sub;
+    } else {
+      const m = stat.mtimeMs;
+      if (m > max) max = m;
+    }
+  }
+  return max;
+}
+
 const routes = {
   async '/avds'(req, res) {
     try {
@@ -525,6 +543,7 @@ const routes = {
       await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
       let trimmed = typeof text === 'string' ? text.trim() : String(text).trim();
       const isEmailField = (hint && String(hint).toLowerCase().includes('email')) || (trimmed.includes('@'));
+      if (isEmailField) console.log(`[tap-field-and-type] Champ email: valeur reçue="${trimmed}" longueur=${trimmed.length} fin="${trimmed.slice(-6)}"`);
       if (isEmailField) {
         await new Promise(r => setTimeout(r, 600));
       } else {
@@ -537,24 +556,61 @@ const routes = {
       if (isEmailField && /[0-9]$/.test(trimmed)) trimmed = trimmed.slice(0, -1);
       const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
       const escaped = esc(trimmed);
-      if (isEmailField && trimmed.length >= 3 && trimmed.slice(-3) === 'com') {
+      // Pour éviter que le clavier Android transforme ".com" en ".com6" ou ".me" en ".me6" : on tape les TLD caractère par caractère.
+      const tldCom = trimmed.length >= 3 && trimmed.slice(-3) === 'com';
+      const tldMe = trimmed.length >= 2 && trimmed.slice(-2) === 'me';
+      if (isEmailField && tldCom) {
+        const part1 = trimmed.slice(0, -3);
+        const part1Esc = esc(part1);
+        console.log(`[tap-field-and-type] Email .com: part1="${part1}" puis "com" caractère par caractère`);
+        await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
+        await new Promise(r => setTimeout(r, 550));
+        for (const ch of 'com') {
+          await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
+          await new Promise(r => setTimeout(r, 220));
+        }
+      } else if (isEmailField && tldMe) {
         const part1 = trimmed.slice(0, -2);
         const part1Esc = esc(part1);
+        console.log(`[tap-field-and-type] Email .me: part1="${part1}" puis "me" caractère par caractère`);
         await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
-        await new Promise(r => setTimeout(r, 280));
-        await execPromise(`adb -s ${deviceId} shell input text "om"`);
+        await new Promise(r => setTimeout(r, 450));
+        for (const ch of 'me') {
+          await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
+          await new Promise(r => setTimeout(r, 220));
+        }
       } else {
         await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
-        if (isEmailField && trimmed.length > 0) {
-          await new Promise(r => setTimeout(r, 220));
-          const lastTwo = trimmed.slice(-2);
-          const suffix = lastTwo === 'om' ? 'om' : (trimmed.slice(-1) && /[a-zA-Z]/.test(trimmed.slice(-1)) ? trimmed.slice(-1) : '');
-          const nBack = suffix === 'om' ? 3 : 2;
-          for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
-          if (suffix) {
-            await new Promise(r => setTimeout(r, 120));
-            await execPromise(`adb -s ${deviceId} shell input text "${suffix === 'om' ? 'om' : esc(suffix)}"`);
+      }
+      // Après saisie email : relire le champ via UI dump et supprimer uniquement les chiffres en fin (suggestion clavier "6").
+      // On n'envoie pas de backspace+retype pour éviter de re-déclencher la suggestion.
+      if (isEmailField) {
+        await new Promise(r => setTimeout(r, 550));
+        const xml2 = await uiaDumpWithRetry(deviceId);
+        const nodeRegex2 = /<node[^>]*>/g;
+        const targets2 = [];
+        const texts2 = [];
+        let m2;
+        while ((m2 = nodeRegex2.exec(xml2)) !== null) {
+          const n = m2[0];
+          const h = (n.match(/hint="([^"]*)"/) || [])[1];
+          const t = (n.match(/text="([^"]*)"/) || [])[1];
+          const ok = h && String(h).toLowerCase().includes(hintLower);
+          if (ok && editableTrue(n)) {
+            const b = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+            if (b) {
+              targets2.push(b);
+              texts2.push((t || '').trim());
+            }
           }
+        }
+        const idx = Math.min(index, texts2.length - 1);
+        const currentText = idx >= 0 ? texts2[idx] : '';
+        const trailingDigits = (currentText.match(/[0-9]+$/) || [])[0];
+        if (trailingDigits) {
+          const nBack = trailingDigits.length;
+          console.log(`[tap-field-and-type] Email: champ se termine par "${trailingDigits}", envoi de ${nBack} backspace(s)`);
+          for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
         }
       }
       send(res, 200, { success: true, message: `Typed "${trimmed.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });
@@ -612,6 +668,27 @@ const routes = {
 
   async '/health'(req, res) {
     send(res, 200, { ok: true, service: 'emulator-controller', mobilePath: MOBILE_PATH });
+  },
+
+  /** GET: indique si un build est nécessaire (APK plus ancien que mobile/lib). */
+  async '/build-status'(req, res) {
+    try {
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : (fs.existsSync(apkPathLegacy) ? apkPathLegacy : null);
+      const apkMtime = apkPath && fs.existsSync(apkPath) ? fs.statSync(apkPath).mtimeMs : 0;
+      const libDir = path.join(MOBILE_PATH, 'lib');
+      const mobileLibMtime = getNewestMtime(libDir);
+      const needsBuild = !apkPath || apkMtime < mobileLibMtime;
+      send(res, 200, {
+        needsBuild: !!needsBuild,
+        apkPath: apkPath || null,
+        apkMtime,
+        mobileLibMtime,
+      });
+    } catch (e) {
+      send(res, 200, { needsBuild: true, error: (e && e.message) || String(e) });
+    }
   },
 
   /** Liste des routes enregistrées (GET) — pour vérifier que /stop-app est bien présent après redémarrage du contrôleur. */
