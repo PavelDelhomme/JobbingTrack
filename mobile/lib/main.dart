@@ -83,11 +83,17 @@ class JobbingTrackMobileApp extends StatelessWidget {
               settings: settings,
             );
           }
-          // /verify-email ou /verify-email/:token
-          if (settings.name != null && settings.name!.startsWith('/verify-email')) {
+          // /verify-email, /verify-email/:token ou URL complète avec ?token= (lien email)
+          if (settings.name != null && (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
             String? token;
-            if (settings.name!.length > '/verify-email/'.length && settings.name!.startsWith('/verify-email/')) {
-              token = settings.name!.substring('/verify-email/'.length);
+            final path = settings.name!;
+            if (path.startsWith('/verify-email/') && path.length > '/verify-email/'.length && !path.contains('?')) {
+              token = path.substring('/verify-email/'.length).split('?').first;
+            } else if (path.contains('token=')) {
+              try {
+                final uri = path.startsWith('http') ? Uri.tryParse(path) : Uri.tryParse('http://dummy$path');
+                token = uri?.queryParameters['token'];
+              } catch (_) {}
             }
             return MaterialPageRoute(
               builder: (context) => VerifyEmailScreen(token: token),

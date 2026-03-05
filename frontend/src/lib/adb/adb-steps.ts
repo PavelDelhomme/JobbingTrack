@@ -19,21 +19,38 @@ export function getMobileTestCredentials(): { email: string; password: string } 
 /** Emails utilisés pour les parcours inscription + vérification email (Gmail, Proton, BlueMail). */
 export const VERIFICATION_EMAIL_ACCOUNTS = {
   gmail: {
-    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL : 'pauldelhomme.pro@gmail.com',
+    email: sanitizeEmailForInput((typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL : 'pauldelhomme.pro@gmail.com'),
     password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD : 'password123',
     app: 'Gmail'
   },
   proton: {
-    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL : 'paul.delhomme@proton.me',
+    email: sanitizeEmailForInput((typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL : 'paul.delhomme@proton.me'),
     password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD : 'password123',
     app: 'Proton Mail'
   },
   bluemail: {
-    email: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL : 'candidatures@delhomme.ovh',
+    email: sanitizeEmailForInput((typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL) ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL : 'candidatures@delhomme.ovh'),
     password: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD) ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD : 'password123',
     app: 'BlueMail'
   },
 } as const;
+
+/** Supprime les chiffres en fin d'email (évite .com6 envoyé par erreur ou par le clavier). */
+function sanitizeEmailForInput(email: string): string {
+  const out = email.replace(/[0-9]+$/, '');
+  return out;
+}
+
+/** Normalise l'email avant envoi au contrôleur : trim, non-printables, espaces, zero-width, chiffres en fin. */
+function normalizeEmailForTyping(email: string): string {
+  let s = String(email)
+    .replace(/[\u200B\u200C\u200D\uFEFF\u00A0]/g, '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/[0-9]+$/, '');
+  return s;
+}
 
 /** Essaie plusieurs hints (et index) pour remplir un champ jusqu'à ce qu'un matche (dump Flutter variable). */
 async function typeInFieldWithHints(
@@ -297,7 +314,9 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
     }
 
     case 'fill_register_form_gmail': {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      const { email: rawEmail, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      const email = normalizeEmailForTyping(rawEmail);
+      if (email !== rawEmail) adb.logMessage(`[Email inscription] Normalisation : "${rawEmail}" → "${email}" (longueur ${email.length})`);
       await adb.logScreenSummary('Avant fill_register_form_gmail');
       await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
       adb.logMessage('[Champ] Prénom = Test');
@@ -305,6 +324,7 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
       await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Gmail');
       adb.logMessage('[Champ] Nom = Gmail');
       await adb.wait(600);
+      adb.logMessage(`[Email inscription] Valeur envoyée au contrôleur : "${email}" (longueur=${email.length}, fin="${email.slice(-5)}", codes fin=${Array.from(email.slice(-3)).map((c) => c.charCodeAt(0)).join(',')})`);
       await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
       adb.logMessage(`[Champ] Email = ${email}`);
       await adb.wait(600);
@@ -324,7 +344,9 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
     }
 
     case 'fill_register_form_proton': {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      const { email: rawEmail, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      const email = normalizeEmailForTyping(rawEmail);
+      if (email !== rawEmail) adb.logMessage(`[Email inscription] Normalisation : "${rawEmail}" → "${email}" (longueur ${email.length})`);
       await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
       await adb.wait(600);
       await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Proton');
@@ -344,7 +366,9 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
     }
 
     case 'fill_register_form_bluemail': {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      const { email: rawEmail, password } = VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      const email = normalizeEmailForTyping(rawEmail);
+      if (email !== rawEmail) adb.logMessage(`[Email inscription] Normalisation : "${rawEmail}" → "${email}" (longueur ${email.length})`);
       await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
       await adb.wait(600);
       await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'BlueMail');

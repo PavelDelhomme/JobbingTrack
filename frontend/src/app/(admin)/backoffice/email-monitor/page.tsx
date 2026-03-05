@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,38 +61,12 @@ export default function EmailMonitorPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const loadEmailsRef = useRef<(silent?: boolean) => Promise<void>>(() => Promise.resolve());
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+  const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+  const POLL_INTERVAL_MS = 3000; // 3 s pour un vrai suivi temps réel
 
   // Charger les emails depuis l'API
-  useEffect(() => {
-    loadEmails();
-  }, [page, filter, typeFilter]);
-
-  // Monitoring temps réel : rafraîchissement automatique tant que la page est visible
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      loadEmails(true);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, page, filter, typeFilter]);
-
-  // Filtrer les emails
-  useEffect(() => {
-    let filtered = emails;
-
-    if (filter !== 'all') {
-      filtered = filtered.filter(email => email.status === filter);
-    }
-
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(email => email.type === typeFilter);
-    }
-
-    setFilteredEmails(filtered);
-  }, [emails, filter, typeFilter]);
-
   const loadEmails = async (silent = false) => {
     if (!silent) setIsLoading(true);
     setLoadError(null);
@@ -139,7 +113,7 @@ export default function EmailMonitorPage() {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setEmails(data.data || []);
         setTotal(data.pagination?.total || 0);
@@ -156,6 +130,50 @@ export default function EmailMonitorPage() {
       if (!silent) setIsLoading(false);
     }
   };
+
+  loadEmailsRef.current = loadEmails;
+
+  // Chargement initial et quand on change page/filtres
+  useEffect(() => {
+    loadEmails();
+  }, [page, filter, typeFilter]);
+
+  // Rafraîchir dès que l'onglet redevient visible (pour voir les mails envoyés pendant qu'on était ailleurs)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadEmailsRef.current(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  // Polling temps réel tant que la page est visible
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadEmailsRef.current(true);
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  // Filtrer les emails (côté client)
+  useEffect(() => {
+    let filtered = emails;
+
+    if (filter !== 'all') {
+      filtered = filtered.filter(email => email.status === filter);
+    }
+
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(email => email.type === typeFilter);
+    }
+
+    setFilteredEmails(filtered);
+  }, [emails, filter, typeFilter]);
 
   const refreshEmails = () => {
     loadEmails();
@@ -296,8 +314,14 @@ export default function EmailMonitorPage() {
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 className="rounded border-gray-300 dark:border-gray-600"
               />
-              Rafraîchissement auto (8 s)
+              Temps réel (toutes les 3 s)
             </label>
+            {autoRefresh && lastRefreshAt && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden />
+                Live
+              </span>
+            )}
             <Button
               onClick={refreshEmails}
               disabled={isLoading}
@@ -607,7 +631,7 @@ export default function EmailMonitorPage() {
             <div className="space-y-2 text-sm">
               <p>
                 <strong>Voir les emails envoyés</strong> : Cette page affiche tous les emails envoyés par JobbingTrack.
-                Lorsque « Rafraîchissement auto » est activé, la liste et les statistiques sont mises à jour toutes les 8 secondes (monitoring temps réel).
+                Avec « Temps réel » activé, la liste et les stats sont rafraîchies toutes les 3 secondes. Un rafraîchissement a aussi lieu dès que vous revenez sur l’onglet.
               </p>
               <p>
                 <strong>Configuration actuelle</strong> : 

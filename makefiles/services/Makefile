@@ -1360,7 +1360,7 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo "⏹️  Pour arrêter : Ctrl+C  |  Pour voir les dernières lignes sans suivi : make logs-tail"
 	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
-	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [PERSISTENCE]/[AUTH]=vert, Erreurs=rouge"
+	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"
 	@echo ""
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)

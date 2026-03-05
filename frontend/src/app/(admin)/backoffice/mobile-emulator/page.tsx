@@ -14,6 +14,8 @@ import {
   Loader2,
   Image as ImageIcon,
   FlaskConical,
+  Trash2,
+  UserMinus,
 } from 'lucide-react';
 import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, VERIFICATION_EMAIL_SCENARIO_KEYS, VERIFICATION_EMAIL_ACCOUNTS, getMobileTestCredentials } from '@/lib/adb';
 import type { StepResult } from '@/lib/adb';
@@ -46,6 +48,10 @@ export default function MobileEmulatorPage() {
   const [logsCopied, setLogsCopied] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const [apkBuilt, setApkBuilt] = useState(false);
+  const [buildNeeded, setBuildNeeded] = useState<boolean | null>(null);
+  const [cleanupUsers, setCleanupUsers] = useState<Array<{ id: string; email: string; firstName?: string; lastName?: string }>>([]);
+  const [cleanupUsersLoading, setCleanupUsersLoading] = useState(false);
+  const [cleanupSelectedUserId, setCleanupSelectedUserId] = useState<string>('');
   const [appRunning, setAppRunning] = useState(false);
   const [journeyRunning, setJourneyRunning] = useState(false);
   const [journeyStepResults, setJourneyStepResults] = useState<StepResult[]>([]);
@@ -55,6 +61,8 @@ export default function MobileEmulatorPage() {
   const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
+  /** Ref remplie par MobileJourneyPanel pour annuler le parcours depuis l’extérieur (ex. bouton Arrêter l’app). */
+  const cancelJourneyRef = useRef<(() => void) | null>(null);
 
   const base = () => controllerUrl.replace(/\/$/, '');
   /** URL du lanceur (port 5056) pour Démarrer / Arrêter le contrôleur depuis l'interface. */
@@ -81,11 +89,19 @@ export default function MobileEmulatorPage() {
 
   const checkHealth = async () => {
     setControllerOk(null);
+    setBuildNeeded(null);
     try {
       const data = await fetchJson<{ ok?: boolean }>('/health');
       setControllerOk(!!data.ok);
-      if (data.ok) addLog('Controleur emulateur connecte.');
-      else addLog('Controleur a repondu mais ok=false.');
+      if (data.ok) {
+        addLog('Controleur emulateur connecte.');
+        try {
+          const status = await fetchJson<{ needsBuild?: boolean }>('/build-status');
+          setBuildNeeded(!!status.needsBuild);
+        } catch {
+          setBuildNeeded(null);
+        }
+      } else addLog('Controleur a repondu mais ok=false.');
     } catch {
       setControllerOk(false);
       addLog('Contrôleur injoignable. Utilisez « Démarrer le contrôleur » ci-dessous (ou lancez make emulator-controller une fois).');
@@ -204,6 +220,7 @@ export default function MobileEmulatorPage() {
     const handleResponse = (res: Response, data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string }, source: string) => {
       if (data.success) {
         setApkBuilt(true);
+        setBuildNeeded(false);
         if (selectedDevice) {
           fetchJson<{ success?: boolean }>('/stop-app', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }) })
             .then(() => { setAppRunning(false); addLog('App arretee — vous pouvez cliquer sur Installer et lancer.'); })
@@ -249,7 +266,7 @@ export default function MobileEmulatorPage() {
         if (res.ok || res.status === 502) {
           clearTimeout(timeoutId);
           handleResponse(res, data, 'direct');
-          return;
+          return !!data?.success;
         }
       } catch (directErr) {
         addLog('Appel direct au controleur echoue, passage par le proxy...');
@@ -269,6 +286,7 @@ export default function MobileEmulatorPage() {
         addLog('Conseil : verifiez que le controleur tourne (cd tools/emulator-controller && node server.js)');
         addLog('  Puis lancez a la main si besoin : cd mobile && flutter build apk --debug');
       }
+      return !!data?.success;
     } catch (e) {
       clearTimeout(timeoutId);
       const msg = e instanceof Error ? e.message : String(e);
@@ -278,6 +296,7 @@ export default function MobileEmulatorPage() {
         addLog('Lancez le build a la main sur la machine ou tourne le controleur :');
         addLog('  cd mobile && flutter build apk --debug');
       }
+      return false;
     } finally {
       setLoading(null);
       setBuildElapsedSeconds(0);
@@ -292,17 +311,177 @@ export default function MobileEmulatorPage() {
     }
   };
 
+  const deleteUserByEmail = async () => {
+    if (!token) {
+      addLog('Connectez-vous en admin pour supprimer un utilisateur.');
+      return;
+    }
+    if (!cleanupSelectedUserId) {
+      addLog('Choisissez un utilisateur dans la liste (rafraîchir si vide).');
+      return;
+    }
+    setLoading('cleanup-user');
+    const apiBase = API_GATEWAY_URL;
+    try {
+      const delRes = await fetch(`${apiBase}/api/v1/auth/users/${cleanupSelectedUserId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const userEmail = cleanupUsers.find((u) => u.id === cleanupSelectedUserId)?.email || cleanupSelectedUserId;
+      if (delRes.ok) {
+        addLog(`Utilisateur supprimé : ${userEmail}. Vous pouvez vous réinscrire pour retester.`);
+        setCleanupSelectedUserId('');
+        loadCleanupUsers();
+      } else {
+        const err = await delRes.json().catch(() => ({}));
+        addLog(`Suppression échouée : ${err?.error || delRes.status}.`);
+      }
+    } catch (e) {
+      addLog('Erreur nettoyage compte : ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const loadCleanupUsers = async () => {
+    if (!token) return;
+    setCleanupUsersLoading(true);
+    const apiBase = API_GATEWAY_URL;
+    const ADMIN_EMAIL = 'admin@jobbingtrack.com';
+    try {
+      const usersRes = await fetch(`${apiBase}/api/v1/auth/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const usersData = await usersRes.json().catch(() => ({}));
+      const users = usersData?.users ?? usersData?.data ?? [];
+      const filtered = Array.isArray(users)
+        ? users.filter((u: { role?: string; email?: string }) => {
+            const role = (u.role || '').toUpperCase();
+            const email = (u.email || '').toLowerCase();
+            if (role === 'ADMIN' || role === 'SUPER_ADMIN') return false;
+            if (email === ADMIN_EMAIL) return false;
+            return true;
+          })
+        : [];
+      const list = filtered.map((u: { id?: string; email?: string; firstName?: string; lastName?: string }) => ({
+        id: String(u.id ?? ''),
+        email: String(u.email ?? ''),
+        firstName: u.firstName,
+        lastName: u.lastName,
+      }));
+      setCleanupUsers(list);
+      const stillValid = list.some((u) => u.id === cleanupSelectedUserId);
+      if (list.length > 0 && !stillValid) setCleanupSelectedUserId(list[0].id);
+      else if (list.length === 0) setCleanupSelectedUserId('');
+    } catch {
+      setCleanupUsers([]);
+      setCleanupSelectedUserId('');
+    } finally {
+      setCleanupUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (controllerOk && token) loadCleanupUsers();
+  }, [controllerOk, token]);
+
   const installAndRun = async () => {
     if (!selectedDevice) { addLog('Selectionnez un appareil.'); return; }
-    setLoading('install-run');
+    await ensureBuildAndInstall();
+  };
+
+  /** Lance l'app sans réinstaller (force-stop + start). Utile quand l'APK est déjà installé. */
+  const launchOnly = async () => {
+    if (!selectedDevice) { addLog('Selectionnez un appareil.'); return; }
+    setLoading('launch-only');
     try {
-      const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
-        method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }),
+      const data = await fetchJson<{ success?: boolean; error?: string }>('/force-restart-app', {
+        method: 'POST',
+        body: JSON.stringify({ deviceId: selectedDevice }),
       });
-      if (data.success) setAppRunning(true);
-      addLog(data.message || (data.success ? 'App installee et lancee.' : data.error || 'Erreur'));
-    } catch (e) { addLog(`Erreur install/run: ${e instanceof Error ? e.message : String(e)}`); }
-    finally { setLoading(null); }
+      if (data.success) {
+        setAppRunning(true);
+        addLog('App lancee (sans reinstallation).');
+      } else {
+        addLog(data.error ?? 'Echec du lancement.');
+      }
+    } catch (e) {
+      addLog('Erreur lancement: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  /** Build APK puis installation + lancement. Retourne true si l’app est prête (pour parcours). */
+  const ensureBuildAndInstall = async (): Promise<boolean> => {
+    if (!selectedDevice) return false;
+    try {
+      const controllerBase = base();
+      const doInstallRun = async (): Promise<{ success: boolean; error?: string; needBuild?: boolean }> => {
+        try {
+          const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
+            method: 'POST',
+            body: JSON.stringify({ deviceId: selectedDevice }),
+          });
+          return { success: !!data.success, error: data.error };
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          const needBuild = /APK non trouvé|non trouvé|Build APK/i.test(msg);
+          return { success: false, error: msg, needBuild };
+        }
+      };
+      setLoading('install-run');
+      let result = await doInstallRun();
+      if (result.success) {
+        setAppRunning(true);
+        setApkBuilt(true);
+        addLog('App installée et lancée (adb reverse activé sur ports API).');
+        return true;
+      }
+      if (result.needBuild || (result.error != null && /APK|build/i.test(result.error))) {
+        addLog('APK absent ou obsolète. Build en cours...');
+        setLoading('build');
+        const buildSuccess = await buildApk();
+        setLoading(null);
+        if (!buildSuccess) {
+          addLog('Build APK a échoué. Lancez « Build APK » manuellement puis « Installer et lancer ».');
+          return false;
+        }
+        addLog('Build OK. Attente du redémarrage du contrôleur (si lancé)...');
+        const maxWaitMs = 18000;
+        const pollMs = 1500;
+        const start = Date.now();
+        while (Date.now() - start < maxWaitMs) {
+          await new Promise((r) => setTimeout(r, pollMs));
+          try {
+            const res = await fetch(`${controllerBase}/health`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+            const data = await res.json().catch(() => ({}));
+            if (data?.ok) {
+              addLog('Contrôleur de nouveau disponible. Installation...');
+              setControllerOk(true);
+              break;
+            }
+          } catch {
+            /* pas encore prêt */
+          }
+        }
+        setLoading('install-run');
+        result = await doInstallRun();
+      }
+      if (result.success) {
+        setAppRunning(true);
+        setApkBuilt(true);
+        addLog('App installée, fermée puis relancée (adb reverse activé sur ports API).');
+        return true;
+      }
+      addLog(result.error ?? 'Installation ou lancement échoué. Vérifiez qu’un appareil ADB est sélectionné et que le contrôleur tourne (make emulator-controller).');
+      return false;
+    } catch (e) {
+      addLog(`Erreur install/run: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    } finally {
+      setLoading(null);
+    }
   };
 
   const imgToDevice = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -356,6 +535,8 @@ export default function MobileEmulatorPage() {
       await fetchJson<{ success?: boolean }>('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) });
       setAppRunning(false);
       addLog('Application arretee (HOME)');
+      cancelJourneyRef.current?.();
+      setJourneyRunning(false);
     } catch (e) { addLog(`Erreur stop: ${e instanceof Error ? e.message : String(e)}`); }
     finally { setLoading(null); }
   };
@@ -569,13 +750,27 @@ export default function MobileEmulatorPage() {
                   className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'start-avd' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Demarrer AVD
                 </button>
-                <button type="button" onClick={buildApk} disabled={loading !== null}
-                  className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
-                  {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Build APK
+                <span className="flex items-center gap-1">
+                  <button type="button" onClick={buildApk} disabled={loading !== null || buildNeeded === false}
+                    title={buildNeeded === false ? 'APK déjà à jour (code mobile inchangé)' : undefined}
+                    className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                    {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {buildNeeded === false ? 'APK à jour' : 'Build APK'}
+                  </button>
+                  {buildNeeded === false && (
+                    <button type="button" onClick={buildApk} disabled={loading !== null}
+                      title="Forcer un rebuild de l’APK"
+                      className="px-3 py-2 rounded-lg bg-amber-500/80 text-white text-sm font-medium hover:bg-amber-500 disabled:opacity-50 flex items-center gap-1">
+                      {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Forcer rebuild
+                    </button>
+                  )}
+                </span>
+                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || appRunning}
+                  title={appRunning ? 'App en cours — arretez d\'abord' : 'Installer l’APK puis lancer l’app'} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                  {loading === 'install-run' ? <Loader2 className="h-4 w-4 animate-spin" /> : loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Installer et lancer
                 </button>
-                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || !apkBuilt || appRunning}
-                  title={appRunning ? 'App en cours - arretez d\'abord' : !apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
-                  {loading === 'install-run' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Installer et lancer
+                <button type="button" onClick={launchOnly} disabled={!selectedDevice || loading !== null || appRunning}
+                  title={appRunning ? 'App déjà en cours' : 'Lancer l’app sans réinstaller (déjà installée)'} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                  {loading === 'launch-only' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Lancer seulement
                 </button>
                 <button type="button" onClick={runFlutter} disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null || !apkBuilt || appRunning}
                   title={appRunning ? 'App en cours - arretez d\'abord' : !apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
@@ -593,6 +788,51 @@ export default function MobileEmulatorPage() {
                     </button>
                   </>
                 )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                  <UserMinus className="h-4 w-4" /> Nettoyer un compte test
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Liste des comptes en base (comptes admin exclus). Choisissez un utilisateur puis supprimez-le pour refaire une inscription ou retester la vérification email.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={cleanupSelectedUserId}
+                    onChange={(e) => setCleanupSelectedUserId(e.target.value)}
+                    disabled={cleanupUsersLoading}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm min-w-[220px]"
+                  >
+                    <option value="">
+                      {cleanupUsersLoading ? 'Chargement...' : cleanupUsers.length === 0 ? 'Aucun utilisateur' : '— Choisir —'}
+                    </option>
+                    {cleanupUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.email}
+                        {u.firstName || u.lastName ? ` (${[u.firstName, u.lastName].filter(Boolean).join(' ')})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={loadCleanupUsers}
+                    disabled={!token || cleanupUsersLoading}
+                    className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {cleanupUsersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    Rafraîchir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteUserByEmail}
+                    disabled={!token || !cleanupSelectedUserId || loading !== null}
+                    className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loading === 'cleanup-user' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    Supprimer l&apos;utilisateur
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -645,9 +885,9 @@ export default function MobileEmulatorPage() {
                   </h3>
                   <ul className="space-y-1 max-h-[60vh] overflow-y-auto rounded-lg bg-gray-100 dark:bg-gray-800 p-2 text-xs font-medium">
                     {journeyStepResults.map((s, i) => (
-                      <li key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded ${s.status === 'running' ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200' : s.status === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : s.status === 'error' ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <li key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded ${s.status === 'running' ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200' : s.status === 'success' ? 'text-emerald-700 dark:text-emerald-400' : s.status === 'error' ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
                         {s.status === 'running' && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />}
-                        {s.status === 'ok' && <span className="text-emerald-500">✓</span>}
+                        {s.status === 'success' && <span className="text-emerald-500">✓</span>}
                         {s.status === 'error' && <span className="text-red-500">✗</span>}
                         <span className="truncate">{s.name || s.id}</span>
                       </li>
@@ -678,7 +918,7 @@ export default function MobileEmulatorPage() {
           </p>
         </div>
 
-        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} stepResults={journeyStepResults} progress={journeyProgress} onStepResultsChange={setJourneyStepResults} onProgressChange={setJourneyProgress} controllerOk={controllerOk} apkBuilt={apkBuilt} appRunning={appRunning} />
+        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} stepResults={journeyStepResults} progress={journeyProgress} onStepResultsChange={setJourneyStepResults} onProgressChange={setJourneyProgress} controllerOk={controllerOk} apkBuilt={apkBuilt} appRunning={appRunning} cancelJourneyRef={cancelJourneyRef} onEnsureAppReady={ensureBuildAndInstall} />
       </div>
     </AdminLayout>
   );
@@ -688,7 +928,7 @@ export default function MobileEmulatorPage() {
 /* Parcours utilisateur mobile - utilise @/lib/adb                    */
 /* ------------------------------------------------------------------ */
 
-function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange, stepResults: externalStepResults, progress: externalProgress, onStepResultsChange, onProgressChange, controllerOk, apkBuilt, appRunning }: {
+function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange, stepResults: externalStepResults, progress: externalProgress, onStepResultsChange, onProgressChange, controllerOk, apkBuilt, appRunning, cancelJourneyRef, onEnsureAppReady }: {
   addLog: (m: string) => void;
   controllerUrl: string;
   deviceId: string;
@@ -701,6 +941,8 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
   controllerOk?: boolean | null;
   apkBuilt?: boolean;
   appRunning?: boolean;
+  cancelJourneyRef?: React.MutableRefObject<(() => void) | null>;
+  onEnsureAppReady?: () => Promise<boolean>;
 }) {
   const [showParcoursConfig, setShowParcoursConfig] = useState(false);
   const [e2eRunning, setE2eRunning] = useState(false);
@@ -728,6 +970,17 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
     if (!scenario || running) return;
     if (!deviceId) { addLog('Selectionnez un appareil ADB avant de lancer un parcours'); return; }
     onJourneyRunningChange(true);
+
+    if (onEnsureAppReady) {
+      addLog('Build APK + installation avant de lancer le parcours...');
+      const ready = await onEnsureAppReady();
+      if (!ready) {
+        addLog('App non prête (build ou installation échoué). Parcours annulé.');
+        onJourneyRunningChange(false);
+        return;
+      }
+      addLog('App prête. Démarrage des étapes du parcours.');
+    }
 
     if (selected === 'mobile_complete_with_data') {
       if (!authToken) {
@@ -840,6 +1093,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
 
     const runner = new AdbRunner(controllerUrl, deviceId, addLog);
     runnerRef.current = runner;
+    if (cancelJourneyRef) cancelJourneyRef.current = () => runnerRef.current?.cancel();
     setRunning(true);
     setProgress({ current: 0, total: scenario.steps.length });
     setStepResults(scenario.steps.map((id) => ({ id, name: STEP_LABELS[id] || id.replace(/_/g, ' '), status: 'pending' as const })));
@@ -855,6 +1109,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
         },
       });
     } finally {
+      if (cancelJourneyRef) cancelJourneyRef.current = null;
       setRunning(false);
       runnerRef.current = null;
       onJourneyRunningChange(false);
@@ -1013,8 +1268,8 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
       )}
 
       <div className="flex items-center gap-2 mb-4">
-        <button data-testid="run-journey-btn" onClick={runJourney} disabled={running || !deviceId || controllerOk !== true || !apkBuilt || !appRunning}
-          title={!deviceId ? 'Sélectionnez un appareil' : controllerOk !== true ? 'Contrôleur injoignable' : !apkBuilt ? 'Build APK d\'abord' : !appRunning ? 'Installer et lancer l\'app d\'abord' : undefined}
+        <button data-testid="run-journey-btn" onClick={runJourney} disabled={running || !deviceId || controllerOk !== true}
+          title={!deviceId ? 'Sélectionnez un appareil' : controllerOk !== true ? 'Contrôleur injoignable' : 'Build APK + installation + étapes du parcours'}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {running ? 'En cours...' : 'Lancer le parcours'}
