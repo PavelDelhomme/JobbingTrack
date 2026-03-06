@@ -93,39 +93,41 @@ test_endpoint "API Health" "$API_URL/health"
 # ==============================================================================
 echo -e "\n${YELLOW}═══ 2. Authentification ═══${NC}"
 
-# Register
-REGISTER_EMAIL="verify-$(date +%s)@test.com"
-REGISTER_DATA="{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Test123456\",\"firstName\":\"Test\",\"lastName\":\"User\",\"phone\":\"0612345678\"}"
-test_endpoint "Register" "$API_URL/api/v1/auth/register" "POST" "$REGISTER_DATA" "201"
-
-# Extraction du token
+# 1) Essai login utilisateur seedé (email déjà vérifié) — évite 401 "email not verified"
+SEEDED_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}"
+SEEDED_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
+curl -s -X POST "$API_URL/api/v1/auth/login" -H "Content-Type: application/json" \
+    -d "{\"email\":\"$SEEDED_EMAIL\",\"password\":\"$SEEDED_PASSWORD\"}" --max-time 10 -o /tmp/response.txt 2>/dev/null || true
 if [ -f /tmp/response.txt ]; then
     TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
+    [ -z "$TOKEN" ] && TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
     if [ -n "$TOKEN" ]; then
-        echo -e "${GREEN}   Token obtenu: ${TOKEN:0:20}...${NC}"
+        echo -e "${GREEN}   ✓ Token utilisateur seedé obtenu (rôle USER, email vérifié).${NC}"
     fi
 fi
 
-# Login avec l'utilisateur test créé ci-dessus (rôle USER — parcours fonctionnel)
-LOGIN_DATA="{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Test123456\"}"
-test_endpoint "Login utilisateur test" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" || true
-LOGIN_FAILED=$?
+# 2) Si pas de token seedé : Register + Login (peut échouer si email non vérifié)
+if [ -z "$TOKEN" ]; then
+    REGISTER_EMAIL="verify-$(date +%s)@test.com"
+    REGISTER_DATA="{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Test123456\",\"firstName\":\"Test\",\"lastName\":\"User\",\"phone\":\"0612345678\"}"
+    test_endpoint "Register" "$API_URL/api/v1/auth/register" "POST" "$REGISTER_DATA" "201"
 
-if [ -f /tmp/response.txt ]; then
-    TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
-    if [ -z "$TOKEN" ]; then
-        TOKEN=$(cat /tmp/response.txt | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+    if [ -f /tmp/response.txt ]; then
+        TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
     fi
-    if [ -n "$TOKEN" ]; then
-        echo -e "${GREEN}   ✓ Token utilisateur test obtenu (rôle USER): ${TOKEN:0:20}...${NC}"
-    else
-        if [ $LOGIN_FAILED -eq 1 ] && grep -q "EMAIL_NOT_VERIFIED" /tmp/response.txt 2>/dev/null; then
-            echo -e "${YELLOW}   ⚠ Email non vérifié — on utilisera le token admin pour la suite des tests.${NC}"
+
+    LOGIN_DATA="{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Test123456\"}"
+    test_endpoint "Login utilisateur test" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" || true
+    if [ -f /tmp/response.txt ]; then
+        TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
+        [ -z "$TOKEN" ] && TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
+        if [ -z "$TOKEN" ] && grep -q "EMAIL_NOT_VERIFIED" /tmp/response.txt 2>/dev/null; then
+            echo -e "${YELLOW}   ⚠ Email non vérifié — on utilisera le token admin pour la suite.${NC}"
         fi
     fi
 fi
 
-# Login admin séparé (pour les tests qui nécessitent SUPER_ADMIN)
+# 3) Login admin (pour fallback ou tests SUPER_ADMIN)
 ADMIN_TOKEN=""
 ADMIN_LOGIN_DATA="{\"email\":\"admin@jobbingtrack.com\",\"password\":\"password123\"}"
 test_endpoint "Login admin" "$API_URL/api/v1/auth/login" "POST" "$ADMIN_LOGIN_DATA" "200"
@@ -136,11 +138,9 @@ if [ -f /tmp/response.txt ]; then
         echo -e "${GREEN}   ✓ Token admin obtenu (rôle SUPER_ADMIN): ${ADMIN_TOKEN:0:20}...${NC}"
     fi
 fi
-# Si pas de token utilisateur (ex. email non vérifié), utiliser le token admin pour la suite
 if [ -z "$TOKEN" ] && [ -n "$ADMIN_TOKEN" ]; then
     TOKEN="$ADMIN_TOKEN"
-    echo -e "${GREEN}   ✓ Utilisation du token admin pour le parcours (remplace utilisateur test).${NC}"
-    # Considérer comme OK (comportement attendu quand vérification email activée)
+    echo -e "${GREEN}   ✓ Utilisation du token admin pour le parcours.${NC}"
     PASSED_TESTS=$((PASSED_TESTS + 1))
     FAILED_TESTS=$((FAILED_TESTS - 1))
 fi

@@ -23,6 +23,20 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Répertoire racine du projet (rester ici à la fin pour ne pas laisser le shell dans tests/)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR" || true
+
+# ---- Seed auth (admin + testuser avec emailVerified) pour éviter 401 "email not verified" ----
+if command -v docker >/dev/null 2>&1 && docker ps 2>/dev/null | grep -q jobbingtrack-auth-service; then
+    echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser emailVerified)...${NC}"
+    docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.com}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
+        -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
+        jobbingtrack-auth-service npx prisma db seed 2>/dev/null && echo -e "${GREEN}   ✅ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré (déjà à jour ou erreur)${NC}"
+    echo ""
+fi
+
 # Répertoires
 RESULTS_DIR="tests/results"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -69,6 +83,9 @@ run_test() {
     
     local user_type="${4:-system}"
     
+    # Toujours repartir de la racine du projet (évite de finir dans tests/ après make test)
+    cd "$ROOT_DIR" 2>/dev/null || true
+    
     STEP_NUM=$((STEP_NUM + 1))
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC} $([ "$user_type" = "admin" ] && echo -e "${RED}👑 ADMIN${NC}" || ([ "$user_type" = "user" ] && echo -e "${GREEN}👤 USER${NC}" || echo -e "${YELLOW}⚙️ SYSTEM${NC}"))"
@@ -79,8 +96,8 @@ run_test() {
     local start_time=$(date +%s)
     local exit_code=0
 
-    # Exécuter le test avec sortie en direct (tee) et capture dans le fichier
-    eval "$test_command" 2>&1 | tee "$result_file.tmp"
+    # Exécuter le test en sous-shell pour ne pas changer le cwd du script (rester dans ROOT_DIR)
+    ( eval "$test_command" ) 2>&1 | tee "$result_file.tmp"
     exit_code=${PIPESTATUS[0]:-$?}
     
     # Filtrer les messages "check" répétitifs qui ne sont pas des erreurs critiques
@@ -359,6 +376,15 @@ echo -e "${CYAN}╔════════════════════�
 echo -e "${CYAN}║        📦 CATÉGORIE 1 : TESTS BACKEND / BDD            ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
+
+# 0. Seed auth (admin + testuser avec emailVerified: true) pour éviter 401 "email not verified"
+if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q .; then
+    echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser email vérifié)...${NC}"
+    docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.com}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
+        -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
+        jobbingtrack-auth-service npx prisma db seed 2>/dev/null && echo -e "${GREEN}   ✓ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré ou déjà à jour${NC}"
+    echo ""
+fi
 
 # 1. Test User Journey (API) — utilisateur classique
 run_test "User Journey (API)" \
@@ -1286,6 +1312,13 @@ if [ -f "$HTML_REPORT" ]; then
     echo -e "  ${GREEN}Lire en terminal  :${NC} cat ${BLUE}$TEXT_REPORT${NC}"
     echo ""
 fi
+
+# Revenir au répertoire racine (au cas où un test aurait changé le cwd)
+cd "$ROOT_DIR" 2>/dev/null || true
+
+# Rappel : si vous avez lancé le script avec source/., revenez à la racine avec : cd "$ROOT_DIR"
+echo -e "${BLUE}💡 Répertoire de travail : $(pwd)${NC}"
+echo ""
 
 # Code de sortie
 if [ -f "$HTML_REPORT" ] && [ -f "$SUMMARY_RESULT" ]; then

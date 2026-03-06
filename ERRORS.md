@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Derniere mise a jour** : 4 mars 2026
+**Dernière mise à jour** : mars 2026
 
 Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 

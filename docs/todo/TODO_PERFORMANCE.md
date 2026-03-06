@@ -1,6 +1,6 @@
 # 📋 TODO - Optimisations Performance
 
-**Contexte** : Pour la liste globale des tâches du projet (tests, sécurité, emails, etc.) et l’ordre de priorité, voir **STATUS.md** (section « À FAIRE »). Les tests de performance depuis le backoffice (Docker) s’exécutent avec **`sh`** (plus `bash`).
+**Contexte** : Pour la liste globale des tâches du projet (tests, sécurité, emails, etc.) et l’ordre de priorité, voir **`STATUS.md`** à la racine (section « À FAIRE »). Les tests de performance depuis le backoffice (Docker) s’exécutent avec **`sh`** (plus `bash`).
 
 ## 🎯 Objectifs
 - **Frontend**: Réduire la mémoire de 1073MB à ~500MB (50%)
@@ -147,4 +147,3 @@ make analyze-metrics-aggregator   # Analyser metrics-aggregator
 - Les conteneurs ont été arrêtés pour permettre les tests
 - Relancer avec `make up-full` après les optimisations
 - Surveiller les métriques avec `make status` et `docker stats`
-

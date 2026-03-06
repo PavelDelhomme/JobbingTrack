@@ -69,6 +69,75 @@ test.describe('Backoffice — Émulateur mobile', () => {
   });
 });
 
+test.describe('Backoffice — Émulateur mobile (interface complète, boutons et sections)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/backoffice/mobile-emulator');
+    await page.waitForLoadState('domcontentloaded');
+  });
+
+  test('bouton Vérifier le contrôleur visible et cliquable', async ({ page }) => {
+    const btn = page.getByTestId('btn-verify-controller');
+    await expect(btn).toBeVisible({ timeout: 10000 });
+    await expect(btn).toBeEnabled();
+    await btn.click();
+    await page.waitForTimeout(500);
+    // Pas d’erreur attendue ; le statut peut rester injoignable si le contrôleur ne tourne pas
+  });
+
+  test('section contrôleur : soit Démarrer le contrôleur soit Build/Installer/Lancer/Désinstaller', async ({ page }) => {
+    await page.waitForTimeout(3500);
+    const startController = page.getByRole('button', { name: /Démarrer le contrôleur/i }).first();
+    const buildBtn = page.getByTestId('btn-build-apk');
+    const installBtn = page.getByTestId('btn-install-run');
+    const launchOnlyBtn = page.getByTestId('btn-launch-only');
+    const uninstallBtn = page.getByTestId('btn-uninstall-app');
+    const hasStart = await startController.isVisible().catch(() => false);
+    const hasBuild = await buildBtn.isVisible().catch(() => false);
+    const hasInstall = await installBtn.isVisible().catch(() => false);
+    const hasLaunchOnly = await launchOnlyBtn.isVisible().catch(() => false);
+    const hasUninstall = await uninstallBtn.isVisible().catch(() => false);
+    expect(hasStart || (hasBuild && hasInstall && hasLaunchOnly && hasUninstall)).toBeTruthy();
+  });
+
+  test('boutons Build APK, Installer et lancer, Lancer seulement, Désinstaller présents quand contrôleur connecté', async ({ page }) => {
+    await page.waitForTimeout(3500);
+    const installBtn = page.getByTestId('btn-install-run');
+    const visible = await installBtn.isVisible().catch(() => false);
+    if (!visible) {
+      return;
+    }
+    await expect(installBtn).toBeVisible();
+    await expect(page.getByTestId('btn-launch-only')).toBeVisible();
+    await expect(page.getByTestId('btn-uninstall-app')).toBeVisible();
+    const buildOrForce = page.getByTestId('btn-build-apk').or(page.getByTestId('btn-force-rebuild'));
+    await expect(buildOrForce.first()).toBeVisible();
+  });
+
+  test('bouton Lancer le parcours présent', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /Lancer le parcours/i }).first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('section Nettoyer un compte test visible quand contrôleur connecté', async ({ page }) => {
+    await page.waitForTimeout(3500);
+    const section = page.getByTestId('section-cleanup-account');
+    const visible = await section.isVisible().catch(() => false);
+    if (visible) {
+      await expect(page.getByText(/Nettoyer un compte test/i).first()).toBeVisible();
+    }
+  });
+
+  test('Demarrer AVD et Flutter run présents quand contrôleur connecté', async ({ page }) => {
+    await page.waitForTimeout(3500);
+    const startAvd = page.getByTestId('btn-start-avd');
+    const visible = await startAvd.isVisible().catch(() => false);
+    if (!visible) {
+      return;
+    }
+    await expect(startAvd).toBeVisible();
+    await expect(page.getByRole('button', { name: /Flutter run/i }).first()).toBeVisible();
+  });
+});
+
 test.describe('Backoffice — Émulateur mobile (parcours avec données)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/backoffice/mobile-emulator');

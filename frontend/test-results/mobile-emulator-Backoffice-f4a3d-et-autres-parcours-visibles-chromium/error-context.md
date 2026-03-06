@@ -1,0 +1,631 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+        - /url: /backoffice
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - button "📊 Tableau de bord ▶" [ref=e10] [cursor=pointer]:
+            - generic [ref=e11]:
+              - generic [ref=e12]: 📊
+              - generic [ref=e13]: Tableau de bord
+            - generic [ref=e14]: ▶
+          - generic [ref=e15]:
+            - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques & Monitoring" [ref=e25] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques & Monitoring
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+            - link "📈 Performances complètes" [ref=e37] [cursor=pointer]:
+              - /url: /backoffice/analytics/performances
+              - generic [ref=e38]: 📈
+              - generic [ref=e39]: Performances complètes
+            - link "🌐 Performances réseau" [ref=e43] [cursor=pointer]:
+              - /url: /backoffice/analytics/network
+              - generic [ref=e44]: 🌐
+              - generic [ref=e45]: Performances réseau
+            - link "📱 Performances applicatives" [ref=e49] [cursor=pointer]:
+              - /url: /backoffice/analytics/application
+              - generic [ref=e50]: 📱
+              - generic [ref=e51]: Performances applicatives
+            - link "🐳 Analytics conteneurs" [ref=e55] [cursor=pointer]:
+              - /url: /backoffice/analytics/containers
+              - generic [ref=e56]: 🐳
+              - generic [ref=e57]: Analytics conteneurs
+            - link "📊 Analytics utilisateur" [ref=e61] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e62]: 📊
+              - generic [ref=e63]: Analytics utilisateur
+        - generic [ref=e64]:
+          - button "🔒 Sécurité ▶" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 🔒
+              - generic [ref=e68]: Sécurité
+            - generic [ref=e69]: ▶
+          - generic [ref=e70]:
+            - link "📋 Logs de sécurité" [ref=e74] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e75]: 📋
+              - generic [ref=e76]: Logs de sécurité
+            - link "⚙️ Politiques" [ref=e80] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e81]: ⚙️
+              - generic [ref=e82]: Politiques
+            - link "🛡️ Analyse" [ref=e86] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e87]: 🛡️
+              - generic [ref=e88]: Analyse
+            - link "🔥 Firewall" [ref=e92] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e93]: 🔥
+              - generic [ref=e94]: Firewall
+            - link "🌐 Réseau" [ref=e98] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e99]: 🌐
+              - generic [ref=e100]: Réseau
+            - link "⚠️ Menaces" [ref=e104] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e105]: ⚠️
+              - generic [ref=e106]: Menaces
+        - generic [ref=e107]:
+          - button "⚙️ Administration ▶" [ref=e108] [cursor=pointer]:
+            - generic [ref=e109]:
+              - generic [ref=e110]: ⚙️
+              - generic [ref=e111]: Administration
+            - generic [ref=e112]: ▶
+          - generic [ref=e113]:
+            - generic [ref=e116]:
+              - link "🔧 Gestion des services" [ref=e117] [cursor=pointer]:
+                - /url: /backoffice/services
+                - generic [ref=e118]: 🔧
+                - generic [ref=e119]: Gestion des services
+              - button "Expander les sous-items" [ref=e120] [cursor=pointer]: ▶
+            - generic [ref=e123]:
+              - link "💾 Gestion des données" [ref=e124] [cursor=pointer]:
+                - /url: /backoffice/data
+                - generic [ref=e125]: 💾
+                - generic [ref=e126]: Gestion des données
+              - button "Expander les sous-items" [ref=e127] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e131] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e132]: 👥
+              - generic [ref=e133]: Utilisateurs
+        - generic [ref=e134]:
+          - button "🛠️ Développement ▶" [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]:
+              - generic [ref=e137]: 🛠️
+              - generic [ref=e138]: Développement
+            - generic [ref=e139]: ▶
+          - generic [ref=e140]:
+            - link "🧪 Testeur d’API (manuel)" [ref=e144] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e145]: 🧪
+              - generic [ref=e146]: Testeur d’API (manuel)
+            - link "🎲 Données de test" [ref=e150] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e151]: 🎲
+              - generic [ref=e152]: Données de test
+            - link "📱 Émulateur mobile" [ref=e156] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e159]: 📱
+              - generic [ref=e160]: Émulateur mobile
+            - generic [ref=e165]:
+              - link "🧪 Tests" [ref=e166] [cursor=pointer]:
+                - /url: /backoffice/tests
+                - generic [ref=e167]: 🧪
+                - generic [ref=e168]: Tests
+              - button "Expander les sous-items" [ref=e169] [cursor=pointer]: ▶
+            - generic [ref=e172]:
+              - link "🚶 Parcours utilisateur" [ref=e173] [cursor=pointer]:
+                - /url: /backoffice/user-journey
+                - generic [ref=e174]: 🚶
+                - generic [ref=e175]: Parcours utilisateur
+              - button "Expander les sous-items" [ref=e176] [cursor=pointer]: ▶
+        - generic [ref=e177]:
+          - button "📧 Gestion des emails ▶" [ref=e178] [cursor=pointer]:
+            - generic [ref=e179]:
+              - generic [ref=e180]: 📧
+              - generic [ref=e181]: Gestion des emails
+            - generic [ref=e182]: ▶
+          - generic [ref=e183]:
+            - link "📊 Dashboard" [ref=e187] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e188]: 📊
+              - generic [ref=e189]: Dashboard
+            - link "📈 Email Monitor" [ref=e193] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e194]: 📈
+              - generic [ref=e195]: Email Monitor
+            - link "📋 Historique" [ref=e199] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e200]: 📋
+              - generic [ref=e201]: Historique
+            - link "📝 Templates" [ref=e205] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e206]: 📝
+              - generic [ref=e207]: Templates
+            - link "⚙️ Configuration" [ref=e211] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e212]: ⚙️
+              - generic [ref=e213]: Configuration
+            - link "✅ Déliverabilité" [ref=e217] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e218]: ✅
+              - generic [ref=e219]: Déliverabilité
+            - link "🧪 Tests Emails" [ref=e223] [cursor=pointer]:
+              - /url: /backoffice/tests-emails
+              - generic [ref=e224]: 🧪
+              - generic [ref=e225]: Tests Emails
+            - link "📬 MailHog (interface)" [ref=e229] [cursor=pointer]:
+              - /url: http://localhost:8025
+              - generic [ref=e230]: 📬
+              - generic [ref=e231]: MailHog (interface)
+      - generic [ref=e233]:
+        - button "AJ Admin JobbingTrack SUPER_ADMIN" [ref=e235] [cursor=pointer]:
+          - generic [ref=e236]: AJ
+          - generic [ref=e237]:
+            - paragraph [ref=e238]: Admin JobbingTrack
+            - paragraph [ref=e239]: SUPER_ADMIN
+        - button "🚪" [ref=e241] [cursor=pointer]
+    - generic [ref=e242]:
+      - generic [ref=e244]:
+        - button "Toggle sidebar" [ref=e246] [cursor=pointer]:
+          - img [ref=e247]
+        - generic [ref=e250]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e251]
+        - generic [ref=e252]:
+          - button "AJ admin@jobbingtrack.com" [ref=e253] [cursor=pointer]:
+            - generic [ref=e254]: AJ
+            - generic [ref=e255]: admin@jobbingtrack.com
+          - button "Paramètres" [ref=e256] [cursor=pointer]:
+            - img [ref=e257]
+            - generic [ref=e260]: Paramètres
+          - button "Actions" [ref=e262] [cursor=pointer]:
+            - img [ref=e263]
+            - generic [ref=e266]: Actions
+            - img [ref=e267]
+          - button "🌙" [ref=e269] [cursor=pointer]:
+            - generic [ref=e270]: 🌙
+      - main [ref=e271]:
+        - generic [ref=e272]:
+          - generic [ref=e273]:
+            - heading "Emulateur mobile - Android" [level=1] [ref=e274]:
+              - img [ref=e275]
+              - text: Emulateur mobile - Android
+            - paragraph [ref=e277]:
+              - text: Selectionnez un
+              - strong [ref=e278]: emulateur
+              - text: ou un
+              - strong [ref=e279]: telephone connecte
+              - text: (USB / adb), lancez l'app et voyez le
+              - strong [ref=e280]: rendu en direct
+              - text: .
+          - generic [ref=e281]:
+            - generic [ref=e282]:
+              - generic [ref=e283]:
+                - generic [ref=e284]: URL du controleur
+                - textbox "http://localhost:5055" [ref=e285]
+                - paragraph [ref=e286]: Même hôte que la page (ex. si vous ouvrez 127.0.0.1:5003, mettez 127.0.0.1:5055)
+              - generic [ref=e287]:
+                - img [ref=e288]
+                - button "Verifier" [ref=e292] [cursor=pointer]:
+                  - img [ref=e293]
+                  - text: Verifier
+                - button "Arrêter le contrôleur" [ref=e298] [cursor=pointer]:
+                  - img [ref=e299]
+                  - text: Arrêter le contrôleur
+                - button "Redémarrer contrôleur" [ref=e301] [cursor=pointer]
+            - generic [ref=e302]:
+              - generic [ref=e303]:
+                - generic [ref=e304]: AVD
+                - combobox [ref=e305]:
+                  - option "-- Choisir un AVD --" [selected]
+                - button "Rafraichir AVD" [ref=e306] [cursor=pointer]
+              - generic [ref=e307]:
+                - generic [ref=e308]: Appareil ADB
+                - combobox [ref=e309]:
+                  - option "-- Choisir --"
+                  - option "R5CT7263YJL (device)" [selected]
+                - button "Rafraichir" [ref=e310] [cursor=pointer]
+              - generic [ref=e311]:
+                - generic [ref=e312]: Appareil Flutter
+                - combobox [ref=e313]:
+                  - option "-- Meme ou choisir --" [selected]
+                  - option "SM G990B2 (R5CT7263YJL)"
+                  - option "Linux (linux)"
+                - button "Rafraichir" [ref=e314] [cursor=pointer]
+            - generic [ref=e315]:
+              - button "Demarrer AVD" [disabled] [ref=e316]:
+                - img [ref=e317]
+                - text: Demarrer AVD
+              - generic [ref=e319]:
+                - button "APK à jour" [disabled] [ref=e320]
+                - button "Forcer rebuild" [ref=e321] [cursor=pointer]:
+                  - img [ref=e322]
+                  - text: Forcer rebuild
+              - button "Installer et lancer" [ref=e327] [cursor=pointer]:
+                - img [ref=e328]
+                - text: Installer et lancer
+              - button "Lancer seulement" [ref=e330] [cursor=pointer]:
+                - img [ref=e331]
+                - text: Lancer seulement
+              - button "Désinstaller l'app" [ref=e333] [cursor=pointer]:
+                - img [ref=e334]
+                - text: Désinstaller l'app
+              - button "Flutter run" [disabled] [ref=e337]:
+                - img [ref=e338]
+                - text: Flutter run
+            - generic [ref=e340]:
+              - heading "Nettoyer un compte test" [level=3] [ref=e341]:
+                - img [ref=e342]
+                - text: Nettoyer un compte test
+              - paragraph [ref=e345]: Liste des comptes en base (comptes admin exclus). Choisissez un utilisateur puis supprimez-le pour refaire une inscription ou retester la vérification email.
+              - generic [ref=e346]:
+                - combobox [ref=e347]:
+                  - option "— Choisir —"
+                  - option "e2e-user-1772748676358@jobbingtrack.test (E2EUser Test)" [selected]
+                  - option "e2e-user-1772748676146@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748675650@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748675624@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748675279@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748674997@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748674645@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748674349@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748672937@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748672659@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748417292@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748417072@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748416399@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748416313@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748416223@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748415576@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748415369@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748415010@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748413264@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748413258@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748413253@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411720@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411711@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411672@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411680@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411635@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411602@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411551@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748411205@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748410077@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748409066@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748408684@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748408263@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748408262@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748408261@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406836@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406683@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406652@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406645@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406542@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748406217@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748405318@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748404251@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748403790@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748403789@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748403788@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748403787@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748403551@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748402141@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748402152@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748402144@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748402059@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748402050@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748401849@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748401827@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748401483@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748399747@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748398828@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748398827@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748398650@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748398651@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748398427@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748397906@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748397032@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748397033@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748397001@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748396917@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748396915@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748396863@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748396543@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748396148@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748394418@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748394110@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748393864@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748393754@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748393599@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748393154@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391894@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391900@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391860@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391872@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391866@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391870@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748391821@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748355080@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748354866@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748354332@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748353922@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748353374@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748353166@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748353012@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748352905@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748352747@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748352319@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351570@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351407@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351381@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351370@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351247@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748351208@jobbingtrack.test (E2EUser Test)"
+                  - option "candidatures@delhomme.ovh (Test BlueMail)"
+                  - option "paul.delhomme@proton.me (Test Proton)"
+                  - option "e2e-user-1772748303716@jobbingtrack.test (E2EUser Test)"
+                  - option "pauldelhommepro@gmail.com (Test Gmail)"
+                  - option "e2e-user-1772748303014@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748302147@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748302070@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748301963@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748301620@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748300918@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748300860@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748300785@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748300787@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748145289@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748144854@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748144200@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748144229@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748144133@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748144024@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748143880@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748143016@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748142677@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748141519@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748141404@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748141289@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748141070@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748140131@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748140092@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748139935@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748139906@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748139855@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748139760@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748139462@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748138554@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748138002@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748136968@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748136856@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748136855@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748136747@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748136570@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135404@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135255@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135196@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135122@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135135@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748135027@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748134934@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748134741@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748133619@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748132340@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748132275@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748131856@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748131855@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748131849@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130743@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130318@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130316@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130310@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130267@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130256@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748130092@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748129769@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748129201@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748128850@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748127895@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748127338@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748126747@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748126609@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748126546@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125490@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125488@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125438@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125468@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125184@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748125055@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748124852@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748124480@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748122319@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748122104@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748121827@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748121826@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748121528@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748121042@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119632@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119629@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119616@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119615@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119601@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119610@jobbingtrack.test (E2EUser Test)"
+                  - option "e2e-user-1772748119572@jobbingtrack.test (E2EUser Test)"
+                  - option "apitest-1772748083@jobbingtrack.test (APITest User)"
+                  - option "apitest-1772748082@jobbingtrack.test (APITest User)"
+                  - option "apitest-1772748081@jobbingtrack.test (APITest User)"
+                  - option "verify-1772748057@test.com (Test User)"
+                - button "Rafraîchir" [ref=e348] [cursor=pointer]:
+                  - img [ref=e349]
+                  - text: Rafraîchir
+                - button "Supprimer l'utilisateur" [ref=e354] [cursor=pointer]:
+                  - img [ref=e355]
+                  - text: Supprimer l'utilisateur
+          - generic [ref=e360]:
+            - heading "Rendu en direct clic = tap | glisser = scroll/swipe Aperçu continu (hors parcours)" [level=2] [ref=e361]:
+              - img [ref=e362]
+              - text: Rendu en direct
+              - generic [ref=e366]: clic = tap | glisser = scroll/swipe
+              - generic [ref=e367] [cursor=pointer]:
+                - checkbox "Aperçu continu (hors parcours)" [ref=e368]
+                - text: Aperçu continu (hors parcours)
+            - generic [ref=e370]: Cochez « Aperçu continu » ou lancez un parcours pour afficher l’écran.
+            - generic [ref=e371]:
+              - button "Back" [ref=e372] [cursor=pointer]
+              - button "Home" [ref=e373] [cursor=pointer]
+              - button "Recents" [ref=e374] [cursor=pointer]
+          - generic [ref=e375]:
+            - generic [ref=e376]:
+              - heading "Logs" [level=2] [ref=e377]:
+                - img [ref=e378]
+                - text: Logs
+              - generic [ref=e380]:
+                - button "Copier" [ref=e381] [cursor=pointer]
+                - button "Effacer" [ref=e382] [cursor=pointer]
+            - generic [ref=e383]:
+              - generic [ref=e384]: "[11:11:52 PM] Controleur emulateur connecte."
+              - generic [ref=e385]: "[11:11:53 PM] AVD trouves : 0"
+              - generic [ref=e386]: "[11:11:53 PM] Appareils ADB : 1"
+            - paragraph [ref=e387]: En dev, la console navigateur peut afficher des avertissements CSS (layout.css), un preload font non utilisé, ou NS_BINDING_ABORTED sur les screenshots ; ils sont sans impact et le build APK / install-run fonctionnent normalement.
+          - generic [ref=e388]:
+            - heading "Parcours utilisateur mobile interaction UI reelle 36 parcours" [level=3] [ref=e389]:
+              - img [ref=e390]
+              - text: Parcours utilisateur mobile
+              - generic [ref=e392]: interaction UI reelle
+              - generic [ref=e393]: 36 parcours
+            - paragraph [ref=e394]:
+              - text: "Les tests mobile passent par ces scénarios : sélectionnez un parcours puis"
+              - strong [ref=e395]: Lancer le parcours
+              - text: pour exécuter les actions en direct sur l’appareil.
+            - generic [ref=e396]: Faites « Build APK » puis « Installer et lancer » avant de lancer un parcours.
+            - generic [ref=e397]:
+              - text: Pour tester
+              - strong [ref=e398]: inscription + envoi email de vérification
+              - text: (Gmail, Proton, BlueMail)
+              - strong [ref=e399]: en direct sur votre téléphone
+              - text: ": choisissez un parcours ci-dessous, cliquez sur"
+              - strong [ref=e400]: Lancer le parcours
+              - text: . Les actions s’exécutent en live sur l’appareil. Consultez
+              - link "Email Monitor" [ref=e401] [cursor=pointer]:
+                - /url: /backoffice/email-monitor
+              - text: (rafraîchi en temps réel) pour voir l’email envoyé ; l’utilisateur peut ensuite se connecter après vérification.
+            - generic [ref=e402]:
+              - paragraph [ref=e403]: Inscription + vérification email (en direct sur le téléphone)
+              - generic [ref=e404]:
+                - button "Vérif. email (Gmail) — compte existant" [ref=e405] [cursor=pointer]: Vérif. email (Gmail) — compte existant
+                - button "Vérif. email (Proton) — compte existant" [ref=e407] [cursor=pointer]: Vérif. email (Proton) — compte existant
+                - button "Vérif. email (BlueMail) — compte existant" [ref=e409] [cursor=pointer]: Vérif. email (BlueMail) — compte existant
+                - generic [ref=e411] [cursor=pointer]:
+                  - checkbox "Nettoyer l'utilisateur de test avant le parcours" [ref=e412]
+                  - text: Nettoyer l'utilisateur de test avant le parcours
+              - paragraph [ref=e413]:
+                - text: "Flux attendu : Accepter les conditions → S'inscrire → écran \"Vérifiez votre email\" → ouvrir Gmail/Proton/OVH sur l'appareil → cliquer le lien → retour app → Se connecter → Dashboard. Vérifiez les envois dans"
+                - link "Email Monitor" [ref=e414] [cursor=pointer]:
+                  - /url: /backoffice/email-monitor
+                - text: et dans votre boîte réelle.
+            - generic [ref=e415]:
+              - generic [ref=e416]: "Filtre :"
+              - button "Tous" [ref=e417] [cursor=pointer]
+              - button "Authentification" [ref=e418] [cursor=pointer]
+              - button "Navigation" [ref=e419] [cursor=pointer]
+              - button "CRUD & Interactions" [ref=e420] [cursor=pointer]
+              - button "Verification" [ref=e421] [cursor=pointer]
+              - button "Parcours complets" [ref=e422] [cursor=pointer]
+            - paragraph [ref=e423]: Tous les parcours
+            - generic [ref=e424]:
+              - button "Login rapide" [ref=e425] [cursor=pointer]: Login rapide
+              - button "Inscription (désactivée — faire à la main)" [ref=e427] [cursor=pointer]: Inscription (désactivée — faire à la main)
+              - button "Reset mot de passe" [ref=e429] [cursor=pointer]: Reset mot de passe
+              - button "Vérif. email (Gmail) — compte existant" [ref=e431] [cursor=pointer]: Vérif. email (Gmail) — compte existant
+              - button "Vérif. email (Proton) — compte existant" [ref=e433] [cursor=pointer]: Vérif. email (Proton) — compte existant
+              - button "Vérif. email (BlueMail) — compte existant" [ref=e435] [cursor=pointer]: Vérif. email (BlueMail) — compte existant
+              - button "Login + Deconnexion" [ref=e437] [cursor=pointer]: Login + Deconnexion
+              - button "Navigation bottom bar" [ref=e439] [cursor=pointer]: Navigation bottom bar
+              - button "Drawer complet" [ref=e441] [cursor=pointer]: Drawer complet
+              - button "Drawer sections admin" [ref=e443] [cursor=pointer]: Drawer sections admin
+              - button "Navigation complete" [ref=e445] [cursor=pointer]: Navigation complete
+              - button "Verification dashboard" [ref=e447] [cursor=pointer]: Verification dashboard
+              - button "Verification candidatures" [ref=e449] [cursor=pointer]: Verification candidatures
+              - button "Verification hub recherche" [ref=e451] [cursor=pointer]: Verification hub recherche
+              - button "Verification calendrier" [ref=e453] [cursor=pointer]: Verification calendrier
+              - button "Verification profil" [ref=e455] [cursor=pointer]: Verification profil
+              - button "Verification relances" [ref=e457] [cursor=pointer]: Verification relances
+              - button "Verification tous ecrans" [ref=e459] [cursor=pointer]: Verification tous ecrans
+              - button "Verification liste contacts" [ref=e461] [cursor=pointer]: Verification liste contacts
+              - button "Creation candidature" [ref=e463] [cursor=pointer]: Creation candidature
+              - button "CRUD Candidature" [ref=e465] [cursor=pointer]: CRUD Candidature
+              - button "Gestion relances" [ref=e467] [cursor=pointer]: Gestion relances
+              - button "Actions rapides dashboard" [ref=e469] [cursor=pointer]: Actions rapides dashboard
+              - button "Archives & Corbeille" [ref=e471] [cursor=pointer]: Archives & Corbeille
+              - button "Création candidature + relance + entretien + appel" [ref=e473] [cursor=pointer]: Création candidature + relance + entretien + appel
+              - button "Gestion notifications" [ref=e475] [cursor=pointer]: Gestion notifications
+              - button "Test email sur appareil" [ref=e477] [cursor=pointer]: Test email sur appareil
+              - button "Verification badges statut" [ref=e479] [cursor=pointer]: Verification badges statut
+              - button "Verification notifications" [ref=e481] [cursor=pointer]: Verification notifications
+              - button "Verification parametres" [ref=e483] [cursor=pointer]: Verification parametres
+              - button "Verification evenements" [ref=e485] [cursor=pointer]: Verification evenements
+              - button "Verification statistiques" [ref=e487] [cursor=pointer]: Verification statistiques
+              - button "Premiere utilisation" [ref=e489] [cursor=pointer]: Premiere utilisation
+              - button "Usage quotidien" [ref=e491] [cursor=pointer]: Usage quotidien
+              - button "Parcours complet" [ref=e493] [cursor=pointer]: Parcours complet
+              - button "Parcours complet (avec données)" [ref=e495] [cursor=pointer]: Parcours complet (avec données)
+            - generic [ref=e497]:
+              - generic [ref=e498]:
+                - generic [ref=e499]: Vérif. email (Gmail) — compte existant
+                - generic [ref=e500]:
+                  - generic [ref=e501]: Verification
+                  - generic [ref=e502]: 11 etapes
+              - paragraph [ref=e503]: Compte déjà inscrit à la main. Connexion écran → ouvrir Gmail → mail vérif → cliquer lien → retour app → connexion
+              - generic [ref=e504]:
+                - generic [ref=e505]: Accueil appareil puis lancer l'app
+                - generic [ref=e506]: Attendre ecran connexion ou dashboard
+                - generic [ref=e507]: Deconnexion si necessaire
+                - generic [ref=e508]: Ouvrir Gmail
+                - generic [ref=e509]: Ouvrir premier email vérification
+                - generic [ref=e510]: Cliquer lien vérification
+                - generic [ref=e511]: Retour app JobbingTrack
+                - generic [ref=e512]: Pause courte (2s)
+                - generic [ref=e513]: Saisir identifiants (Gmail)
+                - generic [ref=e514]: Tap Se connecter
+                - generic [ref=e515]: Verifier dashboard
+            - generic [ref=e516]:
+              - button "Lancer le parcours" [ref=e517] [cursor=pointer]:
+                - img [ref=e518]
+                - text: Lancer le parcours
+              - generic [ref=e520]:
+                - link "Tous les parcours" [ref=e521] [cursor=pointer]:
+                  - /url: /backoffice/user-journey
+                - link "Personnalise" [ref=e522] [cursor=pointer]:
+                  - /url: /backoffice/user-journey/custom
+                - link "Rapports" [ref=e523] [cursor=pointer]:
+                  - /url: /backoffice/user-journey/reports
+                - link "Email Monitor" [ref=e524] [cursor=pointer]:
+                  - /url: /backoffice/email-monitor
+            - generic [ref=e525]:
+              - heading "Tests automatisés navigateur (optionnel)" [level=4] [ref=e526]:
+                - img [ref=e527]
+                - text: Tests automatisés navigateur (optionnel)
+              - paragraph [ref=e529]: "Le test principal est d’exécuter un parcours sur le téléphone ci-dessus. Optionnel : lancer des tests Playwright (page backoffice + Email Monitor) pour la CI."
+              - generic [ref=e530]:
+                - button "Lancer tests E2E (navigateur)" [ref=e531] [cursor=pointer]:
+                  - img [ref=e532]
+                  - text: Lancer tests E2E (navigateur)
+                - generic [ref=e534]:
+                  - text: "Ou en terminal :"
+                  - code [ref=e535]: make test-e2e-mobile-email
+  - alert [ref=e536]
+```

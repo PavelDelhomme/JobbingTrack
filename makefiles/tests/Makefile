@@ -511,7 +511,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "🚀 Exécution de tous les tests avec génération de rapports..."
 	@echo ""
-	@bash scripts/run-all-tests-with-reports.sh
+	@( cd "$(ROOT_DIR)" && bash scripts/run-all-tests-with-reports.sh )
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║           ✅ TOUS LES TESTS TERMINÉS !                  ║"

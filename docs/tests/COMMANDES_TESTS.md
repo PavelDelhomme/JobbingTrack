@@ -36,8 +36,9 @@ Le script :
 1. **Initialisation**
    - `set +e` (ne pas quitter à la première erreur).
    - Trap **Ctrl+C** / SIGTERM : affiche « Interruption (Ctrl+C) – arrêt de la suite de tests » et quitte avec le code 130.
+   - **Seed auth** : si le conteneur `jobbingtrack-auth-service` tourne, exécution de `npx prisma db seed` pour mettre à jour admin et testuser avec **emailVerified: true** (évite les 401 "email not verified").
    - Crée un répertoire de résultats : **`tests/results/YYYYMMDD-HHMMSS`**.
-   - Affiche le chemin des résultats et le rappel (tables BDD, API_GATEWAY_URL).
+   - À chaque étape et à la fin, le script revient au répertoire **racine du projet** pour ne pas laisser le shell dans `tests/`.
 
 2. **Catégorie 1 – Backend / BDD**
    - **User Journey (API)** : `scripts/verify-user-journey.sh`.
@@ -46,7 +47,7 @@ Le script :
    - **Email Logs** : si la table `EmailLog` existe, requête SQL (derniers logs) dans Postgres.
    - **Tests API Complets (Jest)** : Jest dans le conteneur frontend (ou en local) sur `tests/api/`.
    - **Tests Backend Services (Jest)** : Jest sur `tests/backend/`.
-   - **Tests API Backend (script)** : `scripts/test-api-specific.sh` avec `API_URL` / `API_GATEWAY_URL` (tous les services).
+   - **Tests API Backend (script)** : `scripts/test-api-specific.sh` avec `API_URL` / `API_GATEWAY_URL` (environ **62 appels** : health, auth, companies, applications, contacts, etc. – 1 test = 1 endpoint).
 
 3. **Catégorie 2 – Frontend (E2E)**
    - **Vérification Playwright** : `npx playwright install` (timeout 3 min) pour installer les navigateurs si besoin (Docker ou local).
@@ -65,7 +66,10 @@ Le script :
 6. **Fin**
    - Pour chaque test : sortie affichée en direct (via `tee`), puis **✅ SUCCÈS** ou **❌ ÉCHEC** et durée.
    - Résultats enregistrés dans des fichiers JSON dans `tests/results/YYYYMMDD-HHMMSS/`.
+   - Le script revient à la **racine du projet** et affiche le répertoire de travail.
    - À la fin du script, retour au Makefile qui affiche « TOUS LES TESTS TERMINÉS ! » et « Consultez les rapports dans tests/results/ ».
+
+**Important** : lancer **make test** depuis la **racine du projet** pour que le répertoire de travail reste cohérent. Voir [STRUCTURE_TESTS_MAKE_TEST.md](STRUCTURE_TESTS_MAKE_TEST.md) pour les détails (seed auth, 62 vs 270 tests, etc.).
 
 ---
 

@@ -2,7 +2,9 @@
 
 [← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📑 Index](INDEX.md)
 
-##  **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
+**Fichiers à la racine** : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`. Pour **ce qu’il reste à faire** (priorité mobile, vérif email, Flutter) → **[../STATUS.md](../STATUS.md)** et **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)**.
+
+## **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
 
 ## 🎯 Vue d'ensemble
 

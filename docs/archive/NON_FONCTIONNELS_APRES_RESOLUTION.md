@@ -1,7 +1,9 @@
 # ⚠️ ÉLÉMENTS NON FONCTIONNELS APRÈS RÉSOLUTION
 
 **Date**: 2025-12-23 00:25  
-**Statut**: Vérification post-résolution
+**Statut**: Vérification post-résolution (archivé — pour référence historique)
+
+> **Note** : Ce document est archivé. Pour l’état actuel du projet et ce qu’il reste à faire, voir **`STATUS.md`** à la racine.
 
 ## 📋 VÉRIFICATIONS POST-RÉSOLUTION
 
@@ -18,7 +20,7 @@
 3. **Services démarrés** : ✅ RÉSOLU
    - monitoring-c, auth-service, postgres sont démarrés et healthy
 
-### ⏳ EN COURS / À VÉRIFIER
+### ⏳ EN COURS / À VÉRIFIER (état au 2025-12)
 
 1. **Tables Prisma complètes**
    - **Statut** : En cours de création
@@ -32,7 +34,7 @@
    - **Statut** : ⏳ Devrait être résolu une fois que toutes les tables Prisma sont créées
    - **Action** : Vérifier après création complète des tables
 
-## 🔍 TESTS À EFFECTUER
+## 🔍 TESTS À EFFECTUER (référence)
 
 ### Test 1 : Vérifier que les tables Prisma sont créées
 ```bash
@@ -50,7 +52,7 @@ curl -s http://localhost:5098/api/v1/metrics | jq '.project_memory_mb, .project_
 - Ouvrir http://localhost:5003/backoffice
 - Vérifier que "Mémoire Projet" et "CPU Projet" affichent des valeurs (pas "N/A" ou "...")
 
-## 📊 RÉSUMÉ
+## 📊 RÉSUMÉ (au 2025-12)
 
 - **Problèmes critiques résolus** : ✅ 3/5
 - **Problèmes en cours** : ⏳ 2 (tables Prisma, tests)

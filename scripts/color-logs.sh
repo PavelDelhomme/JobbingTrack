@@ -54,6 +54,15 @@ while IFS= read -r line || [ -n "$line" ]; do
   out="$line"
 
   # ---- Nom du service (début de ligne: jobbingtrack-xxx) ----
+  # Redis et Postgres : toute la ligne en DIM pour ne pas noyer les logs applicatifs
+  if [[ "$out" =~ ^jobbingtrack-redis[[:space:]] ]]; then
+    printf '%b%s%b\n' "$DIM" "$line" "$R"
+    continue
+  fi
+  if [[ "$out" =~ ^jobbingtrack-postgres[[:space:]] ]]; then
+    printf '%b%s%b\n' "$DIM" "$line" "$R"
+    continue
+  fi
   if [[ "$out" =~ ^(jobbingtrack-[a-zA-Z0-9-]+) ]]; then
     svc="${BASH_REMATCH[1]}"
     out="${MAGENTA}${svc}${R}${out:${#svc}}"
@@ -80,10 +89,25 @@ while IFS= read -r line || [ -n "$line" ]; do
   out="${out// 201 /  ${BRIGHT_GREEN}201${R} }"
   out="${out// 204 /  ${BRIGHT_GREEN}204${R} }"
 
-  # Réponses HTTP 4xx/5xx dans d'autres formats (ex: "(HTTP 404)")
+  # Réponses HTTP 4xx/5xx dans d'autres formats (ex: "(HTTP 404)") — en bash pour éviter \033 interprété par sed
   if [[ "$out" =~ \(HTTP[[:space:]](4[0-9][0-9]|5[0-9][0-9])\) ]]; then
-    out=$(echo "$out" | sed -E "s/(\(HTTP )(4[0-9][0-9])(\))/\1${ORANGE}\2${R}\3/g")
-    out=$(echo "$out" | sed -E "s/(\(HTTP )(5[0-9][0-9])(\))/\1${RED}\2${R}\3/g")
+    for code in 500 502 503 504; do
+      out="${out//(HTTP ${code})/(HTTP ${RED}${code}${R})}"
+    done
+    for code in 400 401 403 404; do
+      out="${out//(HTTP ${code})/(HTTP ${ORANGE}${code}${R})}"
+    done
+  fi
+
+  # api-gateway info: colorer "info:", méthode et route (ex: info: GET /api/v1/auth/profile -> ...) — bash uniquement, pas sed
+  if [[ "$out" =~ (info:\ )(GET|POST|PUT|DELETE|PATCH)(\ /api[^[:space:]]*) ]]; then
+    pre="${BASH_REMATCH[1]}"
+    meth="${BASH_REMATCH[2]}"
+    path="${BASH_REMATCH[3]}"
+    rest="${out:$((${#pre}+${#meth}+${#path}))}"
+    out="${BLUE}${pre}${R}${BRIGHT_CYAN}${meth}${R}${YELLOW}${path}${R}${rest}"
+  else
+    out="${out//info: /$BLUE info:$R }"
   fi
 
   # Color log tags - order: more specific first
@@ -110,8 +134,6 @@ while IFS= read -r line || [ -n "$line" ]; do
   out="${out//\[EXPORT\]/$GREEN[EXPORT]$R}"
   out="${out//\[AUTH\]/$GREEN[AUTH]$R}"
   out="${out//\[DEBUG\]/$DIM[DEBUG]$R}"
-  # api-gateway info:
-  out="${out//info: /$BLUE info:$R }"
   # %b interprète les séquences \033 pour que les couleurs s'affichent dans le terminal
   printf '%b\n' "$out"
 done
