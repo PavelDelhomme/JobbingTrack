@@ -254,29 +254,23 @@ tests/coverage/
 ### Commandes principales
 
 ```bash
-# Configuration initiale
-make test-setup
-
-# Tous les tests
-make test-all
-
-# Tests rapides (sans E2E)
-make test-quick
-
-# Tests avec coverage
-make test-coverage
+# Depuis la racine du projet (important pour make test)
+make test          # alias make test-all – suite complète avec rapports
+make test-all      # exécute run-all-tests-with-reports.sh (User Journey, BDD, API Jest, API script, Playwright E2E, etc.)
+make test-suite-full # test-frontend → test-database → status → test-all
 ```
+
+**Prérequis** : le script lance automatiquement le seed auth (admin + testuser avec email vérifié) si le conteneur auth-service tourne. Si des tests échouent en 401 "email not verified", lancer `make up-full` puis relancer les tests, ou exécuter le seed manuellement (voir [STRUCTURE_TESTS_MAKE_TEST.md](STRUCTURE_TESTS_MAKE_TEST.md)).
 
 ### Tests par catégorie
 
 ```bash
-make test-unit           # Tests unitaires
-make test-integration    # Tests intégration
-make test-database       # Tests BDD
-make test-api            # Tests API
-make test-backend        # Tests backend
-make test-frontend       # Tests frontend
-make test-e2e            # Tests E2E
+make test-unit           # Tests unitaires (frontend Jest)
+make test-database       # Tests BDD (relations, enums)
+make test-api            # Tests API (Jest – tests/api/)
+make test-backend        # Tests Backend Services (Jest)
+make test-frontend       # Tests frontend (Jest)
+make test-e2e            # Tests E2E Playwright (frontend)
 make test-performance    # Tests performance
 make test-security       # Tests sécurité
 ```
@@ -284,8 +278,8 @@ make test-security       # Tests sécurité
 ### Nettoyage
 
 ```bash
-make test-clean          # Nettoyer environnement tests
-make test-clean-reports  # Nettoyer rapports
+make tests-clean         # alias tests-reset – nettoyer rapports et état
+make tests-reset         # reset complet (arrêt, BDD, etc.)
 ```
 
 ## 🔄 Intégration Continue (CI/CD)
@@ -371,6 +365,7 @@ open tests/coverage/index.html
 
 ## 📚 Tests Spécifiques Disponibles
 
+- **[Structure des tests (make test)](STRUCTURE_TESTS_MAKE_TEST.md)** – Prérequis (seed auth, email vérifié), CWD, 62 vs 270 tests API/E2E, health checks, rapports.
 ### 🧪 Tests de Fonctionnalités
 - **[Tests Page Détail Services](TESTS_PAGE_DETAIL_SERVICES.md)** - Tests complets de la page de détail des services Docker avec métriques en temps réel
 
@@ -405,4 +400,4 @@ open tests/coverage/index.html
 ---
 
 **Version**: 4.1  
-**Dernière mise à jour**: Octobre 2025
+**Dernière mise à jour** : Mars 2026

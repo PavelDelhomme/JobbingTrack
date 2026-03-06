@@ -1,16 +1,22 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Date** : 2025-11-04  
-**Version** : 1.0
+**Dernière mise à jour** : mars 2026
 
 ---
 
-## 🎯 Par Où Commencer ?
+## 🎯 Par où commencer
 
-### Pour Démarrer Rapidement
-1. **[../COMMENCER_ICI.md](../COMMENCER_ICI.md)** ⭐⭐⭐ - **LIRE EN PREMIER**
-2. **[user-journey/RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** ⭐⭐ - Résumé complet des corrections
-3. **[user-journey/LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** ⭐ - Guide rapide
+### Ce qu’il reste à faire (priorité)
+- **[../STATUS.md](../STATUS.md)** — **À faire maintenant** : priorité mobile (vérification email manuelle, puis app Flutter). Détail des commandes et de l’état du projet.
+- **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
+
+### Fichiers .md à la racine (à garder)
+`README.md` | `STATUS.md` | `ERRORS.md` | `FONCTIONNALITES.md` | `RESOLUTIONS.md`. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+
+### Démarrer le projet
+- **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage
+- **[getting-started/DEMARRAGE_RAPIDE.md](getting-started/DEMARRAGE_RAPIDE.md)** — Démarrage rapide
+- **[user-journey/README.md](user-journey/README.md)** — Tests et parcours utilisateur
 
 ---
 
@@ -136,6 +142,8 @@
 ### 📱 Mobile (Flutter)
 **Dossier** : [mobile/](mobile/)
 
+- **[PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — À faire : vérification email (manuel) puis app Flutter
+- **[APPLICATION_MOBILE_A_FAIRE.md](mobile/APPLICATION_MOBILE_A_FAIRE.md)** — Checklist écrans et fonctionnalités mobile
 - **[analytics/README.md](mobile/analytics/)** - Analytics mobile
 - **[analytics/INTEGRATION.md](mobile/analytics/)** - Intégration
 - **[analytics/PRIVACY.md](mobile/analytics/)** - Confidentialité
@@ -218,7 +226,8 @@ make restart
 ```
 
 ### Documentation Essentielle
-- **[../COMMENCER_ICI.md](../COMMENCER_ICI.md)** - Guide ultra-rapide
+- **[../STATUS.md](../STATUS.md)** - À faire maintenant, état projet
+- **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** - Mobile : vérif email + Flutter
 - **[user-journey/README.md](user-journey/)** - Tests utilisateur
 - **[troubleshooting/README.md](troubleshooting/)** - Dépannage
 
@@ -228,9 +237,11 @@ make restart
 
 ```
 JobbingTrack/
-├── COMMENCER_ICI.md              ⭐ Commencer ici
-├── README.md                      Présentation projet
-├── START_TESTS.sh                 Script de démarrage rapide
+├── README.md                      Présentation, démarrage
+├── STATUS.md                      ⭐ À faire maintenant, état détaillé
+├── ERRORS.md                      Erreurs connues
+├── FONCTIONNALITES.md             Fonctionnalités complètes
+├── RESOLUTIONS.md                 Correctifs appliqués
 │
 ├── docs/
 │   ├── INDEX.md                   📚 Ce fichier (index complet)
@@ -263,7 +274,7 @@ JobbingTrack/
 
 ---
 
-**Pour toute question, consultez d'abord** : [../COMMENCER_ICI.md](../COMMENCER_ICI.md)
+**Pour savoir quoi faire** : [../STATUS.md](../STATUS.md) (section « À faire maintenant »).
 
-**✨ Documentation mise à jour le 2025-11-04**
+**✨ Documentation mise à jour mars 2026**
 

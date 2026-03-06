@@ -82,9 +82,36 @@ export default function MobileEmulatorPage() {
       ...opts,
       headers: { 'Content-Type': 'application/json', ...opts?.headers },
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data as { error?: string }).error || res.statusText);
     return data as T;
+  };
+
+  /** Appel controller + en cas d’erreur log détaillé (error, stderr, message) puis throw. */
+  const fetchControllerWithErrorLog = async <T,>(
+    path: string,
+    opts: RequestInit & { body?: string }
+  ): Promise<{ ok: true; data: T } | { ok: false; error: string; detail?: string; statusCode?: number }> => {
+    const url = `${base()}${path}`;
+    try {
+      const res = await fetch(url, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...opts?.headers },
+      });
+      const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+      if (res.ok) return { ok: true, data: data as T };
+      const errMsg = (data?.error as string) || res.statusText || 'Erreur inconnue';
+      const parts = [errMsg];
+      if (data?.stderr) parts.push(`stderr: ${String(data.stderr).slice(-500)}`);
+      if (data?.message) parts.push(String(data.message));
+      const detail = parts.join(' | ');
+      addLog(`[${path}] ${res.status}: ${detail}`);
+      return { ok: false, error: errMsg, detail, statusCode: res.status };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      addLog(`[${path}] Erreur réseau ou parsing: ${msg}`);
+      return { ok: false, error: msg };
+    }
   };
 
   const checkHealth = async () => {
@@ -387,7 +414,19 @@ export default function MobileEmulatorPage() {
 
   const installAndRun = async () => {
     if (!selectedDevice) { addLog('Selectionnez un appareil.'); return; }
-    await ensureBuildAndInstall();
+    if (buildNeeded === true) {
+      const go = window.confirm(
+        'L’APK n’est pas à jour (code mobile modifié).\n\n' +
+        '• OK = Installer quand même l’APK actuel (sans rebuild)\n' +
+        '• Annuler = Lancer un rebuild puis installer'
+      );
+      if (!go) {
+        addLog('Rebuild demandé puis installation...');
+        await ensureBuildAndInstall(true);
+        return;
+      }
+    }
+    await ensureBuildAndInstall(false);
   };
 
   /** Lance l'app sans réinstaller (force-stop + start). Utile quand l'APK est déjà installé. */
@@ -395,40 +434,59 @@ export default function MobileEmulatorPage() {
     if (!selectedDevice) { addLog('Selectionnez un appareil.'); return; }
     setLoading('launch-only');
     try {
-      const data = await fetchJson<{ success?: boolean; error?: string }>('/force-restart-app', {
+      const r = await fetchControllerWithErrorLog<{ success?: boolean }>('/force-restart-app', {
         method: 'POST',
         body: JSON.stringify({ deviceId: selectedDevice }),
       });
-      if (data.success) {
+      if (r.ok && r.data?.success) {
         setAppRunning(true);
-        addLog('App lancee (sans reinstallation).');
-      } else {
-        addLog(data.error ?? 'Echec du lancement.');
+        addLog('App lancée (sans réinstallation).');
+      } else if (!r.ok) {
+        addLog('Échec lancement. Vérifiez les logs ci-dessus pour le détail.');
       }
-    } catch (e) {
-      addLog('Erreur lancement: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  /** Désinstalle l'app du périphérique (réinstallation propre possible ensuite). */
+  const uninstallApp = async () => {
+    if (!selectedDevice) { addLog('Selectionnez un appareil.'); return; }
+    if (!window.confirm('Désinstaller l’app JobbingTrack du périphérique ? Vous pourrez réinstaller avec « Installer et lancer ».')) return;
+    setLoading('uninstall');
+    try {
+      const r = await fetchControllerWithErrorLog<{ success?: boolean }>('/uninstall-app', {
+        method: 'POST',
+        body: JSON.stringify({ deviceId: selectedDevice }),
+      });
+      if (r.ok && r.data?.success) {
+        setAppRunning(false);
+        setApkBuilt(false);
+        addLog('App désinstallée. Utilisez « Installer et lancer » pour réinstaller.');
+      } else if (!r.ok) {
+        addLog('Échec désinstallation. Vérifiez les logs ci-dessus.');
+        if (r.statusCode === 404) {
+          addLog('Route « Désinstaller » absente : redémarrez le contrôleur (bouton ci-dessous ou make emulator-controller) pour charger la dernière version.');
+        }
+      }
     } finally {
       setLoading(null);
     }
   };
 
   /** Build APK puis installation + lancement. Retourne true si l’app est prête (pour parcours). */
-  const ensureBuildAndInstall = async (): Promise<boolean> => {
+  const ensureBuildAndInstall = async (forceBuild?: boolean): Promise<boolean> => {
     if (!selectedDevice) return false;
+    const controllerBase = base();
     try {
-      const controllerBase = base();
       const doInstallRun = async (): Promise<{ success: boolean; error?: string; needBuild?: boolean }> => {
-        try {
-          const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
-            method: 'POST',
-            body: JSON.stringify({ deviceId: selectedDevice }),
-          });
-          return { success: !!data.success, error: data.error };
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          const needBuild = /APK non trouvé|non trouvé|Build APK/i.test(msg);
-          return { success: false, error: msg, needBuild };
-        }
+        const r = await fetchControllerWithErrorLog<{ success?: boolean; error?: string }>('/install-run', {
+          method: 'POST',
+          body: JSON.stringify({ deviceId: selectedDevice }),
+        });
+        if (r.ok) return { success: !!r.data?.success, error: r.data?.error };
+        const needBuild = /APK non trouvé|non trouvé|Build APK/i.test(r.error);
+        return { success: false, error: r.error, needBuild };
       };
       setLoading('install-run');
       let result = await doInstallRun();
@@ -438,13 +496,13 @@ export default function MobileEmulatorPage() {
         addLog('App installée et lancée (adb reverse activé sur ports API).');
         return true;
       }
-      if (result.needBuild || (result.error != null && /APK|build/i.test(result.error))) {
+      const shouldBuild = forceBuild || result.needBuild || (result.error != null && /APK|build/i.test(result.error));
+      if (shouldBuild) {
         addLog('APK absent ou obsolète. Build en cours...');
         setLoading('build');
         const buildSuccess = await buildApk();
-        setLoading(null);
         if (!buildSuccess) {
-          addLog('Build APK a échoué. Lancez « Build APK » manuellement puis « Installer et lancer ».');
+          addLog('Build APK a échoué. Lancez « Build APK » ou « Forcer rebuild » puis « Installer et lancer ».');
           return false;
         }
         addLog('Build OK. Attente du redémarrage du contrôleur (si lancé)...');
@@ -673,7 +731,7 @@ export default function MobileEmulatorPage() {
             <div className="flex items-center gap-2 flex-wrap">
               {controllerOk === true && <Wifi className="h-5 w-5 text-emerald-500" />}
               {controllerOk === false && <WifiOff className="h-5 w-5 text-red-500" />}
-              <button type="button" onClick={checkHealth} disabled={loading !== null}
+              <button type="button" onClick={checkHealth} disabled={loading !== null} data-testid="btn-verify-controller"
                 className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-gray-300 dark:hover:bg-gray-700 transition">
                 <RefreshCw className="h-4 w-4" /> Verifier
               </button>
@@ -746,31 +804,35 @@ export default function MobileEmulatorPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={startAvd} disabled={!selectedAvd || loading !== null}
+                <button type="button" onClick={startAvd} disabled={!selectedAvd || loading !== null} data-testid="btn-start-avd"
                   className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'start-avd' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Demarrer AVD
                 </button>
                 <span className="flex items-center gap-1">
-                  <button type="button" onClick={buildApk} disabled={loading !== null || buildNeeded === false}
+                  <button type="button" onClick={buildApk} disabled={loading !== null || buildNeeded === false} data-testid="btn-build-apk"
                     title={buildNeeded === false ? 'APK déjà à jour (code mobile inchangé)' : undefined}
                     className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                     {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {buildNeeded === false ? 'APK à jour' : 'Build APK'}
                   </button>
                   {buildNeeded === false && (
-                    <button type="button" onClick={buildApk} disabled={loading !== null}
+                    <button type="button" onClick={buildApk} disabled={loading !== null} data-testid="btn-force-rebuild"
                       title="Forcer un rebuild de l’APK"
                       className="px-3 py-2 rounded-lg bg-amber-500/80 text-white text-sm font-medium hover:bg-amber-500 disabled:opacity-50 flex items-center gap-1">
                       {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Forcer rebuild
                     </button>
                   )}
                 </span>
-                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || appRunning}
+                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || appRunning} data-testid="btn-install-run"
                   title={appRunning ? 'App en cours — arretez d\'abord' : 'Installer l’APK puis lancer l’app'} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'install-run' ? <Loader2 className="h-4 w-4 animate-spin" /> : loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Installer et lancer
                 </button>
-                <button type="button" onClick={launchOnly} disabled={!selectedDevice || loading !== null || appRunning}
+                <button type="button" onClick={launchOnly} disabled={!selectedDevice || loading !== null || appRunning} data-testid="btn-launch-only"
                   title={appRunning ? 'App déjà en cours' : 'Lancer l’app sans réinstaller (déjà installée)'} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'launch-only' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Lancer seulement
+                </button>
+                <button type="button" onClick={uninstallApp} disabled={!selectedDevice || loading !== null} data-testid="btn-uninstall-app"
+                  title="Désinstaller l'app du périphérique (réinstaller avec Installer et lancer)" className="px-4 py-2 rounded-lg bg-gray-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                  {loading === 'uninstall' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Désinstaller l'app
                 </button>
                 <button type="button" onClick={runFlutter} disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null || !apkBuilt || appRunning}
                   title={appRunning ? 'App en cours - arretez d\'abord' : !apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
@@ -778,11 +840,11 @@ export default function MobileEmulatorPage() {
                 </button>
                 {appRunning && (
                   <>
-                    <button type="button" onClick={stopApp} disabled={loading !== null}
+                    <button type="button" onClick={stopApp} disabled={loading !== null} data-testid="btn-stop-app"
                       className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                       {loading === 'stop-app' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />} Arreter
                     </button>
-                    <button type="button" onClick={restartApp} disabled={loading !== null}
+                    <button type="button" onClick={restartApp} disabled={loading !== null} data-testid="btn-restart-app"
                       className="px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                       {loading === 'restart-app' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Relancer
                     </button>
@@ -790,7 +852,7 @@ export default function MobileEmulatorPage() {
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700" data-testid="section-cleanup-account">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <UserMinus className="h-4 w-4" /> Nettoyer un compte test
                 </h3>

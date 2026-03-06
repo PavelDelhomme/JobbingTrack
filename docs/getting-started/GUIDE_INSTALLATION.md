@@ -472,6 +472,8 @@ cd backend/auth-service
 npx prisma db push
 ```
 
+**Message « Update available 5.22.0 -> 7.4.2 » (major)** : voir **[docs/database/PRISMA_VERSIONS_ET_UPGRADE.md](../database/PRISMA_VERSIONS_ET_UPGRADE.md)** pour les versions utilisées et la procédure de mise à jour majeure.
+
 ### Problème 8 : Frontend ne s'affiche pas
 
 **Solution** :

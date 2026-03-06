@@ -1,10 +1,55 @@
 # JobbingTrack - Statut du projet
 
-**Derniere mise a jour** : 4 mars 2026
+**Dernière mise à jour** : mars 2026
 
 ---
 
-## A verifier / Erreurs connues (BDD Postgres, build APK)
+## À faire maintenant (priorité)
+
+**On est sur l’application mobile** : valider le parcours **vérification email** à la main, puis enchaîner sur l’app Flutter.
+
+### 1. Validation manuelle du parcours vérification email
+
+À faire **à la main** (voir **`docs/mobile/PROCHAINES_ETAPES.md`** pour le détail) :
+
+1. **make down** (sans `-clean` pour garder l’admin) ou **make down-clean** puis **make up-full** puis **make seed-auth**.
+2. **make emulator-controller** (ou Démarrer le contrôleur depuis le backoffice).
+3. Backoffice → **Émulateur mobile** : **Build APK** (ou Forcer rebuild) puis **Installer et lancer**.
+4. **Nettoyer un compte test** (optionnel) pour repartir de zéro.
+5. Sur l’appareil : **Inscription** (prénom, nom, email réel, mot de passe).
+6. Vérifier la **réception du mail** (MailHog ou boîte réelle).
+7. **Cliquer sur le lien** dans l’email (navigateur ou app via deep link).
+8. Vérifier que l’app affiche **« Email vérifié »** / succès.
+9. **Se connecter** avec le même email / mot de passe → accès à l’**accueil / dashboard**.
+
+Quand ce parcours est validé de bout en bout → passer à l’étape 2.
+
+### 2. Suite : application Flutter
+
+Une fois la vérification email validée (étape 1), travailler sur **l’app Flutter** (voir **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`** et **`docs/mobile/PROCHAINES_ETAPES.md`**) :
+
+- **Accueil / Dashboard** : résumé, navigation (bottom nav, drawer).
+- **Candidatures** : liste, création, détail (déjà avancé).
+- **Entreprises, Contacts, Entretiens, Relances, Événements** : listes, création, détail.
+- **Profil, Paramètres** : édition, déconnexion.
+- **Notifications** : liste, marquer lu.
+
+Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`** (écrans, API), **`FONCTIONNALITES.md`** section 10 (processus métier mobile).
+
+### 3. Commandes utiles
+
+| Action | Commande |
+|--------|----------|
+| Arrêter (données conservées) | `make down` |
+| Tout effacer puis redémarrer | `make down-clean` → `make up-full` → `make seed-auth` |
+| Créer / mettre à jour l’admin | `make seed-auth` |
+| Démarrer la stack | `make up-full` |
+| Contrôleur émulateur | `make emulator-controller` |
+| Logs | `make logs` |
+
+---
+
+## À vérifier / Erreurs connues (BDD Postgres, build APK)
 
 - **Postgres — rôles / DB** : au démarrage ou lors de `make db-fix-role`, les logs du conteneur affichent `ERROR: role "jobbingtrack" already exists` et `ERROR: database "jobbingtrack" already exists` car le script exécute `CREATE USER` / `CREATE DATABASE` sans idempotence. À faire : utiliser du SQL idempotent (ex. `DO $$ ... EXCEPTION WHEN duplicate_object THEN NULL; END $$`) pour ne plus générer d’erreurs dans les logs. Voir `makefiles/database/Makefile` cible `db-fix-role`.
 - **Postgres — table `deployments`** : le deployment-service envoie des requêtes vers `public.deployments` alors que la table n’existe pas (relation "public.deployments" does not exist). À faire : appliquer le schéma Prisma du deployment-service sur la BDD partagée (`make db-push-all` ou push ciblé deployment-service) pour créer la table `deployments`.
@@ -489,16 +534,21 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 ## Documentation
 
+**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+
 | Sujet | Fichier |
 |-------|---------|
+| **À faire maintenant (priorité)** | Voir section « À faire maintenant » en tête de ce fichier |
+| Prochaines étapes mobile (vérif email + Flutter) | `docs/mobile/PROCHAINES_ETAPES.md` |
 | Fonctionnalites completes | `FONCTIONNALITES.md` |
 | Backlog complet | `docs/BACKLOG.md` |
 | Demarrage complet | `docs/getting-started/DEMARRAGE.md` |
 | Parcours metier | `docs/PARCOURS_METIER.md` |
 | Ce qui est resolu | `RESOLUTIONS.md` |
 | Erreurs connues | `ERRORS.md` |
-| Performance | `TODO_PERFORMANCE.md` |
+| Performance (TODO) | `docs/todo/TODO_PERFORMANCE.md` |
 | Tests couverture E2E | `docs/tests/BACKOFFICE_TESTS_COVERAGE.md` |
+| Checklist tests fin de projet | `docs/tests/TESTS_END.md` |
 | Schema BDD | `docs/database/SCHEMA_CHOIX.md` |
 | Mobile checklist | `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md` |
 | Module ADB | `tools/adb-lib/index.js` (voir JSDoc en haut du fichier) |

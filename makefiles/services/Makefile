@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -176,7 +176,8 @@ help-services: ## Afficher l'aide services
 	@echo "  make up-monitoring         - Postgres + monitoring-c + metrics-aggregator (stack monitoring seul)"
 	@echo ""
 	@echo "🛑 ARRÊT:"
-	@echo "  make down                  - Arrêter tous les services"
+	@echo "  make down                  - Arrêter tous les services (données conservées)"
+	@echo "  make down-clean           - Arrêter + supprimer les volumes (tout effacer)"
 	@echo "  make stop-service SERVICE=x - Arrêter un service"
 	@echo ""
 	@echo "🔄 RESTART:"
@@ -625,29 +626,36 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 # ARRÊT DES SERVICES
 # ============================================================================
 
-# Arrêter tous les services (COMPOSE_FILES_ESSENTIAL uniquement : monitoring.yml redéfinit monitoring-c avec profil → "depends on undefined service")
-down: ## Arrêter tous les services
-	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
+# Arrêter tous les services (conserve les volumes = BDD, Redis, admin, etc. persistent)
+down: ## Arrêter tous les services (données conservées : admin, BDD, métriques)
+	@echo "🛑 Arrêt de tous les services JobbingTrack (volumes conservés)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
 	# Arrêter conteneurs restants (ex. log-collector-c si démarré avec monitoring)
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
 	@docker network prune -f || true
-	@echo "✅ Tous les services arrêtés"
+	@echo "✅ Tous les services arrêtés (données intactes : make up-full pour redémarrer)"
 
-# Arrêter en conservant les volumes (DB, Redis)
-down-keep-data: ## Arrêter les services SANS supprimer les volumes (données conservées)
-	@echo "🛑 Arrêt des services (volumes conservés)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
+# Arrêter en conservant les volumes (alias : même comportement que down par défaut)
+down-keep-data: ## Alias de down (données conservées)
+	$(MAKE) down
+
+# Arrêter ET supprimer les volumes (BDD effacée, admin à recréer avec make create-admin-user)
+down-clean: ## Arrêter les services ET supprimer les volumes (tout effacer, admin à recréer)
+	@echo "⚠️  Arrêt + suppression des volumes (données effacées)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
+	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
+	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
 	@docker network prune -f || true
-	@echo "✅ Services arrêtés (données intactes)"
+	@echo "✅ Services arrêtés et volumes supprimés."
+	@echo "💡 Au prochain make up-full : make create-admin-user si besoin (admin@jobbingtrack.test)"
 
 # ============================================================================
 # REDÉMARRAGE DES SERVICES
 # ============================================================================
 
-# Redémarrer conteneurs actifs
-restart: ## Redémarrer seulement les conteneurs actuellement actifs
+# Redémarrer conteneurs actifs (docker compose restart uniquement, pas down/up)
+restart: ## Redémarrer seulement les conteneurs actuellement actifs (pas un down/up)
 	@echo "🔄 Redémarrage des services JobbingTrack actifs..."
 	@ACTIVE_CONTAINERS=$$(docker ps -q --filter "name=jobbingtrack-*" | wc -l); \
 	if [ "$$ACTIVE_CONTAINERS" -eq 0 ]; then \
@@ -727,8 +735,8 @@ restart-full: ## Redémarrer tout le projet en conservant la base de données (p
 	$(MAKE) up-full
 	@echo "✅ Redémarrage terminé. Connexion : http://localhost:5003"
 
-# Rebuild de toutes les images
-rebuild: ## Reconstruire toutes les images Docker (sans cache)
+# Rebuild de toutes les images (down + suppression images + build --no-cache ; puis make up-full pour démarrer)
+rebuild: ## Reconstruire toutes les images Docker (sans cache) — ensuite: make up-full
 	@echo "🔨 Reconstruction de toutes les images Docker..."
 	@echo ""
 	@echo "🛑 Arrêt des services..."
@@ -1361,9 +1369,19 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
 	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"
+	@echo "   Redis/Postgres: grisé (dim). Sans Redis/Postgres: make logs-app"
 	@echo ""
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
+
+# Logs sans Redis ni Postgres (uniquement services applicatifs + infra légère)
+logs-app: ## Logs en temps réel SANS redis ni postgres (moins de bruit)
+	@echo "📋 Logs applicatifs (sans redis, sans postgres)"
+	@echo "=============================================="
+	@echo "⏹️  Ctrl+C pour quitter  |  Tout voir : make logs"
+	@echo ""
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-redis[[:space:]]|^jobbingtrack-postgres[[:space:]]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-app"; exit 1)
 
 # Logs de metrics-aggregator uniquement (tags colorés)
 logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour quitter)

@@ -1,6 +1,6 @@
 # Resolutions appliquees
 
-**Derniere mise a jour** : 27 fevrier 2026
+**Dernière mise à jour** : mars 2026
 
 ---
 

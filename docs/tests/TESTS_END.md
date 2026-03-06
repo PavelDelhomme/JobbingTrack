@@ -2,7 +2,7 @@
 
 **Objectif** : Liste exhaustive des vérifications à réaliser avant livraison / mise en production.
 
-**État et priorités** : Pour savoir **ce qu’il reste à faire** et dans quel ordre, voir **STATUS.md** (section « À FAIRE (priorisé) »). Les tests API depuis Docker utilisent désormais `sh` au lieu de `bash` pour éviter « bash: not found » dans le conteneur.
+**État et priorités** : Pour savoir **ce qu’il reste à faire** et dans quel ordre, voir **`STATUS.md`** à la racine (section « À faire maintenant »). Les tests API depuis Docker utilisent désormais `sh` au lieu de `bash` pour éviter « bash: not found » dans le conteneur.
 
 **Validation des tests via Make** : Tous les tests doivent être lancés via le **Makefile** (racine du projet). Commandes principales : **`make test-api`**, **`make test-security`**, **`make test-frontend`**, **`make test-backend`**, **`make test-e2e`**, **`make test-performance`**, **`make tests-user-journey`**. Voir **`make tests-help`** et **`make help-tests`**. Détail dans **STATUS.md** section « Ce que vous pouvez tester (commandes make) ».
 
@@ -167,36 +167,7 @@ L'adresse `test@example.invalid` vérifie la **réception réelle** des emails. 
 
 **Référence** : STATUS.md (sections 2, 11, 12), `docs/database/`, scripts dans `tests/` et `scripts/`.
 
-### Tests unitaires (à mettre à jour / à compléter)
-- [ ] **Tests unitaires frontend** : couverture des composants et pages (pas seulement analytics) ; aligner `npm run test:unit` / `make test-frontend` avec les specs.
-- [ ] **Tests unitaires centralisés** : compléter `tests/unit` (utils + cas métier) ; harmoniser avec les tests par service backend.
-- [ ] **Suite unitaire backend** : centraliser ou documenter les tests par service (auth, api-gateway, profile, etc.) et les faire passer dans la CI / rapports.
-
-### Tests API / Backend
-- [ ] **Tests API** : `make test-api` — en Docker, `MONITORING_C_URL=http://monitoring-c:8015` et `API_GATEWAY_URL` sont passés ; tests email avec timeout court (5 s) si SMTP indisponible.
-- [ ] **Tests Contact** : endpoints CRUD contact, création depuis candidature, liaison entreprise (voir docs/database).
-- [ ] **Tests Relance** : endpoints CRUD relance (FollowUp), liaison candidature, statuts.
-- [ ] **Tests Entretien** : endpoints CRUD entretien (Interview), liaison candidature/entreprise, statuts (status vs statusId si migration).
-- [ ] **Tests Notifications** : endpoints notifications (liste, création, statut).
-- [ ] **Tests Appel** : endpoints CRUD appel (Call), liaison contact/entreprise/candidature.
-- [ ] **Tests Intégration** : parcours complet (création utilisateur → candidature → contact → relance → entretien → appel) avec utilisateur réel (token admin ou créé), pas `dev_user_1` fictif.
-- [ ] **Tests Sécurité** : firewall_rules, security_alerts (tables créées par `make db-push-all` via init-key-tables.sql), endpoints security-service sans erreur « relation does not exist ».
-
-### Scénarios et parcours
-- [ ] **User journey** : historique des scénarios exécutés (création utilisateur, contact, candidature, etc.) ; scénarios qui utilisent un utilisateur existant (admin ou créé) et non un `userId` fictif.
-- [ ] **Création automatique env de test depuis l'interface** : tout géré depuis le backoffice (Tests API, Tests Backend, User journey) — création automatique d'un utilisateur de test et des données nécessaires au lancement des tests, sans que l'utilisateur doive modifier les scripts ou lancer `make create-admin-user` à la main. Un clic « Lancer les tests » doit préparer l'environnement (compte de test, BDD/seed) puis exécuter.
-- [ ] **Playwright** : scénarios E2E (backoffice, parcours, test-data) opérationnels et rapports visibles.
-- [ ] **Test Data (backoffice)** : interface `/backoffice/test-data` pour générer des données de test (BDD, appels API) et la lier aux tests d’interface / backoffice.
-
-### Base de données et schéma
-- [ ] **Schéma aligné** : `User.verificationToken` / `verificationTokenExpiry` présents en BDD (`make db-push-all`) ; si migration `status` → `statusId` sur Application/Interview, aligner tous les services et Prisma (auth-service vs application-service/interview-service).
-- [ ] **Tables sécurité** : `firewall_rules`, `security_alerts` créées (init-key-tables.sql exécuté dans db-push-all).
-
-### Emails et historique
-- [ ] **Historique des mails** : page `/backoffice/emails/logs` et API `GET /api/v1/emails/logs` opérationnelles ; tests email (POST test, GET test-smtp) passent ou sont ignorés gracieusement si SMTP non configuré (timeout 5 s).
-
-### Design et interface des tests
-- [ ] **Design unifié** : reprendre le design de la page Tests Backend (progression, logs en direct, statuts par test) pour les autres pages de lancement de tests (Tests API, Tests Frontend, Tests Backoffice, etc.) si pas déjà fait.
+(Voir STATUS.md et docs/tests/ pour le détail des tests à compléter.)
 
 ---
 
@@ -217,7 +188,7 @@ Une fois le projet finalisé, vérifier la **rétrocompatibilité** de l’ensem
 
 ## 15. Backoffice administrateur – couverture complète
 
-Objectif : pouvoir **tester absolument tout** le backoffice admin (toutes les pages, toutes les fonctionnalités). Voir **ERRORS.md** pour les erreurs connues par page et **STATUS.md** § « Erreurs backoffice ».
+Objectif : pouvoir **tester absolument tout** le backoffice admin (toutes les pages, toutes les fonctionnalités). Voir **ERRORS.md** (racine) pour les erreurs connues par page et **STATUS.md** § « Erreurs backoffice ».
 
 ### Pages à parcourir et vérifier
 - [ ] **Vue d’ensemble** : CPU, mémoire, temps de réponse, services, health

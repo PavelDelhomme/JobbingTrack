@@ -207,15 +207,27 @@ const routes = {
       const baseEnv = envWithAndroid();
       const gradleCache = ensureWritableFlutterGradle();
       if (gradleCache) baseEnv.FLUTTER_GRADLE_BUILD_PATH = gradleCache;
-      await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
-      // Supprimer les sorties APK existantes pour éviter "Zip already contains entry ... cannot overwrite"
+
+      // 1) Supprimer tout le dossier outputs (et build/app si besoin) pour éviter "Zip already contains entry ... cannot overwrite"
       const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
-      if (fs.existsSync(outputsDir)) {
-        try {
-          fs.rmSync(path.join(outputsDir, 'apk'), { recursive: true, force: true });
-          fs.rmSync(path.join(outputsDir, 'flutter-apk'), { recursive: true, force: true });
-        } catch (_) { /* ignore */ }
-      }
+      const buildAppDir = path.join(MOBILE_PATH, 'build', 'app');
+      try {
+        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
+        // Au cas où outputs a échoué : supprimer les dossiers apk et flutter-apk un par un
+        const apkDir = path.join(buildAppDir, 'outputs', 'apk');
+        const flutterApkDir = path.join(buildAppDir, 'outputs', 'flutter-apk');
+        if (fs.existsSync(apkDir)) fs.rmSync(apkDir, { recursive: true, force: true });
+        if (fs.existsSync(flutterApkDir)) fs.rmSync(flutterApkDir, { recursive: true, force: true });
+      } catch (_) { /* ignore */ }
+
+      // 2) flutter clean (vide le cache build Flutter)
+      await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
+
+      // 3) Re-supprimer outputs après clean au cas où clean aurait recréé un dossier
+      try {
+        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
+      } catch (_) { /* ignore */ }
+
       const { stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv });
       const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
       const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
@@ -275,6 +287,21 @@ const routes = {
       }
       await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, { cwd: MOBILE_PATH });
       send(res, 200, { success: true, message: 'App arrêtée (force-stop)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Désinstalle l'app du périphérique (adb uninstall). Permet une réinstallation propre. */
+  async '/uninstall-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      const execOpts = { cwd: MOBILE_PATH };
+      await execPromise(`adb -s ${deviceId} uninstall ${ANDROID_PACKAGE}`, execOpts);
+      send(res, 200, { success: true, message: 'App désinstallée du périphérique' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
@@ -717,7 +744,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

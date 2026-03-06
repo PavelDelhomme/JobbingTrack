@@ -1,6 +1,6 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Derniere mise a jour** : 27 fevrier 2026
+**Dernière mise à jour** : mars 2026
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 

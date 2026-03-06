@@ -1,0 +1,1386 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+        - /url: /backoffice
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - button "📊 Tableau de bord ▶" [ref=e10] [cursor=pointer]:
+            - generic [ref=e11]:
+              - generic [ref=e12]: 📊
+              - generic [ref=e13]: Tableau de bord
+            - generic [ref=e14]: ▶
+          - generic [ref=e15]:
+            - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques & Monitoring" [ref=e25] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques & Monitoring
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+            - link "📈 Performances complètes" [ref=e37] [cursor=pointer]:
+              - /url: /backoffice/analytics/performances
+              - generic [ref=e38]: 📈
+              - generic [ref=e39]: Performances complètes
+            - link "🌐 Performances réseau" [ref=e43] [cursor=pointer]:
+              - /url: /backoffice/analytics/network
+              - generic [ref=e44]: 🌐
+              - generic [ref=e45]: Performances réseau
+            - link "📱 Performances applicatives" [ref=e49] [cursor=pointer]:
+              - /url: /backoffice/analytics/application
+              - generic [ref=e50]: 📱
+              - generic [ref=e51]: Performances applicatives
+            - link "🐳 Analytics conteneurs" [ref=e55] [cursor=pointer]:
+              - /url: /backoffice/analytics/containers
+              - generic [ref=e56]: 🐳
+              - generic [ref=e57]: Analytics conteneurs
+            - link "📊 Analytics utilisateur" [ref=e61] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e62]: 📊
+              - generic [ref=e63]: Analytics utilisateur
+        - generic [ref=e64]:
+          - button "🔒 Sécurité ▶" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 🔒
+              - generic [ref=e68]: Sécurité
+            - generic [ref=e69]: ▶
+          - generic [ref=e70]:
+            - link "📋 Logs de sécurité" [ref=e74] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e75]: 📋
+              - generic [ref=e76]: Logs de sécurité
+            - link "⚙️ Politiques" [ref=e80] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e81]: ⚙️
+              - generic [ref=e82]: Politiques
+            - link "🛡️ Analyse" [ref=e86] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e87]: 🛡️
+              - generic [ref=e88]: Analyse
+            - link "🔥 Firewall" [ref=e92] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e93]: 🔥
+              - generic [ref=e94]: Firewall
+            - link "🌐 Réseau" [ref=e98] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e99]: 🌐
+              - generic [ref=e100]: Réseau
+            - link "⚠️ Menaces" [ref=e104] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e105]: ⚠️
+              - generic [ref=e106]: Menaces
+        - generic [ref=e107]:
+          - button "⚙️ Administration ▶" [ref=e108] [cursor=pointer]:
+            - generic [ref=e109]:
+              - generic [ref=e110]: ⚙️
+              - generic [ref=e111]: Administration
+            - generic [ref=e112]: ▶
+          - generic [ref=e113]:
+            - generic [ref=e116]:
+              - link "🔧 Gestion des services" [ref=e117] [cursor=pointer]:
+                - /url: /backoffice/services
+                - generic [ref=e118]: 🔧
+                - generic [ref=e119]: Gestion des services
+              - button "Expander les sous-items" [ref=e120] [cursor=pointer]: ▶
+            - generic [ref=e123]:
+              - link "💾 Gestion des données" [ref=e124] [cursor=pointer]:
+                - /url: /backoffice/data
+                - generic [ref=e125]: 💾
+                - generic [ref=e126]: Gestion des données
+              - button "Expander les sous-items" [ref=e127] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e131] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e132]: 👥
+              - generic [ref=e133]: Utilisateurs
+        - generic [ref=e134]:
+          - button "🛠️ Développement ▶" [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]:
+              - generic [ref=e137]: 🛠️
+              - generic [ref=e138]: Développement
+            - generic [ref=e139]: ▶
+          - generic [ref=e140]:
+            - link "🧪 Testeur d’API (manuel)" [ref=e144] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e145]: 🧪
+              - generic [ref=e146]: Testeur d’API (manuel)
+            - link "🎲 Données de test" [ref=e150] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e151]: 🎲
+              - generic [ref=e152]: Données de test
+            - link "📱 Émulateur mobile" [ref=e156] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e157]: 📱
+              - generic [ref=e158]: Émulateur mobile
+            - generic [ref=e161]:
+              - link "🧪 Tests" [ref=e162] [cursor=pointer]:
+                - /url: /backoffice/tests
+                - generic [ref=e163]: 🧪
+                - generic [ref=e164]: Tests
+              - button "Expander les sous-items" [ref=e165] [cursor=pointer]: ▶
+            - generic [ref=e168]:
+              - link "🚶 Parcours utilisateur" [ref=e169] [cursor=pointer]:
+                - /url: /backoffice/user-journey
+                - generic [ref=e170]: 🚶
+                - generic [ref=e171]: Parcours utilisateur
+              - button "Expander les sous-items" [ref=e172] [cursor=pointer]: ▶
+        - generic [ref=e173]:
+          - button "📧 Gestion des emails ▶" [ref=e174] [cursor=pointer]:
+            - generic [ref=e175]:
+              - generic [ref=e176]: 📧
+              - generic [ref=e177]: Gestion des emails
+            - generic [ref=e178]: ▶
+          - generic [ref=e179]:
+            - link "📊 Dashboard" [ref=e183] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e184]: 📊
+              - generic [ref=e185]: Dashboard
+            - link "📈 Email Monitor" [ref=e189] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e192]: 📈
+              - generic [ref=e193]: Email Monitor
+            - link "📋 Historique" [ref=e199] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e200]: 📋
+              - generic [ref=e201]: Historique
+            - link "📝 Templates" [ref=e205] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e206]: 📝
+              - generic [ref=e207]: Templates
+            - link "⚙️ Configuration" [ref=e211] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e212]: ⚙️
+              - generic [ref=e213]: Configuration
+            - link "✅ Déliverabilité" [ref=e217] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e218]: ✅
+              - generic [ref=e219]: Déliverabilité
+            - link "🧪 Tests Emails" [ref=e223] [cursor=pointer]:
+              - /url: /backoffice/tests-emails
+              - generic [ref=e224]: 🧪
+              - generic [ref=e225]: Tests Emails
+            - link "📬 MailHog (interface)" [ref=e229] [cursor=pointer]:
+              - /url: http://localhost:8025
+              - generic [ref=e230]: 📬
+              - generic [ref=e231]: MailHog (interface)
+      - generic [ref=e233]:
+        - button "AJ Admin JobbingTrack SUPER_ADMIN" [ref=e235] [cursor=pointer]:
+          - generic [ref=e236]: AJ
+          - generic [ref=e237]:
+            - paragraph [ref=e238]: Admin JobbingTrack
+            - paragraph [ref=e239]: SUPER_ADMIN
+        - button "🚪" [ref=e241] [cursor=pointer]
+    - generic [ref=e242]:
+      - generic [ref=e244]:
+        - button "Toggle sidebar" [ref=e246] [cursor=pointer]:
+          - img [ref=e247]
+        - generic [ref=e250]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e251]
+        - generic [ref=e252]:
+          - button "AJ admin@jobbingtrack.test" [ref=e253] [cursor=pointer]:
+            - generic [ref=e254]: AJ
+            - generic [ref=e255]: admin@jobbingtrack.test
+          - button "Paramètres" [ref=e256] [cursor=pointer]:
+            - img [ref=e257]
+            - generic [ref=e260]: Paramètres
+          - button "Actions" [ref=e262] [cursor=pointer]:
+            - img [ref=e263]
+            - generic [ref=e266]: Actions
+            - img [ref=e267]
+          - button "🌙" [ref=e269] [cursor=pointer]:
+            - generic [ref=e270]: 🌙
+      - main [ref=e271]:
+        - generic [ref=e272]:
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - heading "Email Monitor" [level=1] [ref=e275]:
+                - img [ref=e276]
+                - text: Email Monitor
+              - paragraph [ref=e279]:
+                - text: Surveillez tous les emails envoyés par JobbingTrack. Pour les parcours « Inscription + vérif. email » (Gmail/Proton/BlueMail), filtrez par type
+                - strong [ref=e280]: Vérification
+                - text: pour vérifier que l'email a bien été envoyé.
+            - generic [ref=e281]:
+              - generic [ref=e282]: "Dernière MAJ : 23:12:10"
+              - generic [ref=e283] [cursor=pointer]:
+                - checkbox "Temps réel (toutes les 3 s)" [checked] [ref=e284]
+                - text: Temps réel (toutes les 3 s)
+              - generic [ref=e285]: Live
+              - button "Actualiser" [ref=e287] [cursor=pointer]:
+                - img [ref=e288]
+                - text: Actualiser
+              - button "Exporter" [ref=e293] [cursor=pointer]:
+                - img [ref=e294]
+                - text: Exporter
+              - button "Supprimer Échoués" [ref=e297] [cursor=pointer]:
+                - img [ref=e298]
+                - text: Supprimer Échoués
+              - button "Effacer Tout" [ref=e301] [cursor=pointer]:
+                - img [ref=e302]
+                - text: Effacer Tout
+          - generic [ref=e305]:
+            - generic [ref=e306]:
+              - heading "Total Emails" [level=3] [ref=e308]
+              - generic [ref=e310]: "589"
+            - generic [ref=e311]:
+              - heading "Envoyés" [level=3] [ref=e313]
+              - generic [ref=e315]: "0"
+            - generic [ref=e316]:
+              - heading "Échoués" [level=3] [ref=e318]
+              - generic [ref=e320]: "39"
+            - generic [ref=e321]:
+              - heading "En Attente" [level=3] [ref=e323]
+              - generic [ref=e325]: "11"
+          - generic [ref=e326]:
+            - heading "Filtres" [level=3] [ref=e328]:
+              - img [ref=e329]
+              - text: Filtres
+            - generic [ref=e332]:
+              - generic [ref=e333]:
+                - generic [ref=e334]: Statut
+                - generic [ref=e335]:
+                  - button "Tous" [ref=e336] [cursor=pointer]
+                  - button "Envoyé" [ref=e337] [cursor=pointer]
+                  - button "Livré" [ref=e338] [cursor=pointer]
+                  - button "Lu" [ref=e339] [cursor=pointer]
+                  - button "Échoué" [ref=e340] [cursor=pointer]
+                  - button "En attente" [ref=e341] [cursor=pointer]
+                  - button "Rejeté" [ref=e342] [cursor=pointer]
+              - generic [ref=e343]:
+                - generic [ref=e344]: Type d'Email
+                - generic [ref=e345]:
+                  - button "Tous" [ref=e346] [cursor=pointer]
+                  - button "Bienvenue" [ref=e347] [cursor=pointer]
+                  - button "Vérification" [ref=e348] [cursor=pointer]
+                  - button "Reset Password" [ref=e349] [cursor=pointer]
+                  - button "Test" [ref=e350] [cursor=pointer]
+          - generic [ref=e351]:
+            - heading "Emails Envoyés (50 / 589)" [level=3] [ref=e353]:
+              - generic [ref=e354]: Emails Envoyés (50 / 589)
+            - generic [ref=e356]:
+              - generic [ref=e358]:
+                - img [ref=e360]
+                - generic [ref=e364]:
+                  - generic [ref=e365]:
+                    - generic [ref=e366]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e367]
+                    - generic [ref=e368]: Échoué
+                    - generic [ref=e369]: Vérification
+                  - generic [ref=e370]:
+                    - generic [ref=e371]:
+                      - img [ref=e372]
+                      - generic [ref=e375]: "À : e2e-user-1772748676358@jobbingtrack.test"
+                    - generic [ref=e376]:
+                      - img [ref=e377]
+                      - generic [ref=e380]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e381]:
+                      - img [ref=e382]
+                      - generic [ref=e385]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e386]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e388] [cursor=pointer]:
+                    - img [ref=e389]
+                    - text: Voir le contenu
+              - generic [ref=e393]:
+                - img [ref=e395]
+                - generic [ref=e399]:
+                  - generic [ref=e400]:
+                    - generic [ref=e401]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e402]
+                    - generic [ref=e403]: Échoué
+                    - generic [ref=e404]: Vérification
+                  - generic [ref=e405]:
+                    - generic [ref=e406]:
+                      - img [ref=e407]
+                      - generic [ref=e410]: "À : e2e-user-1772748676146@jobbingtrack.test"
+                    - generic [ref=e411]:
+                      - img [ref=e412]
+                      - generic [ref=e415]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e416]:
+                      - img [ref=e417]
+                      - generic [ref=e420]: "Échoué : {'e2e-user-1772748676146@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748676146@jobbingtrack.test> <e2e-user-1772748676146@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e421]: "❌ {'e2e-user-1772748676146@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748676146@jobbingtrack.test> <e2e-user-1772748676146@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e423] [cursor=pointer]:
+                    - img [ref=e424]
+                    - text: Voir le contenu
+              - generic [ref=e428]:
+                - img [ref=e430]
+                - generic [ref=e434]:
+                  - generic [ref=e435]:
+                    - generic [ref=e436]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e437]
+                    - generic [ref=e438]: Échoué
+                    - generic [ref=e439]: Vérification
+                  - generic [ref=e440]:
+                    - generic [ref=e441]:
+                      - img [ref=e442]
+                      - generic [ref=e445]: "À : e2e-user-1772748675650@jobbingtrack.test"
+                    - generic [ref=e446]:
+                      - img [ref=e447]
+                      - generic [ref=e450]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e451]:
+                      - img [ref=e452]
+                      - generic [ref=e455]: "Échoué : {'e2e-user-1772748675650@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675650@jobbingtrack.test> <e2e-user-1772748675650@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e456]: "❌ {'e2e-user-1772748675650@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675650@jobbingtrack.test> <e2e-user-1772748675650@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e458] [cursor=pointer]:
+                    - img [ref=e459]
+                    - text: Voir le contenu
+              - generic [ref=e463]:
+                - img [ref=e465]
+                - generic [ref=e469]:
+                  - generic [ref=e470]:
+                    - generic [ref=e471]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e472]
+                    - generic [ref=e473]: Échoué
+                    - generic [ref=e474]: Vérification
+                  - generic [ref=e475]:
+                    - generic [ref=e476]:
+                      - img [ref=e477]
+                      - generic [ref=e480]: "À : e2e-user-1772748675624@jobbingtrack.test"
+                    - generic [ref=e481]:
+                      - img [ref=e482]
+                      - generic [ref=e485]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e486]:
+                      - img [ref=e487]
+                      - generic [ref=e490]: "Échoué : {'e2e-user-1772748675624@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675624@jobbingtrack.test> <e2e-user-1772748675624@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e491]: "❌ {'e2e-user-1772748675624@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675624@jobbingtrack.test> <e2e-user-1772748675624@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e493] [cursor=pointer]:
+                    - img [ref=e494]
+                    - text: Voir le contenu
+              - generic [ref=e498]:
+                - img [ref=e500]
+                - generic [ref=e504]:
+                  - generic [ref=e505]:
+                    - generic [ref=e506]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e507]
+                    - generic [ref=e508]: Échoué
+                    - generic [ref=e509]: Vérification
+                  - generic [ref=e510]:
+                    - generic [ref=e511]:
+                      - img [ref=e512]
+                      - generic [ref=e515]: "À : e2e-user-1772748675279@jobbingtrack.test"
+                    - generic [ref=e516]:
+                      - img [ref=e517]
+                      - generic [ref=e520]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e521]:
+                      - img [ref=e522]
+                      - generic [ref=e525]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e526]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e528] [cursor=pointer]:
+                    - img [ref=e529]
+                    - text: Voir le contenu
+              - generic [ref=e533]:
+                - img [ref=e535]
+                - generic [ref=e539]:
+                  - generic [ref=e540]:
+                    - generic [ref=e541]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e542]
+                    - generic [ref=e543]: Échoué
+                    - generic [ref=e544]: Vérification
+                  - generic [ref=e545]:
+                    - generic [ref=e546]:
+                      - img [ref=e547]
+                      - generic [ref=e550]: "À : e2e-user-1772748674997@jobbingtrack.test"
+                    - generic [ref=e551]:
+                      - img [ref=e552]
+                      - generic [ref=e555]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e556]:
+                      - img [ref=e557]
+                      - generic [ref=e560]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e561]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e563] [cursor=pointer]:
+                    - img [ref=e564]
+                    - text: Voir le contenu
+              - generic [ref=e568]:
+                - img [ref=e570]
+                - generic [ref=e574]:
+                  - generic [ref=e575]:
+                    - generic [ref=e576]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e577]
+                    - generic [ref=e578]: Échoué
+                    - generic [ref=e579]: Vérification
+                  - generic [ref=e580]:
+                    - generic [ref=e581]:
+                      - img [ref=e582]
+                      - generic [ref=e585]: "À : e2e-user-1772748674645@jobbingtrack.test"
+                    - generic [ref=e586]:
+                      - img [ref=e587]
+                      - generic [ref=e590]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e591]:
+                      - img [ref=e592]
+                      - generic [ref=e595]: "Échoué : {'e2e-user-1772748674645@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674645@jobbingtrack.test> <e2e-user-1772748674645@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e596]: "❌ {'e2e-user-1772748674645@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674645@jobbingtrack.test> <e2e-user-1772748674645@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e598] [cursor=pointer]:
+                    - img [ref=e599]
+                    - text: Voir le contenu
+              - generic [ref=e603]:
+                - img [ref=e605]
+                - generic [ref=e609]:
+                  - generic [ref=e610]:
+                    - generic [ref=e611]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e612]
+                    - generic [ref=e613]: Échoué
+                    - generic [ref=e614]: Vérification
+                  - generic [ref=e615]:
+                    - generic [ref=e616]:
+                      - img [ref=e617]
+                      - generic [ref=e620]: "À : e2e-user-1772748674349@jobbingtrack.test"
+                    - generic [ref=e621]:
+                      - img [ref=e622]
+                      - generic [ref=e625]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e626]:
+                      - img [ref=e627]
+                      - generic [ref=e630]: "Échoué : {'e2e-user-1772748674349@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674349@jobbingtrack.test> <e2e-user-1772748674349@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e631]: "❌ {'e2e-user-1772748674349@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674349@jobbingtrack.test> <e2e-user-1772748674349@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e633] [cursor=pointer]:
+                    - img [ref=e634]
+                    - text: Voir le contenu
+              - generic [ref=e638]:
+                - img [ref=e640]
+                - generic [ref=e644]:
+                  - generic [ref=e645]:
+                    - generic [ref=e646]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e647]
+                    - generic [ref=e648]: Échoué
+                    - generic [ref=e649]: Vérification
+                  - generic [ref=e650]:
+                    - generic [ref=e651]:
+                      - img [ref=e652]
+                      - generic [ref=e655]: "À : e2e-user-1772748672937@jobbingtrack.test"
+                    - generic [ref=e656]:
+                      - img [ref=e657]
+                      - generic [ref=e660]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e661]:
+                      - img [ref=e662]
+                      - generic [ref=e665]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e666]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e668] [cursor=pointer]:
+                    - img [ref=e669]
+                    - text: Voir le contenu
+              - generic [ref=e673]:
+                - img [ref=e675]
+                - generic [ref=e679]:
+                  - generic [ref=e680]:
+                    - generic [ref=e681]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e682]
+                    - generic [ref=e683]: Échoué
+                    - generic [ref=e684]: Vérification
+                  - generic [ref=e685]:
+                    - generic [ref=e686]:
+                      - img [ref=e687]
+                      - generic [ref=e690]: "À : e2e-user-1772748672659@jobbingtrack.test"
+                    - generic [ref=e691]:
+                      - img [ref=e692]
+                      - generic [ref=e695]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e696]:
+                      - img [ref=e697]
+                      - generic [ref=e700]: "Échoué : {'e2e-user-1772748672659@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748672659@jobbingtrack.test> <e2e-user-1772748672659@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e701]: "❌ {'e2e-user-1772748672659@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748672659@jobbingtrack.test> <e2e-user-1772748672659@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e703] [cursor=pointer]:
+                    - img [ref=e704]
+                    - text: Voir le contenu
+              - generic [ref=e708]:
+                - img [ref=e710]
+                - generic [ref=e713]:
+                  - generic [ref=e714]:
+                    - generic [ref=e715]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e716]
+                    - generic [ref=e717]: En attente
+                    - generic [ref=e718]: Bienvenue
+                  - generic [ref=e719]:
+                    - generic [ref=e720]:
+                      - img [ref=e721]
+                      - generic [ref=e724]: "À : e2e-user-1772748676358@jobbingtrack.test"
+                    - generic [ref=e725]:
+                      - img [ref=e726]
+                      - generic [ref=e729]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e730]:
+                      - img [ref=e731]
+                      - generic [ref=e734]: En attente...
+                  - button "Voir le contenu" [ref=e736] [cursor=pointer]:
+                    - img [ref=e737]
+                    - text: Voir le contenu
+              - generic [ref=e741]:
+                - img [ref=e743]
+                - generic [ref=e747]:
+                  - generic [ref=e748]:
+                    - generic [ref=e749]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e750]
+                    - generic [ref=e751]: Échoué
+                    - generic [ref=e752]: Vérification
+                  - generic [ref=e753]:
+                    - generic [ref=e754]:
+                      - img [ref=e755]
+                      - generic [ref=e758]: "À : e2e-user-1772748676358@jobbingtrack.test"
+                    - generic [ref=e759]:
+                      - img [ref=e760]
+                      - generic [ref=e763]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e764]:
+                      - img [ref=e765]
+                      - generic [ref=e768]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e769]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e771] [cursor=pointer]:
+                    - img [ref=e772]
+                    - text: Voir le contenu
+              - generic [ref=e776]:
+                - img [ref=e778]
+                - generic [ref=e781]:
+                  - generic [ref=e782]:
+                    - generic [ref=e783]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e784]
+                    - generic [ref=e785]: En attente
+                    - generic [ref=e786]: Bienvenue
+                  - generic [ref=e787]:
+                    - generic [ref=e788]:
+                      - img [ref=e789]
+                      - generic [ref=e792]: "À : e2e-user-1772748676146@jobbingtrack.test"
+                    - generic [ref=e793]:
+                      - img [ref=e794]
+                      - generic [ref=e797]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e798]:
+                      - img [ref=e799]
+                      - generic [ref=e802]: En attente...
+                  - button "Voir le contenu" [ref=e804] [cursor=pointer]:
+                    - img [ref=e805]
+                    - text: Voir le contenu
+              - generic [ref=e809]:
+                - img [ref=e811]
+                - generic [ref=e815]:
+                  - generic [ref=e816]:
+                    - generic [ref=e817]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e818]
+                    - generic [ref=e819]: Échoué
+                    - generic [ref=e820]: Vérification
+                  - generic [ref=e821]:
+                    - generic [ref=e822]:
+                      - img [ref=e823]
+                      - generic [ref=e826]: "À : e2e-user-1772748676146@jobbingtrack.test"
+                    - generic [ref=e827]:
+                      - img [ref=e828]
+                      - generic [ref=e831]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e832]:
+                      - img [ref=e833]
+                      - generic [ref=e836]: "Échoué : {'e2e-user-1772748676146@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748676146@jobbingtrack.test> <e2e-user-1772748676146@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e837]: "❌ {'e2e-user-1772748676146@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748676146@jobbingtrack.test> <e2e-user-1772748676146@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e839] [cursor=pointer]:
+                    - img [ref=e840]
+                    - text: Voir le contenu
+              - generic [ref=e844]:
+                - img [ref=e846]
+                - generic [ref=e849]:
+                  - generic [ref=e850]:
+                    - generic [ref=e851]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e852]
+                    - generic [ref=e853]: En attente
+                    - generic [ref=e854]: Bienvenue
+                  - generic [ref=e855]:
+                    - generic [ref=e856]:
+                      - img [ref=e857]
+                      - generic [ref=e860]: "À : e2e-user-1772748675650@jobbingtrack.test"
+                    - generic [ref=e861]:
+                      - img [ref=e862]
+                      - generic [ref=e865]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e866]:
+                      - img [ref=e867]
+                      - generic [ref=e870]: En attente...
+                  - button "Voir le contenu" [ref=e872] [cursor=pointer]:
+                    - img [ref=e873]
+                    - text: Voir le contenu
+              - generic [ref=e877]:
+                - img [ref=e879]
+                - generic [ref=e883]:
+                  - generic [ref=e884]:
+                    - generic [ref=e885]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e886]
+                    - generic [ref=e887]: Échoué
+                    - generic [ref=e888]: Vérification
+                  - generic [ref=e889]:
+                    - generic [ref=e890]:
+                      - img [ref=e891]
+                      - generic [ref=e894]: "À : e2e-user-1772748675650@jobbingtrack.test"
+                    - generic [ref=e895]:
+                      - img [ref=e896]
+                      - generic [ref=e899]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e900]:
+                      - img [ref=e901]
+                      - generic [ref=e904]: "Échoué : {'e2e-user-1772748675650@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675650@jobbingtrack.test> <e2e-user-1772748675650@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e905]: "❌ {'e2e-user-1772748675650@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675650@jobbingtrack.test> <e2e-user-1772748675650@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e907] [cursor=pointer]:
+                    - img [ref=e908]
+                    - text: Voir le contenu
+              - generic [ref=e912]:
+                - img [ref=e914]
+                - generic [ref=e917]:
+                  - generic [ref=e918]:
+                    - generic [ref=e919]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e920]
+                    - generic [ref=e921]: En attente
+                    - generic [ref=e922]: Bienvenue
+                  - generic [ref=e923]:
+                    - generic [ref=e924]:
+                      - img [ref=e925]
+                      - generic [ref=e928]: "À : e2e-user-1772748675624@jobbingtrack.test"
+                    - generic [ref=e929]:
+                      - img [ref=e930]
+                      - generic [ref=e933]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e934]:
+                      - img [ref=e935]
+                      - generic [ref=e938]: En attente...
+                  - button "Voir le contenu" [ref=e940] [cursor=pointer]:
+                    - img [ref=e941]
+                    - text: Voir le contenu
+              - generic [ref=e945]:
+                - img [ref=e947]
+                - generic [ref=e951]:
+                  - generic [ref=e952]:
+                    - generic [ref=e953]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e954]
+                    - generic [ref=e955]: Échoué
+                    - generic [ref=e956]: Vérification
+                  - generic [ref=e957]:
+                    - generic [ref=e958]:
+                      - img [ref=e959]
+                      - generic [ref=e962]: "À : e2e-user-1772748675624@jobbingtrack.test"
+                    - generic [ref=e963]:
+                      - img [ref=e964]
+                      - generic [ref=e967]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e968]:
+                      - img [ref=e969]
+                      - generic [ref=e972]: "Échoué : {'e2e-user-1772748675624@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675624@jobbingtrack.test> <e2e-user-1772748675624@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e973]: "❌ {'e2e-user-1772748675624@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748675624@jobbingtrack.test> <e2e-user-1772748675624@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e975] [cursor=pointer]:
+                    - img [ref=e976]
+                    - text: Voir le contenu
+              - generic [ref=e980]:
+                - img [ref=e982]
+                - generic [ref=e985]:
+                  - generic [ref=e986]:
+                    - generic [ref=e987]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e988]
+                    - generic [ref=e989]: En attente
+                    - generic [ref=e990]: Bienvenue
+                  - generic [ref=e991]:
+                    - generic [ref=e992]:
+                      - img [ref=e993]
+                      - generic [ref=e996]: "À : e2e-user-1772748675279@jobbingtrack.test"
+                    - generic [ref=e997]:
+                      - img [ref=e998]
+                      - generic [ref=e1001]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1002]:
+                      - img [ref=e1003]
+                      - generic [ref=e1006]: En attente...
+                  - button "Voir le contenu" [ref=e1008] [cursor=pointer]:
+                    - img [ref=e1009]
+                    - text: Voir le contenu
+              - generic [ref=e1013]:
+                - img [ref=e1015]
+                - generic [ref=e1019]:
+                  - generic [ref=e1020]:
+                    - generic [ref=e1021]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1022]
+                    - generic [ref=e1023]: Échoué
+                    - generic [ref=e1024]: Vérification
+                  - generic [ref=e1025]:
+                    - generic [ref=e1026]:
+                      - img [ref=e1027]
+                      - generic [ref=e1030]: "À : e2e-user-1772748675279@jobbingtrack.test"
+                    - generic [ref=e1031]:
+                      - img [ref=e1032]
+                      - generic [ref=e1035]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1036]:
+                      - img [ref=e1037]
+                      - generic [ref=e1040]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e1041]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e1043] [cursor=pointer]:
+                    - img [ref=e1044]
+                    - text: Voir le contenu
+              - generic [ref=e1048]:
+                - img [ref=e1050]
+                - generic [ref=e1053]:
+                  - generic [ref=e1054]:
+                    - generic [ref=e1055]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e1056]
+                    - generic [ref=e1057]: En attente
+                    - generic [ref=e1058]: Bienvenue
+                  - generic [ref=e1059]:
+                    - generic [ref=e1060]:
+                      - img [ref=e1061]
+                      - generic [ref=e1064]: "À : e2e-user-1772748674997@jobbingtrack.test"
+                    - generic [ref=e1065]:
+                      - img [ref=e1066]
+                      - generic [ref=e1069]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1070]:
+                      - img [ref=e1071]
+                      - generic [ref=e1074]: En attente...
+                  - button "Voir le contenu" [ref=e1076] [cursor=pointer]:
+                    - img [ref=e1077]
+                    - text: Voir le contenu
+              - generic [ref=e1081]:
+                - img [ref=e1083]
+                - generic [ref=e1087]:
+                  - generic [ref=e1088]:
+                    - generic [ref=e1089]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1090]
+                    - generic [ref=e1091]: Échoué
+                    - generic [ref=e1092]: Vérification
+                  - generic [ref=e1093]:
+                    - generic [ref=e1094]:
+                      - img [ref=e1095]
+                      - generic [ref=e1098]: "À : e2e-user-1772748674997@jobbingtrack.test"
+                    - generic [ref=e1099]:
+                      - img [ref=e1100]
+                      - generic [ref=e1103]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1104]:
+                      - img [ref=e1105]
+                      - generic [ref=e1108]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e1109]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e1111] [cursor=pointer]:
+                    - img [ref=e1112]
+                    - text: Voir le contenu
+              - generic [ref=e1116]:
+                - img [ref=e1118]
+                - generic [ref=e1121]:
+                  - generic [ref=e1122]:
+                    - generic [ref=e1123]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e1124]
+                    - generic [ref=e1125]: En attente
+                    - generic [ref=e1126]: Bienvenue
+                  - generic [ref=e1127]:
+                    - generic [ref=e1128]:
+                      - img [ref=e1129]
+                      - generic [ref=e1132]: "À : e2e-user-1772748674645@jobbingtrack.test"
+                    - generic [ref=e1133]:
+                      - img [ref=e1134]
+                      - generic [ref=e1137]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1138]:
+                      - img [ref=e1139]
+                      - generic [ref=e1142]: En attente...
+                  - button "Voir le contenu" [ref=e1144] [cursor=pointer]:
+                    - img [ref=e1145]
+                    - text: Voir le contenu
+              - generic [ref=e1149]:
+                - img [ref=e1151]
+                - generic [ref=e1155]:
+                  - generic [ref=e1156]:
+                    - generic [ref=e1157]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1158]
+                    - generic [ref=e1159]: Échoué
+                    - generic [ref=e1160]: Vérification
+                  - generic [ref=e1161]:
+                    - generic [ref=e1162]:
+                      - img [ref=e1163]
+                      - generic [ref=e1166]: "À : e2e-user-1772748674645@jobbingtrack.test"
+                    - generic [ref=e1167]:
+                      - img [ref=e1168]
+                      - generic [ref=e1171]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1172]:
+                      - img [ref=e1173]
+                      - generic [ref=e1176]: "Échoué : {'e2e-user-1772748674645@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674645@jobbingtrack.test> <e2e-user-1772748674645@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1177]: "❌ {'e2e-user-1772748674645@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674645@jobbingtrack.test> <e2e-user-1772748674645@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1179] [cursor=pointer]:
+                    - img [ref=e1180]
+                    - text: Voir le contenu
+              - generic [ref=e1184]:
+                - img [ref=e1186]
+                - generic [ref=e1189]:
+                  - generic [ref=e1190]:
+                    - generic [ref=e1191]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e1192]
+                    - generic [ref=e1193]: En attente
+                    - generic [ref=e1194]: Bienvenue
+                  - generic [ref=e1195]:
+                    - generic [ref=e1196]:
+                      - img [ref=e1197]
+                      - generic [ref=e1200]: "À : e2e-user-1772748674349@jobbingtrack.test"
+                    - generic [ref=e1201]:
+                      - img [ref=e1202]
+                      - generic [ref=e1205]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1206]:
+                      - img [ref=e1207]
+                      - generic [ref=e1210]: En attente...
+                  - button "Voir le contenu" [ref=e1212] [cursor=pointer]:
+                    - img [ref=e1213]
+                    - text: Voir le contenu
+              - generic [ref=e1217]:
+                - img [ref=e1219]
+                - generic [ref=e1223]:
+                  - generic [ref=e1224]:
+                    - generic [ref=e1225]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1226]
+                    - generic [ref=e1227]: Échoué
+                    - generic [ref=e1228]: Vérification
+                  - generic [ref=e1229]:
+                    - generic [ref=e1230]:
+                      - img [ref=e1231]
+                      - generic [ref=e1234]: "À : e2e-user-1772748674349@jobbingtrack.test"
+                    - generic [ref=e1235]:
+                      - img [ref=e1236]
+                      - generic [ref=e1239]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1240]:
+                      - img [ref=e1241]
+                      - generic [ref=e1244]: "Échoué : {'e2e-user-1772748674349@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674349@jobbingtrack.test> <e2e-user-1772748674349@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1245]: "❌ {'e2e-user-1772748674349@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748674349@jobbingtrack.test> <e2e-user-1772748674349@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1247] [cursor=pointer]:
+                    - img [ref=e1248]
+                    - text: Voir le contenu
+              - generic [ref=e1252]:
+                - img [ref=e1254]
+                - generic [ref=e1257]:
+                  - generic [ref=e1258]:
+                    - generic [ref=e1259]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e1260]
+                    - generic [ref=e1261]: En attente
+                    - generic [ref=e1262]: Bienvenue
+                  - generic [ref=e1263]:
+                    - generic [ref=e1264]:
+                      - img [ref=e1265]
+                      - generic [ref=e1268]: "À : e2e-user-1772748672937@jobbingtrack.test"
+                    - generic [ref=e1269]:
+                      - img [ref=e1270]
+                      - generic [ref=e1273]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1274]:
+                      - img [ref=e1275]
+                      - generic [ref=e1278]: En attente...
+                  - button "Voir le contenu" [ref=e1280] [cursor=pointer]:
+                    - img [ref=e1281]
+                    - text: Voir le contenu
+              - generic [ref=e1285]:
+                - img [ref=e1287]
+                - generic [ref=e1291]:
+                  - generic [ref=e1292]:
+                    - generic [ref=e1293]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1294]
+                    - generic [ref=e1295]: Échoué
+                    - generic [ref=e1296]: Vérification
+                  - generic [ref=e1297]:
+                    - generic [ref=e1298]:
+                      - img [ref=e1299]
+                      - generic [ref=e1302]: "À : e2e-user-1772748672937@jobbingtrack.test"
+                    - generic [ref=e1303]:
+                      - img [ref=e1304]
+                      - generic [ref=e1307]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1308]:
+                      - img [ref=e1309]
+                      - generic [ref=e1312]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e1313]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e1315] [cursor=pointer]:
+                    - img [ref=e1316]
+                    - text: Voir le contenu
+              - generic [ref=e1320]:
+                - img [ref=e1322]
+                - generic [ref=e1325]:
+                  - generic [ref=e1326]:
+                    - generic [ref=e1327]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e1328]
+                    - generic [ref=e1329]: En attente
+                    - generic [ref=e1330]: Bienvenue
+                  - generic [ref=e1331]:
+                    - generic [ref=e1332]:
+                      - img [ref=e1333]
+                      - generic [ref=e1336]: "À : e2e-user-1772748672659@jobbingtrack.test"
+                    - generic [ref=e1337]:
+                      - img [ref=e1338]
+                      - generic [ref=e1341]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1342]:
+                      - img [ref=e1343]
+                      - generic [ref=e1346]: En attente...
+                  - button "Voir le contenu" [ref=e1348] [cursor=pointer]:
+                    - img [ref=e1349]
+                    - text: Voir le contenu
+              - generic [ref=e1353]:
+                - img [ref=e1355]
+                - generic [ref=e1359]:
+                  - generic [ref=e1360]:
+                    - generic [ref=e1361]: ✅
+                    - heading "✅ Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1362]
+                    - generic [ref=e1363]: Échoué
+                    - generic [ref=e1364]: Vérification
+                  - generic [ref=e1365]:
+                    - generic [ref=e1366]:
+                      - img [ref=e1367]
+                      - generic [ref=e1370]: "À : e2e-user-1772748672659@jobbingtrack.test"
+                    - generic [ref=e1371]:
+                      - img [ref=e1372]
+                      - generic [ref=e1375]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1376]:
+                      - img [ref=e1377]
+                      - generic [ref=e1380]: "Échoué : {'e2e-user-1772748672659@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748672659@jobbingtrack.test> <e2e-user-1772748672659@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1381]: "❌ {'e2e-user-1772748672659@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748672659@jobbingtrack.test> <e2e-user-1772748672659@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1383] [cursor=pointer]:
+                    - img [ref=e1384]
+                    - text: Voir le contenu
+              - generic [ref=e1388]:
+                - img [ref=e1390]
+                - generic [ref=e1394]:
+                  - generic [ref=e1395]:
+                    - generic [ref=e1396]: 🧪
+                    - heading "E2E Interaction Test - 1772748479863" [level=3] [ref=e1397]
+                    - generic [ref=e1398]: Échoué
+                    - generic [ref=e1399]: Test
+                  - generic [ref=e1400]:
+                    - generic [ref=e1401]:
+                      - img [ref=e1402]
+                      - generic [ref=e1405]: "À : redacted@example.invalid"
+                    - generic [ref=e1406]:
+                      - img [ref=e1407]
+                      - generic [ref=e1410]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1411]:
+                      - img [ref=e1412]
+                      - generic [ref=e1415]: "Échoué : Command failed: python3 \"/app/src/services/email/email_service.py\" send_generic \"redacted@example.invalid\" \"E2E Interaction Test - 1772748479863\" \"<h1>Test E2E</h1><p>Email envoyé depuis les tests d'interactions Playwright.</p>\" \"<h1>Test E2E</h1><p>Email envoyé depuis les tests d'interactions Playwright.</p>\" ✅ Connexion SMTP établie Activation STARTTLS... ✅ STARTTLS activé Authentification avec noreply@maily.ovh... ✅ Authentification réussie 📧 Envoi de l'email à e2e-test@mailhog.local... ❌ Erreur SMTP: {'redacted@example.invalid': (450, b'4.1.2 <redacted@example.invalid> <redacted@example.invalid>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1416]: "❌ Command failed: python3 \"/app/src/services/email/email_service.py\" send_generic \"redacted@example.invalid\" \"E2E Interaction Test - 1772748479863\" \"<h1>Test E2E</h1><p>Email envoyé depuis les tests d'interactions Playwright.</p>\" \"<h1>Test E2E</h1><p>Email envoyé depuis les tests d'interactions Playwright.</p>\" ✅ Connexion SMTP établie Activation STARTTLS... ✅ STARTTLS activé Authentification avec noreply@maily.ovh... ✅ Authentification réussie 📧 Envoi de l'email à e2e-test@mailhog.local... ❌ Erreur SMTP: {'redacted@example.invalid': (450, b'4.1.2 <redacted@example.invalid> <redacted@example.invalid>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1418] [cursor=pointer]:
+                    - img [ref=e1419]
+                    - text: Voir le contenu
+              - generic [ref=e1423]:
+                - img [ref=e1425]
+                - generic [ref=e1429]:
+                  - generic [ref=e1430]:
+                    - generic [ref=e1431]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1432]
+                    - generic [ref=e1433]: Échoué
+                    - generic [ref=e1434]: Vérification
+                  - generic [ref=e1435]:
+                    - generic [ref=e1436]:
+                      - img [ref=e1437]
+                      - generic [ref=e1440]: "À : e2e-user-1772748417292@jobbingtrack.test"
+                    - generic [ref=e1441]:
+                      - img [ref=e1442]
+                      - generic [ref=e1445]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1446]:
+                      - img [ref=e1447]
+                      - generic [ref=e1450]: "Échoué : {'e2e-user-1772748417292@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748417292@jobbingtrack.test> <e2e-user-1772748417292@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1451]: "❌ {'e2e-user-1772748417292@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748417292@jobbingtrack.test> <e2e-user-1772748417292@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1453] [cursor=pointer]:
+                    - img [ref=e1454]
+                    - text: Voir le contenu
+              - generic [ref=e1458]:
+                - img [ref=e1460]
+                - generic [ref=e1464]:
+                  - generic [ref=e1465]:
+                    - generic [ref=e1466]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1467]
+                    - generic [ref=e1468]: Échoué
+                    - generic [ref=e1469]: Vérification
+                  - generic [ref=e1470]:
+                    - generic [ref=e1471]:
+                      - img [ref=e1472]
+                      - generic [ref=e1475]: "À : e2e-user-1772748417072@jobbingtrack.test"
+                    - generic [ref=e1476]:
+                      - img [ref=e1477]
+                      - generic [ref=e1480]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1481]:
+                      - img [ref=e1482]
+                      - generic [ref=e1485]: "Échoué : {'e2e-user-1772748417072@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748417072@jobbingtrack.test> <e2e-user-1772748417072@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1486]: "❌ {'e2e-user-1772748417072@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748417072@jobbingtrack.test> <e2e-user-1772748417072@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1488] [cursor=pointer]:
+                    - img [ref=e1489]
+                    - text: Voir le contenu
+              - generic [ref=e1493]:
+                - img [ref=e1495]
+                - generic [ref=e1499]:
+                  - generic [ref=e1500]:
+                    - generic [ref=e1501]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1502]
+                    - generic [ref=e1503]: Échoué
+                    - generic [ref=e1504]: Vérification
+                  - generic [ref=e1505]:
+                    - generic [ref=e1506]:
+                      - img [ref=e1507]
+                      - generic [ref=e1510]: "À : e2e-user-1772748416399@jobbingtrack.test"
+                    - generic [ref=e1511]:
+                      - img [ref=e1512]
+                      - generic [ref=e1515]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1516]:
+                      - img [ref=e1517]
+                      - generic [ref=e1520]: "Échoué : {'e2e-user-1772748416399@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416399@jobbingtrack.test> <e2e-user-1772748416399@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1521]: "❌ {'e2e-user-1772748416399@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416399@jobbingtrack.test> <e2e-user-1772748416399@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1523] [cursor=pointer]:
+                    - img [ref=e1524]
+                    - text: Voir le contenu
+              - generic [ref=e1528]:
+                - img [ref=e1530]
+                - generic [ref=e1534]:
+                  - generic [ref=e1535]:
+                    - generic [ref=e1536]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1537]
+                    - generic [ref=e1538]: Échoué
+                    - generic [ref=e1539]: Vérification
+                  - generic [ref=e1540]:
+                    - generic [ref=e1541]:
+                      - img [ref=e1542]
+                      - generic [ref=e1545]: "À : e2e-user-1772748416313@jobbingtrack.test"
+                    - generic [ref=e1546]:
+                      - img [ref=e1547]
+                      - generic [ref=e1550]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1551]:
+                      - img [ref=e1552]
+                      - generic [ref=e1555]: "Échoué : {'e2e-user-1772748416313@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416313@jobbingtrack.test> <e2e-user-1772748416313@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1556]: "❌ {'e2e-user-1772748416313@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416313@jobbingtrack.test> <e2e-user-1772748416313@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1558] [cursor=pointer]:
+                    - img [ref=e1559]
+                    - text: Voir le contenu
+              - generic [ref=e1563]:
+                - img [ref=e1565]
+                - generic [ref=e1569]:
+                  - generic [ref=e1570]:
+                    - generic [ref=e1571]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1572]
+                    - generic [ref=e1573]: Échoué
+                    - generic [ref=e1574]: Vérification
+                  - generic [ref=e1575]:
+                    - generic [ref=e1576]:
+                      - img [ref=e1577]
+                      - generic [ref=e1580]: "À : e2e-user-1772748416223@jobbingtrack.test"
+                    - generic [ref=e1581]:
+                      - img [ref=e1582]
+                      - generic [ref=e1585]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1586]:
+                      - img [ref=e1587]
+                      - generic [ref=e1590]: "Échoué : {'e2e-user-1772748416223@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416223@jobbingtrack.test> <e2e-user-1772748416223@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1591]: "❌ {'e2e-user-1772748416223@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748416223@jobbingtrack.test> <e2e-user-1772748416223@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1593] [cursor=pointer]:
+                    - img [ref=e1594]
+                    - text: Voir le contenu
+              - generic [ref=e1598]:
+                - img [ref=e1600]
+                - generic [ref=e1604]:
+                  - generic [ref=e1605]:
+                    - generic [ref=e1606]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1607]
+                    - generic [ref=e1608]: Échoué
+                    - generic [ref=e1609]: Vérification
+                  - generic [ref=e1610]:
+                    - generic [ref=e1611]:
+                      - img [ref=e1612]
+                      - generic [ref=e1615]: "À : e2e-user-1772748415576@jobbingtrack.test"
+                    - generic [ref=e1616]:
+                      - img [ref=e1617]
+                      - generic [ref=e1620]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1621]:
+                      - img [ref=e1622]
+                      - generic [ref=e1625]: "Échoué : {'e2e-user-1772748415576@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415576@jobbingtrack.test> <e2e-user-1772748415576@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1626]: "❌ {'e2e-user-1772748415576@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415576@jobbingtrack.test> <e2e-user-1772748415576@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1628] [cursor=pointer]:
+                    - img [ref=e1629]
+                    - text: Voir le contenu
+              - generic [ref=e1633]:
+                - img [ref=e1635]
+                - generic [ref=e1639]:
+                  - generic [ref=e1640]:
+                    - generic [ref=e1641]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1642]
+                    - generic [ref=e1643]: Échoué
+                    - generic [ref=e1644]: Vérification
+                  - generic [ref=e1645]:
+                    - generic [ref=e1646]:
+                      - img [ref=e1647]
+                      - generic [ref=e1650]: "À : e2e-user-1772748415369@jobbingtrack.test"
+                    - generic [ref=e1651]:
+                      - img [ref=e1652]
+                      - generic [ref=e1655]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1656]:
+                      - img [ref=e1657]
+                      - generic [ref=e1660]: "Échoué : {'e2e-user-1772748415369@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415369@jobbingtrack.test> <e2e-user-1772748415369@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1661]: "❌ {'e2e-user-1772748415369@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415369@jobbingtrack.test> <e2e-user-1772748415369@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1663] [cursor=pointer]:
+                    - img [ref=e1664]
+                    - text: Voir le contenu
+              - generic [ref=e1668]:
+                - img [ref=e1670]
+                - generic [ref=e1674]:
+                  - generic [ref=e1675]:
+                    - generic [ref=e1676]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1677]
+                    - generic [ref=e1678]: Échoué
+                    - generic [ref=e1679]: Vérification
+                  - generic [ref=e1680]:
+                    - generic [ref=e1681]:
+                      - img [ref=e1682]
+                      - generic [ref=e1685]: "À : e2e-user-1772748415010@jobbingtrack.test"
+                    - generic [ref=e1686]:
+                      - img [ref=e1687]
+                      - generic [ref=e1690]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1691]:
+                      - img [ref=e1692]
+                      - generic [ref=e1695]: "Échoué : {'e2e-user-1772748415010@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415010@jobbingtrack.test> <e2e-user-1772748415010@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1696]: "❌ {'e2e-user-1772748415010@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748415010@jobbingtrack.test> <e2e-user-1772748415010@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1698] [cursor=pointer]:
+                    - img [ref=e1699]
+                    - text: Voir le contenu
+              - generic [ref=e1703]:
+                - img [ref=e1705]
+                - generic [ref=e1709]:
+                  - generic [ref=e1710]:
+                    - generic [ref=e1711]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1712]
+                    - generic [ref=e1713]: Échoué
+                    - generic [ref=e1714]: Vérification
+                  - generic [ref=e1715]:
+                    - generic [ref=e1716]:
+                      - img [ref=e1717]
+                      - generic [ref=e1720]: "À : e2e-user-1772748413264@jobbingtrack.test"
+                    - generic [ref=e1721]:
+                      - img [ref=e1722]
+                      - generic [ref=e1725]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1726]:
+                      - img [ref=e1727]
+                      - generic [ref=e1730]: "Échoué : {'e2e-user-1772748413264@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413264@jobbingtrack.test> <e2e-user-1772748413264@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1731]: "❌ {'e2e-user-1772748413264@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413264@jobbingtrack.test> <e2e-user-1772748413264@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1733] [cursor=pointer]:
+                    - img [ref=e1734]
+                    - text: Voir le contenu
+              - generic [ref=e1738]:
+                - img [ref=e1740]
+                - generic [ref=e1744]:
+                  - generic [ref=e1745]:
+                    - generic [ref=e1746]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1747]
+                    - generic [ref=e1748]: Échoué
+                    - generic [ref=e1749]: Vérification
+                  - generic [ref=e1750]:
+                    - generic [ref=e1751]:
+                      - img [ref=e1752]
+                      - generic [ref=e1755]: "À : e2e-user-1772748413258@jobbingtrack.test"
+                    - generic [ref=e1756]:
+                      - img [ref=e1757]
+                      - generic [ref=e1760]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1761]:
+                      - img [ref=e1762]
+                      - generic [ref=e1765]: "Échoué : {'e2e-user-1772748413258@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413258@jobbingtrack.test> <e2e-user-1772748413258@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1766]: "❌ {'e2e-user-1772748413258@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413258@jobbingtrack.test> <e2e-user-1772748413258@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1768] [cursor=pointer]:
+                    - img [ref=e1769]
+                    - text: Voir le contenu
+              - generic [ref=e1773]:
+                - img [ref=e1775]
+                - generic [ref=e1779]:
+                  - generic [ref=e1780]:
+                    - generic [ref=e1781]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1782]
+                    - generic [ref=e1783]: Échoué
+                    - generic [ref=e1784]: Vérification
+                  - generic [ref=e1785]:
+                    - generic [ref=e1786]:
+                      - img [ref=e1787]
+                      - generic [ref=e1790]: "À : e2e-user-1772748413253@jobbingtrack.test"
+                    - generic [ref=e1791]:
+                      - img [ref=e1792]
+                      - generic [ref=e1795]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1796]:
+                      - img [ref=e1797]
+                      - generic [ref=e1800]: "Échoué : {'e2e-user-1772748413253@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413253@jobbingtrack.test> <e2e-user-1772748413253@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1801]: "❌ {'e2e-user-1772748413253@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748413253@jobbingtrack.test> <e2e-user-1772748413253@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1803] [cursor=pointer]:
+                    - img [ref=e1804]
+                    - text: Voir le contenu
+              - generic [ref=e1808]:
+                - img [ref=e1810]
+                - generic [ref=e1814]:
+                  - generic [ref=e1815]:
+                    - generic [ref=e1816]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1817]
+                    - generic [ref=e1818]: Échoué
+                    - generic [ref=e1819]: Vérification
+                  - generic [ref=e1820]:
+                    - generic [ref=e1821]:
+                      - img [ref=e1822]
+                      - generic [ref=e1825]: "À : e2e-user-1772748411720@jobbingtrack.test"
+                    - generic [ref=e1826]:
+                      - img [ref=e1827]
+                      - generic [ref=e1830]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1831]:
+                      - img [ref=e1832]
+                      - generic [ref=e1835]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e1836]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e1838] [cursor=pointer]:
+                    - img [ref=e1839]
+                    - text: Voir le contenu
+              - generic [ref=e1843]:
+                - img [ref=e1845]
+                - generic [ref=e1849]:
+                  - generic [ref=e1850]:
+                    - generic [ref=e1851]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1852]
+                    - generic [ref=e1853]: Échoué
+                    - generic [ref=e1854]: Vérification
+                  - generic [ref=e1855]:
+                    - generic [ref=e1856]:
+                      - img [ref=e1857]
+                      - generic [ref=e1860]: "À : e2e-user-1772748411711@jobbingtrack.test"
+                    - generic [ref=e1861]:
+                      - img [ref=e1862]
+                      - generic [ref=e1865]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1866]:
+                      - img [ref=e1867]
+                      - generic [ref=e1870]: "Échoué : Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants."
+                  - generic [ref=e1871]: ❌ Un email est déjà en cours d'envoi. Veuillez réessayer dans quelques instants.
+                  - button "Voir le contenu" [ref=e1873] [cursor=pointer]:
+                    - img [ref=e1874]
+                    - text: Voir le contenu
+              - generic [ref=e1878]:
+                - img [ref=e1880]
+                - generic [ref=e1884]:
+                  - generic [ref=e1885]:
+                    - generic [ref=e1886]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1887]
+                    - generic [ref=e1888]: Échoué
+                    - generic [ref=e1889]: Vérification
+                  - generic [ref=e1890]:
+                    - generic [ref=e1891]:
+                      - img [ref=e1892]
+                      - generic [ref=e1895]: "À : e2e-user-1772748411680@jobbingtrack.test"
+                    - generic [ref=e1896]:
+                      - img [ref=e1897]
+                      - generic [ref=e1900]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1901]:
+                      - img [ref=e1902]
+                      - generic [ref=e1905]: "Échoué : {'e2e-user-1772748411680@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411680@jobbingtrack.test> <e2e-user-1772748411680@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1906]: "❌ {'e2e-user-1772748411680@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411680@jobbingtrack.test> <e2e-user-1772748411680@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1908] [cursor=pointer]:
+                    - img [ref=e1909]
+                    - text: Voir le contenu
+              - generic [ref=e1913]:
+                - img [ref=e1915]
+                - generic [ref=e1919]:
+                  - generic [ref=e1920]:
+                    - generic [ref=e1921]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1922]
+                    - generic [ref=e1923]: Échoué
+                    - generic [ref=e1924]: Vérification
+                  - generic [ref=e1925]:
+                    - generic [ref=e1926]:
+                      - img [ref=e1927]
+                      - generic [ref=e1930]: "À : e2e-user-1772748411672@jobbingtrack.test"
+                    - generic [ref=e1931]:
+                      - img [ref=e1932]
+                      - generic [ref=e1935]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1936]:
+                      - img [ref=e1937]
+                      - generic [ref=e1940]: "Échoué : {'e2e-user-1772748411672@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411672@jobbingtrack.test> <e2e-user-1772748411672@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1941]: "❌ {'e2e-user-1772748411672@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411672@jobbingtrack.test> <e2e-user-1772748411672@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1943] [cursor=pointer]:
+                    - img [ref=e1944]
+                    - text: Voir le contenu
+              - generic [ref=e1948]:
+                - img [ref=e1950]
+                - generic [ref=e1954]:
+                  - generic [ref=e1955]:
+                    - generic [ref=e1956]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1957]
+                    - generic [ref=e1958]: Échoué
+                    - generic [ref=e1959]: Vérification
+                  - generic [ref=e1960]:
+                    - generic [ref=e1961]:
+                      - img [ref=e1962]
+                      - generic [ref=e1965]: "À : e2e-user-1772748411635@jobbingtrack.test"
+                    - generic [ref=e1966]:
+                      - img [ref=e1967]
+                      - generic [ref=e1970]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e1971]:
+                      - img [ref=e1972]
+                      - generic [ref=e1975]: "Échoué : {'e2e-user-1772748411635@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411635@jobbingtrack.test> <e2e-user-1772748411635@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e1976]: "❌ {'e2e-user-1772748411635@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411635@jobbingtrack.test> <e2e-user-1772748411635@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e1978] [cursor=pointer]:
+                    - img [ref=e1979]
+                    - text: Voir le contenu
+              - generic [ref=e1983]:
+                - img [ref=e1985]
+                - generic [ref=e1989]:
+                  - generic [ref=e1990]:
+                    - generic [ref=e1991]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e1992]
+                    - generic [ref=e1993]: Échoué
+                    - generic [ref=e1994]: Vérification
+                  - generic [ref=e1995]:
+                    - generic [ref=e1996]:
+                      - img [ref=e1997]
+                      - generic [ref=e2000]: "À : e2e-user-1772748411602@jobbingtrack.test"
+                    - generic [ref=e2001]:
+                      - img [ref=e2002]
+                      - generic [ref=e2005]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e2006]:
+                      - img [ref=e2007]
+                      - generic [ref=e2010]: "Échoué : {'e2e-user-1772748411602@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411602@jobbingtrack.test> <e2e-user-1772748411602@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e2011]: "❌ {'e2e-user-1772748411602@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411602@jobbingtrack.test> <e2e-user-1772748411602@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e2013] [cursor=pointer]:
+                    - img [ref=e2014]
+                    - text: Voir le contenu
+              - generic [ref=e2018]:
+                - img [ref=e2020]
+                - generic [ref=e2024]:
+                  - generic [ref=e2025]:
+                    - generic [ref=e2026]: ✅
+                    - heading "Vérifiez votre adresse email - JobbingTrack" [level=3] [ref=e2027]
+                    - generic [ref=e2028]: Échoué
+                    - generic [ref=e2029]: Vérification
+                  - generic [ref=e2030]:
+                    - generic [ref=e2031]:
+                      - img [ref=e2032]
+                      - generic [ref=e2035]: "À : e2e-user-1772748411551@jobbingtrack.test"
+                    - generic [ref=e2036]:
+                      - img [ref=e2037]
+                      - generic [ref=e2040]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e2041]:
+                      - img [ref=e2042]
+                      - generic [ref=e2045]: "Échoué : {'e2e-user-1772748411551@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411551@jobbingtrack.test> <e2e-user-1772748411551@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - generic [ref=e2046]: "❌ {'e2e-user-1772748411551@jobbingtrack.test': (450, b'4.1.2 <e2e-user-1772748411551@jobbingtrack.test> <e2e-user-1772748411551@jobbingtrack.test>: Recipient address rejected: Domain not found')}"
+                  - button "Voir le contenu" [ref=e2048] [cursor=pointer]:
+                    - img [ref=e2049]
+                    - text: Voir le contenu
+              - generic [ref=e2053]:
+                - img [ref=e2055]
+                - generic [ref=e2058]:
+                  - generic [ref=e2059]:
+                    - generic [ref=e2060]: 👋
+                    - heading "🎉 Bienvenue sur JobbingTrack !" [level=3] [ref=e2061]
+                    - generic [ref=e2062]: En attente
+                    - generic [ref=e2063]: Bienvenue
+                  - generic [ref=e2064]:
+                    - generic [ref=e2065]:
+                      - img [ref=e2066]
+                      - generic [ref=e2069]: "À : e2e-user-1772748417292@jobbingtrack.test"
+                    - generic [ref=e2070]:
+                      - img [ref=e2071]
+                      - generic [ref=e2074]: "De : JobbingTrack <noreply@jobbingtrack.test>"
+                    - generic [ref=e2075]:
+                      - img [ref=e2076]
+                      - generic [ref=e2079]: En attente...
+                  - button "Voir le contenu" [ref=e2081] [cursor=pointer]:
+                    - img [ref=e2082]
+                    - text: Voir le contenu
+          - generic [ref=e2085]:
+            - heading "Comment Utiliser Email Monitor" [level=3] [ref=e2087]:
+              - img [ref=e2088]
+              - text: Comment Utiliser Email Monitor
+            - generic [ref=e2092]:
+              - paragraph [ref=e2093]:
+                - strong [ref=e2094]: Voir les emails envoyés
+                - text: ": Cette page affiche tous les emails envoyés par JobbingTrack. Avec « Temps réel » activé, la liste et les stats sont rafraîchies toutes les 3 secondes. Un rafraîchissement a aussi lieu dès que vous revenez sur l’onglet."
+              - paragraph [ref=e2095]:
+                - strong [ref=e2096]: Configuration actuelle
+                - text: ":"
+                - code [ref=e2097]: Non configuré
+              - paragraph [ref=e2098]:
+                - strong [ref=e2099]: Pour tester
+                - text: ":"
+              - list [ref=e2100]:
+                - listitem [ref=e2101]: "Avec SMTP OVH : Vérifier la boîte mail du destinataire"
+                - listitem [ref=e2102]:
+                  - text: Utiliser la page
+                  - strong [ref=e2103]: Tests → Tests Emails
+                  - text: pour envoyer des emails de test
+                - listitem [ref=e2104]: Utiliser le scénario "Vérification Email et Reset Password" dans User Journey
+              - paragraph [ref=e2105]:
+                - strong [ref=e2106]: 📖 Documentation complète
+                - text: ":"
+                - code [ref=e2107]: docs/emails/
+  - alert [ref=e2108]
+```

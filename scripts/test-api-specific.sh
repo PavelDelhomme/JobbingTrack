@@ -78,18 +78,16 @@ test_endpoint() {
 }
 
 # Créer et obtenir un token utilisateur classique (rôle USER) pour tests fonctionnels
+# Utilise d'abord l'utilisateur seedé (emailVerified: true) pour éviter 401 "email not verified"
 get_token() {
     echo -e "${YELLOW}Authentification (utilisateur classique)...${NC}"
 
-    TEST_EMAIL="apitest-$(date +%s)@jobbingtrack.test"
-    TEST_PASSWORD="TestPassword123!"
+    SEEDED_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}"
+    SEEDED_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
 
-    # Inscription d'un utilisateur test
-    REGISTER_DATA="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\",\"firstName\":\"APITest\",\"lastName\":\"User\",\"phone\":\"+33600000000\"}"
-    curl -s -o /dev/null -X POST "$API_URL/api/v1/auth/register" -H "Content-Type: application/json" -d "$REGISTER_DATA" 2>/dev/null || true
-
-    LOGIN_DATA="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
-    test_endpoint "Login utilisateur test" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
+    # 1) Login avec l'utilisateur seedé (email déjà vérifié) — évite les échecs 401 email not verified
+    LOGIN_DATA="{\"email\":\"$SEEDED_EMAIL\",\"password\":\"$SEEDED_PASSWORD\"}"
+    curl -s -X POST "$API_URL/api/v1/auth/login" -H "Content-Type: application/json" -d "$LOGIN_DATA" --max-time 10 -o /tmp/response.txt 2>/dev/null || true
 
     if [ -f /tmp/response.txt ]; then
         if command -v node >/dev/null 2>&1; then
@@ -98,15 +96,25 @@ get_token() {
         [ -z "$TOKEN" ] && TOKEN=$(python3 -c "import sys,json; print(json.load(open('/tmp/response.txt')).get('token',''), end='')" 2>/dev/null)
         [ -z "$TOKEN" ] && TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
         if [ -n "$TOKEN" ]; then
-            echo -e "${GREEN}   ✓ Token utilisateur test obtenu (rôle USER)${NC}"
+            echo -e "${GREEN}   ✓ Token utilisateur seedé obtenu (rôle USER, email vérifié)${NC}"
+            return
         fi
+    fi
+
+    # 2) Fallback : admin (si seed non exécuté ou utilisateur test absent)
+    get_admin_token
+    if [ -n "$ADMIN_TOKEN" ]; then
+        TOKEN="$ADMIN_TOKEN"
+        echo -e "${YELLOW}   ⚠ Utilisation du token admin (lancez 'make db-seed' ou seed auth pour l'utilisateur test)${NC}"
     fi
 }
 
 # Obtenir un token admin (rôle SUPER_ADMIN) pour tests backoffice
 get_admin_token() {
     echo -e "${YELLOW}Authentification admin...${NC}"
-    LOGIN_DATA="{\"email\":\"admin@jobbingtrack.test\",\"password\":\"password123\"}"
+    ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.test}"
+    ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}"
+    LOGIN_DATA="{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}"
     test_endpoint "Login admin" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
 
     if [ -f /tmp/response.txt ]; then
