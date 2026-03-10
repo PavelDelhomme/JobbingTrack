@@ -1,5 +1,11 @@
 # 🚀 Démarrage Rapide - Tests Mobile
 
+Guide pour lancer les tests E2E mobile (Playwright) depuis le frontend. Documentation centralisée : ce fichier est la référence ; une redirection existe dans `frontend/QUICK_START_MOBILE_TESTS.md`.
+
+[← Retour aux tests](README.md) | [Index doc](../INDEX.md)
+
+---
+
 ## ⚠️ Problème de Permissions npm
 
 Si vous rencontrez une erreur `EACCES` lors de `npm install`, voici les solutions :
@@ -123,4 +129,3 @@ npx playwright show-report playwright-report-mobile
 ---
 
 **Note** : Si les problèmes persistent, utilisez Docker pour isoler l'environnement.
-

@@ -1,5 +1,11 @@
 # 📊 Résumé des Optimisations de Performance Frontend
 
+Rapport centralisé dans `docs/performance/`. Les scripts peuvent continuer à générer des fichiers dans `frontend/performance-reports/` (JSON) ; ce résumé est la référence doc.
+
+[← Performance](README.md)
+
+---
+
 ## 📈 Évolution des Imports Lucide-React
 
 | Rapport | Date | Lucide | Recharts | Axios | Évolution |
@@ -34,40 +40,18 @@
 - ✅ Lazy loading des composants lourds
 
 #### 3. Pages Optimisées
-- ✅ Vue d'ensemble (`page.tsx`)
-- ✅ User Journey (`user-journey/page.tsx`)
-- ✅ Events (`events/page.tsx`)
-- ✅ Followups (`followups/page.tsx`)
-- ✅ Emails (`emails/page.tsx`)
-- ✅ Security Analysis (`security/analysis/page.tsx`)
-- ✅ Security Policies (`security/policies/page.tsx`)
-- ✅ Security Logs (`security/logs/page.tsx`)
-- ✅ Notifications (`notifications/page.tsx`)
-- ✅ Data (`data/page.tsx`)
+- ✅ Vue d'ensemble, User Journey, Events, Followups, Emails
+- ✅ Security Analysis, Security Policies, Security Logs
+- ✅ Notifications, Data
 
 #### 4. Build Optimizations
-- ✅ Source maps désactivées en production
-- ✅ Compression Gzip configurée
-- ✅ Images WebP/AVIF
-- ✅ Minification CSS/JS
-
-## 📊 Prochaines Étapes
-
-Pour mesurer les gains réels de mémoire :
-1. Faire un build complet : `make build-frontend`
-2. Relancer les tests de performance avec le build complet
-3. Analyser les rapports de mémoire runtime
+- ✅ Source maps désactivées en production, Gzip, images WebP/AVIF, minification
 
 ## 🔍 Commandes Utiles
 
 ```bash
 # Comparer deux rapports
 ./frontend/scripts/compare-performance.sh <rapport1> <rapport2>
-
-# Comparer tous les rapports
-./frontend/scripts/compare-all-performance.sh
-
 # Générer un nouveau rapport
 make test-performance-frontend
 ```
-

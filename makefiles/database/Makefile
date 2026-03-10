@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
 
 # ============================================================================
 # AIDE
@@ -49,6 +49,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make up-dev                - DB développement"
 	@echo "  make up-test               - DB test"
 	@echo "  make up-staging            - DB staging"
+	@echo "  make db-replicate-schema-to-test - Copier le schéma (sans données) de la base principale vers la base de test"
 	@echo ""
 	@echo "🔑 Identifiants Admin par défaut:"
 	@echo "  📧 Email:    admin@jobbingtrack.com"
@@ -461,3 +462,9 @@ init-all-dbs: ## Initialiser toutes les bases de données avec le schéma
 	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U jobbingtrack -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
 	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U jobbingtrack -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
 	@echo "✅ Toutes les bases de données initialisées"
+
+# Répliquer le schéma de la base principale vers la base de test (sans les données)
+# Prérequis: make up-full (postgres) et make up-test (postgres-test)
+db-replicate-schema-to-test: ## Copier le schéma (sans données) de la base principale vers la base de test
+	@echo "📋 Réplication du schéma principal → base de test..."
+	@ROOT_DIR="$(ROOT_DIR)" bash "$(ROOT_DIR)/scripts/db/replicate-schema-to-test.sh"

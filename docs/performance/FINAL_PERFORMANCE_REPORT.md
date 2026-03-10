@@ -170,8 +170,8 @@
 1. `PERFORMANCE_OPTIMIZATIONS_SUMMARY.md` : Résumé global des optimisations
 2. `FIXES_AND_OPTIMIZATIONS.md` : Corrections et optimisations récentes
 3. `backend-performance-reports/COMPARISON.md` : Comparaison backend avant/après
-4. `frontend/performance-reports/SUMMARY.md` : Résumé frontend
-5. `frontend/performance-reports/FINAL_ANALYSIS.md` : Analyse finale frontend
+4. `docs/performance/FRONTEND_REPORTS_SUMMARY.md` : Résumé frontend
+5. `docs/performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md` : Analyse finale frontend
 6. `FINAL_PERFORMANCE_REPORT.md` : Ce document (rapport final)
 
 ---

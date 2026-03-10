@@ -4,6 +4,26 @@
 
 ---
 
+## 🗺️ Où trouver quoi (référence rapide)
+
+| Thème | Emplacement |
+|-------|-------------|
+| **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
+| **Diagnostic (résultats)** | [development/diagnostic/](development/diagnostic/) — DIAGNOSTIC_RESULTS.md |
+| **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
+| **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
+| **Statistiques projet** | [monitoring/STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md) |
+| **Status structure BDD** | [database/STATUS_STRUCTURE_BDD.md](database/STATUS_STRUCTURE_BDD.md) |
+| **Parcours métier** | [user-journey/PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md) |
+| **Tracking utilisateur** | [mobile/analytics/TRACKING_UTILISATEUR.md](mobile/analytics/TRACKING_UTILISATEUR.md) |
+| **Accès réseau local** | [getting-started/ACCES_RESEAU_LOCAL.md](getting-started/ACCES_RESEAU_LOCAL.md) |
+| **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
+| **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
+
+Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**.
+
+---
+
 ## 🎯 Par où commencer
 
 ### Ce qu’il reste à faire (priorité)
@@ -26,11 +46,13 @@
 **Dossier** : [user-journey/](user-journey/) | [tests/](tests/)
 
 - **[README.md](user-journey/README.md)** - Index des tests user journey
+- **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
 - **[RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** - Résumé complet avec toutes les corrections
 - **[LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** - Guide de démarrage rapide
 - **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé complet
 - **[TOKEN_TEST_PERMANENT.md](user-journey/TOKEN_TEST_PERMANENT.md)** - Système de token permanent pour les tests
 - **[TESTS_MANQUANTS.md](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests manquants à implémenter
+- **[QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md)** - Démarrage rapide tests E2E mobile (Playwright)
 
 **Scripts** :
 - `scripts/verify-user-journey.sh` - Vérification automatique des endpoints
@@ -39,12 +61,14 @@
 ---
 
 ### 🚀 Démarrage & Configuration
-**Dossier** : [getting-started/](getting-started/)
+**Dossier** : [getting-started/](getting-started/) | [configuration/](configuration/)
 
 - **[README.md](getting-started/README.md)** - Guide de démarrage
 - **[QUICK_START_GUIDE.md](getting-started/QUICK_START_GUIDE.md)** - Guide de démarrage rapide
 - **[DEMARRAGE_RAPIDE.md](getting-started/DEMARRAGE_RAPIDE.md)** - Démarrage rapide en français
 - **[REDEMARRAGE.md](getting-started/REDEMARRAGE.md)** - Guide de redémarrage des services
+- **[ACCES_RESEAU_LOCAL.md](getting-started/ACCES_RESEAU_LOCAL.md)** - Accès réseau local
+- **[configuration/README.md](configuration/README.md)** - Ports et variables (CONFIGURATION_PORTS, PORTS)
 
 ---
 
@@ -53,6 +77,7 @@
 
 #### Diagnostic
 - **[diagnostic/RECAPITULATIF_COMPLET_DIAGNOSTIC.md](development/diagnostic/)** - Diagnostic technique complet
+- **[diagnostic/DIAGNOSTIC_RESULTS.md](development/diagnostic/DIAGNOSTIC_RESULTS.md)** - Résultats de diagnostic
 - **[diagnostic/SOLUTION_FINALE_PARCOURS.md](development/diagnostic/)** - Solutions finales
 - **[diagnostic/DIAGNOSTIC_PARCOURS_UTILISATEUR.md](development/diagnostic/)** - Diagnostic des parcours
 
@@ -91,11 +116,24 @@
 **Dossier** : [monitoring/](monitoring/)
 
 - **[README.md](monitoring/)** - Guide de monitoring
+- **[metrics-flow.md](monitoring/metrics-flow.md)** - Flux des métriques (qui collecte quoi, ports)
+- **[STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md)** - Statistiques projet
 - **[QUICK-START-MONITORING.md](monitoring/)** - Démarrage rapide monitoring
 - **[MONITORING-GUIDE.md](monitoring/)** - Guide complet
 - **[GUIDE_MONITORING_SERVICES.md](monitoring/)** - Monitoring des services
 - **[GUIDE_TENDANCES_METRIQUES.md](monitoring/)** - Tendances métriques
 - **[SYSTEME_STATISTIQUES_APPLICATIVES.md](monitoring/)** - Statistiques applicatives
+
+---
+
+### ⚡ Performance et rapports
+**Dossier** : [performance/](performance/)
+
+- **[README.md](performance/README.md)** - Guide performance
+- **[FINAL_PERFORMANCE_REPORT.md](performance/FINAL_PERFORMANCE_REPORT.md)** - Rapport final performance
+- **[RAPPORT_PERFORMANCE.md](performance/RAPPORT_PERFORMANCE.md)** - Rapport performance
+- **[PERFORMANCE_OPTIMIZATIONS_SUMMARY.md](performance/PERFORMANCE_OPTIMIZATIONS_SUMMARY.md)** - Résumé optimisations
+- **[FIXES_AND_OPTIMIZATIONS.md](performance/FIXES_AND_OPTIMIZATIONS.md)** - Correctifs et optimisations
 
 ---
 
@@ -112,7 +150,8 @@
 **Dossier** : [frontend/](frontend/)
 
 - **[README.md](frontend/)** - Guide frontend
-- **[GUIDE_PAGE_DETAIL_SERVICE.md](frontend/)** - Page de détail des services
+- **[PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md)** - Optimisation performance (mémoire, bundles, lazy load) ; rapports : FRONTEND_REPORTS_SUMMARY.md, FRONTEND_REPORTS_FINAL_ANALYSIS.md dans ce dossier
+- **[GUIDE_PAGE_DETAIL_SERVICE.md](frontend/GUIDE_PAGE_DETAIL_SERVICE.md)** - Page de détail des services
 - **[GUIDE_ENREGISTREMENT_AUTOMATIQUE.md](frontend/)** - Enregistrement automatique
 - **[GUIDE_PREFERENCES_UTILISATEUR.md](frontend/)** - Préférences utilisateur
 
@@ -122,6 +161,8 @@
 **Dossier** : [database/](database/)
 
 - **[README.md](database/)** - Guide base de données
+- **[STATUS_STRUCTURE_BDD.md](database/STATUS_STRUCTURE_BDD.md)** - État / status structure BDD
+- **[MIGRATIONS_ET_BASES.md](database/MIGRATIONS_ET_BASES.md)** - Migrations Prisma, base principale vs test
 - **[architecture/database/README.md](database/architecture/database/)** - Architecture
 - **[decisions/README.md](database/decisions/)** - Décisions d'architecture
 - **[recap/README.md](database/recap/)** - Récapitulatif
@@ -145,6 +186,7 @@
 - **[PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — À faire : vérification email (manuel) puis app Flutter
 - **[APPLICATION_MOBILE_A_FAIRE.md](mobile/APPLICATION_MOBILE_A_FAIRE.md)** — Checklist écrans et fonctionnalités mobile
 - **[analytics/README.md](mobile/analytics/)** - Analytics mobile
+- **[analytics/TRACKING_UTILISATEUR.md](mobile/analytics/TRACKING_UTILISATEUR.md)** - Tracking utilisateur
 - **[analytics/INTEGRATION.md](mobile/analytics/)** - Intégration
 - **[analytics/PRIVACY.md](mobile/analytics/)** - Confidentialité
 - **[analytics/DASHBOARD.md](mobile/analytics/)** - Dashboard mobile
@@ -247,14 +289,18 @@ JobbingTrack/
 │   ├── INDEX.md                   📚 Ce fichier (index complet)
 │   ├── INDEX_DOCUMENTATION.md     Index général
 │   │
-│   ├── user-journey/              🧪 Tests utilisateur
+│   ├── user-journey/              🧪 Tests utilisateur + parcours métier
 │   │   ├── README.md
+│   │   ├── PARCOURS_METIER.md
 │   │   ├── RESUME_FINAL.md
-│   │   ├── LIRE_MOI_URGENT.md
-│   │   ├── GUIDE_COMPLET.md
-│   │   └── TOKEN_TEST_PERMANENT.md
+│   │   └── ...
 │   │
-│   ├── getting-started/           🚀 Démarrage
+│   ├── configuration/            🔌 Ports et variables
+│   │   ├── README.md
+│   │   ├── CONFIGURATION_PORTS.md
+│   │   └── PORTS.md
+│   ├── performance/               ⚡ Rapports performance, fixes & optimisations
+│   ├── getting-started/           🚀 Démarrage (+ ACCES_RESEAU_LOCAL)
 │   ├── development/               💻 Développement
 │   │   └── diagnostic/            🔍 Diagnostics
 │   ├── api/                       📡 API & Backend

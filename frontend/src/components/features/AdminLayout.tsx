@@ -201,6 +201,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: '/backoffice/data',
           icon: '💾',
           subItems: [
+            { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
+            { name: 'Boîtes d\'intérim', href: '/backoffice/companies?companyType=TEMP_AGENCY', icon: '👔' },
             { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
             { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
           ]

@@ -156,6 +156,12 @@ const COMPANIES_DATA = [
   { name: 'Supabase', website: 'https://supabase.com', industry: 'Backend as a Service', size: 'SMALL', location: 'Remote' }
 ];
 
+// Boîtes d'intérim pour tests (companyType TEMP_AGENCY)
+const TEMP_AGENCY_DATA = [
+  { name: 'Randstad', website: 'https://randstad.fr', industry: 'Intérim', size: 'LARGE', location: 'Paris, France' },
+  { name: 'Manpower', website: 'https://manpower.fr', industry: 'Intérim', size: 'LARGE', location: 'Lyon, France' }
+];
+
 const POSITIONS = [
   'Software Engineer',
   'Senior Software Engineer',
@@ -301,11 +307,29 @@ async function main() {
           location,
           userId: users[i % users.length].id,
           description: `[TEST_DATA_TAG:${testTag}]`,
+          companyType: 'EMPLOYER'
         }
       });
       companies.push(company);
     }
-    console.log(`   ✅ ${companies.length} entreprises créées`);
+    // Créer les boîtes d'intérim (TEMP_AGENCY)
+    for (const agencyData of TEMP_AGENCY_DATA) {
+      const { name, website, industry, size, location } = agencyData;
+      const agency = await prisma.company.create({
+        data: {
+          name,
+          website,
+          industry,
+          size,
+          location,
+          userId: users[0].id,
+          description: `[TEST_DATA_TAG:${testTag}]`,
+          companyType: 'TEMP_AGENCY'
+        }
+      });
+      companies.push(agency);
+    }
+    console.log(`   ✅ ${companies.length} entreprises créées (dont ${TEMP_AGENCY_DATA.length} boîtes d'intérim)`);
 
     // 3. Créer les contacts
     console.log('👤 Création des contacts...');
@@ -354,19 +378,24 @@ async function main() {
 
     // 4. Créer les candidatures
     console.log('📋 Création des candidatures...');
+    const tempAgencies = companies.filter(c => c.companyType === 'TEMP_AGENCY');
     const applications = [];
     for (let i = 0; i < config.applications; i++) {
       const user = users[i % users.length];
       const company = companies[i % companies.length];
       const position = POSITIONS[i % POSITIONS.length];
-      
+      const agencyId = tempAgencies.length > 0 && i % 3 === 0
+        ? tempAgencies[i % tempAgencies.length].id
+        : null;
+
       const applicationDate = new Date();
       applicationDate.setDate(applicationDate.getDate() - Math.floor(Math.random() * 60));
-      
+
       const application = await prisma.application.create({
         data: {
           userId: user.id,
           companyId: company.id,
+          agencyId: agencyId || undefined,
           position,
           description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
           location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],

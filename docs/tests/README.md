@@ -366,6 +366,7 @@ open tests/coverage/index.html
 ## 📚 Tests Spécifiques Disponibles
 
 - **[Structure des tests (make test)](STRUCTURE_TESTS_MAKE_TEST.md)** – Prérequis (seed auth, email vérifié), CWD, 62 vs 270 tests API/E2E, health checks, rapports.
+- **[Quick Start - Tests Mobile](QUICK_START_MOBILE_TESTS.md)** – Démarrage rapide des tests E2E mobile (Playwright), permissions npm, dépannage.
 ### 🧪 Tests de Fonctionnalités
 - **[Tests Page Détail Services](TESTS_PAGE_DETAIL_SERVICES.md)** - Tests complets de la page de détail des services Docker avec métriques en temps réel
 
