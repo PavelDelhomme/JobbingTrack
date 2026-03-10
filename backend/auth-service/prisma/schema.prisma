@@ -126,6 +126,7 @@ model Company {
   website           String?
   industry          String?   // Secteur d'activité
   size              CompanySize?
+  companyType       CompanyType            @default(EMPLOYER) // EMPLOYER = entreprise classique, TEMP_AGENCY = boîte d'intérim
   location          String?
   address           String?
   city              String?
@@ -143,7 +144,8 @@ model Company {
   
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applications      Application[]
+  applications      Application[]      // Candidatures où cette company est l'employeur (entreprise utilisatrice)
+  applicationsViaAgency Application[]  @relation("AgencyApplications") // Candidatures/propositions passées par cette boîte d'intérim
   contacts          ContactCompany[]  // Many-to-many
   followUps         FollowUp[]
   calls             Call[]
@@ -151,9 +153,21 @@ model Company {
   
   @@index([userId])
   @@index([name])
+  @@index([companyType])
+}
+
+enum CompanyType {
+  EMPLOYER           // Entreprise employeuse classique (recherche directe)
+  TEMP_AGENCY        // Boîte d'intérim (propositions / missions via l'agence)
 }
 
 enum CompanySize {
+  STARTUP           // < 10
+  SMALL             // 10-50
+  MEDIUM            // 50-250
+  LARGE             // 250-1000
+  ENTERPRISE        // > 1000
+}
   STARTUP           // < 10
   SMALL             // 10-50
   MEDIUM            // 50-250
@@ -168,7 +182,8 @@ enum CompanySize {
 model Application {
   id                    String              @id @default(cuid())
   userId                String
-  companyId             String
+  companyId             String              // Entreprise employeuse (client final ou agence si candidature directe agence)
+  agencyId              String?             // Optionnel : boîte d'intérim à l'origine de la proposition/mission
   platformId            String?             // Plateforme de candidature (personnalisable)
   
   // Informations de l'offre
@@ -203,6 +218,7 @@ model Application {
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   company               Company             @relation(fields: [companyId], references: [id])
+  agency                Company?            @relation("AgencyApplications", fields: [agencyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
   status                ApplicationStatus   @relation(fields: [statusId], references: [id])
   
@@ -216,6 +232,7 @@ model Application {
   
   @@index([userId])
   @@index([companyId])
+  @@index([agencyId])
   @@index([statusId])
   @@index([applicationDate])
 }

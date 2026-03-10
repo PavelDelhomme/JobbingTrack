@@ -1,42 +1,45 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : 27 février 2026
+
+---
+
+**📌 À lire en premier** : **`docs/GUIDE_ETAPES_ACTUELLES.md`** — résumé de ce qui est fait, quoi faire maintenant (backoffice, données de test, suivi intérim, mobile), et **quelle base utiliser** (principale pour backoffice + émulateur en live, base de test pour tests automatisés si besoin).
 
 ---
 
 ## À faire maintenant (priorité)
 
-**On est sur l’application mobile** : valider le parcours **vérification email** à la main, puis enchaîner sur l’app Flutter.
+**Objectif** : aller au bout du **suivi intérim** (backoffice puis application mobile), avec un **mode intérim** activable qui adapte l’interface. Ensuite, poursuivre l’app mobile (vérification email si pas fait, puis écrans et navigation).
 
-### 1. Validation manuelle du parcours vérification email
+### 1. Backoffice – Suivi intérim (à faire en premier)
 
-À faire **à la main** (voir **`docs/mobile/PROCHAINES_ETAPES.md`** pour le détail) :
+- **Couleurs calendrier** : événements liés à une candidature avec `agencyId` → couleur intérim (ambre `#F59E0B`) ; sinon classique (bleu `#3B82F6`). Calcul à la création (backend) ou à l’affichage (frontend).
+- **Page dédiée « Suivi intérim »** : liste des agences (`companyType = TEMP_AGENCY`), puis pour chaque agence liste des candidatures où `agencyId = cette agence`. Lien depuis Administration / Boîtes d’intérim.
+- **Toggle « Mode intérim »** : interrupteur en navigation (ou menu) pour activer/désactiver le mode intérim ; quand activé, mettre en avant Suivi intérim, filtres adaptés, calendrier avec couleurs. Préférence persistée (localStorage ou préférence utilisateur).
 
-1. **make down** (sans `-clean` pour garder l’admin) ou **make down-clean** puis **make up-full** puis **make seed-auth**.
-2. **make emulator-controller** (ou Démarrer le contrôleur depuis le backoffice).
-3. Backoffice → **Émulateur mobile** : **Build APK** (ou Forcer rebuild) puis **Installer et lancer**.
-4. **Nettoyer un compte test** (optionnel) pour repartir de zéro.
-5. Sur l’appareil : **Inscription** (prénom, nom, email réel, mot de passe).
-6. Vérifier la **réception du mail** (MailHog ou boîte réelle).
-7. **Cliquer sur le lien** dans l’email (navigateur ou app via deep link).
-8. Vérifier que l’app affiche **« Email vérifié »** / succès.
-9. **Se connecter** avec le même email / mot de passe → accès à l’**accueil / dashboard**.
+Spec : **`docs/features/SUIVI_BOITES_INTÉRIM.md`** (sections 4.0 Mode intérim, 4.2, 4.3).
 
-Quand ce parcours est validé de bout en bout → passer à l’étape 2.
+### 2. Application mobile Flutter – Suivi intérim puis suite
 
-### 2. Suite : application Flutter
+- **Toggle « Mode intérim »** (Paramètres ou accueil) : activé → onglet/écran Intérim, champs agence visibles, calendrier avec couleurs intérim ; désactivé → vue classique. Préférence persistée.
+- **Champs agence** : choix boîte d’intérim à la création/édition de candidature.
+- **Écran « Intérim »** : liste des agences, puis candidatures par agence.
+- **Calendrier** : couleurs distinctes (classique vs intérim).
 
-Une fois la vérification email validée (étape 1), travailler sur **l’app Flutter** (voir **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`** et **`docs/mobile/PROCHAINES_ETAPES.md`**) :
+Si pas encore fait : valider d’abord le parcours **vérification email** (voir **`docs/mobile/PROCHAINES_ETAPES.md`**), puis enchaîner sur les écrans et le suivi intérim mobile.
 
-- **Accueil / Dashboard** : résumé, navigation (bottom nav, drawer).
-- **Candidatures** : liste, création, détail (déjà avancé).
-- **Entreprises, Contacts, Entretiens, Relances, Événements** : listes, création, détail.
-- **Profil, Paramètres** : édition, déconnexion.
-- **Notifications** : liste, marquer lu.
+Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`**, **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
 
-Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`** (écrans, API), **`FONCTIONNALITES.md`** section 10 (processus métier mobile).
+### 3. ~~Suivi boîtes d’intérim (schéma prêt, interface à faire)~~ — Base faite ; reste à faire (fév. 2026)
 
-### 3. Commandes utiles
+- **BDD** : `Company.companyType` (EMPLOYER | TEMP_AGENCY) et `Application.agencyId` en place. Schéma partagé `backend/prisma/schema.prisma` et services (auth-, company-, application-service) à jour.
+- **Backend** : create/update/list company avec `companyType` ; create/update application avec `agencyId` ; réponses incluent la relation `agency`.
+- **Backoffice** : Administration → Gestion des données → **Entreprises** et **Boîtes d’intérim** ; page Entreprises avec filtre Type, colonne Type, formulaire création/édition avec type ; Données de test → Candidatures : champ optionnel **Agence (boîte d’intérim)**.
+- **Données de test** : `backend/generate-test-data.js` crée 2 boîtes d’intérim (Randstad, Manpower) et affecte `agencyId` à une partie des candidatures.
+- Spécification : **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
+
+### 4. Commandes utiles
 
 | Action | Commande |
 |--------|----------|
@@ -44,8 +47,21 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`do
 | Tout effacer puis redémarrer | `make down-clean` → `make up-full` → `make seed-auth` |
 | Créer / mettre à jour l’admin | `make seed-auth` |
 | Démarrer la stack | `make up-full` |
+| Synchroniser le schéma BDD (conteneurs) | `make db-push-all` |
+| Répliquer schéma principal → base de test | `make up-test` puis `make db-replicate-schema-to-test` |
 | Contrôleur émulateur | `make emulator-controller` |
 | Logs | `make logs` |
+| Aide BDD / migrations | `make help-database` |
+
+**Migrations et Prisma** : tout passe par le **Makefile et les conteneurs**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**.
+
+---
+
+## Migrations Prisma et bases de données
+
+- **Migrations / schéma** : gérés **uniquement** via Makefile et **conteneurs** (`make db-push-all` exécute `prisma db push` dans le conteneur auth-service). Voir **`docs/database/MIGRATIONS_ET_BASES.md`**.
+- **Base principale** : `jobbingtrack` sur le conteneur `postgres`. Utilisée par l’app, le backoffice et tous les services. **Données de test (backoffice)** : le bouton « Générer données de test » écrit dans cette base principale (comportement conservé pour démo/admin). Rien n’est supprimé côté backoffice.
+- **Base de test (optionnelle)** : pour ne pas mettre les données de test ou les runs de tests dans la principale, une base de test séparée est disponible : `make up-test` (postgres-test, port 5434), puis **`make db-replicate-schema-to-test`** pour copier le **schéma seul** (sans données) de la principale vers la base de test. Les tests peuvent ensuite cibler cette base en définissant `DATABASE_URL` (ou `TEST_DATABASE_URL`) vers `localhost:5434`. Actuellement `make test-database` et `make test-full` utilisent encore la base principale pour rester cohérents avec la stack.
 
 ---
 
@@ -538,12 +554,24 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 | Sujet | Fichier |
 |-------|---------|
+| **Migrations Prisma et bases (principale vs test)** | `docs/database/MIGRATIONS_ET_BASES.md` |
+| **Guide pratique – quoi faire maintenant (backoffice, test-data, intérim, mobile, BDD)** | **`docs/GUIDE_ETAPES_ACTUELLES.md`** |
 | **À faire maintenant (priorité)** | Voir section « À faire maintenant » en tête de ce fichier |
 | Prochaines étapes mobile (vérif email + Flutter) | `docs/mobile/PROCHAINES_ETAPES.md` |
 | Fonctionnalites completes | `FONCTIONNALITES.md` |
 | Backlog complet | `docs/BACKLOG.md` |
 | Demarrage complet | `docs/getting-started/DEMARRAGE.md` |
-| Parcours metier | `docs/PARCOURS_METIER.md` |
+| Parcours metier | `docs/user-journey/PARCOURS_METIER.md` |
+| Configuration / ports | `docs/configuration/CONFIGURATION_PORTS.md`, `docs/configuration/PORTS.md` |
+| Rapports performance, fixes & optimisations | `docs/performance/` (FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS) |
+| Flux métriques (metrics-flow) | `docs/monitoring/metrics-flow.md` |
+| Statistiques projet | `docs/monitoring/STATISTIQUES_PROJET.md` |
+| Status structure BDD | `docs/database/STATUS_STRUCTURE_BDD.md` |
+| Tracking utilisateur | `docs/mobile/analytics/TRACKING_UTILISATEUR.md` |
+| Accès réseau local | `docs/getting-started/ACCES_RESEAU_LOCAL.md` |
+| Diagnostic (résultats) | `docs/development/diagnostic/DIAGNOSTIC_RESULTS.md` |
+| Quick Start - Tests mobile (E2E Playwright) | `docs/tests/QUICK_START_MOBILE_TESTS.md` |
+| Optimisation performance frontend (guide + rapports) | `docs/frontend/PERFORMANCE_OPTIMIZATION.md` ; rapports générés : `frontend/performance-reports/` |
 | Ce qui est resolu | `RESOLUTIONS.md` |
 | Erreurs connues | `ERRORS.md` |
 | Performance (TODO) | `docs/todo/TODO_PERFORMANCE.md` |
@@ -551,6 +579,7 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 | Checklist tests fin de projet | `docs/tests/TESTS_END.md` |
 | Schema BDD | `docs/database/SCHEMA_CHOIX.md` |
 | Mobile checklist | `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md` |
+| Suivi boîtes d'intérim (spec) | `docs/features/SUIVI_BOITES_INTÉRIM.md` |
 | Module ADB | `tools/adb-lib/index.js` (voir JSDoc en haut du fichier) |
 | Deploiement | `docs/deployment/DEPLOIEMENT_FINAL.md` |
 | Commandes utiles | `docs/COMMANDES_UTILES.md` |

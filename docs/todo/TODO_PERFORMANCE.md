@@ -123,7 +123,7 @@
 - [x] Requêtes/s: > 100 (actuellement ~50-70) - ✅ **ATTEINT** grâce aux optimisations
 
 ## 📖 Documentation
-- `frontend/PERFORMANCE_OPTIMIZATION.md` - Guide complet frontend
+- `docs/frontend/PERFORMANCE_OPTIMIZATION.md` - Guide complet frontend
 - `backend/metrics-aggregator-service/PERFORMANCE_OPTIMIZATION.md` - Guide complet backend
 
 ## 🛠️ Commandes Utiles

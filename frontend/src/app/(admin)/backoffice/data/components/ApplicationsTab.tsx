@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { applicationService } from '@/lib/api'
+import { applicationService, companyService } from '@/lib/api'
 
 interface Application {
   id: string
@@ -310,6 +310,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
   onClose: () => void
   onSuccess: () => void
 }) {
+  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([])
   const [formData, setFormData] = useState({
     companyName: '',
     position: '',
@@ -321,6 +322,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
     jobUrl: '',
     source: '',
     notes: '',
+    agencyId: '' as string | null,
     applicationDate: new Date().toISOString().split('T')[0],
     companyData: {
       website: '',
@@ -330,12 +332,24 @@ function CreateApplicationModal({ onClose, onSuccess }: {
   })
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    companyService.getAll({ limit: 100, companyType: 'TEMP_AGENCY' })
+      .then((res) => {
+        const list = res.data?.companies || []
+        setAgencies(list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })))
+      })
+      .catch(() => {})
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    const payload: Record<string, unknown> = { ...formData }
+    if (!formData.agencyId) delete payload.agencyId
+    else payload.agencyId = formData.agencyId
 
     try {
-      await applicationService.create(formData)
+      await applicationService.create(payload)
       onSuccess()
     } catch (error) {
       console.error('Erreur création:', error)
@@ -380,6 +394,24 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
+            {agencies.length > 0 && (
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Agence (boîte d&apos;intérim)
+                </label>
+                <select
+                  value={formData.agencyId || ''}
+                  onChange={(e) => setFormData({ ...formData, agencyId: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Aucune</option>
+                  {agencies.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

@@ -573,7 +573,7 @@ Tous les endpoints sont prefixes par `/api/v1/` via l'API Gateway (port 5002).
 - Schema BDD : `docs/database/SCHEMA_CHOIX.md`, `docs/database/recap/README.md`
 - API reference : `docs/api/api-reference/README.md`
 - Mobile : `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`
-- Parcours metier : `docs/PARCOURS_METIER.md`
+- Parcours metier : `docs/user-journey/PARCOURS_METIER.md`
 - Resolutions : `RESOLUTIONS.md`
 - Erreurs connues : `ERRORS.md`
 - Statut : `STATUS.md`

@@ -12,6 +12,7 @@ export interface Company {
   website?: string;
   industry?: string;
   size?: string;
+  companyType?: 'EMPLOYER' | 'TEMP_AGENCY';
   location?: string;
   address?: string;
   city?: string;
@@ -238,6 +239,7 @@ function EditCompanyModal({ company, onClose, onSuccess }: { company: Company; o
     website: company.website || '',
     industry: company.industry || '',
     size: company.size || '',
+    companyType: (company.companyType || 'EMPLOYER') as 'EMPLOYER' | 'TEMP_AGENCY',
     location: company.location || '',
     address: company.address || '',
     city: company.city || '',
@@ -292,6 +294,15 @@ function EditCompanyModal({ company, onClose, onSuccess }: { company: Company; o
                 <option value="ENTERPRISE">ENTERPRISE (&gt; 1000)</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+              <select value={formData.companyType} onChange={(e) => setFormData({ ...formData, companyType: e.target.value as 'EMPLOYER' | 'TEMP_AGENCY' })} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                <option value="EMPLOYER">Employeur</option>
+                <option value="TEMP_AGENCY">Boîte d&apos;intérim</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Localisation</label>
               <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500" />

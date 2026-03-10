@@ -30,6 +30,7 @@ const createApplication = async (req, res, next) => {
       companyName,  // ✅ NOUVEAU - Ou on peut fournir juste le nom
       companyData,  // ✅ NOUVEAU - Données supplémentaires de l'entreprise
       platformId,   // ✅ NOUVEAU - Plateforme de candidature utilisée
+      agencyId,     // Boîte d'intérim (optionnel)
       position,
       description,
       location,
@@ -85,6 +86,7 @@ const createApplication = async (req, res, next) => {
         data: {
           userId: req.user.id,
           companyId: finalCompanyId,
+          agencyId: agencyId || null,
           platformId: platformId || null,
           position,
           description,
@@ -102,6 +104,7 @@ const createApplication = async (req, res, next) => {
         },
         include: {
           company: true,
+          agency: true,
           platform: true,
           status: true
         }
@@ -118,6 +121,7 @@ const createApplication = async (req, res, next) => {
           data: {
             userId: req.user.id,
             companyId: finalCompanyId,
+            agencyId: agencyId || null,
             platformId: platformId || null,
             position,
             description,
@@ -134,23 +138,25 @@ const createApplication = async (req, res, next) => {
             notes
           }
         });
-        const [company, platform, status] = await Promise.all([
+        const [company, agency, platform, status] = await Promise.all([
           prisma.company.findUnique({ where: { id: application.companyId } }).catch(() => null),
+          application.agencyId ? prisma.company.findUnique({ where: { id: application.agencyId } }).catch(() => null) : null,
           application.platformId ? prisma.platform.findUnique({ where: { id: application.platformId } }).catch(() => null) : null,
           prisma.applicationStatus.findUnique({ where: { id: application.statusId } }).catch(() => null)
         ]);
-        application = { ...application, company, platform, status };
+        application = { ...application, company, agency, platform, status };
       } catch (secondErr) {
         // Second create() peut encore lever (RETURNING avec isArchived) → fallback INSERT raw
         const appId = generateApplicationId();
         const appDate = applicationDate ? new Date(applicationDate) : new Date();
         const rows = await prisma.$queryRawUnsafe(
-          `INSERT INTO "Application" ("id", "userId", "companyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, false)
+          `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, false)
            RETURNING *`,
           appId,
           req.user.id,
           finalCompanyId,
+          agencyId || null,
           platformId || null,
           position || '',
           description || null,
@@ -170,15 +176,17 @@ const createApplication = async (req, res, next) => {
         if (!row) throw secondErr;
         const rid = row.id ?? row.Id;
         const cid = row.companyId ?? row.companyid;
+        const aid = row.agencyId ?? row.agencyid;
         const pid = row.platformId ?? row.platformid;
         const sid = row.statusId ?? row.statusid;
-        const [company, platform, status] = await Promise.all([
+        const [company, agency, platform, status] = await Promise.all([
           cid ? prisma.company.findUnique({ where: { id: cid } }).catch(() => null) : null,
+          aid ? prisma.company.findUnique({ where: { id: aid } }).catch(() => null) : null,
           pid ? prisma.platform.findUnique({ where: { id: pid } }).catch(() => null) : null,
           sid ? prisma.applicationStatus.findUnique({ where: { id: sid } }).catch(() => null) : null
         ]);
         const { archived, ...rest } = row;
-        application = { ...rest, id: rid, userId: row.userId ?? row.userid, companyId: cid, platformId: pid, statusId: sid, isArchived: archived ?? false, company, platform, status };
+        application = { ...rest, id: rid, userId: row.userId ?? row.userid, companyId: cid, agencyId: aid, platformId: pid, statusId: sid, isArchived: archived ?? false, company, agency, platform, status };
       }
     }
 
@@ -318,6 +326,7 @@ const getApplications = async (req, res, next) => {
           where,
           include: {
             company: true,
+            agency: true,
             platform: true,
             status: true,
             _count: { select: { interviews: true, followUps: true } }
@@ -423,6 +432,7 @@ const getApplication = async (req, res, next) => {
       where: { id, userId, deletedAt: null },
       include: {
         company: true,
+        agency: true,
         platform: true,
         status: true,
         interviews: { where: { deletedAt: null }, orderBy: { interviewDate: 'asc' } },
@@ -497,7 +507,7 @@ const updateApplication = async (req, res, next) => {
     const allowed = [
       'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
       'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
-      'notes', 'platformId', 'companyId', 'statusEngineOptOut'
+      'notes', 'platformId', 'companyId', 'agencyId', 'statusEngineOptOut'
     ];
     const updateData = {};
     for (const key of allowed) {
@@ -505,6 +515,7 @@ const updateApplication = async (req, res, next) => {
       if (key === 'applicationDate') updateData[key] = new Date(body[key]);
       else if (key === 'salaryMin' || key === 'salaryMax') updateData[key] = body[key] != null ? parseInt(body[key], 10) : null;
       else if (key === 'salaryNegotiable' || key === 'statusEngineOptOut') updateData[key] = Boolean(body[key]);
+      else if (key === 'agencyId') updateData[key] = body[key] === '' || body[key] === null ? null : body[key];
       else updateData[key] = body[key];
     }
     if (Object.keys(updateData).length === 0 && !(companyName && companyName !== '')) {
@@ -513,7 +524,8 @@ const updateApplication = async (req, res, next) => {
 
     const application = await prisma.application.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: { company: true, agency: true, platform: true, status: true }
     });
 
     res.json({

@@ -44,7 +44,11 @@ void main() {
     DeviceOrientation.portraitDown,
   ]);
 
-  CrashReporter.initialize();
+  try {
+    CrashReporter.initialize();
+  } catch (e, st) {
+    debugPrint('[APP] CrashReporter init error (ignored): $e\n$st');
+  }
   debugPrint('[APP] Démarrage JobbingTrack Mobile');
 
   runApp(const JobbingTrackMobileApp());
@@ -71,7 +75,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
-          fontFamily: 'Inter',
+          // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
         ),
         home: const _SplashScreen(),
         onGenerateRoute: (settings) {
@@ -149,7 +153,11 @@ class _SplashScreenState extends State<_SplashScreen> {
 
   Future<void> _init() async {
     debugPrint('[SPLASH] Vérification API...');
-    await ApiService.autoDetectApi();
+    try {
+      await ApiService.autoDetectApi();
+    } catch (e, st) {
+      debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
+    }
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/login');
   }

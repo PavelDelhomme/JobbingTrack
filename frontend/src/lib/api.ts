@@ -253,7 +253,7 @@ export const applicationService = {
 };
 
 export const companyService = {
-    getAll: (params?: { limit?: number }) => apiClient.get('/companies', { params }),
+    getAll: (params?: { limit?: number; companyType?: 'EMPLOYER' | 'TEMP_AGENCY' }) => apiClient.get('/companies', { params }),
     getById: (id: string) => apiClient.get(`/companies/${id}`),
     create: (data: any) => apiClient.post('/companies', data),
     update: (id: string, data: any) => apiClient.put(`/companies/${id}`, data),

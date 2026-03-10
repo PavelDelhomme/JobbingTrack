@@ -21,7 +21,7 @@ const createCompany = async (req, res, next) => {
       });
     }
 
-    const { name, website, industry, size, location, description } = req.body;
+    const { name, website, industry, size, location, description, companyType } = req.body;
 
     const company = await prisma.company.create({
       data: {
@@ -30,6 +30,7 @@ const createCompany = async (req, res, next) => {
         website: website || undefined,
         industry: industry || undefined,
         size: size || undefined,
+        companyType: companyType === 'TEMP_AGENCY' ? 'TEMP_AGENCY' : 'EMPLOYER',
         location: location || undefined,
         description: description || undefined
       }
@@ -70,6 +71,7 @@ const getCompanies = async (req, res, next) => {
       userId: req.user.id,
       deletedAt: null,
       isArchived: false,
+      ...(req.query.companyType === 'TEMP_AGENCY' ? { companyType: 'TEMP_AGENCY' } : req.query.companyType === 'EMPLOYER' ? { companyType: 'EMPLOYER' } : {}),
       ...(search ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -238,7 +240,7 @@ const updateCompany = async (req, res, next) => {
 
     // Champs autorisés (répercussion automatique via relations Prisma)
     const allowed = [
-      'name', 'website', 'industry', 'size', 'location',
+      'name', 'website', 'industry', 'size', 'companyType', 'location',
       'address', 'city', 'postalCode', 'country', 'logoUrl', 'description'
     ];
     const updateData = {};

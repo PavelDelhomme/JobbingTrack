@@ -1,5 +1,11 @@
 # 🚀 Guide d'Optimisation Performance Frontend
 
+Guide spécifique au frontend Next.js : mémoire, bundles, lazy loading. Les rapports générés (analyses, résumés) sont dans `frontend/performance-reports/`. Documentation centralisée : ce fichier est la référence ; une redirection existe dans `frontend/PERFORMANCE_OPTIMIZATION.md`.
+
+[← Retour frontend](README.md) | [Performance globale](../performance/README.md) | [Index doc](../INDEX.md)
+
+---
+
 ## 📊 Objectif
 Réduire la consommation mémoire de **1073MB à ~500MB** (réduction de 50%)
 
@@ -172,3 +178,11 @@ make optimize-frontend
 3. **Phase 3**: Virtualisation et pagination (gain estimé: 100-150MB)
 4. **Phase 4**: Nettoyage et memoization (gain estimé: 50-100MB)
 
+## 📂 Rapports générés
+
+Les rapports d’analyse (résumés, analyse finale) sont générés dans le dépôt frontend :
+
+- `docs/performance/FRONTEND_REPORTS_SUMMARY.md`
+- `docs/performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md`
+
+Voir aussi **`docs/performance/`** pour les rapports globaux et le backend.

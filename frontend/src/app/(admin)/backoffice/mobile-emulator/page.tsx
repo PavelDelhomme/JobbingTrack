@@ -244,7 +244,7 @@ export default function MobileEmulatorPage() {
     const controllerBase = base();
     const directUrl = `${controllerBase}/build-apk`;
 
-    const handleResponse = (res: Response, data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string }, source: string) => {
+    const handleResponse = (res: Response, data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string; _hint?: string }, source: string) => {
       if (data.success) {
         setApkBuilt(true);
         setBuildNeeded(false);
@@ -253,27 +253,31 @@ export default function MobileEmulatorPage() {
             .then(() => { setAppRunning(false); addLog('App arretee — vous pouvez cliquer sur Installer et lancer.'); })
             .catch(() => {});
         }
-        // Redémarrer le contrôleur pour charger la dernière version (APK + code contrôleur). Si le lanceur tourne, il redémarre le contrôleur automatiquement.
-        fetch(`${controllerBase}/restart`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-          .then((r) => {
-            if (r.status === 404) {
-              addLog('Route /restart absente (contrôleur ancien). Lancez make emulator-controller une fois pour utiliser le lanceur.');
-              return { success: false };
-            }
-            return r.json().catch(() => ({}));
-          })
-          .then((restartData: { success?: boolean }) => {
-            if (restartData.success) {
-              setControllerOk(false);
-              addLog('Contrôleur en redémarrage (automatique si le lanceur tourne).');
-              setTimeout(() => checkHealth(), 4500);
-            }
-          })
-          .catch(() => {});
+        // Redémarrer le contrôleur après un court délai pour que la réponse soit bien envoyée au client (évite NetworkError si l'utilisateur relance un build tout de suite)
+        const controllerBaseForRestart = controllerBase;
+        setTimeout(() => {
+          fetch(`${controllerBaseForRestart}/restart`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+            .then((r) => {
+              if (r.status === 404) {
+                addLog('Route /restart absente (contrôleur ancien). Lancez make emulator-controller une fois pour utiliser le lanceur.');
+                return { success: false };
+              }
+              return r.json().catch(() => ({}));
+            })
+            .then((restartData: { success?: boolean }) => {
+              if (restartData.success) {
+                setControllerOk(false);
+                addLog('Contrôleur en redémarrage (automatique si le lanceur tourne).');
+                setTimeout(() => checkHealth(), 4500);
+              }
+            })
+            .catch(() => {});
+        }, 3000);
       }
       addLog(data.message || (data.success ? 'Build reussi.' : data.error || 'Build echoue.'));
       if (!res.ok && data.error) addLog(`Erreur: ${data.error}`);
       if (!res.ok && data._triedUrl) addLog(`URL appelee: ${data._triedUrl}`);
+      if (!res.ok && data._hint) addLog(data._hint);
       if (!data.success && data.stderr) addLog(`stderr: ${data.stderr.slice(-800)}`);
       if (!data.success && data.stdout) addLog(`stdout: ${data.stdout.slice(-500)}`);
     };
@@ -281,7 +285,7 @@ export default function MobileEmulatorPage() {
     try {
       // 1) Appel direct au contrôleur (évite timeout proxy / Docker). Le contrôleur a CORS *.
       let res: Response;
-      let data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string };
+      let data: { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string; _hint?: string };
       try {
         res = await fetch(directUrl, {
           method: 'POST',
@@ -297,6 +301,26 @@ export default function MobileEmulatorPage() {
         }
       } catch (directErr) {
         addLog('Appel direct au controleur echoue, passage par le proxy...');
+      }
+
+      // 1b) Réessayer une fois après 2s (au cas où le contrôleur était en redémarrage)
+      try {
+        await new Promise((r) => setTimeout(r, 2000));
+        if (abort.signal.aborted) throw new Error('aborted');
+        res = await fetch(directUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: abort.signal,
+        });
+        data = (await res.json().catch(() => ({}))) as typeof data;
+        if (res.ok || res.status === 502) {
+          clearTimeout(timeoutId);
+          handleResponse(res, data, 'direct');
+          return !!data?.success;
+        }
+      } catch (_) {
+        addLog('Nouvelle tentative directe echouee, utilisation du proxy...');
       }
 
       // 2) Fallback : proxy same-origin (pour backoffice en Docker si le navigateur ne peut pas joindre le contrôleur)

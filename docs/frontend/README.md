@@ -14,6 +14,9 @@ Développement de l'interface Next.js avec TypeScript, Tailwind CSS et Radix UI.
 - **[Guide - Enregistrement Automatique](GUIDE_ENREGISTREMENT_AUTOMATIQUE.md)** - Système d'enregistrement automatique des paramètres avec debounce intelligent
 - **[Guide - Préférences Utilisateur](GUIDE_PREFERENCES_UTILISATEUR.md)** - Gestion complète des préférences utilisateur (thème, langue, notifications)
 
+### ⚡ Performance
+- **[Guide - Optimisation Performance](PERFORMANCE_OPTIMIZATION.md)** - Mémoire, bundles, lazy loading, Lucide/Recharts, commandes Makefile. Rapports générés : `frontend/performance-reports/`.
+
 ### 📊 Pages Administrateur
 - **[Guide - Page de Détail des Services](GUIDE_PAGE_DETAIL_SERVICE.md)** - Page de détail d'un service Docker avec métriques en temps réel
 
