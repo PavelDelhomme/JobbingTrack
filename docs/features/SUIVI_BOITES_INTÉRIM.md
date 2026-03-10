@@ -55,19 +55,19 @@ La couleur peut être calculée à la création de l'event (backend) ou au momen
 
 ## 4. Interface dédiée « Boîtes d'intérim » (à implémenter)
 
-### 4.0 Mode intérim (à implémenter – backoffice + mobile)
+### 4.0 Mode intérim (backoffice : en place ; mobile : à implémenter)
 
 - **Objectif** : un **mode intérim** activable/désactivable qui adapte l’application (navigation, filtres, couleurs).
 - **Backoffice** :
-  - **Interrupteur / toggle « Mode intérim »** (ex. dans la barre de navigation ou le menu) : quand activé, la navigation met en avant **Suivi intérim** / **Boîtes d’intérim**, le filtre par défaut sur les candidatures peut être « Intérim » ou « Toutes », et le calendrier affiche les couleurs intérim/classique. Quand désactivé, comportement classique (recherche directe).
-  - Préférence persistée (ex. `localStorage` ou préférence utilisateur en BDD) pour que le choix soit conservé.
+  - **Toggle « Mode intérim »** : dans **Paramètres** (icône engrenage) → onglet **Affichage** ; persistance dans `localStorage` (`backoffice_interim_mode`). Quand activé, la navigation peut mettre en avant Suivi intérim et le calendrier affiche les couleurs intérim/classique (voir 4.1).
+  - À étendre : filtre par défaut sur les candidatures « Intérim » / « Toutes » selon le mode.
 - **Mobile Flutter** :
   - **Paramètre / toggle « Mode intérim »** (ex. Paramètres ou écran d’accueil) : quand activé, affichage de l’onglet/écran **Intérim**, champs **agence** visibles dans les formulaires candidature, calendrier avec couleurs intérim. Quand désactivé, vue classique (pas d’onglet Intérim, agence optionnel masqué ou en bas de formulaire).
   - Préférence persistée (SharedPreferences ou profil utilisateur) pour conserver le choix.
 
 ### 4.1 Menu / navigation
 
-- **Backoffice** : entrée **« Boîtes d'intérim »** ou **« Suivi intérim »** (à côté de Candidatures, Entreprises).
+- **Backoffice** : entrée **« Boîtes d'intérim »** ou **« Suivi intérim »** (à côté de Candidatures, Entreprises). **En place** : Gestion des données → **Suivi intérim** (`/backoffice/suivi-interim`) et onglet Suivi intérim dans Données applicatives (`/backoffice/datas`). Toggle « Mode intérim » (4.0) à implémenter dans le menu ou les paramètres.
 - **Mobile** : onglet ou écran **« Intérim »** distinct de **« Candidatures »**.
 
 ### 4.2 Liste des boîtes d'intérim
@@ -113,5 +113,5 @@ La couleur peut être calculée à la création de l'event (backend) ou au momen
 | Schéma BDD | `backend/auth-service/prisma/schema.prisma` (Company, Application) — à synchroniser dans les autres services Prisma |
 | API Company | `backend/company-service` : controller, filtres `companyType` |
 | API Application | `backend/application-service` : controller, `agencyId`, relation `agency` |
-| Backoffice | Nouvelle page `backoffice/agencies` ou `backoffice/interim`, formulaires, calendrier |
+| Backoffice | Page **Suivi intérim** : `backoffice/suivi-interim`, composant partagé `backoffice/datas/components/SuiviInterimContent.tsx` ; Données applicatives : `backoffice/datas` ; formulaires Company/Application, couleurs calendrier, toggle Mode intérim (à implémenter) |
 | Mobile | Écrans listes/détail, formulaire avec choix agence, calendrier |

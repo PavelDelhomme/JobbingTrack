@@ -71,6 +71,7 @@ async function main() {
       role: 'USER',
       emailVerified: true,
       emailVerifiedAt: new Date(),
+      isTestData: true,
     },
     create: {
       email: testUserEmail,
@@ -81,6 +82,7 @@ async function main() {
       role: 'USER',
       emailVerified: true,
       emailVerifiedAt: new Date(),
+      isTestData: true,
     }
   })
   console.log('✅ Utilisateur classique (tests API):', classicUser.email)

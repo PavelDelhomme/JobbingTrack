@@ -1,0 +1,15 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-03-11T00:02:04+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 9,
+    "passed": 3,
+    "failed": 6
+  },
+  "output": "            id             |                       to                       |                    subject                     |     type     | status  | sentAt |        createdAt        \n---------------------------+------------------------------------------------+------------------------------------------------+--------------+---------+--------+-------------------------\n cmml7t090000aquirgyyxpqi9 | verify-1773183721@test.com                     | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-10 23:02:01.86\n cmml7t08k0008quirodviyz7x | verify-1773183721@test.com                     | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | PENDING |        | 2026-03-10 23:02:01.845\n cmml7m5ef0005quird1nku6lk | verify-1773183396@test.com                     | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-10 22:56:41.944\n cmml7m1jm0004quirhib96r0d | verify-1773183396@test.com                     | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-10 22:56:36.947\n cmml7m1j90002quirymn9vkdp | verify-1773183396@test.com                     | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-03-10 22:56:36.933\n cmmkyuj1t015v4b7bwctf5ylg | e2e-admin-crud-1773168670691@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-10 18:51:16.337\n cmmkyuf6u015u4b7b30bwu3gq | e2e-admin-crud-1773168670691@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-10 18:51:11.334\n cmmkyuf6t015s4b7b4f41mt03 | e2e-admin-crud-1773168670691@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-03-10 18:51:11.333\n cmmkyucri015p4b7bgurvg1xp | e2e-register-1773168662728@mailhog.local       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-10 18:51:08.191\n cmmkyucrb015o4b7bohn2n0sa | e2e-reset-1773168662572@mailhog.local          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-10 18:51:08.183\n(10 rows)\n"
+}

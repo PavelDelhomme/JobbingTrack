@@ -2,6 +2,8 @@
 
 **Dernière mise à jour** : 27 février 2026
 
+**Backoffice (fév. 2026)** : Page Stats utilisateur (`/backoffice/user-stats`) : vue globale + stats par utilisateur (**affichage amélioré** : cartes, tuiles, liste lisible). Page Abonnement & facturation (`/backoffice/billing`) : structure complète (APIs à brancher). Utilisateurs : clic sur une ligne ouvre le détail. **Filtre « Utilisateurs de test »** (Tous / Test uniquement / Hors test) et **bouton « Nettoyer les utilisateurs de test »** (suppression des comptes créés par E2E / données de test). **Détail utilisateur** : section Abonnement & facturation avec lien vers `/backoffice/billing?userId=xxx`. **Corbeille** (`/backoffice/trash`) : suppression définitive et vidage corrigés (mapping type → API : applications, contacts, followups, events, etc. ; type « user » exclu). **Archives** : même mapping, titres normalisés. Tests E2E : `frontend/tests/e2e/backoffice-users-admin.spec.ts`.
+
 ---
 
 **📌 À lire en premier** : **`docs/GUIDE_ETAPES_ACTUELLES.md`** — résumé de ce qui est fait, quoi faire maintenant (backoffice, données de test, suivi intérim, mobile), et **quelle base utiliser** (principale pour backoffice + émulateur en live, base de test pour tests automatisés si besoin).
@@ -43,6 +45,7 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/mobile/APPLICATIO
 
 | Action | Commande |
 |--------|----------|
+| **Lancer la suite de tests** | `make test` ou `make test-full` (prérequis : `make up-full`, `make seed-auth` si besoin) |
 | Arrêter (données conservées) | `make down` |
 | Tout effacer puis redémarrer | `make down-clean` → `make up-full` → `make seed-auth` |
 | Créer / mettre à jour l’admin | `make seed-auth` |
@@ -53,7 +56,9 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/mobile/APPLICATIO
 | Logs | `make logs` |
 | Aide BDD / migrations | `make help-database` |
 
-**Migrations et Prisma** : tout passe par le **Makefile et les conteneurs**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**.
+**Tests** : rapports dans `tests/results/<timestamp>/`. En cas d'échec, vérifier que l'API Gateway et les services sont démarrés.
+
+**Migrations et Prisma** : tout passe par le **Makefile et les conteneurs**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**.
 
 ---
 

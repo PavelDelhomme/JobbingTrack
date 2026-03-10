@@ -333,7 +333,7 @@ test.describe('💾 Interactions Data Management', () => {
   });
 
   test('onglets de la page Data sont cliquables', async ({ page }) => {
-    await page.goto('/backoffice/data');
+    await page.goto('/backoffice/datas');
     await page.waitForLoadState('networkidle');
 
     const tabs = [

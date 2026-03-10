@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { companyService } from '@/lib/api'
 import Link from 'next/link'
 import { usePagination } from '@/lib/hooks/usePagination'
@@ -28,10 +28,20 @@ interface Company {
 export default function CompaniesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [companyTypeFilter, setCompanyTypeFilter] = useState<'ALL' | 'EMPLOYER' | 'TEMP_AGENCY'>('ALL')
+
+  // Initialiser le filtre depuis l'URL (ex. ?companyType=TEMP_AGENCY)
+  useEffect(() => {
+    const type = searchParams?.get('companyType')
+    if (type === 'TEMP_AGENCY' || type === 'EMPLOYER') {
+      setCompanyTypeFilter(type)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -44,7 +54,7 @@ export default function CompaniesPage() {
     if (isAuthenticated) {
       fetchCompanies()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, companyTypeFilter])
 
   const fetchCompanies = async () => {
     try {

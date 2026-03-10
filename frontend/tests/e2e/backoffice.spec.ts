@@ -193,62 +193,62 @@ test.describe('🔧 Services', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('💾 Gestion des données', () => {
   test('page principale Gestion des données', async ({ page }) => {
-    await page.goto('/backoffice/data');
+    await page.goto('/backoffice/datas');
     await expectPageLoaded(page, 200);
   });
 
   test('onglet Candidatures', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=applications');
+    await page.goto('/backoffice/datas?tab=applications');
     await expectPageLoaded(page);
   });
 
   test('onglet Entreprises', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=companies');
+    await page.goto('/backoffice/datas?tab=companies');
     await expectPageLoaded(page);
   });
 
   test('onglet Contacts', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=contacts');
+    await page.goto('/backoffice/datas?tab=contacts');
     await expectPageLoaded(page);
   });
 
   test('onglet Entretiens', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=interviews');
+    await page.goto('/backoffice/datas?tab=interviews');
     await expectPageLoaded(page);
   });
 
   test('onglet Appels', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=calls');
+    await page.goto('/backoffice/datas?tab=calls');
     await expectPageLoaded(page);
   });
 
   test('onglet Relances', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=followups');
+    await page.goto('/backoffice/datas?tab=followups');
     await expectPageLoaded(page);
   });
 
   test('onglet Événements', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=events');
+    await page.goto('/backoffice/datas?tab=events');
     await expectPageLoaded(page);
   });
 
   test('onglet Notifications', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=notifications');
+    await page.goto('/backoffice/datas?tab=notifications');
     await expectPageLoaded(page);
   });
 
   test('onglet Stats utilisateur', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=userstats');
+    await page.goto('/backoffice/datas?tab=user-stats');
     await expectPageLoaded(page);
   });
 
   test('onglet Abonnement & facturation', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=billing');
+    await page.goto('/backoffice/datas?tab=billing');
     await expectPageLoaded(page);
   });
 
   test('onglet Données de test', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=testdata');
+    await page.goto('/backoffice/datas?tab=test-data');
     await expectPageLoaded(page);
   });
 

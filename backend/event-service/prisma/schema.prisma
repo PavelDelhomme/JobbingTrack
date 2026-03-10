@@ -143,7 +143,8 @@ model Company {
   
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applications      Application[]
+  applications      Application[]     @relation("CompanyApplications")
+  applicationsViaAgency Application[] @relation("AgencyApplications")
   contacts          ContactCompany[]  // Many-to-many
   followUps         FollowUp[]
   calls             Call[]
@@ -169,6 +170,7 @@ model Application {
   id                    String              @id @default(cuid())
   userId                String
   companyId             String
+  agencyId              String?             // Boîte d'intérim à l'origine de la proposition (optionnel)
   platformId            String?             // Plateforme de candidature (personnalisable)
   
   // Informations de l'offre
@@ -201,7 +203,8 @@ model Application {
   
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company               Company             @relation(fields: [companyId], references: [id])
+  company               Company             @relation("CompanyApplications", fields: [companyId], references: [id])
+  agency                Company?            @relation("AgencyApplications", fields: [agencyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
   status                ApplicationStatus   @relation(fields: [statusId], references: [id])
   
@@ -215,6 +218,7 @@ model Application {
   
   @@index([userId])
   @@index([companyId])
+  @@index([agencyId])
   @@index([statusId])
   @@index([applicationDate])
 }

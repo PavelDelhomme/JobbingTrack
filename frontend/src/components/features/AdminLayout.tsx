@@ -198,11 +198,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
           name: 'Gestion des données',
-          href: '/backoffice/data',
+          href: '/backoffice/datas',
           icon: '💾',
           subItems: [
-            { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
-            { name: 'Boîtes d\'intérim', href: '/backoffice/companies?companyType=TEMP_AGENCY', icon: '👔' },
+            { name: 'Données applicatives', href: '/backoffice/datas', icon: '📋' },
+            { name: 'Stats utilisateur', href: '/backoffice/user-stats', icon: '📊' },
+            { name: 'Abonnement & facturation', href: '/backoffice/billing', icon: '📄' },
+            { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
             { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
             { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
           ]

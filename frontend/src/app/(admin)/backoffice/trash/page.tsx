@@ -69,15 +69,16 @@ export default function TrashManagementPage() {
 
   const handlePermanentDelete = async (item: DeletedItem) => {
     if (!confirm(
-      `⚠️ ATTENTION ⚠️\n\nVoulez-vous supprimer DÉFINITIVEMENT "${item.title}" ?\n\nCette action est IRRÉVERSIBLE !`
+      `⚠️ ATTENTION ⚠️\n\nVoulez-vous supprimer DÉFINITIVEMENT "${item.title || item.id}" ?\n\nCette action est IRRÉVERSIBLE !`
     )) return
 
     try {
       await adminService.permanentDelete(item.type.toLowerCase(), item.id)
       fetchDeletedItems()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression définitive')
+      const msg = error.response?.data?.error || error.message || 'Erreur lors de la suppression définitive'
+      alert(msg)
     }
   }
 
@@ -377,7 +378,7 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
 
           {/* Infos */}
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{item.title || item.id || 'Sans titre'}</h3>
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
               <span>Supprimé il y a {daysSinceDeleted} jour{daysSinceDeleted > 1 ? 's' : ''}</span>
               {item.deletedBy && (

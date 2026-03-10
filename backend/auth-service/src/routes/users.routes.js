@@ -9,6 +9,7 @@ router.use(authenticate);
 
 // Routes CRUD utilisateurs (alias vers auth controller pour compatibilité)
 router.get('/', authController.getAllUsers);
+router.post('/clean-test-users', authController.cleanTestUsers);
 router.get('/:id', userController.getUserById);
 router.put('/:id', userController.updateUser);
 router.delete('/:id', authController.deleteUser);
