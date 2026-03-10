@@ -7,7 +7,7 @@ import { AdminLayout } from '@/components/features';
 import { formatLocalDate } from '@/lib/utils/date';
 import {
   Users, Search, Plus, Edit, Trash2, Shield,
-  Mail, Phone, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2
+  Mail, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2, TestTube
 } from 'lucide-react';
 import axios from 'axios';
 import { usePagination } from '@/lib/hooks/usePagination';
@@ -22,6 +22,7 @@ interface User {
   lastName: string;
   role: string;
   isActive: boolean;
+  isTestData?: boolean;
   createdAt: string;
   lastLogin?: string;
 }
@@ -33,7 +34,9 @@ export default function UsersManagementPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedTestFilter, setSelectedTestFilter] = useState<'all' | 'test' | 'nottest'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [cleaningTest, setCleaningTest] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -47,7 +50,7 @@ export default function UsersManagementPage() {
       }
 
       // ✅ OPTIMISATION : Utiliser le cache
-      const cacheKey = `users_list_${token.substring(0, 10)}`
+      const cacheKey = `users_list_${token.substring(0, 10)}_${selectedTestFilter}`
       const { cacheManager } = await import('@/lib/cache/cacheManager')
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
@@ -55,11 +58,11 @@ export default function UsersManagementPage() {
         setUsers(Array.isArray(cached) ? (cached as User[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
-        loadUsersFresh(token, cacheKey, cacheManager).catch(() => {}) // Ignorer les erreurs
+        loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter).catch(() => {}) // Ignorer les erreurs
         return
       }
       
-      await loadUsersFresh(token, cacheKey, cacheManager)
+      await loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter)
     } catch (error: any) {
       console.error('[USERS] ❌ Erreur chargement utilisateurs:', error);
       if (error.response) {
@@ -75,16 +78,19 @@ export default function UsersManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, selectedTestFilter]);
   
   // ✅ OPTIMISATION : Fonction séparée pour le chargement frais
-  const loadUsersFresh = async (token: string, cacheKey: string, cacheManager: any) => {
-    // Essayer d'abord /api/v1/auth/users, puis /api/v1/users en fallback
+  const loadUsersFresh = async (token: string, cacheKey: string, cacheManager: any, testFilter: 'all' | 'test' | 'nottest' = 'all') => {
+    const params: Record<string, string | number> = { limit: 100 };
+    if (testFilter === 'test') params.isTestData = 'true';
+    else if (testFilter === 'nottest') params.isTestData = 'false';
+
     let response;
     try {
-      // ✅ OPTIMISATION : Limiter à 100 utilisateurs par défaut
-      response = await axios.get(`${API_URL}/api/v1/auth/users?limit=100`, {
+      response = await axios.get(`${API_URL}/api/v1/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
+        params,
         validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
       });
     } catch (error: any) {
@@ -92,8 +98,9 @@ export default function UsersManagementPage() {
       if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
         console.warn('[USERS] Tentative avec /api/v1/users...');
         try {
-          response = await axios.get(`${API_URL}/api/v1/users?limit=100`, { // ✅ OPTIMISATION : Limiter à 100
+          response = await axios.get(`${API_URL}/api/v1/users`, {
             headers: { Authorization: `Bearer ${token}` },
+            params,
             validateStatus: (status) => status < 500
           });
         } catch (fallbackError: any) {
@@ -227,6 +234,40 @@ export default function UsersManagementPage() {
     }
   };
 
+  const handleCleanTestUsers = async () => {
+    const testUsers = users.filter(u => u.id !== currentUser?.id && (u.isTestData === true || u.email?.toLowerCase().endsWith('@jobbingtrack.test')));
+    const count = testUsers.length;
+    if (count === 0) {
+      alert('Aucun utilisateur de test à supprimer.');
+      return;
+    }
+    if (!confirm(`Supprimer définitivement ${count} utilisateur(s) de test (E2E, données de test) ? Cette action est irréversible.`)) return;
+    try {
+      setCleaningTest(true);
+      const response = await axios.post(
+        `${API_URL}/api/v1/auth/users/clean-test-users`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data?.success) {
+        const deleted = response.data.deletedCount ?? count;
+        alert(`✅ ${deleted} utilisateur(s) de test supprimé(s).`);
+        const { cacheManager } = await import('@/lib/cache/cacheManager');
+        await cacheManager.delete(`users_list_${token?.substring(0, 10)}_all`);
+        await cacheManager.delete(`users_list_${token?.substring(0, 10)}_test`);
+        await cacheManager.delete(`users_list_${token?.substring(0, 10)}_nottest`);
+        loadUsers();
+      } else {
+        alert(`❌ ${response.data?.error || 'Erreur lors du nettoyage'}`);
+      }
+    } catch (error: any) {
+      console.error('Erreur nettoyage utilisateurs de test:', error);
+      alert(`❌ ${error.response?.data?.error || error.message || 'Erreur lors du nettoyage'}`);
+    } finally {
+      setCleaningTest(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -338,6 +379,27 @@ export default function UsersManagementPage() {
               <option value="GUEST">Invités</option>
             </select>
 
+            <select
+              value={selectedTestFilter}
+              onChange={(e) => setSelectedTestFilter(e.target.value as 'all' | 'test' | 'nottest')}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              title="Filtrer par origine (test E2E / données de test)"
+            >
+              <option value="all">Tous</option>
+              <option value="test">Utilisateurs de test uniquement</option>
+              <option value="nottest">Hors test</option>
+            </select>
+
+            <button
+              onClick={handleCleanTestUsers}
+              disabled={cleaningTest || !users.some(u => u.id !== currentUser?.id && (u.isTestData === true || u.email?.toLowerCase().endsWith('@jobbingtrack.test')))}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Supprimer les utilisateurs créés par les tests E2E / données de test (isTestData ou @jobbingtrack.test)"
+            >
+              <TestTube className="h-5 w-5" />
+              {cleaningTest ? 'Nettoyage...' : 'Nettoyer les utilisateurs de test'}
+            </button>
+
             <button
               onClick={loadUsers}
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
@@ -376,7 +438,12 @@ export default function UsersManagementPage() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {pagination.paginatedItems.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={user.id}
+                    onClick={() => router.push(`/backoffice/users/${user.id}`)}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    title="Voir le détail de l'utilisateur"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
@@ -414,6 +481,16 @@ export default function UsersManagementPage() {
                       }`}>
                         {user.role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : user.role}
                       </span>
+                      {user.isTestData && (
+                        <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Utilisateur créé par les tests (E2E, données de test)">
+                          Test
+                        </span>
+                      )}
+                      {!user.isTestData && user.email?.toLowerCase().endsWith('@jobbingtrack.test') && (
+                        <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Email de test (@jobbingtrack.test)">
+                          Test
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -433,7 +510,7 @@ export default function UsersManagementPage() {
                         {formatLocalDate(user.createdAt)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => router.push(`/backoffice/users/${user.id}`)}

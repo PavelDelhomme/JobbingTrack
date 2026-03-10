@@ -234,7 +234,7 @@ export const authService = {
 };
 
 export const applicationService = {
-    getAll: (params?: { limit?: number }) => apiClient.get('/applications', { params }),
+    getAll: (params?: { limit?: number; agencyId?: string }) => apiClient.get('/applications', { params }),
     getById: (id: string) => apiClient.get(`/applications/${id}`),
     create: (data: any) => apiClient.post('/applications', data),
     update: (id: string, data: any) => apiClient.put(`/applications/${id}`, data),

@@ -55,19 +55,21 @@ export default function ArchivesManagementPage() {
   }
 
   const handleUnarchive = async (item: ArchivedItem) => {
-    if (!confirm(`Désarchiver "${item.title}" ?`)) return
+    const title = item.title || item.id || 'cet élément'
+    if (!confirm(`Désarchiver "${title}" ?`)) return
 
     try {
       await adminService.unarchiveItem(item.type.toLowerCase(), item.id)
       fetchArchivedItems()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur désarchivage:', error)
-      alert('Erreur lors du désarchivage')
+      alert(error.response?.data?.error || 'Erreur lors du désarchivage')
     }
   }
 
   const filteredItems = items.filter(item => {
-    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+    const title = (item.title || item.id || '').toLowerCase()
+    if (searchQuery && !title.includes(searchQuery.toLowerCase())) {
       return false
     }
     return true
@@ -289,7 +291,7 @@ function ArchivedItemRow({ item, onUnarchive }: {
 
           {/* Infos */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{item.title}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{item.title || item.id || 'Sans titre'}</h3>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
               <span>Archivé il y a {daysSinceArchived} jour{daysSinceArchived > 1 ? 's' : ''}</span>
               {item.archivedBy && (

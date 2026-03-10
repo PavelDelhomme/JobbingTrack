@@ -21,7 +21,7 @@ const getAggregatedStatistics = async (req, res) => {
       timeout: 5000 // 5 secondes timeout par service
     };
 
-    // Récupérer les statistiques de chaque service en parallèle
+    // Récupérer les statistiques de chaque service en parallèle (limit=1 pour avoir seulement pagination.total)
     const [
       usersStats,
       applicationsStats,
@@ -29,23 +29,23 @@ const getAggregatedStatistics = async (req, res) => {
       contactsStats,
       interviewsStats
     ] = await Promise.allSettled([
-      axios.get(`${AUTH_SERVICE_URL}/api/v1/auth/users`, axiosConfig).catch(err => {
+      axios.get(`${AUTH_SERVICE_URL}/api/v1/auth/users`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération users:', err.message);
         return { status: 'rejected', reason: err };
       }),
-      axios.get(`${APPLICATION_SERVICE_URL}/api/v1/applications`, axiosConfig).catch(err => {
+      axios.get(`${APPLICATION_SERVICE_URL}/api/v1/applications`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération applications:', err.message);
         return { status: 'rejected', reason: err };
       }),
-      axios.get(`${COMPANY_SERVICE_URL}/api/v1/companies`, axiosConfig).catch(err => {
+      axios.get(`${COMPANY_SERVICE_URL}/api/v1/companies`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération companies:', err.message);
         return { status: 'rejected', reason: err };
       }),
-      axios.get(`${CONTACT_SERVICE_URL}/api/v1/contacts`, axiosConfig).catch(err => {
+      axios.get(`${CONTACT_SERVICE_URL}/api/v1/contacts`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération contacts:', err.message);
         return { status: 'rejected', reason: err };
       }),
-      axios.get(`${INTERVIEW_SERVICE_URL}/api/v1/interviews`, axiosConfig).catch(err => {
+      axios.get(`${INTERVIEW_SERVICE_URL}/api/v1/interviews`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération interviews:', err.message);
         return { status: 'rejected', reason: err };
       })
@@ -54,17 +54,17 @@ const getAggregatedStatistics = async (req, res) => {
     // Traiter les utilisateurs
     let users = { total: 0, byRole: {}, activeUsers: 0, newThisMonth: 0 };
     if (usersStats.status === 'fulfilled' && usersStats.value.data) {
-      const userData = usersStats.value.data.users || [];
-      users.total = userData.length;
+      const d = usersStats.value.data;
+      users.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.users) ? d.users.length : 0);
+      const userData = d.users || [];
       users.byRole = userData.reduce((acc, user) => {
         acc[user.role] = (acc[user.role] || 0) + 1;
         return acc;
       }, {});
-      // Compter les utilisateurs créés ce mois
       const thisMonth = new Date();
       thisMonth.setDate(1);
       users.newThisMonth = userData.filter(u => new Date(u.createdAt) >= thisMonth).length;
-      users.activeUsers = users.total; // Par défaut, tous les utilisateurs sont considérés actifs
+      users.activeUsers = users.total;
     }
 
     // Traiter les candidatures
@@ -76,28 +76,21 @@ const getAggregatedStatistics = async (req, res) => {
       thisWeek: 0 
     };
     if (applicationsStats.status === 'fulfilled' && applicationsStats.value.data) {
-      const appData = applicationsStats.value.data.applications || [];
-      applications.total = appData.length;
-      
-      // Par statut
+      const d = applicationsStats.value.data;
+      applications.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.applications) ? d.applications.length : 0);
+      const appData = d.applications || [];
       applications.byStatus = appData.reduce((acc, app) => {
         acc[app.status] = (acc[app.status] || 0) + 1;
         return acc;
       }, {});
-
-      // Par type
       applications.byType = appData.reduce((acc, app) => {
         const type = app.jobType || 'FULL_TIME';
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {});
-
-      // Ce mois
       const thisMonth = new Date();
       thisMonth.setDate(1);
       applications.thisMonth = appData.filter(a => new Date(a.createdAt) >= thisMonth).length;
-
-      // Cette semaine
       const thisWeek = new Date();
       thisWeek.setDate(thisWeek.getDate() - 7);
       applications.thisWeek = appData.filter(a => new Date(a.createdAt) >= thisWeek).length;
@@ -106,17 +99,14 @@ const getAggregatedStatistics = async (req, res) => {
     // Traiter les entreprises
     let companies = { total: 0, byIndustry: {}, bySize: {} };
     if (companiesStats.status === 'fulfilled' && companiesStats.value.data) {
-      const companyData = companiesStats.value.data.companies || [];
-      companies.total = companyData.length;
-      
-      // Par industrie
+      const d = companiesStats.value.data;
+      companies.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.companies) ? d.companies.length : 0);
+      const companyData = d.companies || [];
       companies.byIndustry = companyData.reduce((acc, company) => {
         const industry = company.industry || 'Non spécifié';
         acc[industry] = (acc[industry] || 0) + 1;
         return acc;
       }, {});
-
-      // Par taille
       companies.bySize = companyData.reduce((acc, company) => {
         const size = company.size || 'Non spécifié';
         acc[size] = (acc[size] || 0) + 1;
@@ -127,8 +117,8 @@ const getAggregatedStatistics = async (req, res) => {
     // Traiter les contacts
     let contacts = { total: 0 };
     if (contactsStats.status === 'fulfilled' && contactsStats.value.data) {
-      const contactData = contactsStats.value.data.contacts || [];
-      contacts.total = contactData.length;
+      const d = contactsStats.value.data;
+      contacts.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.contacts) ? d.contacts.length : 0);
     }
 
     // Traiter les entretiens
@@ -139,22 +129,17 @@ const getAggregatedStatistics = async (req, res) => {
       completed: 0 
     };
     if (interviewsStats.status === 'fulfilled' && interviewsStats.value.data) {
-      const interviewData = interviewsStats.value.data.interviews || [];
-      interviews.total = interviewData.length;
-      
-      // Par statut
+      const d = interviewsStats.value.data;
+      interviews.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.interviews) ? d.interviews.length : 0);
+      const interviewData = d.interviews || [];
       interviews.byStatus = interviewData.reduce((acc, interview) => {
         acc[interview.status] = (acc[interview.status] || 0) + 1;
         return acc;
       }, {});
-
-      // À venir
       const now = new Date();
       interviews.upcoming = interviewData.filter(i => 
         new Date(i.scheduledAt) > now && i.status === 'SCHEDULED'
       ).length;
-
-      // Complétés
       interviews.completed = interviewData.filter(i => 
         i.status === 'COMPLETED'
       ).length;

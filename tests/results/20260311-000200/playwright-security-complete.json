@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Sécurité Backoffice (admin)",
+  "userType": "admin",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-03-11T00:16:48+01:00",
+  "duration": 4,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0
+  },
+  "output": "\nup to date in 629ms\n\nRunning 14 tests using 7 workers\n\n  ✓   1 [chromium] › e2e/specs/admin-security-complete.spec.ts:34:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › lister les règles firewall (25ms)\n  ✓   8 [chromium] › e2e/specs/admin-security-complete.spec.ts:43:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › créer une règle firewall (21ms)\n  ✓   4 [chromium] › e2e/specs/admin-security-complete.spec.ts:60:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › modifier une règle firewall (5ms)\n  ✓   3 [chromium] › e2e/specs/admin-security-complete.spec.ts:81:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › lister les IPs bloquées (21ms)\n  ✓   9 [chromium] › e2e/specs/admin-security-complete.spec.ts:69:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › supprimer une règle firewall (4ms)\n  ✓   6 [chromium] › e2e/specs/admin-security-complete.spec.ts:140:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › statistiques WAF (21ms)\n  ✓   5 [chromium] › e2e/specs/admin-security-complete.spec.ts:104:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › lister les menaces (71ms)\n  ✓   7 [chromium] › e2e/specs/admin-security-complete.spec.ts:157:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les logs de sécurité (67ms)\n  ✓   2 [chromium] › e2e/specs/admin-security-complete.spec.ts:124:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › statistiques réseau (81ms)\n  ✓  11 [chromium] › e2e/specs/admin-security-complete.spec.ts:147:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › activer/désactiver WAF (41ms)\n  ✓  10 [chromium] › e2e/specs/admin-security-complete.spec.ts:88:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › bloquer puis débloquer une IP (71ms)\n  ✓  13 [chromium] › e2e/specs/admin-security-complete.spec.ts:164:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les alertes (20ms)\n  ✓  14 [chromium] › e2e/specs/admin-security-complete.spec.ts:133:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › configuration WAF (11ms)\n  ✓  12 [chromium] › e2e/specs/admin-security-complete.spec.ts:111:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › créer une menace de test (25ms)\n\n  14 passed (1.4s)\n"
+}

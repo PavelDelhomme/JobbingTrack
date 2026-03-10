@@ -575,11 +575,14 @@ const getAllUsers = async (req, res, next) => {
     let users = [];
     
     try {
-      // Récupérer TOUS les utilisateurs (y compris l'utilisateur connecté)
+      // Récupérer les utilisateurs (filtre optionnel isTestData: true | false)
+      const isTestFilter = req.query.isTestData;
+      const where = { deletedAt: null };
+      if (isTestFilter === 'true') where.isTestData = true;
+      else if (isTestFilter === 'false') where.isTestData = false;
+
       users = await prisma.user.findMany({
-        where: {
-          deletedAt: null // Exclure seulement les utilisateurs supprimés
-        },
+        where,
         select: {
           id: true,
           email: true,
@@ -588,6 +591,7 @@ const getAllUsers = async (req, res, next) => {
           phone: true,
           role: true,
           isActive: true,
+          isTestData: true,
           createdAt: true,
           updatedAt: true,
           emailVerified: true,
@@ -818,6 +822,34 @@ const deleteUser = async (req, res, next) => {
       });
     }
     logger.error('Erreur suppression utilisateur:', error);
+    next(error);
+  }
+};
+
+/**
+ * Nettoyer les utilisateurs de test (isTestData === true ou email @jobbingtrack.test). ADMIN uniquement.
+ * Ne supprime pas l'utilisateur connecté.
+ */
+const cleanTestUsers = async (req, res, next) => {
+  try {
+    const currentUserId = req.user?.id || req.user?.userId;
+    const result = await prisma.user.deleteMany({
+      where: {
+        ...(currentUserId ? { id: { not: currentUserId } } : {}),
+        OR: [
+          { isTestData: true },
+          { email: { endsWith: '@jobbingtrack.test' } }
+        ]
+      }
+    });
+    logger.info(`[cleanTestUsers] ${result.count} utilisateur(s) de test supprimé(s)`);
+    res.json({
+      success: true,
+      message: `${result.count} utilisateur(s) de test supprimé(s)`,
+      deletedCount: result.count
+    });
+  } catch (error) {
+    logger.error('Erreur nettoyage utilisateurs de test:', error);
     next(error);
   }
 };
@@ -1177,51 +1209,55 @@ const getUserCustomization = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Rechercher les paramètres de personnalisation de l'utilisateur
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
-    });
-
-    if (!customization) {
-      // Créer des paramètres par défaut pour l'utilisateur
-      const defaultSettings = {
-        theme: 'auto',
-        language: 'fr',
-        dashboardLayout: 'grid',
-        primaryColor: '#3B82F6',
-        accentColor: '#10B981',
-        sidebarCollapsed: false,
-        compactMode: false,
-        showAnimations: true,
-        itemsPerPage: 20,
-        autoRefresh: true,
-        refreshInterval: 30,
-        notifications: {
-          enabled: true,
-          sound: true,
-          position: 'top-right',
-          duration: 5000
-        },
-        accessibility: {
-          highContrast: false,
-          largeText: false,
-          reduceMotion: false,
-          focusIndicators: true
-        },
-        dataRetention: {
-          cacheDuration: 7,
-          syncFrequency: 5,
-          offlineMode: true
-        }
-      };
-
-      // Créer les paramètres par défaut
-      customization = await prisma.userCustomization.create({
-        data: {
+    // Utiliser upsert pour éviter duplicate key si deux requêtes simultanées
+    let customization;
+    try {
+      customization = await prisma.userCustomization.upsert({
+        where: { userId },
+        update: {},
+        create: {
           userId,
-          settings: defaultSettings
+          settings: {
+            theme: 'auto',
+            language: 'fr',
+            dashboardLayout: 'grid',
+            primaryColor: '#3B82F6',
+            accentColor: '#10B981',
+            sidebarCollapsed: false,
+            compactMode: false,
+            showAnimations: true,
+            itemsPerPage: 20,
+            autoRefresh: true,
+            refreshInterval: 30,
+            notifications: {
+              enabled: true,
+              sound: true,
+              position: 'top-right',
+              duration: 5000
+            },
+            accessibility: {
+              highContrast: false,
+              largeText: false,
+              reduceMotion: false,
+              focusIndicators: true
+            },
+            dataRetention: {
+              cacheDuration: 7,
+              syncFrequency: 5,
+              offlineMode: true
+            }
+          }
         }
       });
+    } catch (upsertError) {
+      if (upsertError.code === 'P2002') {
+        customization = await prisma.userCustomization.findUnique({
+          where: { userId }
+        });
+        if (!customization) throw upsertError;
+      } else {
+        throw upsertError;
+      }
     }
 
     res.json({
@@ -1251,29 +1287,17 @@ const saveUserCustomization = async (req, res) => {
     const userId = req.user.id;
     const customizationData = req.body;
 
-    // Rechercher les paramètres existants
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
+    const customization = await prisma.userCustomization.upsert({
+      where: { userId },
+      update: {
+        settings: customizationData,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        settings: customizationData
+      }
     });
-
-    if (customization) {
-      // Mettre à jour les paramètres existants
-      customization = await prisma.userCustomization.update({
-        where: { userId },
-        data: {
-          settings: customizationData,
-          updatedAt: new Date()
-        }
-      });
-    } else {
-      // Créer de nouveaux paramètres
-      customization = await prisma.userCustomization.create({
-        data: {
-          userId,
-          settings: customizationData
-        }
-      });
-    }
 
     res.json({
       success: true,
@@ -1767,6 +1791,7 @@ module.exports = {
   refreshToken,
   logout,
   getAllUsers,
+  cleanTestUsers,
   updateUserRole,
   toggleUserStatus,
   deleteUser,

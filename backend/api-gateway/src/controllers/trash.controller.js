@@ -13,6 +13,43 @@ const SERVICE_URLS = {
   user: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
 };
 
+// Type (param URL) → chemin API pluriel (les services n'ont pas de corbeille "user")
+const TYPE_TO_PLURAL = {
+  application: 'applications',
+  contact: 'contacts',
+  company: 'companies',
+  interview: 'interviews',
+  followup: 'followups',
+  call: 'calls',
+  event: 'events',
+  user: 'users'
+};
+
+/** Construit le titre pour l'affichage corbeille selon le type et les champs renvoyés */
+function buildItemTitle(item, type) {
+  if (item.title) return item.title;
+  switch (type) {
+    case 'Application':
+      return item.position || item.id || 'Candidature';
+    case 'Contact':
+      return [item.firstName, item.lastName].filter(Boolean).join(' ') || item.email || item.id || 'Contact';
+    case 'Company':
+      return item.name || item.id || 'Entreprise';
+    case 'Interview':
+      return item.id || 'Entretien';
+    case 'FollowUp':
+      return item.id || 'Relance';
+    case 'Call':
+      return item.subject || item.id || 'Appel';
+    case 'Event':
+      return item.title || item.name || item.id || 'Événement';
+    case 'User':
+      return item.email || [item.firstName, item.lastName].filter(Boolean).join(' ') || item.id || 'Utilisateur';
+    default:
+      return item.id || 'Élément';
+  }
+}
+
 /**
  * Récupère tous les éléments supprimés de tous les services
  */
@@ -35,21 +72,29 @@ const getAllDeletedItems = async (req, res) => {
 
     // Si un type spécifique est demandé
     if (type && type !== 'all') {
-      const serviceUrl = SERVICE_URLS[type.toLowerCase()];
+      const typeKey = type.toLowerCase();
+      const serviceUrl = SERVICE_URLS[typeKey];
       if (serviceUrl) {
+        const pathSegment = TYPE_TO_PLURAL[typeKey];
+        if (!pathSegment) {
+          return res.status(400).json({ success: false, error: 'Type d\'entité invalide' });
+        }
         try {
           const response = await axios.get(
-            `${serviceUrl}/api/v1/${type.toLowerCase()}s/trash`,
+            `${serviceUrl}/api/v1/${pathSegment}/trash`,
             {
               headers: { Authorization: authHeader },
               timeout: 5000
             }
           );
-          
+
           if (response.data.success && response.data.items) {
+            const displayType = type.charAt(0).toUpperCase() + type.slice(1);
             items.push(...response.data.items.map(item => ({
               ...item,
-              type: type
+              type: displayType,
+              title: buildItemTitle(item, displayType),
+              canRestore: item.canRestore !== false
             })));
           }
         } catch (error) {
@@ -57,28 +102,35 @@ const getAllDeletedItems = async (req, res) => {
         }
       }
     } else {
-      // Récupérer de tous les services
-      const promises = Object.entries(SERVICE_URLS).map(async ([serviceName, serviceUrl]) => {
+      // Récupérer de tous les services (sauf user : auth-service n'expose pas /users/trash)
+      const serviceNames = Object.keys(SERVICE_URLS).filter(name => name !== 'user');
+      const promises = serviceNames.map(async (serviceName) => {
+        const pathSegment = TYPE_TO_PLURAL[serviceName];
+        if (!pathSegment) return [];
         try {
-          const entityName = serviceName === 'user' ? 'auth' : serviceName;
+          const serviceUrl = SERVICE_URLS[serviceName];
           const response = await axios.get(
-            `${serviceUrl}/api/v1/${entityName}${serviceName !== 'auth' ? 's' : ''}/trash`,
+            `${serviceUrl}/api/v1/${pathSegment}/trash`,
             {
               headers: { Authorization: authHeader },
               timeout: 5000
             }
           );
-          
+
           if (response.data.success && response.data.items) {
+            const displayType = serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
             return response.data.items.map(item => ({
               ...item,
-              type: serviceName.charAt(0).toUpperCase() + serviceName.slice(1)
+              type: displayType,
+              title: buildItemTitle(item, displayType),
+              canRestore: item.canRestore !== false
             }));
           }
         } catch (error) {
           logger.warn(`Service ${serviceName} ne supporte pas la corbeille:`, error.message);
           return [];
         }
+        return [];
       });
 
       const results = await Promise.all(promises);
@@ -114,37 +166,31 @@ const getAllDeletedItems = async (req, res) => {
 const restoreItem = async (req, res) => {
   try {
     const { type, id } = req.params;
-    
-    // Vérifier les permissions admin
+    const typeKey = type.toLowerCase();
+
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
-      return res.status(403).json({
-        success: false,
-        error: 'Accès refusé'
-      });
+      return res.status(403).json({ success: false, error: 'Accès refusé' });
+    }
+    if (typeKey === 'user') {
+      return res.status(400).json({ success: false, error: 'Restauration utilisateur depuis la corbeille non supportée.' });
     }
 
-    const serviceUrl = SERVICE_URLS[type.toLowerCase()];
-    if (!serviceUrl) {
-      return res.status(400).json({
-        success: false,
-        error: 'Type d\'entité invalide'
-      });
+    const serviceUrl = SERVICE_URLS[typeKey];
+    const pathSegment = TYPE_TO_PLURAL[typeKey];
+    if (!serviceUrl || !pathSegment) {
+      return res.status(400).json({ success: false, error: 'Type d\'entité invalide' });
     }
 
     logger.info(`♻️ Admin ${req.user.email} restaure ${type} ${id}`);
 
     const authHeader = req.headers.authorization;
     const response = await axios.post(
-      `${serviceUrl}/api/v1/${type.toLowerCase()}s/${id}/restore`,
+      `${serviceUrl}/api/v1/${pathSegment}/${id}/restore`,
       {},
-      {
-        headers: { Authorization: authHeader },
-        timeout: 5000
-      }
+      { headers: { Authorization: authHeader }, timeout: 5000 }
     );
 
     res.json(response.data);
-
   } catch (error) {
     logger.error('Erreur restauration:', error);
     res.status(error.response?.status || 500).json({
@@ -160,36 +206,30 @@ const restoreItem = async (req, res) => {
 const permanentDelete = async (req, res) => {
   try {
     const { type, id } = req.params;
-    
-    // Vérifier les permissions admin
+    const typeKey = type.toLowerCase();
+
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
-      return res.status(403).json({
-        success: false,
-        error: 'Accès refusé'
-      });
+      return res.status(403).json({ success: false, error: 'Accès refusé' });
+    }
+    if (typeKey === 'user') {
+      return res.status(400).json({ success: false, error: 'Suppression définitive utilisateur depuis la corbeille non supportée.' });
     }
 
-    const serviceUrl = SERVICE_URLS[type.toLowerCase()];
-    if (!serviceUrl) {
-      return res.status(400).json({
-        success: false,
-        error: 'Type d\'entité invalide'
-      });
+    const serviceUrl = SERVICE_URLS[typeKey];
+    const pathSegment = TYPE_TO_PLURAL[typeKey];
+    if (!serviceUrl || !pathSegment) {
+      return res.status(400).json({ success: false, error: 'Type d\'entité invalide' });
     }
 
     logger.warn(`🗑️ Admin ${req.user.email} supprime définitivement ${type} ${id}`);
 
     const authHeader = req.headers.authorization;
     const response = await axios.delete(
-      `${serviceUrl}/api/v1/${type.toLowerCase()}s/${id}/permanent`,
-      {
-        headers: { Authorization: authHeader },
-        timeout: 5000
-      }
+      `${serviceUrl}/api/v1/${pathSegment}/${id}/permanent`,
+      { headers: { Authorization: authHeader }, timeout: 5000 }
     );
 
     res.json(response.data);
-
   } catch (error) {
     logger.error('Erreur suppression définitive:', error);
     res.status(error.response?.status || 500).json({
@@ -204,7 +244,6 @@ const permanentDelete = async (req, res) => {
  */
 const emptyTrash = async (req, res) => {
   try {
-    // Vérifier les permissions admin
     if (req.user?.role !== 'SUPER_ADMIN') {
       return res.status(403).json({
         success: false,
@@ -216,20 +255,18 @@ const emptyTrash = async (req, res) => {
 
     const authHeader = req.headers.authorization;
     const results = [];
+    const serviceNames = Object.keys(SERVICE_URLS).filter(name => name !== 'user');
 
-    // Vider la corbeille de chaque service
-    for (const [serviceName, serviceUrl] of Object.entries(SERVICE_URLS)) {
+    for (const serviceName of serviceNames) {
+      const serviceUrl = SERVICE_URLS[serviceName];
+      const pathSegment = TYPE_TO_PLURAL[serviceName];
+      if (!pathSegment) continue;
       try {
-        const entityName = serviceName === 'user' ? 'auth' : serviceName;
         const response = await axios.post(
-          `${serviceUrl}/api/v1/${entityName}${serviceName !== 'auth' ? 's' : ''}/trash/empty`,
+          `${serviceUrl}/api/v1/${pathSegment}/trash/empty`,
           {},
-          {
-            headers: { Authorization: authHeader },
-            timeout: 10000
-          }
+          { headers: { Authorization: authHeader }, timeout: 10000 }
         );
-        
         results.push({
           service: serviceName,
           success: true,
@@ -253,7 +290,6 @@ const emptyTrash = async (req, res) => {
       results,
       timestamp: new Date().toISOString()
     });
-
   } catch (error) {
     logger.error('Erreur vidage corbeille:', error);
     res.status(500).json({

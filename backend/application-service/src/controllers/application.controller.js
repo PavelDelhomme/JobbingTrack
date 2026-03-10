@@ -273,11 +273,49 @@ const getApplications = async (req, res, next) => {
     search,
     sortBy = 'createdAt',
     sortOrder = 'desc',
-    includeArchived = 'false' // Inclure les candidatures archivées
+    includeArchived = 'false', // Inclure les candidatures archivées
+    agencyId // Filtre par agence d'intérim (Suivi intérim)
   } = req.query;
 
     const offset = (page - 1) * limit;
     const userId = req.user.id;
+
+    // Si filtre agencyId demandé, utiliser Prisma pour inclure la relation agency
+    if (agencyId && typeof agencyId === 'string') {
+      const where = {
+        userId,
+        agencyId,
+        ...(includeArchived !== 'true' && { isArchived: false }),
+        ...(status && { status: { code: status } }),
+        ...(search && { position: { contains: search, mode: 'insensitive' } })
+      };
+      try {
+        const [list, totalCount] = await Promise.all([
+          prisma.application.findMany({
+            where,
+            include: {
+              company: true,
+              agency: true,
+              platform: true,
+              status: true,
+              _count: { select: { interviews: true, followUps: true } }
+            },
+            orderBy: { [sortBy]: sortOrder },
+            skip: parseInt(offset, 10),
+            take: parseInt(limit, 10) || 100
+          }),
+          prisma.application.count({ where })
+        ]);
+        return res.json({
+          success: true,
+          applications: list,
+          pagination: { page: parseInt(page, 10), limit: parseInt(limit, 10) || 100, total: totalCount, pages: Math.ceil(totalCount / (parseInt(limit, 10) || 100 || 1)) }
+        });
+      } catch (err) {
+        if (process.env.NODE_ENV === 'development') logger.warn('List by agencyId failed:', err?.message);
+        return res.status(500).json({ success: false, error: 'Erreur lors du chargement des candidatures par agence' });
+      }
+    }
 
     // Liste : requête raw en premier pour éviter erreur colonne isArchived/archived en BDD
     let applications, total;

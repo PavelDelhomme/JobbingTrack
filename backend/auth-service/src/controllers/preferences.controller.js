@@ -76,42 +76,29 @@ const getUserPreferences = async (req, res) => {
       }
       
       try {
-        customization = await prisma.userCustomization.findUnique({
-          where: { userId }
+        customization = await prisma.userCustomization.upsert({
+          where: { userId },
+          update: {},
+          create: {
+            userId,
+            settings: defaultPreferences
+          }
         });
-      } catch (error) {
-        // Si la table n'existe pas (P2021 ou message "does not exist"), retourner les valeurs par défaut
-        const tableMissing = error.code === 'P2021' ||
-          (error.message && (error.message.includes('does not exist') || error.message.includes('UserCustomization')));
-        if (tableMissing) {
+      } catch (upsertError) {
+        // Si contrainte unique (P2002), un autre requête a créé la ligne entre-temps : relire
+        if (upsertError.code === 'P2002') {
+          customization = await prisma.userCustomization.findUnique({
+            where: { userId }
+          });
+          if (!customization) throw upsertError;
+        } else if (upsertError.code === 'P2021' && process.env.NODE_ENV === 'development') {
           logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
           return res.json({
             success: true,
             preferences: defaultPreferences
           });
-        }
-        throw error; // Re-throw si c'est une autre erreur
-      }
-
-      // Si pas de customization, créer avec valeurs par défaut
-      if (!customization) {
-        try {
-          customization = await prisma.userCustomization.create({
-            data: {
-              userId,
-              settings: defaultPreferences
-            }
-          });
-        } catch (createError) {
-          // Si la table n'existe pas, retourner les valeurs par défaut
-          if (createError.code === 'P2021' && process.env.NODE_ENV === 'development') {
-            logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
-            return res.json({
-              success: true,
-              preferences: defaultPreferences
-            });
-          }
-          throw createError;
+        } else {
+          throw upsertError;
         }
       }
 
@@ -246,10 +233,12 @@ const updateUserPreferences = async (req, res) => {
         throw updateError;
       }
     } else {
-      // Créer nouvelle customization
+      // Utiliser upsert pour éviter duplicate key si deux requêtes simultanées (ex. backoffice au chargement)
       try {
-        customization = await prisma.userCustomization.create({
-          data: {
+        customization = await prisma.userCustomization.upsert({
+          where: { userId },
+          update: { settings: preferences },
+          create: {
             userId,
             settings: preferences
           }
@@ -264,7 +253,20 @@ const updateUserPreferences = async (req, res) => {
             warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
           });
         }
-        throw createError;
+        if (createError.code === 'P2002') {
+          customization = await prisma.userCustomization.findUnique({ where: { userId } });
+          if (customization) {
+            const mergedSettings = { ...customization.settings, ...preferences };
+            customization = await prisma.userCustomization.update({
+              where: { userId },
+              data: { settings: mergedSettings }
+            });
+          } else {
+            throw createError;
+          }
+        } else {
+          throw createError;
+        }
       }
     }
 
