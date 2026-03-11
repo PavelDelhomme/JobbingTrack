@@ -2,9 +2,9 @@
 
 **Dernière mise à jour** : 11 mars 2026
 
-**Tests (mars 2026)** : Corrections appliquées pour limiter les échecs : **User Journey** — login utilisateur test 401 (EMAIL_NOT_VERIFIED) ne compte plus comme échec quand on bascule sur token admin ; **Company create 500** — controller company-service (data sans undefined, gestion P2003/P2002) + auth middleware (userId ?? id ?? sub) ; **CRUD admin** — test « créer une entreprise » skip si 500 Prisma/userId, tests dépendants skip explicite si prérequis manquant ; **MailHog** — skip si SMTP rejette (Domain not found / Erreur SMTP) ; **Email Workflows** — skip si lien de vérification absent (template/EmailLog). **status-engine.spec.ts** et **Playwright E2E** reçoivent `API_URL` / `API_GATEWAY_URL` via le script de lancement. Suite à valider avec `make test` ; rapports dans `tests/results/<timestamp>/`.
+**Tests** : Objectif = **faire passer la suite complète** (`make test` après `make up-full` + `make seed-auth`). Chaque run enregistre **durée par étape** et **métriques** (metrics-start/end, metricsSnapshot par test). Correctifs : User Journey, company-service, auth ; **CRUD admin Playwright en série** pour limiter les skips. Skips possibles : MailHog / Email Workflows. Échecs à traiter : **Tests API Backend (script)**, **Playwright E2E Frontend** — voir sortie dans les JSON du rapport. À poursuivre : suivi intérim, user journey et parcours intérim. Rapports : `tests/results/<timestamp>/` (report.html, report.txt, metrics-start.json, metrics-end.json).
 
-**Backoffice (fév. 2026)** : Page Stats utilisateur (`/backoffice/user-stats`), Abonnement & facturation (`/backoffice/billing`), filtre Utilisateurs de test, nettoyage utilisateurs de test, corbeille, archives. Voir section « À faire maintenant ».
+**Backoffice** : Gestion des **données** (entreprises, boîtes d’intérim, candidatures, stats, corbeille, archives). Page Stats utilisateur, **Abonnement & facturation** à poursuivre. Pas de toggle « Mode intérim » dans le backoffice : le mode intérim est géré dans l’**application mobile** et l’**API** (préférence utilisateur). Voir « À faire maintenant ».
 
 ---
 
@@ -14,40 +14,50 @@
 
 ## À faire maintenant (priorité)
 
-**Objectif** : aller au bout du **suivi intérim** (backoffice puis application mobile), avec un **mode intérim** activable qui adapte l’interface. Puis : **retest complet backoffice administrateur**, **gestion des rapports de bugs** depuis le backoffice, **crash reports mobile** (envoi inconditionnel quand l’app crash, mise en attente si non connecté puis envoi à la connexion), **tests de synchronisation**, **tests sécurité / backoffice / frontend / API / mobile** plus larges, **API suivi intérim** à adapter, **nettoyage utilisateurs de test** et parcours prédéfinis / personnalisés, **email monitoring**. Chaque plan de l’application (web backoffice, backend, frontend, API, mobile) doit avoir des tests adaptés (unitaire, e2e, BDD, sécurité, performance).
+**Objectif** : finaliser le **suivi intérim** (données en backoffice, mode utilisateur en mobile/API), poursuivre **Abonnement & facturation** en backoffice, puis **retest complet** (`make test`, user journey, tests intérim), **rapports de bugs** backoffice, **crash reports mobile** (file d’attente hors ligne), **tests de sync**, et **tests élargis** (Playwright, mobile, API, backend, frontend). Chaque plan (backoffice, backend, frontend, API, mobile) doit avoir des tests adaptés (unitaire, e2e, BDD, sécurité, performance).
 
-### 1. Backoffice – Suivi intérim (à faire en premier)
+**Règle importante** : le **backoffice** sert à **gérer les données** (entreprises, boîtes d’intérim, candidatures, utilisateurs, etc.). Le **mode intérim** (toggle activable par l’utilisateur, vue dédiée, filtres, couleurs) se gère dans l’**application mobile** et l’**API** (préférence utilisateur), pas dans l’interface backoffice.
 
-- **Couleurs calendrier** : événements liés à une candidature avec `agencyId` → couleur intérim (ambre `#F59E0B`) ; sinon classique (bleu `#3B82F6`). Calcul à la création (backend) ou à l’affichage (frontend).
-- **Page dédiée « Suivi intérim »** : liste des agences (`companyType = TEMP_AGENCY`), puis pour chaque agence liste des candidatures où `agencyId = cette agence`. Lien depuis Administration / Boîtes d’intérim.
-- **Toggle « Mode intérim »** : interrupteur en navigation (ou menu) pour activer/désactiver le mode intérim ; quand activé, mettre en avant Suivi intérim, filtres adaptés, calendrier avec couleurs. Préférence persistée (localStorage ou préférence utilisateur).
+### 1. Backoffice – Données et Suivi intérim (sans toggle « mode intérim »)
 
-Spec : **`docs/features/SUIVI_BOITES_INTÉRIM.md`** (sections 4.0 Mode intérim, 4.2, 4.3).
+- **Entreprises et boîtes d’intérim** : gestion des Company avec `companyType` (EMPLOYER | TEMP_AGENCY), filtre par type, formulaires création/édition. Page ou section **Suivi intérim** : liste des agences (`companyType = TEMP_AGENCY`), pour chaque agence liste des candidatures où `agencyId = cette agence`. Lien depuis Administration / Boîtes d’intérim ou Données applicatives.
+- **Candidatures** : champ optionnel **Agence (boîte d’intérim)** en création/édition ; affichage et filtres (classique / intérim).
+- **Calendrier** : couleurs selon type — événements liés à une candidature avec `agencyId` → ambre `#F59E0B` ; sinon bleu `#3B82F6`. Calcul à la création (backend) ou à l’affichage (frontend).
+- Pas de toggle « Mode intérim » dans le backoffice : l’admin consulte et gère toutes les données ; le choix « voir en mode intérim » est côté **mobile** pour l’utilisateur final.
 
-### 2. Application mobile Flutter – Suivi intérim puis suite
+Spec : **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
 
-- **Toggle « Mode intérim »** (Paramètres ou accueil) : activé → onglet/écran Intérim, champs agence visibles, calendrier avec couleurs intérim ; désactivé → vue classique. Préférence persistée.
-- **Champs agence** : choix boîte d’intérim à la création/édition de candidature.
-- **Écran « Intérim »** : liste des agences, puis candidatures par agence.
-- **Calendrier** : couleurs distinctes (classique vs intérim).
+### 2. Backoffice – Abonnement & facturation
 
-Si pas encore fait : valider d’abord le parcours **vérification email** (voir **`docs/mobile/PROCHAINES_ETAPES.md`**), puis enchaîner sur les écrans et le suivi intérim mobile.
+- Poursuivre la page **Abonnement & facturation** (`/backoffice/billing`) : gestion des données de manière correcte (abonnements, factures, liaison utilisateur), APIs à brancher, affichage et édition si prévus.
 
-Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`**, **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
+### 3. Application mobile et API – Mode intérim (toggle et vue utilisateur)
 
-### 3. ~~Suivi boîtes d’intérim (schéma prêt, interface à faire)~~ — Base faite ; reste à faire (fév. 2026)
+- **Toggle « Mode intérim »** (Paramètres ou accueil mobile) : activé → onglet/écran Intérim, champs agence visibles, calendrier avec couleurs intérim ; désactivé → vue classique. Préférence persistée (SharedPreferences ou préférence utilisateur via API).
+- **API** : préférence `modeInterim` ou équivalent dans les préférences utilisateur ; filtres `?agencyId=`, `?viaAgency=true` ; réponses Application avec relation `agency`. Couleurs événements selon `application.agencyId` (backend ou frontend).
+- **Mobile** : écran « Intérim » (liste agences puis candidatures par agence), formulaire candidature avec choix boîte d’intérim, calendrier avec couleurs distinctes.
 
-- **BDD** : `Company.companyType` (EMPLOYER | TEMP_AGENCY) et `Application.agencyId` en place. Schéma partagé `backend/prisma/schema.prisma` et services (auth-, company-, application-service) à jour.
-- **Backend** : create/update/list company avec `companyType` ; create/update application avec `agencyId` ; réponses incluent la relation `agency`.
-- **Backoffice** : Administration → Gestion des données → **Entreprises** et **Boîtes d’intérim** ; page Entreprises avec filtre Type, colonne Type, formulaire création/édition avec type ; Données de test → Candidatures : champ optionnel **Agence (boîte d’intérim)**.
-- **Données de test** : `backend/generate-test-data.js` crée 2 boîtes d’intérim (Randstad, Manpower) et affecte `agencyId` à une partie des candidatures.
-- Spécification : **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
+Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
 
-### 4. Commandes utiles
+### 4. Tests complets (à appliquer et faire passer)
+
+- **Lancer la suite** : `make up-full` puis `make seed-auth` puis `make test` (ou `make test-full`). Objectif : tous les blocs verts ; corriger les causes racines des échecs (company create, MailHog, template email, etc.) pour éviter les skip.
+- **User Journey** : parcours API complets (auth, companies, applications, contacts, etc.) et **parcours intérim** (création agence, candidature avec agencyId, filtres, préférence mode intérim) pour valider le flux de bout en bout.
+- **Playwright** : backoffice (CRUD, Suivi intérim, Billing si applicable), E2E frontend, sécurité, MailHog/Email Workflows quand l’env est prêt.
+- **Mobile** : E2E (émulateur/ADB), parcours inscription, mode intérim (toggle, écran Intérim, couleurs).
+- **API / Backend** : tests unitaires et d’intégration (company, application, preferences, event colors), tests BDD relations.
+- **Frontend** : tests unitaires et E2E ciblant les pages backoffice et les composants liés aux données (entreprises, candidatures, calendrier).
+
+Rapports dans `tests/results/<timestamp>/`.
+
+**Suite prévue (après les points ci-dessus)** : rapports de bugs depuis le backoffice ; crash reports mobile (envoi inconditionnel + file d’attente hors ligne puis envoi à la connexion) ; tests de synchronisation ; email monitoring ; nettoyage utilisateurs de test et parcours prédéfinis / personnalisés ; tests sécurité / backoffice / frontend / API / mobile élargis.
+
+### 5. Commandes utiles
 
 | Action | Commande |
 |--------|----------|
-| **Lancer la suite de tests** | `make test` ou `make test-full` (prérequis : `make up-full`, `make seed-auth` si besoin) |
+| **Lancer la suite de tests** | `make test` (stack déjà up) ; `make test-full-quick` (sans rebuild, léger) ; `make test-full-cached` (build avec cache) ; `make test-full` (rebuild complet, lourd) |
+| **Mesurer durée / ressources** | `make test-full-timed` ou `make up-full-timed` ; ou `./scripts/timed-make.sh test-full-quick` (option `--verbose` pour mémoire) |
 | Arrêter (données conservées) | `make down` |
 | Tout effacer puis redémarrer | `make down-clean` → `make up-full` → `make seed-auth` |
 | Créer / mettre à jour l’admin | `make seed-auth` |

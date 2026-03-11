@@ -13,6 +13,7 @@ endif
         tests-clean test-clean test tests test-relations test-enums test-email-python \
         test-email-python-reset test-email-python-verification test-email-diagnostic \
         test-email-logs test-email-logs-all test-email-logs-stats test-all test-full \
+        test-full-quick test-full-cached test-full-timed up-full-timed \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
         test-performance test-security test-integration test-docker test-monitoring \
         test-unit test-services test-infrastructure test-cache test-analytics \
@@ -78,7 +79,12 @@ tests-help:
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
 	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
-	@echo "  make test-full                Rebuild + up-full + db-push-all + status + test-all (rapports dans tests/results/)"
+	@echo "  make test-full                Rebuild (--no-cache, lourd) + up + db + seed + test-all"
+	@echo "  make test-full-quick          ⚡ SANS rebuild : up-full + db + seed + test-all (léger)"
+	@echo "  make test-full-cached         Build avec cache + up + db + seed + test-all (compromis)"
+	@echo "  make test-full-timed          test-full avec mesure de durée (début/fin + time)"
+	@echo "  make up-full-timed            up-full avec mesure de durée"
+	@echo "  ./scripts/timed-make.sh TARGET [--verbose]  Mesure temps (+ mémoire si -v)"
 	@echo ""
 	@echo "💡 make logs-applicative suit les logs (ne termine jamais) → à lancer dans un autre terminal."
 	@echo ""
@@ -523,15 +529,44 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 # ================================================================
 # 🚀 TEST FULL - Rebuild + stack + BDD + status + tous les tests (une commande)
 # ================================================================
-# Équivalent : make rebuild && make up-full && make db-push-all && make status && make tests
-# Génère les rapports dans tests/results/<timestamp>/
+# test-full       = rebuild (--no-cache, très lourd) + up + db + seed + tests
+# test-full-quick = PAS de rebuild : up-full + db + seed + tests (léger si images déjà présentes)
+# test-full-cached= build-full (avec cache) + up + db + seed + tests (compromis après changement de code)
+# test-full-timed = test-full avec mesure de durée (début/fin + time)
 # ================================================================
-test-full: ## Rebuild + up-full + db-push-all + status + tous les tests (rapports dans tests/results/)
+
+# Étapes communes 2→6 (sans rebuild) — utilisées par test-full-quick et test-full-cached
+define test_full_steps
+	@echo "2/5 Démarrage de la stack (make up-full)..."
+	@$(MAKE) up-full
+	@echo ""
+	@echo "3/5 Synchronisation BDD (make db-push-all)..."
+	@$(MAKE) db-push-all
+	@echo ""
+	@echo "3b/5 Seed auth (admin emailVerified pour les tests)..."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.com} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "   ✅ Seed auth OK." || \
+		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+	@echo ""
+	@echo "4/5 Vérification des services (make status)..."
+	@$(MAKE) status
+	@echo ""
+	@echo "5/5 Installation deps + lancement de tous les tests (make test-all)..."
+	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
+	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
+	@TEST_NOPROMPT=1 $(MAKE) test-all
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ✅ TESTS TERMINÉS – Consulter tests/results/      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+endef
+
+test-full: ## Rebuild (--no-cache, lourd) + up-full + db-push-all + seed + status + test-all
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║     🚀 TEST FULL - Rebuild, stack, BDD, tests         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "1/6 Rebuild des images (make rebuild)..."
+	@echo "1/6 Rebuild des images (make rebuild — très lourd, 10–20 min)..."
 	@$(MAKE) rebuild
 	@echo ""
 	@echo "2/6 Démarrage de la stack (make up-full)..."
@@ -541,11 +576,9 @@ test-full: ## Rebuild + up-full + db-push-all + status + tous les tests (rapport
 	@$(MAKE) db-push-all
 	@echo ""
 	@echo "3b/6 Seed auth (admin emailVerified pour les tests)..."
-	@echo "   Exécution du seed Prisma dans auth-service pour créer/mettre à jour l'admin avec emailVerified=true."
 	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.com} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
-		echo "   ✅ Seed auth OK (admin prêt pour login)." || \
-		(echo "   ⚠️  Seed auth ignoré ou échoué (connexion au conteneur ou prisma.seed). Les tests admin peuvent échouer."; \
-		 echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+		echo "   ✅ Seed auth OK." || \
+		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
 	@echo ""
 	@echo "4/6 Vérification des services (make status)..."
 	@$(MAKE) status
@@ -553,18 +586,48 @@ test-full: ## Rebuild + up-full + db-push-all + status + tous les tests (rapport
 	@echo "5/6 Installation des deps (tests + frontend)..."
 	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
 	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
-	@if [ ! -w frontend/node_modules 2>/dev/null ] && [ -d frontend/node_modules ]; then \
-		echo "   ⚠️  frontend/node_modules n'est pas writable (ex. créé par Docker en root)."; \
-		echo "   💡 Si Playwright/Jest échouent avec EACCES, exécutez: sudo chown -R $$(whoami) frontend/node_modules frontend/.next"; \
-	fi
 	@echo ""
 	@echo "6/6 Lancement de tous les tests avec rapports (make test-all)..."
-	@echo "   Rapports : tests/results/<timestamp>/"
 	@TEST_NOPROMPT=1 $(MAKE) test-all
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║     ✅ TEST FULL TERMINÉ – Consulter tests/results/   ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
+
+test-full-quick: ## Pas de rebuild : up-full + db-push-all + seed + status + test-all (léger, images existantes)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ⚡ TEST FULL QUICK - Stack + BDD + tests (sans rebuild) ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "💡 Aucun rebuild : utilise les images déjà présentes. Si erreur, lancez make test-full-cached ou make test-full."
+	@echo ""
+	$(test_full_steps)
+
+test-full-cached: ## Build avec cache + up-full + db + seed + status + test-all (compromis rapide après changement de code)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🔨 TEST FULL CACHED - Build (cache) + stack + tests ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "1/5 Build des images avec cache (make build-full)..."
+	@$(MAKE) build-full
+	@echo ""
+	$(test_full_steps)
+
+test-full-timed: ## Mesure la durée de test-full (début, fin, time)
+	@echo "⏱️  Début: $$(date -Iseconds)"
+	@echo "📊 Mesure des ressources (time) pour: make test-full"
+	@echo ""
+	@time $(MAKE) test-full
+	@echo ""
+	@echo "⏱️  Fin: $$(date -Iseconds)"
+
+up-full-timed: ## Mesure la durée de up-full (début, fin, time)
+	@echo "⏱️  Début: $$(date -Iseconds)"
+	@echo "📊 Mesure (time) pour: make up-full"
+	@echo ""
+	@time $(MAKE) up-full
+	@echo ""
+	@echo "⏱️  Fin: $$(date -Iseconds)"
 
 # ================================================================
 # 💾 TEST CACHE - Test système de cache
