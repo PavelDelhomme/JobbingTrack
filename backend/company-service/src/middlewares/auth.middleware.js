@@ -35,15 +35,17 @@ const authenticate = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // ✅ Pas besoin de vérifier l'utilisateur en base - le JWT est la source de vérité
+      const uid = decoded.userId ?? decoded.id ?? decoded.sub;
+      if (!uid) {
+        logger.warn('JWT sans userId/id/sub');
+        return res.status(403).json({ error: 'Token invalide (userId manquant)' });
+      }
       req.user = {
-        id: decoded.userId,
+        id: String(uid),
         email: decoded.email,
-        role: decoded.role // ✅ Extraire le rôle du JWT
+        role: decoded.role
       };
       req.token = token;
-      
       next();
     } catch (err) {
       logger.warn(`Tentative d'accès avec token invalide: ${err.message}`);

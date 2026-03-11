@@ -12,9 +12,9 @@
  * Utilise un utilisateur classique (role USER).
  */
 import { test, expect } from '@playwright/test';
-import { getUserToken, ensureTestUser, apiCreateCompany, apiCreateApplication, apiCreateInterview, uniqueId } from './test-data-helper';
+import { getAdminToken, apiCreateCompany, apiCreateApplication, uniqueId } from './test-data-helper';
 
-const API_URL = process.env.API_URL || 'http://localhost:5002';
+const API_URL = process.env.API_URL || process.env.API_GATEWAY_URL || 'http://localhost:5002';
 
 test.describe('Moteur de statut intelligent (E2E API)', () => {
   let token: string;
@@ -24,8 +24,7 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
   let interviewId: string;
 
   test.beforeAll(async ({ request }) => {
-    await ensureTestUser(request);
-    token = await getUserToken(request);
+    token = await getAdminToken(request);
     if (!token) return;
 
     const company = await apiCreateCompany(request, token, `StatusEngine Corp ${uniqueId()}`);

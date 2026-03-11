@@ -504,14 +504,15 @@ echo ""
 # 7. Tests Playwright E2E Frontend (config standalone = pas de webServer, frontend déjà up sur 5003 avec make up-full)
 PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-900}"
 PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
+API_E2E_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 elif [ -d "frontend/tests/e2e" ]; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 else
@@ -541,7 +542,7 @@ fi
 # 7d. Tests CRUD données complet (admin)
 if [ -f "tests/e2e/specs/admin-data-crud.spec.ts" ]; then
     run_test "Playwright CRUD Données (admin)" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && API_URL=\"${API_E2E_URL:-http://localhost:5002}\" API_GATEWAY_URL=\"${API_E2E_URL:-http://localhost:5002}\" npx playwright test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
         "$REPORT_DIR/playwright-data-crud.json" \
         "admin"
 fi

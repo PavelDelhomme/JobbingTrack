@@ -23,17 +23,24 @@ const createCompany = async (req, res, next) => {
 
     const { name, website, industry, size, location, description, companyType } = req.body;
 
+    const VALID_SIZES = ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'];
+    const sizeValue = size && VALID_SIZES.includes(String(size).toUpperCase())
+      ? String(size).toUpperCase()
+      : undefined;
+
+    const data = {
+      userId: req.user.id,
+      name: name && String(name).trim() ? String(name).trim() : 'Sans nom',
+      companyType: companyType === 'TEMP_AGENCY' ? 'TEMP_AGENCY' : 'EMPLOYER',
+    };
+    if (website !== undefined && website !== null && website !== '') data.website = String(website);
+    if (industry !== undefined && industry !== null && industry !== '') data.industry = String(industry);
+    if (sizeValue) data.size = sizeValue;
+    if (location !== undefined && location !== null && location !== '') data.location = String(location);
+    if (description !== undefined && description !== null && description !== '') data.description = String(description);
+
     const company = await prisma.company.create({
-      data: {
-        userId: req.user.id,
-        name: name || 'Sans nom',
-        website: website || undefined,
-        industry: industry || undefined,
-        size: size || undefined,
-        companyType: companyType === 'TEMP_AGENCY' ? 'TEMP_AGENCY' : 'EMPLOYER',
-        location: location || undefined,
-        description: description || undefined
-      }
+      data,
     });
 
     res.status(201).json({
@@ -58,7 +65,14 @@ const createCompany = async (req, res, next) => {
         message: 'Une entreprise avec ce nom existe déjà pour cet utilisateur.'
       });
     }
-    next(error);
+    const message = error.meta?.message || error.message || 'Erreur lors de la création de l\'entreprise.';
+    const status = error.code ? 400 : 500;
+    return res.status(status).json({
+      success: false,
+      message,
+      code: error.code,
+      ...(process.env.NODE_ENV !== 'production' && { debug: String(error) })
+    });
   }
 };
 
