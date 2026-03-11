@@ -130,7 +130,7 @@ export async function apiCreateCompany(
         name: companyName,
         industry: 'E2E Testing',
         location: 'Paris Test',
-        size: '11-50',
+        size: 'SMALL',
         website: 'https://e2e-test.example.com',
         description: 'Donnée de test E2E - suppression automatique',
       },
