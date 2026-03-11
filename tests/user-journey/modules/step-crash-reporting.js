@@ -1,27 +1,20 @@
 /**
- * Module parcours utilisateur — Crash Reporting
+ * Module parcours utilisateur — Crash Reporting (route dediee gateway)
  *
- * Teste le cycle complet :
- * 1. Envoi d'un crash report
- * 2. Verification de la sauvegarde
- * 3. Lecture des crash reports
- * 4. Verification de l'anonymisation
+ * Endpoint : POST /api/v1/crashes (sans auth, enregistrement fichier dans gateway)
+ * Teste : envoi crash complet, minimal, validation crashType/message, acceptation sans auth
  */
 
 const axios = require('axios');
 
-const API_URL = process.env.API_URL || 'http://localhost:5002';
+const API_URL = process.env.API_URL || process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const GATEWAY_CRASH_URL = `${API_URL}/api/v1/crashes`;
 
 async function stepCrashReporting(options = {}) {
-  const token = options.token;
   const apiUrl = API_URL;
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
   const stepResults = [];
 
-  // 1. Envoi d'un crash report complet
+  // 1. Envoi d'un crash report complet (sans auth)
   try {
     const crashData = {
       crashType: 'FlutterError',
@@ -41,17 +34,17 @@ async function stepCrashReporting(options = {}) {
       metadata: { source: 'user-journey-test', timestamp: Date.now() },
     };
 
-    const res = await axios.post(`${apiUrl}/api/v1/notifications/crashes`, crashData, {
-      headers,
+    const res = await axios.post(GATEWAY_CRASH_URL, crashData, {
+      headers: { 'Content-Type': 'application/json' },
       validateStatus: () => true,
     });
 
     stepResults.push({
       step: 'envoi_crash_report_complet',
-      success: res.status === 201 && res.data?.success === true,
+      success: res.status === 201 && res.data?.success === true && res.data?.file,
       status: res.status,
-      reportId: res.data?.reportId || null,
-      detail: res.status === 201 ? 'Crash report envoye avec succes' : `Erreur: ${res.status}`,
+      file: res.data?.file || null,
+      detail: res.status === 201 ? 'Crash report enregistre (gateway)' : `Erreur: ${res.status}`,
     });
   } catch (e) {
     stepResults.push({
@@ -64,86 +57,65 @@ async function stepCrashReporting(options = {}) {
   // 2. Envoi d'un crash report minimal
   try {
     const res = await axios.post(
-      `${apiUrl}/api/v1/notifications/crashes`,
+      GATEWAY_CRASH_URL,
       { crashType: 'MinimalJourney', message: 'Test minimal' },
-      { headers, validateStatus: () => true }
+      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
     );
 
     stepResults.push({
       step: 'envoi_crash_minimal',
-      success: res.status === 201,
+      success: res.status === 201 && res.data?.file,
       status: res.status,
     });
   } catch (e) {
     stepResults.push({ step: 'envoi_crash_minimal', success: false, detail: e.message });
   }
 
-  // 3. Envoi sans crashType (doit echouer)
+  // 3. Envoi sans crashType (doit echouer 400)
   try {
     const res = await axios.post(
-      `${apiUrl}/api/v1/notifications/crashes`,
+      GATEWAY_CRASH_URL,
       { message: 'Missing type' },
-      { headers, validateStatus: () => true }
+      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
     );
 
     stepResults.push({
       step: 'validation_crashType_requis',
-      success: res.status === 400 || res.status === 422,
+      success: res.status === 400,
       status: res.status,
-      detail: res.status >= 400 ? 'Validation OK: crashType requis' : 'Validation echouee',
+      detail: res.status === 400 ? 'Validation OK: crashType requis' : 'Validation echouee',
     });
   } catch (e) {
     stepResults.push({ step: 'validation_crashType_requis', success: false, detail: e.message });
   }
 
-  // 4. Lecture des crash reports
-  try {
-    const res = await axios.get(`${apiUrl}/api/v1/notifications/crashes?page=1&limit=5`, {
-      headers,
-      validateStatus: () => true,
-    });
-
-    const hasStructure = res.data?.reports !== undefined && res.data?.pagination !== undefined;
-
-    stepResults.push({
-      step: 'lecture_crash_reports',
-      success: res.status === 200 && hasStructure,
-      status: res.status,
-      count: res.data?.reports?.length || 0,
-      total: res.data?.pagination?.total || 0,
-      detail: `Endpoint OK, ${res.data?.reports?.length || 0} rapports (structure ${hasStructure ? 'valide' : 'invalide'})`,
-    });
-  } catch (e) {
-    stepResults.push({ step: 'lecture_crash_reports', success: false, detail: e.message });
-  }
-
-  // 5. Envoi sans auth (doit echouer)
+  // 4. Envoi sans auth doit reussir (gateway accepte sans token)
   try {
     const res = await axios.post(
-      `${apiUrl}/api/v1/notifications/crashes`,
-      { crashType: 'NoAuth', message: 'Should fail' },
+      GATEWAY_CRASH_URL,
+      { crashType: 'NoAuth', message: 'Accepte sans token' },
       { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
     );
 
     stepResults.push({
-      step: 'rejet_sans_auth',
-      success: res.status === 401,
+      step: 'accepte_sans_auth',
+      success: res.status === 201 && res.data?.success === true,
       status: res.status,
-      detail: res.status === 401 ? 'Authentification requise : OK' : 'Devrait renvoyer 401',
+      detail: res.status === 201 ? 'Gateway accepte sans authentification : OK' : `Attendu 201, obtenu ${res.status}`,
     });
   } catch (e) {
-    stepResults.push({ step: 'rejet_sans_auth', success: false, detail: e.message });
+    stepResults.push({ step: 'accepte_sans_auth', success: false, detail: e.message });
   }
 
-  // 6. Types multiples
+  // 5. Types multiples
   try {
     const types = ['UncaughtError', 'NetworkError', 'TimeoutError'];
     let allOk = true;
     for (const crashType of types) {
       const res = await axios.post(
-        `${apiUrl}/api/v1/notifications/crashes`,
+        GATEWAY_CRASH_URL,
         { crashType, message: `Journey test: ${crashType}` },
-        { headers, validateStatus: () => true }
+        { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
       );
       if (res.status !== 201) allOk = false;
     }
