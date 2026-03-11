@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -735,9 +735,15 @@ restart-full: ## Redémarrer tout le projet en conservant la base de données (p
 	$(MAKE) up-full
 	@echo "✅ Redémarrage terminé. Connexion : http://localhost:5003"
 
+# Build avec cache (profil full) — rapide après changement de code, utilise le cache Docker
+build-full: ## Build des images avec cache (sans --no-cache) — plus rapide que rebuild
+	@echo "🔨 Build des images (avec cache Docker)..."
+	@$(call docker_compose, -f docker-compose.yml --profile full build)
+	@echo "✅ Build terminé (cache utilisé). Pour démarrer: make up-full"
+
 # Rebuild de toutes les images (down + suppression images + build --no-cache ; puis make up-full pour démarrer)
-rebuild: ## Reconstruire toutes les images Docker (sans cache) — ensuite: make up-full
-	@echo "🔨 Reconstruction de toutes les images Docker..."
+rebuild: ## Reconstruire toutes les images Docker (sans cache) — lourd et long, préférer build-full ou test-full-quick
+	@echo "🔨 Reconstruction de toutes les images Docker (--no-cache, très lourd)..."
 	@echo ""
 	@echo "🛑 Arrêt des services..."
 	@$(MAKE) down
@@ -745,8 +751,8 @@ rebuild: ## Reconstruire toutes les images Docker (sans cache) — ensuite: make
 	@echo "🗑️  Suppression des anciennes images JobbingTrack..."
 	@docker images | grep "jobbingtrack-" | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
 	@echo ""
-	@echo "🔨 Rebuild avec --no-cache..."
-	@docker-compose -f docker-compose.yml --profile full build --no-cache
+	@echo "🔨 Rebuild avec --no-cache (peut prendre 10–20 min, forte charge CPU/RAM)..."
+	@$(call docker_compose, -f docker-compose.yml --profile full build --no-cache)
 	@echo ""
 	@echo "✅ Rebuild terminé !"
 	@echo ""

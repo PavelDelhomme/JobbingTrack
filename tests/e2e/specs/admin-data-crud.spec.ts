@@ -10,7 +10,7 @@ const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 
-test.describe('CRUD Données Complet (admin)', () => {
+test.describe.serial('CRUD Données Complet (admin)', () => {
   let token: string;
   let companyId: string;
   let contactId: string;

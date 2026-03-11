@@ -67,6 +67,12 @@ echo -e "${YELLOW}💡 Tables BDD à jour : make db-push-all (Postgres démarré
 echo -e "${CYAN}📍 Phase 4/4 – Chaque test ci-dessous affiche son numéro d'étape (étape 1, 2, 3, …).${NC}"
 echo ""
 
+# Métriques système au démarrage (monitoring)
+METRICS_BASE_URL="${API_GATEWAY_URL:-${API_URL:-http://localhost:5002}}"
+if [ -n "$METRICS_BASE_URL" ] && command -v curl >/dev/null 2>&1; then
+    curl -s -m 3 "$METRICS_BASE_URL/api/v1/metrics" 2>/dev/null | tee "$REPORT_DIR/metrics-start.json" >/dev/null 2>&1 || true
+fi
+
 # Compteurs globaux
 TOTAL_TESTS=0          # Nombre total de tests individuels
 TOTAL_PASSED=0         # Nombre total de tests réussis
@@ -271,7 +277,20 @@ run_test() {
   "output": $output_json
 }
 EOF
-    
+
+    # Collecte métriques post-test (monitoring) : snapshot CPU/mémoire/conteneurs si API disponible
+    local metrics_url="${API_GATEWAY_URL:-${API_URL:-http://localhost:5002}}"
+    if [ -n "$metrics_url" ] && command -v jq >/dev/null 2>&1; then
+        local metrics_json=""
+        metrics_json=$(curl -s -m 3 "$metrics_url/api/v1/metrics" 2>/dev/null || true)
+        if [ -n "$metrics_json" ] && echo "$metrics_json" | jq -e . >/dev/null 2>&1; then
+            local snap=$(echo "$metrics_json" | jq -c '{ cpu: (.system.cpu_percent // .cpu_percent // null), memory: (.system.memory_percent // .memory_percent // null), containers: (.system.containers.total // null) }' 2>/dev/null || echo "{}")
+            if [ -n "$snap" ] && [ "$snap" != "{}" ]; then
+                jq --argjson snap "$snap" '. + { metricsSnapshot: $snap }' "$result_file" > "$result_file.met" 2>/dev/null && mv "$result_file.met" "$result_file" || true
+            fi
+        fi
+    fi
+
     # Mettre à jour les compteurs globaux
     # S'assurer que total = passed + failed (cohérence)
     # Vérifier que passed et failed sont des nombres avant de faire l'opération
@@ -1038,6 +1057,11 @@ done | sed '$ s/,$//')
 }
 EOF
 
+# Métriques système en fin de run (monitoring)
+if [ -n "$METRICS_BASE_URL" ] && command -v curl >/dev/null 2>&1; then
+    curl -s -m 3 "$METRICS_BASE_URL/api/v1/metrics" 2>/dev/null > "$REPORT_DIR/metrics-end.json" || true
+fi
+
 # Générer le rapport HTML (s'assurer que le répertoire existe)
 mkdir -p "$(dirname "$HTML_REPORT")" || true
 
@@ -1104,7 +1128,7 @@ EOF
 
 # Ajouter chaque résultat de test au HTML (tous les fichiers JSON dans le répertoire)
 # Trier les fichiers pour un affichage cohérent
-for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.json | sort); do
+for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.json | grep -v metrics-start.json | grep -v metrics-end.json | sort); do
     if [ ! -f "$result_file" ]; then
         continue
     fi
@@ -1239,7 +1263,7 @@ TEXT_REPORT="$REPORT_DIR/report.txt"
     if [ "$TOTAL_FAILED" -eq 0 ]; then
         echo "  Aucun test echoue !"
     else
-        for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.json | sort); do
+        for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.json | grep -v metrics-start.json | grep -v metrics-end.json | sort); do
             [ ! -f "$result_file" ] && continue
             if command -v jq > /dev/null 2>&1; then
                 local_status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null) || local_status="unknown"
@@ -1264,6 +1288,7 @@ TEXT_REPORT="$REPORT_DIR/report.txt"
     echo "  Rapports : $REPORT_DIR/"
     echo "  HTML     : report.html"
     echo "  Texte    : report.txt"
+    echo "  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)"
     echo "================================================================"
 } > "$TEXT_REPORT" 2>/dev/null
 

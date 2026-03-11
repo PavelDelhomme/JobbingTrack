@@ -168,12 +168,6 @@ enum CompanySize {
   LARGE             // 250-1000
   ENTERPRISE        // > 1000
 }
-  STARTUP           // < 10
-  SMALL             // 10-50
-  MEDIUM            // 50-250
-  LARGE             // 250-1000
-  ENTERPRISE        // > 1000
-}
 
 // ============================================
 // 📄 CANDIDATURES
