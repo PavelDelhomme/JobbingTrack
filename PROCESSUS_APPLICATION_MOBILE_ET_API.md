@@ -292,4 +292,29 @@ D’après la logique décrite dans le projet et `FONCTIONNALITES.md` (§ 10.1, 
 
 ---
 
+## 14. Remontée automatique des crashes (app mobile)
+
+Pour que tout crash (y compris au démarrage ou avant login) soit remonté et diagnostiquable :
+
+- **Côté API** : une route dédiée **`POST /api/v1/crashes`** est exposée sur l’**API Gateway** (sans authentification). Elle enregistre le rapport dans un fichier (dans le projet : `backend/api-gateway/logs/crashes/`). Le **notification-service** ne gère pas les crashes : il sert uniquement aux **notifications in-app** que l’utilisateur reçoit sur l’application mobile.
+- **Côté mobile** :
+  - `CrashReporter.initialize()` enregistre `FlutterError.onError` et `PlatformDispatcher.instance.onError`. Tout crash non géré déclenche l’envoi d’un rapport vers **`/api/v1/crashes`** (gateway).
+  - L’envoi est tenté avec ou sans token (la route est publique).
+  - En cas d’échec, le rapport est **persisté sur le disque** de l’app et renvoyé au prochain démarrage.
+- **Consultation** : les rapports sont dans **`backend/api-gateway/logs/crashes/`** (fichiers JSON par crash). On peut ajouter plus tard une page backoffice pour les lister ou un envoi par email depuis la gateway si besoin.
+
+---
+
+## 15. HTTPS et chiffrement (à mettre en place)
+
+Actuellement, l’**API** et l’**application mobile** utilisent du **HTTP** en développement (pas de TLS). Pour la production et un chiffrement correct :
+
+- **API / Gateway** : exposer les endpoints en **HTTPS** (TLS) : certificat sur le reverse-proxy ou sur l’API Gateway (ex. Let’s Encrypt). Les requêtes mobiles devront utiliser `https://` vers l’API.
+- **Mobile** : configurer `ApiService.baseUrl` (ou l’URL de base) pour pointer vers `https://...` en production. Optionnel mais recommandé : **certificate pinning** (épinglage de certificat) pour limiter les attaques MITM, sans ralentir les requêtes une fois la confiance établie.
+- **Performance** : TLS ajoute peu de latence (négociation une fois par connexion, puis chiffrement symétrique). Pour ne pas ralentir les requêtes, garder les connexions HTTP réutilisables (keep-alive) et, côté mobile, un client HTTP qui réutilise la connexion (déjà le cas avec `http` en Dart).
+
+À prévoir dans la config déploiement et la doc d’exploitation (voir aussi `FONCTIONNALITES.md` et `STATUS.md`).
+
+---
+
 *Document généré à partir du code et de la documentation existante. À mettre à jour lors de l’ajout d’écrans ou de flux (ex. mode intérim, formulaire entreprise, autocomplétion candidature).*

@@ -26,13 +26,6 @@ router.get('/', controller.getNotifications);
 router.get('/stats', controller.getStats);
 router.put('/mark-all-read', controller.markAllAsRead);
 
-// Routes crash reporting (avant /:id pour eviter conflit)
-router.post('/crashes', [
-  body('crashType').notEmpty().withMessage('Type de crash requis'),
-  body('message').notEmpty().withMessage('Message requis')
-], controller.reportCrash);
-router.get('/crashes', controller.getCrashReports);
-
 // Routes emails
 router.get('/emails/logs', controller.getEmailLogs);
 router.post('/emails/send', [

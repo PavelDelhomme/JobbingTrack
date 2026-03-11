@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const logger = require('./utils/logger');
 
 // ✅ Import des middlewares de sécurité personnalisés
@@ -187,6 +189,28 @@ app.get('/api/v1/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     version: '1.0.0'
   });
+});
+
+// ✅ Rapports de crash (app mobile) — route dédiée, sans auth, hors notification-service
+// Le notification-service gère uniquement les notifications in-app utilisateur.
+app.post('/api/v1/crashes', (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.crashType || !body.message) {
+      return res.status(400).json({ success: false, error: 'crashType et message requis' });
+    }
+    const dir = path.join(__dirname, '..', 'logs', 'crashes');
+    fs.mkdirSync(dir, { recursive: true });
+    const safe = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `crash-${safe}-${Date.now()}.json`;
+    const filepath = path.join(dir, filename);
+    fs.writeFileSync(filepath, JSON.stringify(body, null, 2), 'utf8');
+    logger.info('Crash report saved', { file: filename });
+    res.status(201).json({ success: true, message: 'Rapport enregistré', file: filename });
+  } catch (err) {
+    logger.error('Crash report save error:', err.message);
+    res.status(500).json({ success: false, error: 'Erreur enregistrement rapport' });
+  }
 });
 
 // ✅ Proxy métriques vers metrics-aggregator (pour tests et backoffice)

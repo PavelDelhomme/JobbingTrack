@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 
 class CrashReporter {
@@ -321,6 +322,10 @@ class CrashReporter {
       return true;
     };
 
+    // Envoyer les rapports en attente (disque ou mémoire) dès que possible
+    _sendPendingReportsFromDisk();
+    flushPendingReports();
+
     debugPrint('[CrashReporter] Initialise (mode: ${_isDevMode ? "DEV - tracking illimite" : "PROD"})');
   }
 
@@ -372,29 +377,91 @@ class CrashReporter {
 
       debugPrint('[CrashReporter] Envoi rapport: $crashType - $message');
 
-      if (_authToken == null) {
-        debugPrint('[CrashReporter] Pas de token, rapport sauvegarde localement');
+      final sent = await _sendReport(report);
+      if (!sent) {
         _pendingReports.add(report);
-        return;
-      }
-
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/api/v1/notifications/crashes'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_authToken',
-        },
-        body: jsonEncode(report),
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 201) {
-        debugPrint('[CrashReporter] Rapport envoye avec succes');
-      } else {
-        debugPrint('[CrashReporter] Erreur envoi: ${response.statusCode}');
-        _pendingReports.add(report);
+        _persistReport(report);
       }
     } catch (e) {
       debugPrint('[CrashReporter] Erreur lors de l\'envoi: $e');
+      try {
+        final report = {
+          'crashType': crashType,
+          'message': message.length > 2000 ? message.substring(0, 2000) : message,
+          'stackTrace': stackTrace,
+          'deviceInfo': getDeviceMonitoring(),
+          'sessionId': _sessionId,
+          'screenName': screenName ?? _currentScreen ?? 'unknown',
+          'saveError': e.toString(),
+        };
+        _persistReport(report);
+      } catch (_) {}
+    }
+  }
+
+  static const String _pendingFileName = 'crash_reports_pending.jsonl';
+
+  static void _persistReport(Map<String, dynamic> report) {
+    getApplicationDocumentsDirectory().then((dir) {
+      try {
+        final file = File('${dir.path}/$_pendingFileName');
+        file.writeAsStringSync('${jsonEncode(report)}\n', mode: FileMode.append);
+        debugPrint('[CrashReporter] Rapport persiste sur disque');
+      } catch (e) {
+        debugPrint('[CrashReporter] Erreur persistance: $e');
+      }
+    }).catchError((_) {});
+  }
+
+  static Future<void> _sendPendingReportsFromDisk() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/$_pendingFileName');
+      if (!await file.exists()) return;
+      final lines = await file.readAsLines();
+      if (lines.isEmpty) return;
+      final reports = <Map<String, dynamic>>[];
+      for (final line in lines) {
+        final t = line.trim();
+        if (t.isEmpty) continue;
+        try {
+          reports.add(Map<String, dynamic>.from(jsonDecode(t) as Map));
+        } catch (_) {}
+      }
+      for (final report in reports) {
+        final sent = await _sendReport(report);
+        if (!sent) break;
+      }
+      await file.writeAsString('');
+      debugPrint('[CrashReporter] Rapports en attente sur disque envoyes');
+    } catch (e) {
+      debugPrint('[CrashReporter] Lecture rapports disque: $e');
+    }
+  }
+
+  static Future<bool> _sendReport(Map<String, dynamic> report) async {
+    try {
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (_authToken != null && _authToken!.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $_authToken';
+      }
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/api/v1/crashes'),
+        headers: headers,
+        body: jsonEncode(report),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        debugPrint('[CrashReporter] Rapport envoye avec succes');
+        return true;
+      }
+      debugPrint('[CrashReporter] Erreur envoi: ${response.statusCode}');
+      return false;
+    } catch (e) {
+      debugPrint('[CrashReporter] Erreur envoi: $e');
+      return false;
     }
   }
 
@@ -402,24 +469,14 @@ class CrashReporter {
   static final String _sessionId = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
 
   static Future<void> flushPendingReports() async {
-    if (_pendingReports.isEmpty || _authToken == null) return;
+    if (_pendingReports.isEmpty) return;
 
     final toSend = List<Map<String, dynamic>>.from(_pendingReports);
     _pendingReports.clear();
 
     for (final report in toSend) {
-      try {
-        await http.post(
-          Uri.parse('${ApiService.baseUrl}/api/v1/notifications/crashes'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_authToken',
-          },
-          body: jsonEncode(report),
-        ).timeout(const Duration(seconds: 10));
-      } catch (_) {
-        _pendingReports.add(report);
-      }
+      final sent = await _sendReport(report);
+      if (!sent) _pendingReports.add(report);
     }
 
     if (_pendingReports.isEmpty) {
