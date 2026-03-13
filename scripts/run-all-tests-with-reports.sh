@@ -892,32 +892,44 @@ echo -e "${CYAN}║     ⚡ CATÉGORIE 8 : TESTS PERFORMANCE AVANCÉS        ║
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# 35. Tests de Charge
+# 35. Tests Performance (CPU / endpoints) — toujours exécuté si le fichier existe
+if [ -f "tests/performance/test-performance.js" ]; then
+    run_test "Tests Performance Avancés (CPU & endpoints)" \
+        "node tests/performance/test-performance.js" \
+        "$REPORT_DIR/performance-advanced.json" \
+        "user"
+fi
+
+# 36. Tests de Charge
 if [ -f "tests/performance/test-load.js" ]; then
     run_test "Tests de Charge (Load Testing)" \
         "node tests/performance/test-load.js" \
-        "$REPORT_DIR/performance-load.json"
+        "$REPORT_DIR/performance-load.json" \
+        "user"
 fi
 
-# 36. Tests de Stress
+# 37. Tests de Stress
 if [ -f "tests/performance/test-stress.js" ]; then
     run_test "Tests de Stress (Stress Testing)" \
         "node tests/performance/test-stress.js" \
-        "$REPORT_DIR/performance-stress.json"
+        "$REPORT_DIR/performance-stress.json" \
+        "user"
 fi
 
-# 37. Tests Temps de Réponse
+# 38. Tests Temps de Réponse
 if [ -f "tests/performance/test-response-time.js" ]; then
     run_test "Tests Temps de Réponse" \
         "node tests/performance/test-response-time.js" \
-        "$REPORT_DIR/performance-response-time.json"
+        "$REPORT_DIR/performance-response-time.json" \
+        "user"
 fi
 
-# 38. Tests Base de Données (Requêtes Lentes)
+# 39. Tests Base de Données (Requêtes Lentes)
 if [ -f "tests/performance/test-database-performance.js" ]; then
     run_test "Tests Performance Base de Données" \
         "node tests/performance/test-database-performance.js" \
-        "$REPORT_DIR/performance-database.json"
+        "$REPORT_DIR/performance-database.json" \
+        "user"
 fi
 
 # Créer le résumé (s'assurer que le répertoire existe)
