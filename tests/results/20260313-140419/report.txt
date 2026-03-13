@@ -1,0 +1,138 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  13/03/2026 14:20:39
+================================================================
+
+RESUME
+------
+  Categories  : 32
+  Total tests : 724
+  Reussis     : 708
+  Echoues     : 16
+  Ignores     : 1
+  Taux        : 97.8%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [U] Tests API Complets (Jest) (19s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [FAIL] [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (900s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (8s)
+  [FAIL] [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (2s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (0s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+    [38] Test: Analytics Errors
+       ✗ FAIL - Status: 503 (attendu: 200)
+       Réponse: {"success":false,"error":"Service workflow-service unavailable","message":"Unable to reach service workflow-service at address http://workflow-service:3013","details":{"error":"getaddrinfo ENOTFOUND w
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+    FAIL api/test-status-cascade.test.js
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (31 ms)
+          ✕ mettre un résultat NEGATIVE devrait passer la candidature en REJECTED (25 ms)
+          ✕ créer un entretien devrait créer un événement calendrier (35 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: "REJECTED"
+        Received: "OFFER_RECEIVED"
+        > 170 |       expect(statusCode).toBe('REJECTED');
+        expect(received).toBeGreaterThan(expected)
+        Expected: > 50
+        Received:   50
+        > 236 |       expect(countAfter).toBeGreaterThan(countBefore);
+      console.error
+        > 187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+          189 |         expect(found).toBe(true);
+          at Object.error (api/test-bdd-relations.test.js:187:19)
+    FAIL api/test-bdd-relations.test.js
+          ✕ supprimer la candidature devrait soft-delete les éléments liés (555 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+        > 189 |         expect(found).toBe(true);
+    Test Suites: 2 failed, 7 passed, 9 total
+    Tests:       3 failed, 82 passed, 85 total
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+
+  --- Playwright CRUD Données (admin) ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 79 |     expect([200, 201]).toContain(res.status());
+          82 |     expect(contactId).toBeTruthy();
+      1 failed
+
+  --- Playwright E2E Frontend ---
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🩺-API-–-Health-St-19ebf-heck-API-Gateway-répond-200-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🩺-API-–-Health-St-19ebf-heck-API-Gateway-répond-200-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🩺-API-–-Health-St-4a294-acine-api-v1-est-accessible-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🩺-API-–-Health-St-4a294-acine-api-v1-est-accessible-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🔑-API-–-Authentif-85089-ants-invalides-retourne-401-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🔑-API-–-Authentif-85089-ants-invalides-retourne-401-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🔑-API-–-Authentif-fd1f5-ateur-accessible-avec-token-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🔑-API-–-Authentif-fd1f5-ateur-accessible-avec-token-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-20d15-ompanies-retourne-une-liste-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-20d15-ompanies-retourne-une-liste-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-daec3-mpanies-crée-une-entreprise-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-daec3-mpanies-crée-une-entreprise-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-7c039-es-id-supprime-l-entreprise-chromium/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-🏢-API-–-CRUD-Entr-7c039-es-id-supprime-l-entreprise-chromium-retry1/test-failed-1.png
+        Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        test-results/api-e2e-👤-API-–-Contacts--09e88-contacts-retourne-une-liste-chromium/test-failed-1.png
+
+================================================================
+  Rapports : tests/results/20260313-140419/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

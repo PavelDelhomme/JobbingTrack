@@ -24,7 +24,7 @@ export default function SecurityPoliciesPage() {
   const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
   const [wafSaving, setWafSaving] = useState(false);
   const [firewallRules, setFirewallRules] = useState<FirewallRule[]>([]);
-  const [blockedIPs, setBlockedIPs] = useState<string[]>([]);
+  const [blockedIPs, setBlockedIPs] = useState<Array<string | { ip?: string; blockedAt?: string; reason?: string }>>([]);
   const [newIP, setNewIP] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -65,10 +65,11 @@ export default function SecurityPoliciesPage() {
       const res = await axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, {
         headers: getAuthHeaders(),
       });
-      if (res.data?.success && Array.isArray(res.data?.data)) {
-        setBlockedIPs(res.data.data);
-      } else if (res.data?.ips) {
-        setBlockedIPs(res.data.ips);
+      const raw = res.data?.success && Array.isArray(res.data?.data) ? res.data.data : res.data?.ips;
+      if (Array.isArray(raw)) {
+        setBlockedIPs(raw);
+      } else {
+        setBlockedIPs([]);
       }
     } catch (e) {
       console.error('Erreur IPs bloquées:', e);
@@ -274,14 +275,22 @@ export default function SecurityPoliciesPage() {
             </button>
           </div>
           <ul className="space-y-2">
-            {blockedIPs.map((ip) => (
-              <li key={ip} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="font-mono text-gray-900 dark:text-gray-100">{ip}</span>
-                <button onClick={() => handleUnblockIP(ip)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
-                  Débloquer
-                </button>
-              </li>
-            ))}
+            {blockedIPs.map((item) => {
+              const ipStr = typeof item === 'string' ? item : (item?.ip ?? JSON.stringify(item));
+              return (
+                <li key={ipStr} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div>
+                    <span className="font-mono text-gray-900 dark:text-gray-100">{ipStr}</span>
+                    {typeof item === 'object' && item?.reason && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.reason}</p>
+                    )}
+                  </div>
+                  <button onClick={() => handleUnblockIP(ipStr)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
+                    Débloquer
+                  </button>
+                </li>
+              );
+            })}
             {blockedIPs.length === 0 && (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">Aucune IP bloquée</p>
             )}

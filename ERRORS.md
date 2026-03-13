@@ -21,6 +21,8 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | Endpoint sync non implemente | sync mobile/API | SyncQueue existe en BDD mais aucun endpoint API | Creer POST /sync/push, GET /sync/pull, GET /sync/status |
 | Endpoint time-travel : transitions auto non implementees | tests temporels | Time-travel disponible (backdater entites) mais le moteur de statut ne declenche pas encore les transitions auto (NO_RESPONSE apres 7j) | Implementer le cron/worker qui execute les transitions temporelles |
 | Suppression auto corbeille > 30j | cron/worker | Les elements supprimes ne sont jamais purges automatiquement | Creer un cron job ou worker pour la suppression definitive |
+| Pages backoffice sécurité (firewall, logs, menaces, analysis) | Frontend / API | Politiques : corrige (IPs en objet). Reste : Firewall, Logs, Menaces (vue unifiee toutes menaces), Analyse pleinement operationnels + tests E2E et tests reels (detection vraies failles) | Finaliser affichage, agregations, vue menaces unifiee ; option Shannon/KeygraphHQ pour detection menaces |
+| CSS @-o-keyframes (Opera legacy) | Frontend (logs) | Warning console « Unrecognized at-rule » | Optionnel : supprimer ou remplacer par @keyframes (vendor prefix inutile) |
 
 ## A implementer (non-erreurs, fonctionnalites manquantes)
 
@@ -35,7 +37,9 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 ## Erreurs resolues recemment
 
 | Erreur | Resolution |
-|--------|-----------|
+|--------|------------|
+| Page Politiques sécurité : « Objects are not valid as a React child » (objet `{ip, blockedAt, reason}`) | API blocked-ips peut retourner des objets. Frontend : affichage normalise (string ou `item.ip` + `item.reason`), plus de rendu direct d'objet. |
+| `POST /api/v1/contacts` retournait 500 (admin token) | Contact-service : le modèle Contact n'a pas de champ `companyId` (liaison many-to-many via ContactCompany). Le body contenait `companyId` → Prisma rejetait. Corrigé : extraction de `companyId` du body, création du contact puis liaison ContactCompany si `companyId` fourni ; vérification `req.user?.id` (401 si absent). Tests CRUD admin : plus de skip. |
 | `PUT /applications/:id` retournait 500 dans parcours utilisateur (champs `contactId` et `status` invalides) | `link_contact_to_application` n'envoie plus `contactId` (champ inexistant). `update_application_status` utilise `PUT /:id/status` au lieu de `PUT /:id`. |
 | Sauvegarde rapport user-journey ENOENT (`/tmp/tests/user-journey-reports/`) | Repertoire Docker corrompu (overlay fs, Links: 0). Remplace par `/tmp/journey-reports` avec test d'ecriture dynamique avant sauvegarde. |
 | Resultats parcours user-journey reinitialises apres execution | `useEffect` resettait les steps quand `isRunning` passait a false. Corrige avec `useRef` pour ne reset que quand le scenario change. |

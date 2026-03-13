@@ -15,12 +15,35 @@ const createContact = async (req, res, next) => {
       });
     }
 
+    const { companyId, applicationId, ...contactData } = req.body || {};
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Utilisateur non identifié (userId manquant)'
+      });
+    }
+
     const contact = await prisma.contact.create({
       data: {
-        userId: req.user.id,
-        ...req.body
+        userId,
+        ...contactData
       }
     });
+
+    if (companyId) {
+      try {
+        await prisma.contactCompany.upsert({
+          where: {
+            contactId_companyId: { contactId: contact.id, companyId }
+          },
+          update: {},
+          create: { contactId: contact.id, companyId }
+        });
+      } catch (linkErr) {
+        logger.warn(`Contact créé mais liaison entreprise ignorée (companyId invalide?): ${linkErr.message}`);
+      }
+    }
 
     res.status(201).json({
       success: true,

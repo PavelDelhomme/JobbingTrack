@@ -39,14 +39,6 @@ test.describe.serial('CRUD Données Complet (admin)', () => {
       headers: h(),
       data: { name: `${PREFIX} Corp ${Date.now()}`, industry: 'E2E Testing', location: 'Paris', size: 'SMALL' },
     });
-    if (res.status() === 500) {
-      const body = await res.json().catch(() => ({}));
-      const msg = body?.message || body?.error || '';
-      if (/Prisma|userId|company\.create/i.test(String(msg))) {
-        test.skip(true, `Création entreprise 500 (backend/schema): ${msg.slice(0, 120)}`);
-        return;
-      }
-    }
     expect([200, 201]).toContain(res.status());
     const body = await res.json();
     companyId = body.company?.id || '';
@@ -86,12 +78,12 @@ test.describe.serial('CRUD Données Complet (admin)', () => {
     });
     expect([200, 201]).toContain(res.status());
     const body = await res.json();
-    contactId = body.contact?.id || '';
+    contactId = body.contact?.id || body.data?.id || '';
     expect(contactId).toBeTruthy();
   });
 
   test('modifier un contact', async ({ request }) => {
-    if (!contactId) return;
+    if (!contactId) { test.skip(true, 'Création contact non disponible (prérequis)'); return; }
     const res = await request.put(`${GATEWAY_URL}/api/v1/contacts/${contactId}`, {
       headers: h(),
       data: { position: 'VP Engineering' },

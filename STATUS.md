@@ -1,10 +1,10 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 11 mars 2026
+**Dernière mise à jour** : 13 mars 2026
 
-**Tests** : Objectif = **faire passer la suite complète** (`make test` après `make up-full` + `make seed-auth`). Chaque run enregistre **durée par étape** et **métriques** (metrics-start/end, metricsSnapshot par test). Correctifs : User Journey, company-service, auth ; **CRUD admin Playwright en série** pour limiter les skips. Skips possibles : MailHog / Email Workflows. Échecs à traiter : **Tests API Backend (script)**, **Playwright E2E Frontend** — voir sortie dans les JSON du rapport. À poursuivre : suivi intérim, user journey et parcours intérim. Rapports : `tests/results/<timestamp>/` (report.html, report.txt, metrics-start.json, metrics-end.json).
+**Tests** : Objectif = **faire passer la suite complète** (`make test` après `make up-full` + `make seed-auth`). Dernier run **13/03 14:04** : **724 tests**, **708 réussis**, **16 échoués** (97,8 %), rapport `tests/results/20260313-140419/`. Correctifs : User Journey, company-service, auth ; **CRUD admin** : création contact corrigée côté contact-service (companyId + liaison ContactCompany) — **rebuild contact-service** pour que le test passe. **Catégorie 8 (Performance Avancés)** : exécution effective ajoutée (`tests/performance/test-performance.js`). **Page Politiques** : bug React « Objects are not valid as a React child » corrigé (IPs bloquées en objet → affichage string/objet). Échecs à traiter : Playwright E2E Frontend (localStorage denied), Tests API Jest (cascade statut, BDD relations), Tests API Backend (workflow-service 503), CRUD contact si service non rebuild. Rapports : `tests/results/<timestamp>/` (report.html, report.txt).
 
-**Backoffice** : Gestion des **données** (entreprises, boîtes d’intérim, candidatures, stats, corbeille, archives). Page Stats utilisateur, **Abonnement & facturation** à poursuivre. Pas de toggle « Mode intérim » dans le backoffice : le mode intérim est géré dans l’**application mobile** et l’**API** (préférence utilisateur). Voir « À faire maintenant ».
+**Backoffice** : Gestion des **données** (entreprises, boîtes d’intérim, candidatures, stats, corbeille, archives). **Sécurité** : page **Politiques** corrigée (affichage IPs bloquées). À poursuivre : **Analyse**, **Firewall**, **Menaces** (vue unifiée toutes menaces, pas seulement réseau), **Logs sécurité** — pleinement opérationnels et couverts par des tests réels (détection vraies failles). Pas de toggle « Mode intérim » dans le backoffice. Voir « À faire maintenant ».
 
 ---
 
@@ -41,7 +41,7 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/features/SUIVI_BO
 
 ### 4. Tests complets (à appliquer et faire passer)
 
-- **Lancer la suite** : `make up-full` puis `make seed-auth` puis `make test` (ou `make test-full`). Objectif : tous les blocs verts ; corriger les causes racines des échecs (company create, MailHog, template email, etc.) pour éviter les skip.
+- **Lancer la suite** : `make up-full` puis `make seed-auth` puis `make test` (ou `make test-full`). Objectif : tous les blocs verts ; corriger les causes racines des échecs (MailHog, template email, etc.) — création contact/entreprise ne doit plus skip (contact-service gère companyId, tests sans skip).
 - **User Journey** : parcours API complets (auth, companies, applications, contacts, etc.) et **parcours intérim** (création agence, candidature avec agencyId, filtres, préférence mode intérim) pour valider le flux de bout en bout.
 - **Playwright** : backoffice (CRUD, Suivi intérim, Billing si applicable), E2E frontend, sécurité, MailHog/Email Workflows quand l’env est prêt.
 - **Mobile** : E2E (émulateur/ADB), parcours inscription, mode intérim (toggle, écran Intérim, couleurs).
@@ -70,7 +70,42 @@ Rapports dans `tests/results/<timestamp>/`.
 
 **Tests** : rapports dans `tests/results/<timestamp>/`. En cas d'échec, vérifier que l'API Gateway et les services sont démarrés.
 
-**Migrations et Prisma** : tout passe par le **Makefile et les conteneurs**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**.
+**Migrations et Prisma** : tout passe par le **Makefile et les conteneurs**. Détail : **`docs/database/MIGRATIONS_ET_BASES.md`**.
+
+---
+
+## Échecs de tests à résoudre (rapport make test 13/03/2026 — 724 tests, 16 échoués)
+
+Dernier run : **tests/results/20260313-140419/** (97,8 % de réussite).
+
+| Bloc | Problème | Action |
+|------|----------|--------|
+| **Playwright E2E Frontend** | `SecurityError: Failed to read 'localStorage'` (document iframe/cross-origin) | Exécuter les specs E2E avec un contexte autorisant localStorage (baseURL même origine) ou mocker localStorage dans le test ; vérifier config Playwright (baseURL, context). |
+| **Tests API Complets (Jest)** | `test-status-cascade.test.js` : NEGATIVE → REJECTED attendu, reçu OFFER_RECEIVED ; `test-bdd-relations.test.js` : interview non trouvé dans trash après suppression candidature | Corriger la logique cascade statut (résultat NEGATIVE doit mettre en REJECTED) ; vérifier soft-delete des entretiens liés (trash). |
+| **Tests API Backend (script)** | Étape « Analytics Errors » : 503 workflow-service (getaddrinfo ENOTFOUND workflow-service) | S’assurer que workflow-service est joignable depuis le conteneur qui exécute le script (réseau Docker) ou exclure l’étape si service non déployé. |
+| **Playwright CRUD Données (admin)** | Création contact retourne 500 | **Code corrigé** (contact-service : companyId extrait + ContactCompany). Rebuild et redémarrer le conteneur contact-service puis relancer `make test`. |
+
+**Catégorie 8 (Tests Performance Avancés)** : le script n’exécutait aucun test (fichiers test-load.js, test-stress.js, etc. absents). **Corrigé** : exécution de `tests/performance/test-performance.js` ajoutée pour que la catégorie lance au moins un test (CPU & endpoints).
+
+**Health checks services (étapes 18–29)** : affichent « Service non accessible » mais marqués SUCCÈS. À corriger : faire échouer si service inaccessible ou exécuter seulement quand les conteneurs sont accessibles.
+
+**Performance & Analytics** : étendre la suite à un **système de monitoring complet** (graphiques, statuts, métriques backoffice), pas seulement CPU et endpoints.
+
+**Sécurité backoffice** : **Page Politiques** : bug « Objects are not valid as a React child » (IPs bloquées renvoyées en objet `{ip, blockedAt, reason}`) — **corrigé** (affichage string/objet). **Menaces** : actuellement uniquement « Menaces réseau » ; objectif = vue unifiée **toutes menaces** (WAF, intrusions, firewall, etc.). **Tests réels** : les pages Firewall, Analyse, Logs, Menaces doivent être pleinement opérationnelles et couvertes par des tests qui détectent de vraies problématiques (option : intégration type Shannon/KeygraphHQ pour détection menaces).
+
+**Dépendances npm** : vérifier et mettre à jour les versions (frontend, backend, tests).
+
+---
+
+## Récapitulatif à faire (complet)
+
+**Mobile** : Écran Entreprises (liste réelle, FAB création, écran détail avec candidatures/contacts liés). Suivi intérim : toggle « Mode intérim » (Paramètres ou accueil), champ agence dans formulaire candidature **uniquement quand mode intérim actif**, écran « Intérim » (liste agences + candidatures par agence), calendrier couleurs (ambre intérim / bleu classique + autres types d’événement). Swipe sur toutes les listes : gauche = supprimer (corbeille, avec validation), droite = archiver ou marquer terminé selon entité (config + undo 5 s). Archives vs Corbeille distingués clairement dans l’UI, page Archives dans le drawer. Sync offline : queue locale, replay à la reconnexion, indicateur de sync, détection connectivité. Validation manuelle du parcours vérification email (inscription → mail → lien → connexion). Push notifications (FCM).
+
+**API / Backend** : Endpoints sync (`POST /sync/push`, `GET /sync/pull`, `GET /sync/status`). Cron transitions temporelles (moteur statut), suppression auto corbeille > 30 j. Créer table `deployments` si deployment-service l’utilise. Tables User Analytics (`user_events`, `user_sessions`, etc.) : créées et utilisées pour récupérer les analytics utilisateur. Corriger API versioning (404 sur `GET /api/v1/analytics/stats/:userId/versions`). **Loki** : pas à déployer (monitoring fait maison, pas besoin de Loki).
+
+**Backoffice** : Suivi intérim : couleurs calendrier (intérim = ambre, classique = bleu) selon `application.agencyId`, page dédiée « Suivi intérim » (liste agences + candidatures par agence). Abonnement & facturation : page `/backoffice/billing` (données, APIs, affichage). Export/import CSV/JSON (candidatures, entreprises, contacts) avec interface. Pagination et tri cohérents sur toutes les listes. Email Monitor : affichage complet (liste, statuts, contenu au clic), historique, recherche. Templates email : création (pas seulement édition), tests Playwright. Page délivrabilité (`/backoffice/emails/deliverability`) et tests-emails : tests Playwright complets. Page de confirmation « Email vérifié » (frontend) après clic sur lien de vérification. Idempotence Postgres : `db-fix-role` sans erreurs « role/database already exists » (SQL idempotent dans Makefile).
+
+**Tests** : Faire passer toute la suite (`make test`) et corriger les échecs restants. Tests E2E pour toutes les pages backoffice sécurité (policies, firewall, logs, threats, network, analysis). Tests swipe et actions rapides sur listes mobiles. Tests export/import, vérification email (parcours complet), sync, pagination et tri. Performance & Analytics : intégrer dans la suite le **système de monitoring complet** (graphiques, statuts, métriques), pas seulement CPU système. CI/CD : pipeline GitHub Actions (build + test). Lancement tests depuis le hub avec vérification du résultat.
 
 ---
 
@@ -382,20 +417,21 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 
 ---
 
-## Dernier rapport de test (11/03/2026)
+## Dernier rapport de test (13/03/2026 14:04)
 
-Résumé utilisateur : **25 tests en échec** (make test). Corrections ciblées :
+Résumé : **724 tests**, **708 réussis**, **16 échoués** (97,8 %), **1 ignoré**. Dossier : `tests/results/20260313-140419/`. Détail des échecs : voir section « Échecs de tests à résoudre » ci-dessus. Corrections appliquées (13/03) : page **Politiques** (IPs bloquées en objet → affichage corrigé) ; **Catégorie 8** (exécution de test-performance.js). Historique 11/03 :
 
 | Problème | Correctif |
 |----------|-----------|
 | **[3] Login utilisateur test 401** (EMAIL_NOT_VERIFIED) | User Journey : ne compte plus comme échec quand on utilise le token admin pour la suite |
-| **[7] Create Company 500** (Prisma company.create) | Controller company-service : data sans champs undefined ; auth middleware : `userId ?? id ?? sub` ; CRUD spec : skip si 500 + message Prisma/userId |
+| **[7] Create Company 500** (Prisma company.create) | Controller company-service : data sans champs undefined ; auth middleware : `userId ?? id ?? sub` ; CRUD spec : pas de skip (expect 200/201). |
 | **status-engine.spec.ts** (tous skip) | API_URL / API_GATEWAY_URL exportés dans le script Playwright pour beforeAll / getAdminToken |
 | **MailHog 3 échecs** (SMTP réel rejette mailhog.local) | admin-emails-mailhog.spec.ts : skip si 500 et body contient Recipient address rejected / Domain not found / Erreur SMTP / mailhog.local |
 | **Email Workflows** (lien vérification introuvable) | email-workflows.spec.ts : skip si pas de lien verify dans emailContent (template ou EmailLog) |
-| **CRUD Données « créer une entreprise »** | admin-data-crud.spec.ts : skip si 500 avec message Prisma ; tests dépendants skip explicite si prérequis manquant |
+| **CRUD Données « créer une entreprise »** | admin-data-crud.spec.ts : pas de skip ; si 500, corriger company-service / JWT / BDD. |
+| **CRUD Données « créer un contact »** | **Corrigé** : contact-service gère companyId (extraction du body + liaison ContactCompany) ; test sans skip. |
 
-**À vérifier** : relancer `make test` après `make up-full` et `make seed-auth`. Si company create reste 500, vérifier DATABASE_URL du company-service, JWT (userId dans le token), et `make db-push-all`. Si status-engine reste tout skip, s’assurer que les specs reçoivent bien API_GATEWAY_URL (ex. depuis `tests/` avec config Playwright mailhog).
+**À résoudre (13/03)** : Playwright E2E Frontend ; Tests API Jest ; Tests API Backend (script) ; Health checks « Service non accessible » ; Performance & Analytics (monitoring complet dans suite) ; versions npm. **À vérifier** : relancer `make test` après `make up-full` et `make seed-auth`. Si company create retourne 500, vérifier DATABASE_URL du company-service, JWT (userId dans le token), et `make db-push-all`. Si status-engine reste tout skip, s’assurer que les specs reçoivent bien API_GATEWAY_URL.
 
 ---
 
@@ -473,7 +509,7 @@ await adb.runScenario('complete');
 | Stack / BDD | 21/21 services, 47 tables, monitoring OK, soft delete + corbeille + archivage | Unifier schemas Prisma, cron purge corbeille |
 | Backoffice | Connexion admin, hub Tests, parcours, rapports, E2E 233 | CRUD complet, export/import, verif email |
 | Parcours | 22 scenarios mobile + 21 API, personnalise, rapports | Tests temporels |
-| Tests | API 61, E2E 233, MailHog 3/3, Securite 64/64, Perf 15/15, Integration OK | Tests moteur statut, swipe, sync |
+| Tests | 724 total, 708 OK, 16 echecs (13/03 14:04) ; Cat. 8 exécutée | Stabiliser suite, E2E localStorage, API Jest cascade/BDD, CRUD contact (rebuild), Perf & Analytics complet, pages securite |
 | Emails | SMTP OK, MailHog OK, pages backoffice | Verification email inscription |
 | Mobile | Module ADB complet, 70+ steps, rendu emulateur, ecrans auth | CRUD forms, swipe, sync offline |
 | Moteur statut | Cascade basique (entretien→statut), historique | Transitions temporelles, auto/manuel, notifications |
