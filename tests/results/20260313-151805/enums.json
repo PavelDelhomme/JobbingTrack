@@ -1,0 +1,20 @@
+{
+  "testName": "Enums",
+  "userType": "system",
+  "command": "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-enums-temp.js' < scripts/test-enums.js && docker exec -w /app jobbingtrack-auth-service node test-enums-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-enums-temp.js",
+  "timestamp": "2026-03-13T15:18:09+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "output": "\n📋 Validation des Enums\n\nℹ️  Test 1: Vérification définition enum UserRole\nℹ️  Test 2: Vérification utilisation enum UserRole dans la base\nℹ️  Test 3: Vérification valeurs enum UserRole\n\n📋 Résultats pour UserRole\n\n✅ Définition dans schéma: Enum UserRole correctement défini avec 4 valeurs\n✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (2 valeurs distinctes)\n✅ Valeurs complètes: Toutes les 4 valeurs attendues sont présentes\n\n3 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum ContractType\nℹ️  Test 2: Vérification utilisation enum ContractType dans la base\nℹ️  Test 3: Vérification valeurs enum ContractType\n\n📋 Résultats pour ContractType\n\n✅ Définition dans schéma: Enum ContractType correctement défini avec 7 valeurs\n✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (2 valeurs distinctes)\n✅ Valeurs complètes: Toutes les 7 valeurs attendues sont présentes\n\n3 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum WorkMode\nℹ️  Test 2: Vérification utilisation enum WorkMode dans la base\nℹ️  Test 3: Vérification valeurs enum WorkMode\n\n📋 Résultats pour WorkMode\n\n✅ Définition dans schéma: Enum WorkMode correctement défini avec 3 valeurs\n✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes\n\n2 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum ApplicationType\nℹ️  Test 2: Vérification utilisation enum ApplicationType dans la base\nℹ️  Test 3: Vérification valeurs enum ApplicationType\n\n📋 Résultats pour ApplicationType\n\n✅ Définition dans schéma: Enum ApplicationType correctement défini avec 2 valeurs\n✅ Valeurs complètes: Toutes les 2 valeurs attendues sont présentes\n\n2 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum CompanySize\nℹ️  Test 2: Vérification utilisation enum CompanySize dans la base\nℹ️  Test 3: Vérification valeurs enum CompanySize\n\n📋 Résultats pour CompanySize\n\n✅ Définition dans schéma: Enum CompanySize correctement défini avec 5 valeurs\n✅ Valeurs complètes: Toutes les 5 valeurs attendues sont présentes\n\n2 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum NotificationType\nℹ️  Test 2: Vérification utilisation enum NotificationType dans la base\nℹ️  Test 3: Vérification valeurs enum NotificationType\n\n📋 Résultats pour NotificationType\n\n✅ Définition dans schéma: Enum NotificationType correctement défini avec 9 valeurs\n✅ Valeurs complètes: Toutes les 9 valeurs attendues sont présentes\n\n2 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification définition enum SyncAction\nℹ️  Test 2: Vérification utilisation enum SyncAction dans la base\nℹ️  Test 3: Vérification valeurs enum SyncAction\n\n📋 Résultats pour SyncAction\n\n✅ Définition dans schéma: Enum SyncAction correctement défini avec 3 valeurs\n✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes\n\n2 tests réussis, 0 tests échoués\n\n\n📋 Résumé Global\n\nTotal: 16 tests\n✅ 16 tests réussis\n✅ Tous les tests sont passés ! 🎉\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

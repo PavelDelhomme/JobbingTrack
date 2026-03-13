@@ -654,7 +654,7 @@ if [ -f "tests/services/test-company-service.js" ]; then
         "$REPORT_DIR/company-service.json"
 elif docker ps | grep -q jobbingtrack-company-service; then
     run_test "Tests Company Service (Health Check)" \
-        "curl -s http://localhost:3003/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${COMPANY_SERVICE_PORT:-5007}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/company-service.json"
 fi
 
@@ -665,7 +665,7 @@ if [ -f "tests/services/test-contact-service.js" ]; then
         "$REPORT_DIR/contact-service.json"
 elif docker ps | grep -q jobbingtrack-contact-service; then
     run_test "Tests Contact Service (Health Check)" \
-        "curl -s http://localhost:3004/health || echo 'Service non accessible'" \
+        "TMP=\$(mktemp); CODE=\$(curl -s -o \"\$TMP\" -w '%{http_code}' \"http://localhost:\${CONTACT_SERVICE_PORT:-5008}/health\"); BODY=\$(cat \"\$TMP\"); rm -f \"\$TMP\"; if [ \"\$CODE\" != '200' ] || echo \"\$BODY\" | grep -qE '<!DOCTYPE|Cannot GET'; then echo \"\$BODY\"; exit 1; fi; echo \"\$BODY\"" \
         "$REPORT_DIR/contact-service.json"
 fi
 
@@ -676,7 +676,7 @@ if [ -f "tests/services/test-interview-service.js" ]; then
         "$REPORT_DIR/interview-service.json"
 elif docker ps | grep -q jobbingtrack-interview-service; then
     run_test "Tests Interview Service (Health Check)" \
-        "curl -s http://localhost:3005/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${INTERVIEW_SERVICE_PORT:-5009}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/interview-service.json"
 fi
 
@@ -687,7 +687,7 @@ if [ -f "tests/services/test-call-service.js" ]; then
         "$REPORT_DIR/call-service.json"
 elif docker ps | grep -q jobbingtrack-call-service; then
     run_test "Tests Call Service (Health Check)" \
-        "curl -s http://localhost:3008/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${CALL_SERVICE_PORT:-5010}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/call-service.json"
 fi
 
@@ -698,7 +698,7 @@ if [ -f "tests/services/test-followup-service.js" ]; then
         "$REPORT_DIR/followup-service.json"
 elif docker ps | grep -q jobbingtrack-followup-service; then
     run_test "Tests FollowUp Service (Health Check)" \
-        "curl -s http://localhost:3012/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${FOLLOWUP_SERVICE_PORT:-5012}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/followup-service.json"
 fi
 
@@ -709,7 +709,7 @@ if [ -f "tests/services/test-event-service.js" ]; then
         "$REPORT_DIR/event-service.json"
 elif docker ps | grep -q jobbingtrack-event-service; then
     run_test "Tests Event Service (Health Check)" \
-        "curl -s http://localhost:3011/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${EVENT_SERVICE_PORT:-5011}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/event-service.json"
 fi
 
@@ -720,7 +720,7 @@ if [ -f "tests/services/test-notification-service.js" ]; then
         "$REPORT_DIR/notification-service.json"
 elif docker ps | grep -q jobbingtrack-notification-service; then
     run_test "Tests Notification Service (Health Check)" \
-        "curl -s http://localhost:3006/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${NOTIFICATION_SERVICE_PORT:-5014}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/notification-service.json"
 fi
 
@@ -731,7 +731,7 @@ if [ -f "tests/services/test-dashboard-service.js" ]; then
         "$REPORT_DIR/dashboard-service.json"
 elif docker ps | grep -q jobbingtrack-dashboard-service; then
     run_test "Tests Dashboard Service (Health Check)" \
-        "curl -s http://localhost:3007/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${DASHBOARD_SERVICE_PORT:-5015}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/dashboard-service.json"
 fi
 
@@ -742,7 +742,7 @@ if [ -f "tests/services/test-profile-service.js" ]; then
         "$REPORT_DIR/profile-service.json"
 elif docker ps | grep -q jobbingtrack-profile-service; then
     run_test "Tests Profile Service (Health Check)" \
-        "curl -s http://localhost:3009/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${PROFILE_SERVICE_PORT:-5013}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/profile-service.json"
 fi
 
@@ -753,7 +753,7 @@ if [ -f "tests/services/test-security-service.js" ]; then
         "$REPORT_DIR/security-service.json"
 elif docker ps | grep -q jobbingtrack-security-service; then
     run_test "Tests Security Service (Health Check)" \
-        "curl -s http://localhost:3010/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${SECURITY_SERVICE_PORT:-5017}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/security-service.json"
 fi
 
@@ -764,7 +764,7 @@ if [ -f "tests/services/test-metrics-aggregator.js" ]; then
         "$REPORT_DIR/metrics-aggregator.json"
 elif docker ps | grep -q jobbingtrack-metrics-aggregator; then
     run_test "Tests Metrics Aggregator Service (Health Check)" \
-        "curl -s http://localhost:3013/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${METRICS_AGGREGATOR_PORT:-5004}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/metrics-aggregator.json"
 fi
 
@@ -775,7 +775,7 @@ if [ -f "tests/services/test-workflow-service.js" ]; then
         "$REPORT_DIR/workflow-service.json"
 elif docker ps | grep -q jobbingtrack-workflow-service; then
     run_test "Tests Workflow Service (Health Check)" \
-        "curl -s http://localhost:3014/health || echo 'Service non accessible'" \
+        "curl -sf 'http://localhost:${WORKFLOW_SERVICE_PORT:-5016}/health' || { echo 'Service non accessible'; exit 1; }" \
         "$REPORT_DIR/workflow-service.json"
 fi
 
@@ -786,7 +786,7 @@ if [ -f "tests/services/test-deployment-service.js" ]; then
         "$REPORT_DIR/deployment-service.json"
 elif docker ps | grep -q jobbingtrack-deployment-service; then
     run_test "Tests Deployment Service (Health Check)" \
-        "curl -s http://localhost:3015/health || echo 'Service non accessible'" \
+        "curl -s http://localhost:${DEPLOYMENT_SERVICE_PORT:-5018}/health || echo 'Service non accessible'" \
         "$REPORT_DIR/deployment-service.json"
 fi
 
