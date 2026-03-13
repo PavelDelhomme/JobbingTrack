@@ -57,13 +57,18 @@ export default function ThreatsPage() {
         timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
       });
       if (response.data.success) {
-        const threatsData = response.data.data || []
-        const totalData = response.data.pagination?.total || 0
-        setThreats(threatsData)
+        const raw = response.data.data || []
+        const totalData = response.data.pagination?.total ?? raw.length
+        const sorted = [...raw].sort((a, b) => {
+          const da = new Date(a.detectedAt || 0).getTime()
+          const db = new Date(b.detectedAt || 0).getTime()
+          return db - da
+        })
+        setThreats(sorted)
         setTotal(totalData)
-        // ✅ OPTIMISATION : Mettre en cache
+        // ✅ OPTIMISATION : Mettre en cache (données triées)
         sessionStorage.setItem(cacheKey, JSON.stringify({
-          data: threatsData,
+          data: sorted,
           total: totalData,
           timestamp: now
         }))
@@ -120,9 +125,17 @@ export default function ThreatsPage() {
   const getThreatTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       'SYN_FLOOD': 'SYN Flood',
+      'SYN Flood': 'SYN Flood',
       'PORT_SCAN': 'Port Scanning',
       'BRUTE_FORCE': 'Brute Force',
-      'DDoS': 'DDoS Attack'
+      'DDoS': 'DDoS Attack',
+      'SUSPICIOUS_REQUEST': 'Requête suspecte',
+      'SQL_INJECTION': 'Injection SQL',
+      'XSS': 'XSS',
+      'PATH_TRAVERSAL': 'Path Traversal',
+      'INTRUSION': 'Intrusion',
+      'WAF_BLOCK': 'Blocage WAF',
+      'FIREWALL_BLOCK': 'Blocage Firewall',
     };
     return labels[type] || type;
   };
@@ -135,10 +148,10 @@ export default function ThreatsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <AlertTriangle className="h-8 w-8" />
-              Menaces Réseau
+              Menaces
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Menaces réseau détectées et bloquées
+              Toutes les menaces détectées (réseau, WAF, firewall, intrusions) — tri par date/heure de détection.
             </p>
           </div>
           <button

@@ -11,6 +11,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Health à la racine (pour curl localhost:PORT/health)
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'contact-service',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: process.env.npm_package_version || '1.0.0',
+  });
+});
+
 // Routes
 const contactRoutes = require('./routes/contact.routes');
 app.use('/api/v1/contacts', contactRoutes);

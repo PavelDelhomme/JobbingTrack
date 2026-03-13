@@ -146,8 +146,8 @@ const WAF_RULES = {
 const BLACKLISTED_IPS = [];
 const WHITELISTED_IPS = [];
 
-// État du WAF (peut être stocké en base de données)
-let wafEnabled = process.env.WAF_ENABLED === 'true';
+// État du WAF (activé par défaut ; mettre WAF_ENABLED=false pour désactiver)
+let wafEnabled = process.env.WAF_ENABLED !== 'false';
 
 /**
  * GET /api/v1/security/waf/config

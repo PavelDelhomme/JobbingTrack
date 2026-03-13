@@ -1,0 +1,224 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+        - /url: /backoffice
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - button "📊 Tableau de bord ▶" [ref=e10] [cursor=pointer]:
+            - generic [ref=e11]:
+              - generic [ref=e12]: 📊
+              - generic [ref=e13]: Tableau de bord
+            - generic [ref=e14]: ▶
+          - generic [ref=e15]:
+            - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques & Monitoring" [ref=e25] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques & Monitoring
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+            - link "📈 Performances complètes" [ref=e37] [cursor=pointer]:
+              - /url: /backoffice/analytics/performances
+              - generic [ref=e38]: 📈
+              - generic [ref=e39]: Performances complètes
+            - link "🌐 Performances réseau" [ref=e43] [cursor=pointer]:
+              - /url: /backoffice/analytics/network
+              - generic [ref=e44]: 🌐
+              - generic [ref=e45]: Performances réseau
+            - link "📱 Performances applicatives" [ref=e49] [cursor=pointer]:
+              - /url: /backoffice/analytics/application
+              - generic [ref=e50]: 📱
+              - generic [ref=e51]: Performances applicatives
+            - link "🐳 Analytics conteneurs" [ref=e55] [cursor=pointer]:
+              - /url: /backoffice/analytics/containers
+              - generic [ref=e56]: 🐳
+              - generic [ref=e57]: Analytics conteneurs
+            - link "📊 Analytics utilisateur" [ref=e61] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e62]: 📊
+              - generic [ref=e63]: Analytics utilisateur
+        - generic [ref=e64]:
+          - button "🔒 Sécurité ▶" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 🔒
+              - generic [ref=e68]: Sécurité
+            - generic [ref=e69]: ▶
+          - generic [ref=e70]:
+            - link "📋 Logs de sécurité" [ref=e74] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e75]: 📋
+              - generic [ref=e76]: Logs de sécurité
+            - link "⚙️ Politiques" [ref=e80] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e81]: ⚙️
+              - generic [ref=e82]: Politiques
+            - link "🛡️ Analyse" [ref=e86] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e87]: 🛡️
+              - generic [ref=e88]: Analyse
+            - link "🔥 Firewall" [ref=e92] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e93]: 🔥
+              - generic [ref=e94]: Firewall
+            - link "🌐 Réseau" [ref=e98] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e99]: 🌐
+              - generic [ref=e100]: Réseau
+            - link "⚠️ Menaces" [ref=e104] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e105]: ⚠️
+              - generic [ref=e106]: Menaces
+        - generic [ref=e107]:
+          - button "⚙️ Administration ▶" [ref=e108] [cursor=pointer]:
+            - generic [ref=e109]:
+              - generic [ref=e110]: ⚙️
+              - generic [ref=e111]: Administration
+            - generic [ref=e112]: ▶
+          - generic [ref=e113]:
+            - generic [ref=e116]:
+              - link "🔧 Gestion des services" [ref=e117] [cursor=pointer]:
+                - /url: /backoffice/services
+                - generic [ref=e118]: 🔧
+                - generic [ref=e119]: Gestion des services
+              - button "Expander les sous-items" [ref=e120] [cursor=pointer]: ▶
+            - generic [ref=e123]:
+              - link "💾 Gestion des données" [ref=e124] [cursor=pointer]:
+                - /url: /backoffice/datas
+                - generic [ref=e125]: 💾
+                - generic [ref=e126]: Gestion des données
+              - button "Expander les sous-items" [ref=e127] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e131] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e132]: 👥
+              - generic [ref=e133]: Utilisateurs
+        - generic [ref=e134]:
+          - button "🛠️ Développement ▶" [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]:
+              - generic [ref=e137]: 🛠️
+              - generic [ref=e138]: Développement
+            - generic [ref=e139]: ▶
+          - generic [ref=e140]:
+            - link "🧪 Testeur d’API (manuel)" [ref=e144] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e145]: 🧪
+              - generic [ref=e146]: Testeur d’API (manuel)
+            - link "🎲 Données de test" [ref=e150] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e151]: 🎲
+              - generic [ref=e152]: Données de test
+            - link "📱 Émulateur mobile" [ref=e156] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e157]: 📱
+              - generic [ref=e158]: Émulateur mobile
+            - generic [ref=e161]:
+              - link "🧪 Tests" [ref=e162] [cursor=pointer]:
+                - /url: /backoffice/tests
+                - generic [ref=e163]: 🧪
+                - generic [ref=e164]: Tests
+              - button "Expander les sous-items" [ref=e165] [cursor=pointer]: ▶
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - link "🚶 Parcours utilisateur" [ref=e169] [cursor=pointer]:
+                  - /url: /backoffice/user-journey
+                  - generic [ref=e172]: 🚶
+                  - generic [ref=e173]: Parcours utilisateur
+                - button "Expander les sous-items" [ref=e176] [cursor=pointer]: ▶
+              - generic [ref=e177]:
+                - link "📋 Parcours prédéfinis" [ref=e178] [cursor=pointer]:
+                  - /url: /backoffice/user-journey
+                  - generic [ref=e179]: 📋
+                  - generic [ref=e180]: Parcours prédéfinis
+                - link "🎯 Parcours personnalisé" [ref=e181] [cursor=pointer]:
+                  - /url: /backoffice/user-journey/custom
+                  - generic [ref=e182]: 🎯
+                  - generic [ref=e183]: Parcours personnalisé
+                - link "📄 Rapports de parcours" [ref=e184] [cursor=pointer]:
+                  - /url: /backoffice/user-journey/reports
+                  - generic [ref=e185]: 📄
+                  - generic [ref=e186]: Rapports de parcours
+        - generic [ref=e188]:
+          - button "📧 Gestion des emails ▶" [ref=e189] [cursor=pointer]:
+            - generic [ref=e190]:
+              - generic [ref=e191]: 📧
+              - generic [ref=e192]: Gestion des emails
+            - generic [ref=e193]: ▶
+          - generic [ref=e194]:
+            - link "📊 Dashboard" [ref=e198] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e199]: 📊
+              - generic [ref=e200]: Dashboard
+            - link "📈 Email Monitor" [ref=e204] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e205]: 📈
+              - generic [ref=e206]: Email Monitor
+            - link "📋 Historique" [ref=e210] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e211]: 📋
+              - generic [ref=e212]: Historique
+            - link "📝 Templates" [ref=e216] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e217]: 📝
+              - generic [ref=e218]: Templates
+            - link "⚙️ Configuration" [ref=e222] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e223]: ⚙️
+              - generic [ref=e224]: Configuration
+            - link "✅ Déliverabilité" [ref=e228] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e229]: ✅
+              - generic [ref=e230]: Déliverabilité
+            - link "🧪 Tests Emails" [ref=e234] [cursor=pointer]:
+              - /url: /backoffice/tests-emails
+              - generic [ref=e235]: 🧪
+              - generic [ref=e236]: Tests Emails
+            - link "📬 MailHog (interface)" [ref=e240] [cursor=pointer]:
+              - /url: http://localhost:8025
+              - generic [ref=e241]: 📬
+              - generic [ref=e242]: MailHog (interface)
+      - generic [ref=e244]:
+        - button "PD Admin JobbingTrack SUPER_ADMIN" [ref=e246] [cursor=pointer]:
+          - generic [ref=e247]: PD
+          - generic [ref=e248]:
+            - paragraph [ref=e249]: Admin JobbingTrack
+            - paragraph [ref=e250]: SUPER_ADMIN
+        - button "🚪" [ref=e252] [cursor=pointer]
+    - generic [ref=e253]:
+      - generic [ref=e255]:
+        - button "Toggle sidebar" [ref=e257] [cursor=pointer]:
+          - img [ref=e258]
+        - generic [ref=e261]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e262]
+        - generic [ref=e263]:
+          - button "PD admin@jobbingtrack.test" [ref=e264] [cursor=pointer]:
+            - generic [ref=e265]: PD
+            - generic [ref=e266]: admin@jobbingtrack.test
+          - button "Paramètres" [ref=e267] [cursor=pointer]:
+            - img [ref=e268]
+            - generic [ref=e271]: Paramètres
+          - button "Actions" [ref=e273] [cursor=pointer]:
+            - img [ref=e274]
+            - generic [ref=e277]: Actions
+            - img [ref=e278]
+          - button "🌙" [ref=e280] [cursor=pointer]:
+            - generic [ref=e281]: 🌙
+      - main [ref=e282]:
+        - generic [ref=e284]:
+          - generic [ref=e285]:
+            - heading "📄 Rapports de parcours" [level=1] [ref=e286]
+            - paragraph [ref=e287]: Consulter et télécharger les rapports d'exécution des parcours utilisateur
+          - button "Actualiser" [ref=e288] [cursor=pointer]:
+            - img [ref=e289]
+            - text: Actualiser
+  - alert [ref=e296]
+```

@@ -371,6 +371,9 @@ services:
     container_name: jobbingtrack-contact-service
     ports:
       - "${CONTACT_SERVICE_PORT:-5008}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
+    volumes:
+      - ./backend/contact-service/src:/app/src
+      - ./backend/contact-service/package.json:/app/package.json:ro
     environment:
       - NODE_ENV=development
       - PORT=3004
@@ -688,7 +691,7 @@ services:
       - SECURITY_SERVICE_URL=http://security-service:3017
       - PRISMA_DISABLE_WARNINGS=true
       - DEBUG=
-      - WAF_ENABLED=${WAF_ENABLED:-false}
+      - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     cap_add:
