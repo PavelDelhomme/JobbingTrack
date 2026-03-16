@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Workflow Service (Health Check)",
+  "userType": "system",
+  "command": "curl -sf 'http://localhost:5016/health' || { echo 'Service non accessible'; exit 1; }",
+  "timestamp": "2026-03-16T13:10:42+01:00",
+  "duration": 1,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "output": "Service non accessible\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

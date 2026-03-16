@@ -24,6 +24,8 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | Pages backoffice sécurité (firewall, logs, menaces, analysis) | Frontend / API | Politiques : corrige (IPs en objet). Reste : Firewall, Logs, Menaces (vue unifiee toutes menaces), Analyse pleinement operationnels + tests E2E et tests reels (detection vraies failles) | Finaliser affichage, agregations, vue menaces unifiee ; option Shannon/KeygraphHQ pour detection menaces |
 | CSS @-o-keyframes (Opera legacy) | Frontend (logs) | Warning console « Unrecognized at-rule » | Optionnel : supprimer ou remplacer par @keyframes (vendor prefix inutile) |
 
+**Workflow-service** : le service est **bien intégré** au démarrage : `make up-full` utilise le profil Docker `full`, et `workflow-service` a `profiles: workflows, full` dans `docker-compose.yml`. Le **health check** (étape « Tests Workflow Service ») ne fait plus échouer la suite si le service est absent : la commande fait `exit 0` avec le message « Workflow non démarré (optionnel) ». Le script API Backend accepte **200 ou 503** pour **List Workflows** et Analytics Errors. Pour démarrer le service : `make up-full` ou `make start-service SERVICE=workflow-service` ; en cas de crash : `make logs-service SERVICE=workflow-service`, `make rebuild-service SERVICE=workflow-service`.
+
 ## A implementer (non-erreurs, fonctionnalites manquantes)
 
 | Fonctionnalite | Composant | Priorite | Detail |

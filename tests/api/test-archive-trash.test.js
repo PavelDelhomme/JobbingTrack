@@ -409,6 +409,7 @@ describe('Archivage & Corbeille (utilisateur classique)', () => {
       expect(unarchRes.status).toBe(200);
 
       if (testInterviewId) {
+        await new Promise(r => setTimeout(r, 300));
         const intRes = await axios.get(`${API_URL}/api/v1/interviews`, { headers: authHeaders, validateStatus: () => true });
         const found = intRes.data.interviews?.find(i => i.id === testInterviewId);
         expect(found).toBeDefined();
