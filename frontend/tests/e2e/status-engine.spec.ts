@@ -194,13 +194,19 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
   test('historique des changements de statut', async ({ request }) => {
     test.skip(!applicationId, 'Candidature non disponible');
 
+    // S'assurer qu'il existe au moins un changement (indépendant de l'ordre des tests / workers)
+    await request.put(`${API_URL}/api/v1/applications/${applicationId}/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { status: 'INTERVIEW_PENDING', comment: 'E2E historique' }
+    });
+
     const res = await request.get(`${API_URL}/api/v1/applications/${applicationId}/status-history`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     expect(res.status()).toBe(200);
     const body = await res.json();
-    const history = body.history || body.statusHistory || [];
+    const history = body.statusHistory ?? body.history ?? [];
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBeGreaterThanOrEqual(1);
   });

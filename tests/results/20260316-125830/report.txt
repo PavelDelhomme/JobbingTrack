@@ -1,0 +1,140 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  16/03/2026 13:10:50
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 1010
+  Reussis     : 988
+  Echoues     : 22
+  Ignores     : 1
+  Taux        : 97.8%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (0s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [U] Tests API Complets (Jest) (21s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [FAIL] [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (627s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [FAIL] [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (4s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [FAIL] [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+    [38] Test: Analytics Errors
+       ✗ FAIL - Status: 503 (attendu: 200)
+       Réponse: {"success":false,"error":"Service workflow-service unavailable","message":"Unable to reach service workflow-service at address http://workflow-service:3013","details":{"error":"getaddrinfo ENOTFOUND w
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+    FAIL api/test-status-cascade.test.js
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (53 ms)
+          ✕ créer un entretien devrait créer un événement calendrier (63 ms)
+        expect(received).toBeGreaterThan(expected)
+        Expected: > 50
+        Received:   50
+        > 236 |       expect(countAfter).toBeGreaterThan(countBefore);
+      console.error
+        > 187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+          189 |         expect(found).toBe(true);
+          at Object.error (api/test-bdd-relations.test.js:187:19)
+    FAIL api/test-bdd-relations.test.js
+          ✕ supprimer la candidature devrait soft-delete les éléments liés (550 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+        > 189 |         expect(found).toBe(true);
+    Test Suites: 2 failed, 7 passed, 9 total
+    Tests:       2 failed, 83 passed, 85 total
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+    FAIL api/test-status-cascade.test.js
+          ✕ créer un entretien devrait passer la candidature en INTERVIEW_PENDING (35 ms)
+          ✕ passer un entretien à COMPLETED devrait passer la candidature en INTERVIEW_DONE (26 ms)
+        Résultat entretien positif → OFFER_RECEIVED
+          ✕ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (21 ms)
+
+  --- Playwright CRUD Données (admin) ---
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 400
+        > 209 |     expect(res.status()).toBe(200);
+      1 failed
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 401
+        > 149 |     expect(res.status).toBe(200);
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 401
+        > 149 |     expect(res.status).toBe(200);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 201]
+        > 158 |     expect([200, 201]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 201]
+        > 158 |     expect([200, 201]).toContain(res.status);
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 401
+        > 173 |     expect(res.status).toBe(200);
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 401
+        > 173 |     expect(res.status).toBe(200);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 404]
+        > 199 |     expect([200, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+
+  --- Tests Workflow Service (Health Check) ---
+
+================================================================
+  Rapports : tests/results/20260316-125830/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

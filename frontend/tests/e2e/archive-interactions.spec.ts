@@ -9,8 +9,10 @@ import {
   apiCreateInterview,
   apiDelete,
   apiArchive,
+  apiArchiveWithResponse,
   apiUnarchive,
   apiRestore,
+  apiRestoreWithResponse,
   cleanupTestData,
   TEST_PREFIX,
   uniqueId,
@@ -22,6 +24,8 @@ const API_URL = process.env.API_URL || 'http://localhost:5002';
 // 1. ARCHIVAGE ET CORBEILLE (API + UI) — admin
 // ═══════════════════════════════════════════════════════
 test.describe('🗄️ Archivage & Corbeille (admin)', () => {
+  test.describe.configure({ mode: 'serial' });
+
   let token: string;
   let companyId: string;
   let applicationId: string;
@@ -62,14 +66,14 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
 
   test('API : archiver et désarchiver un entretien', async ({ request }) => {
     test.skip(!interviewId, 'Pas d\'entretien de test');
-    const archived = await apiArchive(request, token, 'interviews', interviewId);
-    expect(archived).toBe(true);
+    const archiveRes = await apiArchiveWithResponse(request, token, 'interviews', interviewId);
+    expect(archiveRes.ok, `Archive entretien: ${archiveRes.status} ${JSON.stringify(archiveRes.body)}`).toBe(true);
 
     const listRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const body = await listRes.json();
-    expect(body.items?.some((i: any) => i.id === interviewId)).toBe(true);
+    expect(body.items?.some((i: any) => i.id === interviewId), 'Entretien présent dans GET /archived').toBe(true);
 
     const unarchived = await apiUnarchive(request, token, 'interviews', interviewId);
     expect(unarchived).toBe(true);
@@ -88,8 +92,8 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     const trashBody = await trashRes.json();
     expect(trashBody.items?.some((i: any) => i.id === interviewId)).toBe(true);
 
-    const restored = await apiRestore(request, token, 'interviews', interviewId);
-    expect(restored).toBe(true);
+    const restoreRes = await apiRestoreWithResponse(request, token, 'interviews', interviewId);
+    expect(restoreRes.ok, `Restore entretien: ${restoreRes.status} ${JSON.stringify(restoreRes.body)}`).toBe(true);
   });
 
   test('API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés', async ({ request }) => {
@@ -106,8 +110,8 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     const trashBody = await trashRes.json();
     expect(trashBody.items?.some((a: any) => a.id === applicationId)).toBe(true);
 
-    const restored = await apiRestore(request, token, 'applications', applicationId);
-    expect(restored).toBe(true);
+    const restoreAppRes = await apiRestoreWithResponse(request, token, 'applications', applicationId);
+    expect(restoreAppRes.ok, `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`).toBe(true);
 
     const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -121,14 +125,14 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
   });
   test('archiver candidature met en archive les entretiens liés (suite)', async ({ request }) => {
     test.skip(!applicationId || !interviewId, 'Données manquantes');
-    const archived = await apiArchive(request, token, 'applications', applicationId);
-    expect(archived).toBe(true);
+    const archiveAppRes = await apiArchiveWithResponse(request, token, 'applications', applicationId);
+    expect(archiveAppRes.ok, `Archive candidature: ${archiveAppRes.status} ${JSON.stringify(archiveAppRes.body)}`).toBe(true);
 
     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const intBody = await intArchRes.json();
-    expect(intBody.items?.some((i: any) => i.id === interviewId)).toBe(true);
+    expect(intBody.items?.some((i: any) => i.id === interviewId), 'Entretien lié dans GET /interviews/archived après archive candidature').toBe(true);
 
     const unarchived = await apiUnarchive(request, token, 'applications', applicationId);
     expect(unarchived).toBe(true);
