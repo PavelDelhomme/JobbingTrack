@@ -204,6 +204,8 @@ model Application {
   archivedAt            DateTime?
   // Moteur de statut : true = ne pas appliquer la cascade auto pour cette candidature
   statusEngineOptOut    Boolean             @default(false)
+  // Email remerciement post-entretien envoyé → reset « compteur » relance pour la suggestion « Considérer rejetée »
+  thankYouEmailSentAt   DateTime?
   
   // Timestamps
   createdAt             DateTime            @default(now())

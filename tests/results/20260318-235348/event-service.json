@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Event Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5011/health || echo 'Service non accessible'",
+  "timestamp": "2026-03-19T00:04:54+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"success\":true,\"service\":\"event-service\",\"timestamp\":\"2026-03-18T23:04:54.405Z\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

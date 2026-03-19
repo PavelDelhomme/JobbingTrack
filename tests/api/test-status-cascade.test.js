@@ -137,18 +137,30 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
     it('mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED', async () => {
       if (!testInterviewId) return;
 
+      // S'assurer que l'entretien est en COMPLETED pour que la cascade outcome soit cohérente
+      await axios.put(`${API_URL}/api/v1/interviews/${testInterviewId}`, {
+        status: 'COMPLETED'
+      }, { headers: authHeaders, validateStatus: () => true });
+      await new Promise(r => setTimeout(r, 400));
+
       const updateRes = await axios.put(`${API_URL}/api/v1/interviews/${testInterviewId}`, {
         outcome: 'POSITIVE'
       }, { headers: authHeaders, validateStatus: () => true });
 
       expect(updateRes.status).toBe(200);
 
-      const appRes = await axios.get(
-        `${API_URL}/api/v1/applications/${testApplicationId}`,
-        { headers: authHeaders, validateStatus: () => true }
-      );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
-      expect(['OFFER_RECEIVED', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING']).toContain(statusCode);
+      let statusCode;
+      for (let i = 0; i < 20; i++) {
+        const appRes = await axios.get(
+          `${API_URL}/api/v1/applications/${testApplicationId}`,
+          { headers: authHeaders, validateStatus: () => true }
+        );
+        statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+        if (statusCode === 'OFFER_RECEIVED') break;
+        await new Promise(r => setTimeout(r, 800));
+      }
+      expect(['OFFER_RECEIVED', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING', 'INTERVIEW_DONE']).toContain(statusCode);
+      expect(statusCode).toBe('OFFER_RECEIVED');
     });
   });
 
@@ -163,12 +175,18 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
 
       expect(updateRes.status).toBe(200);
 
-      const appRes = await axios.get(
-        `${API_URL}/api/v1/applications/${testApplicationId}`,
-        { headers: authHeaders, validateStatus: () => true }
-      );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
-      expect(['REJECTED', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING']).toContain(statusCode);
+      let statusCode;
+      for (let i = 0; i < 5; i++) {
+        const appRes = await axios.get(
+          `${API_URL}/api/v1/applications/${testApplicationId}`,
+          { headers: authHeaders, validateStatus: () => true }
+        );
+        statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+        if (statusCode === 'REJECTED') break;
+        await new Promise(r => setTimeout(r, 600));
+      }
+      expect(['REJECTED', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING', 'OFFER_RECEIVED', 'INTERVIEW_DONE']).toContain(statusCode);
+      expect(statusCode).toBe('REJECTED');
     });
   });
 

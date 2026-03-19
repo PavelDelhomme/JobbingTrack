@@ -126,6 +126,13 @@ if [ -f "${ROOT_DIR}/scripts/db/fix-application-isarchived.sql" ]; then
   echo ""
 fi
 
+# Fix colonne Application.thankYouEmailSentAt (moteur de statut / email remerciement)
+if [ -f "${ROOT_DIR}/scripts/db/fix-application-thankyou-sent.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Application.thankYouEmailSentAt (si absente)"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/fix-application-thankyou-sent.sql" 2>&1 | grep -E "NOTICE|ERROR" || true
+  echo ""
+fi
+
 # Partie 2/3 : system_metrics, container_metrics, service_availability_history
 if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"

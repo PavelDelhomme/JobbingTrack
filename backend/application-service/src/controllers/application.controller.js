@@ -545,7 +545,7 @@ const updateApplication = async (req, res, next) => {
     const allowed = [
       'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
       'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
-      'notes', 'platformId', 'companyId', 'agencyId', 'statusEngineOptOut'
+      'notes', 'platformId', 'companyId', 'agencyId', 'statusEngineOptOut', 'thankYouEmailSentAt'
     ];
     const updateData = {};
     for (const key of allowed) {
@@ -553,6 +553,7 @@ const updateApplication = async (req, res, next) => {
       if (key === 'applicationDate') updateData[key] = new Date(body[key]);
       else if (key === 'salaryMin' || key === 'salaryMax') updateData[key] = body[key] != null ? parseInt(body[key], 10) : null;
       else if (key === 'salaryNegotiable' || key === 'statusEngineOptOut') updateData[key] = Boolean(body[key]);
+      else if (key === 'thankYouEmailSentAt') updateData[key] = body[key] === true || body[key] === 'true' ? new Date() : (body[key] || null);
       else if (key === 'agencyId') updateData[key] = body[key] === '' || body[key] === null ? null : body[key];
       else updateData[key] = body[key];
     }
@@ -685,6 +686,25 @@ const updateApplicationStatus = async (req, res, next) => {
       }
     });
 
+    // Créer une notification (changement de statut) si le modèle existe
+    if (typeof prisma.notification?.create === 'function') {
+      try {
+        const prevCode = existingApplication.status?.code || '?';
+        await prisma.notification.create({
+          data: {
+            userId: existingApplication.userId,
+            title: 'Changement de statut',
+            message: `Candidature "${application.position}" : ${prevCode} → ${newStatusCode}`,
+            type: 'STATUS_CHANGE',
+            entityType: 'Application',
+            entityId: id
+          }
+        });
+      } catch (e) {
+        logger.warn('Création notification statut:', e.message);
+      }
+    }
+
     res.json({
       success: true,
       message: 'Statut de la candidature mis à jour',
@@ -731,6 +751,78 @@ const getApplicationStatusHistory = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Erreur récupération historique statuts:', error);
+    next(error);
+  }
+};
+
+// Marquer « Email remerciement envoyé » → reset compteur relance (suggestion « Considérer rejetée »)
+const markThankYouSent = async (req, res, next) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Non authentifié' });
+    }
+    const { id } = req.params;
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id }
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+    }
+    await prisma.application.update({
+      where: { id },
+      data: { thankYouEmailSentAt: new Date() }
+    });
+    res.json({ success: true, message: 'Email remerciement enregistré' });
+  } catch (error) {
+    const msg = error.message || '';
+    const isColumnMissing = error.code === 'P2010' || error.code === 'P2022' || /column.*does not exist|thankYouEmailSentAt/i.test(msg);
+    if (isColumnMissing) {
+      logger.warn('markThankYouSent: colonne manquante (exécuter make db-push-all depuis auth-service ou application-service)');
+      return res.status(503).json({
+        success: false,
+        error: 'Schéma BDD obsolète',
+        message: 'Colonne thankYouEmailSentAt manquante. Exécuter make db-push-all.'
+      });
+    }
+    logger.error('Erreur markThankYouSent:', error);
+    next(error);
+  }
+};
+
+// Suggestion « Considérer comme rejetée ? » après 3+ relances sans réponse
+const getSuggestionReject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id, deletedAt: null },
+      include: {
+        status: true,
+        followUps: { where: { deletedAt: null }, orderBy: { followUpDate: 'desc' } }
+      }
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+    }
+    if (application.status?.code === 'REJECTED') {
+      return res.json({ success: true, suggestConsiderReject: false, reason: 'Déjà rejetée' });
+    }
+    // Relances « sans réponse » : pas de response ou statut SENT/NO_RESPONSE/PENDING
+    const followUpsWithoutResponse = application.followUps.filter(
+      f => !f.response || (f.response && String(f.response).trim() === '')
+    );
+    const count = followUpsWithoutResponse.length;
+    const thankYouRecent = application.thankYouEmailSentAt
+      ? (Date.now() - new Date(application.thankYouEmailSentAt).getTime()) < 30 * 24 * 60 * 60 * 1000 // 30 jours
+      : false;
+    const suggestConsiderReject = count >= 3 && !thankYouRecent;
+    res.json({
+      success: true,
+      suggestConsiderReject,
+      followUpCountWithoutResponse: count,
+      reason: suggestConsiderReject ? `${count} relance(s) sans réponse` : (thankYouRecent ? 'Email remerciement récent' : 'Moins de 3 relances sans réponse')
+    });
+  } catch (error) {
+    logger.error('Erreur getSuggestionReject:', error);
     next(error);
   }
 };
@@ -848,6 +940,8 @@ module.exports = {
   updateApplicationStatus,
   getApplicationStatusHistory,
   getApplicationContacts,
+  markThankYouSent,
+  getSuggestionReject,
   timeTravelEntity,
   getHealth
 };

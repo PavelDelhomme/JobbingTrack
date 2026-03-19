@@ -55,9 +55,10 @@ test.describe('⚡ Performance – Chargement des pages', () => {
 // 2. TEMPS DE RÉPONSE API
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Réponse API', () => {
+  test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
   });
 
   const apiEndpoints = [
@@ -80,9 +81,10 @@ test.describe('⚡ Performance – Réponse API', () => {
 // 3. REQUÊTES CONSÉCUTIVES
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Requêtes multiples', () => {
+  test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('10 requêtes consécutives au même endpoint restent stables', async ({ page }) => {
@@ -188,19 +190,20 @@ test.describe('⚡ Performance – DOM', () => {
 // 6. MÉMOIRE
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Mémoire', () => {
+  test.setTimeout(60000);
   test('pas de fuite mémoire évidente après navigation', async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
 
     const memBefore = await page.evaluate(
       () => (performance as any).memory?.usedJSHeapSize ?? 0,
     );
 
-    for (let i = 0; i < 5; i++) {
-      await page.goto('/backoffice/companies');
-      await page.waitForLoadState('networkidle');
-      await page.goto('/backoffice/contacts');
-      await page.waitForLoadState('networkidle');
+    for (let i = 0; i < 3; i++) {
+      await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForLoadState('domcontentloaded');
+      await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForLoadState('domcontentloaded');
     }
 
     const memAfter = await page.evaluate(

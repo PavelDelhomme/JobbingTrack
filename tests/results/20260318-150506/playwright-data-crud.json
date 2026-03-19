@@ -1,0 +1,20 @@
+{
+  "testName": "Playwright CRUD Données (admin)",
+  "userType": "admin",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && API_URL=\"http://localhost:5002\" API_GATEWAY_URL=\"http://localhost:5002\" npx playwright test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-03-18T15:16:30+01:00",
+  "duration": 3,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "output": "\nup to date in 544ms\n\nRunning 18 tests using 1 worker\n\n  ✓   1 [chromium] › e2e/specs/admin-data-crud.spec.ts:37:7 › CRUD Données Complet (admin) › créer une entreprise (15ms)\n  ✓   2 [chromium] › e2e/specs/admin-data-crud.spec.ts:48:7 › CRUD Données Complet (admin) › modifier une entreprise (13ms)\n  ✓   3 [chromium] › e2e/specs/admin-data-crud.spec.ts:57:7 › CRUD Données Complet (admin) › lire une entreprise (14ms)\n  ✓   4 [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact (19ms)\n  ✓   5 [chromium] › e2e/specs/admin-data-crud.spec.ts:85:7 › CRUD Données Complet (admin) › modifier un contact (13ms)\n  ✓   6 [chromium] › e2e/specs/admin-data-crud.spec.ts:95:7 › CRUD Données Complet (admin) › créer une candidature (39ms)\n  ✓   7 [chromium] › e2e/specs/admin-data-crud.spec.ts:107:7 › CRUD Données Complet (admin) › modifier une candidature (12ms)\n  ✓   8 [chromium] › e2e/specs/admin-data-crud.spec.ts:116:7 › CRUD Données Complet (admin) › lire une candidature avec relations (13ms)\n  ✓   9 [chromium] › e2e/specs/admin-data-crud.spec.ts:126:7 › CRUD Données Complet (admin) › créer un entretien (22ms)\n  ✓  10 [chromium] › e2e/specs/admin-data-crud.spec.ts:142:7 › CRUD Données Complet (admin) › modifier un entretien (13ms)\n  ✓  11 [chromium] › e2e/specs/admin-data-crud.spec.ts:152:7 › CRUD Données Complet (admin) › créer une relance (37ms)\n  ✓  12 [chromium] › e2e/specs/admin-data-crud.spec.ts:169:7 › CRUD Données Complet (admin) › créer un appel (29ms)\n  ✓  13 [chromium] › e2e/specs/admin-data-crud.spec.ts:187:7 › CRUD Données Complet (admin) › créer un événement (11ms)\n  ✓  14 [chromium] › e2e/specs/admin-data-crud.spec.ts:204:7 › CRUD Données Complet (admin) › archiver une candidature (5ms)\n  ✓  15 [chromium] › e2e/specs/admin-data-crud.spec.ts:213:7 › CRUD Données Complet (admin) › candidature archivée absente de la liste normale (23ms)\n  ✓  16 [chromium] › e2e/specs/admin-data-crud.spec.ts:223:7 › CRUD Données Complet (admin) › désarchiver la candidature (5ms)\n  ✓  17 [chromium] › e2e/specs/admin-data-crud.spec.ts:233:7 › CRUD Données Complet (admin) › supprimer (soft) la candidature (26ms)\n  ✓  18 [chromium] › e2e/specs/admin-data-crud.spec.ts:241:7 › CRUD Données Complet (admin) › restaurer la candidature depuis la corbeille (5ms)\n\n  18 passed (1.2s)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

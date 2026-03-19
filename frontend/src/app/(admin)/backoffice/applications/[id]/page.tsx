@@ -51,6 +51,7 @@ export default function BackofficeApplicationDetailPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const [application, setApplication] = useState<Application | null>(null)
   const [statusHistory, setStatusHistory] = useState<{ id: string; newStatus?: { code: string }; previousStatus?: { code: string }; comment?: string; changedAt: string }[]>([])
+  const [suggestionReject, setSuggestionReject] = useState<{ suggestConsiderReject: boolean; reason?: string; followUpCountWithoutResponse?: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -63,10 +64,17 @@ export default function BackofficeApplicationDetailPage() {
 
   const fetchApplication = async () => {
     try {
-      const response = await applicationService.getById(params.id as string)
+      const id = params.id as string
+      const response = await applicationService.getById(id)
       setApplication(response.data.application)
-      const hist = await applicationService.getStatusHistory(params.id as string)
+      const hist = await applicationService.getStatusHistory(id)
       setStatusHistory(hist.data?.statusHistory ?? [])
+      try {
+        const sugg = await applicationService.getSuggestionReject(id)
+        setSuggestionReject(sugg.data ?? null)
+      } catch {
+        setSuggestionReject(null)
+      }
     } catch (error) {
       console.error('Erreur chargement candidature:', error)
       setApplication(null)
@@ -83,6 +91,17 @@ export default function BackofficeApplicationDetailPage() {
     } catch (error) {
       console.error('Erreur mise à jour statut:', error)
       alert('Erreur lors de la mise à jour du statut')
+    }
+  }
+
+  const handleMarkThankYouSent = async () => {
+    if (!application) return
+    try {
+      await applicationService.markThankYouSent(application.id)
+      fetchApplication()
+    } catch (error) {
+      console.error('Erreur marquage email remerciement:', error)
+      alert('Erreur lors du marquage')
     }
   }
 
@@ -153,6 +172,22 @@ export default function BackofficeApplicationDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* 3.2b Suggestion « Considérer comme rejetée ? » */}
+            {suggestionReject?.suggestConsiderReject && currentStatus !== 'REJECTED' && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">
+                  💡 {suggestionReject.reason ?? `${suggestionReject.followUpCountWithoutResponse ?? 0} relance(s) sans réponse`} — Considérer comme rejetée ?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleStatusChange('REJECTED')}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium"
+                >
+                  Oui, marquer rejetée
+                </button>
+              </div>
+            )}
+
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Statut de la candidature
@@ -168,6 +203,16 @@ export default function BackofficeApplicationDetailPage() {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+              </div>
+              {/* 3.2b Action « Email remerciement envoyé » → reset compteur relance */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <button
+                  type="button"
+                  onClick={handleMarkThankYouSent}
+                  className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg"
+                >
+                  📧 Email remerciement envoyé
+                </button>
               </div>
             </div>
 

@@ -1,0 +1,125 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  18/03/2026 18:59:16
+================================================================
+
+RESUME
+------
+  Categories  : 32
+  Total tests : 849
+  Reussis     : 838
+  Echoues     : 11
+  Ignores     : 1
+  Taux        : 98.7%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (0s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [U] Tests API Complets (Jest) (21s)
+  [OK]   [U] Tests Backend Services (Jest) (1s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (761s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (4s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (0s)
+  [OK]   [U] Tests Intégration Système (4s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests API Gateway Health (0s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (5s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+    FAIL api/test-status-engine.test.js
+          ✕ POST /applications/:id/thank-you-sent enregistre la date (14 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 503
+        > 313 |       expect(res.status).toBe(200);
+          314 |       expect(res.data.success).toBe(true);
+      console.error
+        > 197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:197:48)
+      console.error
+        > 201 |         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:201:47)
+      console.error
+        > 205 |         if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:205:49)
+    FAIL api/test-status-cascade.test.js
+        Résultat entretien positif → OFFER_RECEIVED
+          ✕ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (3061 ms)
+      ● Cascade Statuts & Auto-événements (utilisateur classique) › Résultat entretien positif → OFFER_RECEIVED › mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED
+        expect(received).toBe(expected) // Object.is equality
+        Expected: "OFFER_RECEIVED"
+        Received: "CANDIDATE_PENDING"
+          156 |       expect(['OFFER_RECEIVED', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING', 'INTERVIEW_DONE']).toContain(statusCode);
+        > 157 |       expect(statusCode).toBe('OFFER_RECEIVED');
+    Test Suites: 2 failed, 7 passed, 9 total
+    Tests:       2 failed, 85 passed, 87 total
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+
+  --- Playwright E2E Frontend ---
+        Error: Restore candidature: 400 ""
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 120 |     expect(restoreAppRes.ok, `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`).toBe(true);
+        Error: Restore candidature: 400 ""
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 120 |     expect(restoreAppRes.ok, `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`).toBe(true);
+        Error: browserContext.close: Test ended.
+        TimeoutError: locator.waitFor: Timeout 20000ms exceeded.
+          424 |     expect(bodyText, 'La page Corbeille doit afficher son titre').toContain('Gestion de la Corbeille');
+        Error: locator.click: Test timeout of 30000ms exceeded.
+          162 |     await expect(page.locator('text=Deconnexion').or(page.locator('text=étapes')).first()).toBeVisible({ timeout: 3000 });
+        test-results/mobile-emulator-Backoffice-5addf-rcours-Inscription-complète-chromium/test-failed-1.png
+        Error Context: test-results/mobile-emulator-Backoffice-5addf-rcours-Inscription-complète-chromium/error-context.md
+        Error: locator.click: Test timeout of 30000ms exceeded.
+          162 |     await expect(page.locator('text=Deconnexion').or(page.locator('text=étapes')).first()).toBeVisible({ timeout: 3000 });
+        test-results/mobile-emulator-Backoffice-5addf-rcours-Inscription-complète-chromium-retry1/test-failed-1.png
+        Error Context: test-results/mobile-emulator-Backoffice-5addf-rcours-Inscription-complète-chromium-retry1/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: element(s) not found
+          - Expect "toBeVisible" with timeout 8000ms
+        > 182 |     await expect(gmailBtn).toBeVisible({ timeout: 8000 });
+        test-results/mobile-emulator-Backoffice-8fc51-via-le-système-de-scénarios-chromium/test-failed-1.png
+        Error Context: test-results/mobile-emulator-Backoffice-8fc51-via-le-système-de-scénarios-chromium/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+
+================================================================
+  Rapports : tests/results/20260318-184506/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

@@ -272,6 +272,7 @@ export async function apiArchiveWithResponse(
   try {
     const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/archive`, {
       headers: { Authorization: `Bearer ${token}` },
+      data: {},
     });
     let body: unknown;
     try {
@@ -295,21 +296,39 @@ export async function apiArchive(
   return r.ok;
 }
 
+/** Réponse détaillée pour unarchive (pour logs en cas d'échec). */
+export async function apiUnarchiveWithResponse(
+  request: APIRequestContext,
+  token: string,
+  endpoint: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; body?: unknown }> {
+  if (!id) return { ok: false, status: 0 };
+  try {
+    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/unarchive`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {},
+    });
+    let body: unknown;
+    try {
+      body = await resp.json();
+    } catch {
+      body = await resp.text();
+    }
+    return { ok: resp.ok(), status: resp.status(), body };
+  } catch (e) {
+    return { ok: false, status: 0, body: (e as Error).message };
+  }
+}
+
 export async function apiUnarchive(
   request: APIRequestContext,
   token: string,
   endpoint: string,
   id: string,
 ): Promise<boolean> {
-  if (!id) return false;
-  try {
-    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/unarchive`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return resp.ok();
-  } catch {
-    return false;
-  }
+  const r = await apiUnarchiveWithResponse(request, token, endpoint, id);
+  return r.ok;
 }
 
 export async function apiRestoreWithResponse(

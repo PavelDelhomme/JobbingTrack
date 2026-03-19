@@ -247,6 +247,12 @@ export const applicationService = {
     getStatusHistory: (id: string) =>
         apiClient.get(`/applications/${id}/status-history`),
 
+    // 3.2b Moteur de statut : suggestion « Considérer comme rejetée » + email remerciement
+    getSuggestionReject: (id: string) =>
+        apiClient.get(`/applications/${id}/suggestion-reject`),
+    markThankYouSent: (id: string) =>
+        apiClient.post(`/applications/${id}/thank-you-sent`, {}),
+
     // NOUVELLES MÉTHODES - Contacts liés
     getContacts: (id: string) =>
         apiClient.get(`/applications/${id}/contacts`),

@@ -78,6 +78,8 @@ router.put('/:id/status', [
 ], controller.updateApplicationStatus);
 
 router.get('/:id/status-history', idValidation, controller.getApplicationStatusHistory);
+router.get('/:id/suggestion-reject', idValidation, controller.getSuggestionReject);
+router.post('/:id/thank-you-sent', idValidation, controller.markThankYouSent);
 
 // NOUVELLES ROUTES - Contacts liés aux candidatures
 router.get('/:id/contacts', idValidation, controller.getApplicationContacts);
