@@ -4,11 +4,14 @@ import AxeBuilder from '@axe-core/playwright';
 const EXCLUDED_AXE_RULES = ['color-contrast', 'link-in-text-block', 'document-title'];
 
 test.describe('♿ Tests d\'accessibilité', () => {
+  test.describe.configure({ timeout: 120_000 });
+
   const gotoLogin = async (page: Page) => {
     // Sur Next, la page peut mettre du temps à finir sa compilation.
     // On évite `networkidle` (polling constant) et on attend simplement domcontentloaded.
-    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
+    await page.locator('body').first().waitFor({ state: 'visible', timeout: 30_000 });
   };
 
   test('✅ Analyse axe-core - Page de connexion', async ({ page }) => {

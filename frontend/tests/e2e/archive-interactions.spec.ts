@@ -21,6 +21,14 @@ import {
 
 const API_URL = process.env.API_URL || 'http://localhost:5002';
 
+async function expectBackofficePageReady(page: import('@playwright/test').Page, heading?: RegExp) {
+  await page.waitForLoadState('domcontentloaded');
+  await page.locator('main').first().waitFor({ state: 'visible', timeout: 45_000 });
+  if (heading) {
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible({ timeout: 30_000 });
+  }
+}
+
 // ═══════════════════════════════════════════════════════
 // 1. ARCHIVAGE ET CORBEILLE (API + UI) — admin
 // ═══════════════════════════════════════════════════════
@@ -159,18 +167,16 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
   });
 
   test('la page Archives du backoffice charge sans erreur', async ({ page }) => {
-    await page.goto('/backoffice/archives');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page, /Archives/i);
     await expect(page.locator('body')).not.toContainText('500');
     await expect(page.locator('body')).not.toContainText('Erreur serveur');
   });
 
   test('la page Corbeille du backoffice charge sans erreur', async ({ page }) => {
-    test.setTimeout(50000);
-    await page.goto('/backoffice/trash');
-    await page.waitForLoadState('domcontentloaded');
-    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 25000 });
-    await expect(page.getByRole('heading', { name: /Gestion de la Corbeille|Corbeille/i })).toBeVisible({ timeout: 20000 });
+    test.setTimeout(90_000);
+    await page.goto('/backoffice/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page, /Gestion de la Corbeille|Corbeille/i);
     // Vérifier le contenu visible uniquement (éviter faux positifs sur le payload RSC/scripts)
     const mainText = await page.locator('main').textContent({ timeout: 10000 }).catch(() => '') ?? '';
     expect(mainText).not.toContain('500');
@@ -420,10 +426,10 @@ test.describe('📅 Auto-création événements', () => {
 // 4. PAGES BACKOFFICE ARCHIVES/CORBEILLE (UI)
 // ═══════════════════════════════════════════════════════
 test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
+  test.describe.configure({ timeout: 90_000 });
   test('la page Archives charge correctement avec les onglets', async ({ page }) => {
-    await page.goto('/backoffice/archives');
-    await page.waitForLoadState('networkidle');
-    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.goto('/backoffice/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page, /Archives/i);
 
     const bodyText = await page.locator('body').textContent({ timeout: 15000 }) ?? '';
     expect(bodyText, 'La page Archives doit afficher son titre').toContain('Gestion des Archives');
@@ -434,18 +440,16 @@ test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
   });
 
   test('la page Corbeille charge correctement', async ({ page }) => {
-    test.setTimeout(50000);
-    await page.goto('/backoffice/trash');
-    await page.waitForLoadState('domcontentloaded');
-    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 25000 });
-    await expect(page.getByRole('heading', { name: /Gestion de la Corbeille|Corbeille/i })).toBeVisible({ timeout: 20000 });
+    test.setTimeout(90_000);
+    await page.goto('/backoffice/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page, /Gestion de la Corbeille|Corbeille/i);
     const bodyText = await page.locator('body').textContent({ timeout: 10000 }) ?? '';
     expect(bodyText, 'La page Corbeille doit afficher son titre ou le mot Corbeille').toMatch(/Gestion de la Corbeille|Corbeille|Tous les éléments/);
   });
 
   test('la page Données affiche les onglets entités', async ({ page }) => {
-    await page.goto('/backoffice/data-management');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/data-management', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
 
     const tabs = page.locator('[role="tab"], button').filter({ hasText: /(candidatures|entreprises|contacts|entretiens)/i });
     const tabCount = await tabs.count();
@@ -457,15 +461,16 @@ test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
 // 5. CRUD CANDIDATURES (UI)
 // ═══════════════════════════════════════════════════════
 test.describe('📋 CRUD Candidatures UI', () => {
+  test.describe.configure({ timeout: 90_000 });
   test('la page candidatures charge et affiche une liste', async ({ page }) => {
-    await page.goto('/backoffice/applications');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
     await expect(page.locator('body')).not.toContainText('Erreur');
   });
 
   test('le formulaire de création candidature s\'ouvre', async ({ page }) => {
-    await page.goto('/backoffice/applications');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
 
     const createBtn = page.getByRole('button', { name: /(Nouvelle candidature|Ajouter|Créer)/i });
     if (await createBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -476,26 +481,26 @@ test.describe('📋 CRUD Candidatures UI', () => {
   });
 
   test('la page entretiens charge correctement', async ({ page }) => {
-    await page.goto('/backoffice/interviews');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/interviews', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
     await expect(page.locator('body')).not.toContainText('Erreur serveur');
   });
 
   test('la page relances charge correctement', async ({ page }) => {
-    await page.goto('/backoffice/followups');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/followups', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
     await expect(page.locator('body')).not.toContainText('Erreur serveur');
   });
 
   test('la page appels charge correctement', async ({ page }) => {
-    await page.goto('/backoffice/calls');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/calls', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
     await expect(page.locator('body')).not.toContainText('Erreur serveur');
   });
 
   test('la page événements charge correctement', async ({ page }) => {
-    await page.goto('/backoffice/events');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice/events', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expectBackofficePageReady(page);
     await expect(page.locator('body')).not.toContainText('Erreur serveur');
   });
 });

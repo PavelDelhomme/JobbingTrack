@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('🔐 Authentification - Page de connexion', () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
+    await page.locator('body').first().waitFor({ state: 'visible', timeout: 30_000 });
   });
 
   test('devrait afficher correctement la page de connexion', async ({ page }) => {
@@ -33,11 +36,15 @@ test.describe('🔐 Authentification - Page de connexion', () => {
   });
 
   test('devrait permettre la connexion avec des identifiants valides', async ({ page }) => {
+    test.setTimeout(90_000);
     await page.locator('input[type="email"]').fill('admin@jobbingtrack.test');
     await page.locator('input[type="password"]').fill('password123');
-    await page.locator('button[type="submit"]').click();
-
-    await page.waitForURL('**/backoffice**', { timeout: 30000 });
+    await Promise.all([
+      // En dev, la compilation Next peut retarder la navigation.
+      page.waitForURL(/\/backoffice(?:\/|$)/, { timeout: 90_000, waitUntil: 'domcontentloaded' }),
+      page.locator('button[type="submit"]').click(),
+    ]);
+    await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
     await expect(page).toHaveURL(/backoffice/);
   });
 

@@ -15,11 +15,11 @@ export default defineConfig({
   outputDir,
   // Les pages Next peuvent nécessiter une compilation à chaud pendant les E2E.
   // Sans timeout élargi, `page.goto()` / `waitForURL()` échouent avant que l'UI soit visible.
-  timeout: 90_000,
-  fullyParallel: true,
+  timeout: 120_000,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : (process.env.CI ? 1 : undefined),
+  workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : 1,
   reporter: [
     ['html', { outputFolder: htmlReportDir }],
     ['json', { outputFile: jsonReportPath }],
@@ -31,9 +31,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    navigationTimeout: 60_000,
+    navigationTimeout: 90_000,
     // Les actions UI peuvent nécessiter quelques secondes sur les pages lourdes.
-    actionTimeout: 20_000,
+    actionTimeout: 30_000,
   },
   projects: [
     {
