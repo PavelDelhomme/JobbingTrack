@@ -13,6 +13,9 @@ const authFile = path.join(__dirname, 'tests/e2e/.auth/admin.json');
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir,
+  // Les pages Next peuvent nécessiter une compilation à chaud pendant les E2E.
+  // Sans timeout élargi, `page.goto()` / `waitForURL()` échouent avant que l'UI soit visible.
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
@@ -28,6 +31,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    navigationTimeout: 60_000,
+    // Les actions UI peuvent nécessiter quelques secondes sur les pages lourdes.
+    actionTimeout: 20_000,
   },
   projects: [
     {

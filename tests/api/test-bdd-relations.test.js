@@ -241,17 +241,17 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   describe('Événements automatiquement créés', () => {
     it('les événements liés à la candidature/entretien devraient exister', async () => {
       if (!applicationId) return expect(applicationId).toBeTruthy();
-      const res = await api('get', 'events');
-      expect(res.status).toBe(200);
-      const events = res.data?.events || [];
-      expect(Array.isArray(events)).toBe(true);
-
-      const appEvent = events.find(e => e.applicationId === applicationId);
-      const interviewEvent = events.find(e => e.interviewId === interviewId);
-      // L'event-service crée un événement à la création d'entretien/relance : au moins un doit être lié
-      if (events.length > 0) {
-        expect(appEvent || interviewEvent).toBeDefined();
-      }
+      // GET /events est paginé (ex. 50) : d’autres événements du user peuvent masquer le nôtre.
+      // La timeline par candidature liste tous les événements liés (interview-service les crée à la création d’entretien).
+      const timelineRes = await api('get', `events/timeline/application/${applicationId}`);
+      expect(timelineRes.status).toBe(200);
+      const timeline = timelineRes.data?.timeline || [];
+      expect(Array.isArray(timeline)).toBe(true);
+      expect(timeline.length).toBeGreaterThan(0);
+      const linked = timeline.find(
+        e => e.applicationId === applicationId || (interviewId && e.interviewId === interviewId)
+      );
+      expect(linked).toBeDefined();
     });
   });
 

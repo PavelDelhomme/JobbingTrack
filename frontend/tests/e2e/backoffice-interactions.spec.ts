@@ -333,8 +333,11 @@ test.describe('💾 Interactions Data Management', () => {
   });
 
   test('onglets de la page Data sont cliquables', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/datas');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    await expect(page.getByRole('heading', { name: /Gestion des Données/i })).toBeVisible({ timeout: 30000 });
 
     const tabs = [
       'Candidatures', 'Entreprises', 'Contacts', 'Entretiens',
@@ -343,9 +346,10 @@ test.describe('💾 Interactions Data Management', () => {
 
     for (const tabText of tabs) {
       const tab = page.locator('button, [role="tab"]').filter({ hasText: new RegExp(tabText, 'i') }).first();
-      if (await tab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await tab.click();
-        await page.waitForTimeout(300);
+      if (await tab.isVisible({ timeout: 8000 }).catch(() => false)) {
+        await tab.scrollIntoViewIfNeeded().catch(() => {});
+        await tab.click({ timeout: 10000 });
+        await page.waitForTimeout(400);
       }
     }
 
@@ -359,26 +363,35 @@ test.describe('💾 Interactions Data Management', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📊 Interactions Statistiques', () => {
   test('cliquer onglets Vue d\'ensemble / Sécurité / Logs change le contenu', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/statistique');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    // La page attend les stats API : le h1 n’apparaît qu’après chargement (pas seulement le spinner).
+    await expect(
+      page.getByRole('heading', { name: /Statistiques|Monitoring/i })
+    ).toBeVisible({ timeout: 60000 });
 
-    const tabVue = page.locator('button, [role="tab"]').filter({ hasText: /Vue d/i }).first();
-    if (await tabVue.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabVue.click();
+    const tabVue = page.locator('button').filter({ hasText: /Vue d'ensemble|Vue d/i }).first();
+    if (await tabVue.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabVue.scrollIntoViewIfNeeded().catch(() => {});
+      await tabVue.click({ timeout: 10000 });
       await page.waitForTimeout(500);
       const content1 = await page.locator('body').textContent() ?? '';
       expect(content1.length).toBeGreaterThan(100);
     }
 
-    const tabSecu = page.locator('button, [role="tab"]').filter({ hasText: /curit/i }).first();
-    if (await tabSecu.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabSecu.click();
+    const tabSecu = page.locator('button').filter({ hasText: /Sécurité|curit/i }).first();
+    if (await tabSecu.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabSecu.scrollIntoViewIfNeeded().catch(() => {});
+      await tabSecu.click({ timeout: 10000 });
       await page.waitForTimeout(500);
     }
 
-    const tabLogs = page.locator('button, [role="tab"]').filter({ hasText: /Logs/i }).first();
-    if (await tabLogs.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabLogs.click();
+    const tabLogs = page.locator('button').filter({ hasText: /Statistiques Logs/i }).first();
+    if (await tabLogs.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabLogs.scrollIntoViewIfNeeded().catch(() => {});
+      await tabLogs.click({ timeout: 10000 });
       await page.waitForTimeout(500);
     }
   });
@@ -542,12 +555,14 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
   });
 
   test('page Corbeille affiche les éléments interactifs', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/trash');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 30000 });
-    const body = await page.locator('body').textContent({ timeout: 20000 }) ?? '';
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    await expect(page.getByRole('heading', { name: /Corbeille/i })).toBeVisible({ timeout: 30000 });
+    const body = await page.locator('body').textContent({ timeout: 25000 }) ?? '';
     expect(body.length, 'Le body de la page Corbeille doit être chargé').toBeGreaterThan(100);
-    expect(body).toMatch(/Corbeille|Gestion|Tous les éléments/);
+    expect(body).toMatch(/Corbeille|Gestion|éléments supprimés|Tous les éléments|Restaurer/i);
   });
 });
 

@@ -298,14 +298,25 @@ async function main() {
     }
     console.log(`   ✅ ${users.length} utilisateurs créés (user1: ${user1Email})`);
 
-    // Utiliser l’admin qui a lancé la génération comme propriétaire des entreprises/candidatures (Suivi intérim visible)
-    let ownerId = process.env.TEST_DATA_OWNER_ID;
+    // Utiliser l’admin qui a lancé la génération comme propriétaire (Suivi intérim visible).
+    // La gateway peut passer un id factice (ex. user-123) ou un email (ex. user@jobbingtrack.com) alors que le seed crée admin@jobbingtrack.com.
     let companyOwners = users;
-    if (ownerId) {
-      const owner = await prisma.user.findUnique({ where: { id: ownerId } }).catch(() => null);
+    const ownerId = process.env.TEST_DATA_OWNER_ID;
+    const ownerEmail = process.env.TEST_DATA_OWNER_EMAIL;
+    if (ownerId || ownerEmail) {
+      let owner = ownerId ? await prisma.user.findUnique({ where: { id: ownerId } }).catch(() => null) : null;
+      if (!owner && ownerEmail) {
+        owner = await prisma.user.findUnique({ where: { email: ownerEmail } }).catch(() => null);
+      }
+      if (!owner && process.env.ADMIN_EMAIL) {
+        owner = await prisma.user.findUnique({ where: { email: process.env.ADMIN_EMAIL } }).catch(() => null);
+      }
+      if (!owner) {
+        owner = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } }).catch(() => null);
+      }
       if (owner) {
         companyOwners = [owner];
-        console.log(`   👤 Données rattachées à l’admin: ${owner.email || ownerId}`);
+        console.log(`   👤 Données rattachées à l’admin: ${owner.email}`);
       }
     }
 
