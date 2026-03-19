@@ -249,9 +249,10 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
 	@echo "✅ Base de données restaurée"
 
-# Réparer rôle/DB Postgres (SQL idempotent pour éviter ERROR dans les logs)
-# Utilise l'utilisateur du conteneur (jobbingtrack) : avec POSTGRES_USER=jobbingtrack, le rôle "postgres" n'existe pas.
-# Pour CREATE DATABASE il faut être connecté à une autre base (postgres) ; sinon on utilise jobbingtrack.
+# Réparer rôle/DB Postgres (idempotent pour éviter erreurs dans les logs)
+# CREATE USER : dans un DO avec EXCEPTION WHEN duplicate_object (possible en transaction).
+# CREATE DATABASE : ne peut pas s'exécuter dans un bloc DO (PostgreSQL interdit CREATE DATABASE dans une transaction).
+# Donc on vérifie d'abord si la base existe (SELECT) et on ne crée que si elle n'existe pas.
 db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
 	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d jobbingtrack -c 'DO $$$$ BEGIN CREATE USER jobbingtrack WITH PASSWORD '\''jobbingtrack123'\''; EXCEPTION WHEN duplicate_object THEN NULL; END $$$$;'

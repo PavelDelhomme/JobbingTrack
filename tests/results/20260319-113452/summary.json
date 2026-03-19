@@ -1,0 +1,43 @@
+{
+  "category": "Suite CLI",
+  "testName": "Suite complète (ligne de commande)",
+  "generatedAtISO": "2026-03-19T10:51:33Z",
+  "timestamp": "2026-03-19T11:51:33+01:00",
+  "reportDir": "tests/results/20260319-113452",
+  "summary": {
+    "totalCategories": 23,
+    "totalTests": 781,
+    "totalPassed": 771,
+    "totalFailed": 10,
+    "totalSkipped": 1,
+    "passed": 771,
+    "failed": 10,
+    "skipped": 1,
+    "successRate": 98.72
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "success", "duration": 2, "userType": "user"},
+    {"name": "Relations BDD", "status": "success", "duration": 0, "userType": "system"},
+    {"name": "Enums", "status": "success", "duration": 1, "userType": "system"},
+    {"name": "Email Logs", "status": "success", "duration": 1, "userType": "admin"},
+    {"name": "Tests API Complets (Jest)", "status": "failed", "duration": 20, "userType": "user"},
+    {"name": "Tests Backend Services (Jest local)", "status": "success", "duration": 2, "userType": "system"},
+    {"name": "Tests API Backend (script - tous services)", "status": "success", "duration": 1, "userType": "user"},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 901, "userType": "admin"},
+    {"name": "Playwright Emails MailHog", "status": "success", "duration": 14, "userType": "admin"},
+    {"name": "Playwright Email Workflows", "status": "success", "duration": 9, "userType": "user"},
+    {"name": "Playwright CRUD Données (admin)", "status": "success", "duration": 3, "userType": "admin"},
+    {"name": "Playwright CRUD Utilisateurs (admin)", "status": "success", "duration": 3, "userType": "admin"},
+    {"name": "Playwright Sécurité Backoffice (admin)", "status": "success", "duration": 4, "userType": "admin"},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "success", "duration": 3, "userType": "system"},
+    {"name": "Tests Performance", "status": "success", "duration": 3, "userType": "user"},
+    {"name": "Tests Sécurité", "status": "success", "duration": 1, "userType": "user"},
+    {"name": "Tests Intégration Système", "status": "success", "duration": 4, "userType": "user"},
+    {"name": "Tests Dashboard Service (Health Check)", "status": "success", "duration": 0, "userType": "system"},
+    {"name": "Tests Security Service (Health Check)", "status": "success", "duration": 1, "userType": "system"},
+    {"name": "Tests Workflow Service (Health Check)", "status": "success", "duration": 1, "userType": "system"},
+    {"name": "Tests API Gateway Health", "status": "success", "duration": 0, "userType": "system"},
+    {"name": "Tests Sécurité Firewall & WAF (API)", "status": "success", "duration": 1, "userType": "system"},
+    {"name": "Tests Performance Avancés (CPU & endpoints)", "status": "success", "duration": 4, "userType": "user"}
+  ]
+}

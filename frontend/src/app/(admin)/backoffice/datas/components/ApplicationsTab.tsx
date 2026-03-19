@@ -12,6 +12,8 @@ interface Application {
     id: string
     name: string
   }
+  agencyId?: string | null
+  agency?: { id: string; name: string } | null
   status: string
   type: string
   location?: string
@@ -25,6 +27,7 @@ export default function ApplicationsTab() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterInterim, setFilterInterim] = useState<'all' | 'classique' | 'interim'>('all')
 
   useEffect(() => {
     fetchApplications()
@@ -78,9 +81,14 @@ export default function ApplicationsTab() {
     }
   }
 
-  const filteredApplications = filterStatus === 'all' 
-    ? applications 
+  const byStatus = filterStatus === 'all'
+    ? applications
     : applications.filter(app => app.status === filterStatus)
+  const filteredApplications = filterInterim === 'all'
+    ? byStatus
+    : filterInterim === 'classique'
+      ? byStatus.filter(app => !app.agencyId)
+      : byStatus.filter(app => !!app.agencyId)
 
   if (loading) {
     return (
@@ -111,7 +119,7 @@ export default function ApplicationsTab() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap gap-3 items-center">
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -124,6 +132,16 @@ export default function ApplicationsTab() {
           <option value="INTERVIEW_SCHEDULED">Entretien planifié</option>
           <option value="REJECTED">Rejetée</option>
           <option value="ACCEPTED">Acceptée</option>
+        </select>
+        <select
+          value={filterInterim}
+          onChange={(e) => setFilterInterim(e.target.value as 'all' | 'classique' | 'interim')}
+          className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+          title="Filtrer par type : classique (sans agence) ou intérim (via boîte d'intérim)"
+        >
+          <option value="all">Toutes les candidatures</option>
+          <option value="classique">Classique (sans agence)</option>
+          <option value="interim">Intérim (via agence)</option>
         </select>
       </div>
 
@@ -139,6 +157,9 @@ export default function ApplicationsTab() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Entreprise
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Agence
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Statut
@@ -174,6 +195,15 @@ export default function ApplicationsTab() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                     {app.company?.name || app.companyName || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {app.agency?.name ? (
+                      <span className="inline-flex items-center gap-1" title="Via boîte d&apos;intérim">
+                        <span className="text-amber-500">👔</span> {app.agency.name}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={app.status} />
@@ -227,6 +257,9 @@ export default function ApplicationsTab() {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     {app.company?.name || app.companyName || '-'}
                   </p>
+                  {app.agency?.name && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-0.5">👔 {app.agency.name}</p>
+                  )}
                   {app.location && (
                     <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">📍 {app.location}</p>
                   )}

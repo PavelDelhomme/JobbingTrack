@@ -391,7 +391,11 @@ EOF
     TEST_RESULTS+=("$test_name:$exit_code:$duration:$user_type")
     
     if [ $exit_code -eq 0 ]; then
-        echo -e "${GREEN}✅ $test_name : SUCCÈS${NC}"
+        if echo "$output" | grep -qE "Service non accessible|non démarré \(optionnel\)"; then
+            echo -e "${YELLOW}⚠️  $test_name : OPTIONNEL (non accessible)${NC}"
+        else
+            echo -e "${GREEN}✅ $test_name : SUCCÈS${NC}"
+        fi
     else
         echo -e "${RED}❌ $test_name : ÉCHEC${NC}"
     fi

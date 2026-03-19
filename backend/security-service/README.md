@@ -7,8 +7,9 @@ Service de sécurité centralisé. Gestion des permissions, audit de sécurité 
 ## 📖 Documentation
 
 - **[Sécurité Déploiement](../../docs/deployment/security/README.md)** - Configuration sécurité
-- **[Guide Sécurité](../../docs/security/guide/README.md)** - Bonnes pratiques sécurité
-- **[Architecture](../../docs/core/architecture/README.md)** - Architecture microservices
+- **[Architecture security-service](../../docs/security/ARCHITECTURE_SECURITY_SERVICE.md)** – Périmètre et accès.
+- **[Guide Sécurité](../../docs/security/README.md)** – Bonnes pratiques.
+- **[Architecture](../../docs/core/architecture/README.md)** – Architecture microservices.
 
 ## 🚀 Démarrage rapide
 

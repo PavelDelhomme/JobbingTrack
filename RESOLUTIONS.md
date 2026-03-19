@@ -4,6 +4,98 @@
 
 ---
 
+## Mars 2026 – Bascule données de test / base propre (backoffice Actions)
+
+### Problème
+- Le frontend appelait `POST /api/v1/admin/clear-test-data` alors que la gateway n’exposait que `POST /api/v1/admin/test-data/clear` → le bouton « Revenir à la base propre » pouvait renvoyer 404.
+- Les Company et Application créés par `generate-test-data.js` n’avaient pas `isTestData: true` → le nettoyage ne les supprimait pas.
+- La suppression des « données de test » supprimait tous les users dont l’email contenait `@jobbingtrack.test` ou `test` → risque de supprimer l’admin principal.
+
+### Solution
+1. **Alias route** : ajout de `POST /clear-test-data` (même handler que `test-data/clear`) dans `backend/api-gateway/src/routes/admin.routes.js`.
+2. **Script** : dans `backend/generate-test-data.js`, ajout de `isTestData: true` sur les Company (EMPLOYER et TEMP_AGENCY) et sur les Application.
+3. **Nettoyage users** : dans `backend/api-gateway/src/controllers/testdata.controller.js`, suppression des users uniquement avec `where: { isTestData: true }` (dans les deux branches onlyTestData et else).
+
+---
+
+## Mars 2026 – E2E Corbeille, restore visibility, security-e2e sortie illisible
+
+### Problème
+- **archive-interactions.spec.ts** : tests « la page Corbeille du backoffice charge sans erreur » et « la page Corbeille charge correctement » en timeout (33s, 40s) à cause de `networkidle` et d’attentes trop courtes.
+- **archive-interactions** : après restore d’une candidature, `GET /applications/:id` retournait parfois 404 → assertion « Candidature visible après restauration » échouait.
+- **security-e2e.spec.ts** : en cas d’échec XSS, le message d’assertion affichait tout le HTML du body (innerHTML) dans le terminal, rendant la sortie illisible.
+
+### Solution
+1. **Corbeille** : remplacer `waitForLoadState('networkidle')` par `domcontentloaded`, attendre la nav (25s), puis le heading « Gestion de la Corbeille » (visible 20s), et `test.setTimeout(50000)`. Assertions sur le body en textContent avec timeout 10s.
+2. **Restore puis GET** : après `apiRestoreWithResponse`, boucle de retry (jusqu’à 5 fois, 1s entre chaque) sur `GET /applications/:id` avant d’asserter `appRes.ok()`.
+3. **Security XSS** : au lieu de `expect(bodyHtml).not.toContain('...')`, calculer `const hasOnError = bodyHtml.includes('onerror=alert(1)')` et `expect(hasOnError, '...').toBe(false)` (idem pour le script alert XSS). Ainsi la valeur « reçue » en cas d’échec est un booléen, pas tout le HTML.
+
+---
+
+## Mars 2026 – ERRORS.md : Postgres db-fix-role, Loki metrics-aggregator
+
+### Problème
+- **make db-fix-role** : messages « role "jobbingtrack" already exists » et « database "jobbingtrack" already exists » dans les logs quand le rôle/base existent déjà.
+- **Loki** : quand Loki n’est pas déployé, `getaddrinfo ENOTFOUND loki` faisait échouer les requêtes logs du metrics-aggregator (erreurs 500 / exceptions).
+
+### Solution
+1. **makefiles/database/Makefile** : CREATE USER reste idempotent (DO $$ ... EXCEPTION WHEN duplicate_object). CREATE DATABASE ne peut pas être exécuté dans un bloc DO/transaction (PostgreSQL renvoie « CREATE DATABASE cannot run inside a transaction block »). Donc retour à la vérification en shell : `SELECT 1 FROM pg_database WHERE datname = 'jobbingtrack'` puis exécution de `CREATE DATABASE` **uniquement si** la base n’existe pas (grep -q 1 || docker-compose ... CREATE DATABASE).
+2. **backend/metrics-aggregator-service/src/services/loki.service.js** : détection des erreurs Loki indisponible (`ENOTFOUND`, `ECONNREFUSED`, `ETIMEDOUT`, `ECONNRESET`) ; dans ce cas `queryLogs` retourne `{ data: { result: [] } }` au lieu de throw ; `streamLogs` retourne `null`. Les méthodes appelantes (getContainerLogs, getAllLogs, searchLogs, countPattern) utilisent déjà le retour et renvoient des tableaux vides.
+3. **backend/metrics-aggregator-service/src/routes/logs.routes.js** : route GET `/stream/:name` vérifie si `streamLogs` retourne `null` et envoie alors un événement SSE « Loki non disponible » puis ferme la réponse.
+
+---
+
+## Mars 2026 – Deuxième vague : docs/tests, changelog, api, database, services
+
+### Problème
+- **docs/tests** : rapports obsolètes (ECHECS_TESTS_API_2026-02-19, RESULTATS_TESTS, RESUME_TESTS_COMPLETS, TESTS_COMPLETS_RAPPORT, TESTS_MANQUANTS, TESTS_PAGE_DETAIL_SERVICES) à supprimer ; README à mettre à jour.
+- **docs/changelog** : sous-dossiers all-changes, final-implementation, implementation-completed redondants ; remplacer par un README unique pointant vers STATUS.md et RESOLUTIONS.md.
+- **docs/api** : BACKEND_FIXES_SUMMARY obsolète ; ajouter README index et mettre à jour les dates.
+- **docs/database** : structure-actuelle.md en doublon avec STRUCTURE_ACTUELLE.md ; README à aligner et dater.
+- **docs/troubleshooting** : README référençait des CORRECTIONS_* déjà supprimées ; mettre à jour liens et date.
+- **Backend** : fichiers .md dans auth-service (SMTP_CONFIGURATION, PYTHON_EMAIL_SETUP), security-service (ARCHITECTURE), metrics-aggregator (METRICS_DB_README, PERFORMANCE_OPTIMIZATION, MONITORING_GUIDE) à centraliser dans docs/.
+
+### Solution
+1. **docs/tests** : suppression des 6 fichiers listés ; mise à jour du README (liens vers documents conservés : STRUCTURE_TESTS_MAKE_TEST, COMMANDES_TESTS, QUICK_START_MOBILE_TESTS, etc.).
+2. **docs/changelog** : suppression des 3 sous-dossiers et de leur contenu ; création d’un README.md unique pointant vers STATUS.md et RESOLUTIONS.md.
+3. **docs/api** : suppression de BACKEND_FIXES_SUMMARY.md ; création de api/README.md ; mise à jour « Dernière mise à jour » en Mars 2026 dans api-reference et endpoints.
+4. **docs/database** : suppression de structure-actuelle.md ; mise à jour du README (lien structure détaillée, date Mars 2026).
+5. **docs/troubleshooting** : README mis à jour (liens vers POSTGRES_MONITORING, TROUBLESHOOTING_LOGIN ; suppression des références CORRECTIONS_* ; date Mars 2026).
+6. **docs/emails** : ajout de SMTP_CONFIGURATION.md et PYTHON_EMAIL_SETUP.md (contenu déplacé depuis backend/auth-service) ; README mis à jour.
+7. **docs/security** : ajout de ARCHITECTURE_SECURITY_SERVICE.md (contenu déplacé depuis backend/security-service) ; README mis à jour.
+8. **docs/monitoring** : ajout de METRICS_DB_README.md, PERFORMANCE_OPTIMIZATION.md, MONITORING_GUIDE.md (copiés depuis backend/metrics-aggregator-service) ; README mis à jour.
+9. **Backend** : suppression des .md déplacés dans auth-service, security-service, metrics-aggregator-service ; README de chaque service mis à jour pour pointer vers docs/.
+10. **docs/README.md** : arborescence et liens mis à jour (development, troubleshooting, tests, api, changelog, emails, monitoring, security).
+11. **docs/GUIDE_ETAPES_ACTUELLES.md** : ajout « Dernière révision : Mars 2026 ».
+
+---
+
+## Mars 2026 – Nettoyage documentation et racine projet
+
+### Probleme
+- **docs/development** : dossiers diagnostic, recap, setup, testing, workflow et fichiers FINAL_IMPLEMENTATION_SUMMARY, GUIDE_TESTS_PARCOURS, RESUME_NETTOYAGE obsolètes ou doublons.
+- **docs/monitoring** : nombreux doublons (README-MONITORING, QUICK-START, etc.) et doc référençant une architecture Python (statistics.py) non utilisée.
+- **docs/user-journey** : anciens correctifs de session (LIRE_MOI_URGENT, QUICK_FIX, RESUME_FINAL, TOKEN_TEST_PERMANENT, SOLUTION_ERREUR_403, RESOUDRE_TOKEN_INVALIDE).
+- **docs/troubleshooting** et **docs/todo** : fichiers CORRECTIONS_* et TODO_CORRECTIONS obsolètes.
+- **Racine** : dossier `security-service/` contenant uniquement FIREWALL_PLAN.md (doublon avec le service réel dans backend/security-service).
+
+### Solution
+1. **docs/development** : suppression des dossiers diagnostic, recap, setup, testing, workflow et des 3 .md cités. Conservation de makefile/ et makefile-commands/.
+2. **docs/monitoring** : suppression de 16 fichiers doublons/obsolètes ; conservation de metrics-flow.md, README.md (mis à jour), MONITORING_COMMANDS.md, QUICK_START_MONITORING.md.
+3. **docs/user-journey** : suppression des 6 fichiers de correctifs anciens ; conservation de README, GUIDE_COMPLET, PARCOURS_METIER.
+4. **docs/troubleshooting** : suppression des 4 CORRECTIONS_* ; conservation de README, POSTGRES_MONITORING, TROUBLESHOOTING_LOGIN.
+5. **docs/todo** : suppression de CORRECTIONS_EN_COURS et TODO_CORRECTIONS ; conservation de README et TODO_PERFORMANCE.
+6. **security-service (racine)** : déplacement de FIREWALL_PLAN.md vers docs/security/FIREWALL_PLAN.md ; suppression du dossier racine.
+7. **Rapport** : création de docs/RAPPORT_NETTOYAGE_MARS_2026.md (détail des suppressions, réponse sur services Go/Python, security-service, statistics).
+8. **STATUS.md** : ajout d’une section « Documentation et nettoyage » avec lien vers le rapport et précisions sur services Node.js (pas de Go), statistics (dashboard-service Node, pas de Python).
+
+### Clarifications (rapport)
+- **Services en Go** : aucun service backend n’est en Go ; auth-service et les autres sont en Node.js. Migration Go éventuelle à planifier.
+- **statistics.py** : ancienne doc décrivait une architecture Python ; le projet utilise dashboard-service (Node, statistics.controller.js) et metrics-aggregator.
+- **Scripts** : aucune suppression dans scripts/ pour ne pas casser le Makefile ; audit ciblé possible plus tard.
+
+---
+
 ## 27 fevrier 2026 – Rapports de tests 404, Test inconnu, compression
 
 ### Probleme

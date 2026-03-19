@@ -2,6 +2,8 @@
 
 **À lire en premier** pour savoir exactement quoi faire (backoffice, données de test, suivi intérim, mobile, base de test).
 
+*Dernière révision : Mars 2026*
+
 ---
 
 ## À faire maintenant (priorité)

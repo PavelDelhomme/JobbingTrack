@@ -206,19 +206,21 @@ model Application {
   statusEngineOptOut    Boolean             @default(false)
   // Email remerciement post-entretien envoyé → reset « compteur » relance pour la suggestion « Considérer rejetée »
   thankYouEmailSentAt   DateTime?
+  // Données de test (nettoyage ciblé)
+  isTestData            Boolean             @default(false)
   
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   deletedAt             DateTime?
-  
+
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   company               Company             @relation(fields: [companyId], references: [id])
   agency                Company?            @relation("AgencyApplications", fields: [agencyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
   status                ApplicationStatus   @relation(fields: [statusId], references: [id])
-  
+
   contacts              ContactApplication[] // Many-to-many
   followUps             FollowUp[]
   calls                 Call[]
@@ -226,12 +228,13 @@ model Application {
   events                Event[]
   documents             Document[]
   statusHistory         ApplicationStatusHistory[]
-  
+
   @@index([userId])
   @@index([companyId])
   @@index([agencyId])
   @@index([statusId])
   @@index([applicationDate])
+  @@index([isTestData])
 }
 
 enum ContractType {

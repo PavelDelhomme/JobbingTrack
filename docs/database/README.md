@@ -54,8 +54,8 @@
 ### Relations & Liaisons
 - **[Liaisons Inter-Modèles](relations.md)** - Toutes les relations 1:N et M:N implémentées
 
-### Structure Détaillée
-- **[Structure Actuelle Complète](structure-actuelle.md)** - Vue d'ensemble détaillée de tous les modèles actuels (si besoin de détails)
+### Structure détaillée
+- **[STRUCTURE_ACTUELLE.md](STRUCTURE_ACTUELLE.md)** – Référence et valeurs par défaut des enums. Pour le détail des modèles, voir aussi [schema/README.md](schema/README.md) et [relations.md](relations.md).
 
 ---
 
@@ -96,4 +96,4 @@
 
 ---
 
-**Dernière mise à jour** : 2025-01-27
+**Dernière mise à jour** : Mars 2026

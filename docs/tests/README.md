@@ -363,19 +363,20 @@ open tests/coverage/index.html
 # Ajouter tests pour fichiers critiques
 ```
 
-## 📚 Tests Spécifiques Disponibles
+## 📚 Documents disponibles
 
-- **[Structure des tests (make test)](STRUCTURE_TESTS_MAKE_TEST.md)** – Prérequis (seed auth, email vérifié), CWD, 62 vs 270 tests API/E2E, health checks, rapports.
-- **[Quick Start - Tests Mobile](QUICK_START_MOBILE_TESTS.md)** – Démarrage rapide des tests E2E mobile (Playwright), permissions npm, dépannage.
-### 🧪 Tests de Fonctionnalités
-- **[Tests Page Détail Services](TESTS_PAGE_DETAIL_SERVICES.md)** - Tests complets de la page de détail des services Docker avec métriques en temps réel
+- **[Structure des tests (make test)](STRUCTURE_TESTS_MAKE_TEST.md)** – Prérequis (seed auth, email vérifié), CWD, health checks, rapports.
+- **[Commandes tests](COMMANDES_TESTS.md)** – Commandes make et scripts.
+- **[Quick Start - Tests Mobile](QUICK_START_MOBILE_TESTS.md)** – Démarrage rapide des tests E2E mobile (Playwright).
+- **[MOBILE_TESTS_README](MOBILE_TESTS_README.md)** – Tests mobile détaillés.
+- **[TESTS_END](TESTS_END.md)** – Fin de suite, conventions.
+- **[Backoffice tests coverage](BACKOFFICE_TESTS_COVERAGE.md)** – Couverture backoffice.
+- **[Rapports et conventions](RAPPORTS_CONVENTIONS.md)** – Conventions de rapports.
 
 ## 📚 Ressources
 
-- **[Tests Racine](../../tests/README.md)** - Documentation complète des tests
-- **[Guide Développement](../development/testing/README.md)** - Configuration environnement tests
-- **[API Reference](../api/api-reference/README.md)** - Documentation API pour tests
-- **[Guide CI/CD](../deployment/production/README.md)** - Pipeline déploiement
+- **[Tests racine](../../tests/README.md)** – Documentation des tests à la racine.
+- **[API Reference](../api/api-reference/README.md)** – Documentation API pour tests.
 
 ## ✅ Checklist Avant Commit
 

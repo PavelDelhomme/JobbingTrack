@@ -60,7 +60,8 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
         return document.querySelectorAll('script').length;
       });
       const bodyHtml = await page.locator('body').innerHTML();
-      expect(bodyHtml).not.toContain('<script>alert("XSS")</script>');
+      const hasRawXss = bodyHtml.includes('<script>alert("XSS")</script>');
+      expect(hasRawXss, 'Le HTML ne doit pas contenir le script XSS brut').toBe(false);
     }
   });
 
@@ -74,7 +75,8 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
       await page.waitForTimeout(500);
 
       const bodyHtml = await page.locator('body').innerHTML();
-      expect(bodyHtml).not.toContain('onerror=alert(1)');
+      const hasOnError = bodyHtml.includes('onerror=alert(1)');
+      expect(hasOnError, 'Le HTML ne doit pas contenir onerror=alert(1)').toBe(false);
     }
   });
 

@@ -307,7 +307,8 @@ async function main() {
           location,
           userId: users[i % users.length].id,
           description: `[TEST_DATA_TAG:${testTag}]`,
-          companyType: 'EMPLOYER'
+          companyType: 'EMPLOYER',
+          isTestData: true
         }
       });
       companies.push(company);
@@ -324,7 +325,8 @@ async function main() {
           location,
           userId: users[0].id,
           description: `[TEST_DATA_TAG:${testTag}]`,
-          companyType: 'TEMP_AGENCY'
+          companyType: 'TEMP_AGENCY',
+          isTestData: true
         }
       });
       companies.push(agency);
@@ -404,6 +406,7 @@ async function main() {
           applicationType: 'OFFRE',
           statusId: applicationStatusId,
           notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
+          isTestData: true
         }
       });
       applications.push(application);

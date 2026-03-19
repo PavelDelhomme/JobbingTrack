@@ -83,7 +83,7 @@
 
 - [ ] security-service : healthcheck OK
 - [ ] WAF / règles API Gateway opérationnelles
-- [ ] Firewall (FIREWALL_PLAN.md) : étapes implémentées documentées
+- [ ] Firewall (docs/security/FIREWALL_PLAN.md) : étapes implémentées documentées
 - [ ] Pas de secrets en clair dans le code ou le repo
 - [ ] Variables sensibles dans .env (non commité)
 

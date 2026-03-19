@@ -24,6 +24,15 @@ import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+/** Neutralise les payloads XSS dans le texte affiché (ex. onerror=, onload=) sans casser la recherche. */
+function sanitizeDisplayQuery(q: string): string {
+  if (!q || typeof q !== 'string') return q;
+  return q
+    .replace(/\bonerror\s*=/gi, '')
+    .replace(/\bonload\s*=/gi, '')
+    .replace(/\bon\w+\s*=/gi, '');
+}
+
 interface SearchResult {
   module: string;
   results: any[];
@@ -212,7 +221,7 @@ export default function OptimizedSearchPage() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(sanitizeDisplayQuery(e.target.value))}
                 onKeyPress={handleKeyPress}
                 placeholder="Rechercher... (min. 2 caractères)"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 text-base"
