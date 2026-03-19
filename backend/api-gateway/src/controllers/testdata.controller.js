@@ -51,13 +51,16 @@ const generateTestData = async (req, res) => {
     }
     const command = `node "${scriptPath}" '${configJson}'`;
     logger.info('📝 Exécution du script:', command);
-    
+    // Pour que l’admin qui lance la génération voie les données (Suivi intérim, etc.)
+    const env = {
+      ...process.env,
+      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public',
+      TEST_DATA_OWNER_ID: req.user?.id || '',
+      TEST_DATA_OWNER_EMAIL: req.user?.email || ''
+    };
     const { stdout, stderr } = await execPromise(command, {
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-      env: {
-        ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public'
-      }
+      env
     });
 
     if (stderr && !stderr.includes('Warning')) {
