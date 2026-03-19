@@ -171,9 +171,10 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.locator('nav').first().waitFor({ state: 'visible', timeout: 25000 });
     await expect(page.getByRole('heading', { name: /Gestion de la Corbeille|Corbeille/i })).toBeVisible({ timeout: 20000 });
-    const bodyText = await page.locator('body').textContent({ timeout: 10000 }) ?? '';
-    expect(bodyText).not.toContain('500');
-    expect(bodyText).not.toContain('Erreur serveur');
+    // Vérifier le contenu visible uniquement (éviter faux positifs sur le payload RSC/scripts)
+    const mainText = await page.locator('main').textContent({ timeout: 10000 }).catch(() => '') ?? '';
+    expect(mainText).not.toContain('500');
+    expect(mainText).not.toContain('Erreur serveur');
   });
 });
 

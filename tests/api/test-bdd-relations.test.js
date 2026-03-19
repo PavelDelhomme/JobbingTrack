@@ -191,18 +191,18 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
 
       // Restauration en séquentiel pour garantir l'ordre
       const appRestore = await api('post', `applications/${applicationId}/restore`, {});
-      if (appRestore.status !== 200) console.error(`[BDD] Restore application: ${appRestore.status}`);
+      if (appRestore.status !== 200 && appRestore.status !== 404) console.error(`[BDD] Restore application: ${appRestore.status}`);
       if (interviewId) {
         const intRestore = await api('post', `interviews/${interviewId}/restore`, {});
-        if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+        if (intRestore.status !== 200 && intRestore.status !== 404) console.error(`[BDD] Restore interview: ${intRestore.status}`);
       }
       if (followUpId) {
         const fuRestore = await api('post', `followups/${followUpId}/restore`, {});
-        if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+        if (fuRestore.status !== 200 && fuRestore.status !== 404) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
       }
       if (callId) {
         const callRestore = await api('post', `calls/${callId}/restore`, {});
-        if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
+        if (callRestore.status !== 200 && callRestore.status !== 404) console.error(`[BDD] Restore call: ${callRestore.status}`);
       }
     });
   });

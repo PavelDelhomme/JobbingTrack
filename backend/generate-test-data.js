@@ -15,6 +15,12 @@ const prisma = new PrismaClient({
   }
 });
 
+/** Détecte si l’erreur Prisma est « Unknown argument isTestData » (ancienne image api-gateway). */
+function isTestDataUnknownError(err) {
+  const msg = (err && err.message) ? String(err.message) : '';
+  return msg.includes('Unknown argument') && msg.includes('isTestData');
+}
+
 // Configuration par défaut
 const DEFAULT_CONFIG = {
   users: 3,
@@ -292,44 +298,78 @@ async function main() {
     }
     console.log(`   ✅ ${users.length} utilisateurs créés (user1: ${user1Email})`);
 
-    // 2. Créer les entreprises
+    // Utiliser l’admin qui a lancé la génération comme propriétaire des entreprises/candidatures (Suivi intérim visible)
+    let ownerId = process.env.TEST_DATA_OWNER_ID;
+    let companyOwners = users;
+    if (ownerId) {
+      const owner = await prisma.user.findUnique({ where: { id: ownerId } }).catch(() => null);
+      if (owner) {
+        companyOwners = [owner];
+        console.log(`   👤 Données rattachées à l’admin: ${owner.email || ownerId}`);
+      }
+    }
+
+    // 2. Créer les entreprises (fallback si ancienne image api-gateway sans isTestData dans le schéma)
+    let skipIsTestData = false;
     console.log('🏢 Création des entreprises...');
     const companies = [];
     for (let i = 0; i < Math.min(config.companies, COMPANIES_DATA.length); i++) {
       const companyData = COMPANIES_DATA[i];
       const { name, website, industry, size, location } = companyData;
-      const company = await prisma.company.create({
-        data: {
-          name,
-          website,
-          industry,
-          size,
-          location,
-          userId: users[i % users.length].id,
-          description: `[TEST_DATA_TAG:${testTag}]`,
-          companyType: 'EMPLOYER',
-          isTestData: true
+      const base = {
+        name,
+        website,
+        industry,
+        size,
+        location,
+        userId: companyOwners[i % companyOwners.length].id,
+        description: `[TEST_DATA_TAG:${testTag}]`,
+        companyType: 'EMPLOYER',
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      try {
+        const company = await prisma.company.create({ data: base });
+        companies.push(company);
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          console.warn('⚠️ Schéma Prisma sans isTestData (rebuild api-gateway pour le marquage). Génération sans isTestData.');
+          const company = await prisma.company.create({
+            data: { name, website, industry, size, location, userId: base.userId, description: base.description, companyType: base.companyType }
+          });
+          companies.push(company);
+        } else {
+          throw err;
         }
-      });
-      companies.push(company);
+      }
     }
-    // Créer les boîtes d'intérim (TEMP_AGENCY)
     for (const agencyData of TEMP_AGENCY_DATA) {
       const { name, website, industry, size, location } = agencyData;
-      const agency = await prisma.company.create({
-        data: {
-          name,
-          website,
-          industry,
-          size,
-          location,
-          userId: users[0].id,
-          description: `[TEST_DATA_TAG:${testTag}]`,
-          companyType: 'TEMP_AGENCY',
-          isTestData: true
+      const base = {
+        name,
+        website,
+        industry,
+        size,
+        location,
+        userId: companyOwners[0].id,
+        description: `[TEST_DATA_TAG:${testTag}]`,
+        companyType: 'TEMP_AGENCY',
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      try {
+        const agency = await prisma.company.create({ data: base });
+        companies.push(agency);
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const agency = await prisma.company.create({
+            data: { name, website, industry, size, location, userId: base.userId, description: base.description, companyType: base.companyType }
+          });
+          companies.push(agency);
+        } else {
+          throw err;
         }
-      });
-      companies.push(agency);
+      }
     }
     console.log(`   ✅ ${companies.length} entreprises créées (dont ${TEMP_AGENCY_DATA.length} boîtes d'intérim)`);
 
@@ -339,20 +379,29 @@ async function main() {
     for (let i = 0; i < config.contacts; i++) {
       const user = users[i % users.length];
       const company = companies[i % companies.length];
-      
-      const contact = await prisma.contact.create({
-        data: {
-          userId: user.id,
-          firstName: FIRST_NAMES[i % FIRST_NAMES.length],
-          lastName: LAST_NAMES[(i + 3) % LAST_NAMES.length],
-          position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
-          email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
-          phone: `+3361234${1000 + i}`,
-          linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
-          notes: `[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+      const contactData = {
+        userId: user.id,
+        firstName: FIRST_NAMES[i % FIRST_NAMES.length],
+        lastName: LAST_NAMES[(i + 3) % LAST_NAMES.length],
+        position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
+        email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
+        phone: `+3361234${1000 + i}`,
+        linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
+        notes: `[TEST_DATA_TAG:${testTag}]`,
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      let contact;
+      try {
+        contact = await prisma.contact.create({ data: contactData });
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const { isTestData, ...rest } = contactData;
+          contact = await prisma.contact.create({ data: rest });
+        } else {
+          throw err;
         }
-      });
+      }
       
       // Lier le contact à l'entreprise via la table de jonction
       try {
@@ -378,12 +427,12 @@ async function main() {
     }
     const applicationStatusId = appStatus.id;
 
-    // 4. Créer les candidatures
+    // 4. Créer les candidatures (même propriétaire que les entreprises pour visibilité Suivi intérim)
     console.log('📋 Création des candidatures...');
     const tempAgencies = companies.filter(c => c.companyType === 'TEMP_AGENCY');
     const applications = [];
     for (let i = 0; i < config.applications; i++) {
-      const user = users[i % users.length];
+      const owner = companyOwners[i % companyOwners.length];
       const company = companies[i % companies.length];
       const position = POSITIONS[i % POSITIONS.length];
       const agencyId = tempAgencies.length > 0 && i % 3 === 0
@@ -393,22 +442,32 @@ async function main() {
       const applicationDate = new Date();
       applicationDate.setDate(applicationDate.getDate() - Math.floor(Math.random() * 60));
 
-      const application = await prisma.application.create({
-        data: {
-          userId: user.id,
-          companyId: company.id,
-          agencyId: agencyId || undefined,
-          position,
-          description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
-          location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],
-          contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
-          applicationDate,
-          applicationType: 'OFFRE',
-          statusId: applicationStatusId,
-          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+      const appData = {
+        userId: owner.id,
+        companyId: company.id,
+        agencyId: agencyId || undefined,
+        position,
+        description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
+        location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],
+        contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
+        applicationDate,
+        applicationType: 'OFFRE',
+        statusId: applicationStatusId,
+        notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      let application;
+      try {
+        application = await prisma.application.create({ data: appData });
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const { isTestData, ...rest } = appData;
+          application = await prisma.application.create({ data: rest });
+        } else {
+          throw err;
         }
-      });
+      }
       applications.push(application);
 
       // Créer des activités pour chaque candidature (Activity n'existe peut-être pas dans le schéma partagé)
@@ -486,7 +545,7 @@ async function main() {
           videoLink: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
           notes: `Entretien technique prévu\n[TEST_DATA_TAG:${testTag}]`,
           statusId: interviewStatusIds[['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3]],
-          isTestData: true
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       interviews.push(interview);
@@ -534,7 +593,7 @@ async function main() {
           statusId: followUpStatusIds[i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING'],
           response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null,
           notes: `Suivi candidature ${application.position}\nBonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       followups.push(followup);
@@ -561,7 +620,7 @@ async function main() {
           subject: `Appel concernant la candidature ${application.position}`,
           notes: `Appel concernant la candidature ${application.position}\n[TEST_DATA_TAG:${testTag}]`,
           status: ['SCHEDULED', 'COMPLETED', 'MISSED', 'CANCELLED'][i % 4],
-          isTestData: true
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       calls.push(call);
@@ -591,7 +650,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 15,
             color: '#3B82F6',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -619,7 +678,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 30,
             color: '#10B981',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -647,7 +706,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 60,
             color: '#F59E0B',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -677,7 +736,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 15,
             color: '#8B5CF6',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -709,7 +768,7 @@ async function main() {
             reminderEnabled: i % 2 === 0,
             reminderMinutes: 60,
             color: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][i % 5],
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -762,6 +821,10 @@ async function main() {
     console.log(`   - ${linkedContacts} liaisons contact-candidature`);
     console.log(`   - ${archivedCount} éléments archivés`);
     console.log(`   - ${deletedCount} éléments en corbeille`);
+    if (skipIsTestData) {
+      console.log('');
+      console.warn('⚠️ Données créées sans marquage isTestData (ancienne image api-gateway). Pour que « Revenir à la base propre » les supprime, rebuild: make rebuild-service SERVICE=api-gateway');
+    }
     console.log('');
     console.log('🔐 Comptes de test créés:');
     users.forEach((user, index) => {

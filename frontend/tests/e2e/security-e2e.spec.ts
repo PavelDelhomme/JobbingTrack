@@ -72,7 +72,8 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
     const searchInput = page.locator('input[type="text"], input[type="search"]').first();
     if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await searchInput.fill('<img src=x onerror=alert(1)>');
-      await page.waitForTimeout(500);
+      // Laisser le temps à React d'appliquer la sanitisation (affichage) avant de lire le HTML
+      await page.waitForTimeout(1500);
 
       const bodyHtml = await page.locator('body').innerHTML();
       const hasOnError = bodyHtml.includes('onerror=alert(1)');

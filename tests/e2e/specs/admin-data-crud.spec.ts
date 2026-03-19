@@ -212,12 +212,14 @@ test.describe.serial('CRUD Données Complet (admin)', () => {
 
   test('candidature archivée absente de la liste normale', async ({ request }) => {
     if (!applicationId) return;
-    const res = await request.get(`${GATEWAY_URL}/api/v1/applications`, { headers: h() });
+    // Laisser le temps à l’archivage d’être persisté avant de lister (éviter race)
+    await new Promise((r) => setTimeout(r, 800));
+    const res = await request.get(`${GATEWAY_URL}/api/v1/applications?limit=50`, { headers: h() });
     expect(res.status()).toBe(200);
     const body = await res.json();
     const apps = body.applications || body.data || [];
     const found = apps.find((a: any) => a.id === applicationId);
-    expect(found).toBeUndefined();
+    expect(found, 'La candidature archivée ne doit pas apparaître dans la liste (par défaut exclude archivées)').toBeUndefined();
   });
 
   test('désarchiver la candidature', async ({ request }) => {

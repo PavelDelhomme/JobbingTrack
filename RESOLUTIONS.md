@@ -18,6 +18,16 @@
 
 ---
 
+## Mars 2026 – Generate-test-data sans isTestData (ancienne image api-gateway)
+
+### Problème
+- Depuis le backoffice (Actions → Générer données de test), l’appel à `generate-test-data.js` échouait avec `Unknown argument isTestData` sur `prisma.company.create` lorsque l’image Docker de l’api-gateway avait été construite avant l’ajout du champ `isTestData` dans le schéma partagé.
+
+### Solution
+- Dans `backend/generate-test-data.js` : détection de l’erreur Prisma « Unknown argument isTestData » ; au premier échec, passage en mode fallback (création Company, Application, Contact, Interview, FollowUp, Call, Event sans `isTestData`) et message d’avertissement. La génération réussit donc même avec une ancienne image. Un message en fin de script indique de rebuilder l’api-gateway pour que « Revenir à la base propre » supprime bien les données générées.
+
+---
+
 ## Mars 2026 – E2E Corbeille, restore visibility, security-e2e sortie illisible
 
 ### Problème
@@ -29,6 +39,18 @@
 1. **Corbeille** : remplacer `waitForLoadState('networkidle')` par `domcontentloaded`, attendre la nav (25s), puis le heading « Gestion de la Corbeille » (visible 20s), et `test.setTimeout(50000)`. Assertions sur le body en textContent avec timeout 10s.
 2. **Restore puis GET** : après `apiRestoreWithResponse`, boucle de retry (jusqu’à 5 fois, 1s entre chaque) sur `GET /applications/:id` avant d’asserter `appRes.ok()`.
 3. **Security XSS** : au lieu de `expect(bodyHtml).not.toContain('...')`, calculer `const hasOnError = bodyHtml.includes('onerror=alert(1)')` et `expect(hasOnError, '...').toBe(false)` (idem pour le script alert XSS). Ainsi la valeur « reçue » en cas d’échec est un booléen, pas tout le HTML.
+
+---
+
+## Mars 2026 – Tests BDD restore 404 et CRUD admin « candidature archivée absente »
+
+### Problème
+- **test-bdd-relations.test.js** : en nettoyage (afterEach), les appels restore sur interview/followup/call renvoyaient parfois 404 (entité déjà supprimée définitivement par le test), ce qui générait des `console.error` et du bruit dans la sortie.
+- **admin-data-crud.spec.ts** : le test « candidature archivée absente de la liste normale » échouait car la liste GET /applications était interrogée juste après l’archivage, avant que la BDD ait persisté l’état.
+
+### Solution
+- **test-bdd-relations** : ne plus logger en erreur lorsque le restore retourne 404 (attendu en nettoyage) ; logger uniquement pour les autres codes (ex. 500).
+- **admin-data-crud** : ajout d’un délai de 800 ms après l’appel d’archivage, puis GET `/api/v1/applications?limit=50` ; assertion que la candidature archivée n’apparaît pas dans la liste.
 
 ---
 
