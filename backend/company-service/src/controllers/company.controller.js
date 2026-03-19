@@ -23,6 +23,14 @@ const createCompany = async (req, res, next) => {
 
     const { name, website, industry, size, location, description, companyType } = req.body;
 
+    // Sanitisation XSS : retirer balises <script> et tout tag HTML du nom
+    const rawName = name != null ? String(name) : '';
+    const sanitizedName = rawName
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    const finalName = sanitizedName || 'Sans nom';
+
     const VALID_SIZES = ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'];
     const sizeValue = size && VALID_SIZES.includes(String(size).toUpperCase())
       ? String(size).toUpperCase()
@@ -30,7 +38,7 @@ const createCompany = async (req, res, next) => {
 
     const data = {
       userId: req.user.id,
-      name: name && String(name).trim() ? String(name).trim() : 'Sans nom',
+      name: finalName,
       companyType: companyType === 'TEMP_AGENCY' ? 'TEMP_AGENCY' : 'EMPLOYER',
     };
     if (website !== undefined && website !== null && website !== '') data.website = String(website);
@@ -42,6 +50,8 @@ const createCompany = async (req, res, next) => {
     const company = await prisma.company.create({
       data,
     });
+    // Garantir que la réponse ne contient jamais de script (régression XSS)
+    company.name = finalName;
 
     res.status(201).json({
       success: true,
@@ -260,6 +270,11 @@ const updateCompany = async (req, res, next) => {
     const updateData = {};
     for (const key of allowed) {
       if (body[key] !== undefined) updateData[key] = body[key];
+    }
+    if (updateData.name != null) {
+      const raw = String(updateData.name);
+      const sanitized = raw.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, '').trim();
+      if (sanitized) updateData.name = sanitized; else delete updateData.name;
     }
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({

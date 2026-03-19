@@ -1,7 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
 
 async function expectPageLoaded(page: Page, minContentLength = 100) {
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.locator('nav').first()).toBeVisible({ timeout: 25000 });
   const len = await page.locator('body').textContent().then(t => (t?.length ?? 0));
   expect(len).toBeGreaterThan(minContentLength);
 }
@@ -26,13 +27,13 @@ test.describe('🏠 Dashboard principal', () => {
   });
 
   test('affiche le dashboard avec nav et métriques', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const hasMetrics = await page.locator('[href="/backoffice/users"], [href*="security"]').first().isVisible().catch(() => false);
     expect(hasMetrics).toBe(true);
   });
 
   test('affiche les cartes de métriques système', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const bodyText = await page.locator('body').textContent() ?? '';
     const hasMetricTerms = /Sessions|Erreurs|Santé|Temps/i.test(bodyText);
     expect(hasMetricTerms).toBe(true);
@@ -42,11 +43,11 @@ test.describe('🏠 Dashboard principal', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
     expect(page.url()).toContain('/backoffice');
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('layout cohérent (pas de scroll horizontal)', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const bodyW = await page.evaluate(() => document.body.scrollWidth);
     const viewW = await page.evaluate(() => window.innerWidth);
     expect(bodyW).toBeLessThanOrEqual(viewW + 20);
@@ -496,9 +497,9 @@ test.describe('🧭 Navigation sidebar', () => {
   test('sidebar visible avec liens principaux', async ({ page }) => {
     await page.goto('/backoffice');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
 
-    const nav = await page.locator('nav').textContent() ?? '';
+    const nav = await page.locator('nav').first().textContent() ?? '';
     const hasLinks = /Statistiques|Services|curit|Utilisateurs|Emails|Tests|Parcours/i.test(nav);
     expect(hasLinks).toBe(true);
   });

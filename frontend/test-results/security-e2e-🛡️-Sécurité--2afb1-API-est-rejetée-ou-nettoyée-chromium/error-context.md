@@ -201,7 +201,7 @@
       - main [ref=e271]:
         - generic [ref=e272]:
           - generic [ref=e273]:
-            - link "→ 2 Sessions Actives 1810 utilisateurs" [ref=e274] [cursor=pointer]:
+            - link "→ 2 Sessions Actives 2256 utilisateurs" [ref=e274] [cursor=pointer]:
               - /url: /backoffice/users
               - generic [ref=e275]:
                 - generic [ref=e276]:
@@ -210,7 +210,7 @@
                 - generic [ref=e284]:
                   - paragraph [ref=e285]: "2"
                   - paragraph [ref=e286]: Sessions Actives
-                  - paragraph [ref=e287]: 1810 utilisateurs
+                  - paragraph [ref=e287]: 2256 utilisateurs
             - link "→ 0 Erreurs Récentes 24h dernières" [ref=e288] [cursor=pointer]:
               - /url: /backoffice/security/logs
               - generic [ref=e289]:

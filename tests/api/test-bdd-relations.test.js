@@ -39,7 +39,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     if (!validToken) return;
     for (const [ep, id] of [['calls', callId], ['followups', followUpId], ['interviews', interviewId], ['applications', applicationId], ['contacts', contactId], ['companies', companyId]]) {
       if (!id) continue;
-      await api('post', `${ep}/${id}/restore`);
+      await api('post', `${ep}/${id}/restore`, {});
       await api('delete', `${ep}/${id}/permanent`);
     }
   });
@@ -163,7 +163,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
       expect(appRes.status).toBe(200);
       expect(appRes.data?.application).toBeDefined();
 
-      await api('post', `interviews/${interviewId}/restore`);
+      await api('post', `interviews/${interviewId}/restore`, {});
     });
 
     it('supprimer la candidature devrait soft-delete les éléments liés', async () => {
@@ -190,18 +190,18 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
       }
 
       // Restauration en séquentiel pour garantir l'ordre
-      const appRestore = await api('post', `applications/${applicationId}/restore`);
+      const appRestore = await api('post', `applications/${applicationId}/restore`, {});
       if (appRestore.status !== 200) console.error(`[BDD] Restore application: ${appRestore.status}`);
       if (interviewId) {
-        const intRestore = await api('post', `interviews/${interviewId}/restore`);
+        const intRestore = await api('post', `interviews/${interviewId}/restore`, {});
         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
       }
       if (followUpId) {
-        const fuRestore = await api('post', `followups/${followUpId}/restore`);
+        const fuRestore = await api('post', `followups/${followUpId}/restore`, {});
         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
       }
       if (callId) {
-        const callRestore = await api('post', `calls/${callId}/restore`);
+        const callRestore = await api('post', `calls/${callId}/restore`, {});
         if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
       }
     });
@@ -248,7 +248,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
 
       const appEvent = events.find(e => e.applicationId === applicationId);
       const interviewEvent = events.find(e => e.interviewId === interviewId);
-      // Si l'API retourne des événements, au moins un doit être lié (event-service crée à la création entretien/relance)
+      // L'event-service crée un événement à la création d'entretien/relance : au moins un doit être lié
       if (events.length > 0) {
         expect(appEvent || interviewEvent).toBeDefined();
       }

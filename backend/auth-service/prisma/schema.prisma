@@ -203,7 +203,8 @@ model Application {
   isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
   statusEngineOptOut    Boolean             @default(false)
-  
+  thankYouEmailSentAt   DateTime?           // Email remerciement post-entretien → reset suggestion « Considérer rejetée »
+
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt

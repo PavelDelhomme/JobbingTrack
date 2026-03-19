@@ -201,7 +201,7 @@
       - main [ref=e271]:
         - generic [ref=e272]:
           - generic [ref=e273]:
-            - link "→ 2 Sessions Actives 1810 utilisateurs" [ref=e274] [cursor=pointer]:
+            - link "→ 2 Sessions Actives 2256 utilisateurs" [ref=e274] [cursor=pointer]:
               - /url: /backoffice/users
               - generic [ref=e275]:
                 - generic [ref=e276]:
@@ -210,7 +210,7 @@
                 - generic [ref=e284]:
                   - paragraph [ref=e285]: "2"
                   - paragraph [ref=e286]: Sessions Actives
-                  - paragraph [ref=e287]: 1810 utilisateurs
+                  - paragraph [ref=e287]: 2256 utilisateurs
             - link "→ 0 Erreurs Récentes 24h dernières" [ref=e288] [cursor=pointer]:
               - /url: /backoffice/security/logs
               - generic [ref=e289]:
@@ -228,7 +228,7 @@
                   - generic [ref=e306]: ↑
                   - generic [ref=e307]: 2.5%
               - generic [ref=e308]:
-                - paragraph [ref=e309]: 100%
+                - paragraph [ref=e309]: 4%
                 - paragraph [ref=e310]: Santé Système
                 - paragraph [ref=e311]: Disponibilité
             - generic [ref=e313]:
@@ -238,7 +238,7 @@
                   - generic [ref=e320]: ↓
                   - generic [ref=e321]: 8.3%
               - generic [ref=e322]:
-                - paragraph [ref=e323]: 0ms
+                - paragraph [ref=e323]: 30ms
                 - paragraph [ref=e324]: Temps Réponse
                 - paragraph [ref=e325]: Moyen
             - generic [ref=e327]:
@@ -248,9 +248,9 @@
                   - generic [ref=e334]: ↓
                   - generic [ref=e335]: 3.2%
               - generic [ref=e336]:
-                - paragraph [ref=e337]: ...
+                - paragraph [ref=e337]: 22.4%
                 - paragraph [ref=e338]: CPU Projet (Conteneurs)
-                - paragraph [ref=e339]: ...
+                - paragraph [ref=e339]: "Total: 201.9% • 22 conteneurs"
             - generic [ref=e341]:
               - generic [ref=e342]:
                 - img [ref=e344]
@@ -258,85 +258,142 @@
                   - generic [ref=e347]: ↑
                   - generic [ref=e348]: 1.8%
               - generic [ref=e349]:
-                - paragraph [ref=e350]: ...
+                - paragraph [ref=e350]: 1.0%
                 - paragraph [ref=e351]: Mémoire Projet (Conteneurs)
-                - paragraph [ref=e352]: ...
+                - paragraph [ref=e352]: 407 MB / 48052 MB système • 22 conteneurs
           - generic [ref=e353]:
             - generic [ref=e354]:
               - heading "État du système ⚡ metrics-aggregator" [level=2] [ref=e355]:
                 - img [ref=e356]
                 - text: État du système
                 - generic [ref=e358]: ⚡ metrics-aggregator
-              - generic [ref=e361]: Connexion...
+              - generic [ref=e361]: Connecté
             - generic [ref=e362]:
               - generic [ref=e363]:
-                - generic [ref=e364]: ...
-                - generic [ref=e366]: CPU Système
-                - generic [ref=e367]: ...
-              - generic [ref=e368]:
-                - generic [ref=e369]: ...
-                - generic [ref=e371]: Mémoire Système
-                - generic [ref=e372]: ...
-              - generic [ref=e373]:
-                - generic [ref=e374]: ...
-                - generic [ref=e376]: CPU Projet
-                - generic [ref=e377]: ...
-              - generic [ref=e378]:
-                - generic [ref=e379]: ...
-                - generic [ref=e381]: Mémoire Projet
-                - generic [ref=e382]: ...
-              - generic [ref=e383]:
-                - generic [ref=e384]: ...
-                - generic [ref=e386]: Charge Système
-                - generic [ref=e387]: N/A
-              - generic [ref=e388]:
-                - generic [ref=e389]: ...
-                - generic [ref=e390]: Conteneurs
-                - generic [ref=e391]: ...
-              - generic [ref=e392]:
-                - generic [ref=e393]: "12"
-                - generic [ref=e394]: Services
-                - generic [ref=e395]: 🟢 OK
-              - generic [ref=e396]:
-                - generic [ref=e397]: ...
-                - generic [ref=e399]: Disque
-                - generic [ref=e400]: ...
-          - generic [ref=e401]:
-            - generic [ref=e402] [cursor=pointer]:
-              - generic [ref=e403]:
-                - heading "État des Services" [level=3] [ref=e404]:
-                  - img [ref=e405]
-                  - text: État des Services
-                - button "Voir tous" [ref=e408]
+                - generic [ref=e364]: 73.6%
+                - generic [ref=e365]:
+                  - generic [ref=e366]: CPU Système
+                  - generic [ref=e367]: 🟡
+                - generic [ref=e368]: 16 cores
+              - generic [ref=e369]:
+                - generic [ref=e370]: 98.7%
+                - generic [ref=e371]:
+                  - generic [ref=e372]: Mémoire Système
+                  - generic [ref=e373]: 🔴
+                - generic [ref=e374]: 47445 MB / 48052 MB
+              - generic [ref=e375]:
+                - generic [ref=e376]: 22.4%
+                - generic [ref=e377]:
+                  - generic [ref=e378]: CPU Projet
+                  - generic [ref=e379]: 🟢
+                - generic [ref=e380]: 22 conteneurs JobbingTrack
+              - generic [ref=e381]:
+                - generic [ref=e382]: 1.0%
+                - generic [ref=e383]:
+                  - generic [ref=e384]: Mémoire Projet
+                  - generic [ref=e385]: 🟢
+                - generic [ref=e386]: 407 MB / 48052 MB système
+              - generic [ref=e387]:
+                - generic [ref=e388]: "20.03"
+                - generic [ref=e389]:
+                  - generic [ref=e390]: Charge Système
+                  - generic [ref=e391]: 🟡
+                - generic [ref=e392]: 16 coeurs
+              - generic [ref=e393]:
+                - generic [ref=e394]: "22"
+                - generic [ref=e395]: Conteneurs
+                - generic [ref=e396]: ✅ Actifs
+              - generic [ref=e397]:
+                - generic [ref=e398]: "12"
+                - generic [ref=e399]: Services
+                - generic [ref=e400]: 🟢 OK
+              - generic [ref=e401]:
+                - generic [ref=e402]: 43.2%
+                - generic [ref=e403]:
+                  - generic [ref=e404]: Disque
+                  - generic [ref=e405]: 🟢
+                - generic [ref=e406]: 389.03 / 900 GB
+            - generic [ref=e407]:
+              - heading "📦 Métriques Projet - Conteneurs JobbingTrack (22)" [level=3] [ref=e408]
               - generic [ref=e409]:
                 - generic [ref=e410]:
-                  - generic [ref=e413]: Auth Service
-                  - generic [ref=e414]: 15j 4h 23m
-                - generic [ref=e415]:
-                  - generic [ref=e418]: Application Service
-                  - generic [ref=e419]: 15j 4h 23m
-                - generic [ref=e420]:
-                  - generic [ref=e423]: Company Service
-                  - generic [ref=e424]: 15j 4h 23m
-                - generic [ref=e425]:
-                  - generic [ref=e428]: Contact Service
-                  - generic [ref=e429]: 15j 4h 23m
-                - generic [ref=e430]:
-                  - generic [ref=e433]: Interview Service
-                  - generic [ref=e434]: 15j 4h 23m
-            - generic [ref=e435]:
-              - heading "Performance" [level=3] [ref=e436]:
-                - img [ref=e437]
+                  - generic [ref=e411]:
+                    - generic [ref=e412]: CPU Moyen (Projet)
+                    - generic [ref=e413]: 22.4%
+                  - generic [ref=e416]: "Total: 201.9% • 🟢 Normal"
+                - generic [ref=e417]:
+                  - generic [ref=e418]:
+                    - generic [ref=e419]: Mémoire Utilisée (Projet)
+                    - generic [ref=e420]: 1.0%
+                  - generic [ref=e423]: 407 MB / 48052 MB système • 🟢 Normal
+              - generic [ref=e424]:
+                - paragraph [ref=e425]: "💡 Explication des métriques :"
+                - list [ref=e426]:
+                  - listitem [ref=e427]:
+                    - strong [ref=e428]: Mémoire Système
+                    - text: ": Mémoire totale utilisée par tout le système (OS + tous les processus). Seuil critique: > 90%"
+                  - listitem [ref=e429]:
+                    - strong [ref=e430]: Mémoire Projet
+                    - text: ": Pourcentage de la mémoire système totale utilisée uniquement par les conteneurs JobbingTrack. Seuil critique: > 20%"
+                  - listitem [ref=e431]:
+                    - strong [ref=e432]: CPU Système
+                    - text: ": Utilisation CPU globale de la machine complète (tous les processus). Seuil critique: > 80%"
+                  - listitem [ref=e433]:
+                    - strong [ref=e434]: CPU Projet
+                    - text: ": CPU moyen utilisé par les conteneurs JobbingTrack uniquement. Seuil critique: > 80%"
+                  - listitem [ref=e435]:
+                    - strong [ref=e436]: Charge Système
+                    - text: ": Load average de la machine complète sur 1 minute (charge système totale, pas seulement le projet). Normal si < 1.0 par core, critique si > 1.5 par core"
+                - paragraph [ref=e437]: "🎨 Indicateurs :"
+                - list [ref=e438]:
+                  - listitem [ref=e439]:
+                    - text: 🟢
+                    - strong [ref=e440]: Vert
+                    - text: ": Normal - Tout fonctionne bien"
+                  - listitem [ref=e441]:
+                    - text: 🟡
+                    - strong [ref=e442]: Jaune
+                    - text: ": Attention - Surveillance recommandée"
+                  - listitem [ref=e443]:
+                    - text: 🔴
+                    - strong [ref=e444]: Rouge
+                    - text: ": Critique - Action requise"
+          - generic [ref=e445]:
+            - generic [ref=e446] [cursor=pointer]:
+              - generic [ref=e447]:
+                - heading "État des Services" [level=3] [ref=e448]:
+                  - img [ref=e449]
+                  - text: État des Services
+                - button "Voir tous" [ref=e452]
+              - generic [ref=e453]:
+                - generic [ref=e454]:
+                  - generic [ref=e457]: Service d'Authentification
+                  - generic [ref=e458]: N/A
+                - generic [ref=e459]:
+                  - generic [ref=e462]: Service des Candidatures
+                  - generic [ref=e463]: N/A
+                - generic [ref=e464]:
+                  - generic [ref=e467]: Service des Entreprises
+                  - generic [ref=e468]: N/A
+                - generic [ref=e469]:
+                  - generic [ref=e472]: Service des Contacts
+                  - generic [ref=e473]: N/A
+                - generic [ref=e474]:
+                  - generic [ref=e477]: Service des Entretiens
+                  - generic [ref=e478]: N/A
+            - generic [ref=e479]:
+              - heading "Performance" [level=3] [ref=e480]:
+                - img [ref=e481]
                 - text: Performance
-              - generic [ref=e440]:
-                - generic [ref=e441]:
-                  - generic [ref=e442]: Temps de réponse
-                  - generic [ref=e443]: N/A
-                - generic [ref=e444]:
-                  - generic [ref=e445]: Taux d'erreur
-                  - generic [ref=e446]: 0%
-                - generic [ref=e447]:
-                  - generic [ref=e448]: Sessions actives
-                  - generic [ref=e449]: "2"
-  - alert [ref=e450]
+              - generic [ref=e484]:
+                - generic [ref=e485]:
+                  - generic [ref=e486]: Temps de réponse
+                  - generic [ref=e487]: 30ms
+                - generic [ref=e488]:
+                  - generic [ref=e489]: Taux d'erreur
+                  - generic [ref=e490]: 0%
+                - generic [ref=e491]:
+                  - generic [ref=e492]: Sessions actives
+                  - generic [ref=e493]: "2"
+  - alert [ref=e494]
 ```

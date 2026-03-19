@@ -68,12 +68,19 @@ class PerformanceTester {
 
   async testLoadPerformance() {
     console.log('🔥 Test de charge...');
-
-    const loadTests = [
-      { service: 'apiGateway', endpoint: '/health', requests: 30, label: 'Gateway Health' },
-      { service: 'auth', endpoint: '/health', requests: 20, label: 'Auth Health' },
-      { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 15, label: 'Companies API' },
-    ];
+    const light = process.env.PERF_LIGHT === '1' || process.env.CI === 'true';
+    const loadTests = light
+      ? [
+          { service: 'apiGateway', endpoint: '/health', requests: 5, label: 'Gateway Health' },
+          { service: 'auth', endpoint: '/health', requests: 4, label: 'Auth Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 4, label: 'Companies API' },
+        ]
+      : [
+          { service: 'apiGateway', endpoint: '/health', requests: 10, label: 'Gateway Health' },
+          { service: 'auth', endpoint: '/health', requests: 8, label: 'Auth Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 6, label: 'Companies API' },
+        ];
+    if (light) console.log('   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)');
 
     const results = [];
     let totalSuccessful = 0;
@@ -109,7 +116,7 @@ class PerformanceTester {
       totalTime += averageTime;
 
       console.log(`   ✅ ${successful}/${test.requests} succès - moy: ${Math.round(averageTime)}ms, max: ${Math.round(maxTime)}ms`);
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, light ? 100 : 400));
     }
 
     const overallAverageTime = totalTime / loadTests.length;

@@ -289,6 +289,32 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
     });
   });
 
+  // ─── SUGGESTION REJET & EMAIL REMERCIEMENT ───
+  describe('Suggestion « Considérer rejetée » et email remerciement', () => {
+    it('GET /applications/:id/suggestion-reject retourne suggestConsiderReject et raison', async () => {
+      if (!testApplicationId) return;
+      const res = await axios.get(
+        `${API_URL}/api/v1/applications/${testApplicationId}/suggestion-reject`,
+        { headers: authHeaders, validateStatus: () => true }
+      );
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(typeof res.data.suggestConsiderReject).toBe('boolean');
+      expect(res.data.reason).toBeDefined();
+    });
+
+    it('POST /applications/:id/thank-you-sent enregistre la date', async () => {
+      if (!testApplicationId) return;
+      const res = await axios.post(
+        `${API_URL}/api/v1/applications/${testApplicationId}/thank-you-sent`,
+        {},
+        { headers: authHeaders, validateStatus: () => true }
+      );
+      expect(res.status, res.status === 503 ? '503: make db-push-all (fix thankYouEmailSentAt) et vérifier application-service' : undefined).toBe(200);
+      if (res.status === 200) expect(res.data.success).toBe(true);
+    });
+  });
+
   // ─── CONFIGURATION DU MOTEUR ───
   describe('Configuration parametres du moteur', () => {
     it('les parametres de configuration doivent etre personnalisables', async () => {

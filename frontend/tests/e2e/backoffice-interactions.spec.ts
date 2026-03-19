@@ -422,6 +422,7 @@ test.describe('⚡ Interactions Analytics', () => {
   test('cliquer onglets Analytics utilisateur', async ({ page }) => {
     await page.goto('/backoffice/user-analytics');
     await page.waitForLoadState('networkidle');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const tabTexts = ['Vue d', 'nements', 'Erreurs', 'Performance'];
     for (const tabText of tabTexts) {
@@ -531,8 +532,9 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
   test('page Archives affiche les filtres et éléments interactifs', async ({ page }) => {
     await page.goto('/backoffice/archives');
     await page.waitForLoadState('networkidle');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 20000 });
 
-    const body = await page.locator('body').textContent() ?? '';
+    const body = await page.locator('body').textContent({ timeout: 20000 }) ?? '';
     expect(body.length).toBeGreaterThan(100);
 
     const interactiveCount = await page.locator('button, input, select, [role="tab"]').count();
@@ -541,10 +543,11 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
 
   test('page Corbeille affiche les éléments interactifs', async ({ page }) => {
     await page.goto('/backoffice/trash');
-    await page.waitForLoadState('networkidle');
-
-    const body = await page.locator('body').textContent() ?? '';
-    expect(body.length).toBeGreaterThan(100);
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 30000 });
+    const body = await page.locator('body').textContent({ timeout: 20000 }) ?? '';
+    expect(body.length, 'Le body de la page Corbeille doit être chargé').toBeGreaterThan(100);
+    expect(body).toMatch(/Corbeille|Gestion|Tous les éléments/);
   });
 });
 

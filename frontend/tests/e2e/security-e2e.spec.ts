@@ -86,8 +86,9 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
 
     if (res.ok) {
       const data = res.data as any;
-      const returnedName = data?.name || data?.company?.name || '';
-      expect(returnedName).not.toContain('<script>');
+      const returnedName = (data?.name || data?.company?.name || '').trim();
+      // company-service sanitize le nom (strip <script> et tags) ; le champ retourné ne doit pas contenir <script>
+      expect(returnedName, 'API doit rejeter ou renvoyer un nom nettoyé (sans <script>)').not.toContain('<script>');
 
       const id = data?.id || data?._id || data?.company?.id || data?.company?._id;
       if (id) {

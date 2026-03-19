@@ -534,17 +534,19 @@ fi
 echo ""
 
 # 7. Tests Playwright E2E Frontend (config standalone = pas de webServer, frontend déjà up sur 5003 avec make up-full)
+# E2E et tests de performance sont à des étapes différentes (séquentielles) pour éviter de saturer le CPU
 PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-900}"
 PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
+PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-2}"
 API_E2E_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; export PLAYWRIGHT_WORKERS=\"${PLAYWRIGHT_WORKERS:-2}\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 elif [ -d "frontend/tests/e2e" ]; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; export PLAYWRIGHT_WORKERS=\"${PLAYWRIGHT_WORKERS:-2}\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 else
@@ -621,7 +623,7 @@ echo ""
 # 10. Tests Performance
 if [ -f "tests/performance/test-performance.js" ]; then
     run_test "Tests Performance" \
-        "node tests/performance/test-performance.js" \
+        "PERF_LIGHT=1 node tests/performance/test-performance.js" \
         "$REPORT_DIR/performance.json" \
         "user"
 fi
@@ -913,7 +915,7 @@ echo ""
 # 35. Tests Performance (CPU / endpoints) — toujours exécuté si le fichier existe
 if [ -f "tests/performance/test-performance.js" ]; then
     run_test "Tests Performance Avancés (CPU & endpoints)" \
-        "node tests/performance/test-performance.js" \
+        "PERF_LIGHT=1 node tests/performance/test-performance.js" \
         "$REPORT_DIR/performance-advanced.json" \
         "user"
 fi
@@ -1361,6 +1363,18 @@ echo -e "${CYAN}║${NC}  📄 ${GREEN}report.html${NC}  – Rapport interactif 
 echo -e "${CYAN}║${NC}  📝 ${GREEN}report.txt${NC}   – Rapport texte (terminal)                   ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
+
+# Afficher le détail des tests échoués (précisément quels tests ont échoué)
+if [ "$TOTAL_FAILED" -gt 0 ] && [ -f "$TEXT_REPORT" ]; then
+    echo -e "${RED}══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}  DÉTAIL DES TESTS ÉCHOUÉS${NC}"
+    echo -e "${RED}══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    awk '/^TESTS ECHOUES$/{f=1} f{print} /^====/{if(f) exit}' "$TEXT_REPORT" | while IFS= read -r line; do
+        echo "  $line"
+    done
+    echo ""
+fi
 
 # Afficher le lien URL du rapport HTML
 if [ -f "$HTML_REPORT" ]; then

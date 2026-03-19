@@ -195,15 +195,16 @@ const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
 };
 
 // Cascade : désarchiver tous les éléments liés lors de la désarchivation
+// Utilisation de raw SQL pour Interview/FollowUp/Call afin de garantir la même table que les services dédiés
 const restoreRelatedElements = async (applicationId) => {
   try {
-    await Promise.all([
-      prisma.interview.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
-      prisma.followUp.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
-      prisma.call.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
+    const [rInterview, rFollowUp, rCall] = await Promise.all([
+      prisma.$executeRaw`UPDATE "Interview" SET "isArchived" = false, "archivedAt" = NULL WHERE "applicationId" = ${applicationId} AND "isArchived" = true`,
+      prisma.$executeRaw`UPDATE "FollowUp" SET "isArchived" = false, "archivedAt" = NULL WHERE "applicationId" = ${applicationId} AND "isArchived" = true`,
+      prisma.$executeRaw`UPDATE "Call" SET "isArchived" = false, "archivedAt" = NULL WHERE "applicationId" = ${applicationId} AND "isArchived" = true`,
       prisma.$executeRaw`UPDATE "Event" SET "isArchived" = false, "archivedAt" = NULL WHERE "applicationId" = ${applicationId} AND "isArchived" = true`
     ]);
-    logger.info(`Éléments liés désarchivés pour candidature: ${applicationId}`);
+    logger.info(`Éléments liés désarchivés pour candidature: ${applicationId} (Interview/FollowUp/Call/Event mis à jour)`);
   } catch (error) {
     logger.warn('Cascade désarchivage partielle:', error.message);
   }
@@ -318,6 +319,9 @@ const getTrash = async (req, res, next) => {
 
 const restoreFromTrash = async (req, res, next) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Non authentifié' });
+    }
     const { id } = req.params;
 
     const item = await prisma.application.findFirst({
@@ -325,6 +329,12 @@ const restoreFromTrash = async (req, res, next) => {
     });
 
     if (!item) {
+      const alreadyRestored = await prisma.application.findFirst({
+        where: { id, userId: req.user.id, deletedAt: null }
+      });
+      if (alreadyRestored) {
+        return res.json({ success: true, message: 'Candidature déjà restaurée depuis la corbeille' });
+      }
       return res.status(404).json({ success: false, error: 'Candidature non trouvée dans la corbeille' });
     }
 
@@ -343,6 +353,14 @@ const restoreFromTrash = async (req, res, next) => {
     res.json({ success: true, message: 'Candidature restaurée depuis la corbeille' });
   } catch (error) {
     logger.error('Erreur restauration candidature corbeille:', error);
+    if (process.env.NODE_ENV === 'development' && error.code) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        code: error.code,
+        hint: 'Si P2003: contrainte FK. Vérifier que make db-push-all a été exécuté et que les entités liées existent.'
+      });
+    }
     next(error);
   }
 };
