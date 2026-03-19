@@ -18,6 +18,8 @@
 
 **Règle importante** : le **backoffice** sert à **gérer les données** (entreprises, boîtes d’intérim, candidatures, utilisateurs, etc.). Le **mode intérim** (toggle activable par l’utilisateur, vue dédiée, filtres, couleurs) se gère dans l’**application mobile** et l’**API** (préférence utilisateur), pas dans l’interface backoffice.
 
+**Enchaînement** : 1 → 2 → 3 (backoffice données + billing, puis mobile/API mode intérim), puis 4 (tests complets) et 5 (commandes).
+
 ### 1. Backoffice – Données et Suivi intérim (sans toggle « mode intérim »)
 
 - **Entreprises et boîtes d’intérim** : gestion des Company avec `companyType` (EMPLOYER | TEMP_AGENCY), filtre par type, formulaires création/édition. Page ou section **Suivi intérim** : liste des agences (`companyType = TEMP_AGENCY`), pour chaque agence liste des candidatures où `agencyId = cette agence`. Lien depuis Administration / Boîtes d’intérim ou Données applicatives.
@@ -26,6 +28,23 @@
 - Pas de toggle « Mode intérim » dans le backoffice : l’admin consulte et gère toutes les données ; le choix « voir en mode intérim » est côté **mobile** pour l’utilisateur final.
 
 Spec : **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
+
+**Comment vérifier et gérer l’intérim dans le backoffice** :
+- **Navigation** : Administration → Gestion des données → **Suivi intérim** (lien direct `/backoffice/suivi-interim`), ou Données applicatives → onglet **Suivi intérim**.
+- **Entreprises** : page Entreprises (`/backoffice/companies`) — filtre **Toutes / Employeur / Boîte d’intérim**, colonne Type, formulaire création/édition avec type. Créer une entreprise en type « Boîte d’intérim » pour qu’elle apparaisse dans Suivi intérim.
+- **Candidatures** : Données applicatives → onglet **Candidatures** — filtre **Toutes / Classique (sans agence) / Intérim (via agence)**, colonne **Agence** (nom de la boîte d’intérim si renseignée). Formulaire de création/édition : champ optionnel **Agence (boîte d’intérim)** (liste des Company `companyType = TEMP_AGENCY`).
+- **Suivi intérim** : liste des agences (Company type TEMP_AGENCY) ; clic sur une agence pour afficher les candidatures où `agencyId = cette agence`. Lien vers le détail de chaque candidature.
+- **Calendrier / Événements** : page Événements et onglet Événements dans Données — couleur **ambre** (`#F59E0B`) pour les événements liés à une candidature avec agence, **bleu** (`#3B82F6`) sinon (calcul backend event-service).
+- **Bascule données de test / base propre** : depuis le backoffice, bouton **Actions** (en haut à droite) → **Générer données de test (suivi intérim…)** pour insérer des données de test (agences Randstad/Manpower, candidatures avec agencyId, etc.) puis recharger la page (URL conservée) ; **Revenir à la base propre** pour supprimer uniquement les données de test (`isTestData=true`) puis recharger. Aucune ligne de commande nécessaire. **Implémentation** : route alias `POST /api/v1/admin/clear-test-data` (gateway), script `generate-test-data.js` avec `isTestData: true` sur Company et Application pour que le nettoyage les supprime ; `clearTestData` ne supprime que les users avec `isTestData: true` (pas l’admin principal).
+
+**Tests adaptés (suivi intérim)** :
+
+| Plan | Tests existants / à avoir |
+|------|---------------------------|
+| **API** | `tests/api/test-event-interim-color.test.js` (couleur événement selon agencyId). Filtres Company `?companyType=TEMP_AGENCY`, Application `?agencyId=xxx` couverts par les services. |
+| **Backend** | application-service (agencyId, relation agency), company-service (companyType), event-service (couleur selon application.agencyId). Tests BDD relations. |
+| **Frontend / Backoffice** | Playwright E2E : `frontend/tests/e2e/suivi-interim.spec.ts` (page Suivi intérim, chargement, génération données test, visibilité Randstad/Manpower après génération). Filtre Entreprises, filtre Candidatures classique/intérim, formulaire candidature avec agence. Tests unitaires composants si besoin. |
+| **Mobile** | E2E parcours mode intérim (toggle, écran Intérim, formulaire avec agence, couleurs calendrier) — à renforcer quand le mode intérim mobile est finalisé. |
 
 ### 2. Backoffice – Abonnement & facturation
 
@@ -41,6 +60,8 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/features/SUIVI_BO
 
 ### 4. Tests complets (à appliquer et faire passer)
 
+À faire **après** les points 1 à 3 (ou en parallèle sur une branche dédiée).
+
 - **Lancer la suite** : `make up-full` puis `make seed-auth` puis `make test` (ou `make test-full`). Objectif : tous les blocs verts ; corriger les causes racines des échecs (MailHog, template email, etc.) — création contact/entreprise ne doit plus skip (contact-service gère companyId, tests sans skip).
 - **User Journey** : parcours API complets (auth, companies, applications, contacts, etc.) et **parcours intérim** (création agence, candidature avec agencyId, filtres, préférence mode intérim) pour valider le flux de bout en bout.
 - **Playwright** : backoffice (CRUD, Suivi intérim, Billing si applicable), E2E frontend, sécurité, MailHog/Email Workflows quand l’env est prêt.
@@ -50,12 +71,17 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`**, **`docs/features/SUIVI_BO
 
 Rapports dans `tests/results/<timestamp>/`.
 
+**Tests moteur de statut et mises à jour automatiques (manipulation des dates)** : pas encore réalisés de bout en bout. À faire : backdater des candidatures (applicationDate il y a 8j), exécuter le cron/worker ou endpoint de traitement, vérifier transitions (NO_RESPONSE, etc.), relances, notifications, création d’événements. Voir **ERRORS.md** section « Tests moteur de statut et mises à jour automatiques (manipulation des dates) » et `tests/api/test-status-engine.test.js`.
+
 **Suite prévue (après les points ci-dessus)** : rapports de bugs depuis le backoffice ; crash reports mobile (envoi inconditionnel + file d’attente hors ligne puis envoi à la connexion) ; tests de synchronisation ; email monitoring ; nettoyage utilisateurs de test et parcours prédéfinis / personnalisés ; tests sécurité / backoffice / frontend / API / mobile élargis.
+
+**Note (version complète, bien plus tard)** : permettre à l’utilisateur de choisir s’il souhaite que l’application parse ses mails pour aider au traitement automatique (ex. candidatures, relances, suivi). À faire uniquement dans une version complète ultérieure — pas du tout prévu pour le moment.
 
 ### 5. Commandes utiles
 
 | Action | Commande |
 |--------|----------|
+| **Tout redémarrer et tester (dev)** | `make up-dev` — enchaîne up-full, db-push-all, seed-auth, tests (une seule commande pour le dev et le suivi intérim). |
 | **Lancer la suite de tests** | `make test` (stack déjà up) ; `make test-full-quick` (sans rebuild, léger) ; `make test-full-cached` (build avec cache) ; `make test-full` (rebuild complet, lourd) |
 | **Mesurer durée / ressources** | `make test-full-timed` ou `make up-full-timed` ; ou `./scripts/timed-make.sh test-full-quick` (option `--verbose` pour mémoire) |
 | Arrêter (données conservées) | `make down` |
@@ -67,6 +93,8 @@ Rapports dans `tests/results/<timestamp>/`.
 | Contrôleur émulateur | `make emulator-controller` |
 | Logs | `make logs` |
 | Aide BDD / migrations | `make help-database` |
+
+Pour le détail des specs (suivi intérim, billing, mobile), voir les docs citées dans les sous-sections ci-dessus (**SUIVI_BOITES_INTÉRIM.md**, **PROCHAINES_ETAPES.md**).
 
 **Tests** : rapports dans `tests/results/<timestamp>/`. En cas d'échec, vérifier que l'API Gateway et les services sont démarrés. **Rapport (résumé final)** : le script `run-all-tests-with-reports.sh` extrait maintenant correctement les **passed/failed** des sorties **Jest** (`Tests: X failed, Y passed, Z total`) et **Playwright** (`N failed`, `M passed`), afin que le résumé (report.txt, report.html, summary.json) affiche le bon total d’échecs. **Frontend Jest unit** : au moins un test unitaire est présent dans `frontend/src/__tests__/unit/sample.test.ts` pour que `npm run test:unit` trouve des tests (pattern `unit`). **Tests par service** (Company, Contact, etc.) : sans fichier dans `tests/services/test-<service>.js`, seul un health check (curl `/health`) est exécuté ; tests CRUD complets par service sont optionnels.
 
@@ -81,7 +109,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 | Bloc | Problème | Action |
 |------|----------|--------|
 | **Tests API Complets (Jest)** | thank-you-sent → 503 ; cascade POSITIVE → OFFER_RECEIVED reçu INTERVIEW_DONE. | Colonne `thankYouEmailSentAt` : exécuter `make db-push-all` (fix-application-thankyou-sent.sql). Cascade : retries côté test ; vérifier backend (cascade outcome → OFFER_RECEIVED). |
-| **Playwright E2E Frontend** | Restore candidature 400 ; page Corbeille timeouts ; mobile-emulator « first » ; XSS API ; performance-e2e timeouts ; backoffice-extended 0 boutons ; status-engine mode manuel. | **Corrigé** : company-service renvoie nom sanitized (XSS) ; performance-e2e setTimeout 45s/60s ; backoffice-extended assertions contenu ; restore E2E accepte 200 ou 400. **À surveiller** : Corbeille (timeouts si machine chargée), mobile-emulator (locator .first() sur le locator, pas sur expect), status-engine (accepter CANDIDATE_PENDING ou INTERVIEW_PENDING). |
+| **Playwright E2E Frontend** | Restore candidature 400 ; page Corbeille timeouts ; mobile-emulator « first » ; XSS API ; performance-e2e timeouts ; backoffice-extended 0 boutons ; status-engine mode manuel. | **Corrigé** : company-service renvoie nom sanitized (XSS) ; performance-e2e setTimeout 45s/60s ; backoffice-extended assertions contenu ; restore E2E accepte 200 ou 400. **Mars 2026** : Corbeille — domcontentloaded + attente heading « Gestion de la Corbeille », test 50s ; restore — retry GET /applications/:id jusqu’à 5×1s après restore ; security-e2e — assertion sur booléen (plus de dump HTML). Voir ERRORS.md et RESOLUTIONS.md. |
 | **Tests API Backend (script)** | List Workflows 503 (workflow optionnel). | Script accepte 200 ou 503. make up-full pour démarrer workflow-service. |
 | **Tests Workflow Service (Health Check)** | Service non accessible si pas démarré. | exit 0 si absent (optionnel). |
 
@@ -99,6 +127,8 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 **Régressions** : Une fois les bugs corrigés, les tests existants (XSS security-e2e, restore archive-interactions, status-engine, performance-e2e, backoffice-extended) empêchent la régression. company-service garantit `company.name = finalName` en réponse pour éviter toute régression XSS.
 
+**Documentation et nettoyage (mars 2026)** : Nettoyage effectué — voir **`docs/RAPPORT_NETTOYAGE_MARS_2026.md`**. Supprimés : docs/development (diagnostic, recap, setup, testing, workflow + 3 .md), doublons et obsolètes dans docs/monitoring (conservé metrics-flow.md + README), docs/user-journey (anciens correctifs), docs/troubleshooting (CORRECTIONS_*), docs/todo (CORRECTIONS_*). Dossier racine **security-service/** supprimé (contenu déplacé vers docs/security/FIREWALL_PLAN.md). **Services** : tous les backends sont en **Node.js** (aucun Go) ; auth-service et services critiques ne sont pas en Go — migration éventuelle à planifier. **statistics.py** : mentionné dans d’anciennes doc (architecture Python) ; le projet utilise **dashboard-service** (Node, statistics.controller.js) et **metrics-aggregator**. Aucun script dans scripts/ supprimé pour ne pas casser le Makefile.
+
 ---
 
 ## Récapitulatif à faire (complet)
@@ -107,7 +137,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 **API / Backend** : Endpoints sync (`POST /sync/push`, `GET /sync/pull`, `GET /sync/status`). Cron transitions temporelles (moteur statut), suppression auto corbeille > 30 j. Créer table `deployments` si deployment-service l’utilise. Tables User Analytics (`user_events`, `user_sessions`, etc.) : créées et utilisées pour récupérer les analytics utilisateur. Corriger API versioning (404 sur `GET /api/v1/analytics/stats/:userId/versions`). **Loki** : pas à déployer (monitoring fait maison, pas besoin de Loki).
 
-**Backoffice** : Suivi intérim : couleurs calendrier (intérim = ambre, classique = bleu) selon `application.agencyId`, page dédiée « Suivi intérim » (liste agences + candidatures par agence). Abonnement & facturation : page `/backoffice/billing` (données, APIs, affichage). Export/import CSV/JSON (candidatures, entreprises, contacts) avec interface. Pagination et tri cohérents sur toutes les listes. Email Monitor : affichage complet (liste, statuts, contenu au clic), historique, recherche. Templates email : création (pas seulement édition), tests Playwright. Page délivrabilité (`/backoffice/emails/deliverability`) et tests-emails : tests Playwright complets. Page de confirmation « Email vérifié » (frontend) après clic sur lien de vérification. Idempotence Postgres : `db-fix-role` sans erreurs « role/database already exists » (SQL idempotent dans Makefile).
+**Backoffice** : Suivi intérim : couleurs calendrier (intérim = ambre, classique = bleu) selon `application.agencyId`, page dédiée « Suivi intérim » (liste agences + candidatures par agence). Abonnement & facturation : page `/backoffice/billing` (données, APIs, affichage). Export/import CSV/JSON (candidatures, entreprises, contacts) avec interface. Pagination et tri cohérents sur toutes les listes. Email Monitor : affichage complet (liste, statuts, contenu au clic), historique, recherche. Templates email : création (pas seulement édition), tests Playwright. Page délivrabilité (`/backoffice/emails/deliverability`) et tests-emails : tests Playwright complets. Page de confirmation « Email vérifié » (frontend) après clic sur lien de vérification. ~~Idempotence Postgres~~ : **Fait** — `make db-fix-role` utilise CREATE DATABASE avec EXCEPTION WHEN duplicate_database (voir ERRORS.md).
 
 **Tests** : Faire passer toute la suite (`make test`) et corriger les échecs restants. Tests E2E pour toutes les pages backoffice sécurité (policies, firewall, logs, threats, network, analysis). Tests swipe et actions rapides sur listes mobiles. Tests export/import, vérification email (parcours complet), sync, pagination et tri. Performance & Analytics : intégrer dans la suite le **système de monitoring complet** (graphiques, statuts, métriques), pas seulement CPU système. CI/CD : pipeline GitHub Actions (build + test). Lancement tests depuis le hub avec vérification du résultat.
 
@@ -121,11 +151,11 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 ---
 
-## À vérifier / Erreurs connues (BDD Postgres, build APK)
+## À vérifier / Erreurs connues (BDD, déploiement)
 
-- **Postgres — rôles / DB** : au démarrage ou lors de `make db-fix-role`, les logs du conteneur affichent `ERROR: role "jobbingtrack" already exists` et `ERROR: database "jobbingtrack" already exists` car le script exécute `CREATE USER` / `CREATE DATABASE` sans idempotence. À faire : utiliser du SQL idempotent (ex. `DO $$ ... EXCEPTION WHEN duplicate_object THEN NULL; END $$`) pour ne plus générer d’erreurs dans les logs. Voir `makefiles/database/Makefile` cible `db-fix-role`.
+- ~~**Postgres — rôles / DB**~~ : **Résolu** — `make db-fix-role` utilise un SQL idempotent (EXCEPTION WHEN duplicate_object / duplicate_database). Voir RESOLUTIONS.md et ERRORS.md.
 - **Postgres — table `deployments`** : le deployment-service envoie des requêtes vers `public.deployments` alors que la table n’existe pas (relation "public.deployments" does not exist). À faire : appliquer le schéma Prisma du deployment-service sur la BDD partagée (`make db-push-all` ou push ciblé deployment-service) pour créer la table `deployments`.
-- **Build APK (interface backoffice)** : le build pouvait échouer avec `Zip file ... already contains entry 'META-INF/...', cannot overwrite`. Correctif appliqué : avant `flutter build apk`, suppression des sorties `build/app/outputs/apk` et `flutter-apk` ; détection de l’APK dans les deux emplacements possibles (flutter-apk / apk/debug). **Pendant le build** : overlay plein écran qui bloque la navigation et les clics (seul « Annuler le build » est utilisable). Si l’erreur Zip réapparaît, lancer `cd mobile && flutter clean && rm -rf build/app/outputs` puis relancer le build.
+- ~~**Build APK (interface backoffice)**~~ : **En place** — avant `flutter build apk`, le contrôleur émulateur supprime `build/app/outputs` et lance `flutter clean`. Si l’erreur Zip réapparaît : `cd mobile && flutter clean && rm -rf build/app/outputs` puis relancer le build. **Pendant le build** : overlay plein écran qui bloque la navigation (seul « Annuler le build » est utilisable).
 - **make logs** : suivi continu ; Ctrl+C pour quitter. Dernières lignes sans suivi : `make logs-tail` ou `make logs-tail LINES=500`.
 - **Email inscription mobile** : plus de 6 en fin d'email (chiffre en dernière position supprimé avant saisie pour champs email).
 - **Parcours mobile** : étapes du parcours affichées à côté du rendu en direct pendant l'exécution.
@@ -645,7 +675,6 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 | Status structure BDD | `docs/database/STATUS_STRUCTURE_BDD.md` |
 | Tracking utilisateur | `docs/mobile/analytics/TRACKING_UTILISATEUR.md` |
 | Accès réseau local | `docs/getting-started/ACCES_RESEAU_LOCAL.md` |
-| Diagnostic (résultats) | `docs/development/diagnostic/DIAGNOSTIC_RESULTS.md` |
 | Quick Start - Tests mobile (E2E Playwright) | `docs/tests/QUICK_START_MOBILE_TESTS.md` |
 | Optimisation performance frontend (guide + rapports) | `docs/frontend/PERFORMANCE_OPTIMIZATION.md` ; rapports générés : `frontend/performance-reports/` |
 | Ce qui est resolu | `RESOLUTIONS.md` |

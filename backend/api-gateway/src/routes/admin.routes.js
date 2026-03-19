@@ -76,6 +76,7 @@ router.post('/trash/empty', authenticate, trashController.emptyTrash);
 // ✅ Génération / nettoyage données de test
 router.post('/generate-test-data', authenticate, testdataController.generateTestData);
 router.post('/test-data/clear', authenticate, testdataController.clearTestData);
+router.post('/clear-test-data', authenticate, testdataController.clearTestData); // Alias pour backoffice Actions « Revenir à la base propre »
 router.get('/test-data/status', authenticate, testdataController.getTestDataStatus);
 
 // ✅ Export / Import / Cleanup (gestion des données)

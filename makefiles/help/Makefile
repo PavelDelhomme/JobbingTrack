@@ -219,6 +219,7 @@ help: ## Afficher l'aide complète
 	@echo "📦 DÉMARRAGE:"
 	@echo "  make up                - Démarrer services essentiels"
 	@echo "  make up-full           - Démarrer TOUS les services"
+	@echo "  make up-dev            - up-full + db-push-all + seed-auth + tests (tout-en-un pour le dev)"
 	@echo "  make down              - Arrêter tous les services"
 	@echo "  make restart           - Redémarrer services actifs"
 	@echo ""

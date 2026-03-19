@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/hooks/auth';
 import { Database, Play, AlertCircle, CheckCircle, Trash2, RefreshCw, Settings, Zap, Users, Building2, FileText, Calendar, Phone, Mail, Clock } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 interface Preset {
   name: string;

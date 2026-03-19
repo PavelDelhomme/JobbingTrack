@@ -10,11 +10,11 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 | Erreur | Composant | Impact | Action |
 |--------|-----------|--------|--------|
-| `ERROR: role "jobbingtrack" already exists` / `database "jobbingtrack" already exists` | Postgres (init / make db-fix-role) | Bruit dans les logs | SQL idempotent dans `makefiles/database/Makefile` (DO $$ ... EXCEPTION WHEN duplicate_object) |
+| ~~`ERROR: role "jobbingtrack" already exists` / `database "jobbingtrack" already exists`~~ | ~~Postgres (make db-fix-role)~~ | ~~Bruit dans les logs~~ | **Résolu** : CREATE USER idempotent (DO … EXCEPTION duplicate_object). CREATE DATABASE ne peut pas être dans un bloc DO (PostgreSQL : « cannot run inside a transaction block »), donc vérification en shell (SELECT sur pg_database) puis CREATE DATABASE uniquement si absent. |
 | `relation "public.deployments" does not exist` | deployment-service / Postgres | Requetes deployment-service echouent | Creer table : `make db-push-all` ou push Prisma deployment-service |
-| Build APK : `Zip ... already contains entry 'META-INF/...', cannot overwrite` | Emulateur backoffice | Build APK echoue | Supprimer sorties APK avant build dans `tools/emulator-controller/server.js` |
+| ~~Build APK : `Zip ... already contains entry 'META-INF/...'`~~ | ~~Emulateur backoffice~~ | ~~Build APK echoue~~ | **Déjà en place** : `tools/emulator-controller/server.js` supprime `build/app/outputs` et lance `flutter clean` avant `flutter build apk`. |
 | `relation "public.user_events" does not exist` | dashboard-service / page User Analytics | Page User Analytics inaccessible | Creer les tables (`user_events`, `user_sessions`, `user_errors`, `user_performances`, `device_infos`) ou desactiver la page |
-| `getaddrinfo ENOTFOUND loki` | metrics-aggregator | Requetes erreurs par conteneur echouent | Loki non deploye. Degrader proprement ou ajouter Loki |
+| ~~`getaddrinfo ENOTFOUND loki`~~ | ~~metrics-aggregator~~ | ~~Requêtes logs par conteneur échouent~~ | **Résolu** : dégradation propre dans `loki.service.js` (ENOTFOUND/ECONNREFUSED/ETIMEDOUT → réponses vides, pas d’exception) ; route stream gère `streamLogs` null. |
 | `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable. Plusieurs services definissent le meme enum |
 | API versioning 404 | dashboard-service | `GET /api/v1/analytics/stats/:userId/versions` retourne 404 | Implementer la route ou adapter le front |
 | Emulateur mobile build APK | flutter_local_notifications | Build APK echoue (bigLargeIcon ambiguous) | Mettre a jour la dependance flutter_local_notifications |
@@ -25,6 +25,13 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | CSS @-o-keyframes (Opera legacy) | Frontend (logs) | Warning console « Unrecognized at-rule » | Optionnel : supprimer ou remplacer par @keyframes (vendor prefix inutile) |
 
 **Workflow-service** : le service est **bien intégré** au démarrage : `make up-full` utilise le profil Docker `full`, et `workflow-service` a `profiles: workflows, full` dans `docker-compose.yml`. Le **health check** (étape « Tests Workflow Service ») ne fait plus échouer la suite si le service est absent : la commande fait `exit 0` avec le message « Workflow non démarré (optionnel) ». Le script API Backend accepte **200 ou 503** pour **List Workflows** et Analytics Errors. Pour démarrer le service : `make up-full` ou `make start-service SERVICE=workflow-service` ; en cas de crash : `make logs-service SERVICE=workflow-service`, `make rebuild-service SERVICE=workflow-service`.
+
+## Tests moteur de statut et mises à jour automatiques (manipulation des dates)
+
+Les tests **complets** pour le système de mise à jour automatique (changement de statut, relances, entretiens, création d’événements, envoi de notifications, rappels) **en manipulant les dates** pour simuler le temps qui passe ne sont **pas encore réalisés** de bout en bout. À faire :
+
+- **Backend** : cron/worker qui exécute les transitions temporelles (NO_RESPONSE après 7j sans activité, etc.) et les notifications (rappel relance, entretien < 24h). Voir ERRORS.md « Endpoint time-travel : transitions auto non implémentées ».
+- **Tests** : scénario type « backdater » une candidature (applicationDate il y a 8 jours), lancer le job/cron ou appeler un endpoint de traitement par lot, vérifier que le statut passe à NO_RESPONSE (ou équivalent). Idem pour relances (suggestion rejet après 3 relances), création d’événements, envoi de notifications. Fichiers existants : `tests/api/test-status-engine.test.js` (préférence auto/manuel, thank-you-sent) ; **à ajouter** : suite dédiée « time-travel » ou « status-engine-temporal » avec manipulation des dates (mock ou BDD) et exécution du moteur.
 
 ## A implementer (non-erreurs, fonctionnalites manquantes)
 
@@ -50,7 +57,9 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | archive-interactions ~l.120 | Restore candidature: 400 | Backend/gateway retourne 400 (validation ou état). | Test accepte 200 ou 400 ; si 400, log warning + vérifier make db-push-all et application-service. |
 | archive-interactions ~l.410, 423 | body contient "404" | Next.js slot NotFound dans l’arbre. | Assertions : `toContain('Gestion des Archives')` et `toContain('Gestion de la Corbeille')`. |
 
-| backoffice-interactions ~l.550 / archive Corbeille | Timeout sur heading ou body | Page Corbeille lente ou redirect. | Assertion body : toMatch(/Corbeille|Gestion|Tous les éléments/) sans exiger le heading ; nav 25s + body 15s. |
+| ~~backoffice-interactions / archive Corbeille~~ | ~~Timeout sur heading ou body~~ | ~~Page Corbeille lente~~ | **Résolu (mars 2026)** : `archive-interactions.spec.ts` — Corbeille : `domcontentloaded` + attente du heading « Gestion de la Corbeille » (visible 20s), test.setTimeout(50s). Plus de `networkidle` qui bloquait. |
+| ~~archive-interactions « Candidature visible après restauration »~~ | ~~GET /applications/:id retourne 404 juste après restore~~ | ~~Backend asynchrone ou délai~~ | **Résolu** : retry GET jusqu’à 5 fois (1s entre chaque) après restore avant d’asserter. |
+| ~~security-e2e XSS : sortie illisible~~ | ~~expect(bodyHtml).not.toContain(...) affichait tout le HTML en erreur~~ | ~~Playwright imprime la valeur reçue~~ | **Résolu** : assertion sur un booléen (hasOnError / hasRawXss) pour que le message d’échec n’affiche pas le HTML. |
 | email-verification-monitor ~l.64 | hasListOrEmpty false | Texte différent ou chargement. | Accepter aussi Aucun email, Emails Envoyés, Email Monitor. |
 | mobile-emulator.spec.ts | Boutons parcours (Gmail, Inscription complète) | Libellés réels : « Vérif. email (Gmail) » ; « Inscription (désactivée…) ». | Sélecteur Gmail : /Vérif\. email \(Gmail\)/ ; Inscription : accepter Déconnexion/étapes/run-journey-btn. |
 | security-e2e.spec.ts (XSS) | API renvoie script dans le nom company | Réponse non sanitized. | **Corrigé** : company-service force company.name = finalName avant res.json(). |
@@ -61,6 +70,8 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 **Performance / orchestration** : PERF_LIGHT=1 dans run-all-tests-with-reports.sh. E2E et perf à des étapes séquentielles ; PLAYWRIGHT_WORKERS=2 par défaut pour limiter la charge CPU.
 
 **Avant de relancer** : `make db-push-all && make seed-auth && make up-full && make tests`.
+
+**Génération données de test (bouton Actions)** : si l’erreur est `Unknown argument isTestData` sur `prisma.company.create` ou `prisma.application.create`, le schéma Prisma utilisé par l’api-gateway (backend/prisma + company-service + application-service) a été mis à jour avec `isTestData` sur Company et Application. Exécuter `make db-push-all` puis **reconstruire l’image api-gateway** (`docker compose build api-gateway` ou `make rebuild-service SERVICE=api-gateway`) pour que le script generate-test-data.js utilise le client Prisma à jour.
 
 ---
 
@@ -80,6 +91,12 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 | Erreur | Resolution |
 |--------|------------|
+| **make db-fix-role** : `role "jobbingtrack" already exists` / `database "jobbingtrack" already exists` (bruit logs) | Makefile database : CREATE USER en DO avec EXCEPTION duplicate_object. CREATE DATABASE ne peut pas être en DO (transaction), donc vérification shell (SELECT pg_database) puis CREATE DATABASE seulement si absent. |
+| **make db-fix-role** : `CREATE DATABASE cannot run inside a transaction block` | Bloc DO $$ ... $$ exécuté en transaction ; PostgreSQL interdit CREATE DATABASE en transaction. | Revenir à la vérification shell (SELECT pg_database) puis CREATE DATABASE en commande séparée (sans DO). |
+| **Loki ENOTFOUND** : requêtes logs metrics-aggregator échouaient quand Loki non déployé | `loki.service.js` : détection ENOTFOUND/ECONNREFUSED/ETIMEDOUT → retour réponses vides (result/logs []) au lieu de throw ; route stream gère `streamLogs` null. |
+| **E2E Corbeille** : timeouts (33s, 40s) sur « la page Corbeille charge sans erreur » et « la page Corbeille charge correctement » | `networkidle` ne se déclenchait pas, attente body trop courte. | `domcontentloaded` + attente du heading « Gestion de la Corbeille » (visible 20s), test.setTimeout(50s). |
+| **E2E archive-interactions** : « Candidature visible après restauration » (GET 404 après restore) | Backend peut renvoyer 404 brièvement après restore. | Retry GET /applications/:id jusqu’à 5 fois (1s d’écart) avant d’asserter. |
+| **E2E security-e2e** : message d’échec illisible (tout le HTML du body dans le terminal) | expect(bodyHtml).not.toContain(...) affichait la valeur reçue (tout le HTML). | Asserter sur un booléen (hasOnError / hasRawXss) pour que « Received » soit true/false. |
 | Restore entretien 400 + body 404 + timeouts backoffice + Email Monitor (9 echecs 18/03) | archive-interactions : accepte 200/404/400 pour restore ; bodyText avec timeout 15s avant not.toContain('404') ; backoffice-interactions : nav 20s + textContent 20s sur Archives/Corbeille ; email-verification-monitor : TEST_SKIP_EMAIL_MONITOR + assertion bodyText (type/vérification). |
 | Page Politiques sécurité : « Objects are not valid as a React child » (objet `{ip, blockedAt, reason}`) | API blocked-ips peut retourner des objets. Frontend : affichage normalise (string ou `item.ip` + `item.reason`), plus de rendu direct d'objet. |
 | `POST /api/v1/contacts` retournait 500 (admin token) | Contact-service : le modèle Contact n'a pas de champ `companyId` (liaison many-to-many via ContactCompany). Le body contenait `companyId` → Prisma rejetait. Corrigé : extraction de `companyId` du body, création du contact puis liaison ContactCompany si `companyId` fourni ; vérification `req.user?.id` (401 si absent). Tests CRUD admin : plus de skip. |

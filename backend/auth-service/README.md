@@ -12,7 +12,7 @@ Service d'authentification et d'autorisation. Gère les connexions, inscriptions
 
 ## 📧 Mail / SMTP
 
-Config SMTP et envoi d’emails (reset password, vérification compte) : voir **`STATUS.md`** (section Mail / Emails) et **`docs/emails/MAIL.md`**. Config détaillée et tests Python : **`PYTHON_EMAIL_SETUP.md`** (dans ce dossier).
+Config SMTP et envoi d’emails (reset password, vérification compte) : voir **`STATUS.md`** (section Mail / Emails) et **`docs/emails/MAIL.md`**. Config détaillée et tests Python : **`docs/emails/`** : [SMTP_CONFIGURATION.md](../../docs/emails/SMTP_CONFIGURATION.md), [PYTHON_EMAIL_SETUP.md](../../docs/emails/PYTHON_EMAIL_SETUP.md).
 
 ## 🚀 Démarrage rapide
 

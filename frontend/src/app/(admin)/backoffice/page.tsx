@@ -916,143 +916,7 @@ export default function BackofficePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Ligne 1 : CPU Système | Mémoire Système — Ligne 2 : CPU Projet | Mémoire Projet */}
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${
-                (systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) || (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
-                  ? ((systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-600 dark:text-red-400' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
-                  ? (systemMetrics.monitoringC.avg_cpu_percent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_cpu_percent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}>
-                {(systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0)
-                  ? `${safeToFixed(systemMetrics.cpu.usage_percent, 1)}%`
-                  : (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
-                  ? `${safeToFixed(systemMetrics.cpu.usage, 1)}%`
-                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
-                  ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>CPU Système</span>
-                {((systemMetrics?.cpu?.usage_percent !== undefined) || (typeof systemMetrics?.cpu?.usage === 'number')) && (
-                  <span className={`text-xs ${(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-500' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? '🔴' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
-                  ? `${systemMetrics.cpu.cores} cores`
-                  : (systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0)
-                  ? `${systemMetrics.jobbingtrack.containers.count} conteneurs`
-                  : systemMetrics?.monitoringC?.container_count !== undefined
-                  ? `${systemMetrics.monitoringC.container_count} conteneurs`
-                  : '...'}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${
-                systemMetrics?.memory?.usage_percent !== undefined
-                  ? (systemMetrics.memory.usage_percent > 90 ? 'text-red-600 dark:text-red-400' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.memory?.usage !== undefined 
-                  ? (() => {
-                      const memUsage = parseFloat(systemMetrics.memory.usage.toString().replace('%', ''));
-                      return memUsage > 90 ? 'text-red-600 dark:text-red-400' : memUsage > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400';
-                    })()
-                  : 'text-green-600 dark:text-green-400'
-              }`}>
-                {systemMetrics?.memory?.usage_percent !== undefined
-                  ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
-                  : systemMetrics?.memory?.usage !== undefined 
-                  ? `${safeToFixed(parseFloat(systemMetrics.memory.usage.toString().replace('%', '')), 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Mémoire Système</span>
-                {systemMetrics?.memory?.usage_percent !== undefined && (
-                  <span className={`text-xs ${systemMetrics.memory.usage_percent > 90 ? 'text-red-500' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.memory.usage_percent > 90 ? '🔴' : systemMetrics.memory.usage_percent > 75 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
-                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
-                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
-                  ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
-                  : '...'}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${
-                systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                  ? (systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.cpu?.containers_only !== undefined 
-                  ? (systemMetrics.cpu.containers_only > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.cpu.containers_only > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : 'text-purple-600 dark:text-purple-400'
-              }`}>
-                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%` 
-                  : systemMetrics?.cpu?.containers_only !== undefined 
-                  ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>CPU Projet</span>
-                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined && (
-                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? '🔴' : systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.count !== undefined
-                  ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
-                  : systemMetrics?.monitoringC?.container_count !== undefined
-                  ? `${systemMetrics.monitoringC.container_count} conteneurs`
-                  : '...'}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${
-                systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? (systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                  ? (systemMetrics.jobbingtrack.containers.memory.percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
-                  ? (systemMetrics.monitoringC.avg_memory_percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_memory_percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}>
-                {/* ✅ NOUVEAU : Afficher mémoire projet (pourcentage de la mémoire système totale) */}
-                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
-                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
-                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Mémoire Projet</span>
-                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined && (
-                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? '🔴' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
-                  : '...'}
-              </div>
-            </div>
-
+            {/* 1. Charge Système (interchangé avec CPU Système) */}
             <div className="text-center">
               <div className={`text-2xl font-bold ${
                 (() => {
@@ -1097,6 +961,76 @@ export default function BackofficePage() {
               </div>
             </div>
 
+            {/* 2. CPU Système avec CPU Projet en dessous */}
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                (systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) || (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
+                  ? ((systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-600 dark:text-red-400' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
+                  ? (systemMetrics.monitoringC.avg_cpu_percent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_cpu_percent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}>
+                {(systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0)
+                  ? `${safeToFixed(systemMetrics.cpu.usage_percent, 1)}%`
+                  : (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
+                  ? `${safeToFixed(systemMetrics.cpu.usage, 1)}%`
+                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
+                  ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
+                  : loadingSystemMetrics ? '...' : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>CPU Système</span>
+                {((systemMetrics?.cpu?.usage_percent !== undefined) || (typeof systemMetrics?.cpu?.usage === 'number')) && (
+                  <span className={`text-xs ${(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-500' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? '🔴' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
+              <div className="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-1">
+                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%` 
+                  : systemMetrics?.cpu?.containers_only !== undefined 
+                  ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
+                  : '—'}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet</div>
+            </div>
+
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${
+                systemMetrics?.memory?.usage_percent !== undefined
+                  ? (systemMetrics.memory.usage_percent > 90 ? 'text-red-600 dark:text-red-400' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : systemMetrics?.memory?.usage !== undefined 
+                  ? (() => {
+                      const memUsage = parseFloat(systemMetrics.memory.usage.toString().replace('%', ''));
+                      return memUsage > 90 ? 'text-red-600 dark:text-red-400' : memUsage > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400';
+                    })()
+                  : 'text-green-600 dark:text-green-400'
+              }`}>
+                {systemMetrics?.memory?.usage_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
+                  : systemMetrics?.memory?.usage !== undefined 
+                  ? `${safeToFixed(parseFloat(systemMetrics.memory.usage.toString().replace('%', '')), 1)}%`
+                  : loadingSystemMetrics ? '...' : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Mémoire Système</span>
+                {systemMetrics?.memory?.usage_percent !== undefined && (
+                  <span className={`text-xs ${systemMetrics.memory.usage_percent > 90 ? 'text-red-500' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.memory.usage_percent > 90 ? '🔴' : systemMetrics.memory.usage_percent > 75 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
+                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
+                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
+                  ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
+                  : '...'}
+              </div>
+            </div>
+
+            {/* 4. Conteneurs actifs (interchangé avec Mémoire Projet) */}
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {systemMetrics?.jobbingtrack?.containers?.count !== undefined 
@@ -1105,12 +1039,49 @@ export default function BackofficePage() {
                   ? Object.keys(containerMetrics).length
                   : '...'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs actifs</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {(systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0) || 
                  (containerMetrics && Object.keys(containerMetrics).length > 0)
                   ? '✅ Actifs' 
                   : systemMetrics ? 'Aucun conteneur détecté' : '...'}
+              </div>
+            </div>
+
+            {/* 5. Mémoire Projet (interchangé avec Conteneurs actifs) */}
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${
+                systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                  ? (systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                  ? (systemMetrics.jobbingtrack.containers.memory.percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
+                  ? (systemMetrics.monitoringC.avg_memory_percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_memory_percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}>
+                {/* ✅ NOUVEAU : Afficher mémoire projet (pourcentage de la mémoire système totale) */}
+                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
+                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
+                  : loadingSystemMetrics ? '...' : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Mémoire Projet</span>
+                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined && (
+                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? '🔴' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                  : '...'}
               </div>
             </div>
 
@@ -1224,11 +1195,11 @@ export default function BackofficePage() {
               <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
                 <p className="font-medium mb-1">💡 Explication des métriques :</p>
                 <ul className="list-disc list-inside space-y-0.5">
-                  <li><strong>Mémoire Système</strong> : Mémoire totale utilisée par tout le système (OS + tous les processus). Seuil critique: {'>'} 90%</li>
-                  <li><strong>Mémoire Projet</strong> : Pourcentage de la mémoire système totale utilisée uniquement par les conteneurs JobbingTrack. Seuil critique: {'>'} 20%</li>
-                  <li><strong>CPU Système</strong> : Utilisation CPU globale de la machine complète (tous les processus). Seuil critique: {'>'} 80%</li>
-                  <li><strong>CPU Projet</strong> : CPU moyen utilisé par les conteneurs JobbingTrack uniquement. Seuil critique: {'>'} 80%</li>
-                  <li><strong>Charge Système</strong> : Load average de la machine complète sur 1 minute (charge système totale, pas seulement le projet). Normal si {'<'} 1.0 par core, critique si {'>'} 1.5 par core</li>
+                  <li><strong>Charge Système</strong> : Load average sur 1 minute. Normal si {'<'} 1.0 par core, critique si {'>'} 1.5 par core</li>
+                  <li><strong>CPU Système</strong> : Utilisation CPU globale de la machine (tous les processus). Seuil critique: {'>'} 80%. <strong>CPU Projet</strong> en dessous : CPU des conteneurs JobbingTrack uniquement</li>
+                  <li><strong>Mémoire Système</strong> : Mémoire totale utilisée par tout le système. Seuil critique: {'>'} 90%</li>
+                  <li><strong>Conteneurs actifs</strong> : Nombre de conteneurs JobbingTrack actuellement actifs</li>
+                  <li><strong>Mémoire Projet</strong> : Part de la mémoire système utilisée par les conteneurs JobbingTrack. Seuil critique: {'>'} 20%</li>
                 </ul>
                 <p className="mt-2 font-medium">🎨 Indicateurs :</p>
                 <ul className="list-disc list-inside space-y-0.5">

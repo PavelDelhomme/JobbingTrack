@@ -48,6 +48,17 @@ start: ## Alias de up-full - Démarrer TOUS les services (sans rebuild)
 up-all: ## Alias de up-full (même chose)
 	@$(MAKE) up-full
 
+# Démarrer la stack, BDD, admin et lancer les tests (une seule commande pour le dev)
+up-dev: ## up-full + db-push-all + seed-auth + tests — tout pour redémarrer et tester (ex. suivi intérim)
+	@echo "🚀 up-dev : up-full → db-push-all → seed-auth → tests"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) up-full
+	@$(MAKE) db-push-all
+	@$(MAKE) seed-auth
+	@$(MAKE) tests
+	@echo ""
+	@echo "✅ up-dev terminé. Rapports : tests/results/<timestamp>/"
+
 # Rebuild complet : down + build + up-full + status (utilise docker compose build puis up, pas make dev)
 fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make down && make build && make up-full && make status)
 	@$(MAKE) down

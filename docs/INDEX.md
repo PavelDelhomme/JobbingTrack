@@ -9,7 +9,6 @@
 | Thème | Emplacement |
 |-------|-------------|
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
-| **Diagnostic (résultats)** | [development/diagnostic/](development/diagnostic/) — DIAGNOSTIC_RESULTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
 | **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
 | **Statistiques projet** | [monitoring/STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md) |
@@ -47,12 +46,10 @@ Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ET
 
 - **[README.md](user-journey/README.md)** - Index des tests user journey
 - **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
-- **[RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** - Résumé complet avec toutes les corrections
-- **[LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** - Guide de démarrage rapide
-- **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé complet
-- **[TOKEN_TEST_PERMANENT.md](user-journey/TOKEN_TEST_PERMANENT.md)** - Système de token permanent pour les tests
-- **[TESTS_MANQUANTS.md](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests manquants à implémenter
+- **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé
+- **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
 - **[QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md)** - Démarrage rapide tests E2E mobile (Playwright)
+- **[README.md](tests/README.md)** - Stratégie tests, commandes, structure make test
 
 **Scripts** :
 - `scripts/verify-user-journey.sh` - Vérification automatique des endpoints
@@ -75,25 +72,16 @@ Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ET
 ### 💻 Développement
 **Dossier** : [development/](development/)
 
-#### Diagnostic
-- **[diagnostic/RECAPITULATIF_COMPLET_DIAGNOSTIC.md](development/diagnostic/)** - Diagnostic technique complet
-- **[diagnostic/DIAGNOSTIC_RESULTS.md](development/diagnostic/DIAGNOSTIC_RESULTS.md)** - Résultats de diagnostic
-- **[diagnostic/SOLUTION_FINALE_PARCOURS.md](development/diagnostic/)** - Solutions finales
-- **[diagnostic/DIAGNOSTIC_PARCOURS_UTILISATEUR.md](development/diagnostic/)** - Diagnostic des parcours
-
-#### Général
-- **[RESUME_NETTOYAGE.md](development/)** - Historique du nettoyage de documentation
-- **[GUIDE_TESTS_PARCOURS.md](development/)** - Guide des tests de parcours
-- **[FINAL_IMPLEMENTATION_SUMMARY.md](development/)** - Résumé d'implémentation
-- **[workflow/README.md](development/workflow/)** - Guide du workflow de développement
+- **[makefile/README.md](development/makefile/README.md)** - Guide Makefile et commandes
 
 ---
 
 ### 📡 API & Backend
 **Dossier** : [api/](api/)
 
-- **[BACKEND_FIXES_SUMMARY.md](api/)** - Résumé des corrections backend
-- **[endpoints/README.md](api/endpoints/)** - Documentation des endpoints
+- **[README.md](api/README.md)** - Index API
+- **[api-reference/README.md](api/api-reference/README.md)** - Référence API complète
+- **[endpoints/README.md](api/endpoints/README.md)** - Liste des endpoints
 
 **Services Principaux** :
 - Auth Service - `backend/auth-service/`
@@ -219,7 +207,6 @@ Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ET
 
 ### "J'ai une erreur"
 1. [troubleshooting/README.md](troubleshooting/) - Dépannage
-2. [development/diagnostic/](development/diagnostic/) - Diagnostic
 3. `make logs` - Voir les logs
 
 ### "Je veux comprendre l'architecture"
@@ -301,8 +288,8 @@ JobbingTrack/
 │   │   └── PORTS.md
 │   ├── performance/               ⚡ Rapports performance, fixes & optimisations
 │   ├── getting-started/           🚀 Démarrage (+ ACCES_RESEAU_LOCAL)
-│   ├── development/               💻 Développement
-│   │   └── diagnostic/            🔍 Diagnostics
+│   ├── development/               💻 Développement (makefile)
+│   │   └── makefile/
 │   ├── api/                       📡 API & Backend
 │   ├── security/                  🔐 Sécurité
 │   ├── monitoring/                📊 Monitoring

@@ -310,7 +310,10 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         {},
         { headers: authHeaders, validateStatus: () => true }
       );
-      expect(res.status, res.status === 503 ? '503: make db-push-all (fix thankYouEmailSentAt) et vérifier application-service' : undefined).toBe(200);
+      if (res.status === 503) {
+        throw new Error('503: make db-push-all (fix thankYouEmailSentAt) et vérifier application-service');
+      }
+      expect(res.status).toBe(200);
       if (res.status === 200) expect(res.data.success).toBe(true);
     });
   });

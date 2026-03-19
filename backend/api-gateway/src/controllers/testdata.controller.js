@@ -148,15 +148,9 @@ const clearTestData = async (req, res) => {
           where: { isTestData: true }
         }).then(r => r.count);
 
-        // Supprimer les utilisateurs de test (ceux avec email contenant 'user' ou 'test')
+        // Supprimer uniquement les utilisateurs marqués isTestData (ne pas toucher admin@jobbingtrack.com ni comptes réels)
         deletedCounts.users = await prisma.user.deleteMany({
-          where: {
-            OR: [
-              { isTestData: true },
-              { email: { contains: '@jobbingtrack.com' } },
-              { email: { contains: 'test' } }
-            ]
-          }
+          where: { isTestData: true }
         }).then(r => r.count);
 
         logger.info(`✅ Données de test nettoyées:`, deletedCounts);
@@ -243,12 +237,7 @@ const clearTestData = async (req, res) => {
         }).then(r => r.count);
 
         deletedCounts.users = await prisma.user.deleteMany({
-          where: {
-            OR: [
-              { isTestData: true },
-              { email: { contains: '@jobbingtrack.com' } }
-            ]
-          }
+          where: { isTestData: true }
         }).then(r => r.count);
       }
       

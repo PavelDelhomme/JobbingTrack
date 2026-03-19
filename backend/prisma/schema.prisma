@@ -135,13 +135,16 @@ model Company {
   logoUrl           String?
   description       String?
   
+  // Données de test (nettoyage ciblé)
+  isTestData        Boolean   @default(false)
+
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
   isArchived        Boolean             @default(false)
   archivedAt        DateTime?
-  
+
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   applications      Application[]
@@ -150,10 +153,11 @@ model Company {
   followUps         FollowUp[]
   calls             Call[]
   interviews        Interview[]
-  
+
   @@index([userId])
   @@index([name])
   @@index([companyType])
+  @@index([isTestData])
 }
 
 enum CompanyType {
@@ -203,19 +207,22 @@ model Application {
   isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
   statusEngineOptOut    Boolean             @default(false) // Désactiver cascade statut pour cette candidature
-  
+
+  // Données de test (nettoyage ciblé)
+  isTestData            Boolean             @default(false)
+
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   deletedAt             DateTime?
-  
+
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   company               Company             @relation(fields: [companyId], references: [id])
   agency                Company?            @relation("AgencyApplications", fields: [agencyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
   status                ApplicationStatus   @relation(fields: [statusId], references: [id])
-  
+
   contacts              ContactApplication[] // Many-to-many
   followUps             FollowUp[]
   calls                 Call[]
@@ -223,12 +230,13 @@ model Application {
   events                Event[]
   documents             Document[]
   statusHistory         ApplicationStatusHistory[]
-  
+
   @@index([userId])
   @@index([companyId])
   @@index([agencyId])
   @@index([statusId])
   @@index([applicationDate])
+  @@index([isTestData])
 }
 
 enum ContractType {

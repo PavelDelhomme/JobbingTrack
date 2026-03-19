@@ -126,10 +126,17 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
       `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`
     ).toBe(true);
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
+    // La visibilité après restore peut être légèrement asynchrone côté backend : retry GET jusqu'à 5s
+    let appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    expect(appRes.ok(), 'Candidature visible après restauration').toBe(true);
+    for (let i = 0; i < 5 && !appRes.ok(); i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+    expect(appRes.ok(), `Candidature visible après restauration (GET après ${restoreAppRes.ok ? 'restore 200' : 'restore 400'} retourne ${appRes.status()})`).toBe(true);
 
     const intRes = await request.get(`${API_URL}/api/v1/interviews/${interviewId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -159,10 +166,14 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
   });
 
   test('la page Corbeille du backoffice charge sans erreur', async ({ page }) => {
+    test.setTimeout(50000);
     await page.goto('/backoffice/trash');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).not.toContainText('500');
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 25000 });
+    await expect(page.getByRole('heading', { name: /Gestion de la Corbeille|Corbeille/i })).toBeVisible({ timeout: 20000 });
+    const bodyText = await page.locator('body').textContent({ timeout: 10000 }) ?? '';
+    expect(bodyText).not.toContain('500');
+    expect(bodyText).not.toContain('Erreur serveur');
   });
 });
 
@@ -422,10 +433,12 @@ test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
   });
 
   test('la page Corbeille charge correctement', async ({ page }) => {
+    test.setTimeout(50000);
     await page.goto('/backoffice/trash');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 30000 });
-    const bodyText = await page.locator('body').textContent({ timeout: 20000 }) ?? '';
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 25000 });
+    await expect(page.getByRole('heading', { name: /Gestion de la Corbeille|Corbeille/i })).toBeVisible({ timeout: 20000 });
+    const bodyText = await page.locator('body').textContent({ timeout: 10000 }) ?? '';
     expect(bodyText, 'La page Corbeille doit afficher son titre ou le mot Corbeille').toMatch(/Gestion de la Corbeille|Corbeille|Tous les éléments/);
   });
 

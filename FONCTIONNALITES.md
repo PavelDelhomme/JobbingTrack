@@ -546,6 +546,7 @@ Utilisateur cree Entreprise (ou existante)
 - [ ] Tests E2E mobile (Patrol ou integration_test)
 - [ ] Mode sombre complet
 - [ ] Recherche globale avancee
+- [ ] **(Version complete, bien plus tard)** Option utilisateur : demander si l’utilisateur souhaite que l’app parse ses mails pour aider au traitement automatique (candidatures, relances, suivi). Pas prevu du tout pour le moment.
 
 ---
 

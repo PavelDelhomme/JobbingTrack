@@ -12,6 +12,9 @@ import { SettingsPopup } from './SettingsPopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from '@/lib/icons'
+import { FlaskConical, Eraser } from 'lucide-react'
+
+const BACKOFFICE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -38,7 +41,7 @@ interface NavSection {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop (visible par défaut)
@@ -46,6 +49,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   // ✅ SUPPRIMÉ : isThemeDropdownOpen n'est plus nécessaire (thème switcher simplifié)
   const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false) // ✅ État pour le dropdown des actions rapides
+  const [dataSourceActionLoading, setDataSourceActionLoading] = useState<'generate' | 'clear' | null>(null)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     security: true,
@@ -127,6 +131,63 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     localStorage.setItem('expandedSections', JSON.stringify(newExpandedSections))
   }
 
+  /** Générer les données de test (suivi intérim, candidatures, etc.) puis recharger la page (URL conservée). */
+  const handleGenerateTestData = async () => {
+    if (!token) {
+      alert('Non connecté. Connectez-vous pour utiliser cette action.')
+      return
+    }
+    setDataSourceActionLoading('generate')
+    setIsQuickActionsDropdownOpen(false)
+    try {
+      const res = await fetch(`${BACKOFFICE_API_URL}/api/v1/admin/generate-test-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ preset: 'standard', clean: false })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        window.location.reload()
+      } else {
+        alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
+      }
+    } catch (e) {
+      alert('Erreur réseau. Vérifiez que la gateway et les services sont démarrés.')
+    } finally {
+      setDataSourceActionLoading(null)
+    }
+  }
+
+  /** Revenir à la base propre (supprimer uniquement les données de test) puis recharger la page (URL conservée). */
+  const handleClearTestData = async () => {
+    if (!token) {
+      alert('Non connecté. Connectez-vous pour utiliser cette action.')
+      return
+    }
+    if (!confirm('Supprimer uniquement les données de test (isTestData=true) ? La base principale ne sera pas modifiée.')) {
+      return
+    }
+    setDataSourceActionLoading('clear')
+    setIsQuickActionsDropdownOpen(false)
+    try {
+      const res = await fetch(`${BACKOFFICE_API_URL}/api/v1/admin/clear-test-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ onlyTestData: true })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        window.location.reload()
+      } else {
+        alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
+      }
+    } catch (e) {
+      alert('Erreur réseau. Vérifiez que la gateway et les services sont démarrés.')
+    } finally {
+      setDataSourceActionLoading(null)
+    }
+  }
+
 
   // Fonction pour vérifier si une section contient l'élément actif
   const isSectionActive = (section: NavSection) => {
@@ -202,6 +263,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: '💾',
           subItems: [
             { name: 'Données applicatives', href: '/backoffice/datas', icon: '📋' },
+            { name: 'Suivi intérim', href: '/backoffice/suivi-interim', icon: '👔' },
             { name: 'Stats utilisateur', href: '/backoffice/user-stats', icon: '📊' },
             { name: 'Abonnement & facturation', href: '/backoffice/billing', icon: '📄' },
             { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
@@ -693,6 +755,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       >
                         <Server className="h-4 w-4 text-green-600" />
                         <span>Services</span>
+                      </button>
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                      <button
+                        onClick={handleGenerateTestData}
+                        disabled={!!dataSourceActionLoading}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                        title="Génère des données de test (agences intérim, candidatures, etc.) puis recharge la page"
+                      >
+                        <FlaskConical className="h-4 w-4 text-amber-600" />
+                        <span>Générer données de test (suivi intérim…)</span>
+                      </button>
+                      <button
+                        onClick={handleClearTestData}
+                        disabled={!!dataSourceActionLoading}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                        title="Supprime uniquement les données de test puis recharge la page"
+                      >
+                        <Eraser className="h-4 w-4 text-red-500" />
+                        <span>Revenir à la base propre</span>
                       </button>
                     </div>
                   </>

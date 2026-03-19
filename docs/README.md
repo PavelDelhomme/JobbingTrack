@@ -37,6 +37,7 @@ docs/
 │   │   └── data-structure-comparison/
 │   └── architecture/database/README.md # Architecture PostgreSQL
 ├── 📡 api/                             # Documentation API
+│   ├── README.md                        # Index API
 │   ├── api-reference/README.md         # Guide API complet
 │   └── endpoints/README.md             # Liste des endpoints
 ├── 🚀 deployment/                      # Guides de déploiement
@@ -46,17 +47,20 @@ docs/
 │   └── configuration/                  # Configuration
 │       └── CONFIGURATION_PORTS.md     # Configuration des ports
 ├── 💻 development/                     # Guides développement
-│   ├── setup/README.md                 # Configuration environnement
-│   ├── workflow/README.md              # Workflow développement
-│   ├── makefile/README.md              # Guide Makefile complet
-│   ├── testing/README.md               # Stratégies de tests
-│   └── recap/                          # Récapitulatifs
-│       ├── RECAP_FINAL_SESSION.md      # Récapitulatif session
-│       └── RECAPITULATIF_FINAL.md      # Récapitulatif final
+│   └── makefile/                       # Makefile et commandes
+│       ├── README.md                   # Guide Makefile complet
+│       └── makefile-commands.md        # Aide commandes
 ├── 📊 monitoring/                      # Monitoring système
-│   └── README.md                       # Stack monitoring complète
+│   ├── README.md                       # Stack monitoring
+│   ├── metrics-flow.md                 # Flux métriques
+│   ├── METRICS_DB_README.md            # BDD métriques
+│   ├── MONITORING_GUIDE.md             # Guide monitoring
+│   └── PERFORMANCE_OPTIMIZATION.md     # Optimisation metrics-aggregator
 ├── 📧 emails/                          # Documentation emails
-│   └── README.md                       # Configuration et dépannage emails
+│   ├── README.md                       # Index emails
+│   ├── SMTP_CONFIGURATION.md           # Config SMTP
+│   ├── PYTHON_EMAIL_SETUP.md           # Service Python
+│   └── MAIL.md                         # Détails config
 ├── 🖥️ frontend/                        # Guide frontend
 │   ├── README.md                        # Index frontend
 │   ├── GUIDE_ENREGISTREMENT_AUTOMATIQUE.md     # Enregistrement auto
@@ -68,22 +72,24 @@ docs/
 │   └── GUIDE_GESTION_UTILISATEURS.md   # Gestion utilisateurs
 ├── 🐛 troubleshooting/                 # Dépannage
 │   ├── README.md                        # Index dépannage
-│   ├── CORRECTIONS_ANALYTICS_DASHBOARD.md      # Corrections analytics
-│   ├── CORRECTIONS_ERREURS_404_TIMEOUTS.md     # Corrections 404/timeouts
-│   ├── CORRECTIONS_FINALES_SESSION.md          # Corrections session
-│   ├── CORRECTIONS_GRAPHIQUES_ANALYTICS.md     # Corrections graphiques
-│   └── TROUBLESHOOTING_LOGIN.md                # Dépannage login
+│   ├── POSTGRES_MONITORING.md           # PostgreSQL et monitoring
+│   └── TROUBLESHOOTING_LOGIN.md        # Dépannage login
+├── 📋 changelog/                        # Historique
+│   └── README.md                        # Pointe vers STATUS.md, RESOLUTIONS.md
 ├── ⚡ performance/guide/README.md      # Optimisation
 ├── 🔒 security/                        # Sécurité
 │   ├── README.md                        # Index sécurité
+│   ├── ARCHITECTURE_SECURITY_SERVICE.md # Périmètre security-service
 │   ├── SYSTEME_SECURITE_README.md      # Système sécurité
-│   ├── SECURITY_AUDIT.md                # ⭐ Audit complet de sécurité
+│   ├── SECURITY_AUDIT.md                # ⭐ Audit sécurité
 │   └── DEMARRAGE_SERVICES_SECURITE.md  # Démarrage services
 ├── 🧪 tests/                           # Tests
 │   ├── README.md                        # Stratégie tests
-│   ├── TESTS_PAGE_DETAIL_SERVICES.md   # Tests page services
-│   ├── TESTS_COMPLETS_RAPPORT.md        # ⭐ Rapport complet des tests
-│   └── RESUME_TESTS_COMPLETS.md         # ⭐ Résumé exécutif des tests
+│   ├── STRUCTURE_TESTS_MAKE_TEST.md    # Structure make test
+│   ├── COMMANDES_TESTS.md              # Commandes
+│   ├── TESTS_END.md                     # Fin de suite
+│   ├── BACKOFFICE_TESTS_COVERAGE.md    # Couverture backoffice
+│   └── RAPPORTS_CONVENTIONS.md         # Conventions rapports
 └── 📄 pdfs/                            # PDFs générés
     └── documentation-complete.pdf      # PDF global
 ```
@@ -107,10 +113,7 @@ docs/
 - **[Sécurité](deployment/security/README.md)** - Configuration sécurité
 
 ### 💻 Développement
-- **[Configuration](development/setup/README.md)** - Environnement de développement
-- **[Workflow](development/workflow/README.md)** - Processus de développement
-- **[Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
-- **[Tests](development/testing/README.md)** - Stratégies et outils de test
+- **[Makefile](development/makefile/README.md)** - Guide Makefile et commandes
 
 ### 🖥️ Frontend
 - **[Guide Frontend](frontend/README.md)** - Guide complet développement frontend Next.js
