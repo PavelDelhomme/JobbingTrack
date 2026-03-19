@@ -2,17 +2,19 @@ import { test, expect, Page } from '@playwright/test';
 
 async function expectPageLoaded(page: Page, minContentLength = 100) {
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('nav').first()).toBeVisible({ timeout: 25000 });
+  // La sidebar peut être hors écran sur certains viewports ; `main` est toujours rendu par AdminLayout.
+  await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
   const len = await page.locator('body').textContent().then(t => (t?.length ?? 0));
-  expect(len).toBeGreaterThan(minContentLength);
+  expect(len, 'Le contenu de la page doit être chargé').toBeGreaterThan(minContentLength);
 }
 
 async function expectTabClickable(page: Page, tabText: string) {
   const tab = page.getByRole('button', { name: new RegExp(tabText, 'i') }).or(
     page.locator(`button, [role="tab"]`).filter({ hasText: new RegExp(tabText, 'i') })
   ).first();
-  if (await tab.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await tab.click();
+  if (await tab.isVisible({ timeout: 10000 }).catch(() => false)) {
+    await tab.scrollIntoViewIfNeeded().catch(() => {});
+    await tab.click({ timeout: 10000 });
     await page.waitForTimeout(500);
   }
 }
@@ -146,11 +148,13 @@ test.describe('🔒 Sécurité', () => {
   });
 
   test('page Menaces', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/security/threats');
     await expectPageLoaded(page);
   });
 
   test('page Logs de sécurité (onglet Sécurité dans statistique)', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/statistique');
     await expectPageLoaded(page);
     await expectTabClickable(page, 'curit');
@@ -184,6 +188,7 @@ test.describe('🔧 Services', () => {
   });
 
   test('page Applications/Gestion des Services', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/applications');
     await expectPageLoaded(page);
   });
@@ -194,6 +199,7 @@ test.describe('🔧 Services', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('💾 Gestion des données', () => {
   test('page principale Gestion des données', async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto('/backoffice/datas');
     await expectPageLoaded(page, 200);
   });

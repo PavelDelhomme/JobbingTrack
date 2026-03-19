@@ -1,12 +1,18 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const EXCLUDED_AXE_RULES = ['color-contrast', 'link-in-text-block', 'document-title'];
 
 test.describe('♿ Tests d\'accessibilité', () => {
+  const gotoLogin = async (page: Page) => {
+    // Sur Next, la page peut mettre du temps à finir sa compilation.
+    // On évite `networkidle` (polling constant) et on attend simplement domcontentloaded.
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForLoadState('domcontentloaded');
+  };
+
   test('✅ Analyse axe-core - Page de connexion', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const results = await new AxeBuilder({ page })
       .disableRules(EXCLUDED_AXE_RULES)
@@ -21,8 +27,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Formulaire de connexion accessible', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
@@ -34,8 +39,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Tableaux accessibles', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const tables = page.locator('table');
     const tableCount = await tables.count();
@@ -51,8 +55,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Images avec texte alternatif', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const images = page.locator('img');
     const imageCount = await images.count();
@@ -70,8 +73,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Boutons et liens accessibles', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const buttons = page.locator('button');
     const buttonCount = await buttons.count();
@@ -91,8 +93,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Navigation mobile accessible', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
     await page.setViewportSize({ width: 375, height: 667 });
 
     await expect(page.locator('input[type="email"]')).toBeVisible();
@@ -100,8 +101,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Messages d\'état accessibles', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const statusElements = page.locator('[role="status"], [role="alert"]');
     const statusCount = await statusElements.count();
@@ -116,8 +116,7 @@ test.describe('♿ Tests d\'accessibilité', () => {
   });
 
   test('✅ Langue de la page', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await gotoLogin(page);
 
     const htmlLang = await page.getAttribute('html', 'lang');
     expect(htmlLang).toMatch(/^[a-z]{2}(-[A-Z]{2})?$/);

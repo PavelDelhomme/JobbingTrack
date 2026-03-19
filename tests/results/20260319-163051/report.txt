@@ -1,0 +1,95 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  19/03/2026 16:47:28
+================================================================
+
+RESUME
+------
+  Categories  : 32
+  Total tests : 355
+  Reussis     : 345
+  Echoues     : 10
+  Ignores     : 1
+  Taux        : 97.2%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [U] Tests API Complets (Jest) (22s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (14s)
+  [OK]   [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (4s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (0s)
+  [OK]   [U] Tests Intégration Système (5s)
+  [OK]   [S] Tests Company Service (Health Check) (0s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Call Service (Health Check) (0s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (1s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (1s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+          317 |       expect(res.status).toBe(200);
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (439 ms)
+    FAIL api/test-bdd-relations.test.js
+          ✕ les événements liés à la candidature/entretien devraient exister (12 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 253 |         expect(appEvent || interviewEvent).toBeDefined();
+    Test Suites: 1 failed, 8 passed, 9 total
+    Tests:       1 failed, 86 passed, 87 total
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+          317 |       expect(res.status).toBe(200);
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (451 ms)
+    FAIL api/test-bdd-relations.test.js
+          ✕ les événements liés à la candidature/entretien devraient exister (8 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 253 |         expect(appEvent || interviewEvent).toBeDefined();
+    Test Suites: 1 failed, 8 passed, 9 total
+    Tests:       1 failed, 86 passed, 87 total
+          317 |       expect(res.status).toBe(200);
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (449 ms)
+    FAIL api/test-bdd-relations.test.js
+          ✕ les événements liés à la candidature/entretien devraient exister (9 ms)
+        expect(received).toBeDefined()
+
+  --- Playwright E2E Frontend ---
+
+================================================================
+  Rapports : tests/results/20260319-163051/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

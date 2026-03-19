@@ -56,7 +56,8 @@ const generateTestData = async (req, res) => {
       ...process.env,
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public',
       TEST_DATA_OWNER_ID: req.user?.id || '',
-      TEST_DATA_OWNER_EMAIL: req.user?.email || ''
+      TEST_DATA_OWNER_EMAIL: req.user?.email || '',
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test'
     };
     const { stdout, stderr } = await execPromise(command, {
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer

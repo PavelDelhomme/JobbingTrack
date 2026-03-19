@@ -1,0 +1,20 @@
+{
+  "testName": "Tests FollowUp Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5012/health || echo 'Service non accessible'",
+  "timestamp": "2026-03-19T17:56:23+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"success\":true,\"service\":\"followup-service\",\"timestamp\":\"2026-03-19T16:56:23.405Z\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}
