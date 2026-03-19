@@ -27,7 +27,7 @@ test('authenticate as admin', async ({ page }) => {
   ]);
 
   // Attente sur un élément stable du layout AdminLayout.
-  await expect(page.locator('nav').first()).toBeVisible({ timeout: 60_000 });
+  // `nav` peut être masquée selon le viewport/état sidebar ; `main` est toujours rendu.
   await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
 
   await page.context().storageState({ path: AUTH_FILE });
