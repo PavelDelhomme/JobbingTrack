@@ -1441,7 +1441,12 @@ class SecurityService {
         return;
       }
 
-      await prisma.securityMetric.create({
+      const metricModel = prisma.securityMetricTable || prisma.securityMetric;
+      if (!metricModel || typeof metricModel.create !== 'function') {
+        if (process.env.NODE_ENV !== 'production') return;
+        throw new Error('Modèle SecurityMetric indisponible');
+      }
+      await metricModel.create({
         data: {
           metricType: 'system_metrics',
           value: metrics.totalLogs,

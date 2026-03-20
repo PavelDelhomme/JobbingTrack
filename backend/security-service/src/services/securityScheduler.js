@@ -81,7 +81,12 @@ class SecurityScheduler {
 
         // Enregistrer les métriques dans la base de données (si la table existe)
         try {
-          await securityService.prisma.securityMetric.create({
+          const metricModel = securityService.prisma.securityMetricTable || securityService.prisma.securityMetric;
+          if (!metricModel || typeof metricModel.create !== 'function') {
+            if (process.env.NODE_ENV === 'development') return;
+            throw new Error('Modèle SecurityMetric indisponible');
+          }
+          await metricModel.create({
             data: {
               metricType: 'security_score',
               value: metrics.overview.securityScore,
@@ -322,7 +327,12 @@ class SecurityScheduler {
       const systemMetrics = await securityService.getSystemMetrics();
 
       // Enregistrer les métriques dans la base de données
-      await securityService.prisma.securityMetric.create({
+      const metricModel = securityService.prisma.securityMetricTable || securityService.prisma.securityMetric;
+      if (!metricModel || typeof metricModel.create !== 'function') {
+        if (process.env.NODE_ENV === 'development') return;
+        throw new Error('Modèle SecurityMetric indisponible');
+      }
+      await metricModel.create({
         data: {
           metricType: 'system_activity',
           value: systemMetrics.totalLogs,
