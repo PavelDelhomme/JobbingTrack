@@ -846,6 +846,30 @@ async function collectAllMetrics() {
     
     const stackAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 0;
     const systemAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
+
+    // Score de santé système composite (pas seulement UP/DOWN des services)
+    const cpuPercent = Number(systemMetrics.cpu?.usage_percent ?? systemMetrics.host?.cpu?.usagePercent ?? 0);
+    const memoryPercent = Number(systemMetrics.memory?.usage_percent ?? systemMetrics.host?.memory?.usagePercent ?? 0);
+    const diskPercent = Number(
+      systemMetrics.disk?.[0]?.usage_percent ??
+      systemMetrics.disk?.[0]?.usage ??
+      systemMetrics.host?.disk?.usagePercent ??
+      0
+    );
+    const responseTimes = Object.values(servicesMetrics)
+      .map((svc) => Number(svc?.responseTimeMs || 0))
+      .filter((v) => v > 0);
+    const responseAvgMs = responseTimes.length > 0
+      ? responseTimes.reduce((sum, v) => sum + v, 0) / responseTimes.length
+      : 0;
+
+    const resourceHealth = Math.max(0, 100 - ((cpuPercent * 0.4) + (memoryPercent * 0.35) + (diskPercent * 0.25)));
+    const latencyHealth = responseAvgMs <= 100 ? 100 : Math.max(0, 100 - ((responseAvgMs - 100) / 8));
+    const compositeHealthScore = Math.round(
+      (stackAvailability * 0.5) +
+      (resourceHealth * 0.3) +
+      (latencyHealth * 0.2)
+    );
     
     logIfVerbose(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
     logIfVerbose(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
@@ -878,14 +902,18 @@ async function collectAllMetrics() {
         ...systemMetrics,
         availability: {
           stack: stackAvailability,
-          system: systemAvailability
+          system: systemAvailability,
+          composite: compositeHealthScore
         }
       },
       services: servicesMetrics,
       // ✅ Ajouter les métriques agrégées de disponibilité
       health: {
-        availability_percent: stackAvailability,
+        availability_percent: compositeHealthScore,
         system_availability_percent: systemAvailability,
+        service_availability_percent: stackAvailability,
+        resource_health_percent: Math.round(resourceHealth),
+        latency_health_percent: Math.round(latencyHealth),
         healthy: healthyServices,
         degraded: degradedServices,
         offline: offlineServices,
@@ -954,7 +982,7 @@ async function collectAllMetrics() {
       
       const availabilityPercent = monitoringCData?.availability_percent ||
                                  systemMetrics.monitoringC?.availability_percent ||
-                                 stackAvailability;
+                                 compositeHealthScore;
       
       // Préparer les métriques système pour la sauvegarde (entiers pour BigInt)
       const memUsed = Math.round(Number(systemMetrics.memory?.used_mb ?? systemMetrics.memory?.used ?? 0));

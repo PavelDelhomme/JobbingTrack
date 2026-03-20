@@ -62,11 +62,18 @@ describe('Monitoring C Endpoints', () => {
         expect(response.status).toBe(200);
         // Parser le JSON si c'est une chaîne
         const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-        expect(data).toHaveProperty('cpu');
-        expect(data).toHaveProperty('memory');
-        expect(data).toHaveProperty('disk');
-        expect(data).toHaveProperty('containers');
-        expect(Array.isArray(data.containers)).toBe(true);
+        // Le format diffère entre monitoring-c direct et fallback gateway.
+        // monitoring-c: cpu/memory/disk en racine, containers en tableau.
+        // gateway: system.cpu/system.memory/system.disk, containers en objet map.
+        const cpu = data.cpu || data.system?.cpu;
+        const memory = data.memory || data.system?.memory;
+        const disk = data.disk || data.system?.disk;
+        const containers = data.containers;
+        expect(cpu).toBeDefined();
+        expect(memory).toBeDefined();
+        expect(disk).toBeDefined();
+        expect(containers).toBeDefined();
+        expect(Array.isArray(containers) || typeof containers === 'object').toBe(true);
       } catch (error) {
         // Si monitoring-c ET gateway métriques sont indisponibles, ne pas casser toute la suite API.
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
@@ -100,14 +107,26 @@ describe('Monitoring C Endpoints', () => {
 
     it('devrait inclure les métriques globales', async () => {
       try {
-        const response = await fetchMetricsWithRetry();
+        let response;
+        try {
+          response = await fetchMetricsWithRetry();
+        } catch (directError) {
+          response = await fetchMetricsViaGatewayWithRetry();
+        }
 
         const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-        expect(data).toHaveProperty('avg_response_time_ms');
-        expect(data).toHaveProperty('avg_cpu_percent');
-        expect(data).toHaveProperty('avg_memory_percent');
-        expect(data).toHaveProperty('availability_percent');
-        expect(data).toHaveProperty('load_score');
+
+        const avgResponseTime = data.avg_response_time_ms ?? data.responseTime?.average_ms;
+        const avgCpu = data.avg_cpu_percent ?? data.system?.containersAggregate?.cpu_percent ?? data.system?.jobbingtrack?.containers?.cpu?.averagePercent;
+        const avgMemory = data.avg_memory_percent ?? data.system?.containersAggregate?.memory_percent ?? data.system?.jobbingtrack?.containers?.memory?.percent;
+        const availability = data.availability_percent ?? data.health?.availability_percent ?? data.system?.availability?.stack;
+        const loadScore = data.load_score ?? data.system?.jobbingtrack?.load_score;
+
+        expect(avgResponseTime).toBeDefined();
+        expect(avgCpu).toBeDefined();
+        expect(avgMemory).toBeDefined();
+        expect(availability).toBeDefined();
+        expect(loadScore).toBeDefined();
       } catch (error) {
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
           return;

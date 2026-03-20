@@ -571,4 +571,6 @@ class CronScheduler {
     }
   }
 
+}
+
 module.exports = new CronScheduler();

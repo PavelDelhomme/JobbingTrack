@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics monitor
 
 # ============================================================================
 # AIDE
@@ -26,6 +26,7 @@ help-backend: ## Afficher l'aide backend
 	@echo "  GÉNÉRAL:"
 	@echo "    make monitoring-ps              - Status services monitoring"
 	@echo "    make monitoring-c-logs          - Logs tous services monitoring"
+	@echo "    make monitor                    - Tableau live conteneurs JobbingTrack (ports, CPU, RAM, état)"
 	@echo ""
 	@echo "📈 MONITORING (Statistiques):"
 	@echo "  make monitoring-stats           - Lancer le script de monitoring complet"
@@ -361,6 +362,10 @@ monitoring-stats-save: ## Sauvegarder les stats dans data/monitoring/history
 monitoring-stats-watch: ## Surveillance continue (toutes les 60s)
 	@echo "👀 Surveillance en temps réel (Ctrl+C pour arrêter)..."
 	@watch -n 60 'make monitoring-stats'
+
+monitor: ## Tableau live des conteneurs JobbingTrack (ports, CPU, mémoire, état)
+	@chmod +x scripts/monitoring/live-monitor.sh
+	@PROJECT_FILTER=$${PROJECT_FILTER:-jobbingtrack} INTERVAL=$${INTERVAL:-2} ONCE=$${ONCE:-0} ./scripts/monitoring/live-monitor.sh
 
 # ============================================================================
 # PERFORMANCE

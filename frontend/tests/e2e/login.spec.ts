@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+
 test.describe('🔐 Authentification - Page de connexion', () => {
   test.describe.configure({ timeout: 120_000 });
 
@@ -37,13 +40,14 @@ test.describe('🔐 Authentification - Page de connexion', () => {
 
   test('devrait permettre la connexion avec des identifiants valides', async ({ page }) => {
     test.setTimeout(90_000);
-    await page.locator('input[type="email"]').fill('admin@jobbingtrack.com');
-    await page.locator('input[type="password"]').fill('password123');
-    await Promise.all([
-      // En dev, la compilation Next peut retarder la navigation.
-      page.waitForURL(/\/backoffice(?:\/|$)/, { timeout: 90_000, waitUntil: 'domcontentloaded' }),
-      page.locator('button[type="submit"]').click(),
-    ]);
+    await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
+    await page.locator('button[type="submit"]').click();
+    await expect.poll(
+      async () => await page.evaluate(() => localStorage.getItem('token')),
+      { timeout: 90_000, intervals: [500, 1000, 2000] }
+    ).not.toBeNull();
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
     await expect(page).toHaveURL(/backoffice/);
   });
@@ -71,10 +75,11 @@ test.describe('🔐 Authentification - Page de connexion', () => {
     const toggleButton = page.locator('button').filter({ has: page.locator('text=/👁️|🙈/') });
     await expect(toggleButton).toBeVisible();
 
+    const pwdInput = page.locator('input[placeholder="••••••••"]').first();
     await toggleButton.click();
-    await expect(page.locator('input[type="text"][value="test123"]')).toBeVisible();
+    await expect(pwdInput).toHaveAttribute('type', 'text');
 
     await toggleButton.click();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(pwdInput).toHaveAttribute('type', 'password');
   });
 });

@@ -8,6 +8,17 @@
 
 ---
 
+## Incidents en cours (20 mars 2026)
+
+- **workflow-service KO en conteneur malgré restart** : crash au boot sur `cronScheduler.js` (`SyntaxError`), correctif code appliqué localement mais **`make restart-service` ne rebuild pas l'image**. Action requise: `make rebuild-service SERVICE=workflow-service` puis `make restart-service SERVICE=workflow-service`.
+- **security-service erreurs planifiées toutes les 5 min** : `Cannot read properties of undefined (reading 'create')` dans `securityScheduler.js` (écriture sur `prisma.securityMetric` alors que le schéma expose `SecurityMetricTable`). Correctif appliqué avec fallback `securityMetricTable || securityMetric`.
+- **test API monitoring-c instable** : payload différent entre endpoint monitoring-c direct et fallback gateway (`cpu/memory/disk` en racine vs `system.cpu/system.memory/system.disk`). Le test a été adapté pour accepter les deux formats.
+- **E2E login/setup encore rouges** : timeout sur redirection UI (`waitForURL`) et test affichage/masquage mot de passe trop strict. Correctifs appliqués : validation via token localStorage + navigation explicite vers `/backoffice`, assertion sur attribut `type` du champ mot de passe.
+- **MailHog logs "500 Unrecognised command"** : des checks HTTP arrivent sur le port SMTP `1025` (pas le port web `8025`). Bruit non bloquant mais mauvais healthcheck côté appelant.
+- **Dashboard Santé Système (4%) incohérent** : la dispo ne prenait que `services healthy / total`. Correctif appliqué dans metrics-aggregator : score composite `50% services + 30% ressources (CPU/RAM/disque) + 20% latence`, exposé via `health.availability_percent` (et détail `service_availability_percent`, `resource_health_percent`, `latency_health_percent`).
+
+---
+
 **📌 À lire en premier** : **`docs/GUIDE_ETAPES_ACTUELLES.md`** — résumé de ce qui est fait, quoi faire maintenant (backoffice, données de test, suivi intérim, mobile), et **quelle base utiliser** (principale pour backoffice + émulateur en live, base de test pour tests automatisés si besoin).
 
 ---

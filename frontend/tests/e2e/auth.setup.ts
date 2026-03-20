@@ -4,10 +4,11 @@ import path from 'path';
 
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const API_GATEWAY_URL = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export const AUTH_FILE = path.join(__dirname, '.auth', 'admin.json');
 
-test('authenticate as admin', async ({ page }) => {
+test('authenticate as admin', async ({ page, request }) => {
   test.setTimeout(90_000);
 
   const dir = path.dirname(AUTH_FILE);
@@ -15,19 +16,22 @@ test('authenticate as admin', async ({ page }) => {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('domcontentloaded');
+  // Évite la fragilité UI du setup: login API puis injection token/cookie.
+  const loginRes = await request.post(`${API_GATEWAY_URL}/api/v1/auth/login`, {
+    data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD }
+  });
+  expect(loginRes.ok(), `Login API admin KO: ${loginRes.status()}`).toBeTruthy();
+  const body = await loginRes.json();
+  const token = body?.token;
+  expect(typeof token === 'string' && token.length > 10).toBeTruthy();
 
-  await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
-  await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
-  await Promise.all([
-    // Ne pas attendre l'événement `load` (Next + compilation peut dépasser 30s)
-    page.waitForURL(/\/backoffice(?:\/|$)/, { timeout: 90_000, waitUntil: 'domcontentloaded' }),
-    page.locator('button[type="submit"]').click(),
-  ]);
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  await page.evaluate((t) => {
+    localStorage.setItem('token', t);
+    document.cookie = `token=${t}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  }, token);
 
-  // Attente sur un élément stable du layout AdminLayout.
-  // `nav` peut être masquée selon le viewport/état sidebar ; `main` est toujours rendu.
+  await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
   await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
 
   await page.context().storageState({ path: AUTH_FILE });
