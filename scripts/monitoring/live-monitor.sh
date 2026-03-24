@@ -60,7 +60,8 @@ while true; do
 
   NOW="$(date '+%Y-%m-%d %H:%M:%S')"
   HOST_CPU_CORES="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
-  export NOW PROJECT_FILTER INTERVAL HOST_CPU_CORES
+  LOAD_AVG_1="$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)"
+  export NOW PROJECT_FILTER INTERVAL HOST_CPU_CORES LOAD_AVG_1
   OUTPUT="$(
     "${PYTHON_BIN}" - <<'PY'
 import json
@@ -102,6 +103,24 @@ def fmt_bytes_binary(value):
             return f"{v:.1f}{u}"
         v /= 1024.0
     return f"{v:.1f}TiB"
+
+def color_for_percent(pct):
+    try:
+        v = float(pct)
+    except Exception:
+        return ""
+    if v >= 90:
+        return "\033[1;31m"   # rouge
+    if v >= 75:
+        return "\033[1;33m"   # jaune
+    return "\033[0;32m"       # vert
+
+def colorize_percent_text(text, pct):
+    color = color_for_percent(pct)
+    reset = "\033[0m"
+    if not color:
+        return text
+    return f"{color}{text}{reset}"
 
 def parse_ports(port_text):
     if not port_text:
@@ -234,15 +253,21 @@ if host_cpu_cores <= 0:
 cpu_host_pct = total_cpu / host_cpu_cores
 active = sum(1 for r in rows if r[1] == "ACTIF")
 inactive = max(0, len(containers) - active)
+load_avg_1 = float(os.environ.get("LOAD_AVG_1", "0") or "0")
+
+# Estimation CPU système depuis la charge: load / cores (approx)
+cpu_system_pct = min(100.0, max(0.0, (load_avg_1 / host_cpu_cores) * 100.0))
+mem_system_pct = total_mem_pct
+mem_project_pct = total_mem_pct
 
 total_row = [
     "TOTAL",
     f"{active}/{len(containers)} ACTIF",
     f"{active} up | {inactive} down",
     "-",
-    f"{total_cpu:.2f}% (containers)\n{cpu_host_pct:.2f}% (host)",
-    f"{fmt_bytes_binary(total_mem_used_b)} / {fmt_bytes_binary(host_mem_limit_b)}",
-    f"{total_mem_pct:.2f}%",
+    f"{colorize_percent_text(f'{total_cpu:.2f}% (projet)', total_cpu)}\n{colorize_percent_text(f'{cpu_host_pct:.2f}% (système)', cpu_host_pct)}",
+    f"{fmt_bytes_binary(total_mem_used_b)} (projet)\n{fmt_bytes_binary(host_mem_limit_b)} (système)",
+    f"{colorize_percent_text(f'{mem_project_pct:.2f}% (projet)', mem_project_pct)}\n{colorize_percent_text(f'{mem_system_pct:.2f}% (système)', mem_system_pct)}",
     f"{fmt_bytes_binary(total_rx_b)} / {fmt_bytes_binary(total_tx_b)}",
 ]
 rows.append(total_row)
@@ -271,6 +296,21 @@ interval = os.environ.get("INTERVAL", "2")
 
 print(f"📊 JobbingTrack Monitor - {now}")
 print(f"   Filtre: {project_filter} | Refresh: {interval}s | Ctrl+C pour quitter")
+print("")
+print("ÉTAT SYSTÈME")
+line1 = (
+    f"  Charge système: {load_avg_1:.2f}  |  "
+    f"CPU système: {colorize_percent_text(f'{cpu_host_pct:.2f}%', cpu_host_pct)}  |  "
+    f"Mémoire système: {colorize_percent_text(f'{mem_system_pct:.2f}%', mem_system_pct)}  |  "
+    f"Conteneurs actifs: {active}/{len(containers)}"
+)
+line2 = (
+    f"  CPU projet: {colorize_percent_text(f'{total_cpu:.2f}%', total_cpu)}  |  "
+    f"Mémoire projet: {colorize_percent_text(f'{mem_project_pct:.2f}%', mem_project_pct)}  |  "
+    f"Mémoire projet utilisée: {fmt_bytes_binary(total_mem_used_b)}"
+)
+print(line1)
+print(line2)
 print("")
 print(fmt_row(headers))
 print("-+-".join("-" * w for w in widths))

@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics monitor
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats security-live-check test-firewall test-metrics monitor
 
 # ============================================================================
 # AIDE
@@ -38,6 +38,7 @@ help-backend: ## Afficher l'aide backend
 	@echo "  make monitoring-test-auth TOKEN=xxx - Test avec auth JWT"
 	@echo "  make test-monitoring            - Suite tests complète"
 	@echo "  make test-metrics               - Test complet métriques (reconstruction + persistance)"
+	@echo "  make security-live-check        - Validation live WAF/Firewall + logs temps réel"
 	@echo "  make rebuild-monitoring-c       - Reconstruire conteneur monitoring-c"
 	@echo "  make rebuild-log-collector-c    - Reconstruire conteneur log-collector-c"
 	@echo ""
@@ -421,6 +422,11 @@ test-firewall: ## Tester toutes les fonctionnalités du firewall et WAF
 	@echo "📋 Vérifiez les logs de sécurité:"
 	@echo "   - Frontend: http://localhost:5003/backoffice/security/logs"
 	@echo "   - API: curl http://localhost:5002/api/v1/security/logs?limit=20"
+
+security-live-check: ## Vérifier WAF/Firewall en live (logs + menaces + API)
+	@echo "🛡️  Security live-check..."
+	@chmod +x scripts/security/live-security-check.sh
+	@WATCH_SECONDS=$${WATCH_SECONDS:-25} STRICT_MODE=$${STRICT_MODE:-1} LOAD_TEST_ENABLED=$${LOAD_TEST_ENABLED:-1} LOAD_REQUESTS=$${LOAD_REQUESTS:-120} LOAD_CONCURRENCY=$${LOAD_CONCURRENCY:-20} API_GATEWAY_URL=$${API_GATEWAY_URL:-http://localhost:5002} FRONTEND_URL=$${FRONTEND_URL:-http://localhost:5003} SECURITY_SERVICE_URL=$${SECURITY_SERVICE_URL:-http://localhost:5017} ./scripts/security/live-security-check.sh
 
 backend-help: ## Aide complète backend + monitoring
 	@echo "================================================================"

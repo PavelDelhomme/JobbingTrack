@@ -7,6 +7,93 @@ import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
+/** Bandeau : vérifie Gateway + proxy /api/v1/security/* (GET firewall/rules : moins sensible au WAF que /waf/stats). */
+function SecurityBackendStatusStrip() {
+  const [state, setState] = useState<'loading' | 'ok' | 'warn' | 'err'>('loading');
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    const probeSecurity = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      // Préférer une route « admin » volumineuse mais stable ; évite faux « service unavailable » si WAF touche /waf/stats
+      return axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/rules`, {
+        timeout: 12000,
+        headers,
+        validateStatus: () => true,
+      });
+    };
+
+    (async () => {
+      try {
+        const h = await axios.get(`${API_GATEWAY_URL}/health`, { timeout: 8000 });
+        if (!alive) return;
+        if (h.status !== 200) {
+          setState('err');
+          setMsg(`API Gateway ne répond pas correctement (HTTP ${h.status}).`);
+          return;
+        }
+        let w = await probeSecurity();
+        if (!alive) return;
+        // Redémarrage Docker : une 2e tentative après 1s évite ENOTFOUND / 503 transitoires
+        if (w.status === 503 || w.status === 502) {
+          await new Promise((r) => setTimeout(r, 1000));
+          if (!alive) return;
+          w = await probeSecurity();
+        }
+        if (!alive) return;
+        const dataOk =
+          w.status === 200 &&
+          (w.data?.success === true ||
+            w.data?.success === undefined ||
+            Array.isArray(w.data?.data) ||
+            Array.isArray(w.data?.rules));
+        if (dataOk) {
+          setState('ok');
+          setMsg(
+            'API Gateway et routes /api/v1/security/* répondent (proxy vers security-service). Le backoffice utilise le port API Gateway (ex. 5002), pas le port direct du security-service (5017).'
+          );
+        } else if (w.status === 403) {
+          setState('warn');
+          setMsg(
+            'API Gateway OK, mais une requête de contrôle a été bloquée par le WAF (403). Connectez-vous au backoffice ou ajustez les règles WAF.'
+          );
+        } else {
+          setState('warn');
+          setMsg(
+            `API Gateway OK, mais le proxy security a renvoyé HTTP ${w.status}. Vérifiez que le conteneur jobbingtrack-security-service est démarré (make status).`
+          );
+        }
+      } catch (e: unknown) {
+        if (!alive) return;
+        setState('err');
+        setMsg(e instanceof Error ? e.message : 'Réseau indisponible');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const box =
+    state === 'ok'
+      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 text-green-900 dark:text-green-100'
+      : state === 'warn'
+        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 text-amber-900 dark:text-amber-100'
+        : state === 'err'
+          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 text-red-900 dark:text-red-100'
+          : 'bg-gray-100 dark:bg-gray-800 border-gray-200 text-gray-700';
+
+  return (
+    <div className={`rounded-lg border p-4 text-sm ${box}`}>
+      <p className="font-semibold mb-1">Connexion sécurité (via API Gateway)</p>
+      {state === 'loading' && <p>Vérification en cours…</p>}
+      {state !== 'loading' && <p>{msg}</p>}
+    </div>
+  );
+}
+
 interface FirewallRule {
   id: string;
   name: string;
@@ -192,6 +279,8 @@ export default function FirewallPage() {
             Actualiser
           </button>
         </div>
+
+        <SecurityBackendStatusStrip />
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">

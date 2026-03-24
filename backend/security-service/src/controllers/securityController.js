@@ -63,9 +63,15 @@ class SecurityController {
         offset = 0
       } = req.query;
 
+      // Par défaut, limiter l'affichage aux 24 dernières heures pour éviter
+      // de remonter des centaines de logs historiques non pertinents en UI.
+      const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const parsedStartDate = startDate ? new Date(startDate) : defaultStartDate;
+      const parsedEndDate = endDate ? new Date(endDate) : undefined;
+
       const logs = await securityService.getSecurityLogs({
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
         level,
         category,
         limit: parseInt(limit),
@@ -78,7 +84,9 @@ class SecurityController {
         pagination: {
           limit: parseInt(limit),
           offset: parseInt(offset),
-          count: logs.length
+          count: logs.length,
+          startDate: parsedStartDate,
+          endDate: parsedEndDate || null
         }
       });
     } catch (error) {

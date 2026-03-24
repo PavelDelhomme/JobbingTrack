@@ -21,7 +21,7 @@ if ! docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-security-service$"
 fi
 
 # Générer des menaces de test via l'API
-API_URL="http://localhost:5002"
+API_URL="${API_URL:-http://localhost:5017}"
 TOKEN="${1:-}"  # Token optionnel en paramètre
 
 echo "📊 Génération de menaces de test..."
@@ -53,11 +53,11 @@ create_threat() {
 EOF
 )
     
-    # Essayer avec curl via API Gateway (port 5002)
+    # Essayer via URL configurable (security-service recommandé pour l'admin)
     local response=$(curl -s -w "\n%{http_code}" -X POST \
         -H "Content-Type: application/json" \
         -d "${payload}" \
-        "http://localhost:5002/api/v1/security/firewall/threats" 2>/dev/null || echo "000")
+        "${API_URL}/api/v1/security/firewall/threats" 2>/dev/null || echo "000")
     
     local http_code=$(echo "$response" | tail -n1)
     local body=$(echo "$response" | head -n-1)
@@ -66,24 +66,26 @@ EOF
         echo "  ✅ Menace créée: ${threat_type} depuis ${source_ip} (${severity})"
         return 0
     elif [ "$http_code" = "503" ]; then
-        # Table n'existe pas, essayer directement en base
-        echo "  ⚠️  Table NetworkThreat n'existe pas, création directe en base..."
+        # Table Prisma attendue: network_threats (modèle NetworkThreat @@map)
+        echo "  ⚠️  Endpoint indisponible, tentative d'insertion SQL directe dans network_threats..."
         docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "
-            INSERT INTO \"NetworkThreat\" (id, \"threatType\", \"sourceIp\", \"destPort\", severity, \"detectedAt\", blocked, metadata)
+            INSERT INTO network_threats (id, \"threatType\", \"sourceIp\", \"destPort\", severity, \"detectedAt\", blocked, metadata, \"createdAt\", \"updatedAt\")
             VALUES (
-                gen_random_uuid(),
+                md5(random()::text || clock_timestamp()::text),
                 '${threat_type}',
                 '${source_ip}',
                 ${dest_port},
                 '${severity}',
                 NOW(),
                 false,
-                '{\"test\": true, \"description\": \"Menace de test générée automatiquement\"}'::jsonb
+                '{\"test\": true, \"description\": \"Menace de test générée automatiquement\"}'::jsonb,
+                NOW(),
+                NOW()
             ) ON CONFLICT DO NOTHING;
-        " 2>/dev/null && echo "  ✅ Menace créée en base: ${threat_type} depuis ${source_ip}" || echo "  ❌ Impossible de créer la menace (exécutez: make db-push-all)"
+        " 2>/dev/null && echo "  ✅ Menace créée en base: ${threat_type} depuis ${source_ip}" || echo "  ❌ Impossible de créer la menace (vérifiez make db-push-all et la table network_threats)"
         return 0
     else
-        # Essayer directement vers security-service (port 5017)
+        # Essayer en fallback direct vers security-service (port 5017)
         local response2=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Content-Type: application/json" \
             -d "${payload}" \
@@ -122,6 +124,6 @@ echo "✅ ${count} menaces de test générées !"
 echo ""
 echo "📋 Pour vérifier les menaces:"
 echo "   - Frontend: http://localhost:5003/backoffice/security/threats"
-echo "   - API: curl http://localhost:5002/api/v1/security/firewall/threats"
+echo "   - API: curl ${API_URL}/api/v1/security/firewall/threats"
 echo ""
 

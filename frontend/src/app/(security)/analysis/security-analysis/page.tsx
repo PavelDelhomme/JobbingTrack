@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/hooks/auth'
 import { formatLocalDateTime } from '@/lib/utils/date'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+// Même base que le reste du backoffice (API Gateway, pas un port inventé)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 interface SecurityMetrics {
   totalLogs: number
@@ -43,6 +44,7 @@ interface SecurityRiskAnalysis {
 export default function SecurityAnalysisPage() {
   const { token } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [demoMode, setDemoMode] = useState(false)
   const [systemMetrics, setSystemMetrics] = useState<SecurityMetrics | null>(null)
   const [riskAnalysis, setRiskAnalysis] = useState<SecurityRiskAnalysis | null>(null)
   const [securityLogs, setSecurityLogs] = useState<any[]>([])
@@ -55,6 +57,7 @@ export default function SecurityAnalysisPage() {
 
   const loadSecurityData = async () => {
     setLoading(true)
+    setDemoMode(false)
     try {
       // Récupérer les vraies données du security-service via l'API Gateway
       const [metricsResponse, riskResponse, logsResponse] = await Promise.all([
@@ -82,6 +85,7 @@ export default function SecurityAnalysisPage() {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données de sécurité:', error)
+      setDemoMode(true)
 
       // Fallback vers les données mockées si l'API n'est pas disponible
       const mockSystemMetrics = {
@@ -210,15 +214,18 @@ export default function SecurityAnalysisPage() {
           </p>
         </div>
 
-        {(!systemMetrics || !riskAnalysis) && (
+        {demoMode && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-6">
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
               </svg>
               <div>
-                <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Service de sécurité non disponible</h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">Affichage des données de démonstration. Le service de sécurité n'est pas encore connecté.</p>
+                <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Mode démonstration</h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Impossible de joindre l&apos;API Gateway sur <code className="text-xs bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">{API_URL}</code>.
+                  Vérifiez <code className="text-xs">NEXT_PUBLIC_API_URL</code> (ex. <code className="text-xs">http://localhost:5002</code>) et que les services Docker tournent.
+                </p>
               </div>
             </div>
           </div>

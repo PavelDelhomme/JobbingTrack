@@ -10,7 +10,11 @@ const levels = {
   verbose: 4,
   debug: 5,
   silly: 6,
-  critical: 0 // critical est au même niveau que error (0 = plus important)
+  critical: 0, // même priorité que error
+  // Niveaux métier (évite « Unknown logger level: high » si une meta fuit vers Winston)
+  high: 1,
+  medium: 2,
+  low: 3
 };
 
 const colors = {
@@ -21,7 +25,10 @@ const colors = {
   verbose: 'cyan',
   debug: 'blue',
   silly: 'grey',
-  critical: 'red'
+  critical: 'red',
+  high: 'yellow',
+  medium: 'green',
+  low: 'grey'
 };
 
 winston.addColors(colors);
@@ -139,6 +146,29 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
+/**
+ * Winston ne connaît pas les niveaux métier (high, medium, low) — normaliser vers les niveaux déclarés.
+ */
+function toWinstonLevel(level) {
+  if (!level || typeof level !== 'string') return 'info';
+  const map = {
+    critical: 'error',
+    high: 'warn',
+    medium: 'info',
+    low: 'info',
+    error: 'error',
+    warning: 'warn',
+    warn: 'warn',
+    info: 'info',
+    http: 'http',
+    verbose: 'verbose',
+    debug: 'debug',
+    silly: 'silly'
+  };
+  const normalized = map[level.toLowerCase()] || level;
+  return logger.levels && logger.levels[normalized] !== undefined ? normalized : 'info';
+}
+
 // Fonction pour logger les événements de sécurité
 function logSecurityEvent(level, category, eventType, message, metadata = {}) {
   const logEntry = {
@@ -150,10 +180,17 @@ function logSecurityEvent(level, category, eventType, message, metadata = {}) {
     ...metadata
   };
 
-  logger.log(level, message, {
+  const winstonLevel = toWinstonLevel(level);
+  // Winston utilise la clé réservée "level" dans les métadonnées → "Unknown logger level: high"
+  const safeMeta = { ...(metadata || {}) };
+  if ('level' in safeMeta) {
+    safeMeta.eventLevel = safeMeta.level;
+    delete safeMeta.level;
+  }
+  logger.log(winstonLevel, message, {
     category,
     eventType,
-    ...metadata
+    ...safeMeta
   });
 
   return logEntry;
