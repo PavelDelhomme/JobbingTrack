@@ -128,9 +128,8 @@ app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 // app.use(intrusionDetection);
 
 // 2. WAF (Web Application Firewall)
-if (process.env.WAF_ENABLED === 'true') {
-  app.use(wafCheck);
-}
+// Toujours actif en environnement courant pour garantir les validations sécurité live.
+app.use(wafCheck);
 
 // 3. Configuration du rate limiting
 const apiLimiter = rateLimit({
@@ -598,12 +597,12 @@ const services = {
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
       '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },
   '/api/v1/workflows': { url: process.env.WORKFLOW_SERVICE_URL || 'http://workflow-service:3013', serviceName: 'workflow-service' },
-  '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/intrusions': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/ddos': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/vulnerabilities': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' }
+  '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/intrusions': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/ddos': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/vulnerabilities': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' }
 };
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
@@ -649,6 +648,55 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
       // Transmit status and data
       res.status(response.status).json(response.data);
     } catch (error) {
+      // Fallback DNS pour security-service: certains redémarrages Docker exposent
+      // un ENOTFOUND transitoire sur "security-service" alors que "jobbingtrack-security-service" répond.
+      if (serviceName === 'security-service' && error.code === 'ENOTFOUND' && typeof target === 'string') {
+        let fallbackTarget = null;
+        try {
+          const parsed = new URL(target);
+          if (parsed.hostname === 'security-service') {
+            parsed.hostname = 'jobbingtrack-security-service';
+          } else if (parsed.hostname === 'jobbingtrack-security-service') {
+            parsed.hostname = 'security-service';
+          }
+          fallbackTarget = parsed.toString().replace(/\/$/, '');
+        } catch {
+          fallbackTarget = null;
+        }
+        if (fallbackTarget && fallbackTarget !== target) {
+          const fallbackUrl = `${fallbackTarget}${req.originalUrl}`;
+          try {
+            logger.warn('Retry proxy security-service avec hostname fallback', {
+              originalTarget: target,
+              fallbackTarget
+            });
+            const fallbackResponse = await axios({
+              method: req.method,
+              url: fallbackUrl,
+              data: req.body,
+              headers: {
+                ...req.headers,
+                'X-Forwarded-For': req.ip,
+                'X-Forwarded-Proto': req.protocol,
+                'X-Forwarded-Host': req.get('host')
+              },
+              timeout: 30000,
+              validateStatus: () => true
+            });
+            if (fallbackResponse.headers['content-type']) {
+              res.set('Content-Type', fallbackResponse.headers['content-type']);
+            }
+            return res.status(fallbackResponse.status).json(fallbackResponse.data);
+          } catch (fallbackError) {
+            logger.error('Fallback proxy security-service a échoué', {
+              message: fallbackError.message,
+              code: fallbackError.code,
+              url: fallbackUrl
+            });
+          }
+        }
+      }
+
       // Ensure targetUrl is defined for logging (it's already defined above, but use it for clarity)
       const errorTargetUrl = targetUrl || `${target}${req.originalUrl}`;
       

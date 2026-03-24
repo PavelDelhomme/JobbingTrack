@@ -214,10 +214,10 @@ class SecurityService {
         }
       });
 
-      // Logger l'événement
+      // Logger l'événement (ne pas utiliser la clé "level" : réservée à Winston)
       logger.info(`Log de sécurité créé: ${eventType} - ${message}`, {
         logId: log.id,
-        level,
+        eventLevel: level,
         category,
         userId
       });

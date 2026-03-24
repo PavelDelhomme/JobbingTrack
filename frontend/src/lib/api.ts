@@ -121,6 +121,7 @@ apiClient.interceptors.response.use((response) => response, (error) => {
                                 error.config?.url?.includes('/notifications') ? 'notification-service' :
                                 error.config?.url?.includes('/workflow') ? 'workflow-service' :
                                 error.config?.url?.includes('/dashboard') ? 'dashboard-service' :
+                                error.config?.url?.includes('/security') ? 'security-service' :
                                 'unknown-service';
         
         if (shouldLogServiceError(fullServiceName)) {

@@ -182,6 +182,37 @@ if [ -f "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql" ]; then
   echo ""
 fi
 
+# Vérification stricte des tables critiques (évite les faux "db-push-all OK")
+echo "[DB-PUSH-ALL] Vérification stricte tables critiques"
+MISSING_TABLES="$(
+docker exec -i jobbingtrack-postgres psql -U "${POSTGRES_USER:-jobbingtrack}" -d "${POSTGRES_DB:-jobbingtrack}" -t -A <<'SQL'
+WITH required(name) AS (
+  VALUES
+    ('security_logs'),
+    ('firewall_rules'),
+    ('network_threats'),
+    ('network_connections'),
+    ('security_alerts'),
+    ('security_metrics'),
+    ('system_metrics_snapshots'),
+    ('container_metrics_snapshots'),
+    ('service_availability_history')
+)
+SELECT r.name
+FROM required r
+WHERE to_regclass('public.' || r.name) IS NULL;
+SQL
+)"
+if [ -n "${MISSING_TABLES}" ]; then
+  echo "  ❌ Tables manquantes détectées:"
+  printf "%s\n" "${MISSING_TABLES}" | sed 's/^/     - /'
+  echo "  ❌ db-push-all incomplet (corrigez les scripts SQL ou permissions DB)"
+  exit 1
+else
+  echo "  ✅ Tables critiques présentes (security + firewall + metrics)"
+fi
+echo ""
+
 echo "[DB-PUSH-ALL] Fin — $(date '+%Y-%m-%dT%H:%M:%S%z')"
 echo "✅ db-push-all terminé"
 echo "   📦 Prisma db push : auth-service uniquement (schéma maître, 58 modèles)"

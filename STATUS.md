@@ -23,9 +23,70 @@
 
 ---
 
+## Audit global (état réel maintenant)
+
+Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clés (`docs/GUIDE_ETAPES_ACTUELLES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md`, `docs/mobile/PROCHAINES_ETAPES.md`, `docs/deployment/DEPLOIEMENT_FINAL.md`).
+
+### Ce qui est opérationnel et vérifié
+
+- **Sécurité WAF/Firewall** : validations live effectuées, trafic légitime passe et attaques bloquées ; tests firewall/WAF passent.
+- **Backoffice sécurité** : endpoints sécurité répondent via gateway ; fallback DNS ajouté pour éviter `security-service unavailable` transitoire.
+- **Règles firewall** : création anti-doublon implémentée (réutilisation/réactivation d’une règle identique).
+- **Base fonctionnelle candidature** : CRUD candidatures/entreprises/contacts/entretiens/relances/appels présent côté API et en grande partie côté UI.
+
+### Blocages produit encore critiques (pour ton usage quotidien)
+
+- **Suivi intérim backoffice** : la fonctionnalité est partiellement présente, mais pas encore “finie produit” (parcours complet agence -> candidatures -> calendrier -> UX homogène).
+- **Mobile prêt production** : le socle API est là, mais le parcours métier complet “inscription -> suivi candidatures -> relances -> calendrier -> stats” reste à verrouiller en tests E2E réels.
+- **Moteur de statut temporel** : transitions auto datées (NO_RESPONSE etc.) pas encore closes bout en bout (cf. `ERRORS.md`).
+- **Mise en prod simplifiée (PC -> branche prod -> VPS)** : stratégie présente dans docs, mais pipeline “simple et quotidienne” à finaliser et documenter de façon exécutable.
+
+### Incohérence doc à trancher (important)
+
+- Certains docs parlent d’un **toggle mode intérim dans le backoffice**, d’autres précisent que le toggle doit être **mobile uniquement**.
+- Décision retenue pour avancer sans ambiguïté :
+  - **Backoffice** = gestion des données (agences, candidatures, filtres, vues admin).
+  - **Mobile** = toggle mode intérim utilisateur (préférence d’affichage/usage).
+
+---
+
 ## À faire maintenant (priorité)
 
-**Objectif** : finaliser le **suivi intérim** (données en backoffice, mode utilisateur en mobile/API), poursuivre **Abonnement & facturation** en backoffice, puis **retest complet** (`make test`, user journey, tests intérim), **rapports de bugs** backoffice, **crash reports mobile** (file d’attente hors ligne), **tests de sync**, et **tests élargis** (Playwright, mobile, API, backend, frontend). Chaque plan (backoffice, backend, frontend, API, mobile) doit avoir des tests adaptés (unitaire, e2e, BDD, sécurité, performance).
+**Objectif prioritaire produit** : rendre l’application **utilisable immédiatement pour la recherche d’emploi** (mobile + API + backoffice utile), puis industrialiser le déploiement VPS.
+
+### P0 — Utilisable au quotidien (immédiat)
+
+1. **Parcours mobile indispensable**
+   - Inscription -> vérification email -> connexion -> tableau de bord.
+   - Gestion candidatures (CRUD), relances, entretiens, appels, événements.
+   - Cohérence statuts et historique.
+
+2. **Suivi intérim opérationnel (admin + mobile)**
+   - Backoffice : vues agences + candidatures liées, filtres stables, données test propres.
+   - Mobile : affichage/usage intérim côté utilisateur (préférence mode intérim).
+
+3. **Fiabilité sécurité sans casser le métier**
+   - Conserver les validations WAF/Firewall en vert.
+   - Vérifier la présence des logs sécurité et menaces dans le backoffice.
+
+### P1 — Mise en prod simple (PC -> VPS)
+
+4. **Workflow simple de déploiement**
+   - Branche `prod` dédiée.
+   - Pull sur VPS + `docker compose up -d --build` (ou images taguées).
+   - Variables prod (`API_BASE_URL`, URLs mobile, SMTP, DB) documentées.
+
+5. **Connectivité mobile vers VPS**
+   - Build mobile configuré avec URL API VPS (pas localhost).
+   - Vérification login + CRUD candidatures sur serveur distant.
+
+### P2 — Stabilisation avancée
+
+6. **Moteur de statut temporel + jobs**
+   - Finaliser transitions datées et tests time-travel bout en bout.
+
+7. **Sync offline mobile**
+   - Queue locale + replay + gestion des conflits.
 
 **Règle importante** : le **backoffice** sert à **gérer les données** (entreprises, boîtes d’intérim, candidatures, utilisateurs, etc.). Le **mode intérim** (toggle activable par l’utilisateur, vue dédiée, filtres, couleurs) se gère dans l’**application mobile** et l’**API** (préférence utilisateur), pas dans l’interface backoffice.
 

@@ -584,20 +584,23 @@ router.get('/services/all', async (req, res) => {
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
+    const includeOptional = String(req.query.includeOptional ?? 'true').toLowerCase() !== 'false';
+    const includeMailhog = String(req.query.includeMailhog ?? 'true').toLowerCase() !== 'false';
     
-    // Lister TOUS les conteneurs (même arrêtés), mais exclure MailHog et les services optionnels
+    // Lister TOUS les conteneurs (même arrêtés)
     const { stdout } = await execAsync('docker ps -a --filter "name=jobbingtrack" --format "{{json .}}"');
     const allContainers = stdout.trim().split('\n')
       .filter(line => line.length > 0)
       .map(line => JSON.parse(line))
-      // Exclure MailHog et les services optionnels
       .filter(container => {
         const name = container.Names;
-        // Exclure MailHog (insensible à la casse)
-        if (name.toLowerCase().includes('mailhog')) {
+
+        // Optionnel: exclure MailHog si demandé explicitement
+        if (!includeMailhog && name.toLowerCase().includes('mailhog')) {
           return false;
         }
-        // Exclure les services optionnels (chercher avec ou sans préfixe jobbingtrack-)
+
+        // Optionnel: exclure certains services si demandé explicitement
         const optionalServices = [
           'workflow-service',
           'notification-service',
@@ -606,10 +609,13 @@ router.get('/services/all', async (req, res) => {
           'event-service',
           'security-service'
         ];
-        // Vérifier si le nom du conteneur contient un des services optionnels
-        return !optionalServices.some(service => {
-          return name === `jobbingtrack-${service}` || name === service || name.includes(service);
-        });
+        if (!includeOptional) {
+          return !optionalServices.some(service => {
+            return name === `jobbingtrack-${service}` || name === service || name.includes(service);
+          });
+        }
+
+        return true;
       });
     
     // Récupérer les stats uniquement pour les conteneurs en cours d'exécution

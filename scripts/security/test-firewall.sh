@@ -96,6 +96,25 @@ else
 fi
 echo ""
 
+# Test 2.b: Re-création de la même règle (doit réutiliser l'existante, pas créer un doublon)
+echo "📋 Test 2.b: Détection doublon (règle identique déjà active)"
+response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+    ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
+    -H "Content-Type: application/json" \
+    -d "${RULE_DATA}" 2>&1)
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | sed '$d')
+duplicate=$(echo "$body" | rg -o '"duplicate":[^,}]+' | head -1 || true)
+if [ "$http_code" = "200" ] && [[ "$duplicate" == *"true"* ]]; then
+    echo -e "${GREEN}✅ PASS${NC} (HTTP $http_code, doublon réutilisé)"
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+else
+    echo -e "${RED}❌ FAIL${NC} (HTTP $http_code, attendu 200 avec duplicate=true)"
+    echo "     Réponse: $(echo "$body" | head -c 220)"
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+fi
+echo ""
+
 # Récupérer l'ID de la règle créée pour les tests suivants (si la création a réussi)
 if [ -z "$RULE_ID" ]; then
     RULE_ID=$(curl -s -X GET "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
@@ -111,6 +130,25 @@ if [ -n "$RULE_ID" ]; then
     echo "📋 Test 3: Mise à jour de la règle firewall"
     UPDATE_DATA='{"enabled":false}'
     test_endpoint "PUT" "/api/v1/security/firewall/rules/${RULE_ID}" "$UPDATE_DATA" "200" "PUT /api/v1/security/firewall/rules/:id"
+    echo ""
+
+    # Test 3.b: Re-création de la même règle après désactivation (doit réactiver l'existante)
+    echo "📋 Test 3.b: Détection doublon inactif (réactivation)"
+    response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+        ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
+        -H "Content-Type: application/json" \
+        -d "${RULE_DATA}" 2>&1)
+    http_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | sed '$d')
+    reactivated=$(echo "$body" | rg -o '"reactivated":[^,}]+' | head -1 || true)
+    if [ "$http_code" = "200" ] && [[ "$reactivated" == *"true"* ]]; then
+        echo -e "${GREEN}✅ PASS${NC} (HTTP $http_code, règle existante réactivée)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo -e "${RED}❌ FAIL${NC} (HTTP $http_code, attendu 200 avec reactivated=true)"
+        echo "     Réponse: $(echo "$body" | head -c 220)"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
     echo ""
     
     # Test 4: Supprimer la règle
@@ -171,10 +209,10 @@ TOGGLE_DATA='{"enabled":true}'
 test_endpoint "PUT" "/api/v1/security/waf/toggle" "$TOGGLE_DATA" "200" "PUT /api/v1/security/waf/toggle"
 echo ""
 
-# Test 14: Toggle règle WAF
-echo "📋 Test 14: Activation/désactivation règle WAF"
-RULE_TOGGLE_DATA='{"enabled":false}'
-test_endpoint "PUT" "/api/v1/security/waf/rules/SQL_INJECTION" "$RULE_TOGGLE_DATA" "200" "PUT /api/v1/security/waf/rules/:ruleName"
+# Test 14: Vérifier activation règle WAF (ne jamais laisser désactivée)
+echo "📋 Test 14: Validation règle WAF SQL_INJECTION activée"
+RULE_TOGGLE_DATA='{"enabled":true}'
+test_endpoint "PUT" "/api/v1/security/waf/rules/SQL_INJECTION" "$RULE_TOGGLE_DATA" "200" "PUT /api/v1/security/waf/rules/:ruleName (enabled=true)"
 echo ""
 
 # Test 15: Vérifier les logs de sécurité

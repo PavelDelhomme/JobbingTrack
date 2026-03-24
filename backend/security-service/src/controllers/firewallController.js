@@ -10,6 +10,24 @@ const securityService = require('../services/securityService');
 
 const prisma = new PrismaClient();
 
+function normalizeRulePayload(payload = {}) {
+  const normalizedSourceIp = payload.sourceIp && String(payload.sourceIp).trim() !== ''
+    ? String(payload.sourceIp).trim()
+    : null;
+  const normalizedDestPort = payload.destPort !== undefined && payload.destPort !== null && String(payload.destPort).trim() !== ''
+    ? parseInt(payload.destPort, 10)
+    : null;
+  return {
+    name: payload.name,
+    description: payload.description || null,
+    sourceIp: normalizedSourceIp,
+    destPort: Number.isNaN(normalizedDestPort) ? null : normalizedDestPort,
+    protocol: String(payload.protocol || '').toUpperCase(),
+    action: String(payload.action || '').toUpperCase(),
+    priority: payload.priority ? parseInt(payload.priority, 10) : 100
+  };
+}
+
 /**
  * GET /api/v1/security/firewall/rules
  * Récupérer toutes les règles de firewall
@@ -67,18 +85,120 @@ async function createFirewallRule(req, res) {
       });
     }
 
-    // Créer la règle en base
+    const normalizedRule = normalizeRulePayload({ name, description, sourceIp, destPort, protocol, action, priority });
+
+    // Réutiliser une règle existante équivalente (même signature réseau)
+    const existingRules = await prisma.firewallRule.findMany({
+      where: {
+        protocol: normalizedRule.protocol,
+        action: normalizedRule.action,
+        sourceIp: normalizedRule.sourceIp,
+        destPort: normalizedRule.destPort
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (existingRules.length > 0) {
+      const existingRule = existingRules[0];
+      const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
+      const userAgent = req.get('User-Agent') || 'unknown';
+
+      if (existingRule.enabled) {
+        await securityService.createSecurityLog({
+          level: 'info',
+          category: 'firewall',
+          eventType: 'firewall_rule_duplicate_reused',
+          message: `Règle firewall dupliquée détectée, réutilisation de ${existingRule.name}`,
+          sourceIP: clientIP,
+          userAgent: userAgent,
+          userId: req.user?.id || null,
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          riskScore: 5,
+          isBlocked: false,
+          metadata: {
+            requestedName: normalizedRule.name,
+            reusedRuleId: existingRule.id,
+            signature: {
+              protocol: normalizedRule.protocol,
+              action: normalizedRule.action,
+              sourceIp: normalizedRule.sourceIp,
+              destPort: normalizedRule.destPort
+            }
+          }
+        }).catch(err => {
+          logger.warn('Erreur log duplicate-reuse firewall (non bloquant):', err.message);
+        });
+
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          reused: true,
+          message: `Règle équivalente déjà active (${existingRule.name}), réutilisée.`,
+          data: existingRule
+        });
+      }
+
+      const reactivatedRule = await prisma.firewallRule.update({
+        where: { id: existingRule.id },
+        data: {
+          enabled: true,
+          name: normalizedRule.name || existingRule.name,
+          description: normalizedRule.description
+        }
+      });
+      const iptablesResult = await firewallEngine.applyFirewallRule(reactivatedRule);
+
+      await securityService.createSecurityLog({
+        level: 'warning',
+        category: 'firewall',
+        eventType: 'firewall_rule_duplicate_reactivated',
+        message: `Règle firewall équivalente réactivée: ${reactivatedRule.name}`,
+        sourceIP: clientIP,
+        userAgent: userAgent,
+        userId: req.user?.id || null,
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: 200,
+        riskScore: 15,
+        isBlocked: false,
+        metadata: {
+          reactivatedRuleId: reactivatedRule.id,
+          requestedName: normalizedRule.name,
+          iptablesApplied: iptablesResult?.success || false,
+          signature: {
+            protocol: normalizedRule.protocol,
+            action: normalizedRule.action,
+            sourceIp: normalizedRule.sourceIp,
+            destPort: normalizedRule.destPort
+          }
+        }
+      }).catch(err => {
+        logger.warn('Erreur log duplicate-reactivate firewall (non bloquant):', err.message);
+      });
+
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        reactivated: true,
+        message: `Règle équivalente trouvée et réactivée (${reactivatedRule.name}).`,
+        data: reactivatedRule
+      });
+    }
+
+    // Créer une nouvelle règle en base
     let rule;
     try {
       rule = await prisma.firewallRule.create({
         data: {
-          name,
-          description: description || null,
-          sourceIp: sourceIp || null,
-          destPort: destPort ? parseInt(destPort) : null,
-          protocol: protocol.toUpperCase(),
-          action: action.toUpperCase(),
-          priority: priority ? parseInt(priority) : 100,
+          name: normalizedRule.name,
+          description: normalizedRule.description,
+          sourceIp: normalizedRule.sourceIp,
+          destPort: normalizedRule.destPort,
+          protocol: normalizedRule.protocol,
+          action: normalizedRule.action,
+          priority: normalizedRule.priority,
           enabled: true
         }
       });
@@ -742,7 +862,7 @@ async function unblockIp(req, res) {
           unblockedIp: ip,
           unblockedBy: clientIP,
           unblockedByUser: req.user?.id || null,
-          iptablesRemoved: true,
+          iptablesRemoved: result.iptablesRemoved === true,
           unblockedAt: new Date().toISOString()
         }
       }).catch(err => {

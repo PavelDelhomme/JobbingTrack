@@ -3,8 +3,8 @@ FROM node:20.18.0-alpine
 # Mettre à jour npm vers la version 11.6.4
 RUN npm install -g npm@11.6.4
 
-# Installer OpenSSL pour Prisma
-RUN apk add --no-cache openssl
+# OpenSSL (Prisma) + iptables (binaire présent ; effet réel nécessite CAP_NET_ADMIN sur l’hôte)
+RUN apk add --no-cache openssl iptables
 
 WORKDIR /app
 
