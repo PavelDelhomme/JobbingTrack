@@ -89,7 +89,16 @@ test.describe('🖥️ Pages Backoffice Suivi intérim', () => {
     await page.goto('/backoffice');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('nav').first()).toBeVisible({ timeout: 25000 });
-    const suiviLink = page.getByRole('link', { name: /Suivi intérim/i }).first();
+    // « Suivi intérim » est un sous-lien sous « Gestion des données » (sous-menu replié par défaut sur /backoffice)
+    const gestionRow = page
+      .locator('div.flex.items-center')
+      .filter({ has: page.getByRole('link', { name: /^Gestion des données$/ }) });
+    await expect(gestionRow).toBeVisible({ timeout: 15000 });
+    const suiviLink = page.getByRole('link', { name: /^Suivi intérim$/ });
+    if (!(await suiviLink.isVisible().catch(() => false))) {
+      await gestionRow.getByRole('button', { name: /Expander les sous-items/i }).click();
+    }
+    await expect(suiviLink).toBeVisible({ timeout: 15000 });
     await suiviLink.click();
     await page.waitForURL(/\/backoffice\/suivi-interim/, { timeout: 15000 });
     const heading = page.getByRole('heading', { name: /Suivi intérim/i }).or(

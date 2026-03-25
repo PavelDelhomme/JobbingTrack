@@ -1,28 +1,39 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : 25 mars 2026
 
-Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
+Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
+
+**Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
 ---
 
-## Erreurs actives
+## Erreurs actives (action encore requise)
 
 | Erreur | Composant | Impact | Action |
 |--------|-----------|--------|--------|
-| ~~`ERROR: role "jobbingtrack" already exists` / `database "jobbingtrack" already exists`~~ | ~~Postgres (make db-fix-role)~~ | ~~Bruit dans les logs~~ | **Résolu** : CREATE USER idempotent (DO … EXCEPTION duplicate_object). CREATE DATABASE ne peut pas être dans un bloc DO (PostgreSQL : « cannot run inside a transaction block »), donc vérification en shell (SELECT sur pg_database) puis CREATE DATABASE uniquement si absent. |
-| `relation "public.deployments" does not exist` | deployment-service / Postgres | Requetes deployment-service echouent | Creer table : `make db-push-all` ou push Prisma deployment-service |
-| ~~Build APK : `Zip ... already contains entry 'META-INF/...'`~~ | ~~Emulateur backoffice~~ | ~~Build APK echoue~~ | **Déjà en place** : `tools/emulator-controller/server.js` supprime `build/app/outputs` et lance `flutter clean` avant `flutter build apk`. |
-| `relation "public.user_events" does not exist` | dashboard-service / page User Analytics | Page User Analytics inaccessible | Creer les tables (`user_events`, `user_sessions`, `user_errors`, `user_performances`, `device_infos`) ou desactiver la page |
-| ~~`getaddrinfo ENOTFOUND loki`~~ | ~~metrics-aggregator~~ | ~~Requêtes logs par conteneur échouent~~ | **Résolu** : dégradation propre dans `loki.service.js` (ENOTFOUND/ECONNREFUSED/ETIMEDOUT → réponses vides, pas d’exception) ; route stream gère `streamLogs` null. |
-| `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable. Plusieurs services definissent le meme enum |
-| API versioning 404 | dashboard-service | `GET /api/v1/analytics/stats/:userId/versions` retourne 404 | Implementer la route ou adapter le front |
-| Emulateur mobile build APK | flutter_local_notifications | Build APK echoue (bigLargeIcon ambiguous) | Mettre a jour la dependance flutter_local_notifications |
-| Endpoint sync non implemente | sync mobile/API | SyncQueue existe en BDD mais aucun endpoint API | Creer POST /sync/push, GET /sync/pull, GET /sync/status |
-| Endpoint time-travel : transitions auto non implementees | tests temporels | Time-travel disponible (backdater entites) mais le moteur de statut ne declenche pas encore les transitions auto (NO_RESPONSE apres 7j) | Implementer le cron/worker qui execute les transitions temporelles |
-| Suppression auto corbeille > 30j | cron/worker | Les elements supprimes ne sont jamais purges automatiquement | Creer un cron job ou worker pour la suppression definitive |
-| Pages backoffice sécurité (firewall, logs, menaces, analysis) | Frontend / API | Politiques : corrige (IPs en objet). Reste : Firewall, Logs, Menaces (vue unifiee toutes menaces), Analyse pleinement operationnels + tests E2E et tests reels (detection vraies failles) | Finaliser affichage, agregations, vue menaces unifiee ; option Shannon/KeygraphHQ pour detection menaces |
-| CSS @-o-keyframes (Opera legacy) | Frontend (logs) | Warning console « Unrecognized at-rule » | Optionnel : supprimer ou remplacer par @keyframes (vendor prefix inutile) |
+| `relation "public.deployments" does not exist` | deployment-service / Postgres | Requêtes deployment-service échouent | `make db-push-all` ou push Prisma ciblé deployment-service |
+| `relation "public.user_events" does not exist` | dashboard-service / page User Analytics | Page User Analytics inaccessible | Créer les tables analytics utilisateur ou désactiver la page |
+| `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable (enums / modèles dupliqués entre services) |
+| API versioning 404 | dashboard-service | `GET /api/v1/analytics/stats/:userId/versions` → 404 | Implémenter la route ou adapter le front |
+| Emulateur mobile build APK | flutter_local_notifications | Build APK échoue (bigLargeIcon ambiguous) | Mettre à jour la dépendance `flutter_local_notifications` |
+| Endpoint sync non implémenté | sync mobile/API | `SyncQueue` en BDD, pas d’API | Créer `POST /sync/push`, `GET /sync/pull`, `GET /sync/status` |
+| Transitions auto « time-travel » / moteur daté | workflow + application-service / tests | Endpoint time-travel existe ; jobs ou scénarios E2E incomplets pour NO_RESPONSE 7j, etc. | Finaliser cron/worker + suite `status-engine-temporal` (voir section ci-dessous) |
+| Suppression auto corbeille > 30 j | cron/worker | Purge définitive non garantie | Job planifié côté service qui gère la corbeille |
+| Pages sécurité « Analyse » / polish logs | Frontend / API | Firewall, menaces, logs utilisables ; **Analyse** et agrégations perfectibles | Finaliser UX Analyse et tests E2E ciblés |
+| CSS @-o-keyframes (Opera legacy) | Frontend | Warning console « Unrecognized at-rule » | Optionnel : supprimer le préfixe Opera |
+
+---
+
+## Réglées ou sans action (référence rapide)
+
+| Sujet | Détail |
+|-------|--------|
+| ~~Postgres `jobbingtrack` / rôle déjà existant~~ | `make db-fix-role` idempotent — voir **RESOLUTIONS.md** |
+| ~~Build APK Zip META-INF~~ | `flutter clean` + suppression outputs dans l’émulateur contrôleur |
+| ~~Loki ENOTFOUND~~ | `loki.service.js` : réponses vides si Loki absent |
+| **security-service scheduler** `prisma.securityMetric` undefined | **Corrigé en code** (fallback `securityMetricTable \|\| securityMetric`) — rebuild image si besoin |
+| **WAF / gateway** | Middleware WAF actif ; live-check `make security-live-check` ; proxy security-service avec fallback DNS |
 
 **Workflow-service** : le service est **bien intégré** au démarrage : `make up-full` utilise le profil Docker `full`, et `workflow-service` a `profiles: workflows, full` dans `docker-compose.yml`. Le **health check** (étape « Tests Workflow Service ») ne fait plus échouer la suite si le service est absent : la commande fait `exit 0` avec le message « Workflow non démarré (optionnel) ». Le script API Backend accepte **200 ou 503** pour **List Workflows** et Analytics Errors. Pour démarrer le service : `make up-full` ou `make start-service SERVICE=workflow-service` ; en cas de crash : `make logs-service SERVICE=workflow-service`, `make rebuild-service SERVICE=workflow-service`.
 
@@ -30,7 +41,7 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 Les tests **complets** pour le système de mise à jour automatique (changement de statut, relances, entretiens, création d’événements, envoi de notifications, rappels) **en manipulant les dates** pour simuler le temps qui passe ne sont **pas encore réalisés** de bout en bout. À faire :
 
-- **Backend** : cron/worker qui exécute les transitions temporelles (NO_RESPONSE après 7j sans activité, etc.) et les notifications (rappel relance, entretien < 24h). Voir ERRORS.md « Endpoint time-travel : transitions auto non implémentées ».
+- **Backend** : cron/worker qui exécute les transitions temporelles (NO_RESPONSE après 7j sans activité, etc.) et les notifications (rappel relance, entretien < 24h). Voir la ligne **Transitions auto « time-travel » / moteur daté** dans le tableau « Erreurs actives » ci-dessus.
 - **Tests** : scénario type « backdater » une candidature (applicationDate il y a 8 jours), lancer le job/cron ou appeler un endpoint de traitement par lot, vérifier que le statut passe à NO_RESPONSE (ou équivalent). Idem pour relances (suggestion rejet après 3 relances), création d’événements, envoi de notifications. Fichiers existants : `tests/api/test-status-engine.test.js` (préférence auto/manuel, thank-you-sent) ; **à ajouter** : suite dédiée « time-travel » ou « status-engine-temporal » avec manipulation des dates (mock ou BDD) et exécution du moteur.
 
 ## A implementer (non-erreurs, fonctionnalites manquantes)
