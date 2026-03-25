@@ -1,21 +1,39 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : 25 mars 2026
 
-**Tests** : Objectif = **faire passer la suite complète** (`make tests` après `make db-push-all` + `make seed-auth` + `make up-full`). Dernier run : ~580 tests, ~98 % réussis, rapport `tests/results/<timestamp>/`. **Couverture** : User Journey API, Relations BDD, Enums, Email Logs, Jest API complets, Backend Services, API Backend (script), Playwright E2E (backoffice, CRUD, sécurité, MailHog, emails), Performance, Sécurité, Intégration, Health checks services, Firewall & WAF, **Performance Avancés (CPU & endpoints)**. **Rapports** : report.html, report.txt, summary.json (script run-all-tests-with-reports.sh). **Mobile** : page émulateur testée en E2E ; parcours sur appareil exclus sans contrôleur. **Orchestration** : les tests de performance (PERF_LIGHT=1) et les E2E Playwright ne sont pas lancés en parallèle (étapes séquentielles) ; PLAYWRIGHT_WORKERS=2 par défaut pour limiter la charge CPU. Correctifs récents (mars 2026) : generate-test-data fallback si ancienne image (sans isTestData), admin-data-crud délai après archive, test-bdd-relations pas de log erreur sur restore 404, Corbeille/XSS/thank-you-sent. Voir ERRORS.md pour le détail des échecs restants.
+## Lecture rapide — état par couche
 
-**Backoffice** : Gestion des **données** (entreprises, boîtes d’intérim, candidatures, stats, corbeille, archives). **Sécurité** : page **Politiques** corrigée (affichage IPs bloquées). À poursuivre : **Analyse**, **Firewall**, **Menaces** (vue unifiée toutes menaces, pas seulement réseau), **Logs sécurité** — pleinement opérationnels et couverts par des tests réels (détection vraies failles). Pas de toggle « Mode intérim » dans le backoffice. Voir « À faire maintenant ».
+| Couche | État (synthèse) | Comment le vérifier |
+|--------|-----------------|---------------------|
+| **API / microservices** | Fonctionnel en dev Docker (`make up-full`) ; quelques tables optionnelles manquantes (voir ERRORS.md : `deployments`, `user_events`). | Health services, `make test`, logs `make logs`. |
+| **Backoffice web** | CRUD données, sécurité, rapports de tests, suivi intérim **présents** ; polish et E2E à stabiliser. | Navigation admin, `/backoffice/suivi-interim`, `/backoffice/test-reports`. |
+| **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
+| **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; règles affinées (moins de faux positifs) ; `make security-live-check` pour validation live ; anti-doublon règles firewall côté security-service. | `make security-live-check`, pages Sécurité backoffice. |
+| **Logs / monitoring** | Logs applicatifs OK ; agrégateur / métriques selon profil Docker ; Loki optionnel (dégradation propre si absent). | Dashboard monitoring backoffice, `metrics-aggregator`. |
+
+**Tests automatisés** : objectif = **suite verte** après `make up-full` → `make db-push-all` → `make seed-auth` → `make tests` (ou `make test-all` pour rapports complets). Les **chiffres exacts** (nombre de tests, % réussite) dépendent du run : consulter le **dernier** dossier `tests/results/<timestamp>/`. En cas d’échec, **ERRORS.md** liste les causes connues et les correctifs déjà appliqués.
+
+**Couverture type** : User Journey API, Jest API, services backend, script API, Playwright (backoffice, CRUD, sécurité, MailHog, **suivi intérim**), performance, sécurité scripts, intégration, health checks, firewall/WAF. **Orchestration** : perf légère et E2E souvent séquentiels ; `PLAYWRIGHT_WORKERS=2` par défaut. **Mobile** : E2E émulateur dans Playwright ; parcours ADB = matériel requis.
+
+**Backoffice** : gestion des **données** (entreprises, boîtes d’intérim, candidatures, archives, corbeille). **Sécurité** : Politiques / Menaces / Firewall / Logs utilisables ; poursuivre **Analyse** et tests E2E « réalistes » si besoin. **WAF** : actif sur l’API Gateway (pas seulement un toggle fragile). **Pas de toggle « mode intérim » admin** : le mode utilisateur est côté **mobile** (spec `docs/features/SUIVI_BOITES_INTÉRIM.md`).
+
+**Rapports CLI dans l’UI admin** : les sorties de `make test-all` / `run-all-tests-with-reports.sh` sont visibles sous **Développement → Rapports de tests** (`/backoffice/test-reports`), en plus des lanceurs depuis **Développement → Tests** (Playwright, API, etc.).
 
 ---
 
-## Incidents en cours (20 mars 2026)
+## Points de vigilance (anciennement « Incidents 20 mars 2026 »)
 
-- **workflow-service KO en conteneur malgré restart** : crash au boot sur `cronScheduler.js` (`SyntaxError`), correctif code appliqué localement mais **`make restart-service` ne rebuild pas l'image**. Action requise: `make rebuild-service SERVICE=workflow-service` puis `make restart-service SERVICE=workflow-service`.
-- **security-service erreurs planifiées toutes les 5 min** : `Cannot read properties of undefined (reading 'create')` dans `securityScheduler.js` (écriture sur `prisma.securityMetric` alors que le schéma expose `SecurityMetricTable`). Correctif appliqué avec fallback `securityMetricTable || securityMetric`.
-- **test API monitoring-c instable** : payload différent entre endpoint monitoring-c direct et fallback gateway (`cpu/memory/disk` en racine vs `system.cpu/system.memory/system.disk`). Le test a été adapté pour accepter les deux formats.
-- **E2E login/setup encore rouges** : timeout sur redirection UI (`waitForURL`) et test affichage/masquage mot de passe trop strict. Correctifs appliqués : validation via token localStorage + navigation explicite vers `/backoffice`, assertion sur attribut `type` du champ mot de passe.
-- **MailHog logs "500 Unrecognised command"** : des checks HTTP arrivent sur le port SMTP `1025` (pas le port web `8025`). Bruit non bloquant mais mauvais healthcheck côté appelant.
-- **Dashboard Santé Système (4%) incohérent** : la dispo ne prenait que `services healthy / total`. Correctif appliqué dans metrics-aggregator : score composite `50% services + 30% ressources (CPU/RAM/disque) + 20% latence`, exposé via `health.availability_percent` (et détail `service_availability_percent`, `resource_health_percent`, `latency_health_percent`).
+Ces points ont été traités en code à une date proche ; **à revalider** sur ta machine après `make rebuild-service` / image à jour :
+
+| Sujet | Statut | Action si problème |
+|-------|--------|-------------------|
+| **workflow-service** crash au boot (`cronScheduler.js`) | Correctif code ; **rebuild** requis | `make rebuild-service SERVICE=workflow-service` puis `make restart-service SERVICE=workflow-service` (un simple `restart` ne reconstruit pas l’image). |
+| **security-service** scheduler `prisma.securityMetric` | **Corrigé** : fallback `securityMetricTable \|\| securityMetric` dans `securityScheduler.js` | Rebuild `security-service` si tu vois encore l’erreur sur une vieille image. |
+| **monitoring-c** format JSON | Test adapté aux **deux** formes de payload | Si nouveau format, mettre à jour le test. |
+| **E2E login / setup** | Correctifs (localStorage, `/backoffice`, type mot de passe) | Relancer Playwright ; vérifier `storageState` et timeouts. |
+| **MailHog** `500 Unrecognised command` | Healthchecks HTTP sur port **SMTP 1025** au lieu de **8025** | Bruit connu ; corriger l’URL du healthcheck côté appelant si besoin. |
+| **Dashboard santé système** | Score **composite** dans metrics-aggregator (services + ressources + latence) | Rafraîchir le front si une vieille version affichait encore ~4 %. |
 
 ---
 
@@ -36,7 +54,7 @@ Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clé
 
 ### Blocages produit encore critiques (pour ton usage quotidien)
 
-- **Suivi intérim backoffice** : la fonctionnalité est partiellement présente, mais pas encore “finie produit” (parcours complet agence -> candidatures -> calendrier -> UX homogène).
+- **Suivi intérim** : **UI backoffice en place** (`/backoffice/suivi-interim`, onglet dans **Données applicatives**). Reste à finaliser : **couleurs calendrier** (ambre/bleu selon `agencyId`), **mode intérim mobile** (toggle + écrans), et **suite E2E stable** (`frontend/tests/e2e/suivi-interim.spec.ts` — navigation menu corrigée pour sous-menu « Gestion des données »).
 - **Mobile prêt production** : le socle API est là, mais le parcours métier complet “inscription -> suivi candidatures -> relances -> calendrier -> stats” reste à verrouiller en tests E2E réels.
 - **Moteur de statut temporel** : transitions auto datées (NO_RESPONSE etc.) pas encore closes bout en bout (cf. `ERRORS.md`).
 - **Mise en prod simplifiée (PC -> branche prod -> VPS)** : stratégie présente dans docs, mais pipeline “simple et quotidienne” à finaliser et documenter de façon exécutable.
@@ -90,7 +108,7 @@ Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clé
 
 **Règle importante** : le **backoffice** sert à **gérer les données** (entreprises, boîtes d’intérim, candidatures, utilisateurs, etc.). Le **mode intérim** (toggle activable par l’utilisateur, vue dédiée, filtres, couleurs) se gère dans l’**application mobile** et l’**API** (préférence utilisateur), pas dans l’interface backoffice.
 
-**Enchaînement** : 1 → 2 → 3 (backoffice données + billing, puis mobile/API mode intérim), puis 4 (tests complets) et 5 (commandes).
+**Enchaînement** : **P0** (mobile utilisable + suivi intérim + sécurité verte) → **P1** (déploiement VPS + URL mobile prod) → **P2** (moteur temporel, sync offline). Les sous-sections numérotées **1 à 5** ci‑dessous détaillent le même plan (données/billing → mobile → tests → commandes).
 
 ### 1. Backoffice – Données et Suivi intérim (sans toggle « mode intérim »)
 
@@ -113,10 +131,10 @@ Spec : **`docs/features/SUIVI_BOITES_INTÉRIM.md`**.
 
 | Plan | Tests existants / à avoir |
 |------|---------------------------|
-| **API** | `tests/api/test-event-interim-color.test.js` (couleur événement selon agencyId). Filtres Company `?companyType=TEMP_AGENCY`, Application `?agencyId=xxx` couverts par les services. |
-| **Backend** | application-service (agencyId, relation agency), company-service (companyType), event-service (couleur selon application.agencyId). Tests BDD relations. |
-| **Frontend / Backoffice** | Playwright E2E : `frontend/tests/e2e/suivi-interim.spec.ts` (page Suivi intérim, chargement, génération données test, visibilité Randstad/Manpower après génération). Filtre Entreprises, filtre Candidatures classique/intérim, formulaire candidature avec agence. Tests unitaires composants si besoin. |
-| **Mobile** | E2E parcours mode intérim (toggle, écran Intérim, formulaire avec agence, couleurs calendrier) — à renforcer quand le mode intérim mobile est finalisé. |
+| **API** | `tests/api/test-event-interim-color.test.js` (couleur événement selon agencyId). Filtres Company `?companyType=TEMP_AGENCY`, Application `?agencyId=xxx` côté services. |
+| **Backend** | application-service (`agencyId`, relation `agency`), company-service (`companyType`), event-service (couleur selon `application.agencyId` — à valider partout). |
+| **Frontend / Backoffice** | Playwright : **`frontend/tests/e2e/suivi-interim.spec.ts`** — chargement page directe, message vide ou agences, génération données (tests conditionnels/skip si API indispo), **accès via menu** (expansion sous-menu **Gestion des données**). À étendre : filtres Entreprises/Candidatures + formulaire agence en E2E si pas déjà couverts ailleurs. |
+| **Mobile** | E2E mode intérim (toggle, écran Intérim, agence, calendrier) — **à ajouter** quand le flux mobile est figé. |
 
 ### 2. Backoffice – Abonnement & facturation
 
@@ -191,7 +209,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 **Performance & Analytics** : étendre la suite à un **système de monitoring complet** (graphiques, statuts, métriques backoffice), pas seulement CPU et endpoints.
 
-**Sécurité backoffice** : **Page Politiques** : bug React (IPs en objet) — **corrigé**. **Menaces** : **corrigé** — titre « Menaces » (toutes menaces), tri par **date/heure de détection** (plus récent en premier), filtre par sévérité conservé ; libellés types étendus (SUSPICIOUS_REQUEST, WAF_BLOCK, etc.). **À faire** : Logs de sécurité (afficher les logs réels), WAF activé par défaut ou toggle fiable, Analyse de sécurité (vraie analyse), Politiques (éviter duplication avec Firewall/Menaces). **Tests réels** : couvrir détection de vraies failles (option Shannon/KeygraphHQ).
+**Sécurité backoffice** : **Politiques** (IPs) et **Menaces** (tri, libellés) — **corrigés**. **WAF** : middleware **toujours actif** sur la gateway en usage courant ; validation live via `make security-live-check`. **À poursuivre** : page **Analyse**, enrichissement **Logs** (agrégation/UX), éviter la duplication d’info entre Politiques / Firewall / Menaces. **Tests réels** : option détection avancée (ex. Shannon) si tu veux aller plus loin.
 
 **Dépendances npm** : vérifier et mettre à jour les versions (frontend, backend, tests).
 
@@ -614,15 +632,16 @@ await adb.runScenario('complete');
 
 | Categorie | Fait | Reste |
 |-----------|------|-------|
-| Stack / BDD | 21/21 services, 47 tables, monitoring OK, soft delete + corbeille + archivage | Unifier schemas Prisma, cron purge corbeille |
-| Backoffice | Connexion admin, hub Tests, parcours, rapports, E2E 233 | CRUD complet, export/import, verif email |
-| Parcours | 22 scenarios mobile + 21 API, personnalise, rapports | Tests temporels |
-| Tests | 724 total, 708 OK, 16 echecs (13/03 14:04) ; Cat. 8 exécutée | Stabiliser suite, E2E localStorage, API Jest cascade/BDD, CRUD contact (rebuild), Perf & Analytics complet, pages securite |
-| Emails | SMTP OK, MailHog OK, pages backoffice | Verification email inscription |
-| Mobile | Module ADB complet, 70+ steps, rendu emulateur, ecrans auth | CRUD forms, swipe, sync offline |
-| Moteur statut | Cascade basique (entretien→statut), historique | Transitions temporelles, auto/manuel, notifications |
-| Sync | Modele SyncQueue en BDD | Endpoints API, implementation mobile |
-| CI/CD | -- | Pipeline a adapter |
+| Stack / BDD | 21/21 services, 47 tables, monitoring OK, soft delete + corbeille + archivage | Tables optionnelles (`deployments`, analytics utilisateur) ; cron purge corbeille > 30 j |
+| Backoffice | Connexion admin, hub Tests, rapports CLI dans l’UI, CRUD données, sécurité, **page + onglet Suivi intérim** | Export/import, page « email vérifié », billing, polish Analyse sécurité |
+| Parcours | 22 scenarios mobile + 21 API, personnalise, rapports | Tests temporels bout en bout |
+| Tests | Suite large (voir **dernier** `tests/results/…`) ; nombre de tests varie selon config | Faire tourner `make tests` après chaque gros changement ; suivre **ERRORS.md** |
+| Emails | SMTP OK, MailHog OK, pages backoffice | Parcours inscription réel multi-fournisseurs |
+| Mobile | Module ADB, émulateur backoffice, écrans métier avancés | Prod-ready (VPS, vérif email, swipe, sync) |
+| Suivi intérim | API `companyType` / `agencyId`, UI liste agences + candidatures | Couleurs calendrier partout, mode intérim **mobile**, E2E menu stabilisé |
+| Moteur statut | Cascade entretien, historique, crons workflow documentés | Transitions **datées** + tests time-travel complets |
+| Sync | Modele SyncQueue en BDD | Endpoints API + replay mobile |
+| CI/CD | -- | Pipeline fiable (GitHub Actions à réactiver) |
 
 ### Couverture fonctionnelle par catégorie de test (make test-all / test-full)
 
@@ -634,7 +653,7 @@ await adb.runScenario('complete');
 | **Email Logs** | Présence et lisibilité des logs d’emails en BDD. |
 | **Tests API Complets (Jest)** | Archivage, cascade statuts, auto-events, BDD relations, status-engine, crash-reporting (tests/api/). |
 | **Tests Backend Services** | Health / CRUD des microservices (company, contact, application, interview, call, followup, event, etc.). |
-| **Playwright E2E Frontend** | Backoffice : dashboard, session, CRUD entreprises, sécurité (XSS, payload overflow, path traversal), performance, moteur de statut (status-engine.spec.ts). |
+| **Playwright E2E Frontend** | Backoffice : dashboard, session, CRUD entreprises, sécurité (XSS, payload overflow, path traversal), performance, moteur de statut (`status-engine.spec.ts`), **suivi intérim** (`suivi-interim.spec.ts`). |
 | **Playwright Emails MailHog** | Envoi email test, réception dans MailHog, reset password avec lien. |
 | **Playwright Email Workflows** | Inscription + vérification email, forgot-password, page forgot-password. |
 | **Playwright CRUD Données (admin)** | CRUD entreprise, contact, candidature, entretien, relance, appel, événement, archivage, corbeille, restauration. |

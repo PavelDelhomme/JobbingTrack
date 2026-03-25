@@ -21,12 +21,11 @@
    - Une page (ex. **Administration → Suivi intérim** ou lien « Boîtes d’intérim » déjà présent) qui liste les agences (`companyType = TEMP_AGENCY`) et, pour chaque agence, les candidatures où `agencyId = cette agence`.  
    - Filtres utiles : statut, date.
 
-3. **Toggle « Mode intérim »**  
-   - Un interrupteur dans la barre de navigation ou le menu : **activer / désactiver le mode intérim**.  
-   - Quand activé : mettre en avant Suivi intérim / Boîtes d’intérim, filtres par défaut adaptés, calendrier avec couleurs intérim/classique.  
-   - Préférence persistée (ex. `localStorage` ou préférence utilisateur) pour garder le choix.
+3. **Pas de toggle « Mode intérim » dans le backoffice**  
+   - L’admin voit toutes les données ; entrées **Suivi intérim** / **Données applicatives** suffisent.  
+   - Le **toggle mode intérim utilisateur** est prévu côté **application mobile** (préférence), pas dans l’UI admin.
 
-Spec détaillée : **`docs/features/SUIVI_BOITES_INTÉRIM.md`** (section 4.0 Mode intérim, 4.2, 4.3).
+Spec détaillée : **`docs/features/SUIVI_BOITES_INTÉRIM.md`** (section 4.0, 4.2, 4.3).
 
 ### Étape B – Application mobile Flutter (ensuite)
 
@@ -114,8 +113,7 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`do
 
 3. **Backoffice – Suivi intérim (suite)**  
    - Implémenter les **couleurs calendrier** (intérim = ambre, classique = bleu) selon la spec.  
-   - Créer ou compléter la **page dédiée « Suivi intérim »** (liste agences + propositions par agence).  
-   - Ajouter le **toggle « Mode intérim »** (navigation + préférence persistée).  
+   - La **page `/backoffice/suivi-interim`** et l’onglet **Données applicatives → Suivi intérim** existent ; finaliser couleurs + tests E2E stables.  
    - Voir **`docs/features/SUIVI_BOITES_INTÉRIM.md`** (sections 4.0, 4.2, 4.3).
 
 4. **Mobile – Validation puis Flutter**  
@@ -135,7 +133,7 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`do
 
 - **Backoffice / utilisateurs** : tout reste sur la **base principale** ; les mises à jour pour les utilisateurs, les données de test et le suivi intérim (entreprises, candidatures, agences) se font comme aujourd’hui, avec les nouvelles options (type entreprise, agence sur candidature).
 - **Test-data** : génération dans la **base principale** depuis le backoffice ; le script crée déjà des boîtes d’intérim et des candidatures avec agence ; tu peux vérifier dans les listes Backoffice.
-- **Suivi intérim** : il reste les **couleurs calendrier**, la **page dédiée** Suivi intérim et le **toggle Mode intérim** en backoffice ; puis en **mobile** : toggle Mode intérim, champs agence, écran Intérim, couleurs calendrier (spec `docs/features/SUIVI_BOITES_INTÉRIM.md`).
+- **Suivi intérim** : il reste les **couleurs calendrier** et le **mode intérim mobile** (toggle, champs agence, écran Intérim). En backoffice : pages déjà présentes ; stabiliser les **tests Playwright** `suivi-interim.spec.ts` (spec `docs/features/SUIVI_BOITES_INTÉRIM.md`).
 - **Application mobile Flutter** : d’abord **valider le parcours vérification email**, puis compléter les écrans et la navigation, puis ajouter l’intérim (agence, écran, calendrier).
 - **BDD de test** : tu as la **réplique du schéma** ; pour l’émulateur et le backoffice en live tu utilises la **base principale** ; la base de test sert aux **tests automatisés** (ou scripts à part) si tu configures `DATABASE_URL` / `TEST_DATABASE_URL` vers le conteneur test (port 5434).
 
