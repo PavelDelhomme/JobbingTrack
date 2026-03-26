@@ -217,7 +217,25 @@ app.get('/api/v1/metrics', async (req, res) => {
   const metricsUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
   try {
     const response = await axios.get(`${metricsUrl}/api/v1/metrics`, { timeout: 10000, validateStatus: () => true });
-    res.status(response.status).json(response.data);
+    // ✅ Normaliser certains champs pour compatibilité tests/front (snake_case vs camelCase)
+    const data = response.data && typeof response.data === 'object' ? response.data : {};
+    if (data && typeof data === 'object') {
+      // top-level
+      if (data.load_score == null && data.loadScore != null) data.load_score = data.loadScore;
+      if (data.availability_percent == null && data.availabilityPercent != null) data.availability_percent = data.availabilityPercent;
+
+      // nested system.jobbingtrack (certaines versions exposent camelCase)
+      if (data.system?.jobbingtrack) {
+        if (data.system.jobbingtrack.load_score == null && data.system.jobbingtrack.loadScore != null) {
+          data.system.jobbingtrack.load_score = data.system.jobbingtrack.loadScore;
+        }
+        // si uniquement top-level, répliquer en nested pour les tests
+        if (data.system.jobbingtrack.load_score == null && data.load_score != null) {
+          data.system.jobbingtrack.load_score = data.load_score;
+        }
+      }
+    }
+    res.status(response.status).json(data);
   } catch (err) {
     logger.error('Proxy /api/v1/metrics:', err.message);
     res.status(503).json({ success: false, error: 'Service métriques indisponible' });

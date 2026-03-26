@@ -208,6 +208,14 @@ export default function BackofficePage() {
     }
   ]
 
+  // ✅ Valeurs attendues (pour afficher X/Y)
+  // Par défaut, on se base sur la liste des services affichés (source de vérité UI).
+  const expectedServicesCount = services.length
+  // Le nombre de conteneurs JobbingTrack attendus dépend du profil docker-compose.
+  // On conserve une valeur par défaut (22) mais permet override via env.
+  const expectedJobbingtrackContainers =
+    Number(process.env.NEXT_PUBLIC_EXPECTED_JOBBINGTRACK_CONTAINERS || 22) || 22
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login')
@@ -820,8 +828,6 @@ export default function BackofficePage() {
             subtitle="Disponibilité"
             icon={<Zap className="h-6 w-6" />}
             color="blue"
-            trend={2.5}  // Exemple: +2.5% de disponibilité (bon = vert ⬆️)
-            trendType="negative-is-bad"  // Plus de disponibilité = bon
           />
           <MetricCard
             title="Temps Réponse"
@@ -829,8 +835,6 @@ export default function BackofficePage() {
             subtitle="Moyen"
             icon={<Clock className="h-6 w-6" />}
             color="purple"
-            trend={-8.3}  // Exemple: -8.3% de temps de réponse (bon = vert ⬇️)
-            trendType="positive-is-bad"  // Moins de temps de réponse = bon
           />
           <MetricCard
             title="CPU Projet (Conteneurs)"
@@ -855,8 +859,6 @@ export default function BackofficePage() {
                 : systemMetrics?.cpu?.containers_only) > 60 
               ? "yellow" 
               : "green"}
-            trend={-3.2}  // Exemple: -3.2% de CPU (bon = vert ⬇️ car moins de CPU utilisé)
-            trendType="positive-is-bad"  // Moins de CPU = bon, Plus = mauvais
           />
           <MetricCard
             title="Mémoire Projet (Conteneurs)"
@@ -881,8 +883,6 @@ export default function BackofficePage() {
                 : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 10 
               ? "yellow" 
               : "green"}
-            trend={1.8}  // Exemple: +1.8% de mémoire (mauvais = rouge ⬆️ car plus de mémoire utilisée)
-            trendType="positive-is-bad"  // Moins de mémoire = bon, Plus = mauvais
           />
         </div>
 
@@ -894,6 +894,21 @@ export default function BackofficePage() {
               <Activity className="h-5 w-5 text-blue-600" />
               État du système
               <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ metrics-aggregator</span>
+              {/* ✅ Afficher X/Y services et X/Y conteneurs */}
+              {(() => {
+                const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
+                const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
+                const totalServices = expectedServicesCount
+                const containersCount = Number(systemMetrics?.jobbingtrack?.containers?.count || 0)
+                const containersLabel = containersCount > 0
+                  ? `${containersCount}/${expectedJobbingtrackContainers} conteneurs`
+                  : `—/${expectedJobbingtrackContainers} conteneurs`
+                return (
+                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
+                    {healthyServices}/{totalServices} services • {containersLabel}
+                  </span>
+                )
+              })()}
             </h2>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${
@@ -915,8 +930,8 @@ export default function BackofficePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Charge Système (interchangé avec CPU Système) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Charge Système + Disque en dessous */}
             <div className="text-center">
               <div className={`text-2xl font-bold ${
                 (() => {
@@ -959,9 +974,37 @@ export default function BackofficePage() {
                   ? `${systemMetrics.load.cores} coeurs`
                   : 'N/A'}
               </div>
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                  <span>Disque</span>
+                  {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number') && (
+                    (() => {
+                      const pct = Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage)
+                      return (
+                        <span className={`text-xs ${pct > 90 ? 'text-red-500' : pct > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
+                          {pct > 90 ? '🔴' : pct > 80 ? '🟡' : '🟢'}
+                        </span>
+                      )
+                    })()
+                  )}
+                </div>
+                <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                  {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
+                    ? `${safeToFixed(Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage), 1)}%`
+                    : loadingSystemMetrics ? '...' : 'N/A'}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemMetrics?.disk?.[0]?.used != null && systemMetrics?.disk?.[0]?.total != null
+                    ? `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total} GB`
+                    : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
+                    ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
+                    : loadingSystemMetrics ? '...' : 'N/A'}
+                </div>
+              </div>
             </div>
 
             {/* 2. CPU Système avec CPU Projet en dessous */}
+            {/* 3. Mémoire Système + Mémoire Projet en dessous */}
             <div className="text-center">
               <div className={`text-2xl font-bold ${
                 (systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) || (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
@@ -986,12 +1029,22 @@ export default function BackofficePage() {
                   </span>
                 )}
               </div>
-              <div className="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%` 
-                  : systemMetrics?.cpu?.containers_only !== undefined 
-                  ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
-                  : '—'}
+              <div className="text-lg font-semibold mt-1">
+                {(() => {
+                  const cpuProject = systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                    ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
+                    : systemMetrics?.cpu?.containers_only !== undefined
+                    ? systemMetrics.cpu.containers_only
+                    : null
+                  if (cpuProject === null) return <span className="text-gray-700 dark:text-gray-300">—</span>
+                  const colorClass = cpuProject > 80
+                    ? 'text-red-600 dark:text-red-400'
+                    : cpuProject > 60
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-green-600 dark:text-green-400'
+                  const indicator = cpuProject > 80 ? '🔴' : cpuProject > 60 ? '🟡' : '🟢'
+                  return <span className={colorClass}>{indicator} {safeToFixed(cpuProject, 1)}%</span>
+                })()}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet</div>
             </div>
@@ -1028,9 +1081,34 @@ export default function BackofficePage() {
                   ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
                   : '...'}
               </div>
+              <div className="text-2xl font-bold mt-2">
+                {(() => {
+                  const memPct = systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                    ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
+                    : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                    ? systemMetrics.jobbingtrack.containers.memory.percent
+                    : null
+                  if (memPct === null) return <span className="text-gray-500 dark:text-gray-500">Mémoire Projet: —</span>
+                  const colorClass = memPct > 20
+                    ? 'text-red-600 dark:text-red-400'
+                    : memPct > 10
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-green-600 dark:text-green-400'
+                  const indicator = memPct > 20 ? '🔴' : memPct > 10 ? '🟡' : '🟢'
+                  return <span className={colorClass}>{indicator} {safeToFixed(memPct, 1)}%</span>
+                })()}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire Projet</div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                  : '...'}
+              </div>
             </div>
 
-            {/* 4. Conteneurs actifs (interchangé avec Mémoire Projet) */}
+            {/* 4. Conteneurs actifs + état Services en dessous */}
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {systemMetrics?.jobbingtrack?.containers?.count !== undefined 
@@ -1043,86 +1121,26 @@ export default function BackofficePage() {
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {(systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0) || 
                  (containerMetrics && Object.keys(containerMetrics).length > 0)
-                  ? '✅ Actifs' 
+                  ? 'Conteneurs détectés' 
                   : systemMetrics ? 'Aucun conteneur détecté' : '...'}
               </div>
-            </div>
-
-            {/* 5. Mémoire Projet (interchangé avec Conteneurs actifs) */}
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${
-                systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? (systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                  ? (systemMetrics.jobbingtrack.containers.memory.percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory.percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
-                  ? (systemMetrics.monitoringC.avg_memory_percent > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_memory_percent > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}>
-                {/* ✅ NOUVEAU : Afficher mémoire projet (pourcentage de la mémoire système totale) */}
-                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
-                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
-                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Mémoire Projet</span>
-                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined && (
-                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? '🔴' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
-                  : '...'}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {services && services.length > 0 ? services.length : '...'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {services && services.length > 0 ? '🟢 OK' : '...'}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {/* Usage disque : usage_percent ou usage (API metrics-aggregator) */}
-                {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
-                  ? `${safeToFixed(Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage), 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Disque</span>
-                {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number') && (
-                  (() => {
-                    const pct = Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage)
-                    return (
-                      <span className={`text-xs ${pct > 90 ? 'text-red-500' : pct > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
-                        {pct > 90 ? '🔴' : pct > 80 ? '🟡' : '🟢'}
-                      </span>
-                    )
-                  })()
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {systemMetrics?.disk?.[0]?.used != null && systemMetrics?.disk?.[0]?.total != null
-                  ? `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total} GB`
-                  : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
-                  ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
-                  : (typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
-                  ? (Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage) > 90 ? '⚠️ Critique' : Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage) > 80 ? '⚠️ Attention' : '✅ OK')
-                  : loadingSystemMetrics ? '...' : 'N/A'}
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {(() => {
+                    const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
+                    const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
+                    return `${healthyServices}/${expectedServicesCount}`
+                  })()}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {(() => {
+                    const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
+                    const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
+                    const isOk = healthyServices >= expectedServicesCount
+                    return loadingSystemMetrics ? '...' : isOk ? '🟢 OK' : `🟡 ${expectedServicesCount - healthyServices} KO`
+                  })()}
+                </div>
               </div>
             </div>
           </div>

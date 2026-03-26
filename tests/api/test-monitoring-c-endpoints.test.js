@@ -10,6 +10,10 @@ const MONITORING_C_URL = process.env.MONITORING_C_URL || 'http://localhost:5098'
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
 
+function getFirstDefined(...values) {
+  return values.find((v) => v !== undefined && v !== null);
+}
+
 async function fetchMetricsViaGatewayWithRetry(maxAttempts = 3) {
   let lastError;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -116,16 +120,46 @@ describe('Monitoring C Endpoints', () => {
 
         const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
 
-        const avgResponseTime = data.avg_response_time_ms ?? data.responseTime?.average_ms;
-        const avgCpu = data.avg_cpu_percent ?? data.system?.containersAggregate?.cpu_percent ?? data.system?.jobbingtrack?.containers?.cpu?.averagePercent;
-        const avgMemory = data.avg_memory_percent ?? data.system?.containersAggregate?.memory_percent ?? data.system?.jobbingtrack?.containers?.memory?.percent;
-        const availability = data.availability_percent ?? data.health?.availability_percent ?? data.system?.availability?.stack;
-        const loadScore = data.load_score ?? data.system?.jobbingtrack?.load_score;
+        const avgResponseTime = getFirstDefined(
+          data.avg_response_time_ms,
+          data.responseTime?.average_ms,
+          data.system?.responseTime?.average_ms
+        );
+        const avgCpu = getFirstDefined(
+          data.avg_cpu_percent,
+          data.system?.containersAggregate?.cpu_percent,
+          data.system?.jobbingtrack?.containers?.cpu?.averagePercent
+        );
+        const avgMemory = getFirstDefined(
+          data.avg_memory_percent,
+          data.system?.containersAggregate?.memory_percent,
+          data.system?.jobbingtrack?.containers?.memory?.percent,
+          data.system?.jobbingtrack?.containers?.memory?.percent_of_system
+        );
+        const availability = getFirstDefined(
+          data.availability_percent,
+          data.availabilityPercent,
+          data.health?.availability_percent,
+          data.system?.availability?.stack
+        );
+        const loadScore = getFirstDefined(
+          data.load_score,
+          data.loadScore,
+          data.health?.load_score,
+          data.health?.loadScore,
+          data.system?.jobbingtrack?.load_score,
+          data.system?.jobbingtrack?.loadScore
+        );
 
         expect(avgResponseTime).toBeDefined();
         expect(avgCpu).toBeDefined();
         expect(avgMemory).toBeDefined();
         expect(availability).toBeDefined();
+        if (loadScore === undefined) {
+          // Log clair pour debug CI/local au lieu d'un "undefined" opaque
+          // eslint-disable-next-line no-console
+          console.warn('⚠️ load_score introuvable dans la payload /api/v1/metrics:', Object.keys(data || {}));
+        }
         expect(loadScore).toBeDefined();
       } catch (error) {
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {

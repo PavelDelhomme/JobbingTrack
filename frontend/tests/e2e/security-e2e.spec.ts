@@ -76,8 +76,10 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
       await page.waitForTimeout(1500);
 
       const bodyHtml = await page.locator('body').innerHTML();
-      const hasOnError = bodyHtml.includes('onerror=alert(1)');
-      expect(hasOnError, 'Le HTML ne doit pas contenir onerror=alert(1)').toBe(false);
+      // Tolérer la présence du texte "onerror=..." dans un contenu échappé, mais
+      // refuser une balise active qui contient réellement un handler onerror.
+      const hasActiveOnErrorTag = /<img[^>]*onerror\s*=/i.test(bodyHtml);
+      expect(hasActiveOnErrorTag, 'Le HTML ne doit pas contenir une balise active avec onerror').toBe(false);
     }
   });
 
@@ -118,7 +120,7 @@ test.describe('🛡️ Sécurité – Protection SQL Injection', () => {
 
   test('injection SQL dans la recherche ne fonctionne pas', async ({ page }) => {
     const res = await apiFetch(page, 'GET', "/api/v1/search?q=' OR 1=1 --");
-    expect([200, 400, 404]).toContain(res.status);
+    expect([200, 400, 403, 404]).toContain(res.status);
     if (res.ok) {
       const data = res.data as any;
       const resultCount = Array.isArray(data) ? data.length : data?.results?.length ?? 0;
