@@ -147,7 +147,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
-        window.location.reload()
+        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        router.refresh()
       } else {
         alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
       }
@@ -177,7 +178,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
-        window.location.reload()
+        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        router.refresh()
       } else {
         alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
       }
@@ -234,6 +236,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
+        { name: 'Vue d’ensemble sécurité', href: '/backoffice/security', icon: '🛡️' },
         { name: 'Logs de sécurité', href: '/backoffice/security/logs', icon: '📋' },
         { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
         { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },

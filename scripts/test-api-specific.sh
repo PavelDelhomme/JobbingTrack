@@ -30,6 +30,40 @@ CREATED_APPLICATION_ID=""
 RESULTS_FILE="${TEST_RESULTS_FILE:-}"
 [ -n "$RESULTS_FILE" ] && : > "$RESULTS_FILE"
 
+# Extrait un id générique depuis un JSON de réponse API
+extract_generic_id_from_file() {
+    local f="$1"
+    [ ! -f "$f" ] && return
+    if command -v node >/dev/null 2>&1; then
+        node -e "
+try {
+  const d = JSON.parse(require('fs').readFileSync('$f', 'utf8'));
+  const pick = (o) => o && (o.id || o._id || o.Id || o.ID || '');
+  const candidates = [d, d.data, d.item, d.result, d.company, d.application, d.contact, d.interview, d.call, d.followup, d.event];
+  for (const c of candidates) {
+    const id = pick(c);
+    if (id) { process.stdout.write(String(id).trim()); process.exit(0); }
+  }
+} catch (e) {}
+" 2>/dev/null
+        return
+    fi
+    python3 -c "
+import json
+try:
+    d = json.load(open('$f'))
+    keys = ['id','_id','Id','ID']
+    candidates = [d, d.get('data') if isinstance(d, dict) else None, d.get('item') if isinstance(d, dict) else None, d.get('result') if isinstance(d, dict) else None, d.get('company') if isinstance(d, dict) else None, d.get('application') if isinstance(d, dict) else None, d.get('contact') if isinstance(d, dict) else None, d.get('interview') if isinstance(d, dict) else None, d.get('call') if isinstance(d, dict) else None, d.get('followup') if isinstance(d, dict) else None, d.get('event') if isinstance(d, dict) else None]
+    for c in candidates:
+        if isinstance(c, dict):
+            for k in keys:
+                if c.get(k):
+                    print(str(c.get(k)).strip(), end='')
+                    raise SystemExit(0)
+except: pass
+" 2>/dev/null
+}
+
 # Fonction pour tester un endpoint
 test_endpoint() {
     local name="$1"
@@ -177,6 +211,14 @@ test_companies() {
     test_endpoint "List Companies" "$API_URL/api/v1/companies" "GET" "" "200" "$TOKEN"
     COMPANY_DATA="{\"name\":\"Test Company $(date +%s)\",\"industry\":\"IT\",\"website\":\"https://test.com\"}"
     test_endpoint "Create Company" "$API_URL/api/v1/companies" "POST" "$COMPANY_DATA" "201" "$TOKEN"
+    COMPANY_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$COMPANY_ID" ]; then
+        test_endpoint "Get Company by ID" "$API_URL/api/v1/companies/$COMPANY_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Company" "$API_URL/api/v1/companies/$COMPANY_ID" "PUT" "{\"name\":\"Test Company Updated $(date +%s)\",\"industry\":\"Tech\"}" "200" "$TOKEN" || true
+        test_endpoint "Archive Company" "$API_URL/api/v1/companies/$COMPANY_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Company" "$API_URL/api/v1/companies/$COMPANY_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Company" "$API_URL/api/v1/companies/$COMPANY_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 # Extrait un id depuis un fichier JSON (réponse Create Application). Node en priorité (disponible en Docker frontend), sinon Python.
@@ -244,6 +286,12 @@ test_applications() {
     CREATED_APPLICATION_ID=$(extract_application_id_from_file /tmp/response.txt)
     [ -z "$CREATED_APPLICATION_ID" ] && CREATED_APPLICATION_ID=$(get_first_application_id)
     echo -n "$CREATED_APPLICATION_ID" > /tmp/created_application_id.txt
+    if [ -n "$CREATED_APPLICATION_ID" ]; then
+        test_endpoint "Get Application by ID" "$API_URL/api/v1/applications/$CREATED_APPLICATION_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Application" "$API_URL/api/v1/applications/$CREATED_APPLICATION_ID" "PUT" "{\"status\":\"INTERVIEW_SCHEDULED\"}" "200 400" "$TOKEN" || true
+        test_endpoint "Archive Application" "$API_URL/api/v1/applications/$CREATED_APPLICATION_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Application" "$API_URL/api/v1/applications/$CREATED_APPLICATION_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+    fi
 }
 
 test_contacts() {
@@ -252,6 +300,14 @@ test_contacts() {
     test_endpoint "List Contacts" "$API_URL/api/v1/contacts" "GET" "" "200" "$TOKEN"
     CONTACT_DATA="{\"firstName\":\"John\",\"lastName\":\"Doe\",\"email\":\"john@test.com\",\"position\":\"Manager\"}"
     test_endpoint "Create Contact" "$API_URL/api/v1/contacts" "POST" "$CONTACT_DATA" "201" "$TOKEN"
+    CONTACT_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$CONTACT_ID" ]; then
+        test_endpoint "Get Contact by ID" "$API_URL/api/v1/contacts/$CONTACT_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Contact" "$API_URL/api/v1/contacts/$CONTACT_ID" "PUT" "{\"firstName\":\"John Updated\",\"lastName\":\"Doe\"}" "200" "$TOKEN" || true
+        test_endpoint "Archive Contact" "$API_URL/api/v1/contacts/$CONTACT_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Contact" "$API_URL/api/v1/contacts/$CONTACT_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Contact" "$API_URL/api/v1/contacts/$CONTACT_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 test_interviews() {
@@ -266,6 +322,14 @@ test_interviews() {
     INTERVIEW_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     INTERVIEW_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"interviewDate\":\"$INTERVIEW_DATE\",\"scheduledAt\":\"$INTERVIEW_DATE\",\"type\":\"technical\",\"location\":\"Paris\"}"
     test_endpoint "Create Interview" "$API_URL/api/v1/interviews" "POST" "$INTERVIEW_DATA" "201" "$TOKEN" || true
+    INTERVIEW_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$INTERVIEW_ID" ]; then
+        test_endpoint "Get Interview by ID" "$API_URL/api/v1/interviews/$INTERVIEW_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Interview" "$API_URL/api/v1/interviews/$INTERVIEW_ID" "PUT" "{\"type\":\"hr\"}" "200 400" "$TOKEN" || true
+        test_endpoint "Archive Interview" "$API_URL/api/v1/interviews/$INTERVIEW_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Interview" "$API_URL/api/v1/interviews/$INTERVIEW_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Interview" "$API_URL/api/v1/interviews/$INTERVIEW_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 test_calls() {
@@ -279,6 +343,14 @@ test_calls() {
     CALL_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     CALL_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"subject\":\"Appel de suivi test\",\"callDate\":\"$CALL_DATE\",\"duration\":30,\"notes\":\"Test call\"}"
     test_endpoint "Create Call" "$API_URL/api/v1/calls" "POST" "$CALL_DATA" "201" "$TOKEN" || true
+    CALL_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$CALL_ID" ]; then
+        test_endpoint "Get Call by ID" "$API_URL/api/v1/calls/$CALL_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Call" "$API_URL/api/v1/calls/$CALL_ID" "PUT" "{\"subject\":\"Appel de suivi modifié\"}" "200 400" "$TOKEN" || true
+        test_endpoint "Archive Call" "$API_URL/api/v1/calls/$CALL_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Call" "$API_URL/api/v1/calls/$CALL_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Call" "$API_URL/api/v1/calls/$CALL_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 test_events() {
@@ -287,6 +359,14 @@ test_events() {
     test_endpoint "List Events" "$API_URL/api/v1/events" "GET" "" "200" "$TOKEN"
     EVENT_DATA="{\"title\":\"Test Event\",\"startDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"endDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
     test_endpoint "Create Event" "$API_URL/api/v1/events" "POST" "$EVENT_DATA" "201" "$TOKEN" || true
+    EVENT_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$EVENT_ID" ]; then
+        test_endpoint "Get Event by ID" "$API_URL/api/v1/events/$EVENT_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Event" "$API_URL/api/v1/events/$EVENT_ID" "PUT" "{\"title\":\"Test Event Updated\"}" "200 400" "$TOKEN" || true
+        test_endpoint "Archive Event" "$API_URL/api/v1/events/$EVENT_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Event" "$API_URL/api/v1/events/$EVENT_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Event" "$API_URL/api/v1/events/$EVENT_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 test_followups() {
@@ -300,6 +380,19 @@ test_followups() {
     [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
     FOLLOWUP_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"type\":\"email\",\"followUpDate\":\"$FOLLOWUP_DATE\",\"notes\":\"Test followup\"}"
     test_endpoint "Create Followup" "$API_URL/api/v1/followups" "POST" "$FOLLOWUP_DATA" "201" "$TOKEN" || true
+    FOLLOWUP_ID=$(extract_generic_id_from_file /tmp/response.txt)
+    if [ -n "$FOLLOWUP_ID" ]; then
+        test_endpoint "Get Followup by ID" "$API_URL/api/v1/followups/$FOLLOWUP_ID" "GET" "" "200" "$TOKEN" || true
+        test_endpoint "Update Followup" "$API_URL/api/v1/followups/$FOLLOWUP_ID" "PUT" "{\"notes\":\"Test followup updated\"}" "200 400" "$TOKEN" || true
+        test_endpoint "Archive Followup" "$API_URL/api/v1/followups/$FOLLOWUP_ID/archive" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Restore Followup" "$API_URL/api/v1/followups/$FOLLOWUP_ID/restore" "PUT" "" "200 204 404 405" "$TOKEN" || true
+        test_endpoint "Delete Followup" "$API_URL/api/v1/followups/$FOLLOWUP_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
+
+    # Nettoyage final de la candidature créée pour le run (si endpoint autorise)
+    if [ -n "$CREATED_APPLICATION_ID" ]; then
+        test_endpoint "Delete Application (cleanup fin de run)" "$API_URL/api/v1/applications/$CREATED_APPLICATION_ID" "DELETE" "" "200 204 404" "$TOKEN" || true
+    fi
 }
 
 test_profiles() {

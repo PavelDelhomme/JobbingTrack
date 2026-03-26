@@ -1,0 +1,94 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  25/03/2026 11:03:53
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 603
+  Reussis     : 592
+  Echoues     : 11
+  Ignores     : 1
+  Taux        : 98.2%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (0s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [OK]   [U] Tests API Complets (Jest) (32s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (18s)
+  [OK]   [U] Playwright Email Workflows (9s)
+  [OK]   [A] Playwright CRUD Données (admin) (5s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (3s)
+
+TESTS ECHOUES
+-------------
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 46 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/error-context.md
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 46 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/error-context.md
+        Error: Le HTML ne doit pas contenir onerror=alert(1)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: false
+        Received: true
+          79 |       const hasOnError = bodyHtml.includes('onerror=alert(1)');
+        > 80 |       expect(hasOnError, 'Le HTML ne doit pas contenir onerror=alert(1)').toBe(false);
+        test-results/security-e2e-🛡️-Sécurité--5bca8-che-globale-est-neutralisée-chromium/test-failed-1.png
+        Error Context: test-results/security-e2e-🛡️-Sécurité--5bca8-che-globale-est-neutralisée-chromium/error-context.md
+        Error: Le HTML ne doit pas contenir onerror=alert(1)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: false
+        Received: true
+          79 |       const hasOnError = bodyHtml.includes('onerror=alert(1)');
+        > 80 |       expect(hasOnError, 'Le HTML ne doit pas contenir onerror=alert(1)').toBe(false);
+        test-results/security-e2e-🛡️-Sécurité--5bca8-che-globale-est-neutralisée-chromium-retry1/test-failed-1.png
+        Error Context: test-results/security-e2e-🛡️-Sécurité--5bca8-che-globale-est-neutralisée-chromium-retry1/error-context.md
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 403
+        Received array: [200, 400, 404]
+        > 121 |     expect([200, 400, 404]).toContain(res.status);
+
+================================================================
+  Rapports : tests/results/20260325-104648/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

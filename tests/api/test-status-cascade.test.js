@@ -40,6 +40,18 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
 
     if (!validToken) return;
 
+    // ✅ Rendre la suite déterministe : on force l'auto-statut à true pour ce user.
+    // Sinon, la cascade (outcome -> OFFER_RECEIVED/REJECTED) peut être ignorée par design.
+    try {
+      await axios.put(
+        `${API_URL}/api/v1/auth/preferences`,
+        { autoStatusEnabled: true },
+        { headers: authHeaders, validateStatus: () => true }
+      );
+    } catch {
+      // noop: certains envs n'exposent pas ce endpoint ou il peut être instable en dev
+    }
+
     try {
       const companyRes = await axios.post(`${API_URL}/api/v1/companies`, {
         name: `${PREFIX} Corp ${Date.now()}`,
