@@ -9,6 +9,20 @@ const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('../services/securityService');
 
 const prisma = new PrismaClient();
+const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+const ALLOWED_THREAT_TYPES = new Set([
+  'SYN_FLOOD',
+  'PORT_SCAN',
+  'BRUTE_FORCE',
+  'DDOS',
+  'SUSPICIOUS_REQUEST',
+  'SQL_INJECTION',
+  'XSS',
+  'PATH_TRAVERSAL',
+  'INTRUSION',
+  'WAF_BLOCK',
+  'FIREWALL_BLOCK'
+]);
 
 function normalizeRulePayload(payload = {}) {
   const normalizedSourceIp = payload.sourceIp && String(payload.sourceIp).trim() !== ''
@@ -455,22 +469,10 @@ async function getNetworkStats(req, res) {
     });
   } catch (error) {
     logger.error('Erreur récupération stats réseau:', error);
-    // Retourner des données par défaut en cas d'erreur
-    res.json({
-      success: true,
-      data: {
-        stats: {
-          totalConnections: 0,
-          tcpConnections: 0,
-          udpConnections: 0,
-          connectionsByState: {},
-          connectionsByContainer: {},
-          topSourceIps: {},
-          topDestinationPorts: {},
-          timestamp: new Date().toISOString()
-        },
-        connections: []
-      }
+    res.status(503).json({
+      success: false,
+      error: 'Statistiques réseau indisponibles',
+      message: error.message
     });
   }
 }
@@ -515,12 +517,58 @@ async function getContainerStats(req, res) {
  */
 async function getNetworkThreats(req, res) {
   try {
-    const { page = 1, limit = 50, severity } = req.query;
+    const {
+      page = 1,
+      limit = 50,
+      severity,
+      sourceIp,
+      destIp,
+      threatType,
+      blocked,
+      destPort,
+      startDate,
+      endDate
+    } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {};
     if (severity) {
       where.severity = severity.toUpperCase();
+    }
+    if (sourceIp) {
+      where.sourceIp = { contains: String(sourceIp), mode: 'insensitive' };
+    }
+    if (destIp) {
+      where.destIp = { contains: String(destIp), mode: 'insensitive' };
+    }
+    if (threatType) {
+      where.threatType = String(threatType).toUpperCase();
+    }
+    if (blocked === 'true' || blocked === 'false') {
+      where.blocked = blocked === 'true';
+    }
+    if (destPort !== undefined && destPort !== null && String(destPort).trim() !== '') {
+      const parsedPort = parseInt(destPort, 10);
+      if (!Number.isNaN(parsedPort)) {
+        where.destPort = parsedPort;
+      }
+    }
+    if (startDate || endDate) {
+      where.detectedAt = {};
+      if (startDate) {
+        const parsedStart = new Date(startDate);
+        if (Number.isNaN(parsedStart.getTime())) {
+          return res.status(400).json({ success: false, error: 'startDate invalide' });
+        }
+        where.detectedAt.gte = parsedStart;
+      }
+      if (endDate) {
+        const parsedEnd = new Date(endDate);
+        if (Number.isNaN(parsedEnd.getTime())) {
+          return res.status(400).json({ success: false, error: 'endDate invalide' });
+        }
+        where.detectedAt.lte = parsedEnd;
+      }
     }
 
     try {
@@ -587,11 +635,24 @@ async function createThreat(req, res) {
         error: 'Les champs threatType, sourceIp et severity sont requis'
       });
     }
+    const normalizedThreatType = String(threatType).toUpperCase();
+    if (!ALLOWED_THREAT_TYPES.has(normalizedThreatType)) {
+      return res.status(400).json({
+        success: false,
+        error: `Type de menace invalide: ${threatType}`
+      });
+    }
+    if (!IPV4_REGEX.test(String(sourceIp).trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Format sourceIp invalide'
+      });
+    }
 
     try {
       const threat = await prisma.networkThreat.create({
         data: {
-          threatType,
+          threatType: normalizedThreatType,
           sourceIp,
           destIp: null,
           destPort: destPort || null,
@@ -762,6 +823,53 @@ async function blockThreat(req, res) {
 }
 
 /**
+ * DELETE /api/v1/security/firewall/threats/:id
+ * Supprimer une menace spécifique
+ */
+async function deleteThreat(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.networkThreat.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Menace non trouvée' });
+    }
+    await prisma.networkThreat.delete({ where: { id } });
+    return res.json({ success: true, message: 'Menace supprimée', data: { id } });
+  } catch (error) {
+    logger.error('Erreur suppression menace:', error);
+    return res.status(500).json({ success: false, error: 'Erreur lors de la suppression de la menace' });
+  }
+}
+
+/**
+ * DELETE /api/v1/security/firewall/threats
+ * Purger toutes les menaces (scope=all) ou menaces test (scope=test)
+ */
+async function purgeThreats(req, res) {
+  try {
+    const scope = String(req.query.scope || 'all');
+    let where = {};
+    if (scope === 'test') {
+      where = {
+        OR: [
+          { metadata: { path: ['test'], equals: true } },
+          { sourceIp: { startsWith: '10.' } }
+        ]
+      };
+    }
+    const result = await prisma.networkThreat.deleteMany({ where });
+    return res.json({
+      success: true,
+      message: `Menaces purgées (${scope})`,
+      data: { deleted: result.count }
+    });
+  } catch (error) {
+    logger.error('Erreur purge menaces:', error);
+    return res.status(500).json({ success: false, error: 'Erreur lors de la purge des menaces' });
+  }
+}
+
+/**
  * POST /api/v1/security/firewall/block-ip
  * Bloquer une IP manuellement
  */
@@ -773,6 +881,12 @@ async function blockIp(req, res) {
       return res.status(400).json({
         success: false,
         error: 'IP requise'
+      });
+    }
+    if (!IPV4_REGEX.test(String(ip).trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Format IP invalide'
       });
     }
 
@@ -835,6 +949,12 @@ async function unblockIp(req, res) {
       return res.status(400).json({
         success: false,
         error: 'IP requise'
+      });
+    }
+    if (!IPV4_REGEX.test(String(ip).trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Format IP invalide'
       });
     }
 
@@ -984,6 +1104,8 @@ module.exports = {
   getThreatDetails,
   createThreat,
   blockThreat,
+  deleteThreat,
+  purgeThreats,
   blockIp,
   unblockIp,
   getBlockedIps

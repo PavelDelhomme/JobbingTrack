@@ -16,6 +16,59 @@ const MaintenanceController = require('./controllers/maintenance.controller');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SECURITY_SERVICE_URL = (process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017').replace(/\/$/, '');
+
+async function reportPayloadTooLarge(req, details = {}) {
+  const sourceIp = String(
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.ip ||
+    req.connection?.remoteAddress ||
+    'unknown'
+  );
+  const endpoint = req.originalUrl || req.url || '';
+  const userAgent = req.get('User-Agent') || 'unknown';
+  const contentLength = parseInt(req.get('content-length') || '0', 10) || undefined;
+  const message = `PayloadTooLargeError: requête trop volumineuse bloquée sur ${endpoint}`;
+
+  const baseMetadata = {
+    attackKind: 'PAYLOAD_TOO_LARGE',
+    sourceService: 'api-gateway',
+    endpoint,
+    contentLength,
+    method: req.method,
+    ...details,
+  };
+
+  try {
+    await axios.post(`${SECURITY_SERVICE_URL}/api/v1/security/logs`, {
+      level: 'warning',
+      category: 'intrusion',
+      eventType: 'payload_too_large',
+      message,
+      sourceIP: sourceIp,
+      userAgent,
+      endpoint,
+      method: req.method,
+      statusCode: 413,
+      riskScore: 55,
+      isBlocked: true,
+      metadata: baseMetadata
+    }, { timeout: 3000 });
+  } catch (logErr) {
+    logger.warn('Impossible de persister le log payload_too_large', { message: logErr.message });
+  }
+
+  try {
+    await axios.post(`${SECURITY_SERVICE_URL}/api/v1/security/firewall/threats`, {
+      threatType: 'SUSPICIOUS_REQUEST',
+      sourceIp: sourceIp,
+      severity: 'MEDIUM',
+      metadata: baseMetadata
+    }, { timeout: 3000 });
+  } catch (threatErr) {
+    logger.warn('Impossible de persister la menace payload_too_large', { message: threatErr.message });
+  }
+}
 
 // Configuration CORS simple
 app.use(cors({
@@ -121,6 +174,31 @@ app.use(helmet());
 // ✅ Middleware de base (limite payload 64 Ko pour rejeter overflow → 413, conforme test E2E sécurité)
 app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
+
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    logger.warn('PayloadTooLargeError intercepté par API Gateway', {
+      path: req.originalUrl,
+      method: req.method,
+      ip: req.ip,
+      contentLength: req.get('content-length')
+    });
+
+    reportPayloadTooLarge(req, {
+      parserErrorType: err.type,
+      parserMessage: err.message
+    }).catch((reportErr) => {
+      logger.warn('Erreur reportPayloadTooLarge', { message: reportErr.message });
+    });
+
+    return res.status(413).json({
+      success: false,
+      error: 'Payload too large',
+      message: 'La taille de la requête dépasse la limite autorisée (64kb).'
+    });
+  }
+  return next(err);
+});
 
 // ✅ Middleware de sécurité personnalisés (ordre important)
 // 1. Détection d'intrusion (premier pour analyser toutes les requêtes)
@@ -631,6 +709,17 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
     let targetUrl = `${target}${req.originalUrl}`;
     
     try {
+      // Les endpoints sécurité doivent être protégés (sauf health/metrics gateway hors /api/v1/security).
+      if (path === '/api/v1/security') {
+        const authHeader = req.headers.authorization || req.headers.Authorization;
+        if (!authHeader || !String(authHeader).startsWith('Bearer ')) {
+          return res.status(401).json({
+            success: false,
+            error: 'Token d\'authentification requis'
+          });
+        }
+      }
+
       // ✅ For auth routes, keep the full path as Auth Service mounts routes on /api/v1/auth
       // For other services, use req.originalUrl which already contains the full path
       

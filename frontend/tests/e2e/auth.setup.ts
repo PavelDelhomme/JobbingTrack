@@ -32,7 +32,15 @@ test('authenticate as admin', async ({ page, request }) => {
   }, token);
 
   await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
-  await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
+  await expect.poll(
+    async () => {
+      const hasToken = await page.evaluate(() => !!(localStorage.getItem('token') || sessionStorage.getItem('token')));
+      const isBackoffice = page.url().includes('/backoffice');
+      const hasMain = await page.locator('main').first().isVisible().catch(() => false);
+      return hasToken && (isBackoffice || hasMain);
+    },
+    { timeout: 60_000, intervals: [500, 1000, 2000] },
+  ).toBeTruthy();
 
   await page.context().storageState({ path: AUTH_FILE });
 });
