@@ -119,6 +119,7 @@ export default function FirewallPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddRule, setShowAddRule] = useState(false);
+  const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
   const [showAddBlockedIp, setShowAddBlockedIp] = useState(false);
   const [newBlockedIp, setNewBlockedIp] = useState('');
   const [blockReason, setBlockReason] = useState('');
@@ -212,6 +213,28 @@ export default function FirewallPage() {
       loadRules();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur lors de la suppression de la règle');
+    }
+  };
+
+  const handleUpdateRule = async () => {
+    if (!editingRule) return;
+    try {
+      await axios.put(`${API_GATEWAY_URL}/api/v1/security/firewall/rules/${editingRule.id}`, {
+        name: editingRule.name,
+        description: editingRule.description,
+        sourceIp: editingRule.sourceIp || undefined,
+        destPort: editingRule.destPort || undefined,
+        protocol: editingRule.protocol,
+        action: editingRule.action,
+        priority: editingRule.priority,
+        enabled: editingRule.enabled
+      }, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setEditingRule(null);
+      loadRules();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur lors de la mise à jour de la règle');
     }
   };
 
@@ -454,6 +477,37 @@ export default function FirewallPage() {
             </div>
           )}
 
+          {editingRule && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold mb-4">Modifier la règle</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.name} onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })} placeholder="Nom" />
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.description || ''} onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })} placeholder="Description" />
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.sourceIp || ''} onChange={(e) => setEditingRule({ ...editingRule, sourceIp: e.target.value })} placeholder="IP source" />
+                <input type="number" min="1" max="65535" className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.destPort || ''} onChange={(e) => setEditingRule({ ...editingRule, destPort: e.target.value ? parseInt(e.target.value, 10) : undefined })} placeholder="Port destination" />
+                <select className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.protocol} onChange={(e) => setEditingRule({ ...editingRule, protocol: e.target.value })}>
+                  <option value="TCP">TCP</option>
+                  <option value="UDP">UDP</option>
+                  <option value="ICMP">ICMP</option>
+                </select>
+                <select className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.action} onChange={(e) => setEditingRule({ ...editingRule, action: e.target.value })}>
+                  <option value="DENY">DENY</option>
+                  <option value="REJECT">REJECT</option>
+                  <option value="ALLOW">ALLOW</option>
+                </select>
+                <input type="number" min="1" max="1000" className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.priority} onChange={(e) => setEditingRule({ ...editingRule, priority: parseInt(e.target.value || '100', 10) })} placeholder="Priorité" />
+                <label className="inline-flex items-center gap-2">
+                  <input type="checkbox" checked={editingRule.enabled} onChange={(e) => setEditingRule({ ...editingRule, enabled: e.target.checked })} />
+                  <span>Règle active</span>
+                </label>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={handleUpdateRule} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Sauvegarder</button>
+                <button onClick={() => setEditingRule(null)} className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Annuler</button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-8">Chargement...</div>
           ) : rules.length === 0 ? (
@@ -498,12 +552,22 @@ export default function FirewallPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        <button
-                          onClick={() => handleDeleteRule(rule.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingRule(rule)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Modifier la règle"
+                          >
+                            <Edit className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRule(rule.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Supprimer la règle"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -620,6 +684,8 @@ function WAFConfigSection() {
   const [wafStats, setWafStats] = useState<any>(null);
   const [loadingWaf, setLoadingWaf] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wafActionLoading, setWafActionLoading] = useState(false);
+  const KNOWN_WAF_RULES = ['SQL_INJECTION', 'XSS', 'PATH_TRAVERSAL', 'COMMAND_INJECTION', 'LDAP_INJECTION', 'SUSPICIOUS_USER_AGENTS', 'MALICIOUS_PATTERNS', 'SUSPICIOUS_HEADERS'];
 
   const loadWAFConfig = useCallback(async () => {
     try {
@@ -673,6 +739,25 @@ function WAFConfigSection() {
       setError(err.response?.data?.error || `Erreur lors de l'activation/désactivation du WAF`);
     }
   }, []);
+
+  const handleSetAllWafRules = useCallback(async (enabled: boolean) => {
+    try {
+      setWafActionLoading(true);
+      setError(null);
+      await Promise.all(
+        KNOWN_WAF_RULES.map((ruleName) =>
+          axios.put(`${API_GATEWAY_URL}/api/v1/security/waf/rules/${ruleName}`, { enabled }, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).catch((err) => ({ error: err }))
+        )
+      );
+      await loadWAFConfig();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur lors de la mise à jour globale des règles WAF');
+    } finally {
+      setWafActionLoading(false);
+    }
+  }, [loadWAFConfig]);
 
   useEffect(() => {
     loadWAFConfig();
@@ -751,7 +836,25 @@ function WAFConfigSection() {
           {/* Règles WAF */}
           {wafEnabled && (
             <div>
-              <h3 className="text-lg font-semibold mb-3">Règles de Protection WAF</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Règles de Protection WAF</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSetAllWafRules(true)}
+                    disabled={wafActionLoading}
+                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
+                  >
+                    Activer tout
+                  </button>
+                  <button
+                    onClick={() => handleSetAllWafRules(false)}
+                    disabled={wafActionLoading}
+                    className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 text-sm"
+                  >
+                    Désactiver tout
+                  </button>
+                </div>
+              </div>
               {wafConfig.length === 0 ? (
                 <p className="text-gray-500">Aucune règle WAF configurée</p>
               ) : (

@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 25 mars 2026
+**Dernière mise à jour** : 27 mars 2026
 
 ## Lecture rapide — état par couche
 
@@ -11,6 +11,23 @@
 | **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
 | **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; règles affinées (moins de faux positifs) ; `make security-live-check` pour validation live ; anti-doublon règles firewall côté security-service. | `make security-live-check`, pages Sécurité backoffice. |
 | **Logs / monitoring** | Logs applicatifs OK ; agrégateur / métriques selon profil Docker ; Loki optionnel (dégradation propre si absent). | Dashboard monitoring backoffice, `metrics-aggregator`. |
+
+### Mise à jour sécurité (26/03/2026)
+
+- **Sécurité logs (UI)**: suppression du comportement de fallback masquant; la page affiche maintenant explicitement l'état réel du service (erreur rouge si indisponible) et ajoute recherche texte/IP/endpoint + pagination.
+- **Menaces (UI)**: filtres avancés consolidés (`severity`, `type`, `status`, `sourceIp`, `destIp`, `destPort`, plage dates) et affichage explicite des erreurs backend.
+- **Détail menace (UI)**: enrichissement opérationnel (impacts potentiels par type, alerte "métadonnées insuffisantes" quand payload trop pauvre).
+- **WAF (UI)**: paramétrage renforcé avec actions globales `Activer tout` / `Désactiver tout` sur règles connues.
+- **Tests sécurité scripts**: extension `scripts/security/test-firewall.sh` avec cas négatifs supplémentaires (accès sans token, méthode invalide, filtre date invalide, blocage menace inconnue).
+- **Phase 2 sécurité UI (temps réel)**: vue d’ensemble sécurité renforcée avec incidents corrélés logs+menaces (rafraîchissement 5s), signal nouvelles menaces, et pondération du score configurable; page menaces enrichie avec auto-refresh paramétrable + exports JSON/CSV.
+
+### Mise à jour sécurité (27/03/2026)
+
+- **Nettoyage sécurité exécuté**: purge effective des règles firewall obsolètes et réinitialisation de l'état sécurité pour repartir sur une base fiable (`rules_deleted=33`, purge menaces exécutée, IPs bloquées traitées).
+- **Vue d’ensemble sécurité**: incidents temps réel corrélés désormais paginés (navigation `Précédent/Suivant`) pour éviter l'effet "mur d'événements".
+- **Analyse sécurité**: cohérence renforcée via corrélation `stats + logs + menaces` avec calcul de score live quand `riskScore` n'est pas disponible; compteurs SQLi/XSS/activité suspecte consolidés.
+- **Fiabilité E2E sécurité**: stabilisation du setup auth Playwright (`auth.setup.ts`) avec validation robuste token + contexte backoffice.
+- **Tests sécurité étendus**: `scripts/security/test-firewall.sh` couvre aussi SQL injection, XSS, simulation DDoS et spoofing headers; suite validée à 100%.
 
 **Tests automatisés** : objectif = **suite verte** après `make up-full` → `make db-push-all` → `make seed-auth` → `make tests` (ou `make test-all` pour rapports complets). Les **chiffres exacts** (nombre de tests, % réussite) dépendent du run : consulter le **dernier** dossier `tests/results/<timestamp>/`. En cas d’échec, **ERRORS.md** liste les causes connues et les correctifs déjà appliqués.
 

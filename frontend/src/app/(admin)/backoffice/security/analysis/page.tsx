@@ -4,20 +4,96 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AdminLayout } from '@/components/features';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Shield, AlertTriangle, Lock, Eye, TrendingUp, Activity } from '@/lib/icons';
-import { analyticsService } from '@/lib/api/analytics.service';
+import axios from 'axios';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export default function SecurityAnalysisPage() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [serviceError, setServiceError] = useState<string | null>(null);
 
   // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
   const loadSecuritySummary = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await analyticsService.getSecuritySummary(24);
-      setSummary(data);
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.all([
+        axios.get(`${API_URL}/api/v1/security/stats?days=1`, { headers, timeout: 7000 }),
+        axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers, timeout: 7000 }),
+        axios.get(`${API_URL}/api/v1/security/logs?limit=200`, { headers, timeout: 7000 }),
+        axios.get(`${API_URL}/api/v1/security/firewall/threats?limit=200`, { headers, timeout: 7000 }),
+      ]);
+
+      const stats = statsRes.data?.success ? (statsRes.data?.data || {}) : {};
+      const blockedRaw = blockedRes.data?.success && Array.isArray(blockedRes.data?.data) ? blockedRes.data.data : [];
+      const blockedIPs = blockedRaw
+        .map((x: string | { ip?: string }) => (typeof x === 'string' ? x : x?.ip))
+        .filter(Boolean);
+      const logs = Array.isArray(logsRes.data?.data) ? logsRes.data.data : [];
+      const threats = Array.isArray(threatsRes.data?.data) ? threatsRes.data.data : [];
+      const hasToken = (v: any, tokens: string[]) => {
+        const text = String(v || '').toLowerCase();
+        return tokens.some((t) => text.includes(t));
+      };
+      const isSqliThreat = (t: any) =>
+        hasToken(t?.threatType, ['sql_injection', 'sql injection']) ||
+        hasToken(t?.message, ['sql_injection', 'sql injection']) ||
+        hasToken(t?.metadata?.payload, ["' or", 'union select', 'drop table']);
+      const isXssThreat = (t: any) =>
+        hasToken(t?.threatType, ['xss']) ||
+        hasToken(t?.message, ['xss']) ||
+        hasToken(t?.metadata?.payload, ['<script', 'onerror=', 'javascript:']);
+
+      const sqlEventsLogs = logs.filter((l: any) =>
+        hasToken(l?.eventType, ['sql_injection', 'sql injection']) ||
+        hasToken(l?.category, ['injection']) ||
+        hasToken(l?.message, ['sql injection', 'sql_injection'])
+      ).length;
+      const xssEventsLogs = logs.filter((l: any) =>
+        hasToken(l?.eventType, ['xss']) ||
+        hasToken(l?.category, ['injection']) ||
+        hasToken(l?.message, ['xss', '<script', 'onerror='])
+      ).length;
+      const sqlEventsThreats = threats.filter((t: any) => isSqliThreat(t)).length;
+      const xssEventsThreats = threats.filter((t: any) => isXssThreat(t)).length;
+      const sqlEvents = sqlEventsLogs + sqlEventsThreats;
+      const xssEvents = xssEventsLogs + xssEventsThreats;
+      const failedAuth = logs.filter((l: any) => {
+        const evt = String(l?.eventType || '').toLowerCase();
+        const cat = String(l?.category || '').toLowerCase();
+        return evt.includes('failed') || evt.includes('invalid') || cat === 'authentication';
+      }).length;
+      const suspiciousLogs = logs.filter((l: any) => {
+        const lvl = String(l?.level || '').toLowerCase();
+        return lvl === 'warning' || lvl === 'error' || lvl === 'critical';
+      }).length;
+      const ddosThreats = threats.filter((t: any) => String(t?.threatType || '').toUpperCase().includes('DDOS')).length;
+      const scoreFromOverview = Number(stats?.overview?.riskScore ?? 0);
+      const scoreFromLive = Math.max(0, 100 - Math.min(70, threats.length * 2 + suspiciousLogs));
+      const securityScore = Number.isFinite(scoreFromOverview) && scoreFromOverview > 0
+        ? Math.round(scoreFromOverview)
+        : Math.round(scoreFromLive);
+      const otherInjectionCount = Math.max(0, threats.length - sqlEventsThreats - xssEventsThreats - ddosThreats);
+
+      setSummary({
+        ...stats,
+        securityScore,
+        blockedIPs,
+        uniqueBlockedIPs: blockedIPs.length,
+        totalFailedLogins: Number(stats?.overview?.criticalEvents ?? failedAuth),
+        totalSuspiciousActivities: Number(stats?.overview?.totalEvents ?? suspiciousLogs),
+        totalSqlInjections: Number(stats?.overview?.sqlInjections ?? sqlEvents),
+        totalXssAttempts: Number(stats?.overview?.xssAttempts ?? xssEvents),
+        totalOtherInjections: Number(stats?.overview?.otherInjections ?? otherInjectionCount),
+        totalThreatsLive: threats.length,
+        totalLogsLive: logs.length,
+      });
+      setServiceError(null);
     } catch (error) {
       console.error('Erreur chargement analyse:', error);
+      setServiceError('Impossible de charger les données de sécurité en temps réel.');
     } finally {
       setLoading(false);
     }
@@ -29,11 +105,10 @@ export default function SecurityAnalysisPage() {
 
   // ✅ CORRECTION : useMemo doit être appelé à chaque render, pas conditionnellement
   // Déplacer avant le if (loading) pour respecter les règles des Hooks
-  const { securityScore, scoreColor } = useMemo(() => {
-    const score = summary?.avgSecurityScore || 85;
-    const color = score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red';
-    return { securityScore: score, scoreColor: color };
-  }, [summary?.avgSecurityScore]);
+  const { securityScore } = useMemo(() => {
+    const score = summary?.avgSecurityScore ?? summary?.securityScore ?? 0;
+    return { securityScore: score };
+  }, [summary?.avgSecurityScore, summary?.securityScore]);
 
   if (loading) {
     return (
@@ -57,6 +132,11 @@ export default function SecurityAnalysisPage() {
             Évaluation complète de la sécurité de votre application
           </p>
         </div>
+        {serviceError && (
+          <div className="p-4 rounded-lg border border-red-300 bg-red-50 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
+            {serviceError}
+          </div>
+        )}
 
         {/* Score principal */}
         <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-8 text-white">
@@ -119,6 +199,13 @@ export default function SecurityAnalysisPage() {
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">SQL + XSS</p>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
+          <span className="font-medium text-gray-900 dark:text-gray-100">Source des données:</span>{' '}
+          corrélation temps réel `stats + logs + threats` (24h), avec fallback sur le calcul live quand `riskScore` est absent.
+          <span className="ml-2">Menaces live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalThreatsLive ?? 0}</strong></span>
+          <span className="ml-3">Logs live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalLogsLive ?? 0}</strong></span>
         </div>
 
         {/* Détections d'injection */}
@@ -208,6 +295,15 @@ export default function SecurityAnalysisPage() {
                     <p className="text-sm text-red-700 dark:text-red-300">Vérifiez et bloquez les IPs suspectes identifiées</p>
                   </div>
                 </div>
+                {(summary?.totalSqlInjections || 0) + (summary?.totalXssAttempts || 0) > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <span className="text-red-600 dark:text-red-400 text-xl">🛡</span>
+                    <div>
+                      <p className="font-medium text-red-800 dark:text-red-200">Durcir immédiatement les protections d’injection</p>
+                      <p className="text-sm text-red-700 dark:text-red-300">Vérifie les règles WAF SQL/XSS, active le blocage automatique et confirme les logs de rejet côté gateway.</p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>

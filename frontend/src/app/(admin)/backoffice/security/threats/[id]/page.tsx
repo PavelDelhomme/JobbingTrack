@@ -18,6 +18,8 @@ interface NetworkThreat {
   severity: string;
   detectedAt: string;
   blocked: boolean;
+  status?: string;
+  source?: string;
   metadata?: any;
 }
 
@@ -121,6 +123,25 @@ export default function ThreatDetailsPage() {
   }
 
   const metadata = threat.metadata || {};
+  const metadataKeys = Object.keys(metadata || {});
+  const isMetadataPoor = metadataKeys.length === 0 || (metadataKeys.length === 1 && metadata.test === true);
+  const possibleImpacts: Record<string, string[]> = {
+    SYN_FLOOD: ['Déni de service partiel', 'Saturation table de connexions', 'Latence accrue'],
+    PORT_SCAN: ['Reconnaissance de surface d’attaque', 'Préparation d’intrusion'],
+    BRUTE_FORCE: ['Compromission de comptes', 'Escalade privilèges potentielle'],
+    SQL_INJECTION: ['Exfiltration données', 'Altération base', 'Bypass authentification'],
+    XSS: ['Vol de session', 'Exécution script côté client', 'Défiguration UI'],
+    PATH_TRAVERSAL: ['Accès fichiers sensibles', 'Fuite secrets'],
+    DDoS: ['Indisponibilité service', 'Dégradation performance'],
+  };
+  const hasMinimalMetadata = Object.keys(metadata).length <= 1 && metadata?.test === true
+  const recommendation = threat.severity === 'CRITICAL'
+    ? 'Blocage immédiat + investigation complète (logs, flux réseau, comptes impactés).'
+    : threat.severity === 'HIGH'
+    ? 'Blocage recommandé + revue des règles WAF/Firewall associées.'
+    : threat.severity === 'MEDIUM'
+    ? 'Surveillance renforcée et corrélation avec les événements des 24 dernières heures.'
+    : 'Monitoring continu, sans action bloquante immédiate.';
 
   return (
     <AdminLayout>
@@ -187,6 +208,14 @@ export default function ThreatDetailsPage() {
                 </p>
               </div>
               <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Source d'alerte</p>
+                <p className="font-semibold">{threat.source || metadata.source || 'network-monitor'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Status technique</p>
+                <p className="font-semibold">{threat.status || metadata.status || 'OPEN'}</p>
+              </div>
+              <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Détecté le</p>
                 <p className="font-semibold flex items-center gap-2">
                   <Clock className="h-4 w-4" />
@@ -229,6 +258,14 @@ export default function ThreatDetailsPage() {
             Détails de l'Attaque
           </h2>
           <div className="space-y-4">
+            {isMetadataPoor && (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800 p-4 bg-amber-50 dark:bg-amber-900/20">
+                <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold mb-1">Contexte d’attaque insuffisant</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Cette menace contient très peu d’informations techniques. Active les logs détaillés sécurité/réseau pour enrichir: ports, payload, endpoint, corrélation service.
+                </p>
+              </div>
+            )}
             {metadata.message && (
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Message</p>
@@ -280,6 +317,27 @@ export default function ThreatDetailsPage() {
                 </div>
               </div>
             )}
+            {hasMinimalMetadata && (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-900 p-4 bg-amber-50 dark:bg-amber-900/20">
+                <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold mb-1">Métadonnées insuffisantes</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Cette menace contient très peu d'informations exploitables. Activez des règles réseau plus détaillées
+                  (ports, protocole, payload signatures, container source) pour un diagnostic complet.
+                </p>
+              </div>
+            )}
+            <div className="rounded-lg border border-blue-200 dark:border-blue-900 p-4 bg-blue-50 dark:bg-blue-900/20">
+              <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Recommandation opérationnelle</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">{recommendation}</p>
+            </div>
+            <div className="rounded-lg border border-purple-200 dark:border-purple-900 p-4 bg-purple-50 dark:bg-purple-900/20">
+              <p className="text-sm text-purple-800 dark:text-purple-200 font-semibold mb-2">Impacts potentiels de ce type de menace</p>
+              <ul className="list-disc list-inside text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                {(possibleImpacts[threat.threatType] || ['Impact à évaluer selon contexte applicatif']).map((impact) => (
+                  <li key={impact}>{impact}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 

@@ -22,107 +22,103 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 export default function SecurityLogsPage() {
   const [logs, setLogs] = useState<SecurityLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [serviceError, setServiceError] = useState<string | null>(null)
   const [filterLevel, setFilterLevel] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [page, setPage] = useState(1)
+  const pageSize = 25
 
-  // ✅ OPTIMISATION : useCallback avec cache et timeout
+  // Pas de fallback cache masquant: on affiche l'état réel du service.
   const fetchLogs = useCallback(async () => {
     try {
-      // ✅ OPTIMISATION : Vérifier le cache d'abord
-      const cacheKey = 'security_logs_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      const cacheTime = cached ? JSON.parse(cached).timestamp : 0
-      const now = Date.now()
-      
-      // Utiliser le cache si moins de 3 secondes
-      if (cached && (now - cacheTime) < 3000) {
-        const cachedData = JSON.parse(cached).data
-        setLogs(cachedData)
-        if (!loading) setLoading(false)
-        return
-      }
-      
-      // ✅ NOUVEAU : Essayer d'abord log-collector-c, puis fallback sur security-service
-      const LOG_COLLECTOR_URL = process.env.NEXT_PUBLIC_LOG_COLLECTOR_URL || 'http://localhost:5099';
+      setServiceError(null)
       const token = localStorage.getItem('token')
-      
-      // Essayer log-collector-c d'abord (logs de sécurité filtrés)
-      try {
-        const logCollectorResponse = await axios.get(`${LOG_COLLECTOR_URL}/api/v1/logs`, {
-          params: { 
-            limit: 50,
-            level: filterLevel !== 'all' ? filterLevel.toUpperCase() : undefined
-          },
-          timeout: 5000
-        })
-        
-        if (logCollectorResponse.data && logCollectorResponse.data.success && logCollectorResponse.data.data) {
-          // Filtrer les logs de sécurité (ERROR, WARN avec patterns de sécurité)
-          const securityLogs = logCollectorResponse.data.data
-            .filter((log: any) => {
-              const msg = (log.message || '').toLowerCase()
-              return log.level === 'ERROR' || log.level === 'WARN' ||
-                     msg.includes('unauthorized') || msg.includes('forbidden') ||
-                     msg.includes('attack') || msg.includes('threat') ||
-                     msg.includes('malicious') || msg.includes('suspicious') ||
-                     msg.includes('security') || msg.includes('firewall')
-            })
-            .map((log: any) => ({
-              id: log.id || `${log.timestamp}-${log.container_name}`,
-              level: log.level?.toLowerCase() || 'info',
-              category: log.source || log.container_name || 'unknown',
-              message: log.message || '',
-              sourceIP: log.source_ip,
-              userAgent: log.user_agent,
-              endpoint: log.endpoint,
-              timestamp: log.timestamp,
-              riskScore: log.is_error ? 80 : log.level === 'WARN' ? 40 : 20
-            }))
-          
-          setLogs(securityLogs)
-          sessionStorage.setItem(cacheKey, JSON.stringify({
-            data: securityLogs,
-            timestamp: now
-          }))
-          return
-        }
-      } catch (logCollectorError) {
-        // Fallback sur security-service si log-collector-c n'est pas disponible
-      }
-      
-      // Fallback : utiliser security-service
+
       const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 50 }, // ✅ OPTIMISATION : Réduire de 100 à 50
+        params: {
+          limit: 100,
+          level: filterLevel !== 'all' ? filterLevel : undefined,
+          category: filterCategory !== 'all' ? filterCategory : undefined,
+          startDate: dateFrom || undefined,
+          endDate: dateTo || undefined
+        },
         timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
       })
       
       if (response.data.success) {
         const logsData = response.data.data || response.data.logs || []
         const logsArray = Array.isArray(logsData) ? logsData : []
-        setLogs(logsArray)
-        // ✅ OPTIMISATION : Mettre en cache
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data: logsArray,
-          timestamp: now
+        const normalizedLogs = logsArray.map((log: any) => ({
+          ...log,
+          level: String(log.level || 'info').toLowerCase(),
+          category: String(log.category || 'unknown').toLowerCase()
         }))
+        setLogs(normalizedLogs)
+      } else {
+        setLogs([])
+        setServiceError(`Le service logs sécurité a répondu avec un statut inattendu (HTTP ${response.status}).`)
       }
     } catch (error: any) {
       console.error('Error loading security logs:', error)
-      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
-      const cacheKey = 'security_logs_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        const cachedData = JSON.parse(cached).data
-        setLogs(cachedData)
-      }
-      if (error.response?.status !== 404) {
-        console.warn('Security logs service unavailable:', error.message)
-      }
+      setLogs([])
+      setServiceError(
+        error?.response?.data?.error ||
+        error?.message ||
+        'Service logs sécurité indisponible'
+      )
     } finally {
       setLoading(false)
     }
-  }, [loading]);
+  }, [loading, filterLevel, filterCategory, dateFrom, dateTo]);
+
+  const createTestLog = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token')
+      await axios.post(`${API_URL}/api/v1/security/logs`, {
+        level: 'warning',
+        category: 'security',
+        eventType: 'manual_test_event',
+        message: 'Log de sécurité de test généré depuis le backoffice',
+        sourceIP: '127.0.0.1',
+        endpoint: '/backoffice/security/logs',
+        method: 'POST',
+        riskScore: 35,
+        metadata: { manual: true }
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      fetchLogs()
+    } catch (e) {
+      console.error('Erreur création log test:', e)
+    }
+  }, [fetchLogs])
+
+  const toggleContinuousGeneration = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (isGenerating) {
+        await axios.delete(`${API_URL}/api/v1/security/generate-continuous`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } else {
+        await axios.post(`${API_URL}/api/v1/security/generate-continuous`, { intervalMinutes: 5 }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+      const statusRes = await axios.get(`${API_URL}/api/v1/security/generate-continuous/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setIsGenerating(!!statusRes.data?.data?.isGenerating)
+      fetchLogs()
+    } catch (e) {
+      console.error('Erreur toggle génération continue:', e)
+    }
+  }, [isGenerating, fetchLogs])
 
   useEffect(() => {
     // ✅ OPTIMISATION : Charger immédiatement puis avec intervalle plus long
@@ -132,14 +128,28 @@ export default function SecurityLogsPage() {
     return () => clearInterval(interval)
   }, [fetchLogs])
 
-  // ✅ OPTIMISATION : useMemo pour filteredLogs
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    axios.get(`${API_URL}/api/v1/security/generate-continuous/status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then((res) => setIsGenerating(!!res.data?.data?.isGenerating)).catch(() => setIsGenerating(false))
+  }, [])
+
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
       if (filterLevel !== 'all' && log.level !== filterLevel) return false
       if (filterCategory !== 'all' && log.category !== filterCategory) return false
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        const haystack = `${log.message} ${log.sourceIP || ''} ${log.endpoint || ''} ${log.userAgent || ''}`.toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
       return true
     })
-  }, [logs, filterLevel, filterCategory])
+  }, [logs, filterLevel, filterCategory, searchQuery])
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize))
+  const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize)
 
   const levelColors = {
     info: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
@@ -167,10 +177,24 @@ export default function SecurityLogsPage() {
               📋 Security Logs
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Monitor security events in real time (auto-refresh every 5 seconds)
+              Monitor security events in real time (auto-refresh every 15 seconds)
             </p>
           </div>
+          <div className="flex gap-2">
+            <button onClick={createTestLog} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer log test</button>
+            <button onClick={toggleContinuousGeneration} className={`px-3 py-2 text-white rounded-lg ${isGenerating ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+              {isGenerating ? 'Arrêter génération continue' : 'Démarrer génération continue'}
+            </button>
+          </div>
         </div>
+
+        {serviceError && (
+          <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200 text-sm">
+              {serviceError}
+            </p>
+          </div>
+        )}
 
         {/* Filtres */}
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
@@ -187,6 +211,31 @@ export default function SecurityLogsPage() {
               <option value="error">Error</option>
               <option value="critical">Critical</option>
             </select>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+              placeholder="Rechercher: message, IP, endpoint, user-agent..."
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 min-w-80"
+            />
+            <input
+              type="datetime-local"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
+            />
+            <input
+              type="datetime-local"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
+            />
+            <button
+              onClick={() => { setFilterLevel('all'); setFilterCategory('all'); setDateFrom(''); setDateTo(''); setSearchQuery(''); setPage(1) }}
+              className="px-3 py-2 bg-gray-200 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
+            >
+              Reset
+            </button>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
@@ -225,7 +274,7 @@ export default function SecurityLogsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredLogs.map((log) => (
+                {paginatedLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${levelColors[log.level]}`}>
@@ -250,9 +299,33 @@ export default function SecurityLogsPage() {
             </table>
           </div>
 
-          {filteredLogs.length === 0 && (
+          {filteredLogs.length > 0 && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {filteredLogs.length} log(s) • page {page}/{totalPages}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
+                >
+                  Précédent
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
+
+          {filteredLogs.length === 0 && !serviceError && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              No security logs found
+              Aucun log de sécurité trouvé. Utilise "Créer log test" ou active la génération continue.
             </div>
           )}
         </div>

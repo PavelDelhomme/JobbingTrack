@@ -27,6 +27,8 @@ export default function SecurityPoliciesPage() {
   const [blockedIPs, setBlockedIPs] = useState<Array<string | { ip?: string; blockedAt?: string; reason?: string }>>([]);
   const [newIP, setNewIP] = useState('');
   const [loading, setLoading] = useState(true);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceResult, setMaintenanceResult] = useState<string | null>(null);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -156,6 +158,39 @@ export default function SecurityPoliciesPage() {
     }
   };
 
+  const handleCleanupSecurityData = async () => {
+    if (!confirm('Nettoyer maintenant les menaces, règles firewall et IPs bloquées ?')) return;
+    setMaintenanceLoading(true);
+    setMaintenanceResult(null);
+    try {
+      const rulesRes = await axios.get(`${API_URL}/api/v1/security/firewall/rules`, { headers: getAuthHeaders() });
+      const rules = Array.isArray(rulesRes.data?.data) ? rulesRes.data.data : [];
+      for (const rule of rules) {
+        await axios.delete(`${API_URL}/api/v1/security/firewall/rules/${rule.id}`, { headers: getAuthHeaders() });
+      }
+
+      const ipsRes = await axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers: getAuthHeaders() });
+      const ipsRaw = Array.isArray(ipsRes.data?.data) ? ipsRes.data.data : [];
+      const ips = ipsRaw
+        .map((x: string | { ip?: string }) => (typeof x === 'string' ? x : x?.ip))
+        .filter(Boolean) as string[];
+      for (const ip of ips) {
+        await axios.post(`${API_URL}/api/v1/security/firewall/unblock-ip`, { ip }, { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } });
+      }
+
+      const threatsRes = await axios.delete(`${API_URL}/api/v1/security/firewall/threats?scope=all`, { headers: getAuthHeaders() });
+      const deletedThreats = threatsRes.data?.data?.deleted ?? 0;
+
+      await Promise.all([fetchWafConfig(), fetchFirewallRules(), fetchBlockedIPs()]);
+      setMaintenanceResult(`Nettoyage terminé: ${rules.length} règle(s), ${ips.length} IP(s), ${deletedThreats} menace(s) supprimée(s).`);
+    } catch (e) {
+      console.error('Erreur nettoyage sécurité:', e);
+      setMaintenanceResult('Échec du nettoyage sécurité. Vérifie les services et réessaie.');
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -176,6 +211,24 @@ export default function SecurityPoliciesPage() {
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Paramétrage détaillé : WAF, règles firewall, blocage IP.
           </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Maintenance sécurité</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Purge menaces + règles firewall + IPs bloquées pour repartir propre.</p>
+            </div>
+            <button
+              onClick={handleCleanupSecurityData}
+              disabled={maintenanceLoading}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {maintenanceLoading ? 'Nettoyage...' : 'Nettoyer maintenant'}
+            </button>
+          </div>
+          {maintenanceResult && (
+            <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">{maintenanceResult}</p>
+          )}
         </div>
 
         {/* WAF */}

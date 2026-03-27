@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDateTime } from '@/lib/utils/date';
@@ -28,28 +28,33 @@ export default function ThreatsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [sourceIpFilter, setSourceIpFilter] = useState<string>('');
+  const [destIpFilter, setDestIpFilter] = useState<string>('');
+  const [blockedFilter, setBlockedFilter] = useState<string>('');
+  const [destPortFilter, setDestPortFilter] = useState<string>('');
+  const [startDateFilter, setStartDateFilter] = useState<string>('');
+  const [endDateFilter, setEndDateFilter] = useState<string>('');
+  const [serviceError, setServiceError] = useState<string | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
+  const [newThreatsCount, setNewThreatsCount] = useState(0);
+  const previousTopThreatTsRef = useRef<string | null>(null);
 
-  // ✅ OPTIMISATION : useCallback avec cache
   const loadThreats = useCallback(async () => {
     try {
-      // ✅ OPTIMISATION : Vérifier le cache d'abord
-      const cacheKey = `threats_cache_${page}_${severityFilter}`
-      const cached = sessionStorage.getItem(cacheKey)
-      const cacheTime = cached ? JSON.parse(cached).timestamp : 0
-      const now = Date.now()
-      
-      // Utiliser le cache si moins de 10 secondes
-      if (cached && (now - cacheTime) < 10000 && !loading) {
-        const cachedData = JSON.parse(cached)
-        setThreats(cachedData.data || [])
-        setTotal(cachedData.total || 0)
-        // Rafraîchir en arrière-plan
-      } else {
-        setLoading(true);
-      }
+      setLoading(true);
+      setServiceError(null);
       
       const params: any = { page, limit: 50 };
       if (severityFilter) params.severity = severityFilter;
+      if (typeFilter) params.threatType = typeFilter;
+      if (sourceIpFilter) params.sourceIp = sourceIpFilter;
+      if (destIpFilter) params.destIp = destIpFilter;
+      if (blockedFilter) params.blocked = blockedFilter;
+      if (destPortFilter) params.destPort = destPortFilter;
+      if (startDateFilter) params.startDate = startDateFilter;
+      if (endDateFilter) params.endDate = endDateFilter;
       
       const response = await axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/threats`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
@@ -64,36 +69,80 @@ export default function ThreatsPage() {
           const db = new Date(b.detectedAt || 0).getTime()
           return db - da
         })
+        if (sorted.length > 0) {
+          const topTs = sorted[0].detectedAt
+          if (previousTopThreatTsRef.current && topTs !== previousTopThreatTsRef.current) {
+            const previousMs = new Date(previousTopThreatTsRef.current).getTime()
+            const currentMs = new Date(topTs).getTime()
+            if (currentMs > previousMs) {
+              const delta = sorted.filter((t) => new Date(t.detectedAt).getTime() > previousMs).length
+              setNewThreatsCount((v) => v + Math.max(1, delta))
+            }
+          }
+          previousTopThreatTsRef.current = topTs
+        }
         setThreats(sorted)
         setTotal(totalData)
-        // ✅ OPTIMISATION : Mettre en cache (données triées)
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data: sorted,
-          total: totalData,
-          timestamp: now
-        }))
+      } else {
+        setThreats([]);
+        setTotal(0);
+        setServiceError(`Réponse inattendue du service menaces (HTTP ${response.status}).`);
       }
     } catch (err: any) {
       console.error('Erreur chargement menaces:', err);
-      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
-      const cacheKey = `threats_cache_${page}_${severityFilter}`
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        const cachedData = JSON.parse(cached)
-        setThreats(cachedData.data || [])
-        setTotal(cachedData.total || 0)
-      }
+      setThreats([]);
+      setTotal(0);
+      setServiceError(err.response?.data?.error || err.message || 'Service menaces indisponible');
     } finally {
       setLoading(false);
     }
-  }, [page, severityFilter, loading]);
+  }, [page, severityFilter, typeFilter, sourceIpFilter, destIpFilter, blockedFilter, destPortFilter, startDateFilter, endDateFilter]);
 
   useEffect(() => {
     loadThreats();
-    // ✅ OPTIMISATION : Rafraîchir toutes les 45 secondes au lieu de 30
-    const interval = setInterval(loadThreats, 45000);
+    if (!autoRefreshEnabled) return;
+    const interval = setInterval(loadThreats, refreshIntervalMs);
     return () => clearInterval(interval);
-  }, [loadThreats]);
+  }, [loadThreats, autoRefreshEnabled, refreshIntervalMs]);
+
+  const exportThreatsJson = useCallback(() => {
+    const blob = new Blob([JSON.stringify(threats, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `security-threats-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [threats]);
+
+  const exportThreatsCsv = useCallback(() => {
+    const header = ['id', 'threatType', 'severity', 'sourceIp', 'destIp', 'destPort', 'blocked', 'detectedAt'];
+    const rows = threats.map((t) => [
+      t.id,
+      t.threatType,
+      t.severity,
+      t.sourceIp || '',
+      t.destIp || '',
+      t.destPort ?? '',
+      t.blocked ? 'true' : 'false',
+      t.detectedAt,
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `security-threats-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [threats]);
+
+  const highOrCriticalCount = useMemo(
+    () => threats.filter((t) => t.severity === 'HIGH' || t.severity === 'CRITICAL').length,
+    [threats]
+  );
 
   const handleBlockThreat = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir bloquer cette menace ?')) return;
@@ -153,14 +202,61 @@ export default function ThreatsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Toutes les menaces détectées (réseau, WAF, firewall, intrusions) — tri par date/heure de détection.
             </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {highOrCriticalCount} menace(s) HIGH/CRITICAL sur la page courante
+            </p>
           </div>
-          <button
-            onClick={loadThreats}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <RefreshCw className="h-5 w-5" />
-            Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportThreatsJson}
+              className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+            >
+              Export JSON
+            </button>
+            <button
+              onClick={exportThreatsCsv}
+              className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={loadThreats}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <RefreshCw className="h-5 w-5" />
+              Actualiser
+            </button>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            Temps réel: {autoRefreshEnabled ? `activé (${Math.round(refreshIntervalMs / 1000)}s)` : 'désactivé'}
+            {newThreatsCount > 0 && <span className="ml-2 text-red-600 dark:text-red-400 font-semibold">+{newThreatsCount} nouvelle(s) menace(s)</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setNewThreatsCount(0)}
+              className="px-3 py-1 bg-gray-600 text-white rounded text-sm"
+            >
+              Marquer comme vu
+            </button>
+            <button
+              onClick={() => setAutoRefreshEnabled((v) => !v)}
+              className={`px-3 py-1 rounded text-sm text-white ${autoRefreshEnabled ? 'bg-red-600' : 'bg-emerald-600'}`}
+            >
+              {autoRefreshEnabled ? 'Stop auto-refresh' : 'Start auto-refresh'}
+            </button>
+            <select
+              value={String(refreshIntervalMs)}
+              onChange={(e) => setRefreshIntervalMs(Number(e.target.value))}
+              className="px-2 py-1 border rounded dark:bg-gray-700 dark:text-gray-100 text-sm"
+            >
+              <option value="3000">3s</option>
+              <option value="5000">5s</option>
+              <option value="10000">10s</option>
+              <option value="15000">15s</option>
+            </select>
+          </div>
         </div>
 
         {/* Filtres */}
@@ -178,8 +274,85 @@ export default function ThreatsPage() {
               <option value="MEDIUM">MEDIUM</option>
               <option value="LOW">LOW</option>
             </select>
+            <label className="text-sm font-medium">Type:</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            >
+              <option value="">Tous</option>
+              <option value="SYN_FLOOD">SYN_FLOOD</option>
+              <option value="PORT_SCAN">PORT_SCAN</option>
+              <option value="BRUTE_FORCE">BRUTE_FORCE</option>
+              <option value="SQL_INJECTION">SQL_INJECTION</option>
+              <option value="XSS">XSS</option>
+              <option value="WAF_BLOCK">WAF_BLOCK</option>
+            </select>
+            <label className="text-sm font-medium">Statut:</label>
+            <select
+              value={blockedFilter}
+              onChange={(e) => setBlockedFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            >
+              <option value="">Tous</option>
+              <option value="true">Bloqué</option>
+              <option value="false">Non bloqué</option>
+            </select>
+            <input
+              value={sourceIpFilter}
+              onChange={(e) => setSourceIpFilter(e.target.value)}
+              placeholder="IP source (ex: 10.0.0.)"
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            />
+            <input
+              value={destIpFilter}
+              onChange={(e) => setDestIpFilter(e.target.value)}
+              placeholder="IP dest (ex: 172.18.0.)"
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            />
+            <input
+              value={destPortFilter}
+              onChange={(e) => setDestPortFilter(e.target.value)}
+              placeholder="Port dest (ex: 443)"
+              className="w-44 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            />
+            <input
+              type="datetime-local"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              title="Date de début"
+            />
+            <input
+              type="datetime-local"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              title="Date de fin"
+            />
+            <button
+              onClick={() => {
+                setPage(1)
+                setSeverityFilter('')
+                setTypeFilter('')
+                setSourceIpFilter('')
+                setDestIpFilter('')
+                setBlockedFilter('')
+                setDestPortFilter('')
+                setStartDateFilter('')
+                setEndDateFilter('')
+              }}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500"
+            >
+              Réinitialiser
+            </button>
           </div>
         </div>
+        {serviceError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200 text-sm">{serviceError}</p>
+          </div>
+        )}
 
         {/* Liste des menaces */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -195,6 +368,7 @@ export default function ThreatsPage() {
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left p-3">Type</th>
                       <th className="text-left p-3">IP Source</th>
+                      <th className="text-left p-3">IP Dest</th>
                       <th className="text-left p-3">Port Dest</th>
                       <th className="text-left p-3">Sévérité</th>
                       <th className="text-left p-3">Détecté le</th>
@@ -209,6 +383,7 @@ export default function ThreatsPage() {
                           <span className="font-semibold">{getThreatTypeLabel(threat.threatType)}</span>
                         </td>
                         <td className="p-3 font-mono text-sm">{threat.sourceIp}</td>
+                        <td className="p-3 font-mono text-sm">{threat.destIp || '—'}</td>
                         <td className="p-3">
                           {threat.destPort ? (
                             <span className="font-mono">{threat.destPort}</span>
