@@ -21,7 +21,7 @@
 
 | Lot | Thème | Statut | Où détailler |
 |-----|--------|--------|----------------|
-| **A** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau sans « unknown » inutile) | **En cours** | `PLAN.md` § A, `TODOS.md`, fichiers `firewallController.js`, pages `backoffice/security/*` |
+| **A** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau actionnable) | **Partiellement livré (04/2026)** — voir `RESOLUTIONS.md` | `PLAN.md` § A, `TODOS.md`, `firewallController.js`, `backoffice/security/*` |
 | **B** | Logs multi-services + filtres + corrélation sécurité | À faire | `PLAN.md` § B, `(development)/services/**`, gateway |
 | **C** | Suivi-intérim, bases principal/test, données test | À faire | `PLAN.md` § C, `SuiviInterimContent.tsx` |
 | **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
@@ -37,7 +37,7 @@
 | **API / microservices** | Fonctionnel en dev Docker (`make up-full`) ; quelques tables optionnelles manquantes (voir ERRORS.md : `deployments`, `user_events`). | Health services, `make test`, logs `make logs`. |
 | **Backoffice web** | CRUD données, sécurité, rapports de tests, suivi intérim **présents** ; polish et E2E à stabiliser. | Navigation admin, `/backoffice/suivi-interim`, `/backoffice/test-reports`. |
 | **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
-| **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; règles affinées (moins de faux positifs) ; `make security-live-check` pour validation live ; anti-doublon règles firewall côté security-service. | `make security-live-check`, pages Sécurité backoffice. |
+| **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; routes **firewall / WAF** du security-service protégées (**JWT** ou **`X-Internal-Secret`** partagé avec les scripts live-check et la gateway) ; `make security-live-check` pour validation live ; anti-doublon règles firewall. | `make security-live-check`, pages Sécurité backoffice. |
 | **Logs / monitoring** | Logs applicatifs OK ; agrégateur / métriques selon profil Docker ; Loki optionnel (dégradation propre si absent). | Dashboard monitoring backoffice, `metrics-aggregator`. |
 
 ### Mise à jour observabilité & tableau de bord admin (07/04/2026)

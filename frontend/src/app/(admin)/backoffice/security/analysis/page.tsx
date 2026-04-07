@@ -71,11 +71,24 @@ export default function SecurityAnalysisPage() {
         const lvl = String(l?.level || '').toLowerCase();
         return lvl === 'warning' || lvl === 'error' || lvl === 'critical';
       }).length;
-      const manualBlocks = logs.filter((l: any) => String(l?.eventType || '').toLowerCase() === 'ip_blocked_manually').length;
+      const labBlocks = logs.filter((l: any) => String(l?.eventType || '').toLowerCase() === 'ip_blocked_lab_simulation').length;
+      const manualBlocksStrict = logs.filter((l: any) => String(l?.eventType || '').toLowerCase() === 'ip_blocked_manually').length;
+      const manualBlocks = manualBlocksStrict + labBlocks;
       const autoBlocks = logs.filter((l: any) => {
         const evt = String(l?.eventType || '').toLowerCase();
         return evt === 'threat_blocked' || evt === 'ip_blocked_automatically' || evt === 'payload_auto_block';
       }).length;
+      const detectionLogsCount = logs.filter((l: any) => {
+        const e = String(l?.eventType || '').toLowerCase();
+        return (
+          e.includes('threat_detect') ||
+          e === 'network_threat_detected' ||
+          e === 'waf_block' ||
+          e.includes('intrusion') ||
+          e === 'suspicious_request'
+        );
+      }).length;
+      const openThreatsCount = threats.filter((t: any) => !t?.blocked).length;
       const ddosThreats = threats.filter((t: any) => String(t?.threatType || '').toUpperCase().includes('DDOS')).length;
       const scoreFromOverview = Number(stats?.overview?.riskScore ?? 0);
       const scoreFromLive = Math.max(0, 100 - Math.min(70, threats.length * 2 + suspiciousLogs));
@@ -90,7 +103,11 @@ export default function SecurityAnalysisPage() {
         blockedIPs: blockedIPItems,
         uniqueBlockedIPs: blockedIPItems.length,
         manualBlocks,
+        manualBlocksStrict,
+        labBlocks,
         autoBlocks,
+        detectionLogsCount,
+        openThreatsCount,
         totalFailedLogins: Number(stats?.overview?.criticalEvents ?? failedAuth),
         totalSuspiciousActivities: Number(stats?.overview?.totalEvents ?? suspiciousLogs),
         totalSqlInjections: Number(stats?.overview?.sqlInjections ?? sqlEvents),
@@ -215,7 +232,44 @@ export default function SecurityAnalysisPage() {
           corrélation temps réel `stats + logs + threats` (24h), avec fallback sur le calcul live quand `riskScore` est absent.
           <span className="ml-2">Menaces live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalThreatsLive ?? 0}</strong></span>
           <span className="ml-3">Logs live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalLogsLive ?? 0}</strong></span>
-          <span className="ml-3">Blocages auto/manuels (24h): <strong className="text-gray-900 dark:text-gray-100">{summary?.autoBlocks ?? 0}/{summary?.manualBlocks ?? 0}</strong></span>
+          <span className="ml-3">Blocages auto / manuels (logs récents): <strong className="text-gray-900 dark:text-gray-100">{summary?.autoBlocks ?? 0} / {summary?.manualBlocks ?? 0}</strong></span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-5">
+            <h2 className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Détections (signaux)
+            </h2>
+            <p className="text-3xl font-bold text-cyan-800 dark:text-cyan-300 mt-2">{summary?.detectionLogsCount ?? 0}</p>
+            <p className="text-xs text-cyan-800/90 dark:text-cyan-300/90 mt-1">
+              Évènements de détection dans les logs (menace / WAF / intrusion…), sans confondre avec un blocage effectif.
+            </p>
+            <p className="text-xs mt-2 text-cyan-900 dark:text-cyan-200">
+              Menaces non marquées « bloquées » en base : <strong>{summary?.openThreatsCount ?? 0}</strong>
+            </p>
+          </div>
+          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
+            <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Blocages manuels &amp; lab
+            </h2>
+            <p className="text-3xl font-bold text-amber-800 dark:text-amber-300 mt-2">{summary?.manualBlocks ?? 0}</p>
+            <p className="text-xs text-amber-900/80 dark:text-amber-200/90 mt-1">
+              Manuel : <strong>{summary?.manualBlocksStrict ?? 0}</strong> · Test IP RFC5737 (lab) :{' '}
+              <strong>{summary?.labBlocks ?? 0}</strong>
+            </p>
+          </div>
+          <div className="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-5">
+            <h2 className="text-sm font-semibold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Blocages automatiques
+            </h2>
+            <p className="text-3xl font-bold text-rose-800 dark:text-rose-300 mt-2">{summary?.autoBlocks ?? 0}</p>
+            <p className="text-xs text-rose-900/80 dark:text-rose-200/90 mt-1">
+              Moteur menaces, règles automatiques, payload_auto_block…
+            </p>
+          </div>
         </div>
 
         {/* Détections d'injection */}
@@ -254,17 +308,39 @@ export default function SecurityAnalysisPage() {
           </h2>
           <div className="space-y-2">
             {summary?.blockedIPs?.length > 0 ? (
-              summary.blockedIPs.map((ipItem: { ip: string; reason?: string; blockedAt?: string }, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div>
-                    <span className="font-mono text-gray-900 dark:text-gray-100">{ipItem.ip}</span>
-                    {ipItem.reason && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{ipItem.reason}</p>
-                    )}
-                  </div>
-                  <span className="text-xs text-red-600 dark:text-red-400">Bloquée</span>
-                </div>
-              ))
+              summary.blockedIPs.map(
+                (
+                  ipItem: { ip: string; reason?: string; blockedAt?: string; blockOrigin?: string },
+                  index: number
+                ) => {
+                  const origin = String(ipItem.blockOrigin || '');
+                  const originLabel =
+                    origin === 'lab_simulation'
+                      ? 'Test lab'
+                      : origin === 'manual_rule'
+                        ? 'Manuel'
+                        : origin === 'automatic_threat'
+                          ? 'Auto (menace)'
+                          : origin === 'iptables'
+                            ? 'iptables'
+                            : origin === 'log_inferred'
+                              ? 'Logs'
+                              : 'Actif';
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div>
+                        <span className="font-mono text-gray-900 dark:text-gray-100">{ipItem.ip}</span>
+                        {ipItem.reason && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{ipItem.reason}</p>
+                        )}
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                        {originLabel}
+                      </span>
+                    </div>
+                  );
+                }
+              )
             ) : (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 Aucune IP bloquée actuellement

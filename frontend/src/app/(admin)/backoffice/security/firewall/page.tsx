@@ -111,6 +111,8 @@ interface FirewallRule {
 interface BlockedIp {
   ip: string;
   reason?: string;
+  blockedAt?: string;
+  blockOrigin?: string;
 }
 
 export default function FirewallPage() {
@@ -606,7 +608,7 @@ export default function FirewallPage() {
             </div>
           </div>
           <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-            Astuce: pour tester sans risque, utilise l&apos;IP de documentation `{SAFE_TEST_IP}` (jamais ton IP réelle).
+            Astuce : pour tester sans risque, utilise l&apos;IP de documentation <span className="font-mono">{SAFE_TEST_IP}</span> (RFC 5737). Le serveur refuse de bloquer la même IP que celle de ta requête (anti-verrouillage) ; le mode lab n&apos;accepte que cette IP de test.
           </p>
 
           {showAddBlockedIp && (
@@ -659,22 +661,45 @@ export default function FirewallPage() {
             <div className="text-center py-8 text-gray-500">Aucune IP bloquée</div>
           ) : (
             <div className="space-y-2">
-              {blockedIps.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <div className="flex-1">
-                    <span className="font-mono text-lg">{item.ip}</span>
-                    {item.reason && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.reason}</p>
-                    )}
+              {blockedIps.map((item, index) => {
+                const o = String(item.blockOrigin || '');
+                const originLabel =
+                  o === 'lab_simulation'
+                    ? 'Test lab'
+                    : o === 'manual_rule'
+                      ? 'Manuel'
+                      : o === 'automatic_threat'
+                        ? 'Auto'
+                        : o === 'iptables'
+                          ? 'iptables'
+                          : o === 'log_inferred'
+                            ? 'Logs'
+                            : null;
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-lg">{item.ip}</span>
+                        {originLabel && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-100">
+                            {originLabel}
+                          </span>
+                        )}
+                      </div>
+                      {item.reason && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.reason}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUnblockIp(item.ip)}
+                      className="px-3 py-1 shrink-0 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      Débloquer
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleUnblockIp(item.ip)}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Débloquer
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

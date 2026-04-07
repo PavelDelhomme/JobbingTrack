@@ -5,6 +5,9 @@ set -euo pipefail
 API_GATEWAY_URL="${API_GATEWAY_URL:-http://localhost:5002}"
 FRONTEND_URL="${FRONTEND_URL:-http://localhost:5003}"
 SECURITY_SERVICE_URL="${SECURITY_SERVICE_URL:-http://localhost:5017}"
+# Même valeur par défaut que docker-compose (appels directs host → conteneur firewall/waf)
+SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
+export SECURITY_INTERNAL_SECRET
 WATCH_SECONDS="${WATCH_SECONDS:-25}"
 STRICT_MODE="${STRICT_MODE:-1}"
 LOAD_TEST_ENABLED="${LOAD_TEST_ENABLED:-1}"
@@ -73,20 +76,26 @@ http_code() {
   local url="$2"
   local body="${3:-}"
   local ua="${4:-SecurityLiveCheck/1.0}"
+  local sec_h=()
+  if [[ -n "${SECURITY_INTERNAL_SECRET:-}" ]]; then
+    sec_h=( -H "X-Internal-Secret: ${SECURITY_INTERNAL_SECRET}" )
+  fi
 
   if [[ "$method" == "GET" ]]; then
-    curl -sS -o /dev/null -w "%{http_code}" -A "$ua" -X GET "$url" || echo "000"
+    curl -sS -o /dev/null -w "%{http_code}" -A "$ua" -X GET "${sec_h[@]}" "$url" || echo "000"
     return
   fi
   if [[ "$method" == "POST" ]]; then
     curl -sS -o /dev/null -w "%{http_code}" -A "$ua" -X POST \
       -H "Content-Type: application/json" \
+      "${sec_h[@]}" \
       -d "$body" "$url" || echo "000"
     return
   fi
   if [[ "$method" == "PUT" ]]; then
     curl -sS -o /dev/null -w "%{http_code}" -A "$ua" -X PUT \
       -H "Content-Type: application/json" \
+      "${sec_h[@]}" \
       -d "$body" "$url" || echo "000"
     return
   fi
@@ -156,8 +165,22 @@ echo "1) Vérification disponibilité des endpoints..."
 check_http_soft "${API_GATEWAY_URL}/health" "API Gateway /health"
 check_http_soft "${FRONTEND_URL}/login" "Frontend /login"
 check_http_soft "${SECURITY_SERVICE_URL}/health" "Security-service /health"
-check_http_soft "${SECURITY_SERVICE_URL}/api/v1/security/firewall/rules" "Security firewall rules"
-check_http_soft "${SECURITY_SERVICE_URL}/api/v1/security/waf/config" "Security WAF config"
+sec_probe_hdr=()
+if [[ -n "${SECURITY_INTERNAL_SECRET:-}" ]]; then
+  sec_probe_hdr=( -H "X-Internal-Secret: ${SECURITY_INTERNAL_SECRET}" )
+fi
+code_fw="$(curl -s -o /dev/null -w "%{http_code}" "${sec_probe_hdr[@]}" "${SECURITY_SERVICE_URL}/api/v1/security/firewall/rules" || true)"
+if [[ "$code_fw" =~ ^2|3 ]]; then
+  pass "Security firewall rules (HTTP ${code_fw})"
+else
+  warn "Security firewall rules (HTTP ${code_fw})"
+fi
+code_waf="$(curl -s -o /dev/null -w "%{http_code}" "${sec_probe_hdr[@]}" "${SECURITY_SERVICE_URL}/api/v1/security/waf/config" || true)"
+if [[ "$code_waf" =~ ^2|3 ]]; then
+  pass "Security WAF config (HTTP ${code_waf})"
+else
+  warn "Security WAF config (HTTP ${code_waf})"
+fi
 echo ""
 
 echo "1.b) Vérification WAF actif sur API Gateway (header runtime)..."
@@ -215,7 +238,9 @@ expect_code_in "User-Agent malveillant (sqlmap)" "$ua_attack_code" "400,403"
 
 echo ""
 echo "5) Validation Firewall/Security API (création menaces/règles)..."
-if API_GATEWAY_URL="${SECURITY_SERVICE_URL}" ./scripts/security/test-firewall.sh; then
+# test-firewall utilise X-Internal-Secret (pas seulement Bearer) : firewall → security-service direct ;
+# les tests /api/v1/auth/* restent sur la gateway (AUTH_GATEWAY_URL).
+if FIREWALL_BASE_URL="${SECURITY_SERVICE_URL}" AUTH_GATEWAY_URL="${API_GATEWAY_URL}" ./scripts/security/test-firewall.sh; then
   pass "test-firewall.sh (API security/firewall)"
 else
   fail "test-firewall.sh a échoué"
@@ -349,7 +374,7 @@ fi
 
 echo ""
 echo "9) Menaces récentes via firewall API..."
-threats_raw="$(curl -sS "${SECURITY_SERVICE_URL}/api/v1/security/firewall/threats" || true)"
+threats_raw="$(curl -sS "${sec_probe_hdr[@]}" "${SECURITY_SERVICE_URL}/api/v1/security/firewall/threats" || true)"
 threats_parsed="$(printf "%s" "${threats_raw}" | python -c 'import json,sys
 try:
     d=json.load(sys.stdin)

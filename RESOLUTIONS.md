@@ -4,6 +4,38 @@
 
 ---
 
+## 8 avril 2026 – `make security-live-check` : 401 sans token + génération menaces
+
+### Problème
+- **`test-firewall.sh`** (invoqué avec `API_GATEWAY_URL` = URL du **security-service**) : les tests 21 attendaient **401/403** sur `GET /api/v1/security/firewall/rules` **sans** `Authorization`, mais le service répondait **200** (routes ouvertes).
+- **`generate-test-threats.sh`** : type **`XSS_ATTACK`** refusé par l’API (**400**) ; la liste autorisée expose **`XSS`** (`ALLOWED_THREAT_TYPES`).
+
+### Solution
+1. **Middleware** `requireFirewallWafAccess` sur `/api/v1/security/firewall` et `/api/v1/security/waf` : **JWT** (`Authorization: Bearer`, même secret que l’auth) **ou** header machine **`X-Internal-Secret`** (variable d’environnement **`SECURITY_INTERNAL_SECRET`**, défaut dev aligné avec `docker-compose.yml`).
+2. **docker-compose** : `JWT_SECRET` + `SECURITY_INTERNAL_SECRET` sur **security-service** ; même secret interne sur **api-gateway** et **auth-service** ; gateway envoie le header sur `POST .../firewall/threats` (payload trop gros).
+3. **Scripts** : `live-security-check.sh` exporte le secret et l’envoie aux sondes curl ; `test-firewall.sh` / `generate-test-threats.sh` envoient **`X-Internal-Secret`** sauf cas négatifs (**`SKIP_INTERNAL_AUTH_HDR=1`** pour les tests « sans token »).
+4. **Menaces test** : `XSS_ATTACK` → **`XSS`**.
+
+### Fichiers touchés (principaux)
+`backend/security-service/src/middleware/firewallWafAuth.js`, `server.js`, `package.json` ; `backend/api-gateway/src/server.js` ; `backend/auth-service/src/utils/securityLogger.js` ; `docker-compose.yml` ; `scripts/security/live-security-check.sh`, `test-firewall.sh`, `generate-test-threats.sh`.
+
+---
+
+## Avril 2026 – Lot A sécurité (cohérence, test IP, UI)
+
+### Backend (`firewallController.js`)
+- **Anti auto-blocage** : refus `403` si l’IP à bloquer = IP client observée (`X-Forwarded-For` / `req.ip`, IPv4 normalisée), sauf `lab_simulation`.
+- **Stats réseau** : `containerCorrelation` (parts dockerNamed / hostLayer / unmapped) + `correlationHint` si beaucoup de sockets non mappées.
+- **IPs bloquées** : propriété **`blockOrigin`** sur chaque entrée (`manual_rule`, `lab_simulation`, `automatic_threat`, `iptables`, `log_inferred`) ; sélection `description` sur les règles firewall pour détecter le lab.
+
+### Frontend
+- **Vue sécurité** : légende détection / blocage ; compteur blocages manuels inclut `ip_blocked_lab_simulation` ; retour utilisateur sur le test blocage+déblocage.
+- **Analyse** : trois cartes (détections, manuels+lab détaillé, auto) ; pastilles `blockOrigin` sur la liste des IPs.
+- **Réseau** : encart corrélation + texte sur les libellés `port:` / hôte.
+- **Firewall** : badges d’origine sur chaque IP bloquée ; texte d’aide anti–auto-blocage.
+
+---
+
 ## Avril 2026 – Vue d’ensemble backoffice : observabilité et libellés métriques
 
 ### Contexte

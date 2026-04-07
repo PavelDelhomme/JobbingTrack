@@ -89,6 +89,7 @@ export default function SecurityOverviewPage() {
   })
   const [incidentsPage, setIncidentsPage] = useState(1)
   const [testIpBusy, setTestIpBusy] = useState(false)
+  const [testIpMessage, setTestIpMessage] = useState<string | null>(null)
   const SAFE_TEST_IP = '203.0.113.77'
   const incidentsPageSize = 6
 
@@ -139,8 +140,12 @@ export default function SecurityOverviewPage() {
       const logsArray = logs?.data || logs?.logs || []
       const threatsArray = threats?.data || threats?.threats || []
       const logsForStats = Array.isArray(logsArray) ? logsArray : []
-      const manualBlocksCount = logsForStats.filter((l: any) => l?.eventType === 'ip_blocked_manually').length
-      const automaticBlocksCount = logsForStats.filter((l: any) => l?.eventType === 'threat_blocked' || l?.eventType === 'ip_blocked_automatically').length
+      const manualBlocksCount = logsForStats.filter((l: any) =>
+        l?.eventType === 'ip_blocked_manually' || l?.eventType === 'ip_blocked_lab_simulation'
+      ).length
+      const automaticBlocksCount = logsForStats.filter((l: any) =>
+        l?.eventType === 'threat_blocked' || l?.eventType === 'ip_blocked_automatically'
+      ).length
       const detectionsCount = logsForStats.filter((l: any) => l?.eventType === 'network_threat_detected' || l?.category === 'intrusion').length
 
       if (!Array.isArray(logsArray) && !Array.isArray(threatsArray)) {
@@ -273,7 +278,7 @@ export default function SecurityOverviewPage() {
     { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: 'Firewall', href: '/backoffice/security/firewall' },
     { title: 'Règles firewall', value: overview.firewallRulesCount, subtitle: 'Configuration active', href: '/backoffice/security/firewall' },
     { title: 'Détections', value: overview.detectionsCount, subtitle: 'Événements détectés', href: '/backoffice/security/logs' },
-    { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Action opérateur', href: '/backoffice/security/firewall' },
+    { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Opérateur + tests lab (RFC5737)', href: '/backoffice/security/firewall' },
     { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/backoffice/security/firewall' },
     { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistique' },
   ]
@@ -282,18 +287,32 @@ export default function SecurityOverviewPage() {
     const token = localStorage.getItem('token')
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
     setTestIpBusy(true)
+    setTestIpMessage(null)
     try {
-      await fetch(`${API_URL}/api/v1/security/firewall/block-ip`, {
+      const blockRes = await fetch(`${API_URL}/api/v1/security/firewall/block-ip`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ ip: SAFE_TEST_IP, reason: 'SAFE_TEST_IP_BLOCK', mode: 'lab_simulation' }),
       })
-      await fetch(`${API_URL}/api/v1/security/firewall/unblock-ip`, {
+      const blockJson = await blockRes.json().catch(() => ({}))
+      if (!blockRes.ok) {
+        setTestIpMessage(blockJson?.error || `Blocage test échoué (${blockRes.status})`)
+        return
+      }
+      const unRes = await fetch(`${API_URL}/api/v1/security/firewall/unblock-ip`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ ip: SAFE_TEST_IP }),
       })
+      const unJson = await unRes.json().catch(() => ({}))
+      if (!unRes.ok) {
+        setTestIpMessage(unJson?.error || `Déblocage test échoué (${unRes.status}) — vérifiez le firewall.`)
+        return
+      }
+      setTestIpMessage('Test OK : blocage puis déblocage de l’IP de laboratoire exécutés.')
       await load()
+    } catch (e: any) {
+      setTestIpMessage(e?.message || 'Erreur réseau pendant le test.')
     } finally {
       setTestIpBusy(false)
     }
@@ -347,6 +366,11 @@ export default function SecurityOverviewPage() {
             >
               {testIpBusy ? 'Test en cours...' : 'Tester blocage + déblocage sécurisé'}
             </button>
+            {testIpMessage && (
+              <p className={`mt-2 text-xs ${testIpMessage.startsWith('Test OK') ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                {testIpMessage}
+              </p>
+            )}
           </div>
         </div>
 
@@ -401,6 +425,13 @@ export default function SecurityOverviewPage() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-slate-50 dark:bg-slate-900/30 px-4 py-3 text-xs text-gray-700 dark:text-gray-300">
+          <span className="font-semibold text-gray-900 dark:text-gray-100">Légende — Lot sécurité : </span>
+          <span className="ml-1"><strong>Détections</strong> = évènements enregistrés (logs / menaces) sans forcément bloquer.</span>
+          <span className="ml-2"><strong>Blocages manuels</strong> = action admin ou test lab (IP {SAFE_TEST_IP}).</span>
+          <span className="ml-2"><strong>Blocages auto</strong> = moteur menaces / politiques (threat_blocked, etc.).</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

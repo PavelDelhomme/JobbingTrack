@@ -17,11 +17,11 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 ## Lot A — Sécurité
 
-- [ ] A1 — Cohérence détections / menaces / IPs bloquées (`firewallController.js` + UI).
-- [ ] A2 — Mode test blocage IP avec IP dédiée (jamais l’IP client réelle).
-- [ ] A3 — UI : badges ou sections distinctes détection vs blocage manuel vs auto.
-- [ ] A4 — Analyse réseau : supprimer ou expliquer le « unknown » systématique.
-- [ ] A5 — Vérifier `make security-live-check` après chaque changement firewall/WAF.
+- [x] A1 — Cohérence : `blockOrigin` sur IPs bloquées + affichage firewall / analyse (affiner si besoin).
+- [x] A2 — Test IP lab + **refus blocage de sa propre IP** côté API ; messages UI test vue sécurité.
+- [x] A3 — Légende vue sécurité + panneaux Analyse (détections / manuels+lab / auto).
+- [x] A4 — Réseau : corrélation % + hint actionnable (plus de lecture « unknown » seule).
+- [x] A5 — `make security-live-check` : auth firewall/WAF côté security-service + secret interne scripts ; types menaces `generate-test-threats` alignés sur l’API (avril 2026).
 
 ---
 

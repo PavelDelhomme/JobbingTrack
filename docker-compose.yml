@@ -58,9 +58,12 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
@@ -260,6 +263,8 @@ services:
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.test}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
     networks:
       - jobbingtrack-network
     depends_on:
@@ -689,10 +694,14 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - LOG_LEVEL=info
       - SECURITY_SERVICE_URL=http://security-service:3017
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
       - PRISMA_DISABLE_WARNINGS=true
       - DEBUG=
       - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
+      # Même principe que api-gateway : le code src sur l’hôte est pris en compte sans rebuild image
+      - ./backend/security-service/src:/app/src
       - /var/run/docker.sock:/var/run/docker.sock:ro
     cap_add:
       - NET_ADMIN
