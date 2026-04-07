@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import AdminLayout from '@/components/features/AdminLayout'
 import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { LoadingState } from '@/components/ui/LoadingState'
@@ -23,7 +24,27 @@ const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A')
     return value.toFixed(decimals);
   }
   return fallback;
-};
+}
+
+/** Libellé droite « État des services » : le badge vert = processus joignable, pas forcément durée d’uptime remontée par l’agrégateur. */
+function serviceAvailabilityCaption(service: {
+  status?: string
+  uptime?: string
+  responseTime?: string | number
+}): string {
+  const u = service.uptime
+  const looksLikeDuration =
+    typeof u === 'string' && u.length > 0 && u !== 'N/A' && u !== 'En ligne' && u !== 'Hors ligne' && /[\djhms]/.test(u)
+  if (looksLikeDuration) return u
+  const rt = service.responseTime
+  if (rt !== undefined && rt !== null && rt !== 'N/A') {
+    const n = typeof rt === 'number' ? rt : Number(String(rt).replace(/[^\d.]/g, ''))
+    if (!Number.isNaN(n) && n > 0) return `~${Math.round(n)} ms`
+  }
+  if (service.status === 'running') return 'En ligne'
+  if (service.status === 'stopped') return 'Hors ligne'
+  return '—'
+}
 
 export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth()
@@ -378,14 +399,20 @@ export default function BackofficePage() {
                 newStatus = prevService?.status || 'unknown'
               }
               
+              const resolvedUptime =
+                (serviceMetrics?.uptime && serviceMetrics.uptime !== 'N/A' && String(serviceMetrics.uptime).trim() !== '')
+                  ? serviceMetrics.uptime
+                  : (prevService?.uptime && prevService.uptime !== 'N/A' ? prevService.uptime : undefined)
+                  ?? (newStatus === 'running' || containerMetrics ? 'En ligne' : newStatus === 'stopped' ? 'Hors ligne' : '—')
+
               return {
                 ...service,
                 // Garder les anciennes valeurs si les nouvelles ne sont pas disponibles
                 metrics: containerMetrics || serviceMetrics?.metrics || prevService?.metrics,
                 health: serviceMetrics?.health || prevService?.health,
                 status: newStatus,
-                responseTime: serviceMetrics?.health?.responseTime || prevService?.responseTime || 'N/A',
-                uptime: serviceMetrics?.uptime || prevService?.uptime || 'N/A',
+                responseTime: serviceMetrics?.health?.responseTime ?? prevService?.responseTime ?? 'N/A',
+                uptime: resolvedUptime,
               }
             })
           })
@@ -411,16 +438,16 @@ export default function BackofficePage() {
           const totalErrors = allMetrics.errors?.total_last_5m || 0
           const errorRate = allMetrics.errors?.rate_per_min || 0
           
-          // ✅ Calculer les erreurs récentes (24h) depuis les métriques
-          // Pour l'instant, on utilise les erreurs des 5 dernières minutes comme approximation
-          const recentErrors = totalErrors
-          
-          // ✅ Mettre à jour les stats (accepter 0 pour afficher "0 ms" au lieu de garder N/A)
+          // Événements erreur côté agrégateur (fenêtre courte, ex. 5 min) — pas une vue 24h tant que l’API ne l’expose pas
+          const securityWindowErrors = typeof totalErrors === 'number' ? totalErrors : 0
+          const nextErrorRate = typeof errorRate === 'number' && !Number.isNaN(errorRate) ? errorRate : 0
+
+          // ✅ Mettre à jour les stats (0 explicite pour taux / compteurs, pas conserver une ancienne valeur)
           setStats((prev: any) => ({
             ...prev,
             averageResponseTime: (typeof avgResponseTime === 'number' && !Number.isNaN(avgResponseTime)) ? avgResponseTime : prev.averageResponseTime,
-            errorRate: Number(errorRate) > 0 ? Number(errorRate) : prev.errorRate,
-            recentErrors: Number(recentErrors) > 0 ? Number(recentErrors) : prev.recentErrors,
+            errorRate: nextErrorRate,
+            recentErrors: securityWindowErrors,
             systemHealth: allMetrics.health?.availability_percent
               ? Math.round(Number(allMetrics.health.availability_percent))
               : prev.systemHealth
@@ -803,87 +830,90 @@ export default function BackofficePage() {
   return (
     <AdminLayout>
       <div className="space-y-6 md:space-y-8">
-        {/* Métriques principales en grille - Version administrative */}
-        {/* Sous 1280px : 3 colonnes (2 lignes) | À partir de 1280px : 6 colonnes (1 ligne) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
-          <MetricCard
-            title="Sessions Actives"
-            value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
-            subtitle={`${stats.totalUsers || 0} utilisateurs`}
-            icon={<Users className="h-6 w-6" />}
-            color="green"
-            href="/backoffice/users"
-          />
-          <MetricCard
-            title="Erreurs Récentes"
-            value={stats.recentErrors !== undefined ? stats.recentErrors : '...'}
-            subtitle="24h dernières"
-            icon={<Shield className="h-6 w-6" />}
-            color="red"
-            href="/backoffice/security/logs"
-          />
-          <MetricCard
-            title="Santé Système"
-            value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
-            subtitle="Disponibilité"
-            icon={<Zap className="h-6 w-6" />}
-            color="blue"
-          />
-          <MetricCard
-            title="Temps Réponse"
-            value={stats.averageResponseTime != null && typeof stats.averageResponseTime === 'number' ? `${Math.round(stats.averageResponseTime)}ms` : 'N/A'}
-            subtitle="Moyen"
-            icon={<Clock className="h-6 w-6" />}
-            color="purple"
-          />
-          <MetricCard
-            title="CPU Projet (Conteneurs)"
-            value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
-              : systemMetrics?.cpu?.containers_only !== undefined 
-              ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
-              : '...'}
-            subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
-              ? `Total: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
-              : systemMetrics?.jobbingtrack?.containers?.count !== undefined
-              ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
-              : '...'}
-            icon={<Cpu className="h-6 w-6" />}
-            color={
-              (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.cpu.averagePercent 
-                : systemMetrics?.cpu?.containers_only) > 80 
-              ? "red" 
-              : (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.cpu.averagePercent 
-                : systemMetrics?.cpu?.containers_only) > 60 
-              ? "yellow" 
-              : "green"}
-          />
-          <MetricCard
-            title="Mémoire Projet (Conteneurs)"
-            value={systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
-              : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
-              : '...'}
-            subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
-              : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite` 
-              : '...'}
-            icon={<MemoryStick className="h-6 w-6" />}
-            color={
-              (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined 
-                ? systemMetrics.jobbingtrack.containers.memory.percent_of_system 
-                : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 20 
-              ? "red" 
-              : (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined 
-                ? systemMetrics.jobbingtrack.containers.memory.percent_of_system 
-                : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 10 
-              ? "yellow" 
-              : "green"}
-          />
+        {/* Ligne 1 : pilotage produit / dispo — Ligne 2 : ressources conteneurs (évite 6 cartes serrées sur une seule rangée) */}
+        <div className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <MetricCard
+              title="Sessions actives"
+              value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
+              subtitle={`${stats.totalUsers || 0} utilisateurs`}
+              icon={<Users className="h-6 w-6" />}
+              color="green"
+              href="/backoffice/users"
+            />
+            <MetricCard
+              title="Incidents sécurité"
+              value={stats.recentErrors !== undefined ? stats.recentErrors : '...'}
+              subtitle="Fenêtre courte (agrégateur), pas 24 h"
+              icon={<Shield className="h-6 w-6" />}
+              color="red"
+              href="/backoffice/security"
+            />
+            <MetricCard
+              title="Santé système"
+              value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
+              subtitle="Disponibilité"
+              icon={<Zap className="h-6 w-6" />}
+              color="blue"
+            />
+            <MetricCard
+              title="Temps de réponse"
+              value={stats.averageResponseTime != null && typeof stats.averageResponseTime === 'number' ? `${Math.round(stats.averageResponseTime)}ms` : 'N/A'}
+              subtitle="Moyenne agrégée"
+              icon={<Clock className="h-6 w-6" />}
+              color="purple"
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
+            <MetricCard
+              title="CPU projet (conteneurs)"
+              value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
+                : systemMetrics?.cpu?.containers_only !== undefined
+                ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%`
+                : '...'}
+              subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
+                ? `Total ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% (somme CPUs cont.) · ${systemMetrics.jobbingtrack.containers.count || 0} cont. — peut varier si la détection change`
+                : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
+                : '...'}
+              icon={<Cpu className="h-6 w-6" />}
+              color={
+                (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                  ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
+                  : systemMetrics?.cpu?.containers_only) > 80
+                ? 'red'
+                : (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                  ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
+                  : systemMetrics?.cpu?.containers_only) > 60
+                ? 'yellow'
+                : 'green'}
+            />
+            <MetricCard
+              title="Mémoire projet (conteneurs)"
+              value={systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
+                : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
+                : '...'}
+              subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système · ${systemMetrics.jobbingtrack.containers.count || 0} cont.`
+                : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                : '...'}
+              icon={<MemoryStick className="h-6 w-6" />}
+              color={
+                (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                  ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 20
+                ? 'red'
+                : (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                  ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 10
+                ? 'yellow'
+                : 'green'}
+            />
+          </div>
         </div>
 
         {/* Métriques système principales */}
@@ -1239,9 +1269,12 @@ export default function BackofficePage() {
             onClick={() => setShowServicesPopup(true)}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h3
+                className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"
+                title="Le point vert = service considéré joignable. « En ligne » ou « ~X ms » s’affiche quand l’uptime détaillé n’est pas fourni par l’agrégateur."
+              >
                 <Settings className="h-5 w-5" />
-                État des Services
+                État des services
               </h3>
               <button 
                 onClick={(e) => {
@@ -1260,7 +1293,9 @@ export default function BackofficePage() {
                     <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     <span className="font-medium text-gray-900 dark:text-gray-100">{service.name || service.id}</span>
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{service.uptime || 'N/A'}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
+                    {serviceAvailabilityCaption(service)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1268,26 +1303,74 @@ export default function BackofficePage() {
 
           {/* Métriques de performance */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Performance
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+              <div>
+                <h3
+                  className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"
+                  title="Les valeurs viennent du metrics-aggregator (latence, débit erreurs) et de l’API auth (sessions). Ce n’est pas un APM complet."
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  Performance
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
+                  Agrégateur : temps de réponse moyen, débit d&apos;erreurs (erreurs/min, pas un %). Auth : sessions actives.
+                </p>
+              </div>
+              <Link
+                href="/services/backoffice"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+              >
+                Services &amp; logs →
+              </Link>
+            </div>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">
-                  {stats.averageResponseTime > 0 ? `${stats.averageResponseTime}ms` : 'N/A'}
+                <span
+                  className="text-sm text-gray-600 dark:text-gray-400"
+                  title="Moyenne remontée par monitoring / metrics-aggregator (fenêtre courante)"
+                >
+                  Temps de réponse (moy.)
+                </span>
+                <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+                  {typeof stats.averageResponseTime === 'number' && !Number.isNaN(stats.averageResponseTime)
+                    ? `${Math.round(stats.averageResponseTime)}ms`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</span>
-                <span className="font-bold text-red-600 dark:text-red-400">
-                  {stats.errorRate !== undefined ? `${stats.errorRate}%` : 'N/A'}
+                <span
+                  className="text-sm text-gray-600 dark:text-gray-400"
+                  title="Champ rate_per_min côté agrégateur : nombre d’erreurs par minute, pas un pourcentage"
+                >
+                  Débit d&apos;erreurs (agrégateur)
+                </span>
+                <span className="font-bold text-red-600 dark:text-red-400 tabular-nums">
+                  {typeof stats.errorRate === 'number' && !Number.isNaN(stats.errorRate)
+                    ? `${stats.errorRate.toFixed(2)} /min`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Sessions actives</span>
-                <span className="font-bold text-green-600 dark:text-green-400">{stats.activeSessions || 0}</span>
+                <span
+                  className="text-sm text-gray-600 dark:text-gray-400"
+                  title="GET /api/v1/auth/sessions/active — total ou utilisateurs actifs récents selon réponse API"
+                >
+                  Sessions actives (auth)
+                </span>
+                <span className="font-bold text-green-600 dark:text-green-400 tabular-nums">{stats.activeSessions || 0}</span>
+              </div>
+              <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-3">
+                <span
+                  className="text-sm text-gray-600 dark:text-gray-400"
+                  title="Pourcentage de disponibilité agrégé (carte Santé système en haut de page)"
+                >
+                  Disponibilité (synthèse)
+                </span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                  {typeof stats.systemHealth === 'number' && !Number.isNaN(stats.systemHealth)
+                    ? `${Math.round(stats.systemHealth)}%`
+                    : 'N/A'}
+                </span>
               </div>
               {/* ✅ NOUVEAU : Trafic réseau */}
               {systemMetrics?.network && (
@@ -1316,6 +1399,9 @@ export default function BackofficePage() {
                   </div>
                 </>
               )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 pt-3 mt-1 border-t border-dashed border-gray-200 dark:border-gray-600 leading-relaxed">
+                Un débit à 0 peut indiquer une fenêtre sans erreurs agrégées ou une métrique non alimentée ; pour le détail par service, utiliser Services &amp; logs ou le lot B (logs multi-sources, voir doc projet).
+              </p>
             </div>
           </div>
         </div>

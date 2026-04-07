@@ -1,6 +1,34 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 27 mars 2026
+**Dernière mise à jour** : 7 avril 2026
+
+**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots A–F, critères d’acceptation) et **`TODOS.md`** (cases à cocher au fil de l’eau). Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+
+## Comment lire ce fichier
+
+| Bloc (ordre d’apparition) | Rôle |
+|---------------------------|------|
+| **Lecture rapide** | Synthèse par couche : API, backoffice, mobile, sécurité, logs. |
+| **Mises à jour datées** | Journal des changements récents (observabilité, sécurité, etc.). |
+| **Points de vigilance** | Points à revalider après rebuild / image Docker. |
+| **Audit global** | Ce qui est opérationnel, blocages produit, décisions doc (ex. intérim). |
+| **À faire maintenant** | Priorités P0–P2 **produit** + exécution **en parallèle** des lots A–F (chantier technique). |
+| **Chantier lots A–F** (tableau ci-dessous) | Suivi aligné sur **`PLAN.md`** / **`TODOS.md`** (équivalent logique au plan Cursor `chantier_securite_data_docs_*.plan.md`, versionné dans le dépôt via `PLAN.md`). |
+| **Sections numérotées 1–5** | Détail suivi-intérim, billing, mobile, tests, commandes Makefile. |
+| **Récapitulatifs / historique** | Tests, migrations, erreurs connues → compléter avec **`ERRORS.md`**, **`RESOLUTIONS.md`**. |
+
+## Chantier lots A–F — suivi (avril 2026)
+
+| Lot | Thème | Statut | Où détailler |
+|-----|--------|--------|----------------|
+| **A** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau sans « unknown » inutile) | **En cours** | `PLAN.md` § A, `TODOS.md`, fichiers `firewallController.js`, pages `backoffice/security/*` |
+| **B** | Logs multi-services + filtres + corrélation sécurité | À faire | `PLAN.md` § B, `(development)/services/**`, gateway |
+| **C** | Suivi-intérim, bases principal/test, données test | À faire | `PLAN.md` § C, `SuiviInterimContent.tsx` |
+| **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
+| **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (cette vague : ERRORS, FONCTIONNALITES, STATUS, PLAN, TODOS, RESOLUTIONS, index `docs/`) | `PLAN.md` § E, `TODOS.md` lot E |
+| **F** | Tests ciblés + bilan final chantier | À faire | `PLAN.md` § F |
+
+**Critères d’acceptation** du chantier : voir **`PLAN.md`** (en-tête).
 
 ## Lecture rapide — état par couche
 
@@ -11,6 +39,15 @@
 | **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
 | **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; règles affinées (moins de faux positifs) ; `make security-live-check` pour validation live ; anti-doublon règles firewall côté security-service. | `make security-live-check`, pages Sécurité backoffice. |
 | **Logs / monitoring** | Logs applicatifs OK ; agrégateur / métriques selon profil Docker ; Loki optionnel (dégradation propre si absent). | Dashboard monitoring backoffice, `metrics-aggregator`. |
+
+### Mise à jour observabilité & tableau de bord admin (07/04/2026)
+
+- **Vue d’ensemble `/backoffice`** : carte **« Incidents sécurité »** (à la place d’« Erreurs récentes ») avec sous-titre aligné sur la **fenêtre courte de l’agrégateur** (évite la confusion « 24 h » tant que l’API n’expose pas cette fenêtre) ; lien vers **`/backoffice/security`**.
+- **Métriques** : grille en **deux rangées** (pilotage : sessions, sécurité, santé, temps de réponse ; puis CPU / mémoire conteneurs projet).
+- **État des services** : la colonne de droite affiche **disponibilité** ou **temps de réponse** lorsque l’**uptime détaillé** n’est pas fourni par les métriques — le point vert signale la **joignabilité**, pas forcément une durée d’uptime remontée.
+- **Performance (panneau)** : affichage du temps de réponse même à **0 ms** ; **débit d’erreurs** exprimé en **erreurs/min** (cohérent avec `rate_per_min` côté agrégateur, ce n’est pas un pourcentage).
+- **CPU projet** : sous-titre qui précise que le **total %** est une **somme sur les conteneurs détectés** et peut varier si la liste change.
+- **Suite du chantier** : sécurité multi-vues, logs multi-services, suivi-intérim, doc — détaillé dans **`PLAN.md`** / **`TODOS.md`**.
 
 ### Mise à jour sécurité (26/03/2026)
 
@@ -88,6 +125,8 @@ Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clé
 ## À faire maintenant (priorité)
 
 **Objectif prioritaire produit** : rendre l’application **utilisable immédiatement pour la recherche d’emploi** (mobile + API + backoffice utile), puis industrialiser le déploiement VPS.
+
+**En parallèle (cohérence backoffice / API / doc)** : exécuter les lots **A → F** décrits dans **`PLAN.md`**, en suivant les cases de **`TODOS.md`**. Les tâches volontairement non urgentes restent dans **`docs/BACKLOG.md`** plutôt que d’alourdir `TODOS.md`.
 
 ### P0 — Utilisable au quotidien (immédiat)
 
@@ -650,7 +689,7 @@ await adb.runScenario('complete');
 | Categorie | Fait | Reste |
 |-----------|------|-------|
 | Stack / BDD | 21/21 services, 47 tables, monitoring OK, soft delete + corbeille + archivage | Tables optionnelles (`deployments`, analytics utilisateur) ; cron purge corbeille > 30 j |
-| Backoffice | Connexion admin, hub Tests, rapports CLI dans l’UI, CRUD données, sécurité, **page + onglet Suivi intérim** | Export/import, page « email vérifié », billing, polish Analyse sécurité |
+| Backoffice | Connexion admin, hub Tests, rapports CLI dans l’UI, CRUD données, sécurité, **page + onglet Suivi intérim**, **vue d’ensemble dashboard clarifiée (07/04)** | Export/import, page « email vérifié », billing, logs **multi-services**, polish Analyse sécurité / réseau (voir `PLAN.md` lot A–B) |
 | Parcours | 22 scenarios mobile + 21 API, personnalise, rapports | Tests temporels bout en bout |
 | Tests | Suite large (voir **dernier** `tests/results/…`) ; nombre de tests varie selon config | Faire tourner `make tests` après chaque gros changement ; suivre **ERRORS.md** |
 | Emails | SMTP OK, MailHog OK, pages backoffice | Parcours inscription réel multi-fournisseurs |
@@ -764,10 +803,13 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 ## Documentation
 
-**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, **`PLAN.md`**, **`TODOS.md`**. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
 
 | Sujet | Fichier |
 |-------|---------|
+| **Plan chantier backoffice + API + doc (lots A–F)** | **`PLAN.md`** |
+| **Liste de tâches opérationnelles (cases à cocher)** | **`TODOS.md`** |
+| **Index chantier dans docs/** | **`docs/CHANTIER_SECURITE_DATA_DOCS.md`** |
 | **Migrations Prisma et bases (principale vs test)** | `docs/database/MIGRATIONS_ET_BASES.md` |
 | **Guide pratique – quoi faire maintenant (backoffice, test-data, intérim, mobile, BDD)** | **`docs/GUIDE_ETAPES_ACTUELLES.md`** |
 | **À faire maintenant (priorité)** | Voir section « À faire maintenant » en tête de ce fichier |

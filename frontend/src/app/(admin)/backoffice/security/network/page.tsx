@@ -15,6 +15,7 @@ interface NetworkStats {
   connectionsByContainer: Record<string, number>;
   topSourceIps: Record<string, number>;
   topDestinationPorts: Record<string, number>;
+  unmappedConnections?: number;
   timestamp: string;
 }
 
@@ -254,6 +255,12 @@ export default function NetworkStatsPage() {
               )}
             </div>
           </div>
+          {(stats?.unmappedConnections || 0) > 0 && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+              {stats?.unmappedConnections} connexion(s) n&apos;ont pas pu être rattachées à un conteneur (label `unmapped`).
+              Vérifie les namespaces réseau Docker pour améliorer la corrélation.
+            </p>
+          )}
         </div>
 
         {/* Connexions par conteneur */}
@@ -275,7 +282,9 @@ export default function NetworkStatsPage() {
                 <tbody>
                   {getTopItems(stats.connectionsByContainer).map(([container, count]) => (
                     <tr key={container} className="border-b border-gray-200 dark:border-gray-700">
-                      <td className="p-3 font-semibold">{container || 'unknown'}</td>
+                      <td className="p-3 font-semibold">
+                        {container === 'unmapped' ? 'non-corrélé (à qualifier)' : container || 'non-corrélé (à qualifier)'}
+                      </td>
                       <td className="p-3">{count}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">

@@ -1,6 +1,29 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : avril 2026
+
+---
+
+## Avril 2026 – Vue d’ensemble backoffice : observabilité et libellés métriques
+
+### Contexte
+- Confusion possible entre **uptime** affiché **N/A** et point **vert** (service pourtant joignable).
+- Libellé **« Erreurs récentes 24 h »** alors que l’agrégateur expose une **fenêtre courte** (ex. quelques minutes).
+- **Taux d’erreur** affiché en **%** alors que le backend expose **`rate_per_min`** (débit).
+- Compteurs **recentErrors** / **errorRate** qui ne repassaient pas à **0** quand l’agrégateur renvoyait zéro.
+
+### Solution (frontend `frontend/src/app/(admin)/backoffice/page.tsx`)
+1. Carte **Incidents sécurité** + sous-titre honnête sur la fenêtre agrégateur ; lien vers `/backoffice/security`.
+2. Grille en **deux rangées** (pilotage puis ressources conteneurs).
+3. Fonction **`serviceAvailabilityCaption`** : affichage **En ligne** / **~X ms** / durée d’uptime si présente.
+4. Fusion métriques services : **uptime** résolu quand statut running sans uptime API (**En ligne**).
+5. **setStats** : `errorRate` et `recentErrors` mis à jour avec **0** explicite quand la source renvoie 0.
+6. Panneau Performance : temps de réponse pour toute valeur numérique (y compris 0 ms) ; débit **X,XX /min** ; libellés clarifiés.
+7. Sous-titre carte CPU : **total** = somme CPUs conteneurs, peut varier avec les détections Docker.
+
+### Documentation
+- **ERRORS.md** : section *Pièges d’interprétation* + synthèse pipeline (base lot B).
+- **STATUS.md**, **PLAN.md**, **TODOS.md**, **docs/CHANTIER_SECURITE_DATA_DOCS.md** : navigation chantier lots A–F.
 
 ---
 

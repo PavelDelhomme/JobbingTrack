@@ -10,6 +10,10 @@ const securityService = require('../services/securityService');
 
 const prisma = new PrismaClient();
 const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+/** Marqueur Prisma pour les blocages IP créés via l’API (déblocable proprement). */
+const MANUAL_IP_BLOCK_MARKER = '[MANUAL_IP_BLOCK_API]';
+/** IP de laboratoire RFC 5737 — seule IP autorisée pour `mode: "lab_simulation"`. */
+const LAB_BLOCK_IP = String(process.env.SECURITY_LAB_BLOCK_IP || '203.0.113.77').trim();
 const ALLOWED_THREAT_TYPES = new Set([
   'SYN_FLOOD',
   'PORT_SCAN',
@@ -23,6 +27,41 @@ const ALLOWED_THREAT_TYPES = new Set([
   'WAF_BLOCK',
   'FIREWALL_BLOCK'
 ]);
+
+/** Ports internes courants → indice de service (quand Docker n’est pas mappable depuis le conteneur). */
+const PORT_SERVICE_HINTS = {
+  3000: 'port-3000 (api-gateway)',
+  3001: 'port-3001 (auth)',
+  3002: 'port-3002 (applications)',
+  3003: 'port-3003 (companies)',
+  3004: 'port-3004 (contacts)',
+  3005: 'port-3005 (interviews)',
+  3006: 'port-3006 (notifications)',
+  3007: 'port-3007 (dashboard)',
+  3008: 'port-3008 (calls)',
+  3009: 'port-3009 (profile)',
+  3011: 'port-3011 (events)',
+  3012: 'port-3012 (followups)',
+  3013: 'port-3013 (workflow)',
+  3014: 'port-3014 (metrics-aggregator)',
+  3017: 'port-3017 (security)',
+  5432: 'port-5432 (postgres)',
+  6379: 'port-6379 (redis)',
+};
+
+function resolveContainerLabel(conn = {}) {
+  const containerName = String(conn.containerName || '').trim();
+  const containerId = String(conn.containerId || '').trim();
+  if (containerName && containerName.toLowerCase() !== 'unknown') return containerName;
+  if (containerId) return `container:${containerId.slice(0, 12)}`;
+  const localIp = String(conn.localIp || '');
+  if (localIp.startsWith('127.') || localIp === '::1') return 'host-local';
+  if (localIp.startsWith('172.') || localIp.startsWith('10.') || localIp.startsWith('192.168.')) return 'host-network';
+  const lp = Number(conn.localPort);
+  if (lp && PORT_SERVICE_HINTS[lp]) return PORT_SERVICE_HINTS[lp];
+  if (lp) return `port:${lp} (non mappé Docker)`;
+  return 'unmapped';
+}
 
 function normalizeRulePayload(payload = {}) {
   const normalizedSourceIp = payload.sourceIp && String(payload.sourceIp).trim() !== ''
@@ -432,31 +471,37 @@ async function deleteFirewallRule(req, res) {
 async function getNetworkStats(req, res) {
   try {
     const metrics = await networkMonitor.collectNetworkMetrics();
+    const connections = metrics.connections || [];
     
     // Formater les données pour le frontend
     const stats = {
-      totalConnections: metrics.connections?.length || 0,
-      tcpConnections: metrics.connections?.filter(c => c.protocol === 'TCP').length || 0,
-      udpConnections: metrics.connections?.filter(c => c.protocol === 'UDP').length || 0,
-      connectionsByState: metrics.connections?.reduce((acc, conn) => {
+      totalConnections: connections.length || 0,
+      tcpConnections: connections.filter(c => c.protocol === 'TCP').length || 0,
+      udpConnections: connections.filter(c => c.protocol === 'UDP').length || 0,
+      connectionsByState: connections.reduce((acc, conn) => {
         // Les états sont déjà convertis en noms lisibles par collectNetworkMetrics
         const stateName = typeof conn.state === 'string' ? conn.state : networkMonitor.getStateName(conn.state);
         acc[stateName] = (acc[stateName] || 0) + 1;
         return acc;
       }, {}) || {},
-      connectionsByContainer: metrics.connections?.reduce((acc, conn) => {
-        const containerName = conn.containerName || conn.containerId || 'unknown';
-        acc[containerName] = (acc[containerName] || 0) + 1;
+      connectionsByContainer: connections.reduce((acc, conn) => {
+        const label = resolveContainerLabel(conn);
+        acc[label] = (acc[label] || 0) + 1;
         return acc;
       }, {}) || {},
-      topSourceIps: metrics.connections?.reduce((acc, conn) => {
-        acc[conn.remoteIp] = (acc[conn.remoteIp] || 0) + 1;
+      topSourceIps: connections.reduce((acc, conn) => {
+        const remoteIp = String(conn.remoteIp || '').trim();
+        if (!remoteIp || remoteIp === 'undefined' || remoteIp === '::') {
+          return acc;
+        }
+        acc[remoteIp] = (acc[remoteIp] || 0) + 1;
         return acc;
       }, {}) || {},
-      topDestinationPorts: metrics.connections?.reduce((acc, conn) => {
+      topDestinationPorts: connections.reduce((acc, conn) => {
         acc[conn.localPort] = (acc[conn.localPort] || 0) + 1;
         return acc;
       }, {}) || {},
+      unmappedConnections: connections.filter((conn) => resolveContainerLabel(conn) === 'unmapped').length,
       timestamp: new Date().toISOString()
     };
     
@@ -875,7 +920,8 @@ async function purgeThreats(req, res) {
  */
 async function blockIp(req, res) {
   try {
-    const { ip, reason } = req.body;
+    const { ip, reason, mode } = req.body;
+    const labMode = String(mode || '').toLowerCase() === 'lab_simulation';
 
     if (!ip) {
       return res.status(400).json({
@@ -889,44 +935,91 @@ async function blockIp(req, res) {
         error: 'Format IP invalide'
       });
     }
+    const ipNorm = String(ip).trim();
+    if (labMode && ipNorm !== LAB_BLOCK_IP) {
+      return res.status(400).json({
+        success: false,
+        error: `Mode lab_simulation: utilisez uniquement l’IP de test ${LAB_BLOCK_IP} (RFC 5737 TEST-NET-3).`
+      });
+    }
 
-    const result = await firewallEngine.blockIp(ip, reason || 'Manual block');
+    const result = await firewallEngine.blockIp(ipNorm, reason || 'Manual block');
 
     // Enregistrer dans les logs de sécurité
     const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent') || 'unknown';
+    const iptablesApplied = result.iptablesApplied === true;
     
     if (result.success) {
       await securityService.createSecurityLog({
         level: 'critical',
         category: 'firewall',
-        eventType: 'ip_blocked_manually',
-        message: `IP bloquée manuellement: ${ip} - ${reason || 'Manual block'}`,
+        eventType: labMode ? 'ip_blocked_lab_simulation' : 'ip_blocked_manually',
+        message: labMode
+          ? `Blocage de test (lab): ${ipNorm} — ${reason || 'lab_simulation'}`
+          : `IP bloquée manuellement: ${ipNorm} - ${reason || 'Manual block'}`,
         sourceIP: clientIP,
         userAgent: userAgent,
         userId: req.user?.id || null,
         endpoint: req.originalUrl,
         method: req.method,
         statusCode: 200,
-        riskScore: 90,
+        riskScore: labMode ? 20 : 90,
         isBlocked: true,
         blockReason: reason || 'Manual block',
         metadata: {
-          blockedIp: ip,
+          blockedIp: ipNorm,
           reason: reason || 'Manual block',
           blockedBy: clientIP,
           blockedByUser: req.user?.id || null,
-          iptablesApplied: true,
+          iptablesApplied,
+          labSimulation: labMode,
           blockedAt: new Date().toISOString()
         }
       }).catch(err => {
         logger.error('Erreur création log sécurité pour blocage IP:', err);
       });
+
+      // Source de vérité liste « IPs bloquées » : règle DENY en base (iptables souvent absent en Docker)
+      try {
+        const existing = await prisma.firewallRule.findFirst({
+          where: {
+            sourceIp: ipNorm,
+            action: { in: ['DENY', 'REJECT'] },
+            description: { contains: MANUAL_IP_BLOCK_MARKER }
+          }
+        });
+        const desc = `${MANUAL_IP_BLOCK_MARKER} ${labMode ? 'lab_simulation ' : ''}${reason || 'Manual block'}`.trim();
+        if (existing) {
+          await prisma.firewallRule.update({
+            where: { id: existing.id },
+            data: { enabled: true, description: desc, name: labMode ? `Lab block ${ipNorm}` : `Blocage IP ${ipNorm}` }
+          });
+        } else {
+          await prisma.firewallRule.create({
+            data: {
+              name: labMode ? `Lab block ${ipNorm}` : `Blocage IP ${ipNorm}`,
+              description: desc,
+              sourceIp: ipNorm,
+              destPort: null,
+              protocol: 'TCP',
+              action: 'DENY',
+              priority: labMode ? 120 : 50,
+              enabled: true
+            }
+          });
+        }
+      } catch (ruleErr) {
+        if (ruleErr.code !== 'P2021' && !String(ruleErr.message || '').includes('does not exist')) {
+          logger.warn('Persistance règle blocage IP (non bloquant):', ruleErr.message);
+        }
+      }
     }
 
     res.json({
       success: result.success,
-      message: result.message
+      message: result.message,
+      data: { ip: ipNorm, labSimulation: labMode, iptablesApplied }
     });
   } catch (error) {
     logger.error('Erreur blocage IP:', error);
@@ -959,6 +1052,20 @@ async function unblockIp(req, res) {
     }
 
     const result = await firewallEngine.unblockIp(ip);
+
+    try {
+      await prisma.firewallRule.updateMany({
+        where: {
+          sourceIp: String(ip).trim(),
+          description: { contains: MANUAL_IP_BLOCK_MARKER }
+        },
+        data: { enabled: false }
+      });
+    } catch (ruleErr) {
+      if (ruleErr.code !== 'P2021' && !String(ruleErr.message || '').includes('does not exist')) {
+        logger.warn('Désactivation règle blocage IP (non bloquant):', ruleErr.message);
+      }
+    }
 
     // Enregistrer dans les logs de sécurité
     const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
@@ -1073,6 +1180,75 @@ async function getBlockedIps(req, res) {
       } catch (iptablesError) {
         // ✅ CORRECTION : Ne pas logger l'erreur iptables (normal en Docker)
         // Ignorer silencieusement
+      }
+    }
+
+    // Consolider avec les menaces marquées "blocked=true" (source de vérité sécurité applicative)
+    try {
+      const blockedThreats = await prisma.networkThreat.findMany({
+        where: { blocked: true },
+        select: {
+          sourceIp: true,
+          detectedAt: true,
+          threatType: true
+        },
+        orderBy: { detectedAt: 'desc' },
+        take: 500
+      });
+      for (const threat of blockedThreats) {
+        const ip = String(threat.sourceIp || '').trim();
+        if (!ip) continue;
+        const exists = blockedIps.some((item) => String(item.ip || '').trim() === ip);
+        if (!exists) {
+          blockedIps.push({
+            ip,
+            blockedAt: threat.detectedAt,
+            reason: `Menace bloquée (${threat.threatType || 'threat_blocked'})`
+          });
+        }
+      }
+    } catch (threatsError) {
+      logger.warn('Consolidation blocked-ips via menaces indisponible:', threatsError.message);
+    }
+
+    // Fallback final: reconstruire une vue "IPs actuellement bloquées" à partir des logs sécurité
+    // utile en dev Docker quand iptables n'est pas accessible depuis le conteneur.
+    if (blockedIps.length === 0) {
+      try {
+        const recentLogs = await prisma.securityLog.findMany({
+          where: {
+            eventType: {
+              in: ['ip_blocked_manually', 'ip_blocked_lab_simulation', 'ip_unblocked_manually', 'threat_blocked', 'ip_blocked_automatically']
+            }
+          },
+          select: {
+            eventType: true,
+            createdAt: true,
+            metadata: true,
+            message: true
+          },
+          orderBy: { createdAt: 'asc' },
+          take: 500
+        });
+        const latestByIp = new Map();
+        for (const log of recentLogs) {
+          const ip = String(
+            log?.metadata?.blockedIp ||
+            log?.metadata?.unblockedIp ||
+            ''
+          ).trim();
+          if (!ip) continue;
+          latestByIp.set(ip, log);
+        }
+        blockedIps = Array.from(latestByIp.entries())
+          .filter(([, log]) => log?.eventType === 'ip_blocked_manually' || log?.eventType === 'ip_blocked_lab_simulation' || log?.eventType === 'threat_blocked' || log?.eventType === 'ip_blocked_automatically')
+          .map(([ip, log]) => ({
+            ip,
+            blockedAt: log.createdAt,
+            reason: log?.message || 'Blocage détecté dans les logs sécurité'
+          }));
+      } catch (logsError) {
+        logger.warn('Fallback blocked-ips via security logs indisponible:', logsError.message);
       }
     }
 

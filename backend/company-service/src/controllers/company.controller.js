@@ -91,8 +91,11 @@ const getCompanies = async (req, res, next) => {
     const { page = 1, limit = 10, search } = req.query;
     const offset = (page - 1) * limit;
     
+    const role = String(req.user?.role || '');
+    const isElevated = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    const interimListAll = isElevated && req.query.companyType === 'TEMP_AGENCY';
     const where = {
-      userId: req.user.id,
+      ...(interimListAll ? {} : { userId: req.user.id }),
       deletedAt: null,
       isArchived: false,
       ...(req.query.companyType === 'TEMP_AGENCY' ? { companyType: 'TEMP_AGENCY' } : req.query.companyType === 'EMPLOYER' ? { companyType: 'EMPLOYER' } : {}),

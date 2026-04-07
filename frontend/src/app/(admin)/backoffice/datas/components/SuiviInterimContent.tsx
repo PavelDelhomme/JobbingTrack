@@ -57,7 +57,13 @@ export default function SuiviInterimContent() {
       setLoadingAgency(prev => ({ ...prev, [agencyId]: true }))
       try {
         const res = await applicationService.getAll({ agencyId, limit: 100 })
-        const apps = res.data.applications || []
+        let apps = res.data.applications || []
+        // Compatibilité données historiques: certaines candidatures d'intérim sont liées via companyId.
+        if (!apps.length) {
+          const allRes = await applicationService.getAll({ limit: 200 })
+          const allApps = allRes.data.applications || []
+          apps = allApps.filter((a: Application) => a.companyId === agencyId || a.agencyId === agencyId)
+        }
         setApplicationsByAgency(prev => ({ ...prev, [agencyId]: apps }))
       } catch (e) {
         console.error('Erreur chargement candidatures agence:', e)

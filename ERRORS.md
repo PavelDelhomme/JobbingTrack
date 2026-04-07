@@ -1,10 +1,33 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 25 mars 2026
+**Dernière mise à jour** : 7 avril 2026
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
+
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`**, **`TODOS.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+
+---
+
+## Pièges d’interprétation — vue d’ensemble `/backoffice` (ce ne sont pas des bugs)
+
+| Ce que vous voyez | Interprétation correcte |
+|-------------------|-------------------------|
+| Point vert service + pas de durée type « 15j 4h » | Le vert = **joignabilité** (conteneur / health). L’**uptime textuel** n’est pas toujours fourni par l’agrégateur ; l’UI peut afficher **« En ligne »** ou **« ~X ms »** (temps de réponse). |
+| **Débit d’erreurs** en **/min** | Correspond au champ **`rate_per_min`** du metrics-aggregator (débit), **pas** un pourcentage. |
+| Carte **Incidents sécurité** (nombre) | Données issues d’une **fenêtre courte** côté agrégateur (ex. erreurs récentes agrégées) ; ce n’est **pas** une vue « dernières 24 h » tant que l’API ne l’expose pas explicitement. |
+| **CPU total %** sous la moyenne conteneurs | Souvent une **somme** des CPU des conteneurs détectés ; peut varier si la liste Docker change, alors que la **moyenne** reste plus stable. |
+
+### Pipeline erreurs / logs (synthèse — à enrichir au lot B)
+
+1. **API Gateway** : trafic entrant, codes HTTP, routage vers les microservices.
+2. **Microservices** : erreurs métier et logs applicatifs par service.
+3. **security-service** : menaces, firewall, logs sécurité.
+4. **metrics-aggregator** : agrégats (`errors.total_last_5m`, `errors.rate_per_min`, métriques système / conteneurs) consommés par le backoffice.
+5. **Backoffice** : cartes vue d’ensemble, pages **Développement → Services**, sécurité, statistiques.
+
+**Lot B (PLAN.md)** : logs **tous** services filtrables, corrélation avec la sécurité dans les vues détail, et doc pipeline affinée après implémentation.
 
 ---
 
@@ -20,7 +43,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | Endpoint sync non implémenté | sync mobile/API | `SyncQueue` en BDD, pas d’API | Créer `POST /sync/push`, `GET /sync/pull`, `GET /sync/status` |
 | Transitions auto « time-travel » / moteur daté | workflow + application-service / tests | Endpoint time-travel existe ; jobs ou scénarios E2E incomplets pour NO_RESPONSE 7j, etc. | Finaliser cron/worker + suite `status-engine-temporal` (voir section ci-dessous) |
 | Suppression auto corbeille > 30 j | cron/worker | Purge définitive non garantie | Job planifié côté service qui gère la corbeille |
-| Pages sécurité « Analyse » / polish logs | Frontend / API | Firewall, menaces, logs utilisables ; **Analyse** et agrégations perfectibles | Finaliser UX Analyse et tests E2E ciblés |
+| Pages sécurité « Analyse » / cohérence menaces–blocages–réseau | Frontend / API / security-service | Lot **A** du chantier (`PLAN.md`) : analyse réseau, unknown %, alignement détections / IPs bloquées | Voir `TODOS.md` lot A ; `firewallController.js`, `backoffice/security/*` |
+| Logs backoffice surtout « sécurité » | metrics-aggregator + UI | Lot **B** : logs **tous** services, filtres service/niveau/période | Voir `PLAN.md` § B, `(development)/services/backoffice` |
 | CSS @-o-keyframes (Opera legacy) | Frontend | Warning console « Unrecognized at-rule » | Optionnel : supprimer le préfixe Opera |
 
 ---

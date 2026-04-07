@@ -420,8 +420,8 @@ export const adminService = {
     
     // Logs
     getAvailableServices: () => apiClient.get('/admin/logs/services'),
-    getServiceLogs: (serviceName: string, lines = 100) => 
-        apiClient.get(`/admin/logs/${serviceName}`, { params: { lines } }),
+    getServiceLogs: (serviceName: string, lines = 100, extra?: { since?: string; until?: string }) =>
+        apiClient.get(`/admin/logs/${serviceName}`, { params: { lines, ...extra } }),
     getAllLogs: (lines = 100) => 
         apiClient.get('/admin/logs/all', { params: { lines } }),
     streamServiceLogs: (serviceName: string) => 

@@ -446,9 +446,15 @@ async function main() {
       const owner = companyOwners[i % companyOwners.length];
       const company = companies[i % companies.length];
       const position = POSITIONS[i % POSITIONS.length];
-      const agencyId = tempAgencies.length > 0 && i % 3 === 0
-        ? tempAgencies[i % tempAgencies.length].id
-        : null;
+      // Au moins une candidature par boîte d’intérim + répartition régulière pour le Suivi intérim
+      let agencyId = null;
+      if (tempAgencies.length > 0) {
+        if (i < tempAgencies.length) {
+          agencyId = tempAgencies[i].id;
+        } else if (i % 2 === 0) {
+          agencyId = tempAgencies[i % tempAgencies.length].id;
+        }
+      }
 
       const applicationDate = new Date();
       applicationDate.setDate(applicationDate.getDate() - Math.floor(Math.random() * 60));

@@ -1,8 +1,10 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : avril 2026
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
+
+**Alignement chantier** (sécurité, logs, suivi-intérim, doc) : **`PLAN.md`**, **`TODOS.md`**, **`STATUS.md`**. Les écarts document / code en cours de traitement sont listés dans **`ERRORS.md`** (dont § *Pièges d’interprétation* pour le dashboard admin).
 
 ---
 
@@ -128,10 +130,13 @@ Le systeme utilise **deux mecanismes distincts** :
 
 ## 4. Fonctionnalites du backoffice web
 
-### 4.1 Dashboard
-- Vue d'ensemble : nombre de candidatures actives, entretiens a venir, relances en attente, contacts
-- Metriques systeme : CPU, memoire, conteneurs Docker, sante des services
-- Acces rapide a toutes les sections
+### 4.1 Dashboard (vue d'ensemble `/backoffice`)
+
+- **Cartes métriques (deux rangées)** : (1) sessions actives (dont source API sessions), carte **Incidents sécurité** (compteur aligné sur la fenêtre courte de l’agrégateur — pas une promesse « 24 h » sans endpoint dédié), santé système %, temps de réponse moyen ms ; (2) CPU et mémoire **projet / conteneurs** avec libellés explicites (total CPU = somme des conteneurs détectés, peut varier).
+- **Bloc État du système** : charge, disque, CPU / mémoire machine vs projet, conteneurs actifs, résumé services (voir **ERRORS.md** si un service est vert sans uptime affiché : joignabilité ≠ durée d’uptime remontée).
+- **État des services (aperçu)** : point vert = service considéré joignable ; colonne de droite = uptime si disponible, sinon **En ligne**, **~X ms**, ou **—**.
+- **Panneau Performance** : temps de réponse ms (metrics-aggregator), **débit d’erreurs en /min** (`rate_per_min`, pas un %), sessions actives (auth), trafic RX/TX si métriques réseau présentes ; lien vers **Services & logs** (`/services/backoffice`) ; légende des sources en UI.
+- Accès rapide aux sections admin ; métriques détaillées par service : page **Services** backoffice.
 
 ### 4.2 Gestion des donnees (CRUD complet)
 
@@ -183,7 +188,7 @@ Le systeme utilise **deux mecanismes distincts** :
 - Types : rappel, mise a jour candidature, entretien programme, relance due, deadline, systeme
 
 ### 4.3 Pages specifiques backoffice
-- Statistiques & Monitoring (vue d'ensemble, securite, logs)
+- Statistiques & Monitoring (vue d'ensemble, securite, logs) — *chantier lots A–B : pages sécurité et logs multi-services à renforcer, voir `PLAN.md`*
 - Analytics (performances reseau, CPU, conteneurs, utilisateur)
 - Securite (analyse, firewall, reseau, politiques, menaces, logs)
 - Services (liste, onglets, details, demarrer/arreter/redemarrer)
