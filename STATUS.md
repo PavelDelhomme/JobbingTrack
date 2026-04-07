@@ -37,7 +37,7 @@
 | **API / microservices** | Fonctionnel en dev Docker (`make up-full`) ; quelques tables optionnelles manquantes (voir ERRORS.md : `deployments`, `user_events`). | Health services, `make test`, logs `make logs`. |
 | **Backoffice web** | CRUD données, sécurité, rapports de tests, suivi intérim **présents** ; polish et E2E à stabiliser. | Navigation admin, `/backoffice/suivi-interim`, `/backoffice/test-reports`. |
 | **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
-| **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; routes **firewall / WAF** du security-service protégées (**JWT** ou **`X-Internal-Secret`** partagé avec les scripts live-check et la gateway) ; `make security-live-check` pour validation live ; anti-doublon règles firewall. | `make security-live-check`, pages Sécurité backoffice. |
+| **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; routes **firewall / WAF** du security-service protégées (**JWT** ou **`X-Internal-Secret`** partagé avec les scripts live-check et la gateway) ; `make security-live-check` **vert** si image **rebuildée** après changement de deps + volume `src` ; anti-doublon règles firewall. | `make security-live-check`, pages Sécurité backoffice. |
 | **Logs / monitoring** | Logs applicatifs OK ; agrégateur / métriques selon profil Docker ; Loki optionnel (dégradation propre si absent). | Dashboard monitoring backoffice, `metrics-aggregator`. |
 
 ### Mise à jour observabilité & tableau de bord admin (07/04/2026)
@@ -84,6 +84,7 @@ Ces points ont été traités en code à une date proche ; **à revalider** sur 
 |-------|--------|-------------------|
 | **workflow-service** crash au boot (`cronScheduler.js`) | Correctif code ; **rebuild** requis | `make rebuild-service SERVICE=workflow-service` puis `make restart-service SERVICE=workflow-service` (un simple `restart` ne reconstruit pas l’image). |
 | **security-service** scheduler `prisma.securityMetric` | **Corrigé** : fallback `securityMetricTable \|\| securityMetric` dans `securityScheduler.js` | Rebuild `security-service` si tu vois encore l’erreur sur une vieille image. |
+| **`make security-live-check`** / middleware firewall | Code à jour via volume **`src`** ; dépendances (**`jsonwebtoken`**, etc.) dans l’**image** ; **`security-service`** en **`user: 0:0`** + **NET_ADMIN** pour **`iptables`** en dev | Après `git pull` touchant `package.json` du security-service : `docker compose build security-service` puis recreate. Les **`warn` WAF** pendant le script sont **attendus** (voir **RESOLUTIONS.md**). |
 | **monitoring-c** format JSON | Test adapté aux **deux** formes de payload | Si nouveau format, mettre à jour le test. |
 | **E2E login / setup** | Correctifs (localStorage, `/backoffice`, type mot de passe) | Relancer Playwright ; vérifier `storageState` et timeouts. |
 | **MailHog** `500 Unrecognised command` | Healthchecks HTTP sur port **SMTP 1025** au lieu de **8025** | Bruit connu ; corriger l’URL du healthcheck côté appelant si besoin. |

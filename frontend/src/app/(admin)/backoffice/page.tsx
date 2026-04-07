@@ -26,6 +26,21 @@ const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A')
   return fallback;
 }
 
+/** Même priorité que l’affichage principal « CPU Système » (cohérence chiffre + pastille). */
+function getSystemCpuPercentForDisplay(systemMetrics: any): number | undefined {
+  if (!systemMetrics) return undefined
+  if (systemMetrics.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) {
+    return systemMetrics.cpu.usage_percent
+  }
+  if (typeof systemMetrics.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0) {
+    return systemMetrics.cpu.usage
+  }
+  if (systemMetrics.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0) {
+    return systemMetrics.monitoringC.avg_cpu_percent
+  }
+  return undefined
+}
+
 /** Libellé droite « État des services » : le badge vert = processus joignable, pas forcément durée d’uptime remontée par l’agrégateur. */
 function serviceAvailabilityCaption(service: {
   status?: string
@@ -896,10 +911,10 @@ export default function BackofficePage() {
                 : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
                 ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
                 : '...'}
-              subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système · ${systemMetrics.jobbingtrack.containers.count || 0} cont.`
-                : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+              subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
+                ? `% RAM hôte · ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB · ${systemMetrics.jobbingtrack.containers.count || 0} cont.`
+                : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
+                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite cgroup`
                 : '...'}
               icon={<MemoryStick className="h-6 w-6" />}
               color={
@@ -1033,108 +1048,135 @@ export default function BackofficePage() {
               </div>
             </div>
 
-            {/* 2. CPU Système avec CPU Projet en dessous */}
-            {/* 3. Mémoire Système + Mémoire Projet en dessous */}
+            {/* 2. CPU Système — même structure que Mémoire (valeur principale → libellé → sous-bloc « Projet » bordé) */}
+            {/* 3. Mémoire Système — aligné typo / hiérarchie sur CPU Système */}
             <div className="text-center">
               <div className={`text-2xl font-bold ${
-                (systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) || (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
-                  ? ((systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-600 dark:text-red-400' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
-                  ? (systemMetrics.monitoringC.avg_cpu_percent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_cpu_percent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : 'text-blue-600 dark:text-blue-400'
+                (() => {
+                  const p = getSystemCpuPercentForDisplay(systemMetrics)
+                  if (p === undefined) return 'text-blue-600 dark:text-blue-400'
+                  return p > 80 ? 'text-red-600 dark:text-red-400' : p > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
+                })()
               }`}>
-                {(systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0)
-                  ? `${safeToFixed(systemMetrics.cpu.usage_percent, 1)}%`
-                  : (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
-                  ? `${safeToFixed(systemMetrics.cpu.usage, 1)}%`
-                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
-                  ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
+                {(() => {
+                  const p = getSystemCpuPercentForDisplay(systemMetrics)
+                  if (p !== undefined) return `${safeToFixed(p, 1)}%`
+                  return loadingSystemMetrics ? '...' : 'N/A'
+                })()}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <span>CPU Système</span>
-                {((systemMetrics?.cpu?.usage_percent !== undefined) || (typeof systemMetrics?.cpu?.usage === 'number')) && (
-                  <span className={`text-xs ${(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-500' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? '🔴' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-lg font-semibold mt-1">
                 {(() => {
-                  const cpuProject = systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
-                    ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
-                    : systemMetrics?.cpu?.containers_only !== undefined
-                    ? systemMetrics.cpu.containers_only
-                    : null
-                  if (cpuProject === null) return <span className="text-gray-700 dark:text-gray-300">—</span>
-                  const colorClass = cpuProject > 80
-                    ? 'text-red-600 dark:text-red-400'
-                    : cpuProject > 60
-                    ? 'text-yellow-600 dark:text-yellow-400'
-                    : 'text-green-600 dark:text-green-400'
-                  const indicator = cpuProject > 80 ? '🔴' : cpuProject > 60 ? '🟡' : '🟢'
-                  return <span className={colorClass}>{indicator} {safeToFixed(cpuProject, 1)}%</span>
+                  const n = getSystemCpuPercentForDisplay(systemMetrics)
+                  if (n === undefined) return null
+                  return (
+                    <span className={`text-xs ${n > 80 ? 'text-red-500' : n > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                      {n > 80 ? '🔴' : n > 60 ? '🟡' : '🟢'}
+                    </span>
+                  )
                 })()}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet</div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores, 10) > 0
+                  ? `Charge globale hôte · ${systemMetrics.cpu.cores} cœurs`
+                  : 'Utilisation CPU hôte (hors ventilation par conteneur)'}
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-lg font-semibold">
+                  {(() => {
+                    const cpuProject = systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                      ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
+                      : systemMetrics?.cpu?.containers_only !== undefined
+                      ? systemMetrics.cpu.containers_only
+                      : null
+                    if (cpuProject === null) return <span className="text-gray-500 dark:text-gray-400">—</span>
+                    const colorClass = cpuProject > 80
+                      ? 'text-red-600 dark:text-red-400'
+                      : cpuProject > 60
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : 'text-green-600 dark:text-green-400'
+                    const indicator = cpuProject > 80 ? '🔴' : cpuProject > 60 ? '🟡' : '🟢'
+                    return <span className={colorClass}>{indicator} {safeToFixed(cpuProject, 1)}%</span>
+                  })()}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet (moy. conteneurs)</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
+                    ? `Total somme CPUs ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% · ${systemMetrics.jobbingtrack.containers.count ?? 0} cont.`
+                    : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                    ? `${systemMetrics.jobbingtrack.containers.count} conteneur(s) JobbingTrack`
+                    : '—'}
+                </div>
+              </div>
             </div>
 
             <div className="text-center">
-              <div className={`text-3xl font-bold ${
+              <div className={`text-2xl font-bold ${
                 systemMetrics?.memory?.usage_percent !== undefined
                   ? (systemMetrics.memory.usage_percent > 90 ? 'text-red-600 dark:text-red-400' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.memory?.usage !== undefined 
+                  : systemMetrics?.memory?.usage !== undefined
                   ? (() => {
-                      const memUsage = parseFloat(systemMetrics.memory.usage.toString().replace('%', ''));
-                      return memUsage > 90 ? 'text-red-600 dark:text-red-400' : memUsage > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400';
+                      const memUsage = parseFloat(String(systemMetrics.memory.usage).replace('%', ''))
+                      return memUsage > 90 ? 'text-red-600 dark:text-red-400' : memUsage > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
                     })()
                   : 'text-green-600 dark:text-green-400'
               }`}>
                 {systemMetrics?.memory?.usage_percent !== undefined
                   ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
-                  : systemMetrics?.memory?.usage !== undefined 
-                  ? `${safeToFixed(parseFloat(systemMetrics.memory.usage.toString().replace('%', '')), 1)}%`
+                  : systemMetrics?.memory?.usage !== undefined
+                  ? `${safeToFixed(parseFloat(String(systemMetrics.memory.usage).replace('%', '')), 1)}%`
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <span>Mémoire Système</span>
-                {systemMetrics?.memory?.usage_percent !== undefined && (
-                  <span className={`text-xs ${systemMetrics.memory.usage_percent > 90 ? 'text-red-500' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.memory.usage_percent > 90 ? '🔴' : systemMetrics.memory.usage_percent > 75 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
-                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
-                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
-                  ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
-                  : '...'}
-              </div>
-              <div className="text-2xl font-bold mt-2">
                 {(() => {
-                  const memPct = systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                    ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
-                    : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                    ? systemMetrics.jobbingtrack.containers.memory.percent
-                    : null
-                  if (memPct === null) return <span className="text-gray-500 dark:text-gray-500">Mémoire Projet: —</span>
-                  const colorClass = memPct > 20
-                    ? 'text-red-600 dark:text-red-400'
-                    : memPct > 10
-                    ? 'text-yellow-600 dark:text-yellow-400'
-                    : 'text-green-600 dark:text-green-400'
-                  const indicator = memPct > 20 ? '🔴' : memPct > 10 ? '🟡' : '🟢'
-                  return <span className={colorClass}>{indicator} {safeToFixed(memPct, 1)}%</span>
+                  const memP =
+                    systemMetrics?.memory?.usage_percent !== undefined
+                      ? systemMetrics.memory.usage_percent
+                      : systemMetrics?.memory?.usage !== undefined
+                      ? parseFloat(String(systemMetrics.memory.usage).replace('%', ''))
+                      : NaN
+                  if (Number.isNaN(memP)) return null
+                  return (
+                    <span className={`text-xs ${memP > 90 ? 'text-red-500' : memP > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
+                      {memP > 90 ? '🔴' : memP > 75 ? '🟡' : '🟢'}
+                    </span>
+                  )
                 })()}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire Projet</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
-                  : '...'}
+                {systemMetrics?.memory?.used_mb != null && systemMetrics?.memory?.total_mb != null
+                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
+                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
+                  ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}`
+                  : loadingSystemMetrics ? '...' : '—'}
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-lg font-semibold">
+                  {(() => {
+                    const memPct = systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                      ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
+                      : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                      ? systemMetrics.jobbingtrack.containers.memory.percent
+                      : null
+                    if (memPct === null) return <span className="text-gray-500 dark:text-gray-400">—</span>
+                    const colorClass = memPct > 20
+                      ? 'text-red-600 dark:text-red-400'
+                      : memPct > 10
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : 'text-green-600 dark:text-green-400'
+                    const indicator = memPct > 20 ? '🔴' : memPct > 10 ? '🟡' : '🟢'
+                    return <span className={colorClass}>{indicator} {safeToFixed(memPct, 1)}%</span>
+                  })()}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500">Mémoire Projet (% RAM hôte)</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
+                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB RAM hôte · ${systemMetrics.jobbingtrack.containers.count ?? 0} cont.`
+                    : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
+                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite cgroup`
+                    : '—'}
+                </div>
               </div>
             </div>
 
