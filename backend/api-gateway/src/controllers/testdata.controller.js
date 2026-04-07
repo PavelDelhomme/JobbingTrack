@@ -153,8 +153,12 @@ const clearTestData = async (req, res) => {
         }).then(r => r.count);
 
         // Supprimer uniquement les utilisateurs marqués isTestData (ne pas toucher admin@jobbingtrack.com ni comptes réels)
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com';
         deletedCounts.users = await prisma.user.deleteMany({
-          where: { isTestData: true }
+          where: {
+            isTestData: true,
+            email: { not: adminEmail }
+          }
         }).then(r => r.count);
 
         logger.info(`✅ Données de test nettoyées:`, deletedCounts);
@@ -240,8 +244,12 @@ const clearTestData = async (req, res) => {
           where: { isTestData: true }
         }).then(r => r.count);
 
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com';
         deletedCounts.users = await prisma.user.deleteMany({
-          where: { isTestData: true }
+          where: {
+            isTestData: true,
+            email: { not: adminEmail }
+          }
         }).then(r => r.count);
       }
       

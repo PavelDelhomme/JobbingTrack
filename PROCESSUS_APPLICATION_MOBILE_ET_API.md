@@ -2,6 +2,8 @@
 
 **Document à la racine du projet** : description détaillée de tous les parcours utilisateur possibles dans l’application mobile JobbingTrack et des flux API associés. Basé sur le code (Flutter, backend), `FONCTIONNALITES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md` et les écrans existants.
 
+**Chantier documentation (lot E)** : une **revue d’alignement** avec l’état réel des endpoints et écrans est prévue dans **`PLAN.md`** § E et **`TODOS.md`** ; en cas de divergence, privilégier le code et reporter l’écart dans **`ERRORS.md`**.
+
 ---
 
 ## Vue d’ensemble

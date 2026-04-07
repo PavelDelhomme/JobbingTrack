@@ -21,6 +21,10 @@ type SecurityOverview = {
   healthyServices: number
   totalServices: number
   activeContainers: number
+  manualBlocksCount: number
+  automaticBlocksCount: number
+  detectionsCount: number
+  mobileCrashesCount: number
 }
 
 type IncidentItem = {
@@ -59,6 +63,10 @@ const defaultOverview: SecurityOverview = {
   healthyServices: 0,
   totalServices: 0,
   activeContainers: 0,
+  manualBlocksCount: 0,
+  automaticBlocksCount: 0,
+  detectionsCount: 0,
+  mobileCrashesCount: 0,
 }
 
 export default function SecurityOverviewPage() {
@@ -80,6 +88,8 @@ export default function SecurityOverviewPage() {
     serviceHealth: 8,
   })
   const [incidentsPage, setIncidentsPage] = useState(1)
+  const [testIpBusy, setTestIpBusy] = useState(false)
+  const SAFE_TEST_IP = '203.0.113.77'
   const incidentsPageSize = 6
 
   useEffect(() => {
@@ -114,19 +124,25 @@ export default function SecurityOverviewPage() {
 
     try {
       setServiceError(null)
-      const [logs, threats, blockedIps, wafConfig, firewallRules, metrics] = await Promise.all([
+      const [logs, threats, blockedIps, wafConfig, firewallRules, metrics, crashes] = await Promise.all([
           fetchJson('/api/v1/security/logs?limit=200'),
           fetchJson('/api/v1/security/firewall/threats?limit=200'),
           fetchJson('/api/v1/security/firewall/blocked-ips'),
           fetchJson('/api/v1/security/waf/config'),
           fetchJson('/api/v1/security/firewall/rules'),
           fetchJson('/api/v1/metrics'),
+          fetchJson('/api/v1/crashes?limit=100'),
         ])
 
       if (!mounted) return
 
       const logsArray = logs?.data || logs?.logs || []
       const threatsArray = threats?.data || threats?.threats || []
+      const logsForStats = Array.isArray(logsArray) ? logsArray : []
+      const manualBlocksCount = logsForStats.filter((l: any) => l?.eventType === 'ip_blocked_manually').length
+      const automaticBlocksCount = logsForStats.filter((l: any) => l?.eventType === 'threat_blocked' || l?.eventType === 'ip_blocked_automatically').length
+      const detectionsCount = logsForStats.filter((l: any) => l?.eventType === 'network_threat_detected' || l?.category === 'intrusion').length
+
       if (!Array.isArray(logsArray) && !Array.isArray(threatsArray)) {
         setServiceError('Services sécurité indisponibles ou réponse invalide.')
       }
@@ -211,6 +227,10 @@ export default function SecurityOverviewPage() {
           healthyServices,
           totalServices,
           activeContainers,
+          manualBlocksCount,
+          automaticBlocksCount,
+          detectionsCount,
+          mobileCrashesCount: Array.isArray(crashes?.data) ? crashes.data.length : 0,
         })
     } finally {
       if (mounted) setLoading(false)
@@ -252,7 +272,32 @@ export default function SecurityOverviewPage() {
     { title: 'Menaces', value: overview.threatsCount, subtitle: 'Détections réseau', href: '/backoffice/security/threats' },
     { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: 'Firewall', href: '/backoffice/security/firewall' },
     { title: 'Règles firewall', value: overview.firewallRulesCount, subtitle: 'Configuration active', href: '/backoffice/security/firewall' },
+    { title: 'Détections', value: overview.detectionsCount, subtitle: 'Événements détectés', href: '/backoffice/security/logs' },
+    { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Action opérateur', href: '/backoffice/security/firewall' },
+    { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/backoffice/security/firewall' },
+    { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistique' },
   ]
+
+  const runSafeBlockTest = async () => {
+    const token = localStorage.getItem('token')
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+    setTestIpBusy(true)
+    try {
+      await fetch(`${API_URL}/api/v1/security/firewall/block-ip`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ip: SAFE_TEST_IP, reason: 'SAFE_TEST_IP_BLOCK', mode: 'lab_simulation' }),
+      })
+      await fetch(`${API_URL}/api/v1/security/firewall/unblock-ip`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ip: SAFE_TEST_IP }),
+      })
+      await load()
+    } finally {
+      setTestIpBusy(false)
+    }
+  }
 
   return (
     <AdminLayout>
@@ -290,6 +335,18 @@ export default function SecurityOverviewPage() {
             <div>Disque: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.diskUsagePercent === null ? 'N/A' : `${overview.diskUsagePercent.toFixed(1)}%`}</span></div>
             <div>Charge/core: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.systemLoadPerCore === null ? 'N/A' : overview.systemLoadPerCore.toFixed(2)}</span></div>
             <div>Temps réponse: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.responseTimeMs === null ? 'N/A' : `${overview.responseTimeMs.toFixed(0)} ms`}</span></div>
+          </div>
+          <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-900 dark:text-amber-200">
+            <div className="font-semibold">Mode test blocage IP sûr</div>
+            <div className="mt-1">IP de test dédiée RFC5737: <span className="font-mono">{SAFE_TEST_IP}</span> (jamais l&apos;IP réelle de l&apos;utilisateur)</div>
+            <button
+              type="button"
+              onClick={runSafeBlockTest}
+              disabled={testIpBusy}
+              className="mt-2 px-3 py-1.5 text-xs rounded border border-amber-400 dark:border-amber-600 disabled:opacity-50"
+            >
+              {testIpBusy ? 'Test en cours...' : 'Tester blocage + déblocage sécurisé'}
+            </button>
           </div>
         </div>
 

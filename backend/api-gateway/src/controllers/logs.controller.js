@@ -45,6 +45,9 @@ const SERVICE_PORTS = {
   'profile-service': 3009,
   'event-service': 3011,
   'followup-service': 3012,
+  'security-service': 3017,
+  'metrics-aggregator': 3014,
+  'workflow-service': 3013,
   'frontend': 8080,
   'postgres': 5432,
   'redis': 6379
@@ -72,6 +75,11 @@ const SERVICE_SLUG_TO_NAME = {
   'events': 'event-service',
   'followups': 'followup-service',
   'frontend': 'frontend',
+  'security': 'security-service',
+  'security-service': 'security-service',
+  'metrics-aggregator': 'metrics-aggregator',
+  'workflow': 'workflow-service',
+  'workflows': 'workflow-service',
 };
 
 /**
@@ -265,6 +273,7 @@ const getAvailableServices = async (req, res) => {
  * Stream des logs en temps réel (Server-Sent Events)
  */
 const streamServiceLogs = async (req, res) => {
+  let dockerLogs = null;
   try {
     const { serviceName } = req.params;
 
@@ -294,7 +303,7 @@ const streamServiceLogs = async (req, res) => {
     try {
       // Stream les logs via spawn
       const { spawn } = require('child_process');
-      const dockerLogs = spawn('docker', ['logs', '-f', '--tail', '50', '--timestamps', containerName]);
+      dockerLogs = spawn('docker', ['logs', '-f', '--tail', '50', '--timestamps', containerName]);
 
       dockerLogs.stdout.on('data', (data) => {
         const lines = data.toString().split('\n').filter(line => line.trim());
@@ -345,9 +354,9 @@ const streamServiceLogs = async (req, res) => {
     // Nettoyer à la déconnexion
     req.on('close', () => {
       logger.info(`📋 Admin ${req.user.email} a fermé le stream de logs pour ${dockerServiceName}`);
-      if (dockerLogs) {
-        dockerLogs.kill();
-      }
+      try {
+        dockerLogs?.kill('SIGTERM');
+      } catch (_) { /* ignore */ }
       res.end();
     });
 

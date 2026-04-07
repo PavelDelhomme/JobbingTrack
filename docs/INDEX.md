@@ -1,6 +1,6 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Dernière mise à jour** : mars 2026
+**Dernière mise à jour** : avril 2026
 
 ---
 
@@ -8,6 +8,7 @@
 
 | Thème | Emplacement |
 |-------|-------------|
+| **Chantier sécurité / data / doc (lots A–F)** | Racine : **[PLAN.md](../PLAN.md)**, **[TODOS.md](../TODOS.md)** ; index **[CHANTIER_SECURITE_DATA_DOCS.md](CHANTIER_SECURITE_DATA_DOCS.md)** |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
 | **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
@@ -19,7 +20,7 @@
 | **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
 | **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
 
-Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**.
+Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[../PLAN.md](../PLAN.md)**, **[../TODOS.md](../TODOS.md)**.
 
 ---
 
@@ -27,10 +28,11 @@ Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ET
 
 ### Ce qu’il reste à faire (priorité)
 - **[../STATUS.md](../STATUS.md)** — **À faire maintenant** : priorité mobile (vérification email manuelle, puis app Flutter). Détail des commandes et de l’état du projet.
+- **[../PLAN.md](../PLAN.md)** / **[../TODOS.md](../TODOS.md)** — Lots A–F (sécurité, logs, suivi-intérim, doc, tests).
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
 
 ### Fichiers .md à la racine (à garder)
-`README.md` | `STATUS.md` | `ERRORS.md` | `FONCTIONNALITES.md` | `RESOLUTIONS.md`. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+`README.md` | `STATUS.md` | `ERRORS.md` | `FONCTIONNALITES.md` | `RESOLUTIONS.md` | **`PLAN.md`** | **`TODOS.md`**. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
 
 ### Démarrer le projet
 - **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage

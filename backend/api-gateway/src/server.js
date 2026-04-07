@@ -272,10 +272,24 @@ app.get('/api/v1/health', (req, res) => {
 // Le notification-service gère uniquement les notifications in-app utilisateur.
 app.post('/api/v1/crashes', (req, res) => {
   try {
-    const body = req.body || {};
-    if (!body.crashType || !body.message) {
+    const raw = req.body || {};
+    if (!raw.crashType || !raw.message) {
       return res.status(400).json({ success: false, error: 'crashType et message requis' });
     }
+    const body = {
+      source: raw.source || raw.app || 'mobile',
+      crashType: raw.crashType,
+      message: raw.message,
+      timestamp: raw.timestamp || raw.createdAt || new Date().toISOString(),
+      appVersion: raw.appVersion || raw.version || null,
+      osVersion: raw.osVersion || null,
+      device: raw.device || raw.deviceInfo || null,
+      buildNumber: raw.buildNumber || null,
+      userId: raw.userId || null,
+      sessionId: raw.sessionId || null,
+      stackTrace: raw.stackTrace || raw.stack || null,
+      ...raw,
+    };
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
     fs.mkdirSync(dir, { recursive: true });
     const safe = new Date().toISOString().replace(/[:.]/g, '-');
@@ -287,6 +301,49 @@ app.post('/api/v1/crashes', (req, res) => {
   } catch (err) {
     logger.error('Crash report save error:', err.message);
     res.status(500).json({ success: false, error: 'Erreur enregistrement rapport' });
+  }
+});
+
+app.get('/api/v1/crashes', (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(500, parseInt(req.query.limit || '100', 10) || 100));
+    const dir = path.join(__dirname, '..', 'logs', 'crashes');
+    if (!fs.existsSync(dir)) {
+      return res.json({ success: true, data: [] });
+    }
+    const files = fs.readdirSync(dir)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => ({
+        name,
+        file: path.join(dir, name),
+        mtime: fs.statSync(path.join(dir, name)).mtimeMs
+      }))
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, limit);
+
+    const data = files.map((f) => {
+      let raw = {};
+      try {
+        raw = JSON.parse(fs.readFileSync(f.file, 'utf8'));
+      } catch {
+        raw = {};
+      }
+      return {
+        id: f.name,
+        timestamp: raw.timestamp || raw.createdAt || new Date(f.mtime).toISOString(),
+        crashType: raw.crashType || 'UNKNOWN',
+        message: raw.message || raw.error || 'Crash report',
+        source: raw.source || raw.app || 'mobile',
+        device: raw.device || raw.deviceInfo || null,
+        appVersion: raw.appVersion || raw.version || null,
+        osVersion: raw.osVersion || null,
+        metadata: raw
+      };
+    });
+    return res.json({ success: true, data });
+  } catch (err) {
+    logger.error('Crash report list error:', err.message);
+    return res.status(500).json({ success: false, error: 'Erreur lecture rapports crash' });
   }
 });
 
@@ -489,53 +546,52 @@ app.put('/api/v1/users/customization', async (req, res) => {
   }
 });
 
-// ✅ Route pour récupérer les logs d'un service
+// ✅ Logs conteneur : proxy vers metrics-aggregator (données réelles, pas de mock)
 app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
   try {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (!authHeader || !String(authHeader).startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Token d\'authentification requis' });
+    }
     const { serviceName } = req.params;
-    const { lines = 50 } = req.query;
-
-    logger.info(`📋 Récupération des logs pour ${serviceName}`);
-
-    // Mode développement : retourner des logs mockés
-    const portMap = {
-      'api-gateway': 3000,
-      'auth-service': 3001,
-      'application-service': 3002,
-      'company-service': 3003,
-      'contact-service': 3004,
-      'interview-service': 3005,
-      'notification-service': 3006,
-      'dashboard-service': 3007,
-      'call-service': 3008,
-      'profile-service': 3009,
-      'event-service': 3011,
-      'followup-service': 3012,
-      'workflow-service': 3013,
-      'frontend': 8080,
-      'database': 5432,
-      'cache': 6379,
-      'monitoring': 9090
-    };
-
-    const servicePort = portMap[serviceName] || 3000;
-
-    const mockLogs = {
-      success: true,
-      serviceName: serviceName,
-      logs: [
-        `[${new Date().toISOString()}] INFO: Service ${serviceName} démarré`,
-        `[${new Date().toISOString()}] INFO: Configuration chargée`,
-        `[${new Date().toISOString()}] INFO: Connexion à la base de données établie`,
-        `[${new Date().toISOString()}] INFO: Service écoute sur le port ${servicePort}`,
-      ],
-      totalLines: parseInt(lines),
-      fallback: true,
-      message: `Logs du service ${serviceName} (mode développement)`
-    };
-
-    res.status(200).json(mockLogs);
-
+    const lines = Math.max(1, Math.min(500, parseInt(req.query.lines || '100', 10) || 100));
+    const metricsUrl = (process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014').replace(/\/$/, '');
+    const raw = String(serviceName || '').replace(/^jobbingtrack-/, '');
+    const candidates = [
+      raw.startsWith('jobbingtrack-') ? raw : `jobbingtrack-${raw}`,
+      raw,
+    ];
+    const tried = new Set();
+    for (const name of candidates) {
+      if (tried.has(name)) continue;
+      tried.add(name);
+      try {
+        const url = `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${lines}`;
+        const response = await axios.get(url, { timeout: 20000, validateStatus: () => true });
+        if (response.status === 200 && response.data) {
+          const d = response.data;
+          const lineArr = Array.isArray(d.lines) ? d.lines : (Array.isArray(d.logs) ? d.logs : []);
+          return res.status(200).json({
+            success: true,
+            serviceName: raw,
+            containerName: name,
+            lines: lineArr,
+            errorLines: Array.isArray(d.errorLines) ? d.errorLines : undefined,
+            total: d.total ?? lineArr.length,
+            errors: d.errors,
+            warnings: d.warnings,
+            source: 'metrics-aggregator',
+          });
+        }
+      } catch (e) {
+        logger.warn(`Logs proxy tentative ${name}:`, e.message);
+      }
+    }
+    return res.status(503).json({
+      success: false,
+      error: 'Logs indisponibles',
+      message: 'Impossible de joindre metrics-aggregator ou conteneur introuvable.',
+    });
   } catch (error) {
     logger.error(`Error getting logs for ${req.params.serviceName}:`, error.message);
     res.status(500).json({

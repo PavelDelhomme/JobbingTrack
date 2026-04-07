@@ -282,8 +282,9 @@ const getApplications = async (req, res, next) => {
 
     // Si filtre agencyId demandé, utiliser Prisma pour inclure la relation agency
     if (agencyId && typeof agencyId === 'string') {
+      const isElevated = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
       const where = {
-        userId,
+        ...(isElevated ? {} : { userId }),
         agencyId,
         ...(includeArchived !== 'true' && { isArchived: false }),
         ...(status && { status: { code: status } }),

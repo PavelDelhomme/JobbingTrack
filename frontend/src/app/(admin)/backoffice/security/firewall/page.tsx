@@ -132,6 +132,7 @@ export default function FirewallPage() {
     action: 'DENY',
     priority: 100
   });
+  const SAFE_TEST_IP = '203.0.113.77';
 
   const loadRules = useCallback(async () => {
     try {
@@ -238,9 +239,9 @@ export default function FirewallPage() {
     }
   };
 
-  const handleBlockIp = async (ip: string, reason?: string) => {
+  const handleBlockIp = async (ip: string, reason?: string, mode?: string) => {
     try {
-      await axios.post(`${API_GATEWAY_URL}/api/v1/security/firewall/block-ip`, { ip, reason }, {
+      await axios.post(`${API_GATEWAY_URL}/api/v1/security/firewall/block-ip`, { ip, reason, ...(mode ? { mode } : {}) }, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       loadBlockedIps();
@@ -263,7 +264,8 @@ export default function FirewallPage() {
       return;
     }
 
-    await handleBlockIp(newBlockedIp.trim(), blockReason.trim() || undefined);
+    const lab = newBlockedIp.trim() === SAFE_TEST_IP;
+    await handleBlockIp(newBlockedIp.trim(), blockReason.trim() || undefined, lab ? 'lab_simulation' : undefined);
     setNewBlockedIp('');
     setBlockReason('');
     setShowAddBlockedIp(false);
@@ -583,14 +585,29 @@ export default function FirewallPage() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               IPs Bloquées
             </h2>
-            <button
-              onClick={() => setShowAddBlockedIp(!showAddBlockedIp)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Bloquer une IP
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setNewBlockedIp(SAFE_TEST_IP);
+                  setBlockReason('Test sécurité contrôlé (IP de documentation RFC5737)');
+                  setShowAddBlockedIp(true);
+                }}
+                className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
+              >
+                Préparer test sûr
+              </button>
+              <button
+                onClick={() => setShowAddBlockedIp(!showAddBlockedIp)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Bloquer une IP
+              </button>
+            </div>
           </div>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            Astuce: pour tester sans risque, utilise l&apos;IP de documentation `{SAFE_TEST_IP}` (jamais ton IP réelle).
+          </p>
 
           {showAddBlockedIp && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">

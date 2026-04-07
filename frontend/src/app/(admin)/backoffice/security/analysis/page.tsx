@@ -28,9 +28,11 @@ export default function SecurityAnalysisPage() {
 
       const stats = statsRes.data?.success ? (statsRes.data?.data || {}) : {};
       const blockedRaw = blockedRes.data?.success && Array.isArray(blockedRes.data?.data) ? blockedRes.data.data : [];
-      const blockedIPs = blockedRaw
-        .map((x: string | { ip?: string }) => (typeof x === 'string' ? x : x?.ip))
-        .filter(Boolean);
+      const blockedIPItems = blockedRaw
+        .map((x: string | { ip?: string; reason?: string; blockedAt?: string }) =>
+          typeof x === 'string' ? { ip: x, reason: 'Blocage actif', blockedAt: undefined } : x
+        )
+        .filter((x: any) => !!x?.ip);
       const logs = Array.isArray(logsRes.data?.data) ? logsRes.data.data : [];
       const threats = Array.isArray(threatsRes.data?.data) ? threatsRes.data.data : [];
       const hasToken = (v: any, tokens: string[]) => {
@@ -69,6 +71,11 @@ export default function SecurityAnalysisPage() {
         const lvl = String(l?.level || '').toLowerCase();
         return lvl === 'warning' || lvl === 'error' || lvl === 'critical';
       }).length;
+      const manualBlocks = logs.filter((l: any) => String(l?.eventType || '').toLowerCase() === 'ip_blocked_manually').length;
+      const autoBlocks = logs.filter((l: any) => {
+        const evt = String(l?.eventType || '').toLowerCase();
+        return evt === 'threat_blocked' || evt === 'ip_blocked_automatically' || evt === 'payload_auto_block';
+      }).length;
       const ddosThreats = threats.filter((t: any) => String(t?.threatType || '').toUpperCase().includes('DDOS')).length;
       const scoreFromOverview = Number(stats?.overview?.riskScore ?? 0);
       const scoreFromLive = Math.max(0, 100 - Math.min(70, threats.length * 2 + suspiciousLogs));
@@ -80,8 +87,10 @@ export default function SecurityAnalysisPage() {
       setSummary({
         ...stats,
         securityScore,
-        blockedIPs,
-        uniqueBlockedIPs: blockedIPs.length,
+        blockedIPs: blockedIPItems,
+        uniqueBlockedIPs: blockedIPItems.length,
+        manualBlocks,
+        autoBlocks,
         totalFailedLogins: Number(stats?.overview?.criticalEvents ?? failedAuth),
         totalSuspiciousActivities: Number(stats?.overview?.totalEvents ?? suspiciousLogs),
         totalSqlInjections: Number(stats?.overview?.sqlInjections ?? sqlEvents),
@@ -206,6 +215,7 @@ export default function SecurityAnalysisPage() {
           corrélation temps réel `stats + logs + threats` (24h), avec fallback sur le calcul live quand `riskScore` est absent.
           <span className="ml-2">Menaces live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalThreatsLive ?? 0}</strong></span>
           <span className="ml-3">Logs live: <strong className="text-gray-900 dark:text-gray-100">{summary?.totalLogsLive ?? 0}</strong></span>
+          <span className="ml-3">Blocages auto/manuels (24h): <strong className="text-gray-900 dark:text-gray-100">{summary?.autoBlocks ?? 0}/{summary?.manualBlocks ?? 0}</strong></span>
         </div>
 
         {/* Détections d'injection */}
@@ -244,9 +254,14 @@ export default function SecurityAnalysisPage() {
           </h2>
           <div className="space-y-2">
             {summary?.blockedIPs?.length > 0 ? (
-              summary.blockedIPs.map((ip: string, index: number) => (
+              summary.blockedIPs.map((ipItem: { ip: string; reason?: string; blockedAt?: string }, index: number) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-mono text-gray-900 dark:text-gray-100">{ip}</span>
+                  <div>
+                    <span className="font-mono text-gray-900 dark:text-gray-100">{ipItem.ip}</span>
+                    {ipItem.reason && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{ipItem.reason}</p>
+                    )}
+                  </div>
                   <span className="text-xs text-red-600 dark:text-red-400">Bloquée</span>
                 </div>
               ))

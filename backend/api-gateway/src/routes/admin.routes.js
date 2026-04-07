@@ -6,6 +6,7 @@ const archiveController = require('../controllers/archive.controller');
 const trashController = require('../controllers/trash.controller');
 const dataManagementController = require('../controllers/data-management.controller');
 const testdataController = require('../controllers/testdata.controller');
+const logsController = require('../controllers/logs.controller');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -53,6 +54,12 @@ router.post('/playwright/run', authenticate, advancedController.runPlaywrightTes
 router.get('/playwright/result/:executionId', authenticate, advancedController.getTestResults);
 router.get('/playwright/events/:executionId', authenticate, advancedController.getTestEvents);
 router.get('/playwright/report/:executionId', authenticate, advancedController.getTestReport);
+
+// ✅ Logs Docker (tous services) — chemins statiques avant /services/:id
+router.get('/logs/all', authenticate, logsController.getAllLogs);
+router.get('/logs/services', authenticate, logsController.getAvailableServices);
+router.get('/logs/:serviceName/stream', authenticate, logsController.streamServiceLogs);
+router.get('/logs/:serviceName', authenticate, logsController.getServiceLogs);
 
 // ✅ Routes de gestion des services (restart, start, stop)
 router.post('/services/restart', authenticate, adminController.restartService);
