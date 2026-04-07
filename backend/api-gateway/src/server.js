@@ -18,6 +18,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SECURITY_SERVICE_URL = (process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017').replace(/\/$/, '');
 
+function securityServiceInternalHeaders() {
+  const secret = process.env.SECURITY_INTERNAL_SECRET;
+  if (!secret) return {};
+  return { 'X-Internal-Secret': secret };
+}
+
 async function reportPayloadTooLarge(req, details = {}) {
   const sourceIp = String(
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -64,7 +70,7 @@ async function reportPayloadTooLarge(req, details = {}) {
       sourceIp: sourceIp,
       severity: 'MEDIUM',
       metadata: baseMetadata
-    }, { timeout: 3000 });
+    }, { timeout: 3000, headers: { ...securityServiceInternalHeaders() } });
   } catch (threatErr) {
     logger.warn('Impossible de persister la menace payload_too_large', { message: threatErr.message });
   }

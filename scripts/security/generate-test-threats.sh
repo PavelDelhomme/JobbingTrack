@@ -23,11 +23,17 @@ fi
 # Générer des menaces de test via l'API
 API_URL="${API_URL:-http://localhost:5017}"
 TOKEN="${1:-}"  # Token optionnel en paramètre
+SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-}"
+
+threat_curl_hdrs=()
+if [ -n "${SECURITY_INTERNAL_SECRET:-}" ]; then
+  threat_curl_hdrs=( -H "X-Internal-Secret: ${SECURITY_INTERNAL_SECRET}" )
+fi
 
 echo "📊 Génération de menaces de test..."
 
-# Types de menaces à générer
-THREAT_TYPES=("SYN_FLOOD" "PORT_SCAN" "BRUTE_FORCE" "SQL_INJECTION" "XSS_ATTACK")
+# Types de menaces à générer (doivent correspondre à ALLOWED_THREAT_TYPES côté API)
+THREAT_TYPES=("SYN_FLOOD" "PORT_SCAN" "BRUTE_FORCE" "SQL_INJECTION" "XSS")
 SEVERITIES=("LOW" "MEDIUM" "HIGH" "CRITICAL")
 IPS=("192.168.1.100" "10.0.0.50" "172.16.0.25" "203.0.113.42" "198.51.100.15")
 
@@ -55,6 +61,8 @@ EOF
     
     # Essayer via URL configurable (security-service recommandé pour l'admin)
     local response=$(curl -s -w "\n%{http_code}" -X POST \
+        "${threat_curl_hdrs[@]}" \
+        ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
         -H "Content-Type: application/json" \
         -d "${payload}" \
         "${API_URL}/api/v1/security/firewall/threats" 2>/dev/null || echo "000")
@@ -87,6 +95,8 @@ EOF
     else
         # Essayer en fallback direct vers security-service (port 5017)
         local response2=$(curl -s -w "\n%{http_code}" -X POST \
+            "${threat_curl_hdrs[@]}" \
+            ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
             -H "Content-Type: application/json" \
             -d "${payload}" \
             "http://localhost:5017/api/v1/security/firewall/threats" 2>/dev/null || echo "000")

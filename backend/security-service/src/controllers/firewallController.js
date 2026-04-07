@@ -29,6 +29,16 @@ const ALLOWED_THREAT_TYPES = new Set([
 ]);
 
 /** Ports internes courants → indice de service (quand Docker n’est pas mappable depuis le conteneur). */
+/** IP vue côté service (premier hop X-Forwarded-For ou req.ip), normalisée pour comparaisons. */
+function getClientObservedIp(req) {
+  const xff = req.get && req.get('X-Forwarded-For');
+  const first = xff ? String(xff).split(',')[0].trim() : '';
+  const raw = first || req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || '';
+  let s = String(raw || '').trim();
+  if (s.startsWith('::ffff:')) s = s.slice(7);
+  return s || null;
+}
+
 const PORT_SERVICE_HINTS = {
   3000: 'port-3000 (api-gateway)',
   3001: 'port-3001 (auth)',
@@ -504,7 +514,31 @@ async function getNetworkStats(req, res) {
       unmappedConnections: connections.filter((conn) => resolveContainerLabel(conn) === 'unmapped').length,
       timestamp: new Date().toISOString()
     };
-    
+
+    const n = connections.length || 0;
+    const correlation = { unmapped: 0, hostLayer: 0, dockerNamed: 0 };
+    for (const conn of connections) {
+      const label = resolveContainerLabel(conn);
+      if (label === 'unmapped') correlation.unmapped += 1;
+      else if (label === 'host-local' || label === 'host-network' || label.startsWith('port:')) {
+        correlation.hostLayer += 1;
+      } else {
+        correlation.dockerNamed += 1;
+      }
+    }
+    const denom = n || 1;
+    stats.containerCorrelation = {
+      ...correlation,
+      total: n,
+      unmappedPercent: Math.round((correlation.unmapped / denom) * 100),
+      hostLayerPercent: Math.round((correlation.hostLayer / denom) * 100),
+      dockerNamedPercent: Math.round((correlation.dockerNamed / denom) * 100)
+    };
+    stats.correlationHint =
+      correlation.unmapped > n * 0.45
+        ? 'Une grande part des sockets n’est pas rattachée à un conteneur nommé : le security-service lit souvent /proc/net du host. Les lignes « port:N » indiquent le service probable ; pour des noms Docker, mappez les ports publiés (docker ps) ou montez le socket Docker si autorisé.'
+        : '';
+
     res.json({
       success: true,
       data: {
@@ -943,6 +977,14 @@ async function blockIp(req, res) {
       });
     }
 
+    const observedClient = getClientObservedIp(req);
+    if (!labMode && observedClient && IPV4_REGEX.test(observedClient) && ipNorm === observedClient) {
+      return res.status(403).json({
+        success: false,
+        error: 'Refusé : impossible de bloquer l’adresse IP identique à celle de votre requête (risque de verrouillage). Utilisez le mode lab_simulation avec l’IP de test dédiée pour un essai sans danger.'
+      });
+    }
+
     const result = await firewallEngine.blockIp(ipNorm, reason || 'Manual block');
 
     // Enregistrer dans les logs de sécurité
@@ -1133,7 +1175,8 @@ async function getBlockedIps(req, res) {
         select: {
           sourceIp: true,
           createdAt: true,
-          name: true
+          name: true,
+          description: true
         },
         distinct: ['sourceIp'],
         orderBy: {
@@ -1141,11 +1184,17 @@ async function getBlockedIps(req, res) {
         }
       });
       
-      blockedIps = blockedRules.map(rule => ({
-        ip: rule.sourceIp,
-        blockedAt: rule.createdAt,
-        reason: rule.name || 'Règle firewall'
-      }));
+      blockedIps = blockedRules.map(rule => {
+        const desc = String(rule.description || '');
+        const nm = String(rule.name || '');
+        const lab = desc.includes('lab_simulation') || nm.toLowerCase().startsWith('lab block');
+        return {
+          ip: rule.sourceIp,
+          blockedAt: rule.createdAt,
+          reason: rule.name || 'Règle firewall',
+          blockOrigin: lab ? 'lab_simulation' : 'manual_rule'
+        };
+      });
     } catch (dbError) {
       // Si la table n'existe pas, continuer avec iptables
       if (dbError.code === 'P2021' || dbError.message?.includes('does not exist')) {
@@ -1171,7 +1220,8 @@ async function getBlockedIps(req, res) {
                 blockedIps.push({
                   ip: match[1],
                   blockedAt: new Date(),
-                  reason: 'Règle iptables'
+                  reason: 'Règle iptables',
+                  blockOrigin: 'iptables'
                 });
               }
             }
@@ -1203,7 +1253,8 @@ async function getBlockedIps(req, res) {
           blockedIps.push({
             ip,
             blockedAt: threat.detectedAt,
-            reason: `Menace bloquée (${threat.threatType || 'threat_blocked'})`
+            reason: `Menace bloquée (${threat.threatType || 'threat_blocked'})`,
+            blockOrigin: 'automatic_threat'
           });
         }
       }
@@ -1242,11 +1293,19 @@ async function getBlockedIps(req, res) {
         }
         blockedIps = Array.from(latestByIp.entries())
           .filter(([, log]) => log?.eventType === 'ip_blocked_manually' || log?.eventType === 'ip_blocked_lab_simulation' || log?.eventType === 'threat_blocked' || log?.eventType === 'ip_blocked_automatically')
-          .map(([ip, log]) => ({
-            ip,
-            blockedAt: log.createdAt,
-            reason: log?.message || 'Blocage détecté dans les logs sécurité'
-          }));
+          .map(([ip, log]) => {
+            const et = log?.eventType;
+            let blockOrigin = 'log_inferred';
+            if (et === 'ip_blocked_lab_simulation') blockOrigin = 'lab_simulation';
+            else if (et === 'ip_blocked_manually') blockOrigin = 'manual_rule';
+            else if (et === 'threat_blocked' || et === 'ip_blocked_automatically') blockOrigin = 'automatic_threat';
+            return {
+              ip,
+              blockedAt: log.createdAt,
+              reason: log?.message || 'Blocage détecté dans les logs sécurité',
+              blockOrigin
+            };
+          });
       } catch (logsError) {
         logger.warn('Fallback blocked-ips via security logs indisponible:', logsError.message);
       }

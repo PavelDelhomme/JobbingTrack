@@ -6,7 +6,31 @@
 set -e
 
 API_GATEWAY_URL="${API_GATEWAY_URL:-http://localhost:5002}"
+# Base pour firewall/waf (live-check = security-service direct) ; auth reste sur la gateway publique
+FIREWALL_BASE_URL="${FIREWALL_BASE_URL:-$API_GATEWAY_URL}"
+AUTH_GATEWAY_URL="${AUTH_GATEWAY_URL:-$API_GATEWAY_URL}"
 TOKEN="${TOKEN:-}"
+# Aligné sur docker-compose / live-security-check pour appels directs au security-service
+SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-}"
+
+request_base() {
+  case "$1" in
+    /api/v1/auth*) echo "$AUTH_GATEWAY_URL" ;;
+    *) echo "$FIREWALL_BASE_URL" ;;
+  esac
+}
+
+icurl_hdrs=()
+refresh_icurl_hdrs() {
+  icurl_hdrs=()
+  if [ "${SKIP_INTERNAL_AUTH_HDR:-}" = "1" ]; then
+    return 0
+  fi
+  if [ -n "${SECURITY_INTERNAL_SECRET:-}" ]; then
+    icurl_hdrs=( -H "X-Internal-Secret: ${SECURITY_INTERNAL_SECRET}" )
+  fi
+}
+refresh_icurl_hdrs
 
 echo "🔥 Test du Firewall et WAF"
 echo "=========================="
@@ -32,21 +56,28 @@ test_endpoint() {
     
     echo -n "  Test: $description... "
     
+    refresh_icurl_hdrs
+    local base_url
+    base_url="$(request_base "$endpoint")"
     if [ "$method" = "GET" ]; then
-        response=$(curl -s -w "\n%{http_code}" -X GET "${API_GATEWAY_URL}${endpoint}" \
+        response=$(curl -s -w "\n%{http_code}" -X GET "${base_url}${endpoint}" \
+            "${icurl_hdrs[@]}" \
             ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} 2>&1)
     elif [ "$method" = "POST" ]; then
-        response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}${endpoint}" \
+        response=$(curl -s -w "\n%{http_code}" -X POST "${base_url}${endpoint}" \
+            "${icurl_hdrs[@]}" \
             ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
             -H "Content-Type: application/json" \
             -d "${data}" 2>&1)
     elif [ "$method" = "PUT" ]; then
-        response=$(curl -s -w "\n%{http_code}" -X PUT "${API_GATEWAY_URL}${endpoint}" \
+        response=$(curl -s -w "\n%{http_code}" -X PUT "${base_url}${endpoint}" \
+            "${icurl_hdrs[@]}" \
             ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
             -H "Content-Type: application/json" \
             -d "${data}" 2>&1)
     elif [ "$method" = "DELETE" ]; then
-        response=$(curl -s -w "\n%{http_code}" -X DELETE "${API_GATEWAY_URL}${endpoint}" \
+        response=$(curl -s -w "\n%{http_code}" -X DELETE "${base_url}${endpoint}" \
+            "${icurl_hdrs[@]}" \
             ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} 2>&1)
     fi
     
@@ -74,7 +105,11 @@ test_endpoint_multi() {
     local description=$5
 
     echo -n "  Test: $description... "
-    response=$(curl -s -w "\n%{http_code}" -X "$method" "${API_GATEWAY_URL}${endpoint}" \
+    refresh_icurl_hdrs
+    local base_url
+    base_url="$(request_base "$endpoint")"
+    response=$(curl -s -w "\n%{http_code}" -X "$method" "${base_url}${endpoint}" \
+        "${icurl_hdrs[@]}" \
         ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
         -H "Content-Type: application/json" \
         ${data:+-d "${data}"} 2>&1)
@@ -101,9 +136,11 @@ echo ""
 
 # Test 2: Créer une règle firewall de test
 echo "📋 Test 2: Création d'une règle firewall de test"
+refresh_icurl_hdrs
 RULE_DATA='{"name":"Test Rule","description":"Règle de test","protocol":"TCP","action":"DENY","destPort":9999,"priority":50}'
 # Accepter 201 (succès) ou 503 (table non trouvée - besoin de db-push-all)
-response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+response=$(curl -s -w "\n%{http_code}" -X POST "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
+    "${icurl_hdrs[@]}" \
     ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
     -H "Content-Type: application/json" \
     -d "${RULE_DATA}" 2>&1)
@@ -127,7 +164,9 @@ echo ""
 
 # Test 2.b: Re-création de la même règle (doit réutiliser l'existante, pas créer un doublon)
 echo "📋 Test 2.b: Détection doublon (règle identique déjà active)"
-response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+refresh_icurl_hdrs
+response=$(curl -s -w "\n%{http_code}" -X POST "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
+    "${icurl_hdrs[@]}" \
     ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
     -H "Content-Type: application/json" \
     -d "${RULE_DATA}" 2>&1)
@@ -146,7 +185,9 @@ echo ""
 
 # Récupérer l'ID de la règle créée pour les tests suivants (si la création a réussi)
 if [ -z "$RULE_ID" ]; then
-    RULE_ID=$(curl -s -X GET "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+    refresh_icurl_hdrs
+    RULE_ID=$(curl -s -X GET "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
+        "${icurl_hdrs[@]}" \
         ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} | \
         grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
 fi
@@ -163,7 +204,9 @@ if [ -n "$RULE_ID" ]; then
 
     # Test 3.b: Re-création de la même règle après désactivation (doit réactiver l'existante)
     echo "📋 Test 3.b: Détection doublon inactif (réactivation)"
-    response=$(curl -s -w "\n%{http_code}" -X POST "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+    refresh_icurl_hdrs
+    response=$(curl -s -w "\n%{http_code}" -X POST "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
+        "${icurl_hdrs[@]}" \
         ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
         -H "Content-Type: application/json" \
         -d "${RULE_DATA}" 2>&1)
@@ -283,7 +326,13 @@ echo ""
 
 # Test 21: Endpoint protégé sans token (doit être rejeté)
 echo "📋 Test 21: Accès sans token (doit être rejeté)"
-NOAUTH_CODE=$(curl -s -o /tmp/security_noauth_body.txt -w "%{http_code}" -X GET "${API_GATEWAY_URL}/api/v1/security/firewall/rules" 2>/dev/null || echo "000")
+SKIP_INTERNAL_AUTH_HDR=1
+export SKIP_INTERNAL_AUTH_HDR
+refresh_icurl_hdrs
+NOAUTH_CODE=$(curl -s -o /tmp/security_noauth_body.txt -w "%{http_code}" -X GET "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" 2>/dev/null || echo "000")
+SKIP_INTERNAL_AUTH_HDR=
+unset SKIP_INTERNAL_AUTH_HDR
+refresh_icurl_hdrs
 if [ "$NOAUTH_CODE" = "401" ] || [ "$NOAUTH_CODE" = "403" ]; then
     echo -e "${GREEN}✅ PASS${NC} (HTTP $NOAUTH_CODE)"
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -308,12 +357,17 @@ echo "📋 Test 24: Blocage menace inconnue"
 test_endpoint "POST" "/api/v1/security/firewall/threats/unknown-threat-id/block" "{}" "404" "POST /api/v1/security/firewall/threats/:id/block (id inconnu)"
 echo ""
 
-# Test 21: Endpoint protégé sans token (doit refuser)
-echo "📋 Test 21: Accès sans token à un endpoint protégé"
+# Test 21 (bis): Endpoint protégé sans token (doit refuser)
+echo "📋 Test 21 (bis): Accès sans token à un endpoint protégé"
 saved_token="$TOKEN"
 TOKEN=""
+SKIP_INTERNAL_AUTH_HDR=1
+export SKIP_INTERNAL_AUTH_HDR
 test_endpoint_multi "GET" "/api/v1/security/firewall/rules" "" "401 403" "GET /api/v1/security/firewall/rules sans token"
+SKIP_INTERNAL_AUTH_HDR=
+unset SKIP_INTERNAL_AUTH_HDR
 TOKEN="$saved_token"
+refresh_icurl_hdrs
 echo ""
 
 # Test 22: Toggle WAF invalide (payload manquant)
@@ -353,7 +407,9 @@ echo ""
 
 # Test 28: Header spoofing (X-Forwarded-For multiple IPs)
 echo "📋 Test 28: Header spoofing X-Forwarded-For"
-SPOOF_CODE=$(curl -s -o /tmp/security_spoof_body.txt -w "%{http_code}" -X GET "${API_GATEWAY_URL}/api/v1/security/firewall/rules" \
+refresh_icurl_hdrs
+SPOOF_CODE=$(curl -s -o /tmp/security_spoof_body.txt -w "%{http_code}" -X GET "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
+    "${icurl_hdrs[@]}" \
     ${TOKEN:+-H "Authorization: Bearer ${TOKEN}"} \
     -H "X-Forwarded-For: 1.1.1.1, 2.2.2.2, 3.3.3.3" 2>/dev/null || echo "000")
 if [ "$SPOOF_CODE" = "200" ] || [ "$SPOOF_CODE" = "400" ] || [ "$SPOOF_CODE" = "403" ]; then
