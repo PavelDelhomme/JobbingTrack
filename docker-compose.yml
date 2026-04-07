@@ -706,6 +706,9 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # nftables/iptables dans le conteneur : souvent « Permission denied » avec USER non-root du Dockerfile ;
+    # en dev on force root pour que les règles firewall s’appliquent réellement (prod : privilégier un sidecar / hôte).
+    user: "0:0"
     depends_on:
       postgres:
         condition: service_healthy

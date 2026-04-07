@@ -19,6 +19,22 @@
 ### Fichiers touchés (principaux)
 `backend/security-service/src/middleware/firewallWafAuth.js`, `server.js`, `package.json` ; `backend/api-gateway/src/server.js` ; `backend/auth-service/src/utils/securityLogger.js` ; `docker-compose.yml` ; `scripts/security/live-security-check.sh`, `test-firewall.sh`, `generate-test-threats.sh`.
 
+### Suite (validation `make security-live-check` sans échec)
+
+- **Image Docker** : après ajout de **`jsonwebtoken`**, un simple `docker compose up --force-recreate` ne suffit pas si l’image n’a pas été **reconstruite** (`docker compose build security-service`). Sinon le conteneur peut crasher au boot (`Cannot find module 'jsonwebtoken'`).
+- **Montage dev** : `docker-compose.yml` monte **`./backend/security-service/src:/app/src`** (comme l’api-gateway) pour que le code à jour soit pris en compte sans rebuild à chaque modification.
+- **Ordre des routes** : `server.js` monte **`/api/v1/security/firewall`** et **`/api/v1/security/waf`** avant le routeur large **`/api/v1/security`** ; CORS autorise **`X-Internal-Secret`**.
+- **`test-firewall.sh` + live-check** : variables **`FIREWALL_BASE_URL`** (souvent = URL du security-service) et **`AUTH_GATEWAY_URL`** (= gateway publique, ex. `:5002`). Sans cela, le **test 25** (`POST /api/v1/auth/login`) frappait le security-service → **404** au lieu de **400** depuis l’auth-service via la gateway.
+- **Logs « effrayants » mais normaux pendant le live-check** :
+  - **`[security] error:`** sur **`iptables` Permission denied** : attendu dans le conteneur (process non root / namespace) ; l’API peut quand même répondre **201/200** (persistance DB).
+  - **`[gateway] warn: Attaque détectée par WAF`** : le scénario **sous charge** envoie volontairement du trafic malveillant ; ce ne sont pas des erreurs de panne.
+  - **Timestamps mélangés** dans le flux `docker logs` : tampon / lignes d’anciens runs possibles ; seul compte le **résumé final** (**PASS/FAIL**).
+  - **Make** : avertissements **cible `up-dev` dupliquée** entre Makefile racine et `makefiles/database/Makefile` — cosmétique, sans impact sur le live-check.
+
+### Security-service : iptables en dev
+
+- **`docker-compose.yml`** : le service **`security-service`** est lancé avec **`user: "0:0"`** en complément de **`cap_add: NET_ADMIN, NET_RAW`**. Avec l’image Alpine et **nftables**, l’utilisateur non-root du Dockerfile provoquait encore **`Permission denied`** sur `iptables` ; en root dans le conteneur, les règles peuvent s’appliquer dans la netns du conteneur. **À durcir en prod** (hôte / sidecar dédié plutôt que root applicatif si possible).
+
 ---
 
 ## Avril 2026 – Lot A sécurité (cohérence, test IP, UI)

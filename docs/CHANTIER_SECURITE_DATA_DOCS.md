@@ -1,6 +1,6 @@
 # Chantier sécurité, data backoffice et documentation
 
-**Dernière mise à jour** : 7 avril 2026
+**Dernière mise à jour** : 8 avril 2026
 
 Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Cursor `chantier_securite_data_docs_*.plan.md`). La **source de vérité versionnée** dans le dépôt est :
 
@@ -15,7 +15,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 
 ## Lots (rappel)
 
-- **A** — Sécurité visible (cohérence, test IP, UI, réseau).
+- **A** — Sécurité visible (cohérence, test IP, UI, réseau). **A5** (`security-live-check`, auth firewall/WAF, scripts) documenté comme stable ; reste **A1–A4** partiels — voir **`PLAN.md`** / **`RESOLUTIONS.md`**.
 - **B** — Logs multi-services et corrélation.
 - **C** — Suivi-intérim et données test / bases.
 - **D** — Crash mobile et observabilité.

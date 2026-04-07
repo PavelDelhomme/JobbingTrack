@@ -27,7 +27,7 @@
 | A2 | Mode de test de blocage IP sûr (IP de test dédiée, jamais l’IP utilisateur réelle) | **Renforcé** | `lab_simulation` ↔ `LAB_BLOCK_IP` ; **refus** de bloquer l’IP observée comme client (hors lab) ; UI feedback test vue sécurité |
 | A3 | Vue sécurité : distinguer explicitement détection / blocage manuel / blocage automatique | **Partiel** | Légende + cartes sur vue sécurité ; **Analyse** : 3 panneaux (détections, manuels+lab, auto) ; firewall : badges origine |
 | A4 | Analyse réseau : éviter le conteneur « unknown » 100 % non actionnable | **Partiel** | `containerCorrelation` + `correlationHint` API ; bannière et explications UI page réseau |
-| A5 | WAF + `make security-live-check` : auth firewall/WAF sur security-service (JWT ou `X-Internal-Secret`) ; scripts alignés | Fait (04/2026) | `security-service/server.js`, `scripts/security/*.sh`, `docker-compose.yml` |
+| A5 | WAF + `make security-live-check` : auth firewall/WAF sur security-service (JWT ou `X-Internal-Secret`) ; scripts alignés ; **rebuild** image si deps (`jsonwebtoken`) ; volume `src` ; `FIREWALL_BASE_URL` / `AUTH_GATEWAY_URL` ; **`user: 0:0` + NET_ADMIN** pour **iptables** en dev | **Fait / stable (04/2026)** | `security-service/server.js`, `scripts/security/*.sh`, `docker-compose.yml` ; **RESOLUTIONS.md** § 8 avril 2026 |
 
 ---
 
