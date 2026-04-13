@@ -222,11 +222,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
         { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
-        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
-        { name: 'Performances complètes', href: '/backoffice/analytics/performances', icon: '📈' },
-        { name: 'Performances réseau', href: '/backoffice/analytics/network', icon: '🌐' },
-        { name: 'Performances applicatives', href: '/backoffice/analytics/application', icon: '📱' },
-        { name: 'Analytics conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
+        { name: 'Métriques système & conteneurs', href: '/backoffice/analytics', icon: '⚡' },
+        { name: 'Historique système', href: '/backoffice/analytics/performances', icon: '📈' },
+        { name: 'Réseau (métriques)', href: '/backoffice/analytics/network', icon: '🌐' },
+        { name: 'Application (métriques)', href: '/backoffice/analytics/application', icon: '📱' },
+        { name: 'Conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
         { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
       ]
     },

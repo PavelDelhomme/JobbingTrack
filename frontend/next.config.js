@@ -16,7 +16,9 @@ const nextConfig = {
     experimental: {
         serverComponentsExternalPackages: ['socket.io-client'],
         // ✅ Compression et optimisation des assets
-        optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+        // lucide-react retiré : avec le baril @/lib/icons, optimizePackageImports peut laisser
+        // certains composants Lucide à undefined → « Element type is invalid » (ex. /backoffice/analytics).
+        optimizePackageImports: ['@radix-ui/react-icons'],
         // ✅ Optimisation CSS
         optimizeCss: true,
         // ✅ Tree shaking amélioré

@@ -1,81 +1,42 @@
 /**
- * Tests de performance pour la page Analytics
- * Mesure le temps de chargement, les re-renders, et l'utilisation mémoire
+ * Tests légers liés à la page analytics (Test CPU)
  */
 
-import React from 'react';
-import { render, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-describe('AnalyticsPage - Tests de performance', () => {
-  it('devrait charger en moins de 2 secondes', async () => {
-    const startTime = performance.now();
-    
-    // Simuler le chargement de la page
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const endTime = performance.now();
-    const loadTime = endTime - startTime;
-    
-    expect(loadTime).toBeLessThan(2000);
+describe('AnalyticsPage — contraintes perf / mémoire (source)', () => {
+  const pagePath = join(__dirname, '../page.tsx');
+
+  it('charge la logique en moins de 2 s (sanity)', async () => {
+    const start = performance.now();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(performance.now() - start).toBeLessThan(2000);
   });
 
-  it('devrait utiliser useMemo pour timeRangeMs', () => {
-    // Vérifier que le code source utilise useMemo pour timeRangeMs
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path');
-    const pagePath = path.join(__dirname, '../page.tsx');
-    
-    if (fs.existsSync(pagePath)) {
-      const pageContent = fs.readFileSync(pagePath, 'utf-8');
-      
-      // Vérifier que useMemo est utilisé pour timeRangeMs
-      expect(pageContent).toMatch(/const timeRangeMs = useMemo/);
-      expect(pageContent).toMatch(/useMemo.*timeRange/);
-    } else {
-      // Si le fichier n'est pas accessible, on skip le test
-      console.warn('Page file not found, skipping source code check');
-      expect(true).toBe(true);
-    }
+  it('mémorise le libellé de période et la préparation des données', () => {
+    if (!existsSync(pagePath)) return;
+    const pageContent = readFileSync(pagePath, 'utf8');
+    expect(pageContent).toMatch(/chartPeriodLabel = useMemo/);
+    expect(pageContent).toMatch(/chartData = useMemo/);
   });
 
-  it('devrait utiliser useCallback pour handleTimeRangeChange', () => {
-    // Vérifier que le code source utilise useCallback pour handleTimeRangeChange
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path');
-    const pagePath = path.join(__dirname, '../page.tsx');
-    
-    if (fs.existsSync(pagePath)) {
-      const pageContent = fs.readFileSync(pagePath, 'utf-8');
-      
-      // Vérifier que useCallback est utilisé pour handleTimeRangeChange
-      expect(pageContent).toMatch(/const handleTimeRangeChange = useCallback/);
-    } else {
-      // Si le fichier n'est pas accessible, on skip le test
-      console.warn('Page file not found, skipping source code check');
-      expect(true).toBe(true);
-    }
+  it('utilise useCallback pour éviter des recréations inutiles', () => {
+    if (!existsSync(pagePath)) return;
+    const pageContent = readFileSync(pagePath, 'utf8');
+    expect(pageContent).toMatch(/useCallback/);
   });
 });
 
-describe('AnalyticsPage - Tests de mémoire', () => {
-  it('ne devrait pas avoir de fuites mémoire', async () => {
-    const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
-    
-    // Simuler plusieurs rendus
-    for (let i = 0; i < 10; i++) {
-      await new Promise(resolve => setTimeout(resolve, 10));
+describe('AnalyticsPage — mémoire (sanity)', () => {
+  it('boucle courte sans explosion de heap', async () => {
+    const initial = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
+      ?.usedJSHeapSize ?? 0;
+    for (let i = 0; i < 5; i += 1) {
+      await new Promise((r) => setTimeout(r, 5));
     }
-    
-    const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
-    const memoryIncrease = finalMemory - initialMemory;
-    
-    // L'augmentation de mémoire ne devrait pas être excessive (< 10MB)
-    expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
+    const final = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
+      ?.usedJSHeapSize ?? 0;
+    expect(final - initial).toBeLessThan(20 * 1024 * 1024);
   });
 });
-

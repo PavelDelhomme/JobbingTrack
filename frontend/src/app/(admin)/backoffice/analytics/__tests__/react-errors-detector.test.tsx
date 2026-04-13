@@ -27,7 +27,7 @@ export const detectReactErrors = (component: React.ReactElement) => {
         message.includes('TypeError')) {
       errors.push(message);
     }
-    originalError(...args);
+    // Ne pas répercuter vers console : ces cas sont volontaires et noieraient Jest.
   };
   
   console.warn = (...args: any[]) => {
@@ -37,7 +37,6 @@ export const detectReactErrors = (component: React.ReactElement) => {
         message.includes('while rendering')) {
       warnings.push(message);
     }
-    originalWarn(...args);
   };
   
   try {

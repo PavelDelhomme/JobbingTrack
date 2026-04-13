@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDateTime } from '@/lib/utils/date';
@@ -8,6 +9,12 @@ import { ArrowLeft, AlertTriangle, Shield, Ban, Clock, MapPin, Server, Activity 
 import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
+function normalizeFirewallListedIp(ip: string) {
+  const s = String(ip || '').trim();
+  if (s.startsWith('::ffff:')) return s.slice(7);
+  return s;
+}
 
 interface NetworkThreat {
   id: string;
@@ -29,6 +36,7 @@ export default function ThreatDetailsPage() {
   const [threat, setThreat] = useState<NetworkThreat | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inConsolidatedBlocklist, setInConsolidatedBlocklist] = useState<boolean | null>(null);
 
   useEffect(() => {
     const loadThreat = async () => {
@@ -54,6 +62,33 @@ export default function ThreatDetailsPage() {
       loadThreat();
     }
   }, [params.id]);
+
+  useEffect(() => {
+    if (!threat?.id) return;
+    let cancelled = false;
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    (async () => {
+      try {
+        const res = await axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`, { headers, timeout: 6000 });
+        if (cancelled) return;
+        const list = res.data?.success && Array.isArray(res.data?.data) ? res.data.data : [];
+        const normSource = normalizeFirewallListedIp(threat.sourceIp || '');
+        const match = list.some((item: string | { ip?: string; threatId?: string }) => {
+          const row = typeof item === 'string' ? { ip: item } : item;
+          if (row?.threatId && String(row.threatId) === String(threat.id)) return true;
+          if (row?.ip && normSource && normalizeFirewallListedIp(row.ip) === normSource) return true;
+          return false;
+        });
+        setInConsolidatedBlocklist(match);
+      } catch {
+        if (!cancelled) setInConsolidatedBlocklist(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [threat?.id, threat?.sourceIp]);
 
   const handleBlock = async () => {
     if (!confirm('Êtes-vous sûr de vouloir bloquer cette menace ?')) return;
@@ -123,6 +158,11 @@ export default function ThreatDetailsPage() {
   }
 
   const metadata = threat.metadata || {};
+  const destFromConnections =
+    Array.isArray(metadata.connectionDetails) && metadata.connectionDetails[0]?.localIp
+      ? String(metadata.connectionDetails[0].localIp)
+      : null;
+  const destDisplay = threat.destIp || destFromConnections;
   const metadataKeys = Object.keys(metadata || {});
   const isMetadataPoor = metadataKeys.length === 0 || (metadataKeys.length === 1 && metadata.test === true);
   const possibleImpacts: Record<string, string[]> = {
@@ -175,6 +215,28 @@ export default function ThreatDetailsPage() {
             </button>
           )}
         </div>
+
+        {threat.blocked && (
+          <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-900 dark:text-red-100">
+            <p className="font-semibold mb-1">Menace marquée comme bloquée</p>
+            <p className="mb-2">
+              L&apos;IP source peut figurer dans la liste consolidée (règles, iptables, menaces, logs). Vérifie le
+              pare-feu pour l&apos;origine exacte du blocage.
+            </p>
+            <Link
+              href="/backoffice/security/firewall#liste-ips-bloquees"
+              className="text-blue-700 dark:text-blue-300 font-medium hover:underline"
+            >
+              Ouvrir la liste des IPs bloquées
+            </Link>
+            {inConsolidatedBlocklist === false && (
+              <p className="mt-2 text-amber-800 dark:text-amber-200 text-xs">
+                Cette IP n&apos;apparaît pas dans la vue consolidée actuelle (délai de fusion ou blocage uniquement
+                iptables). Rafraîchis la page Firewall.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Informations principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,18 +297,26 @@ export default function ThreatDetailsPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">IP Source</p>
                 <p className="font-mono text-lg font-semibold">{threat.sourceIp}</p>
               </div>
-              {threat.destIp && (
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">IP Destination</p>
-                  <p className="font-mono text-lg font-semibold">{threat.destIp}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">IP Destination</p>
+                <p className="font-mono text-lg font-semibold">{destDisplay || '—'}</p>
+                {!threat.destIp && destFromConnections && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Non stockée en colonne <span className="font-mono">destIp</span> : valeur dérivée de la première
+                    connexion monitorée (<span className="font-mono">localIp</span>).
+                  </p>
+                )}
+              </div>
               {threat.destPort && (
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Port Destination</p>
                   <p className="font-semibold text-lg">{threat.destPort}</p>
                 </div>
               )}
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Identifiant menace</p>
+                <p className="font-mono text-sm break-all text-gray-800 dark:text-gray-200">{threat.id}</p>
+              </div>
             </div>
           </div>
         </div>

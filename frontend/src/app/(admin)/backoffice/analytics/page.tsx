@@ -1,7 +1,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { ChartPeriodCaption } from '@/components/analytics/ChartPeriodCaption';
+import { formatRangeLabel, formatCustomRangeLabel, localCalendarDayBounds } from '@/components/analytics/timeRangeUtils';
+import type { TimeRangeOption as AnalyticsPresetRange } from '@/components/analytics/TimeRangeSelector';
+import { formatLocalChartAxisTick, formatLocalDateTime, normalizeMetricTimestampToIso } from '@/lib/utils/date';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Cpu } from '@/lib/icons';
 
@@ -10,13 +15,15 @@ interface CPUMetric {
   cpu_usage_percent: number;
 }
 
-type TimeRangeOption = 'today' | '1h' | '6h' | '24h' | '3d' | '7d' | '14d' | '21d' | '30d' | 'custom';
+type PageTimeRange = AnalyticsPresetRange | 'custom';
 
 export default function AnalyticsPage() {
   const [cpuData, setCpuData] = useState<CPUMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const hasDataRef = useRef(false);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('today');
+  /** Horodatage du dernier fetch HTTP (affichage « temps réel » côté UI). */
+  const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
+  const [timeRange, setTimeRange] = useState<PageTimeRange>('today');
   const [customStart, setCustomStart] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -31,8 +38,8 @@ export default function AnalyticsPage() {
     let limit: number;
     
     if (timeRange === 'custom') {
-      startDate = new Date(customStart + 'T00:00:00.000Z');
-      const endDate = new Date(customEnd + 'T23:59:59.999Z');
+      const { start, end: endDate } = localCalendarDayBounds(customStart, customEnd);
+      startDate = start;
       const durationMs = Math.max(0, endDate.getTime() - startDate.getTime());
       limit = Math.ceil(durationMs / (60 * 1000)); // 1 point par minute max
       limit = Math.min(limit, 43200); // plafonner à 30 jours
@@ -86,6 +93,41 @@ export default function AnalyticsPage() {
     return { startDate, limit };
   }, [timeRange, customStart, customEnd]);
 
+  const chartPeriodLabel = useMemo(() => {
+    if (timeRange === 'custom') return formatCustomRangeLabel(customStart, customEnd);
+    const end = new Date();
+    const { startDate } = getTimeRangeParams();
+    return formatRangeLabel(startDate, end, timeRange as AnalyticsPresetRange);
+  }, [timeRange, customStart, customEnd, getTimeRangeParams]);
+
+  const refreshIntervalMs = useMemo(() => {
+    if (timeRange === '1h' || timeRange === '6h') return 15_000;
+    if (timeRange === 'today' || timeRange === '24h') return 30_000;
+    if (timeRange === 'custom') return 45_000;
+    return 60_000;
+  }, [timeRange]);
+
+  const periodHintText = useMemo(() => {
+    if (timeRange === 'custom') {
+      return 'Plage calendaire locale : les graphiques utilisent les dates « Du / au » ci-dessus.';
+    }
+    if (timeRange === '24h') {
+      return 'Dernières 24 h glissantes jusqu’à maintenant (borne de droite = instant présent).';
+    }
+    if (timeRange === '1h' || timeRange === '6h') {
+      return 'Fenêtre glissante courte jusqu’à maintenant.';
+    }
+    if (timeRange === 'today') {
+      return 'Depuis minuit aujourd’hui (heure locale) jusqu’à maintenant.';
+    }
+    return 'Fenêtre glissante jusqu’à maintenant ; les libellés d’axe restent en heure locale.';
+  }, [timeRange]);
+
+  const refreshHintText = useMemo(() => {
+    const s = Math.round(refreshIntervalMs / 1000);
+    return `Rafraîchissement automatique des données toutes les ${s} s (plus fréquent sur les vues courtes).`;
+  }, [refreshIntervalMs]);
+
   // Fonction pour récupérer les données CPU depuis metrics-aggregator-c
   const fetchCPUData = useCallback(async () => {
     try {
@@ -125,19 +167,14 @@ export default function AnalyticsPage() {
           .map((item: any) => {
             const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
                        (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : 0);
-            // Convertir timestamp en ISO string si c'est un objet Date
-            let timestamp = item.timestamp;
-            if (timestamp instanceof Date) {
-              timestamp = timestamp.toISOString();
-            } else if (typeof timestamp === 'string' && !timestamp.includes('T')) {
-              // Si c'est une date PostgreSQL sans timezone, ajouter 'Z'
-              timestamp = timestamp + 'Z';
-            }
+            const timestamp = normalizeMetricTimestampToIso(item.timestamp);
+            if (!timestamp) return null;
             return {
-              timestamp: timestamp,
+              timestamp,
               cpu_usage_percent: Number(cpu)
             };
           })
+          .filter((row): row is CPUMetric => row != null)
           .sort((a: CPUMetric, b: CPUMetric) => 
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
@@ -148,15 +185,16 @@ export default function AnalyticsPage() {
     } catch {
       // Erreur silencieuse (réseau ou API)
     } finally {
+      setLastFetchedAt(new Date());
       setLoading(false);
     }
   }, [getTimeRangeParams]);
 
   useEffect(() => {
     fetchCPUData();
-    const interval = setInterval(fetchCPUData, 60000);
+    const interval = setInterval(fetchCPUData, refreshIntervalMs);
     return () => clearInterval(interval);
-  }, [fetchCPUData]);
+  }, [fetchCPUData, refreshIntervalMs]);
 
   // Fonction pour compresser/agréger les points de données
   const compressDataPoints = useCallback((data: CPUMetric[], targetMaxPoints: number = 200) => {
@@ -236,21 +274,11 @@ export default function AnalyticsPage() {
     const compressedData = compressDataPoints(cpuData, targetMaxPoints);
 
     return compressedData.map((item) => {
-      const date = new Date(item.timestamp);
+      const timeMs = new Date(item.timestamp).getTime();
       return {
-        time: date.toLocaleTimeString('fr-FR', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        datetime: date.toLocaleString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
+        timeMs,
+        time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+        datetime: formatLocalDateTime(item.timestamp),
         cpu: item.cpu_usage_percent,
         timestamp: item.timestamp
       };
@@ -261,26 +289,31 @@ export default function AnalyticsPage() {
   const chartDataRaw = useMemo(() => {
     if (cpuData.length === 0) return [];
     return cpuData.map((item) => {
-      const date = new Date(item.timestamp);
+      const timeMs = new Date(item.timestamp).getTime();
       return {
-        time: date.toLocaleTimeString('fr-FR', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        datetime: date.toLocaleString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
+        timeMs,
+        time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+        datetime: formatLocalDateTime(item.timestamp),
         cpu: item.cpu_usage_percent,
         timestamp: item.timestamp
       };
     });
   }, [cpuData]);
+
+  const chartXDomain = useMemo((): [number, number] => {
+    const now = new Date();
+    if (timeRange === 'custom') {
+      const { start, end } = localCalendarDayBounds(customStart, customEnd);
+      return [start.getTime(), end.getTime()];
+    }
+    const { startDate } = getTimeRangeParams();
+    return [startDate.getTime(), now.getTime()];
+  }, [timeRange, customStart, customEnd, getTimeRangeParams, lastFetchedAt]);
+
+  const chartAxisShowDate =
+    chartXDomain[1] - chartXDomain[0] > 24 * 60 * 60 * 1000;
+
+  const chartRawAxisShowDate = chartAxisShowDate;
 
   return (
     <AdminLayout>
@@ -288,19 +321,19 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Cpu className="w-6 h-6" />
-            Test CPU Système
+            Métriques système (monitoring)
           </h1>
           
           <div className="flex flex-wrap items-center gap-3">
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRangeOption)}
+            onChange={(e) => setTimeRange(e.target.value as PageTimeRange)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
           >
             <option value="today">Aujourd'hui</option>
-            <option value="1h">Dernière heure</option>
-            <option value="6h">Dernières 6 h</option>
-            <option value="24h">Dernières 24 h</option>
+            <option value="1h">Dernière heure (glissant)</option>
+            <option value="6h">Dernières 6 h (glissant)</option>
+            <option value="24h">Dernières 24 h (glissant)</option>
             <option value="3d">Derniers 3 jours</option>
             <option value="7d">Derniers 7 jours</option>
             <option value="14d">Dernières 2 semaines</option>
@@ -332,6 +365,52 @@ export default function AnalyticsPage() {
           )}
         </div>
         </div>
+        <div className="mt-2 space-y-1 max-w-3xl">
+          <p className="text-xs text-gray-500 dark:text-gray-400">{periodHintText}</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-300">{refreshHintText}</p>
+          {lastFetchedAt && (
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Dernier chargement depuis l&apos;agrégateur :{' '}
+              <span className="font-medium tabular-nums">
+                {formatLocalDateTime(lastFetchedAt)}
+              </span>
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              href: '/backoffice/analytics/performances',
+              title: 'Historique système',
+              desc: 'CPU, mémoire, réseau — mêmes plages / personnalisé que les autres vues.',
+            },
+            {
+              href: '/backoffice/analytics/containers',
+              title: 'Conteneurs',
+              desc: 'Métriques par conteneur et corrélations.',
+            },
+            {
+              href: '/backoffice/analytics/network',
+              title: 'Réseau',
+              desc: 'Charge et évolution réseau.',
+            },
+            {
+              href: '/backoffice/analytics/application',
+              title: 'Application',
+              desc: 'Stats applicatives et rafraîchissement live.',
+            },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-400 hover:shadow-sm dark:border-gray-600 dark:bg-gray-800/80 dark:hover:border-blue-500"
+            >
+              <div className="font-medium text-gray-900 dark:text-gray-100">{item.title}</div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
+            </Link>
+          ))}
+        </div>
 
         {/* Information sur les données */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -340,7 +419,10 @@ export default function AnalyticsPage() {
             {cpuData.length > 0 && (
               <>
                 <p><strong>Dernière valeur:</strong> {cpuData[cpuData.length - 1]?.cpu_usage_percent.toFixed(2)}%</p>
-                <p><strong>Dernière mise à jour:</strong> {cpuData[cpuData.length - 1]?.timestamp}</p>
+                <p>
+                  <strong>Dernier point série (API) :</strong>{' '}
+                  {cpuData[cpuData.length - 1]?.timestamp}
+                </p>
                 {cpuData.length > chartData.length ? (
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                     ⚡ <strong>Compression active:</strong> Les données sont compressées pour améliorer la lisibilité ({((cpuData.length - chartData.length) / cpuData.length * 100).toFixed(1)}% de réduction: {cpuData.length} → {chartData.length} points)
@@ -357,9 +439,10 @@ export default function AnalyticsPage() {
 
         {/* Graphique CPU avec compression */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
             CPU Système (%) - {cpuData.length > chartData.length ? 'AVEC Compression' : 'Sans compression'} ({chartData.length} points)
           </h2>
+          <ChartPeriodCaption label={chartPeriodLabel} />
           
           {loading && cpuData.length === 0 ? (
             <div className="flex items-center justify-center h-96">
@@ -374,12 +457,16 @@ export default function AnalyticsPage() {
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time"
+                  dataKey="timeMs"
+                  type="number"
+                  domain={chartXDomain}
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  angle={-45}
+                  angle={chartAxisShowDate ? -40 : -35}
                   textAnchor="end"
-                  height={80}
+                  height={chartAxisShowDate ? 88 : 72}
+                  minTickGap={chartAxisShowDate ? 36 : 24}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: chartAxisShowDate })}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -395,11 +482,9 @@ export default function AnalyticsPage() {
                     borderRadius: '8px',
                     color: '#F3F4F6'
                   }}
-                  labelFormatter={(label, payload) => {
-                    if (payload && payload[0] && payload[0].payload) {
-                      return payload[0].payload.datetime;
-                    }
-                    return label;
+                  labelFormatter={(_, payload) => {
+                    const ts = payload?.[0]?.payload?.timestamp;
+                    return ts != null ? formatLocalDateTime(ts) : '—';
                   }}
                   formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'CPU Système']}
                 />
@@ -420,9 +505,10 @@ export default function AnalyticsPage() {
 
         {/* Graphique CPU SANS compression (brut) */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
             CPU Système (%) - Données Brutes - SANS Compression ({chartDataRaw.length} points)
           </h2>
+          <ChartPeriodCaption label={chartPeriodLabel} />
           
           {loading && cpuData.length === 0 ? (
             <div className="flex items-center justify-center h-96">
@@ -437,12 +523,16 @@ export default function AnalyticsPage() {
               <LineChart data={chartDataRaw} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time"
+                  dataKey="timeMs"
+                  type="number"
+                  domain={chartXDomain}
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  angle={-45}
+                  angle={chartRawAxisShowDate ? -40 : -35}
                   textAnchor="end"
-                  height={80}
+                  height={chartRawAxisShowDate ? 88 : 72}
+                  minTickGap={chartRawAxisShowDate ? 36 : 24}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: chartRawAxisShowDate })}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -458,11 +548,9 @@ export default function AnalyticsPage() {
                     borderRadius: '8px',
                     color: '#F3F4F6'
                   }}
-                  labelFormatter={(label, payload) => {
-                    if (payload && payload[0] && payload[0].payload) {
-                      return payload[0].payload.datetime;
-                    }
-                    return label;
+                  labelFormatter={(_, payload) => {
+                    const ts = payload?.[0]?.payload?.timestamp;
+                    return ts != null ? formatLocalDateTime(ts) : '—';
                   }}
                   formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'CPU Système']}
                 />

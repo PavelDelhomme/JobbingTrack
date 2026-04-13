@@ -4,7 +4,7 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete test-audit-jest-scope-frontend
 
 FRONTEND_DIR := frontend
 
@@ -59,7 +59,8 @@ help-frontend: ## Afficher l'aide frontend
 	@echo "  make format-check-frontend - Vérifier formatage"
 	@echo ""
 	@echo "🧪 TESTS:"
-	@echo "  make test-unit-frontend    - Tests unitaires Jest"
+	@echo "  make test-unit-frontend    - Jest : unit + pages /backoffice/analytics (npm run test:unit-and-analytics)"
+	@echo "  make test-audit-jest-scope-frontend - Audit : suites Jest hors gate (npm run test:audit-jest-scope)"
 	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
 	@echo "  make test-all-frontend     - Tous les tests"
 	@echo "  make test-analytics        - Tests de la page Analytics"
@@ -144,17 +145,17 @@ format-check-frontend: ## Vérifier formatage (dans conteneur Docker)
 # TESTS
 # ============================================================================
 
-test-unit-frontend: ## Tests unitaires Jest (dans conteneur Docker ou local)
-	@echo "🧪 Tests unitaires frontend..."
+test-unit-frontend: ## Jest : tests unit (src/__tests__/unit) + pages analytics (smoke /backoffice/analytics)
+	@echo "🧪 Frontend Jest — npm run test:unit-and-analytics (rapport texte ; avec make test-all → tests/results/.../frontend-jest.json)"
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
-		docker exec -w /app jobbingtrack-frontend npm run test:unit || true; \
+		docker exec -w /app jobbingtrack-frontend npm run test:unit-and-analytics; \
 	else \
-		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		echo "⚠️  Conteneur jobbingtrack-frontend absent — exécution locale."; \
 		if [ ! -f "$(FRONTEND_DIR)/node_modules/.bin/jest" ]; then \
 			echo "💡 Installez les dépendances : cd $(FRONTEND_DIR) && npm install"; \
-			(cd $(FRONTEND_DIR) && npm install --no-audit --no-fund 2>/dev/null) || true; \
+			(cd $(FRONTEND_DIR) && npm install --no-audit --no-fund) || exit 1; \
 		fi; \
-		cd $(FRONTEND_DIR) && npm run test:unit 2>/dev/null || (echo "⚠️  Jest non disponible en local. Lancez avec Docker : make up-full puis make test-unit-frontend"; exit 0); \
+		cd $(FRONTEND_DIR) && npm run test:unit-and-analytics; \
 	fi
 
 test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)
@@ -173,6 +174,10 @@ test-e2e-mobile-email: ## Tests E2E : mobile-emulator + email-verification-monit
 	@echo "🎭 Tests E2E (émulateur mobile + inscription / Email Monitor)..."
 	@echo "   Base URL: $(PLAYWRIGHT_BASE_URL) | API: $(API_URL_E2E)"
 	@cd $(FRONTEND_DIR) && PLAYWRIGHT_BASE_URL="$(PLAYWRIGHT_BASE_URL)" API_URL="$(API_URL_E2E)" npx playwright test tests/e2e/mobile-emulator.spec.ts tests/e2e/email-verification-monitor.spec.ts --project=chromium
+
+test-audit-jest-scope-frontend: ## Liste les suites Jest hors test:unit-and-analytics (audit périmètre)
+	@echo "📋 Audit Jest (fichiers hors gate unit+analytics)..."
+	@cd $(FRONTEND_DIR) && npm run test:audit-jest-scope
 
 test-all-frontend: ## Tous les tests (dans conteneur Docker)
 	@echo "🧪 Tous les tests frontend..."

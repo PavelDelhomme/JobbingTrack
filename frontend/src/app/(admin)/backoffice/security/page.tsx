@@ -3,13 +3,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
+import { formatLocalDateTime } from '@/lib/utils/date'
+import {
+  countDetectionLikeLogs,
+  isDdosThreat,
+  isSqliThreat,
+  isXssThreat,
+} from '@/lib/security/threatSignals'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
+/** Extrait le temps de réponse agrégé (agrégateur expose souvent `responseTime` à la racine). */
+function pickResponseTimeMs(metrics: Record<string, unknown> | null | undefined): number | null {
+  if (!metrics || typeof metrics !== 'object') return null
+  const candidates = [
+    (metrics as { responseTime?: { average_ms?: unknown } }).responseTime?.average_ms,
+    (metrics as { system?: { responseTime?: { average_ms?: unknown } } }).system?.responseTime?.average_ms,
+    (metrics as { system?: { monitoringC?: { avg_response_time_ms?: unknown } } }).system?.monitoringC
+      ?.avg_response_time_ms,
+  ]
+  for (const c of candidates) {
+    if (typeof c === 'number' && Number.isFinite(c) && c >= 0) return c
+  }
+  return null
+}
+
+function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
+  if (!byOrigin || typeof byOrigin !== 'object') return 'Règles, menaces et logs fusionnés'
+  const o = byOrigin as Record<string, number>
+  const parts: string[] = []
+  if (o.manual_rule) parts.push(`manuel ${o.manual_rule}`)
+  if (o.lab_simulation) parts.push(`lab ${o.lab_simulation}`)
+  if (o.automatic_threat) parts.push(`auto ${o.automatic_threat}`)
+  if (o.iptables) parts.push(`iptables ${o.iptables}`)
+  if (o.log_inferred) parts.push(`logs ${o.log_inferred}`)
+  return parts.length > 0 ? parts.join(' · ') : 'Règles, menaces et logs fusionnés'
+}
+
 type SecurityOverview = {
   logsCount: number
+  logsPeriodDays: number
   threatsCount: number
   blockedIpsCount: number
+  blockedIpsSubtitle: string
   wafEnabled: boolean | null
   firewallRulesCount: number
   systemCpuPercent: number | null
@@ -48,10 +84,14 @@ type SecurityWeights = {
   serviceHealth: number
 }
 
+const LOGS_WINDOW_DAYS = 30
+
 const defaultOverview: SecurityOverview = {
   logsCount: 0,
+  logsPeriodDays: LOGS_WINDOW_DAYS,
   threatsCount: 0,
   blockedIpsCount: 0,
+  blockedIpsSubtitle: 'Règles, menaces et logs fusionnés',
   wafEnabled: null,
   firewallRulesCount: 0,
   systemCpuPercent: null,
@@ -125,8 +165,9 @@ export default function SecurityOverviewPage() {
 
     try {
       setServiceError(null)
+      const logSince = encodeURIComponent(new Date(Date.now() - LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString())
       const [logs, threats, blockedIps, wafConfig, firewallRules, metrics, crashes] = await Promise.all([
-          fetchJson('/api/v1/security/logs?limit=200'),
+          fetchJson(`/api/v1/security/logs?limit=500&startDate=${logSince}`),
           fetchJson('/api/v1/security/firewall/threats?limit=200'),
           fetchJson('/api/v1/security/firewall/blocked-ips'),
           fetchJson('/api/v1/security/waf/config'),
@@ -146,7 +187,18 @@ export default function SecurityOverviewPage() {
       const automaticBlocksCount = logsForStats.filter((l: any) =>
         l?.eventType === 'threat_blocked' || l?.eventType === 'ip_blocked_automatically'
       ).length
-      const detectionsCount = logsForStats.filter((l: any) => l?.eventType === 'network_threat_detected' || l?.category === 'intrusion').length
+      const logDetectionsNoNetworkRow = countDetectionLikeLogs(logsForStats as Record<string, unknown>[], {
+        excludeEventTypes: ['network_threat_detected'],
+      })
+      const sqlT = (threatsArray as Record<string, unknown>[]).filter(isSqliThreat).length
+      const xssT = (threatsArray as Record<string, unknown>[]).filter(isXssThreat).length
+      const ddosT = (threatsArray as Record<string, unknown>[]).filter(isDdosThreat).length
+      const otherT = Math.max(
+        0,
+        (Array.isArray(threatsArray) ? threatsArray.length : 0) - sqlT - xssT - ddosT
+      )
+      const detectionsCount =
+        logDetectionsNoNetworkRow + sqlT + xssT + otherT + ddosT
 
       if (!Array.isArray(logsArray) && !Array.isArray(threatsArray)) {
         setServiceError('Services sécurité indisponibles ou réponse invalide.')
@@ -175,7 +227,7 @@ export default function SecurityOverviewPage() {
           title: l.eventType || l.category || 'Log',
           severity: String(l.level || 'info').toUpperCase(),
           source: l.sourceIP || 'n/a',
-          timestamp: l.timestamp || new Date().toISOString(),
+          timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
         })) : []),
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 12)
       setRecentIncidents(incidents)
@@ -210,17 +262,23 @@ export default function SecurityOverviewPage() {
           : typeof metrics?.system?.disk?.[0]?.usage === 'number'
           ? metrics.system.disk[0].usage
           : null
-        const responseTime = typeof metrics?.system?.responseTime?.average_ms === 'number'
-          ? metrics.system.responseTime.average_ms
-          : null
+        const responseTime = pickResponseTimeMs(metrics as Record<string, unknown>)
         const activeContainers = typeof metrics?.system?.jobbingtrack?.containers?.count === 'number'
           ? metrics.system.jobbingtrack.containers.count
           : 0
 
+        const crashList = Array.isArray(crashes?.data)
+          ? crashes.data
+          : Array.isArray((crashes as { crashes?: unknown[] })?.crashes)
+            ? (crashes as { crashes: unknown[] }).crashes
+            : []
+
         setOverview({
           logsCount: Array.isArray(logsArray) ? logsArray.length : 0,
+          logsPeriodDays: LOGS_WINDOW_DAYS,
           threatsCount: Array.isArray(threatsArray) ? threatsArray.length : 0,
           blockedIpsCount: Array.isArray(ipsArray) ? ipsArray.length : 0,
+          blockedIpsSubtitle: formatBlockedIpsOriginsSubtitle(blockedIps?.meta?.byOrigin),
           wafEnabled: typeof wafConfig?.enabled === 'boolean' ? wafConfig.enabled : (typeof wafConfig?.data?.enabled === 'boolean' ? wafConfig.data.enabled : null),
           firewallRulesCount: Array.isArray(rulesArray) ? rulesArray.length : 0,
           systemCpuPercent: cpuUsage,
@@ -235,7 +293,7 @@ export default function SecurityOverviewPage() {
           manualBlocksCount,
           automaticBlocksCount,
           detectionsCount,
-          mobileCrashesCount: Array.isArray(crashes?.data) ? crashes.data.length : 0,
+          mobileCrashesCount: crashList.length,
         })
     } finally {
       if (mounted) setLoading(false)
@@ -273,11 +331,21 @@ export default function SecurityOverviewPage() {
   )
 
   const cards = [
-    { title: 'Logs sécurité', value: overview.logsCount, subtitle: 'Entrées récentes', href: '/backoffice/security/logs' },
+    {
+      title: 'Logs sécurité',
+      value: overview.logsCount,
+      subtitle: `Entrées (fenêtre ${overview.logsPeriodDays} j., max 500)`,
+      href: '/backoffice/security/logs',
+    },
     { title: 'Menaces', value: overview.threatsCount, subtitle: 'Détections réseau', href: '/backoffice/security/threats' },
-    { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: 'Firewall', href: '/backoffice/security/firewall' },
+    { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: overview.blockedIpsSubtitle, href: '/backoffice/security/firewall' },
     { title: 'Règles firewall', value: overview.firewallRulesCount, subtitle: 'Configuration active', href: '/backoffice/security/firewall' },
-    { title: 'Détections', value: overview.detectionsCount, subtitle: 'Événements détectés', href: '/backoffice/security/logs' },
+    {
+      title: 'Détections',
+      value: overview.detectionsCount,
+      subtitle: 'Logs (hors doublon network_threat) + menaces (page courante)',
+      href: '/backoffice/security/analysis',
+    },
     { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Opérateur + tests lab (RFC5737)', href: '/backoffice/security/firewall' },
     { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/backoffice/security/firewall' },
     { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistique' },
@@ -325,6 +393,10 @@ export default function SecurityOverviewPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">🛡️ Vue d’ensemble sécurité</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Pilotage centralisé: logs, menaces, firewall, WAF, analyse et politiques.
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Les horodatages à l’écran sont en <strong>heure locale</strong> du navigateur. Les compteurs « Logs » et
+            « Détections » utilisent une fenêtre de {LOGS_WINDOW_DAYS} jours pour rester cohérents avec la page Analyse.
           </p>
         </div>
 
@@ -385,6 +457,12 @@ export default function SecurityOverviewPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Incidents temps réel (corrélés)</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Données issues de la base (menaces enregistrées + logs sécurité des {overview.logsPeriodDays} derniers
+            jours), pas un flux réseau brut. Les entrées peuvent provenir de{' '}
+            <strong>tests automatisés</strong>, de la génération de données de démo ou d&apos;événements réels selon
+            l&apos;environnement.
+          </p>
           {recentIncidents.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">Aucun incident récent.</p>
           ) : (
@@ -397,7 +475,9 @@ export default function SecurityOverviewPage() {
                     <span className="text-gray-500 dark:text-gray-400">{i.severity}</span>
                     <span className="text-gray-500 dark:text-gray-400">{i.source}</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(i.timestamp).toLocaleTimeString('fr-FR')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {formatLocalDateTime(i.timestamp)}
+                  </span>
                 </div>
               ))}
               <div className="flex items-center justify-between pt-2">

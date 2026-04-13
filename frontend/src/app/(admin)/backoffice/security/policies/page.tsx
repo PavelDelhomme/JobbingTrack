@@ -20,11 +20,29 @@ interface FirewallRule {
   enabled: boolean;
 }
 
+type BlockedIpEntry = {
+  ip: string;
+  blockedAt?: string;
+  reason?: string;
+  blockOrigin?: string;
+  threatId?: string;
+};
+
+function blockedOriginBadgeLabel(blockOrigin?: string): string | null {
+  const o = String(blockOrigin || '');
+  if (o === 'lab_simulation') return 'Test lab';
+  if (o === 'manual_rule') return 'Manuel';
+  if (o === 'automatic_threat') return 'Auto';
+  if (o === 'iptables') return 'iptables';
+  if (o === 'log_inferred') return 'Logs';
+  return null;
+}
+
 export default function SecurityPoliciesPage() {
   const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
   const [wafSaving, setWafSaving] = useState(false);
   const [firewallRules, setFirewallRules] = useState<FirewallRule[]>([]);
-  const [blockedIPs, setBlockedIPs] = useState<Array<string | { ip?: string; blockedAt?: string; reason?: string }>>([]);
+  const [blockedIPs, setBlockedIPs] = useState<Array<string | BlockedIpEntry>>([]);
   const [newIP, setNewIP] = useState('');
   const [loading, setLoading] = useState(true);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
@@ -330,15 +348,32 @@ export default function SecurityPoliciesPage() {
           <ul className="space-y-2">
             {blockedIPs.map((item) => {
               const ipStr = typeof item === 'string' ? item : (item?.ip ?? JSON.stringify(item));
+              const row = typeof item === 'object' ? item : null;
+              const originLabel = row ? blockedOriginBadgeLabel(row.blockOrigin) : null;
               return (
-                <li key={ipStr} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div>
-                    <span className="font-mono text-gray-900 dark:text-gray-100">{ipStr}</span>
-                    {typeof item === 'object' && item?.reason && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.reason}</p>
+                <li key={ipStr} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-gray-900 dark:text-gray-100">{ipStr}</span>
+                      {originLabel && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100">
+                          {originLabel}
+                        </span>
+                      )}
+                      {row?.threatId && (
+                        <Link
+                          href={`/backoffice/security/threats/${row.threatId}`}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Fiche menace
+                        </Link>
+                      )}
+                    </div>
+                    {row?.reason && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{row.reason}</p>
                     )}
                   </div>
-                  <button onClick={() => handleUnblockIP(ipStr)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
+                  <button onClick={() => handleUnblockIP(ipStr)} className="px-3 py-1 shrink-0 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
                     Débloquer
                   </button>
                 </li>

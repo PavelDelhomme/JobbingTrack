@@ -1,10 +1,27 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
-import { TimeRangeSelector, type TimeRangeOption } from '@/components/analytics';
-import { getPeriodMs, formatRangeLabel } from '@/components/analytics/timeRangeUtils';
+import {
+  TimeRangeSelector,
+  ChartPeriodCaption,
+  useAnalyticsAutoRefresh,
+  injectMetricTimeGaps,
+  ymdLocal,
+  type TimeRangeOption,
+} from '@/components/analytics';
+import {
+  getPeriodMs,
+  formatRangeLabel,
+  formatCustomRangeLabel,
+  localCalendarDayBounds,
+} from '@/components/analytics/timeRangeUtils';
+import {
+  formatLocalChartAxisTick,
+  formatLocalDateTime,
+  normalizeMetricTimestampToIso,
+} from '@/lib/utils/date';
 import {
   LineChart,
   Line,
@@ -18,6 +35,7 @@ import {
 import { analyticsService } from '@/lib/api/analytics.service';
 
 const ALL_CONTAINERS_VALUE = '__all__';
+const METRIC_GAP_MS = 15 * 60 * 1000;
 
 interface ContainerInfo {
   name: string;
@@ -52,9 +70,9 @@ function compressData<T extends { timestamp: string }>(
     valueKeys.forEach((k) => {
       const key = String(k);
       const nums = slice
-        .map((s) => (s as Record<string, unknown>)[key] as number)
-        .filter((n) => typeof n === 'number' && !Number.isNaN(n));
-      avg[key] = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+        .map((s) => (s as Record<string, unknown>)[key] as number | null | undefined)
+        .filter((n): n is number => typeof n === 'number' && !Number.isNaN(n));
+      if (nums.length) avg[key] = nums.reduce((a, b) => a + b, 0) / nums.length;
     });
     out.push({ ...mid, ...avg } as T);
   }
@@ -70,18 +88,20 @@ export default function ContainersAnalyticsPage() {
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
+  const [followLive, setFollowLive] = useState(true);
+  const [softTick, setSoftTick] = useState(0);
+  const silentNextFetch = useRef(false);
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
+    return ymdLocal(d);
   });
-  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
   const getParams = useCallback(() => {
     if (useCustomRange) {
-      const start = new Date(customStart + 'T00:00:00.000Z');
-      const end = new Date(customEnd + 'T23:59:59.999Z');
+      const { start, end } = localCalendarDayBounds(customStart, customEnd);
       const durationMs = Math.max(0, end.getTime() - start.getTime());
       const limit = Math.min(Math.ceil(durationMs / (60 * 1000)), 43200);
       return {
@@ -131,23 +151,41 @@ export default function ContainersAnalyticsPage() {
       setRawMetricsByContainer({});
       return;
     }
+    const silent = silentNextFetch.current;
+    silentNextFetch.current = false;
+
     const { startDate, endDate, limit } = getParams();
     const opts = { startDate, endDate, limit, offset: 0 };
 
     const normalize = (data: Record<string, unknown>[]) =>
       (data || [])
-        .map((d) => ({
-          timestamp:
+        .map((d) => {
+          const rawTs =
             typeof d.timestamp === 'string'
               ? d.timestamp
-              : (d.timestamp as Date)?.toISOString?.() ?? '',
+              : (d.timestamp as Date)?.toISOString?.() ?? '';
+          const timestamp = normalizeMetricTimestampToIso(rawTs);
+          return {
+          timestamp,
           cpuUsagePercent:
-            d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : d.cpu_usage_percent != null ? Number(d.cpu_usage_percent) : null,
+            d.cpuUsagePercent != null
+              ? Number(d.cpuUsagePercent)
+              : d.cpu_usage_percent != null
+                ? Number(d.cpu_usage_percent)
+                : null,
           memoryUsagePercent:
-            d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : d.memory_usage_percent != null ? Number(d.memory_usage_percent) : null,
-        }))
+            d.memoryUsagePercent != null
+              ? Number(d.memoryUsagePercent)
+              : d.memory_usage_percent != null
+                ? Number(d.memory_usage_percent)
+                : null,
+        };
+        })
         .filter((d) => d.timestamp)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const withGaps = (rows: ContainerMetric[]) =>
+      injectMetricTimeGaps(rows, METRIC_GAP_MS, ['cpuUsagePercent', 'memoryUsagePercent']);
 
     if (selectedContainer === ALL_CONTAINERS_VALUE) {
       if (containers.length === 0) {
@@ -156,94 +194,144 @@ export default function ContainersAnalyticsPage() {
         return;
       }
       let cancelled = false;
-      setLoadingMetrics(true);
+      if (!silent) setLoadingMetrics(true);
       Promise.all(
         containers.map((c) =>
-          analyticsService.getContainerMetricsHistory(c.name, opts).then((data: Record<string, unknown>[]) => ({ name: c.name, data: normalize(data) }))
+          analyticsService
+            .getContainerMetricsHistory(c.name, opts)
+            .then((data: Record<string, unknown>[]) => ({
+              name: c.name,
+              data: withGaps(normalize(data)),
+            }))
         )
       )
         .then((results) => {
           if (cancelled) return;
           const byName: Record<string, ContainerMetric[]> = {};
-          results.forEach((r) => { byName[r.name] = r.data; });
+          results.forEach((r) => {
+            byName[r.name] = r.data;
+          });
           setRawMetricsByContainer(byName);
         })
-        .catch(() => {
-          if (!cancelled) setRawMetricsByContainer({});
+        .catch((e) => {
+          console.error(e);
         })
         .finally(() => {
-          if (!cancelled) setLoadingMetrics(false);
+          if (!cancelled && !silent) setLoadingMetrics(false);
         });
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
 
     let cancelled = false;
-    setLoadingMetrics(true);
+    if (!silent) setLoadingMetrics(true);
     setRawMetricsByContainer({});
     analyticsService
       .getContainerMetricsHistory(selectedContainer, opts)
       .then((data: Record<string, unknown>[]) => {
         if (cancelled) return;
-        setRawMetrics(normalize(data));
+        setRawMetrics(withGaps(normalize(data)));
       })
-      .catch(() => {
-        if (!cancelled) setRawMetrics([]);
+      .catch((e) => {
+        console.error(e);
       })
       .finally(() => {
-        if (!cancelled) setLoadingMetrics(false);
+        if (!cancelled && !silent) setLoadingMetrics(false);
       });
-    return () => { cancelled = true; };
-  }, [selectedContainer, getParams, containers]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedContainer, getParams, containers, softTick]);
+
+  const bumpWindowEndToNow = useCallback(() => {
+    silentNextFetch.current = true;
+    setWindowEnd(new Date());
+  }, []);
+
+  const bumpSoftRefresh = useCallback(() => {
+    silentNextFetch.current = true;
+    setSoftTick((t) => t + 1);
+  }, []);
+
+  useAnalyticsAutoRefresh({
+    followLive,
+    useCustomRange,
+    customEnd,
+    bumpWindowEndToNow,
+    bumpSoftRefresh,
+  });
 
   const { rangeStart, rangeEnd } = getParams();
+  const chartXDomainMin = rangeStart.getTime();
+  const chartXDomainMax = rangeEnd.getTime();
   const rangeLabel = useCustomRange
-    ? `Du ${new Date(customStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${new Date(customEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    ? formatCustomRangeLabel(customStart, customEnd)
     : formatRangeLabel(rangeStart, rangeEnd, timeRange);
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
-      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
-      const start = new Date(customStart);
-      const end = new Date(customEnd);
-      start.setDate(start.getDate() - days);
-      end.setDate(end.getDate() - days);
-      setCustomStart(start.toISOString().slice(0, 10));
-      setCustomEnd(end.toISOString().slice(0, 10));
+      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
+      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() - days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() - days);
+      setCustomStart(ymdLocal(ns));
+      setCustomEnd(ymdLocal(ne));
       return;
     }
-    const { start } = getPeriodMs(timeRange, windowEnd);
-    const period = windowEnd.getTime() - start.getTime();
-    setWindowEnd(new Date(windowEnd.getTime() - period));
+    setFollowLive(false);
+    if (timeRange === 'today') {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() - 1);
+      setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      setWindowEnd(new Date(windowEnd.getTime() - period));
+    }
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const goNext = useCallback(() => {
     if (useCustomRange) {
-      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
-      const start = new Date(customStart);
-      const end = new Date(customEnd);
-      start.setDate(start.getDate() + days);
-      end.setDate(end.getDate() + days);
-      const today = new Date().toISOString().slice(0, 10);
-      if (end.toISOString().slice(0, 10) > today) {
+      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
+      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() + days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() + days);
+      const today = ymdLocal();
+      if (ymdLocal(ne) > today) {
         setCustomEnd(today);
-        setCustomStart(new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+        setCustomStart(ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
       } else {
-        setCustomStart(start.toISOString().slice(0, 10));
-        setCustomEnd(end.toISOString().slice(0, 10));
+        setCustomStart(ymdLocal(ns));
+        setCustomEnd(ymdLocal(ne));
       }
       return;
     }
+    setFollowLive(false);
     const now = new Date();
-    const { start } = getPeriodMs(timeRange, windowEnd);
-    const period = windowEnd.getTime() - start.getTime();
-    const nextEnd = new Date(windowEnd.getTime() + period);
-    setWindowEnd(nextEnd <= now ? nextEnd : now);
+    if (timeRange === 'today') {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() + 1);
+      if (d <= now) setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      const nextEnd = new Date(windowEnd.getTime() + period);
+      if (nextEnd <= now) setWindowEnd(nextEnd);
+      else setWindowEnd(now);
+    }
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const canGoNext = useMemo(() => {
-    if (useCustomRange) return new Date(customEnd).toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
-    return windowEnd.getTime() < Date.now();
-  }, [useCustomRange, customEnd, windowEnd]);
+    if (useCustomRange) return customEnd < ymdLocal();
+    const now = new Date();
+    if (timeRange === 'today') return windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10);
+    return windowEnd.getTime() < now.getTime();
+  }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
   const chartData = useMemo(() => {
     if (selectedContainer !== ALL_CONTAINERS_VALUE) {
@@ -251,10 +339,12 @@ export default function ContainersAnalyticsPage() {
       const keys: (keyof ContainerMetric)[] = ['cpuUsagePercent', 'memoryUsagePercent'];
       const compressed = compressData(rawMetrics, 200, keys);
       return compressed.map((d) => {
-        const date = new Date(d.timestamp);
+        const timeMs = new Date(d.timestamp).getTime();
         return {
-          time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          datetime: date.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          timeMs,
+          timestamp: d.timestamp,
+          time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+          datetime: formatLocalDateTime(d.timestamp),
           cpu: d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : null,
           memory: d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : null,
         };
@@ -275,10 +365,12 @@ export default function ContainersAnalyticsPage() {
       return Number(m[key]);
     };
     return sampledTs.map((ts) => {
-      const date = new Date(ts);
+      const timeMs = new Date(ts).getTime();
       const point: Record<string, string | number | null> = {
-        time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        datetime: date.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        timeMs,
+        timestamp: ts,
+        time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+        datetime: formatLocalDateTime(ts),
       };
       names.forEach((n) => {
         const k = toKey(n);
@@ -289,6 +381,9 @@ export default function ContainersAnalyticsPage() {
     });
   }, [rawMetrics, rawMetricsByContainer, selectedContainer]);
 
+  const containerAxisShowDate =
+    chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;
+
   const isAllContainers = selectedContainer === ALL_CONTAINERS_VALUE;
   const containerNamesForChart = isAllContainers
     ? Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0).map((n) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_'))
@@ -297,6 +392,7 @@ export default function ContainersAnalyticsPage() {
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
+    setFollowLive(true);
     setWindowEnd(new Date());
   }, []);
 
@@ -382,16 +478,32 @@ export default function ContainersAnalyticsPage() {
         ) : isAllContainers && containerNamesForChart.length > 0 ? (
           <>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                 Tous les conteneurs — CPU (%)
               </h2>
+              <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[260px] sm:min-h-[400px]">
               <ResponsiveContainer width="100%" height={400} minHeight={260}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
-                  <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={[chartXDomainMin, chartXDomainMax]}
+                    angle={containerAxisShowDate ? -40 : -35}
+                    textAnchor="end"
+                    height={containerAxisShowDate ? 72 : 60}
+                    minTickGap={containerAxisShowDate ? 32 : 22}
+                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: containerAxisShowDate })}
+                    tick={{ fontSize: 12 }}
+                  />
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
-                  <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''} />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const ts = payload?.[0]?.payload?.timestamp;
+                      return ts != null ? formatLocalDateTime(String(ts)) : '—';
+                    }}
+                  />
                   <Legend />
                   {containerNamesForChart.map((shortName, i) => (
                     <Line
@@ -402,7 +514,7 @@ export default function ContainersAnalyticsPage() {
                       strokeWidth={2}
                       name={shortName}
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
                     />
                   ))}
                 </LineChart>
@@ -410,16 +522,32 @@ export default function ContainersAnalyticsPage() {
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                 Tous les conteneurs — Mémoire (%)
               </h2>
+              <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[260px] sm:min-h-[400px]">
               <ResponsiveContainer width="100%" height={400} minHeight={260}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
-                  <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={[chartXDomainMin, chartXDomainMax]}
+                    angle={containerAxisShowDate ? -40 : -35}
+                    textAnchor="end"
+                    height={containerAxisShowDate ? 72 : 60}
+                    minTickGap={containerAxisShowDate ? 32 : 22}
+                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: containerAxisShowDate })}
+                    tick={{ fontSize: 12 }}
+                  />
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
-                  <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''} />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const ts = payload?.[0]?.payload?.timestamp;
+                      return ts != null ? formatLocalDateTime(String(ts)) : '—';
+                    }}
+                  />
                   <Legend />
                   {containerNamesForChart.map((shortName, i) => (
                     <Line
@@ -430,7 +558,7 @@ export default function ContainersAnalyticsPage() {
                       strokeWidth={2}
                       name={shortName}
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
                     />
                   ))}
                 </LineChart>
@@ -443,25 +571,39 @@ export default function ContainersAnalyticsPage() {
           </>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
               {selectedContainer.replace(/^jobbingtrack-/, '')} — CPU et mémoire (%)
             </h2>
+            <ChartPeriodCaption label={rangeLabel} />
             <div className="w-full min-h-[260px] sm:min-h-[400px]">
             <ResponsiveContainer width="100%" height={400} minHeight={260}>
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
-                <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                <XAxis
+                  dataKey="timeMs"
+                  type="number"
+                  domain={[chartXDomainMin, chartXDomainMax]}
+                  angle={containerAxisShowDate ? -40 : -35}
+                  textAnchor="end"
+                  height={containerAxisShowDate ? 72 : 60}
+                  minTickGap={containerAxisShowDate ? 32 : 22}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: containerAxisShowDate })}
+                  tick={{ fontSize: 12 }}
+                />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
                 <Tooltip
-                  labelFormatter={(_, payload: unknown) => (payload as Array<{ payload?: { datetime?: string } }>)?.[0]?.payload?.datetime ?? ''}
+                  labelFormatter={(_, payload: unknown) => {
+                    const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload?.timestamp;
+                    return ts != null ? formatLocalDateTime(ts) : '—';
+                  }}
                   formatter={((value: unknown, name: string) => [
                     value != null && typeof value === 'number' ? `${Number(value).toFixed(2)}%` : '—',
                     name === 'cpu' ? 'CPU' : 'Mémoire',
                   ]) as (value: unknown, name: string) => [string, string]}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="cpu" stroke="#3B82F6" strokeWidth={2} name="CPU %" dot={false} connectNulls />
-                <Line type="monotone" dataKey="memory" stroke="#10B981" strokeWidth={2} name="Mémoire %" dot={false} connectNulls />
+                <Line type="monotone" dataKey="cpu" stroke="#3B82F6" strokeWidth={2} name="CPU %" dot={false} connectNulls={false} />
+                <Line type="monotone" dataKey="memory" stroke="#10B981" strokeWidth={2} name="Mémoire %" dot={false} connectNulls={false} />
               </LineChart>
             </ResponsiveContainer>
             </div>

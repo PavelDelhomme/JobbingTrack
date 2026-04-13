@@ -18,8 +18,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SECURITY_SERVICE_URL = (process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017').replace(/\/$/, '');
 
+/** Même défaut que docker-compose / .env.example ; désactivé en production si non défini. */
+function effectiveSecurityInternalSecret() {
+  if (process.env.SECURITY_INTERNAL_SECRET) return process.env.SECURITY_INTERNAL_SECRET;
+  if (process.env.NODE_ENV === 'production') return undefined;
+  return 'jobbingtrack-internal-security-dev';
+}
+
 function securityServiceInternalHeaders() {
-  const secret = process.env.SECURITY_INTERNAL_SECRET;
+  const secret = effectiveSecurityInternalSecret();
   if (!secret) return {};
   return { 'X-Internal-Secret': secret };
 }
@@ -773,12 +780,17 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
     try {
       // Les endpoints sécurité doivent être protégés (sauf health/metrics gateway hors /api/v1/security).
       if (path === '/api/v1/security') {
-        const authHeader = req.headers.authorization || req.headers.Authorization;
-        if (!authHeader || !String(authHeader).startsWith('Bearer ')) {
-          return res.status(401).json({
-            success: false,
-            error: 'Token d\'authentification requis'
-          });
+        const internalSecret = effectiveSecurityInternalSecret();
+        const internalHeader = req.get('X-Internal-Secret') || req.get('x-internal-secret');
+        const internalOk = internalSecret && internalHeader === internalSecret;
+        if (!internalOk) {
+          const authHeader = req.headers.authorization || req.headers.Authorization;
+          if (!authHeader || !String(authHeader).startsWith('Bearer ')) {
+            return res.status(401).json({
+              success: false,
+              error: 'Token d\'authentification requis'
+            });
+          }
         }
       }
 

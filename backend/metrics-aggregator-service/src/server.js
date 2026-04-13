@@ -499,14 +499,14 @@ async function collectContainerMetrics() {
         
         const metrics = {
           cpu: {
-            usage: Math.round(cpuPercent * 10) / 10,
-            percentage: Math.round(cpuPercent * 10) / 10,
+            usage: parseFloat(Number(cpuPercent).toFixed(4)),
+            percentage: parseFloat(Number(cpuPercent).toFixed(4)),
             lastUpdate: Date.now()
           },
           memory: {
             usage: memoryMB,
             limit: memoryLimitMB,
-            percentage: Math.min(100, Math.max(0, Math.round(memoryPercent * 10) / 10))
+            percentage: parseFloat(Math.min(100, Math.max(0, Number(memoryPercent))).toFixed(4))
           },
           network: networkStats,
           status: inspect.State.Status || 'running',
@@ -919,15 +919,30 @@ async function collectAllMetrics() {
         offline: offlineServices,
         total: totalServices
       },
-      // ✅ Ajouter le temps de réponse moyen
-      responseTime: {
-        average_ms: Object.values(servicesMetrics)
-          .filter(s => s.responseTimeMs && s.responseTimeMs > 0)
-          .reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / 
-          Math.max(Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).length, 1),
-        fastest_ms: Math.min(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 9999)),
-        slowest_ms: Math.max(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 0))
-      },
+      // ✅ Temps de réponse agrégé (évite NaN si aucun service n’a de responseTimeMs)
+      ...(function buildResponseTimeBlock() {
+        const withRt = Object.values(servicesMetrics).filter(
+          (s) => typeof s?.responseTimeMs === 'number' && s.responseTimeMs > 0
+        );
+        if (withRt.length === 0) {
+          return {
+            responseTime: {
+              average_ms: null,
+              fastest_ms: null,
+              slowest_ms: null,
+            },
+          };
+        }
+        const vals = withRt.map((s) => s.responseTimeMs);
+        const sum = vals.reduce((a, b) => a + b, 0);
+        return {
+          responseTime: {
+            average_ms: sum / vals.length,
+            fastest_ms: Math.min(...vals),
+            slowest_ms: Math.max(...vals),
+          },
+        };
+      })(),
       // ✅ Ajouter les erreurs (pour l'instant à 0, à implémenter plus tard)
       errors: {
         total_last_5m: 0,

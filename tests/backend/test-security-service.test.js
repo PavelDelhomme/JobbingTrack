@@ -7,15 +7,17 @@ const axios = require('axios');
 const { describe, it, expect, beforeAll } = require('@jest/globals');
 
 const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
-const AUTH_TOKEN = process.env.TEST_AUTH_TOKEN || 'test-token';
+/** Même défaut que docker-compose / tests/jest.setup.js — pas besoin d’exporter la variable à la main en local. */
+const DEFAULT_INTERNAL_SECRET = 'jobbingtrack-internal-security-dev';
 
 describe('Security Service', () => {
   let authHeaders;
 
   beforeAll(() => {
     authHeaders = {
-      'Authorization': `Bearer ${AUTH_TOKEN}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Internal-Secret':
+        process.env.SECURITY_INTERNAL_SECRET || DEFAULT_INTERNAL_SECRET
     };
   });
 

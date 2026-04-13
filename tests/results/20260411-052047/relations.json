@@ -1,0 +1,15 @@
+{
+  "testName": "Relations BDD",
+  "userType": "system",
+  "command": "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js",
+  "timestamp": "2026-04-11T05:20:49+02:00",
+  "duration": 1,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "output": "Error response from daemon: No such container: jobbingtrack-auth-service\n"
+}

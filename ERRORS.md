@@ -1,12 +1,12 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 7 avril 2026
+**Dernière mise à jour** : 7 avril 2026 (réf. lot **G** sauvegardes / continuité — spec **`PLAN.md`** § G, pas une erreur runtime)
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
-**Chantier backoffice / sécurité / doc** : **`PLAN.md`**, **`TODOS.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G**), **`TODOS.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
 
 ---
 
@@ -19,7 +19,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | Carte **Incidents sécurité** (nombre) | Données issues d’une **fenêtre courte** côté agrégateur (ex. erreurs récentes agrégées) ; ce n’est **pas** une vue « dernières 24 h » tant que l’API ne l’expose pas explicitement. |
 | **CPU total %** sous la moyenne conteneurs | Souvent une **somme** des CPU des conteneurs détectés ; peut varier si la liste Docker change, alors que la **moyenne** reste plus stable. |
 
-### Pipeline erreurs / logs (synthèse — à enrichir au lot B)
+### Pipeline erreurs / logs (synthèse — à enrichir au lot **A**)
 
 1. **API Gateway** : trafic entrant, codes HTTP, routage vers les microservices.
 2. **Microservices** : erreurs métier et logs applicatifs par service.
@@ -27,7 +27,11 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 4. **metrics-aggregator** : agrégats (`errors.total_last_5m`, `errors.rate_per_min`, métriques système / conteneurs) consommés par le backoffice.
 5. **Backoffice** : cartes vue d’ensemble, pages **Développement → Services**, sécurité, statistiques.
 
-**Lot B (PLAN.md)** : logs **tous** services filtrables, corrélation avec la sécurité dans les vues détail, et doc pipeline affinée après implémentation.
+**Lot A (PLAN.md)** : logs **tous** services filtrables, corrélation avec la sécurité dans les vues détail, et doc pipeline affinée après implémentation.
+
+### Sauvegardes et reprise (pas une erreur — couverture à construire)
+
+Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié : la **continuité** repose sur les pratiques d’exploitation manuelles (Docker, dumps SQL hors produit, etc.). La trajectoire cible (chiffrement, délocalisation, audit, UI admin) est décrite dans **`PLAN.md`** lot **G** et **`FONCTIONNALITES.md`** § **4.4** ; suivre **`TODOS.md`** lot **G** pour l’implémentation.
 
 ---
 
@@ -43,9 +47,13 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | Endpoint sync non implémenté | sync mobile/API | `SyncQueue` en BDD, pas d’API | Créer `POST /sync/push`, `GET /sync/pull`, `GET /sync/status` |
 | Transitions auto « time-travel » / moteur daté | workflow + application-service / tests | Endpoint time-travel existe ; jobs ou scénarios E2E incomplets pour NO_RESPONSE 7j, etc. | Finaliser cron/worker + suite `status-engine-temporal` (voir section ci-dessous) |
 | Suppression auto corbeille > 30 j | cron/worker | Purge définitive non garantie | Job planifié côté service qui gère la corbeille |
-| Pages sécurité « Analyse » / cohérence menaces–blocages–réseau | Frontend / API / security-service | Lot **A** du chantier (`PLAN.md`) : analyse réseau, unknown %, alignement détections / IPs bloquées | Voir `TODOS.md` lot A ; `firewallController.js`, `backoffice/security/*` |
-| Logs backoffice surtout « sécurité » | metrics-aggregator + UI | Lot **B** : logs **tous** services, filtres service/niveau/période | Voir `PLAN.md` § B, `(development)/services/backoffice` |
+| Pages sécurité « Analyse » / cohérence menaces–blocages–réseau | Frontend / API / security-service | Lot **B** du chantier (`PLAN.md`) : analyse réseau, unknown %, alignement détections / IPs bloquées | Voir `TODOS.md` lot B ; `firewallController.js`, `backoffice/security/*` |
+| Logs backoffice surtout « sécurité » | metrics-aggregator + UI | Lot **A** : logs **tous** services, filtres service/niveau/période | Voir `PLAN.md` § A, `(development)/services/backoffice` |
 | CSS @-o-keyframes (Opera legacy) | Frontend | Warning console « Unrecognized at-rule » | Optionnel : supprimer le préfixe Opera |
+| **`make tests` / `test-all` sans stack Docker** | `scripts/run-all-tests-with-reports.sh` | Très nombreux échecs (ex. **ECONNREFUSED** `localhost:5002`, **No such container: jobbingtrack-auth-service**, MailHog absent, User Journey status 000) | **Comportement attendu** si `make up-full` n’est pas lancé — ne pas confondre avec une régression du dépôt ; relancer les tests après stack + BDD + **STATUS.md** § dernier rapport |
+| **Jest `tests/backend/test-security-service.test.js` (firewall/WAF via gateway)** | API Gateway + security-service | En local, **`tests/jest.setup.js`** et le test posent **`SECURITY_INTERNAL_SECRET=jobbingtrack-internal-security-dev`** (même défaut que **docker-compose** / **`.env.example`**) ; **`scripts/run-all-tests-with-reports.sh`** exporte aussi ce défaut puis charge **`.env`** | En **production**, définir impérativement un secret fort ; ne pas s’appuyer sur le défaut dev |
+| **Script API « events » / analytics** | Gateway → event-service | **404** sur routes inexistantes ou IDs invalides dans la suite globale | Vérifier les chemins attendus par `scripts/run-all-tests-with-reports.sh` ; lot **F1** **`PLAN.md`** |
+| **Playwright login (E2E)** | `frontend` | Timeouts / sélecteurs (toggle mot de passe, messages d’erreur) | Pile front + auth de test ; à stabiliser hors scope du correctif monitoring ci-dessus |
 
 ---
 
