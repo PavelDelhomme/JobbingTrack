@@ -66,7 +66,11 @@ async function probeServiceHealth(containerName, containerStats = null) {
   // Essayer le probe HTTP si la config existe
   if (key && SERVICE_HEALTH_CONFIG[key]) {
   const config = SERVICE_HEALTH_CONFIG[key];
-  const url = `http://localhost:${config.port}${config.path}`;
+  // Depuis le conteneur metrics-aggregator, localhost ≠ les autres services : utiliser le nom
+  // Docker (même clé que dans SERVICE_HEALTH_CONFIG), sauf override explicite pour un run hors réseau compose.
+  const probeHost =
+    process.env.METRICS_HTTP_PROBE_USE_LOCALHOST === 'true' ? 'localhost' : key;
+  const url = `http://${probeHost}:${config.port}${config.path}`;
 
   const startTime = Date.now();
   try {
@@ -1094,17 +1098,25 @@ router.get('/service/:name', async (req, res) => {
       finalHealthStatus = 'starting';
     }
     
+    const cpuPrecise = parseFloat(Number(stats.cpu_percent).toFixed(4))
+    const memUsageMb = parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(4))
+    const memLimitMb = parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(4))
+    const rxMb = parseFloat((stats.network_rx / (1024 * 1024)).toFixed(4))
+    const txMb = parseFloat((stats.network_tx / (1024 * 1024)).toFixed(4))
+
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
       service: {
         name: serviceName,
-        cpu_percent: stats.cpu_percent,
-        memory_percent: stats.memory_percent,
-        memory_usage_mb: parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(2)),
-        memory_limit_mb: parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(2)),
-        network_rx_mb: parseFloat((stats.network_rx / (1024 * 1024)).toFixed(2)),
-        network_tx_mb: parseFloat((stats.network_tx / (1024 * 1024)).toFixed(2)),
+        cpu_percent: cpuPrecise,
+        memory_percent: parseFloat(Number(stats.memory_percent).toFixed(4)),
+        memory_usage_mb: memUsageMb,
+        memory_limit_mb: memLimitMb,
+        network_rx_mb: rxMb,
+        network_tx_mb: txMb,
+        block_read_mb: parseFloat(((stats.block_read ?? 0) / (1024 * 1024)).toFixed(4)),
+        block_write_mb: parseFloat(((stats.block_write ?? 0) / (1024 * 1024)).toFixed(4)),
         pids: stats.pids,
         health: finalHealthStatus,
         health_status_docker: dockerHealthStatus,

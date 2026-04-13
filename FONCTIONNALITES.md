@@ -1,10 +1,10 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Dernière mise à jour** : avril 2026
+**Dernière mise à jour** : 7 avril 2026 (lot **G** sauvegardes / continuité : § 4.4 ; tests : **`STATUS.md`** § `make tests` ; validation produit : **`PLAN.md`** colonne **Validé**)
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
-**Alignement chantier** (sécurité, logs, suivi-intérim, doc) : **`PLAN.md`**, **`TODOS.md`**, **`STATUS.md`**. Les écarts document / code en cours de traitement sont listés dans **`ERRORS.md`** (dont § *Pièges d’interprétation* pour le dashboard admin).
+**Alignement chantier** (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, lot **G** sauvegardes sécurisées) : **`PLAN.md`**, **`TODOS.md`**, **`STATUS.md`**. Les écarts document / code en cours de traitement sont listés dans **`ERRORS.md`** (dont § *Pièges d’interprétation* pour le dashboard admin). **Pas de PR** tant que non demandé par le porteur (voir **`TODOS.md`** en-tête).
 
 ---
 
@@ -188,18 +188,33 @@ Le systeme utilise **deux mecanismes distincts** :
 - Types : rappel, mise a jour candidature, entretien programme, relance due, deadline, systeme
 
 ### 4.3 Pages specifiques backoffice
-- Statistiques & Monitoring (vue d'ensemble, securite, logs) — *chantier lots A–B : pages sécurité et logs multi-services à renforcer, voir `PLAN.md`*
+- Statistiques & Monitoring (vue d'ensemble, securite, logs) — *chantier : **`PLAN.md`** lot **A** (monitoring + logs) puis lot **B** (sécurité) ; tâche **A5** = historique persisté et pages liées*
 - Analytics (performances reseau, CPU, conteneurs, utilisateur)
 - Securite (analyse, firewall, reseau, politiques, menaces, logs)
 - Services (liste, onglets, details, demarrer/arreter/redemarrer)
+- **Détail service** (`/backoffice/services/[nom]`, avril 2026) : métriques **Docker stats** avec précision affichée (CPU faible, mémoire usage/limites, réseau cumulé, **disque block I/O**), **historique** combinant fichiers agrégateur + points collectés pendant la session, **auto-rafraîchissement** paramétrable (10–60 s) et aide sur le compteur **PIDs** — lot **A1** dans `PLAN.md` (tâche **A5** pour persistance multi-pages).
 - Emails (envoi test, templates, configuration SMTP, delivrabilite, historique)
-- Tests (hub, API, backend, frontend, securite, performance, Playwright, rapports)
+- Tests (hub, API, backend, frontend, securite, performance, Playwright, rapports) — suite **`make tests`** documentée dans **`STATUS.md`** (prérequis Docker) ; gate Jest **`npm run test:unit-and-analytics`** décrite dans **`PLAN.md`** lot **F1**
 - Parcours (predefinis, personnalise, rapports)
 - Archives / Corbeille
 - Utilisateurs (CRUD, filtres par role)
 - Recherche globale
 - Emulateur mobile
 - Testeur d'API
+
+### 4.4 Sauvegardes, reprise d'activite et continuite (prevu — lot **G**)
+
+**Statut** : spécifié dans **`PLAN.md`** (lot **G**) et **`TODOS.md`** ; **non implémenté** à ce stade — objectif : sécurité **renforcée** par rapport au socle actuel (WAF, firewall, secrets internes).
+
+**Vision** :
+
+- **API dédiée** (via **API Gateway**, **non exposée publiquement** sans contrôle réseau) : création et suivi de **jobs** de sauvegarde (PostgreSQL, éventuellement artefacts de configuration **déjà anonymisés**), historique avec statuts ; authentification **forte** (JWT rôle administrateur élevé, éventuellement **double contrôle** avec secret de service interne pour les tâches automatiques) ; **rate limiting** et **journal d’audit** (qui a déclenché quoi, quand).
+- **Chiffrement** : dumps et archives **chiffrés au repos** avant stockage durable ; clés gérées hors code (secrets Docker, vault, KMS selon environnement) ; **intégrité** vérifiable (empreinte / signature).
+- **Délocalisation** : envoi vers **stockage distant** (compatible S3, second serveur, etc.) avec identifiants **uniquement** côté serveur ; option **téléchargement ponctuel** chiffré via **lien à courte durée de vie** (token), sans exposer de secrets dans le navigateur.
+- **Backoffice administrateur** : interface (chemin exact à trancher : ex. section **Administration** ou **Développement**) pour **lancer** une sauvegarde manuelle (avec confirmation), consulter l’**état** des jobs, lire les **erreurs** sans fuite d’informations sensibles ; **restauration** : privilégier d’abord un **environnement de secours** / sandbox et un **runbook** documenté avant toute remise en prod automatique.
+- **Continuité (PCA / PRI)** : cibles **RPO/RTO** à définir ; procédures de **redémarrage** des services et de **restauration** BDD ; **exercices** de restauration recommandés.
+
+**Exigences de sécurité rappelées** : moindre privilège, pas de dumps en clair sur disques partagés non protégés, corrélation possible avec les **logs sécurité** en cas de tentatives d’accès non autorisées aux routes backup.
 
 ---
 

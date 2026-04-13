@@ -1,12 +1,21 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { formatLocalDateTime } from '@/lib/utils/date';
+import {
+  countDetectionLikeLogs,
+  hasToken,
+  isSqliThreat,
+  isXssThreat,
+} from '@/lib/security/threatSignals';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Shield, AlertTriangle, Lock, Eye, TrendingUp, Activity } from '@/lib/icons';
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const ANALYSIS_LOGS_WINDOW_DAYS = 30;
 
 export default function SecurityAnalysisPage() {
   const [summary, setSummary] = useState<any>(null);
@@ -19,34 +28,27 @@ export default function SecurityAnalysisPage() {
       setLoading(true);
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const logSince = encodeURIComponent(
+        new Date(Date.now() - ANALYSIS_LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      );
       const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.all([
         axios.get(`${API_URL}/api/v1/security/stats?days=1`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers, timeout: 7000 }),
-        axios.get(`${API_URL}/api/v1/security/logs?limit=200`, { headers, timeout: 7000 }),
+        axios.get(`${API_URL}/api/v1/security/logs?limit=500&startDate=${logSince}`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/threats?limit=200`, { headers, timeout: 7000 }),
       ]);
 
       const stats = statsRes.data?.success ? (statsRes.data?.data || {}) : {};
       const blockedRaw = blockedRes.data?.success && Array.isArray(blockedRes.data?.data) ? blockedRes.data.data : [];
       const blockedIPItems = blockedRaw
-        .map((x: string | { ip?: string; reason?: string; blockedAt?: string }) =>
-          typeof x === 'string' ? { ip: x, reason: 'Blocage actif', blockedAt: undefined } : x
+        .map(
+          (x: string | { ip?: string; reason?: string; blockedAt?: string; blockOrigin?: string; threatId?: string }) =>
+            typeof x === 'string' ? { ip: x, reason: 'Blocage actif', blockedAt: undefined } : { ...x }
         )
         .filter((x: any) => !!x?.ip);
+      const blockedIpsMeta = blockedRes.data?.meta && typeof blockedRes.data.meta === 'object' ? blockedRes.data.meta : null;
       const logs = Array.isArray(logsRes.data?.data) ? logsRes.data.data : [];
       const threats = Array.isArray(threatsRes.data?.data) ? threatsRes.data.data : [];
-      const hasToken = (v: any, tokens: string[]) => {
-        const text = String(v || '').toLowerCase();
-        return tokens.some((t) => text.includes(t));
-      };
-      const isSqliThreat = (t: any) =>
-        hasToken(t?.threatType, ['sql_injection', 'sql injection']) ||
-        hasToken(t?.message, ['sql_injection', 'sql injection']) ||
-        hasToken(t?.metadata?.payload, ["' or", 'union select', 'drop table']);
-      const isXssThreat = (t: any) =>
-        hasToken(t?.threatType, ['xss']) ||
-        hasToken(t?.message, ['xss']) ||
-        hasToken(t?.metadata?.payload, ['<script', 'onerror=', 'javascript:']);
 
       const sqlEventsLogs = logs.filter((l: any) =>
         hasToken(l?.eventType, ['sql_injection', 'sql injection']) ||
@@ -78,16 +80,7 @@ export default function SecurityAnalysisPage() {
         const evt = String(l?.eventType || '').toLowerCase();
         return evt === 'threat_blocked' || evt === 'ip_blocked_automatically' || evt === 'payload_auto_block';
       }).length;
-      const detectionLogsCount = logs.filter((l: any) => {
-        const e = String(l?.eventType || '').toLowerCase();
-        return (
-          e.includes('threat_detect') ||
-          e === 'network_threat_detected' ||
-          e === 'waf_block' ||
-          e.includes('intrusion') ||
-          e === 'suspicious_request'
-        );
-      }).length;
+      const detectionLogsCount = countDetectionLikeLogs(logs as Record<string, unknown>[]);
       const openThreatsCount = threats.filter((t: any) => !t?.blocked).length;
       const ddosThreats = threats.filter((t: any) => String(t?.threatType || '').toUpperCase().includes('DDOS')).length;
       const scoreFromOverview = Number(stats?.overview?.riskScore ?? 0);
@@ -101,6 +94,7 @@ export default function SecurityAnalysisPage() {
         ...stats,
         securityScore,
         blockedIPs: blockedIPItems,
+        blockedIpsMeta,
         uniqueBlockedIPs: blockedIPItems.length,
         manualBlocks,
         manualBlocksStrict,
@@ -156,6 +150,11 @@ export default function SecurityAnalysisPage() {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Évaluation complète de la sécurité de votre application
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            Logs sécurité : fenêtre glissante de {ANALYSIS_LOGS_WINDOW_DAYS} jours (max 500 entrées). Menaces : jusqu’à
+            200 entrées récentes. Les dates et heures sont affichées en <strong>heure locale</strong> du navigateur
+            (les API renvoient des timestamps ISO, en pratique UTC ou stockage serveur).
           </p>
         </div>
         {serviceError && (
@@ -306,11 +305,26 @@ export default function SecurityAnalysisPage() {
             <Lock className="h-6 w-6 text-red-600" />
             IPs Bloquées Actuellement
           </h2>
+          {summary?.blockedIpsMeta && typeof summary.blockedIpsMeta.count === 'number' && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              API consolidée : {summary.blockedIpsMeta.count} entrée(s) — voir aussi{' '}
+              <Link href="/backoffice/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
+                Firewall
+              </Link>
+              .
+            </p>
+          )}
           <div className="space-y-2">
             {summary?.blockedIPs?.length > 0 ? (
               summary.blockedIPs.map(
                 (
-                  ipItem: { ip: string; reason?: string; blockedAt?: string; blockOrigin?: string },
+                  ipItem: {
+                    ip: string;
+                    reason?: string;
+                    blockedAt?: string;
+                    blockOrigin?: string;
+                    threatId?: string;
+                  },
                   index: number
                 ) => {
                   const origin = String(ipItem.blockOrigin || '');
@@ -327,14 +341,25 @@ export default function SecurityAnalysisPage() {
                               ? 'Logs'
                               : 'Actif';
                   return (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div>
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2">
+                      <div className="min-w-0">
                         <span className="font-mono text-gray-900 dark:text-gray-100">{ipItem.ip}</span>
+                        {ipItem.blockedAt && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatLocalDateTime(ipItem.blockedAt)}</p>
+                        )}
                         {ipItem.reason && (
                           <p className="text-xs text-gray-500 dark:text-gray-400">{ipItem.reason}</p>
                         )}
+                        {ipItem.threatId && (
+                          <Link
+                            href={`/backoffice/security/threats/${ipItem.threatId}`}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            Fiche menace
+                          </Link>
+                        )}
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                      <span className="text-xs px-2 py-0.5 rounded shrink-0 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
                         {originLabel}
                       </span>
                     </div>

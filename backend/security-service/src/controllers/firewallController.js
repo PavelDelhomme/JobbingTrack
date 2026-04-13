@@ -39,6 +39,148 @@ function getClientObservedIp(req) {
   return s || null;
 }
 
+/** IP pour corrélation menaces / règles / logs (évite doublons ::ffff:x.x.x.x vs x.x.x.x). */
+function normalizeFirewallIp(ip) {
+  if (ip === undefined || ip === null) return '';
+  let s = String(ip).trim();
+  if (s.startsWith('::ffff:')) s = s.slice(7);
+  return s;
+}
+
+/** Expose une IP destination utile si la colonne destIp est vide mais les métadonnées réseau en contiennent une. */
+function enrichThreatForApi(threat) {
+  if (!threat || typeof threat !== 'object') return threat;
+  const meta =
+    threat.metadata && typeof threat.metadata === 'object' && !Array.isArray(threat.metadata)
+      ? threat.metadata
+      : {};
+  let destIp = threat.destIp || null;
+  if (!destIp && Array.isArray(meta.connectionDetails) && meta.connectionDetails.length > 0) {
+    const first = meta.connectionDetails[0];
+    if (first && first.localIp) destIp = String(first.localIp);
+  }
+  return { ...threat, destIp };
+}
+
+/** Plus haut = source préférée si plusieurs entrées pour la même IP (Lot A — cohérence). */
+const BLOCK_ORIGIN_PRIORITY = {
+  manual_rule: 50,
+  lab_simulation: 45,
+  iptables: 40,
+  automatic_threat: 30,
+  log_inferred: 25
+};
+
+function dedupeBlockedIpEntries(entries) {
+  const map = new Map();
+  for (const e of entries) {
+    const k = normalizeFirewallIp(e.ip);
+    if (!k) continue;
+    const cur = { ...e, ip: k };
+    const prev = map.get(k);
+    if (!prev) {
+      map.set(k, cur);
+      continue;
+    }
+    const pPrev = BLOCK_ORIGIN_PRIORITY[prev.blockOrigin] ?? 0;
+    const pCur = BLOCK_ORIGIN_PRIORITY[cur.blockOrigin] ?? 0;
+    let winner;
+    if (pCur > pPrev) winner = { ...cur };
+    else if (pCur < pPrev) winner = { ...prev };
+    else {
+      const tCur = cur.blockedAt ? new Date(cur.blockedAt).getTime() : 0;
+      const tPrev = prev.blockedAt ? new Date(prev.blockedAt).getTime() : 0;
+      winner = tCur >= tPrev ? { ...cur } : { ...prev };
+    }
+    const tid = winner.threatId || prev.threatId || cur.threatId;
+    if (tid) winner.threatId = tid;
+    map.set(k, winner);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.blockedAt || 0).getTime() - new Date(a.blockedAt || 0).getTime()
+  );
+}
+
+/** IPs encore actives d’après les logs (complète règles / menaces si décalage BDD). */
+async function listBlockedIpsFromSecurityLogs() {
+  const recentLogs = await prisma.securityLog.findMany({
+    where: {
+      eventType: {
+        in: [
+          'ip_blocked_manually',
+          'ip_blocked_lab_simulation',
+          'ip_unblocked_manually',
+          'threat_blocked',
+          'ip_blocked_automatically'
+        ]
+      }
+    },
+    select: {
+      eventType: true,
+      createdAt: true,
+      metadata: true,
+      message: true
+    },
+    orderBy: { createdAt: 'asc' },
+    take: 800
+  });
+  const latestByIp = new Map();
+  for (const log of recentLogs) {
+    const ip = normalizeFirewallIp(
+      log?.metadata?.blockedIp || log?.metadata?.unblockedIp || ''
+    );
+    if (!ip) continue;
+    latestByIp.set(ip, log);
+  }
+  const out = [];
+  for (const [ip, log] of latestByIp.entries()) {
+    const et = log?.eventType;
+    if (
+      et !== 'ip_blocked_manually' &&
+      et !== 'ip_blocked_lab_simulation' &&
+      et !== 'threat_blocked' &&
+      et !== 'ip_blocked_automatically'
+    ) {
+      continue;
+    }
+    let blockOrigin = 'log_inferred';
+    if (et === 'ip_blocked_lab_simulation') blockOrigin = 'lab_simulation';
+    else if (et === 'ip_blocked_manually') blockOrigin = 'manual_rule';
+    else if (et === 'threat_blocked' || et === 'ip_blocked_automatically') blockOrigin = 'automatic_threat';
+    let meta = {};
+    if (log?.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)) {
+      meta = log.metadata;
+    } else if (typeof log?.metadata === 'string') {
+      try {
+        const parsed = JSON.parse(log.metadata);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) meta = parsed;
+      } catch {
+        /* ignore */
+      }
+    }
+    const threatIdFromLog =
+      typeof meta.threatId === 'string' && meta.threatId.length > 0 ? meta.threatId : undefined;
+    const row = {
+      ip,
+      blockedAt: log.createdAt,
+      reason: log?.message || 'Blocage détecté dans les logs sécurité',
+      blockOrigin
+    };
+    if (threatIdFromLog) row.threatId = threatIdFromLog;
+    out.push(row);
+  }
+  return out;
+}
+
+function blockedIpsMetaSummary(entries) {
+  const byOrigin = {};
+  for (const e of entries) {
+    const o = e.blockOrigin || 'unknown';
+    byOrigin[o] = (byOrigin[o] || 0) + 1;
+  }
+  return { byOrigin, count: entries.length };
+}
+
 const PORT_SERVICE_HINTS = {
   3000: 'port-3000 (api-gateway)',
   3001: 'port-3001 (auth)',
@@ -663,7 +805,7 @@ async function getNetworkThreats(req, res) {
 
       res.json({
         success: true,
-        data: threats,
+        data: threats.map((t) => enrichThreatForApi(t)),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -705,7 +847,7 @@ async function getNetworkThreats(req, res) {
  */
 async function createThreat(req, res) {
   try {
-    const { threatType, sourceIp, destPort, severity, metadata } = req.body;
+    const { threatType, sourceIp, destIp: bodyDestIp, destPort, severity, metadata } = req.body;
 
     // Validation
     if (!threatType || !sourceIp || !severity) {
@@ -728,12 +870,24 @@ async function createThreat(req, res) {
       });
     }
 
+    let destIpResolved = null;
+    if (bodyDestIp != null && String(bodyDestIp).trim() !== '') {
+      const dip = String(bodyDestIp).trim();
+      if (!IPV4_REGEX.test(dip)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Format destIp invalide (IPv4 attendu)'
+        });
+      }
+      destIpResolved = dip;
+    }
+
     try {
       const threat = await prisma.networkThreat.create({
         data: {
           threatType: normalizedThreatType,
           sourceIp,
-          destIp: null,
+          destIp: destIpResolved,
           destPort: destPort || null,
           severity: severity.toUpperCase(),
           blocked: false,
@@ -774,7 +928,7 @@ async function createThreat(req, res) {
 
       res.status(201).json({
         success: true,
-        data: threat
+        data: enrichThreatForApi(threat)
       });
     } catch (dbError) {
       // ✅ CORRECTION : Si la table n'existe pas (P2021), retourner une erreur explicite sans logger
@@ -817,7 +971,7 @@ async function getThreatDetails(req, res) {
 
     res.json({
       success: true,
-      data: threat
+      data: enrichThreatForApi(threat)
     });
   } catch (error) {
     logger.error('Erreur récupération détails menace:', error);
@@ -1158,9 +1312,8 @@ async function unblockIp(req, res) {
  */
 async function getBlockedIps(req, res) {
   try {
-    // ✅ CORRECTION : Essayer d'abord de récupérer depuis la BDD (FirewallRule avec action DENY/REJECT)
-    let blockedIps = [];
-    
+    const candidates = [];
+
     try {
       const blockedRules = await prisma.firewallRule.findMany({
         where: {
@@ -1183,61 +1336,61 @@ async function getBlockedIps(req, res) {
           createdAt: 'desc'
         }
       });
-      
-      blockedIps = blockedRules.map(rule => {
+
+      for (const rule of blockedRules) {
+        const ip = normalizeFirewallIp(rule.sourceIp);
+        if (!ip) continue;
         const desc = String(rule.description || '');
         const nm = String(rule.name || '');
         const lab = desc.includes('lab_simulation') || nm.toLowerCase().startsWith('lab block');
-        return {
-          ip: rule.sourceIp,
+        candidates.push({
+          ip,
           blockedAt: rule.createdAt,
           reason: rule.name || 'Règle firewall',
           blockOrigin: lab ? 'lab_simulation' : 'manual_rule'
-        };
-      });
+        });
+      }
     } catch (dbError) {
-      // Si la table n'existe pas, continuer avec iptables
       if (dbError.code === 'P2021' || dbError.message?.includes('does not exist')) {
         logger.debug('Table FirewallRule non trouvée, utilisation iptables (mode développement)');
       } else {
         logger.warn('Erreur récupération IPs bloquées depuis DB:', dbError.message);
       }
     }
-    
-    // ✅ CORRECTION : Essayer iptables seulement si pas de données en BDD et si disponible
-    if (blockedIps.length === 0) {
+
+    if (candidates.length === 0) {
       try {
         const result = await firewallEngine.listFirewallRules();
-        
-        // ✅ CORRECTION : Ne pas logger l'erreur si iptables n'est pas disponible (normal en Docker)
+
         if (result && result.success && result.rules && result.rules.length > 0) {
           const lines = result.rules.split('\n');
           for (const line of lines) {
-            // Parser les lignes iptables pour trouver les DROP
             if (line.includes('DROP') && line.includes('-s')) {
               const match = line.match(/-s\s+(\S+)/);
               if (match) {
-                blockedIps.push({
-                  ip: match[1],
-                  blockedAt: new Date(),
-                  reason: 'Règle iptables',
-                  blockOrigin: 'iptables'
-                });
+                const ip = normalizeFirewallIp(match[1]);
+                if (ip) {
+                  candidates.push({
+                    ip,
+                    blockedAt: new Date(),
+                    reason: 'Règle iptables',
+                    blockOrigin: 'iptables'
+                  });
+                }
               }
             }
           }
         }
-      } catch (iptablesError) {
-        // ✅ CORRECTION : Ne pas logger l'erreur iptables (normal en Docker)
-        // Ignorer silencieusement
+      } catch (_) {
+        /* iptables souvent indisponible dans Docker */
       }
     }
 
-    // Consolider avec les menaces marquées "blocked=true" (source de vérité sécurité applicative)
     try {
       const blockedThreats = await prisma.networkThreat.findMany({
         where: { blocked: true },
         select: {
+          id: true,
           sourceIp: true,
           detectedAt: true,
           threatType: true
@@ -1245,75 +1398,40 @@ async function getBlockedIps(req, res) {
         orderBy: { detectedAt: 'desc' },
         take: 500
       });
+      const seenThreatIp = new Set();
       for (const threat of blockedThreats) {
-        const ip = String(threat.sourceIp || '').trim();
-        if (!ip) continue;
-        const exists = blockedIps.some((item) => String(item.ip || '').trim() === ip);
-        if (!exists) {
-          blockedIps.push({
-            ip,
-            blockedAt: threat.detectedAt,
-            reason: `Menace bloquée (${threat.threatType || 'threat_blocked'})`,
-            blockOrigin: 'automatic_threat'
-          });
-        }
+        const ip = normalizeFirewallIp(threat.sourceIp);
+        if (!ip || seenThreatIp.has(ip)) continue;
+        seenThreatIp.add(ip);
+        candidates.push({
+          ip,
+          blockedAt: threat.detectedAt,
+          reason: `Menace bloquée (${threat.threatType || 'threat_blocked'})`,
+          blockOrigin: 'automatic_threat',
+          threatId: threat.id
+        });
       }
     } catch (threatsError) {
       logger.warn('Consolidation blocked-ips via menaces indisponible:', threatsError.message);
     }
 
-    // Fallback final: reconstruire une vue "IPs actuellement bloquées" à partir des logs sécurité
-    // utile en dev Docker quand iptables n'est pas accessible depuis le conteneur.
-    if (blockedIps.length === 0) {
-      try {
-        const recentLogs = await prisma.securityLog.findMany({
-          where: {
-            eventType: {
-              in: ['ip_blocked_manually', 'ip_blocked_lab_simulation', 'ip_unblocked_manually', 'threat_blocked', 'ip_blocked_automatically']
-            }
-          },
-          select: {
-            eventType: true,
-            createdAt: true,
-            metadata: true,
-            message: true
-          },
-          orderBy: { createdAt: 'asc' },
-          take: 500
-        });
-        const latestByIp = new Map();
-        for (const log of recentLogs) {
-          const ip = String(
-            log?.metadata?.blockedIp ||
-            log?.metadata?.unblockedIp ||
-            ''
-          ).trim();
-          if (!ip) continue;
-          latestByIp.set(ip, log);
-        }
-        blockedIps = Array.from(latestByIp.entries())
-          .filter(([, log]) => log?.eventType === 'ip_blocked_manually' || log?.eventType === 'ip_blocked_lab_simulation' || log?.eventType === 'threat_blocked' || log?.eventType === 'ip_blocked_automatically')
-          .map(([ip, log]) => {
-            const et = log?.eventType;
-            let blockOrigin = 'log_inferred';
-            if (et === 'ip_blocked_lab_simulation') blockOrigin = 'lab_simulation';
-            else if (et === 'ip_blocked_manually') blockOrigin = 'manual_rule';
-            else if (et === 'threat_blocked' || et === 'ip_blocked_automatically') blockOrigin = 'automatic_threat';
-            return {
-              ip,
-              blockedAt: log.createdAt,
-              reason: log?.message || 'Blocage détecté dans les logs sécurité',
-              blockOrigin
-            };
-          });
-      } catch (logsError) {
-        logger.warn('Fallback blocked-ips via security logs indisponible:', logsError.message);
-      }
+    try {
+      const fromLogs = await listBlockedIpsFromSecurityLogs();
+      candidates.push(...fromLogs);
+    } catch (logsError) {
+      logger.warn('Fusion blocked-ips via security logs indisponible:', logsError.message);
     }
+
+    const blockedIps = dedupeBlockedIpEntries(candidates);
+    const meta = blockedIpsMetaSummary(blockedIps);
 
     res.json({
       success: true,
-      data: blockedIps
+      data: blockedIps,
+      meta: {
+        ...meta,
+        sourcesMerged: ['rules', 'iptables_if_empty', 'threats', 'logs']
+      }
     });
   } catch (error) {
     // ✅ CORRECTION : Ne logger que les vraies erreurs (pas iptables)

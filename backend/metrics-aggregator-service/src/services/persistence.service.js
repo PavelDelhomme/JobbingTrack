@@ -17,6 +17,35 @@ try {
 }
 
 /**
+ * Driver SQL / Prisma peut renvoyer Date ou chaîne sans fuseau. On expose toujours de l’ISO UTC
+ * pour le JSON afin que le front (fuseau navigateur) convertisse correctement.
+ */
+function toIsoUtcString(ts) {
+  if (ts == null || ts === '') return null;
+  if (ts instanceof Date) {
+    const ms = ts.getTime();
+    return Number.isNaN(ms) ? null : new Date(ms).toISOString();
+  }
+  const s = String(ts).trim();
+  if (!s) return null;
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    const d = new Date(`${s}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const pg = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d+)?$/.exec(s);
+  if (pg) {
+    const d = new Date(`${pg[1]}T${pg[2]}${pg[3] || ''}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
  * Service de persistance des métriques et logs
  * Gère l'enregistrement de toutes les données de monitoring dans la base de données
  */
@@ -580,12 +609,14 @@ class PersistenceService {
       }
       
       // Convertir les résultats en format compatible avec SystemMetricsSnapshot
-      return rawResults.map((row) => {
-        // Convertir timestamp en Date si c'est une string
-        const timestamp = row.timestamp instanceof Date ? row.timestamp : new Date(row.timestamp);
+      return rawResults
+        .map((row) => {
+        const iso = toIsoUtcString(row.timestamp);
+        if (!iso) return null;
+        const timestamp = new Date(iso);
         return {
         id: `system_${timestamp.getTime()}`,
-        timestamp: timestamp,
+        timestamp: iso,
         cpuUsagePercent: row.cpu_usage_percent || 0,
         cpuCores: row.cpu_cores || 0,
         cpuLoadAverage1m: row.cpu_load_1,
@@ -609,9 +640,10 @@ class PersistenceService {
         // ✅ NOUVEAU : Inclure project_cpu_avg et project_memory_mb depuis system_metrics
         project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
         project_memory_mb: row.project_memory_mb ? Number(row.project_memory_mb) : null,
-        createdAt: timestamp
+        createdAt: iso
       };
-      });
+      })
+        .filter(Boolean);
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('table')) {
@@ -649,7 +681,7 @@ class PersistenceService {
       });
       return rows.map((row) => ({
         id: row.id,
-        timestamp: row.timestamp,
+        timestamp: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
         cpuUsagePercent: row.cpuUsagePercent ?? 0,
         cpu_percent: row.cpuUsagePercent ?? 0,
         cpuCores: row.cpuCores ?? 0,
@@ -665,7 +697,7 @@ class PersistenceService {
         availabilityPercent: row.availabilityPercent ?? null,
         loadScore: row.loadScore ?? null,
         responseTimeAvg: row.responseTimeAvg ?? null,
-        createdAt: row.timestamp,
+        createdAt: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
       }));
     } catch (e) {
       console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
@@ -696,12 +728,16 @@ class PersistenceService {
     }
 
     try {
-      return await prisma.containerMetricsSnapshot.findMany({
+      const rows = await prisma.containerMetricsSnapshot.findMany({
         where,
         orderBy: { timestamp: 'desc' },
         take: limit,
         skip: offset,
       });
+      return rows.map((row) => ({
+        ...row,
+        timestamp: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
+      }));
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {

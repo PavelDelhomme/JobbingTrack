@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-25T10:03:48.352Z",
+  "timestamp": "2026-04-13T11:50:59.757Z",
   "api": [
     {
       "service": "apiGateway",
@@ -7,7 +7,7 @@
       "method": "GET",
       "label": "Gateway Health",
       "success": true,
-      "duration": 17.515776000000002,
+      "duration": 17.589054999999995,
       "status": 200
     },
     {
@@ -16,7 +16,7 @@
       "method": "GET",
       "label": "Auth Health",
       "success": true,
-      "duration": 2.676924999999997,
+      "duration": 2.743358999999998,
       "status": 200
     },
     {
@@ -25,7 +25,7 @@
       "method": "GET",
       "label": "Applications (list)",
       "success": false,
-      "duration": 4.639116999999999,
+      "duration": 4.507886999999982,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -35,7 +35,7 @@
       "method": "GET",
       "label": "Companies (list)",
       "success": false,
-      "duration": 3.5549210000000073,
+      "duration": 3.762775000000005,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -45,7 +45,7 @@
       "method": "GET",
       "label": "Contacts (list)",
       "success": false,
-      "duration": 3.394465999999994,
+      "duration": 4.084846999999996,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -55,7 +55,7 @@
       "method": "GET",
       "label": "Interviews (list)",
       "success": false,
-      "duration": 3.757803999999993,
+      "duration": 4.136814000000015,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -65,7 +65,7 @@
       "method": "GET",
       "label": "Calls (list)",
       "success": false,
-      "duration": 3.8693849999999657,
+      "duration": 3.5536900000000173,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -75,7 +75,7 @@
       "method": "GET",
       "label": "Followups (list)",
       "success": false,
-      "duration": 3.9558809999999767,
+      "duration": 3.6664440000000127,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -85,7 +85,7 @@
       "method": "GET",
       "label": "Events (list)",
       "success": false,
-      "duration": 4.824430000000007,
+      "duration": 6.153902000000016,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -95,7 +95,7 @@
       "method": "GET",
       "label": "Notifications (list)",
       "success": false,
-      "duration": 4.127183000000002,
+      "duration": 3.874968000000024,
       "error": "Request failed with status code 401",
       "status": 401
     },
@@ -105,7 +105,7 @@
       "method": "GET",
       "label": "Métriques système",
       "success": true,
-      "duration": 3.414293999999984,
+      "duration": 2.696199999999976,
       "status": 200
     },
     {
@@ -114,7 +114,7 @@
       "method": "GET",
       "label": "Docker services",
       "success": true,
-      "duration": 1772.7813989999997,
+      "duration": 1846.5958509999998,
       "status": 200
     }
   ],
@@ -126,9 +126,9 @@
         "label": "Gateway Health",
         "successful": 5,
         "total": 5,
-        "averageTime": 3.8333172000001468,
-        "maxTime": 4.096131000000241,
-        "minTime": 3.4185090000000855,
+        "averageTime": 3.3299597999999606,
+        "maxTime": 3.4618179999997665,
+        "minTime": 3.268786999999975,
         "successRate": "100.0%"
       },
       {
@@ -137,9 +137,9 @@
         "label": "Auth Health",
         "successful": 4,
         "total": 4,
-        "averageTime": 3.9349600000000464,
-        "maxTime": 4.282130999999936,
-        "minTime": 3.5800070000000233,
+        "averageTime": 3.397290000000112,
+        "maxTime": 3.660171000000446,
+        "minTime": 2.995046999999886,
         "successRate": "100.0%"
       },
       {
@@ -148,45 +148,45 @@
         "label": "Companies API",
         "successful": 4,
         "total": 4,
-        "averageTime": 7.65266024999994,
-        "maxTime": 9.240096999999878,
-        "minTime": 6.081595000000107,
+        "averageTime": 5.711902000000123,
+        "maxTime": 6.3920820000003005,
+        "minTime": 5.022812000000158,
         "successRate": "100.0%"
       }
     ],
     "overall": {
       "successful": 13,
       "total": 13,
-      "averageTime": 5.1403124833333775,
+      "averageTime": 4.146383933333398,
       "successRate": "100.0%"
     }
   },
   "systemMetrics": {
     "cpu": {
-      "load_1": 11.85,
-      "load_5": 6.86,
-      "load_15": 4.97,
+      "load_1": 7.56,
+      "load_5": 6.85,
+      "load_15": 5.46,
       "cores": 16,
-      "usage_percent": 26.58
+      "usage_percent": 31.44
     },
     "memory": {
       "total_mb": 48051,
-      "used_mb": 44101,
-      "free_mb": 3950,
-      "usage_percent": 91.78
+      "used_mb": 47147,
+      "free_mb": 904,
+      "usage_percent": 98.12
     },
     "containers": 0,
     "dataSource": "metrics-aggregator"
   },
   "memoryStress": {
-    "heapIncreaseMB": 24.146774291992188,
-    "initialHeap": 12368424,
-    "finalHeap": 37688152
+    "heapIncreaseMB": 19.03083038330078,
+    "initialHeap": 12109256,
+    "finalHeap": 32064528
   },
   "summary": {
     "totalTests": 15,
     "successfulTests": 15,
-    "averageResponseTime": 152.3759650833333,
+    "averageResponseTime": 158.61381599999999,
     "totalRequests": 13,
     "successfulRequests": 13
   }

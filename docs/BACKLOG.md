@@ -2,7 +2,7 @@
 
 Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la racine contient l'état courant ; ce fichier contient le backlog complet.
 
-**Chantier structuré (sécurité, logs, suivi-intérim, doc)** : pour ne pas dupliquer la granularité, suivre **`PLAN.md`** (lots A–F) et **`TODOS.md`** à la racine du dépôt. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
+**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc) : pour ne pas dupliquer la granularité, suivre **`PLAN.md`** (lots A–F) et **`TODOS.md`** à la racine du dépôt. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
 
 ---
 

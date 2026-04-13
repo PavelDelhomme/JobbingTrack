@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import AdminLayout from '@/components/features/AdminLayout'
 import { 
@@ -72,15 +72,40 @@ export default function UserAnalyticsPage() {
   const [events, setEvents] = useState<UserEvent[]>([])
   const [errors, setErrors] = useState<UserError[]>([])
   const [selectedDays, setSelectedDays] = useState(7)
+  const [rangeMode, setRangeMode] = useState<'preset' | 'custom'>('preset')
+  const [customStart, setCustomStart] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 7)
+    return d.toISOString().slice(0, 10)
+  })
+  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10))
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'errors' | 'performance' | 'mobile'>('overview')
   const [versionsData, setVersionsData] = useState<VersionsData | null>(null)
   const [eventsLoadError, setEventsLoadError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [selectedDays])
+  const rangeQuery = useMemo(() => {
+    if (rangeMode === 'custom') {
+      const s = new Date(`${customStart}T00:00:00.000Z`).toISOString()
+      const e = new Date(`${customEnd}T23:59:59.999Z`).toISOString()
+      return `startDate=${encodeURIComponent(s)}&endDate=${encodeURIComponent(e)}`
+    }
+    return `days=${selectedDays}`
+  }, [rangeMode, customStart, customEnd, selectedDays])
 
-  const loadData = async () => {
+  const rangeDescription = useMemo(() => {
+    if (rangeMode === 'custom') {
+      return `Plage calendaire : ${customStart} → ${customEnd} (bornes UTC).`
+    }
+    const labels: Record<number, string> = {
+      1: 'Dernière journée glissante (paramètre days=1)',
+      7: '7 derniers jours',
+      30: '30 derniers jours',
+      90: '90 derniers jours',
+    }
+    return labels[selectedDays] || `Derniers ${selectedDays} jours`
+  }, [rangeMode, customStart, customEnd, selectedDays])
+
+  const loadData = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
@@ -89,12 +114,13 @@ export default function UserAnalyticsPage() {
       const headers = { Authorization: `Bearer ${token}` }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+      const q = rangeQuery
       // Promise.allSettled pour ne pas faire échouer tout le chargement si une requête est bloquée (ex. uBlock sur /analytics/events)
       const results = await Promise.allSettled([
-        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}?days=${selectedDays}`, { headers }),
-        axios.get(`${apiUrl}/api/v1/analytics/events?limit=50`, { headers }),
-        axios.get(`${apiUrl}/api/v1/analytics/errors?limit=50`, { headers }),
-        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}/versions?days=${selectedDays}`, { headers }).catch(() => ({ data: { success: false } }))
+        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}?${q}`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/events?limit=100&${q}`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/errors?limit=100&${q}`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}/versions?${q}`, { headers }).catch(() => ({ data: { success: false } }))
       ])
 
       const [statsRes, eventsRes, errorsRes, versionsRes] = results.map((r) => (r.status === 'fulfilled' ? r.value : null))
@@ -124,7 +150,11 @@ export default function UserAnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, rangeQuery])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   return (
     <AdminLayout>
@@ -137,17 +167,54 @@ export default function UserAnalyticsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Analyse des actions et comportements des utilisateurs
             </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{rangeDescription}</p>
           </div>
-          <select
-            value={selectedDays}
-            onChange={(e) => setSelectedDays(Number(e.target.value))}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value={1}>Dernières 24h</option>
-            <option value={7}>7 derniers jours</option>
-            <option value={30}>30 derniers jours</option>
-            <option value={90}>90 derniers jours</option>
-          </select>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-gray-500 dark:text-gray-400">Mode</label>
+              <select
+                value={rangeMode}
+                onChange={(e) => setRangeMode(e.target.value as 'preset' | 'custom')}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="preset">Périodes rapides</option>
+                <option value="custom">Plage personnalisée</option>
+              </select>
+              {rangeMode === 'preset' ? (
+                <select
+                  value={selectedDays}
+                  onChange={(e) => setSelectedDays(Number(e.target.value))}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value={1}>1 jour (glissant)</option>
+                  <option value={7}>7 jours</option>
+                  <option value={30}>30 jours</option>
+                  <option value={90}>90 jours</option>
+                </select>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                    Du
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                    au
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -410,13 +477,59 @@ export default function UserAnalyticsPage() {
             )}
 
             {activeTab === 'performance' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Métriques de performance
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Les métriques de performance seront affichées ici une fois collectées.
-                </p>
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+                    Métriques de performance (période sélectionnée)
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Données issues de <code className="text-xs">/analytics/stats/…/versions</code> (même fenêtre que
+                    l’onglet Versions). Les détails par appareil restent dans l’onglet « Versions & App mobile ».
+                  </p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
+                  {versionsData?.performances?.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                              Type
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                              Métrique
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                              Valeur
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                              Date
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {versionsData.performances.map((p: any, i: number) => (
+                            <tr key={i}>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{p.metricType || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{p.metricName || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                {p.value != null ? p.value : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                {new Date(p.timestamp).toLocaleString('fr-FR')}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Aucune métrique sur cette période. Les mesures sont enregistrées côté mobile / web lorsque le client
+                      envoie des événements performance.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 

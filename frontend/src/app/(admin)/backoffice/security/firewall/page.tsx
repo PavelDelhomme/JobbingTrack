@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { Shield, Plus, Trash2, Edit, AlertTriangle, CheckCircle, XCircle, RefreshCw, Settings } from 'lucide-react';
 import axios from 'axios';
 
@@ -113,11 +115,27 @@ interface BlockedIp {
   reason?: string;
   blockedAt?: string;
   blockOrigin?: string;
+  threatId?: string;
+}
+
+function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
+  if (!byOrigin || typeof byOrigin !== 'object') return '';
+  const o = byOrigin as Record<string, number>;
+  const parts: string[] = [];
+  if (o.manual_rule) parts.push(`manuel ${o.manual_rule}`);
+  if (o.lab_simulation) parts.push(`lab ${o.lab_simulation}`);
+  if (o.automatic_threat) parts.push(`auto ${o.automatic_threat}`);
+  if (o.iptables) parts.push(`iptables ${o.iptables}`);
+  if (o.log_inferred) parts.push(`logs ${o.log_inferred}`);
+  return parts.join(' · ');
 }
 
 export default function FirewallPage() {
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);
+  const [blockedIpsMeta, setBlockedIpsMeta] = useState<{ byOrigin?: Record<string, number>; count?: number } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddRule, setShowAddRule] = useState(false);
@@ -158,6 +176,7 @@ export default function FirewallPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.data.success) {
+        setBlockedIpsMeta(response.data.meta && typeof response.data.meta === 'object' ? response.data.meta : null);
         // Les IPs peuvent être des strings ou des objets avec ip et reason
         setBlockedIps(response.data.data?.map((item: string | BlockedIp) => {
           if (typeof item === 'string') {
@@ -582,7 +601,7 @@ export default function FirewallPage() {
         </div>
 
         {/* IPs Bloquées */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div id="liste-ips-bloquees" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               IPs Bloquées
@@ -607,6 +626,14 @@ export default function FirewallPage() {
               </button>
             </div>
           </div>
+          {blockedIpsMeta && typeof blockedIpsMeta.count === 'number' && (
+            <p className="mb-2 text-xs text-gray-600 dark:text-gray-400">
+              Liste consolidée : <span className="font-semibold">{blockedIpsMeta.count}</span> entrée(s) unique(s)
+              {formatBlockedIpsOriginsSubtitle(blockedIpsMeta.byOrigin) ? (
+                <> — {formatBlockedIpsOriginsSubtitle(blockedIpsMeta.byOrigin)}</>
+              ) : null}
+            </p>
+          )}
           <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Astuce : pour tester sans risque, utilise l&apos;IP de documentation <span className="font-mono">{SAFE_TEST_IP}</span> (RFC 5737). Le serveur refuse de bloquer la même IP que celle de ta requête (anti-verrouillage) ; le mode lab n&apos;accepte que cette IP de test.
           </p>
@@ -685,7 +712,20 @@ export default function FirewallPage() {
                             {originLabel}
                           </span>
                         )}
+                        {item.threatId && (
+                          <Link
+                            href={`/backoffice/security/threats/${item.threatId}`}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                          >
+                            Fiche menace
+                          </Link>
+                        )}
                       </div>
+                      {item.blockedAt && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {formatLocalDateTime(item.blockedAt)}
+                        </p>
+                      )}
                       {item.reason && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.reason}</p>
                       )}

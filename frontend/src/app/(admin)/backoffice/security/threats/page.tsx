@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDateTime } from '@/lib/utils/date';
 import { AlertTriangle, Shield, Ban, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
+function normalizeFirewallListedIp(ip: string) {
+  const s = String(ip || '').trim();
+  if (s.startsWith('::ffff:')) return s.slice(7);
+  return s;
+}
 
 interface NetworkThreat {
   id: string;
@@ -40,6 +47,10 @@ export default function ThreatsPage() {
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
   const [newThreatsCount, setNewThreatsCount] = useState(0);
   const previousTopThreatTsRef = useRef<string | null>(null);
+  const [consolidatedBlocked, setConsolidatedBlocked] = useState<{
+    ipKeys: Set<string>;
+    threatIds: Set<string>;
+  }>({ ipKeys: new Set(), threatIds: new Set() });
 
   const loadThreats = useCallback(async () => {
     try {
@@ -56,11 +67,38 @@ export default function ThreatsPage() {
       if (startDateFilter) params.startDate = startDateFilter;
       if (endDateFilter) params.endDate = endDateFilter;
       
-      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/threats`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        params,
-        timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
-      });
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const [threatsOutcome, blockedOutcome] = await Promise.allSettled([
+        axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/threats`, {
+          headers,
+          params,
+          timeout: 5000,
+        }),
+        axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`, {
+          headers,
+          timeout: 5000,
+        }),
+      ]);
+      if (blockedOutcome.status === 'fulfilled') {
+        const blockedRes = blockedOutcome.value;
+        if (blockedRes.data?.success && Array.isArray(blockedRes.data?.data)) {
+          const ipKeys = new Set<string>();
+          const threatIds = new Set<string>();
+          for (const item of blockedRes.data.data as (string | { ip?: string; threatId?: string })[]) {
+            const row = typeof item === 'string' ? { ip: item } : item;
+            if (row?.ip) ipKeys.add(normalizeFirewallListedIp(row.ip));
+            if (row?.threatId) threatIds.add(String(row.threatId));
+          }
+          setConsolidatedBlocked({ ipKeys, threatIds });
+        }
+      } else {
+        setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
+      }
+      if (threatsOutcome.status !== 'fulfilled') {
+        throw threatsOutcome.reason;
+      }
+      const response = threatsOutcome.value;
       if (response.data.success) {
         const raw = response.data.data || []
         const totalData = response.data.pagination?.total ?? raw.length
@@ -92,6 +130,7 @@ export default function ThreatsPage() {
       console.error('Erreur chargement menaces:', err);
       setThreats([]);
       setTotal(0);
+      setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
       setServiceError(err.response?.data?.error || err.message || 'Service menaces indisponible');
     } finally {
       setLoading(false);
@@ -200,7 +239,12 @@ export default function ThreatsPage() {
               Menaces
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Toutes les menaces détectées (réseau, WAF, firewall, intrusions) — tri par date/heure de détection.
+              Toutes les menaces détectées (réseau, WAF, firewall, intrusions) — tri par date/heure de détection. La
+              colonne Statut est croisée avec la{' '}
+              <Link href="/backoffice/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
+                liste consolidée des IPs bloquées
+              </Link>
+              .
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {highOrCriticalCount} menace(s) HIGH/CRITICAL sur la page courante
@@ -400,14 +444,31 @@ export default function ThreatsPage() {
                           {formatLocalDateTime(threat.detectedAt)}
                         </td>
                         <td className="p-3">
-                          {threat.blocked ? (
-                            <span className="flex items-center gap-1 text-red-600">
-                              <Ban className="h-4 w-4" />
-                              Bloqué
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">Non bloqué</span>
-                          )}
+                          {(() => {
+                            const inList =
+                              consolidatedBlocked.ipKeys.has(normalizeFirewallListedIp(threat.sourceIp)) ||
+                              consolidatedBlocked.threatIds.has(threat.id);
+                            return (
+                              <div className="flex flex-col gap-1 items-start">
+                                {threat.blocked ? (
+                                  <span className="flex items-center gap-1 text-red-600">
+                                    <Ban className="h-4 w-4" />
+                                    Bloqué (BDD)
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-500">Non bloqué</span>
+                                )}
+                                {inList && (
+                                  <Link
+                                    href="/backoffice/security/firewall#liste-ips-bloquees"
+                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    Liste consolidée
+                                  </Link>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">

@@ -4,6 +4,34 @@
 
 ---
 
+## 7 avril 2026 (suite) – `/backoffice/analytics` : « Element type is invalid » (composant `undefined`)
+
+### Problème
+- En dev (webpack Next), la page **Test CPU** (`AnalyticsPage`) plantait avec **Element type is invalid** (souvent **12** erreurs en cascade dans `reconcileChildrenArray`), typique d’un **composant React `undefined`** (icône Lucide ou export du baril analytics).
+
+### Correctifs
+1. **`frontend/next.config.js`** : retirer **`lucide-react`** de **`experimental.optimizePackageImports`**. Avec le baril **`@/lib/icons`** qui ré-exporte de nombreuses icônes, l’optimisation Next pouvait produire des **imports résolus à `undefined`** côté client.
+2. **`frontend/src/app/(admin)/backoffice/analytics/page.tsx`** : ne plus importer depuis le baril **`@/components/analytics`** pour cette page — **imports directs** de `ChartPeriodCaption`, `timeRangeUtils`, type `TimeRangeOption` depuis les fichiers du dossier `components/analytics/` ; **`Cpu`** depuis **`@/lib/icons`** (OK une fois Lucide non optimisé de cette façon).
+
+### Vérification
+- **`npm run test:unit-and-analytics`** (ou en deux temps : `jest unit` puis `jest --testPathPattern=backoffice/analytics`) : suites vertes incl. smoke des sous-routes analytics.
+
+---
+
+## 7 avril 2026 – Vue sécurité / Analyse : fenêtre logs, détections, temps de réponse, fuseaux
+
+### Problème
+- Compteurs **vue d’ensemble** (0 logs, 0 détections) alors que l’**Analyse** montrait beaucoup de signaux : l’API logs applique par défaut **24 h** et la vue ne lisait pas **`metrics.responseTime`** à la racine → **N/A** ; incidents sans clarification (données réelles vs test).
+
+### Correctifs
+- Front **vue sécurité** : `GET /api/v1/security/logs?limit=500&startDate=…` sur **30 jours** ; **détections** = logs (hors `network_threat_detected` pour éviter doublon avec la table menaces) + agrégat menaces (SQLi / XSS / autres / DDoS) comme l’Analyse ; **temps de réponse** via `pickResponseTimeMs` (`responseTime.average_ms` agrégateur + repli) ; texte explicatif sur les **incidents** ; horodatages en **locale navigateur** (`formatLocalDateTime` avec fuseau court).
+- Front **Analyse** : même fenêtre **30 j.** pour les logs ; module partagé **`src/lib/security/threatSignals.ts`** + test unitaire.
+- **metrics-aggregator** : plus de **NaN** sur `responseTime.average_ms` quand aucune mesure service.
+- **Menaces API** : `enrichThreatForApi` (liste + détail + création) pour **`destIp`** dérivée des métadonnées si absente ; **POST** accepte **`destIp`** IPv4 optionnel.
+- **Mobile** : `lib/utils/datetime_display.dart` + README (ISO → affichage local).
+
+---
+
 ## 8 avril 2026 – `make security-live-check` : 401 sans token + génération menaces
 
 ### Problème
@@ -37,7 +65,7 @@
 
 ---
 
-## Avril 2026 – Lot A sécurité (cohérence, test IP, UI)
+## Avril 2026 – Lot B sécurité (cohérence, test IP, UI) — anciennement « lot A » avant permutation PLAN
 
 ### Backend (`firewallController.js`)
 - **Anti auto-blocage** : refus `403` si l’IP à bloquer = IP client observée (`X-Forwarded-For` / `req.ip`, IPv4 normalisée), sauf `lab_simulation`.
@@ -70,7 +98,7 @@
 7. Sous-titre carte CPU : **total** = somme CPUs conteneurs, peut varier avec les détections Docker.
 
 ### Documentation
-- **ERRORS.md** : section *Pièges d’interprétation* + synthèse pipeline (base lot B).
+- **ERRORS.md** : section *Pièges d’interprétation* + synthèse pipeline (base lot **A** après permutation `PLAN.md`).
 - **STATUS.md**, **PLAN.md**, **TODOS.md**, **docs/CHANTIER_SECURITE_DATA_DOCS.md** : navigation chantier lots A–F.
 
 ---

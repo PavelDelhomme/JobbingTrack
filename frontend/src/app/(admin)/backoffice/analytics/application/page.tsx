@@ -1,10 +1,21 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
-import { TimeRangeSelector, type TimeRangeOption } from '@/components/analytics';
-import { getPeriodMs, formatRangeLabel } from '@/components/analytics/timeRangeUtils';
+import {
+  TimeRangeSelector,
+  ChartPeriodCaption,
+  useAnalyticsAutoRefresh,
+  ymdLocal,
+  type TimeRangeOption,
+} from '@/components/analytics';
+import {
+  getPeriodMs,
+  formatRangeLabel,
+  formatCustomRangeLabel,
+  localCalendarDayBounds,
+} from '@/components/analytics/timeRangeUtils';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import { statisticsService } from '@/lib/services/statisticsService';
 
@@ -14,18 +25,23 @@ export default function ApplicationPerformancePage() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
+  const [followLive, setFollowLive] = useState(true);
+  const [softTick, setSoftTick] = useState(0);
+  const silentNextFetch = useRef(false);
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
+    return ymdLocal(d);
   });
-  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
   useEffect(() => {
     let cancelled = false;
+    const silent = silentNextFetch.current;
+    silentNextFetch.current = false;
     (async () => {
-      setLoading(true);
+      if (!silent) setLoading(true);
       try {
         const [metricsRes, statsRes] = await Promise.all([
           centralMetricsService.fetchMetrics().catch(() => null),
@@ -36,74 +52,117 @@ export default function ApplicationPerformancePage() {
           setAppStats(statsRes ? (statsRes as unknown as Record<string, unknown>) : null);
         }
       } catch (e) {
-        if (!cancelled) setMetrics(null);
-        setAppStats(null);
+        console.error(e);
       } finally {
-        if (!cancelled) setLoading(false);
-        cancelled = true;
+        if (!cancelled && !silent) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
+  }, [softTick]);
+
+  const bumpWindowEndToNow = useCallback(() => {
+    silentNextFetch.current = true;
+    setWindowEnd(new Date());
+    setSoftTick((t) => t + 1);
   }, []);
+
+  const bumpSoftRefresh = useCallback(() => {
+    silentNextFetch.current = true;
+    setSoftTick((t) => t + 1);
+  }, []);
+
+  useAnalyticsAutoRefresh({
+    followLive,
+    useCustomRange,
+    customEnd,
+    bumpWindowEndToNow,
+    bumpSoftRefresh,
+  });
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     if (useCustomRange) {
-      return { rangeStart: new Date(customStart + 'T00:00:00.000Z'), rangeEnd: new Date(customEnd + 'T23:59:59.999Z') };
+      const { start, end } = localCalendarDayBounds(customStart, customEnd);
+      return { rangeStart: start, rangeEnd: end };
     }
     const { start, end } = getPeriodMs(timeRange, windowEnd);
     return { rangeStart: start, rangeEnd: end };
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const rangeLabel = useCustomRange
-    ? `Du ${new Date(customStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${new Date(customEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    ? formatCustomRangeLabel(customStart, customEnd)
     : formatRangeLabel(rangeStart, rangeEnd, timeRange);
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
-      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
-      const start = new Date(customStart);
-      const end = new Date(customEnd);
-      start.setDate(start.getDate() - days);
-      end.setDate(end.getDate() - days);
-      setCustomStart(start.toISOString().slice(0, 10));
-      setCustomEnd(end.toISOString().slice(0, 10));
+      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
+      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() - days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() - days);
+      setCustomStart(ymdLocal(ns));
+      setCustomEnd(ymdLocal(ne));
       return;
     }
-    const { start } = getPeriodMs(timeRange, windowEnd);
-    setWindowEnd(new Date(windowEnd.getTime() - (windowEnd.getTime() - start.getTime())));
+    setFollowLive(false);
+    if (timeRange === 'today') {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() - 1);
+      setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      setWindowEnd(new Date(windowEnd.getTime() - period));
+    }
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const goNext = useCallback(() => {
     if (useCustomRange) {
-      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
-      const start = new Date(customStart);
-      const end = new Date(customEnd);
-      start.setDate(start.getDate() + days);
-      end.setDate(end.getDate() + days);
-      const today = new Date().toISOString().slice(0, 10);
-      if (end.toISOString().slice(0, 10) > today) {
+      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
+      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() + days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() + days);
+      const today = ymdLocal();
+      if (ymdLocal(ne) > today) {
         setCustomEnd(today);
-        setCustomStart(new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+        setCustomStart(ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
       } else {
-        setCustomStart(start.toISOString().slice(0, 10));
-        setCustomEnd(end.toISOString().slice(0, 10));
+        setCustomStart(ymdLocal(ns));
+        setCustomEnd(ymdLocal(ne));
       }
       return;
     }
+    setFollowLive(false);
     const now = new Date();
-    const { start } = getPeriodMs(timeRange, windowEnd);
-    const period = windowEnd.getTime() - start.getTime();
-    setWindowEnd(new Date(Math.min(windowEnd.getTime() + period, now.getTime())));
+    if (timeRange === 'today') {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() + 1);
+      if (d <= now) setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      const nextEnd = new Date(windowEnd.getTime() + period);
+      if (nextEnd <= now) setWindowEnd(nextEnd);
+      else setWindowEnd(now);
+    }
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const canGoNext = useMemo(() => {
-    if (useCustomRange) return new Date(customEnd).toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
-    return windowEnd.getTime() < Date.now();
-  }, [useCustomRange, customEnd, windowEnd]);
+    if (useCustomRange) return customEnd < ymdLocal();
+    const now = new Date();
+    if (timeRange === 'today') return windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10);
+    return windowEnd.getTime() < now.getTime();
+  }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
+    setFollowLive(true);
     setWindowEnd(new Date());
+    setSoftTick((t) => t + 1);
   }, []);
 
   const perf = metrics?.performance as Record<string, unknown> | undefined;
@@ -147,7 +206,8 @@ export default function ApplicationPerformancePage() {
             />
           </div>
         </div>
-        {loading ? (
+        <ChartPeriodCaption label={rangeLabel} />
+        {loading && !metrics && !appStats ? (
           <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">Chargement…</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

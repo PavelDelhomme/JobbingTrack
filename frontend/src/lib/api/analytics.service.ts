@@ -1,6 +1,17 @@
 import axios from 'axios';
+import { normalizeMetricTimestampToIso } from '@/lib/utils/date';
 
 const METRICS_API_URL = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+
+function normalizeMetricRows(rows: unknown[]): Record<string, unknown>[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => {
+    const r = row as Record<string, unknown>;
+    const raw = r.timestamp ?? r.createdAt;
+    const ts = normalizeMetricTimestampToIso(raw);
+    return { ...r, timestamp: ts || raw } as Record<string, unknown>;
+  });
+}
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export class AnalyticsService {
@@ -24,7 +35,7 @@ export class AnalyticsService {
         `${METRICS_API_URL}/api/v1/persistence/system/metrics?${params.toString()}`
       );
 
-      return response.data.data || [];
+      return normalizeMetricRows(response.data.data || []);
     } catch (error) {
       console.error('Erreur récupération historique système:', error);
       return [];
@@ -51,7 +62,7 @@ export class AnalyticsService {
         `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/metrics?${params.toString()}`
       );
 
-      return response.data.data || [];
+      return normalizeMetricRows(response.data.data || []);
     } catch (error) {
       console.error(`Erreur récupération historique ${containerName}:`, error);
       return [];

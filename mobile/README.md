@@ -6,6 +6,10 @@
 
 Application mobile Flutter pour JobbingTrack.
 
+### Dates et fuseaux horaires
+
+Les API renvoient des horodatages **ISO 8601** (souvent en UTC). Pour l’affichage utilisateur, préférer **`DateTime.parse(iso).toLocal()`** ou le helper **`lib/utils/datetime_display.dart`** (`formatUserLocalDateTime`) afin d’afficher l’heure **locale de l’appareil**, cohérent avec le backoffice web (`formatLocalDateTime`).
+
 ---
 
 ## 🌐 URL de l'API (local vs production)

@@ -1,0 +1,20 @@
+{
+  "testName": "Playwright Emails MailHog",
+  "userType": "admin",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"http://localhost:8025\" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-04-13T13:50:23+02:00",
+  "duration": 14,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "\nup to date in 642ms\n\nRunning 3 tests using 3 workers\n\n  -  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:100:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail\n  -  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API\n  -  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:124:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page\n\n  3 skipped\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

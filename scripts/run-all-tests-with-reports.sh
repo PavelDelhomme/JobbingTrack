@@ -28,6 +28,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR" || true
 
+# Secret machine aligné compose / .env.example (Jest backend + scripts qui appellent /api/v1/security)
+export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
+if [ -f "$ROOT_DIR/.env" ]; then
+	set -a
+	# shellcheck source=/dev/null
+	. "$ROOT_DIR/.env"
+	set +a
+	export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
+fi
+
 # ---- Seed auth (admin + testuser avec emailVerified) pour éviter 401 "email not verified" ----
 if command -v docker >/dev/null 2>&1 && docker ps 2>/dev/null | grep -q jobbingtrack-auth-service; then
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser emailVerified)...${NC}"
@@ -607,10 +617,10 @@ _ts=$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')
 printf '%s\n' "{\"testName\":\"Playwright Mobile\",\"status\":\"skipped\",\"reason\":\"Tests mobiles exclus du pipeline E2E (emulateur non lance)\",\"timestamp\":\"$_ts\"}" > "$REPORT_DIR/playwright-mobile.json"
 echo ""
 
-# 9. Tests Frontend Jest (unitaires – depuis frontend/ pour next/jest)
-if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then
-    run_test "Tests Frontend Jest (Unitaires)" \
-        "bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && npm run test:unit 2>&1'" \
+# 9. Tests Frontend Jest (unit + pages analytics — pas la suite Jest complète du repo)
+if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q 'test:unit-and-analytics' frontend/package.json; then
+    run_test "Tests Frontend Jest (unit + pages analytics)" \
+        "bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && npm run test:unit-and-analytics 2>&1'" \
         "$REPORT_DIR/frontend-jest.json" \
         "system"
 fi

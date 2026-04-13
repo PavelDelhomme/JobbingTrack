@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -190,7 +190,8 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-live           - Statut en temps réel (actualisation automatique)"
+	@echo "  make status-watch          - Même sortie que status, en boucle (INTERVAL=30s, ex: INTERVAL=15)"
+	@echo "  make status-live           - Statut synthétique en temps réel (actualisation 2s)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
 	@echo "  make logs-service SERVICE=x - Logs d'un service"
@@ -1277,6 +1278,18 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	fi
 	@echo ""
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
+
+# Même sortie que `status`, en boucle (vue complète). INTERVAL en secondes (défaut 30).
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=30 par défaut, Ctrl+C pour quitter)
+	@echo "📊 Statut détaillé — actualisation toutes les $(or $(INTERVAL),30)s (Ctrl+C pour quitter)"
+	@echo "💡 Vue allégée plus fréquente : make status-live"
+	@echo ""
+	@while true; do \
+		$(MAKE) status; \
+		echo ""; \
+		echo "⏱ Prochain rafraîchissement dans $(or $(INTERVAL),30)s…"; \
+		sleep $(or $(INTERVAL),30); \
+	done
 
 # Statut en temps réel (actualisation automatique)
 status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)

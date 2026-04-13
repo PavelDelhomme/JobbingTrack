@@ -2,6 +2,10 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/jobbingtrack_test';
+// Aligné sur docker-compose.yml / .env.example — évite 401/403 sur /api/v1/security/* sans configuration manuelle
+if (!process.env.SECURITY_INTERNAL_SECRET) {
+  process.env.SECURITY_INTERNAL_SECRET = 'jobbingtrack-internal-security-dev';
+}
 
 // Configuration pour les tests
 global.testConfig = {

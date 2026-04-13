@@ -14,9 +14,14 @@ jest.mock('@/components/features', () => ({
   ),
 }));
 
+jest.mock('@/lib/hooks/auth', () => ({
+  useAuth: () => ({ token: 'mock-jwt-token-test', user: null, loading: false }),
+}));
+
 describe('MobileEmulatorPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = jest.fn();
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/health')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, version: 2 }) });

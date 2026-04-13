@@ -26,7 +26,7 @@
 | **PLAN.md** | Chantier backoffice + API + doc (lots A–F, critères d’acceptation) |
 | **TODOS.md** | Cases à cocher alignées sur le plan |
 
-Pour savoir **ce qu’il faut faire** (priorité mobile, vérification email, suite Flutter) → **[STATUS.md](STATUS.md)** (section « À faire maintenant ») et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (sécurité, logs multi-services, suivi-intérim, documentation) → **[PLAN.md](PLAN.md)** et **[TODOS.md](TODOS.md)**.
+Pour savoir **ce qu’il faut faire** (priorité mobile, vérification email, suite Flutter) → **[STATUS.md](STATUS.md)** (section « À faire maintenant ») et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (lot **A** monitoring + logs, lot **B** sécurité, suivi-intérim, documentation) → **[PLAN.md](PLAN.md)** et **[TODOS.md](TODOS.md)**.
 
 ### 📚 Documentation détaillée
 

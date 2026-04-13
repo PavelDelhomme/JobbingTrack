@@ -2,6 +2,41 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { randomUUID } = require('crypto');
 
+/**
+ * Fenêtre pour stats utilisateur : `days` (glissant depuis maintenant) ou `startDate` + `endDate` (ISO).
+ * @returns {{ startDate: Date, endDate: Date } | { error: string, message?: string }}
+ */
+function resolveUserAnalyticsTimeWindow(query, defaultDays = 7, maxDays = 366) {
+  const rawDays = query.days;
+  const qStart = query.startDate;
+  const qEnd = query.endDate;
+  const now = new Date();
+
+  if (qStart && qEnd) {
+    const startDate = new Date(String(qStart));
+    let endDate = new Date(String(qEnd));
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return { error: 'INVALID_DATES', message: 'startDate et endDate doivent être des dates ISO valides.' };
+    }
+    if (startDate > endDate) {
+      return { error: 'INVALID_ORDER', message: 'startDate doit précéder endDate.' };
+    }
+    if (endDate > now) endDate = now;
+    const spanMs = endDate.getTime() - startDate.getTime();
+    if (spanMs > maxDays * 86400000) {
+      return { error: 'RANGE_TOO_LONG', message: `Plage maximale : ${maxDays} jours.` };
+    }
+    return { startDate, endDate };
+  }
+
+  let d = parseInt(String(rawDays != null ? rawDays : defaultDays), 10);
+  if (Number.isNaN(d) || d < 1) d = defaultDays;
+  d = Math.min(d, maxDays);
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - d);
+  return { startDate, endDate: now };
+}
+
 class AnalyticsController {
   /**
    * Démarrer une nouvelle session utilisateur
@@ -545,13 +580,15 @@ class AnalyticsController {
   async getUserStats(req, res) {
     try {
       const userId = req.params.userId || req.user?.id;
-      const { days = 7 } = req.query;
+      const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
+      if (tw.error) {
+        return res.status(400).json({ success: false, error: tw.message || tw.error });
+      }
+      const { startDate, endDate } = tw;
+      const timeWhere = { gte: startDate, lte: endDate };
 
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(days));
-
         const [
           totalSessions,
           activeSessions,
@@ -565,7 +602,7 @@ class AnalyticsController {
           prisma.userSession.count({
             where: {
               userId,
-              startTime: { gte: startDate }
+              startTime: timeWhere
             }
           }).catch(() => 0),
           prisma.userSession.count({
@@ -577,20 +614,20 @@ class AnalyticsController {
           prisma.userEvent.count({
             where: {
               userId,
-              timestamp: { gte: startDate }
+              timestamp: timeWhere
             }
           }).catch(() => 0),
           prisma.userError.count({
             where: {
               userId,
-              timestamp: { gte: startDate }
+              timestamp: timeWhere
             }
           }).catch(() => 0),
           prisma.userEvent.groupBy({
             by: ['eventType'],
             where: {
               userId,
-              timestamp: { gte: startDate }
+              timestamp: timeWhere
             },
             _count: true
           }).catch(() => []),
@@ -598,7 +635,7 @@ class AnalyticsController {
             by: ['errorType'],
             where: {
               userId,
-              timestamp: { gte: startDate }
+              timestamp: timeWhere
             },
             _count: true
           }).catch(() => []),
@@ -606,7 +643,7 @@ class AnalyticsController {
             by: ['page'],
             where: {
               userId,
-              timestamp: { gte: startDate },
+              timestamp: timeWhere,
               page: { not: null }
             },
             _count: true,
@@ -617,7 +654,7 @@ class AnalyticsController {
             by: ['eventName'],
             where: {
               userId,
-              timestamp: { gte: startDate }
+              timestamp: timeWhere
             },
             _count: true,
             orderBy: { _count: { eventName: 'desc' } },
@@ -688,9 +725,12 @@ class AnalyticsController {
   async getUserVersionsAndDevices(req, res) {
     try {
       const userId = req.params.userId || req.user?.id;
-      const { days = 90 } = req.query;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - parseInt(days));
+      const tw = resolveUserAnalyticsTimeWindow(req.query, 90, 366);
+      if (tw.error) {
+        return res.status(400).json({ success: false, error: tw.message || tw.error });
+      }
+      const { startDate, endDate } = tw;
+      const timeWhere = { gte: startDate, lte: endDate };
 
       try {
         const hasDeviceInfo = prisma.deviceInfo && typeof prisma.deviceInfo.findMany === 'function';
@@ -709,7 +749,7 @@ class AnalyticsController {
                 by: ['platform', 'appVersion'],
                 where: {
                   userId: userId || undefined,
-                  timestamp: { gte: startDate },
+                  timestamp: timeWhere,
                   appVersion: { not: null }
                 },
                 _count: true
@@ -717,7 +757,7 @@ class AnalyticsController {
             : [],
           hasUserPerformance
             ? prisma.userPerformance.findMany({
-                where: { userId: userId || undefined, timestamp: { gte: startDate } },
+                where: { userId: userId || undefined, timestamp: timeWhere },
                 orderBy: { timestamp: 'desc' },
                 take: 50
               }).catch(() => [])
