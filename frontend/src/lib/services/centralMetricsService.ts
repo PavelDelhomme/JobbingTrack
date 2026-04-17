@@ -11,6 +11,7 @@ import {
   UserCustomization
 } from '@/lib/interfaces'
 import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
+import { normalizeMetricTimestampToIso } from '@/lib/utils/date'
 import { cacheManager } from '@/lib/cache/cacheManager'
 
 class CentralMetricsService {
@@ -1021,39 +1022,16 @@ class CentralMetricsService {
         const networkRxMb = networkRxBytes ? (Number(networkRxBytes) / (1024 * 1024)) : 0
         const networkTxMb = networkTxBytes ? (Number(networkTxBytes) / (1024 * 1024)) : 0
 
-        // ✅ CORRECTION : Convertir le timestamp en ISO string valide
-        // Les timestamps viennent de PostgreSQL en UTC (format: "2025-12-23 16:37:58 UTC" ou Date object)
-        let timestamp = item.timestamp;
-        if (timestamp) {
-          if (typeof timestamp === 'string') {
-            // ✅ CORRECTION : Si c'est une date PostgreSQL (format: "2025-12-23 16:37:58 UTC")
-            if (timestamp.includes(' UTC')) {
-              timestamp = timestamp.replace(' UTC', 'Z');
-            } else if (!timestamp.includes('Z') && !timestamp.includes('+') && !timestamp.includes('-', 10)) {
-              // Si c'est une date ISO sans timezone, ajouter 'Z' pour UTC
-              timestamp = timestamp + 'Z';
-            }
-            // Vérifier que c'est une date valide
-            const date = new Date(timestamp);
-            if (Number.isNaN(date.getTime())) {
-              console.warn('[CENTRAL METRICS] ⚠️ Timestamp invalide:', timestamp, 'utilisation de la date actuelle');
-              timestamp = new Date().toISOString();
-            } else {
-              timestamp = date.toISOString();
-            }
-          } else if (timestamp instanceof Date) {
-            timestamp = timestamp.toISOString();
-          } else {
-            // Si c'est un nombre (timestamp Unix), le convertir
-            const date = new Date(typeof timestamp === 'number' ? timestamp : Number(timestamp));
-            if (Number.isNaN(date.getTime())) {
-              timestamp = new Date().toISOString();
-            } else {
-              timestamp = date.toISOString();
-            }
+        // ISO UTC canonique (même règles que graphiques analytics : naïf PostgreSQL = UTC, pas heure locale du parseur)
+        const rawTs = item.timestamp;
+        let timestamp = new Date().toISOString();
+        if (rawTs != null && rawTs !== '') {
+          const iso = normalizeMetricTimestampToIso(rawTs);
+          if (iso) {
+            const d = new Date(iso);
+            if (!Number.isNaN(d.getTime())) timestamp = d.toISOString();
+            else console.warn('[CENTRAL METRICS] ⚠️ Timestamp invalide après normalisation:', rawTs);
           }
-        } else {
-          timestamp = new Date().toISOString();
         }
 
         // ✅ NOUVEAU : Inclure memory_total_mb pour le calcul de project_memory_percent

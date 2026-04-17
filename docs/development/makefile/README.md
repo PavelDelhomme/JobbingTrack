@@ -164,7 +164,7 @@ make db-seed            # Données test
 make db-reset           # Reset DB
 make db-backup          # Sauvegarde
 make db-restore file=x  # Restauration
-make up-dev             # Env développement
+make db-up-dev          # PostgreSQL + Redis dev seuls (compose test)
 make up-test            # Env test
 make up-all-dbs         # Tous les envs
 ```
@@ -240,8 +240,9 @@ make logs
 ### Workflow de développement
 
 ```bash
-# 1. Démarrer environnement dev
-make up-dev
+# 1. Démarrer la stack complète (ou tout-en-un dev + BDD + tests depuis la racine)
+make up-full
+# ou : make up-dev   # racine uniquement : up-full → db-push-all → seed-auth → tests
 
 # 2. Voir les logs en temps réel
 make logs

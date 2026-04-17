@@ -5,17 +5,42 @@
 
 const axios = require('axios');
 const { performance } = require('perf_hooks');
+const {
+  normalizeGatewayUrlForHost,
+  normalizeMetricsAggregatorUrl,
+} = require('../helpers/dockerHostUrl');
+
+function normalizeAuthServiceUrl(url, authPort) {
+  const base = (url && String(url).trim()) || `http://127.0.0.1:${authPort}`;
+  try {
+    const u = new URL(base);
+    if (
+      u.hostname === 'jobbingtrack-auth-service' ||
+      u.hostname === 'auth-service'
+    ) {
+      const port = u.port || authPort;
+      return `http://127.0.0.1:${port}`;
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return base;
+}
 
 class PerformanceTester {
   constructor() {
     this.metrics = [];
-    const apiBase = process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002';
     const authPort = process.env.AUTH_SERVICE_PORT || '5005';
     const metricsPort = process.env.METRICS_AGGREGATOR_PORT || '5004';
+    const apiBase = normalizeGatewayUrlForHost(
+      process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002'
+    );
     this.services = {
       apiGateway: apiBase,
-      auth: process.env.AUTH_SERVICE_URL || `http://localhost:${authPort}`,
-      metricsAggregator: process.env.METRICS_AGGREGATOR_URL || `http://localhost:${metricsPort}`,
+      auth: normalizeAuthServiceUrl(process.env.AUTH_SERVICE_URL, authPort),
+      metricsAggregator: normalizeMetricsAggregatorUrl(
+        process.env.METRICS_AGGREGATOR_URL || `http://localhost:${metricsPort}`
+      ),
     };
   }
 
@@ -115,7 +140,10 @@ class PerformanceTester {
       totalRequests += test.requests;
       totalTime += averageTime;
 
-      console.log(`   ✅ ${successful}/${test.requests} succès - moy: ${Math.round(averageTime)}ms, max: ${Math.round(maxTime)}ms`);
+      const loadIcon = successful > 0 ? '✅' : '⚠️';
+      console.log(
+        `   ${loadIcon} ${successful}/${test.requests} succès - moy: ${Math.round(averageTime)}ms, max: ${Math.round(maxTime)}ms`
+      );
       await new Promise(resolve => setTimeout(resolve, light ? 100 : 400));
     }
 
@@ -298,7 +326,20 @@ class PerformanceTester {
 async function main() {
   const tester = new PerformanceTester();
   try {
-    await tester.runAllTests();
+    const report = await tester.runAllTests();
+    const apiResults = report.api || [];
+    const apiOk = apiResults.filter((r) => r.success || r.status === 401).length;
+    const loadFailed =
+      report.summary.totalRequests > 0 &&
+      report.summary.successfulRequests < report.summary.totalRequests;
+    const strictFail =
+      (apiResults.length > 0 && apiOk < apiResults.length) || loadFailed;
+    if (strictFail) {
+      console.log(
+        '\n⚠️ Sortie non nulle : au moins un endpoint ou la charge a échoué (voir détails ci-dessus).'
+      );
+      process.exit(1);
+    }
     process.exit(0);
   } catch (error) {
     console.error('⚠️ Erreur:', error.message);

@@ -7,6 +7,7 @@ import {
   TimeRangeSelector,
   ChartPeriodCaption,
   useAnalyticsAutoRefresh,
+  usePersistedSharedAnalyticsRange,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
@@ -20,6 +21,8 @@ import {
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
+  metricRowToTimeMs,
+  metricTimestampToMs,
   normalizeMetricTimestampToIso,
 } from '@/lib/utils/date';
 import {
@@ -33,6 +36,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { analyticsService } from '@/lib/api/analytics.service';
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
 
 const ALL_CONTAINERS_VALUE = '__all__';
 const METRIC_GAP_MS = 15 * 60 * 1000;
@@ -48,6 +52,7 @@ interface ContainerInfo {
 
 interface ContainerMetric {
   timestamp: string;
+  timeMs?: number;
   cpuUsagePercent?: number | null;
   memoryUsagePercent?: number | null;
 }
@@ -98,6 +103,21 @@ export default function ContainersAnalyticsPage() {
     return ymdLocal(d);
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
+
+  usePersistedSharedAnalyticsRange({
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    windowEnd,
+    setWindowEnd,
+    followLive,
+    setFollowLive,
+  });
 
   const getParams = useCallback(() => {
     if (useCustomRange) {
@@ -165,8 +185,10 @@ export default function ContainersAnalyticsPage() {
               ? d.timestamp
               : (d.timestamp as Date)?.toISOString?.() ?? '';
           const timestamp = normalizeMetricTimestampToIso(rawTs);
+          const timeMs = metricRowToTimeMs(d, timestamp);
           return {
           timestamp,
+          ...(timeMs != null ? { timeMs } : {}),
           cpuUsagePercent:
             d.cpuUsagePercent != null
               ? Number(d.cpuUsagePercent)
@@ -182,7 +204,11 @@ export default function ContainersAnalyticsPage() {
         };
         })
         .filter((d) => d.timestamp)
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        .sort(
+          (a, b) =>
+            (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
+            (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
+        );
 
     const withGaps = (rows: ContainerMetric[]) =>
       injectMetricTimeGaps(rows, METRIC_GAP_MS, ['cpuUsagePercent', 'memoryUsagePercent']);
@@ -339,7 +365,10 @@ export default function ContainersAnalyticsPage() {
       const keys: (keyof ContainerMetric)[] = ['cpuUsagePercent', 'memoryUsagePercent'];
       const compressed = compressData(rawMetrics, 200, keys);
       return compressed.map((d) => {
-        const timeMs = new Date(d.timestamp).getTime();
+        const timeMs =
+          typeof d.timeMs === 'number' && Number.isFinite(d.timeMs)
+            ? d.timeMs
+            : (metricTimestampToMs(d.timestamp) ?? NaN);
         return {
           timeMs,
           timestamp: d.timestamp,
@@ -355,7 +384,9 @@ export default function ContainersAnalyticsPage() {
     const toKey = (n: string) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_');
     const allTs = new Set<string>();
     names.forEach((n) => rawMetricsByContainer[n].forEach((m) => allTs.add(m.timestamp)));
-    const sortedTs = Array.from(allTs).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    const sortedTs = Array.from(allTs).sort(
+      (a, b) => (metricTimestampToMs(a) ?? 0) - (metricTimestampToMs(b) ?? 0)
+    );
     const target = 200;
     const step = sortedTs.length <= target ? 1 : Math.ceil(sortedTs.length / target);
     const sampledTs = sortedTs.filter((_, i) => i % step === 0);
@@ -365,7 +396,7 @@ export default function ContainersAnalyticsPage() {
       return Number(m[key]);
     };
     return sampledTs.map((ts) => {
-      const timeMs = new Date(ts).getTime();
+      const timeMs = metricTimestampToMs(ts) ?? NaN;
       const point: Record<string, string | number | null> = {
         timeMs,
         timestamp: ts,
@@ -499,6 +530,7 @@ export default function ContainersAnalyticsPage() {
                   />
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
                   <Tooltip
+                    {...rechartsTooltipProps}
                     labelFormatter={(_, payload) => {
                       const ts = payload?.[0]?.payload?.timestamp;
                       return ts != null ? formatLocalDateTime(String(ts)) : '—';
@@ -592,6 +624,7 @@ export default function ContainersAnalyticsPage() {
                 />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
                 <Tooltip
+                  {...rechartsTooltipProps}
                   labelFormatter={(_, payload: unknown) => {
                     const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload?.timestamp;
                     return ts != null ? formatLocalDateTime(ts) : '—';

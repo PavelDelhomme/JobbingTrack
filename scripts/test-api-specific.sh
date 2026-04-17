@@ -13,6 +13,11 @@ NC='\033[0m'
 
 # Configuration (API_GATEWAY_URL utilisé par le backoffice / CI)
 API_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
+if echo "${API_URL}" | grep -q 'api-gateway'; then
+	_gp=$(printf '%s' "${API_URL}" | sed -n 's/.*api-gateway:\([0-9][0-9]*\).*/\1/p')
+	API_URL="http://127.0.0.1:${_gp:-${API_GATEWAY_PORT:-5002}}"
+	export API_URL
+fi
 TOKEN=""
 TEST_TYPES="$1"
 shift || true
@@ -75,24 +80,21 @@ test_endpoint() {
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
     echo -e "${BLUE}[$TOTAL_TESTS] Test: $name${NC}"
     
-    local curl_cmd="curl -s -w '%{http_code}' -o /tmp/response.txt --max-time 10"
-    
-    if [ -n "$TOKEN" ]; then
-        curl_cmd="$curl_cmd -H 'Authorization: Bearer $TOKEN'"
-    fi
-    
-    if [ "$method" != "GET" ]; then
-        curl_cmd="$curl_cmd -X $method"
-    fi
-    
+    local resp_file
+    resp_file=$(mktemp /tmp/jt_api_XXXXXX.txt 2>/dev/null || echo "/tmp/jt_api_${TOTAL_TESTS}_$$.txt")
+    local -a curl_args=(-s -w '%{http_code}' -o "$resp_file" --max-time 10)
+    [ -n "$TOKEN" ] && curl_args+=(-H "Authorization: Bearer $TOKEN")
+    [ "$method" != "GET" ] && curl_args+=(-X "$method")
     if [ -n "$data" ]; then
-        curl_cmd="$curl_cmd -H 'Content-Type: application/json' -d '$data'"
+        curl_args+=(-H "Content-Type: application/json" -d "$data")
     fi
-    
-    curl_cmd="$curl_cmd '$url'"
-    
-    local status_code=$(eval $curl_cmd 2>/dev/null | tr -d '\n\r ')
-    local response=$(cat /tmp/response.txt 2>/dev/null || echo "")
+    curl_args+=("$url")
+
+    local status_code
+    status_code=$(curl "${curl_args[@]}" 2>/dev/null | tr -d '\n\r ')
+    local response
+    response=$(cat "$resp_file" 2>/dev/null || echo "")
+    rm -f "$resp_file" 2>/dev/null || true
     
     # Accepter plusieurs codes (ex: "200 503" pour workflow-service absent)
     local ok=0

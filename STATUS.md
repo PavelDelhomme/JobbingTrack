@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 7 avril 2026 (lot **G** sauvegardes / continuité documenté — **`PLAN.md`** § G, **`FONCTIONNALITES.md`** § 4.4 ; validation porteur / PR / **`make tests`** — voir § ci-dessous)
+**Dernière mise à jour** : 17 avril 2026 (suite : **journal `make tests`** — rapport **`tests/results/20260417-222318/`** ; correctifs **URLs Docker → hôte**, **`test-api-specific.sh`**, perf **exit 1**, gateway health ; rappels **historique `system_metrics`**, **`make restart`**, **`.jobbingtrack-stack-mode`** — **ERRORS.md**, **RESOLUTIONS.md** § 17/04)
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -8,8 +8,10 @@
 
 - **Pull requests** : **aucune PR** tant que le porteur ne l’a pas demandé explicitement dans la conversation (rappel aussi dans **`PLAN.md`** en-tête).
 - **« Ça marche pour moi »** : seule votre validation compte pour la colonne **Validé (porteur)** du **`PLAN.md`** (remplacer **Non** par **`Oui (date)`**) ou une phrase explicite ici dans **`STATUS.md`** ; tant que ce n’est pas fait, le lot reste **non accepté produit** même si **État** = Fait.
-- **`make tests`** (= **`make test-all`**, script **`scripts/run-all-tests-with-reports.sh`**) — **exécution du 11/04/2026** sur environnement **sans** `make up-full` actif : **83** tests signalés en échec (API injoignable, conteneurs absents, MailHog absent, Playwright `ECONNREFUSED`, etc.) — **attendu**. Dans le **même** run, le rapport **`tests/results/20260411-052047/frontend-jest.json`** enregistre la gate **Jest** `test:unit-and-analytics` : **27** tests **OK** (7 unit + 20 analytics). Pour un bilan complet **vert**, lancer **`make up-full`** (et profil mail si besoin), **`make db-push-all`**, seed auth, puis **`make tests`** ou **`make test-suite-full`**.
-- **`make test-suite-full`** : enchaîne **frontend Jest + BDD + status + test-all** (voir `makefiles/tests/Makefile`). Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+- **`make tests`** (= **`make test-all`**, script **`scripts/run-all-tests-with-reports.sh`**) — **exécution du 11/04/2026** sur environnement **sans** `make up-full` actif : **83** tests signalés en échec (API injoignable, conteneurs absents, MailHog absent, Playwright `ECONNREFUSED`, etc.) — **attendu**. Dans le **même** run, le rapport **`tests/results/20260411-052047/frontend-jest.json`** enregistre la gate **Jest** `test:unit-and-analytics` : **27** tests **OK** (7 unit + 20 analytics au moment du rapport ; la suite **`unit`** inclut désormais aussi **`analytics-metric-rows-normalize`** pour **`timestamp` ↔ timestampMs**). Pour un bilan complet **vert**, lancer **`make up-full`** (et profil mail si besoin), **`make db-push-all`**, seed auth, puis **`make tests`** ou **`make test-suite-full`**.
+- **Run 17/04/2026** (`tests/results/20260417-222318/`, ~88 % au compteur global) : causes typiques — **`.env`** avec **`API_GATEWAY_URL=http://api-gateway:…`** ou **`…:3000`** alors que Jest / curl tournent sur l’**hôte** (utiliser **`http://127.0.0.1:<port_publishé>`** , souvent **5002**) ; script API **`Status: 000`** (voir **RESOLUTIONS** : **`mktemp`**) ; **`test-monitoring`** **`load_score`** optionnel ; perf **0/N** désormais reflétée en **échec d’étape** si tout rouge ; **Playwright** : **login** + **`api-e2e`** (URL API côté navigateur). **Health JSON** des microservices : champs différents (**`status`** vs **`success`**, **`version`**, **`port`**) — **comportement normal**, pas une régression d’homogénéisation.
+- **Run antérieur** (`20260417-211711/`) : voir **RESOLUTIONS.md** (entrées 7 et 17 avril) pour l’historique des correctifs (tooltips, Jest worker, firewall, etc.).
+- **`make test-suite-full`** : enchaîne **frontend Jest + BDD + status + test-all** (voir `makefiles/tests/Makefile`) ; le pas **test-frontend** couvre aussi **`src/__tests__/unit/date-metrics-display.test.ts`**. Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
 
 ## Comment lire ce fichier
 
@@ -28,7 +30,7 @@
 
 | Lot | Thème | Statut | Où détailler |
 |-----|--------|--------|----------------|
-| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — détail service (précision, historique snapshots + session, auto-refresh, disque) ; **`/backoffice/services/logs`** ; **A5** à faire (clarifier **métriques déjà enregistrées** vs **docker stats** sur toutes les vues monitoring) | `PLAN.md` § A, `metrics-aggregator-service`, `TODOS.md` |
+| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — détail service (précision, historique snapshots + session, auto-refresh, disque) ; **`/backoffice/services/logs`** ; **A5** partiel (SQL **`system_metrics` UTC** + doc fuseaux ; reste libellés « live vs BDD » partout) | `PLAN.md` § A, `metrics-aggregator-service`, `TODOS.md` |
 | **B** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau actionnable) | **Partiellement livré** — **B1** cohérence / compteurs / fuseaux (07/04) ; **B3–B4** à poursuivre — voir `RESOLUTIONS.md` | `PLAN.md` § B, `firewallController.js`, `backoffice/security/*` |
 | **C** | Suivi-intérim, bases principal/test, données test | À faire | `PLAN.md` § C, `SuiviInterimContent.tsx` |
 | **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
@@ -48,7 +50,7 @@
 
 | Couche | État (synthèse) | Comment le vérifier |
 |--------|-----------------|---------------------|
-| **API / microservices** | Fonctionnel en dev Docker (`make up-full`) ; quelques tables optionnelles manquantes (voir ERRORS.md : `deployments`, `user_events`). | Health services, `make test`, logs `make logs`. |
+| **API / microservices** | Fonctionnel en **développement** Docker (`make up-full` : profils dev, secrets d’exemple, montages de code — **pas** une image « prod VPS » prête sans durcissement ; voir **`PLAN.md`** / déploiement). Quelques tables optionnelles manquantes (voir ERRORS.md : `deployments`, `user_events`). | Health services, `make test`, logs `make logs`. |
 | **Backoffice web** | CRUD données, sécurité, rapports de tests, suivi intérim **présents** ; polish et E2E à stabiliser. | Navigation admin, `/backoffice/suivi-interim`, `/backoffice/test-reports`. |
 | **Mobile** | Parcours métier avancé (candidatures, relances, etc.) ; **pas** « prod-ready » sans validation manuelle (email, VPS, FCM/sync plus tard). | APK + compte réel ; voir `docs/mobile/PROCHAINES_ETAPES.md`. |
 | **Sécurité (WAF / firewall)** | WAF actif sur la gateway ; routes **firewall / WAF** du security-service protégées (**JWT** ou **`X-Internal-Secret`** partagé avec les scripts live-check et la gateway) ; `make security-live-check` **vert** si image **rebuildée** après changement de deps + volume `src` ; anti-doublon règles firewall. | `make security-live-check`, pages Sécurité backoffice. |
@@ -67,10 +69,39 @@
 
 ### Monitoring & Makefile (07/04/2026)
 
-- **`make status-watch`** : même sortie que **`make status`**, relancée en boucle (défaut **30 s**, surcharger avec **`INTERVAL=15`**). Pour une vue **allégée** mais très fréquente, garder **`make status-live`** (rafraîchissement ~2 s).
+- **`make status-watch`** : en boucle (**`INTERVAL=5`** par défaut, ex. **`INTERVAL=30`** pour ralentir). Chaque cycle relance **`make status`** sans cache : les valeurs viennent de **Docker** ; si tu voyais d’anciennes lignes « figées », c’était surtout l’**empilement** dans le terminal — par défaut **`CLEAR=1`** efface l’écran avant chaque statut (**`CLEAR=0`** pour garder l’historique). **`--no-print-directory`** supprime les messages GNU make du type *« on quitte le répertoire »*. Les lignes d’aide en couleur utilisent **`printf '%b'`** (portable sous **`/bin/sh`**) : avec un **`echo`** sans **`-e`**, les séquences **`\033[…]`** pouvaient s’afficher en clair. Pour une vue plus fréquente et compacte : **`make status-live`** (~2 s).
+- **Ports `monitoring-c` (5098 → 8015)** : **8015** est le port **dans le conteneur** (binaire C) ; **5098** (ou **`MONITORING_C_PORT`**) est le port sur **ta machine**. Les services Node utilisent souvent un interne **301x** ; ce n’est pas une incohérence « exposition Internet » : l’agrégateur joint **`http://monitoring-c:8015`** sur le réseau Compose. Voir légende en tête de **`make status`** et commentaire dans **`docker-compose.yml`**.
+- **`make restart`** : en tête de cible, affichage du **dernier mode Makefile** lu dans **`.jobbingtrack-stack-mode`** (fichier à la racine du dépôt, **ignoré par Git**) : valeurs possibles **`up-dev`** (séquence racine : stack + push + seed + tests — le restart **ne** refait **pas** tests/migrations), **`up-full`**, **`up-essential`** (après **`make up`** / **`up-no-check`**). Le fichier est créé par **`make up`**, **`_up-full-internal`**, **`make up-dev`** (écrase après les tests) ; supprimé par **`make down`**, **`down-clean`**, **`restart-clean`**. Indication seulement : si le fichier est absent, le redémarrage des conteneurs reste possible.
 - **Sonde HTTP « service healthy »** (metrics-aggregator) : appel vers **`http://<nom-conteneur>:port/...`** sur le réseau Docker au lieu de **`localhost`** (sinon **HTTP dégradé** alors que Docker est **healthy**). Override local : **`METRICS_HTTP_PROBE_USE_LOCALHOST=true`** si l’agrégateur tourne hors réseau compose.
 - **Page détail service** / **analytics** : graduations d’axes basées sur **timestamp en ms** + **`formatLocalChartAxisTick`** (fuseau navigateur) ; affichage **jour + heure** quand la plage dépasse **24 h**. Navigation temporelle type brush/zoom : **à faire** (lot A5 / UX graphiques).
 - **Fuseaux / métriques (07/04/2026)** : **`normalizeMetricTimestampToIso`** traite les ISO **sans suffixe Z** et les formes PostgreSQL comme **UTC** avant affichage ; **`formatLocalDateTime`** / **`formatLocalTime`** / **`formatLocalDate`** passent par cette normalisation pour les chaînes. Plages **personnalisées** « Du / au » : **`localCalendarDayBounds`** (minuit **local** → fin de journée **locale**), plus **`toISOString()`** vers l’API — plus de **`T00:00:00.000Z`** sur la date picker. Tests **`SECURITY_INTERNAL_SECRET`** : défaut dev aligné **compose** dans **`tests/jest.setup.js`**, script **`run-all-tests-with-reports.sh`**, et hors **`NODE_ENV=production`** sur **api-gateway** / **firewallWafAuth** (secret fort obligatoire en prod).
+
+### Analytics — historiques longs + période mémorisée (07/04/2026)
+
+- **Symptôme** : plages type **30 j.** pouvaient renvoyer **tableaux vides** côté UI (timeout axios par défaut, ou limite **réseau** plafonnée à **2000** points alors que **performances** demandait tout le `limit` calculé).
+- **Correctifs** : **timeout 120 s** sur `getSystemMetricsHistory` / `getContainerMetricsHistory` (`frontend/src/lib/api/analytics.service.ts`) ; **plafond** `limit` **60 000** côté **`persistence.routes.js`** + **`persistence.service.js`** ; page **réseau** : même **`limit`** que performances + filtre des points sans **`timeMs`** fini.
+- **Persistance** : **`usePersistedSharedAnalyticsRange`** + clé **`jobbingtrack:analytics:shared-time-v1`** — dernière période (préréglage, plage perso, **suivre le direct**, `windowEnd` si figé) partagée entre **`/backoffice/analytics/performances`**, **`…/network`**, **`…/containers`** (pas encore **user-analytics** ni page **application**, modèle de filtres différent).
+
+### Historique `system_metrics` — décalage d’environ 2 h sur les axes (07/04/2026)
+
+- **Symptôme** : courbes **performances** / **statistiques** avec heures proches de **UTC** (ex. **09:07** sur le graph alors que l’horloge locale affiche **11:07** en été européen).
+- **Cause probable** : colonne **`TIMESTAMP` sans fuseau** + **`NOW()`** dans la session **`postgres`** (`POSTGRES_SYSTEM_METRICS_TZ`). Si le SQL supposait **UTC** alors que Postgres est en **Europe/Paris**, l’axe peut avancer de **+2 h** (ex. horloge **11:50**, graphique **13:50**).
+- **Correctif** : **`persistence.service.js`** — **`AT TIME ZONE`** utilise désormais la **même** variable **`POSTGRES_SYSTEM_METRICS_TZ`** que le service **`postgres`** (passée aussi à **`jobbingtrack-metrics-aggregator`** dans **`docker-compose.yml`**). Recommandation **simple** : laisser **`POSTGRES_SYSTEM_METRICS_TZ=UTC`** (défaut) pour que les naïfs = horloge UTC ; l’UI affiche toujours le **fuseau du navigateur**.
+- **Appliquer le correctif** : **`make restart`** ne **recrée** pas les conteneurs → les nouvelles **env** / images ne sont pas prises en compte. Pour **tout** remettre d’aplomb (Postgres **`TZ`/`PGTZ`** + collecteur + agrégateur, **volumes conservés**) : **`make monitoring-clock-refresh`**. Version légère (sans toucher Postgres) : **`make restart-metrics-recreate`** ; image agrégateur à jour sans bind-mount : **`REBUILD_METRICS=1 make monitoring-clock-refresh`** ou **`make rebuild-service SERVICE=metrics-aggregator`** puis **`make restart-metrics-recreate`**.
+- **Affichage voyageur** : le navigateur continue d’utiliser **`Intl.DateTimeFormat().resolvedOptions().timeZone`** (`date.ts`) — en changeant de fuseau OS/navigateur, les libellés suivent l’**heure locale** pour un même instant UTC.
+- **Vérification** : **`make restart`** sur l’agrégateur (ou recreate service) puis comparer « Dernier point (heure locale) » sur **`/backoffice/analytics/performances`** avec l’horloge du système.
+
+### Analytics — **`timestampMs`** JSON vs chaîne **`timestamp`** (07/04/2026)
+
+- **Symptôme** : après rechargement ou **« Période actuelle »**, graduations / points encore **hors phase** avec l’horloge locale alors que l’**ISO** dans la réponse semble bon.
+- **Cause** : **`metricRowToTimeMs`** et l’axe Recharts s’appuyaient sur **`timestampMs`** tel quel ; si ce champ **divergeait** de **`timestamp`** (double conversion, ancienne couche agrégateur, bug de sérialisation), l’UI affichait un **instant faux**.
+- **Correctif** : **`normalizeMetricRows`** dans **`frontend/src/lib/api/analytics.service.ts`** impose **`timestampMs = Date.parse(ts)`** lorsque l’ISO normalisé est parseable. Tests : **`src/__tests__/unit/analytics-metric-rows-normalize.test.ts`** (suite **`npm run test:unit`**).
+
+### Analytics — confusion « heure de l’ISO » vs horloge locale (07/04/2026)
+
+- **Symptôme** : libellé du **dernier point** ou graduation lue comme **07:56** alors que l’horloge locale affiche **09:56** — souvent la portion **heure:minute** d’une chaîne **UTC** (`…T07:56:00.000Z`) prise pour une heure locale, ou besoin de rappeler que l’API est en **Z**.
+- **Correctifs** : vue d’ensemble **`/backoffice/analytics`** — « Dernier point série » via **`formatLocalDateTime`** + courte note ; **performances complètes** — ligne **Dernier point (heure locale)** ; **`date.ts`** — **`Intl`** avec **`timeZone`** explicite (`resolvedOptions().timeZone`) et **`parseChartTimestamp`** accepte les **chaînes d’epoch ms** et objets **`{ value }`** (Recharts) ; **`metricRowToTimeMs`** ; test **`src/__tests__/unit/date-metrics-display.test.ts`** (`TZ=Europe/Paris`).
+- **API / Docker (suite)** : réponses historiques enrichies avec **`timestampMs`** (epoch ms) côté **`metrics-aggregator-service`** (`persistence.service.js`) + propagation dans **`analytics.service.ts`** normalisation ; pages **performances / réseau / conteneurs / vue analytics** utilisent **`timeMs`** prioritaire pour l’axe ; **`injectMetricTimeGaps`** tient compte de **`timeMs`** ; service **`postgres`** Compose : **`TZ` / `PGTZ`** = **`POSTGRES_SYSTEM_METRICS_TZ`** (défaut **UTC**) pour cadrer **`NOW()`** sur les colonnes **`TIMESTAMP` sans TZ** de **`system_metrics`** (voir commentaire dans **`docker-compose.yml`**).
 
 ### Analytics — libellés de période (07/04/2026)
 
@@ -299,7 +330,7 @@ Rapports dans `tests/results/<timestamp>/`.
 
 | Action | Commande |
 |--------|----------|
-| **Tout redémarrer et tester (dev)** | `make up-dev` — enchaîne up-full, db-push-all, seed-auth, tests (une seule commande pour le dev et le suivi intérim). |
+| **Tout redémarrer et tester (dev)** | **`make up-dev`** (racine) — enchaîne up-full, db-push-all, seed-auth, tests. **PostgreSQL/Redis dev seuls** (compose test) : **`make db-up-dev`** (plus de conflit de nom avec la racine). |
 | **Lancer la suite de tests** | `make test` (stack déjà up) ; `make test-full-quick` (sans rebuild, léger) ; `make test-full-cached` (build avec cache) ; `make test-full` (rebuild complet, lourd) |
 | **Mesurer durée / ressources** | `make test-full-timed` ou `make up-full-timed` ; ou `./scripts/timed-make.sh test-full-quick` (option `--verbose` pour mémoire) |
 | Arrêter (données conservées) | `make down` |

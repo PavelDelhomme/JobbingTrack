@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Notification Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5014/health || echo 'Service non accessible'",
+  "timestamp": "2026-04-17T21:46:13+02:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"service\":\"notification-service\",\"timestamp\":\"2026-04-17T19:46:13.431Z\",\"version\":\"1.0.0\"}\n"
+}

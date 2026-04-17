@@ -5,7 +5,9 @@
 
 import { test, expect } from '@playwright/test';
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+import { e2eGatewayBaseUrl } from '../../helpers/gatewayUrl';
+
+const GATEWAY_URL = e2eGatewayBaseUrl();
 const PROTON_EMAIL = process.env.TEST_REAL_EMAILS?.split(',').map((s) => s.trim()).find((e) => e.includes('proton')) || process.env.TEST_REAL_EMAIL || 'redacted@example.invalid';
 const TEST_PASSWORD = process.env.TEST_VERIFICATION_PASSWORD || 'SecureP@ss123!';
 

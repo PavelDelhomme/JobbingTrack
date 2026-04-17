@@ -1,4 +1,5 @@
 import type { TimeRangeOption } from './TimeRangeSelector';
+import { displayTimeZoneOptions } from '@/lib/utils/date';
 
 export function getPeriodMs(
   range: TimeRangeOption,
@@ -66,11 +67,15 @@ function capitalizeFirst(s: string): string {
   return s.charAt(0).toLocaleUpperCase() + s.slice(1);
 }
 
-/** Borne locale : « jeu. 09/04 — 23:30 » (jour court + date + heure). */
+/** Borne locale : « jeu. 09/04 — 23:30 » (jour court + date + heure). Même fuseau que les graphiques (`displayTimeZoneOptions`). */
 export function formatRangeEndpoint(d: Date, locale: string = defaultLocale()): string {
-  const wd = capitalizeFirst(new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(d));
-  const dm = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' }).format(d);
+  const tz = displayTimeZoneOptions();
+  const wd = capitalizeFirst(
+    new Intl.DateTimeFormat(locale, { weekday: 'short', ...tz }).format(d)
+  );
+  const dm = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', ...tz }).format(d);
   const hm = new Intl.DateTimeFormat(locale, {
+    ...tz,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

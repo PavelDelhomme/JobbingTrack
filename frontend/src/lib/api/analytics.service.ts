@@ -3,13 +3,35 @@ import { normalizeMetricTimestampToIso } from '@/lib/utils/date';
 
 const METRICS_API_URL = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
 
-function normalizeMetricRows(rows: unknown[]): Record<string, unknown>[] {
+/** Historiques longs (ex. 30 j.) : évite les timeouts axios par défaut. */
+const METRICS_HISTORY_AXIOS_TIMEOUT_MS = 120_000;
+
+/**
+ * Aligne chaque ligne sur un instant unique : d’abord **timestamp** normalisé (ISO UTC),
+ * puis **`timestampMs` = Date.parse(ts)`** quand c’est possible. Évite un décalage d’environ
+ * **2 h** si l’API renvoyait un **`timestampMs`** incohérent avec la chaîne **`timestamp`**
+ * (sérialisation JSON, anciennes versions agrégateur, ou doublon fuseau).
+ */
+export function normalizeMetricRows(rows: unknown[]): Record<string, unknown>[] {
   if (!Array.isArray(rows)) return [];
   return rows.map((row) => {
     const r = row as Record<string, unknown>;
     const raw = r.timestamp ?? r.createdAt;
     const ts = normalizeMetricTimestampToIso(raw);
-    return { ...r, timestamp: ts || raw } as Record<string, unknown>;
+    const out: Record<string, unknown> = { ...r, timestamp: ts || raw };
+    if (ts && Number.isFinite(Date.parse(ts))) {
+      out.timestampMs = Date.parse(ts);
+    } else {
+      const ms = r.timestampMs;
+      if (typeof ms === 'number' && Number.isFinite(ms)) {
+        out.timestampMs = ms;
+      } else if (typeof ms === 'string' && /^\d{10,13}$/.test(ms.trim())) {
+        const t = ms.trim();
+        const n = Number(t);
+        out.timestampMs = t.length <= 10 ? n * 1000 : n;
+      }
+    }
+    return out;
   });
 }
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
@@ -32,7 +54,8 @@ export class AnalyticsService {
       if (options.endDate) params.append('endDate', options.endDate);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/system/metrics?${params.toString()}`
+        `${METRICS_API_URL}/api/v1/persistence/system/metrics?${params.toString()}`,
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
       );
 
       return normalizeMetricRows(response.data.data || []);
@@ -59,7 +82,8 @@ export class AnalyticsService {
       if (options.endDate) params.append('endDate', options.endDate);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/metrics?${params.toString()}`
+        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/metrics?${params.toString()}`,
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
       );
 
       return normalizeMetricRows(response.data.data || []);

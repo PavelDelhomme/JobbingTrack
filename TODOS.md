@@ -3,7 +3,7 @@
 Liste opérationnelle, alignée sur **`PLAN.md`** (lots A–G) et sur la logique de **`STATUS.md`**.  
 Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la section « Plus tard » de `STATUS.md`.
 
-**Dernière mise à jour** : 7 avril 2026 (lot **G** sauvegardes / continuité ; règles **PR / validation porteur / `make tests`** ; **`ERRORS.md`** ; **`PLAN.md`** colonnes **État** + **Validé**)
+**Dernière mise à jour** : 17 avril 2026 (lot **G** / **A5** inchangés ; **F** : correctifs suite tests 17/04 — **`dockerHostUrl`**, script API, perf, gateway health ; **à faire** : Playwright, intégration exit codes, métriques multi-pages + tests)
 
 ---
 
@@ -40,9 +40,9 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 - [ ] A1 — Monitoring détail `/backoffice/services/[nom]` : précision CPU/mémoire/réseau/disque, historique (snapshots + session), auto-rafraîchissement, PIDs / block I/O documentés ; aligner autres vues « services » si besoin.
 - [ ] A2 — Logs tous services + filtres (service, **niveau**, **type**, **période**) ; page `/backoffice/services/logs` + gateway — compléter filtres structurés et `(development)/services/**`.
-- [ ] A3 — Vues détail service : corrélation logs techniques × sécurité.
+- [ ] A3 — Vues détail service : corrélation logs techniques × sécurité (**partiel** : encart liens sécurité + logs centralisés sur la page détail ; reste : vue unifiée / timeline / API si besoin).
 - [x] A4 — Synthèse pipeline dans `ERRORS.md` (§ Pièges + pipeline) ; **à réviser** après A2–A3.
-- [ ] A5 — **Historique enregistré** : UI qui distingue **temps réel Docker** / **snapshots fichiers** / **persistence BDD** ; brancher les séries déjà stockées sur détail service + pages monitoring liées (analytics, stats, liste services) ; **suite** (non pressé) : encore plus de panneaux sur détail service + pages « performances ».
+- [ ] A5 — **Historique enregistré** : UI qui distingue **temps réel Docker** / **snapshots fichiers** / **persistence BDD** ; brancher les séries déjà stockées sur détail service + pages monitoring liées (analytics, stats, liste services) ; **suite** (non pressé) : encore plus de panneaux sur détail service + pages « performances ». **Suite 07/04 (partiel)** : timeout historiques + clamp `limit` + **localStorage** période partagée performances/réseau/conteneurs ; **affichage heure** : `formatLocalDateTime` dernier point ; **`normalizeMetricRows`** (`analytics.service.ts`) = **`timestampMs`** dérivé de l’**ISO** quand parseable (corrige JSON incohérent) ; tests **`date-metrics-display.test.ts`** + **`analytics-metric-rows-normalize.test.ts`** ; **`timestampMs`** API + **`metricRowToTimeMs`** / **`timeMs`** sur graphes ; **`parseChartTimestamp`** `{ value }` ; **`injectMetricTimeGaps`** ; **`docker-compose.yml`** `postgres` **TZ/PGTZ** ; **SQL `system_metrics`** : **`AT TIME ZONE`** = **`POSTGRES_SYSTEM_METRICS_TZ`** (comme Postgres) + **`make restart-metrics-recreate`** / **`monitoring-clock-refresh`** si besoin — **à valider** sur ta machine (graph aligné horloge locale) ; étendre **user-analytics** / **application** si besoin.
 
 ---
 
@@ -89,7 +89,8 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 ## Lot F — Validation
 
-- [ ] F1 — Suite **`make tests`** (ou **`make test-suite-full`**) **avec stack Docker** : analyser **`tests/results/<ts>/report.html`** / `report.txt` ; en cas d’échec réel (hors « pas de stack »), mettre à jour **`ERRORS.md`**, **`STATUS.md`**, **`FONCTIONNALITES.md`** si besoin.
+- [ ] F1 — Rejouer **`make tests`** avec **`make up-full`** + **`.env`** (**`API_GATEWAY_URL=http://127.0.0.1:5002`** ou port réel) ; analyser **`tests/results/<ts>/report.html`**. **17/04** : doc **`ERRORS`/`STATUS`/`FONCTIONNALITES`/`RESOLUTIONS`** ; code **`dockerHostUrl.js`**, **`test-api-specific.sh`**, perf, gateway health — **à confirmer** sur ta machine.
+- [x] F1b (partiel) — **`Status: 000`** script API : **`mktemp`** + normalisation URL ; perf : **`exit 1`** si échecs ; reste : **intégration / sécurité** tolérants **`ENOTFOUND`** (durcir plus tard).
 - [ ] F2 — Rédiger le récap : fait / reste / risques / prochaines priorités (peut aller en fin de `PLAN.md` ou `STATUS.md`).
 
 ---
@@ -113,6 +114,11 @@ Spec détaillée : **`PLAN.md`** § **G** ; fonctionnel : **`FONCTIONNALITES.md`
 - [ ] Afficher un **horodatage** ou état « connecté au metrics-aggregator » sur la carte Performance.
 - [ ] Exposer un **taux d’erreurs HTTP %** si le backend fournit ce ratio (en complément du débit /min).
 - [ ] Clarifier encore **sessions vs utilisateurs actifs** selon le contrat exact de l’endpoint auth (libellé + tooltip ou doc API).
+
+## Makefile `status` / `status-watch` (à valider sur ta machine)
+
+- [ ] Vérifier que **`make status-watch`** affiche bien un **écran renouvelé** (CLEAR=1) ou l’historique (CLEAR=0) et qu’il n’y a plus les lignes **« Entrée / on quitte le répertoire »** ; la **légende des ports** en couleur doit matcher **`make status`** (**`printf '%b'`** sous sh, pas **`echo \033`**).
+- [ ] Relire la légende **5098 → 8015** pour **monitoring-c** (port C interne vs hôte) dans la sortie `make status`.
 
 ## Monitoring transversal (optionnel — aligné **PLAN A5**, non pressé)
 

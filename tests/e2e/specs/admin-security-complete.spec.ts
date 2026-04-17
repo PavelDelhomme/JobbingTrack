@@ -6,8 +6,9 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { e2eGatewayBaseUrl } from '../helpers/gatewayUrl';
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const GATEWAY_URL = e2eGatewayBaseUrl();
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 

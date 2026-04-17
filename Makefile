@@ -58,6 +58,11 @@ up-dev: ## up-full + db-push-all + seed-auth + tests — tout pour redémarrer e
 	@$(MAKE) tests
 	@echo ""
 	@echo "✅ up-dev terminé. Rapports : tests/results/<timestamp>/"
+	@printf '%s\n' up-dev > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
+
+# Recréation ciblée monitoring (alias explicite) — voir makefiles/services/Makefile
+restart-force-recreate-metrics: ## Recrée monitoring-c + metrics-aggregator (env compose / image)
+	@$(MAKE) restart-metrics-recreate
 
 # Rebuild complet : down + build + up-full + status (utilise docker compose build puis up, pas make dev)
 fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make down && make build && make up-full && make status)

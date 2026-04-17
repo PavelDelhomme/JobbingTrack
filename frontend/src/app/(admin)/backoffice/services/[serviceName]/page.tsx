@@ -7,10 +7,16 @@ import Link from 'next/link';
 import { 
   Server, Activity, TrendingUp, Database, Clock, 
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
-  RefreshCw, Terminal, BarChart3, Zap, Network
+  RefreshCw, Terminal, BarChart3, Zap, Network, Shield
 } from 'lucide-react';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
-import { formatLocalDateTime, formatLocalChartAxisTick, normalizeMetricTimestampToIso } from '@/lib/utils/date';
+import {
+  formatLocalDateTime,
+  formatLocalChartAxisTick,
+  metricTimestampToMs,
+  normalizeMetricTimestampToIso,
+  parseChartTimestamp,
+} from '@/lib/utils/date';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 type HistoryPoint = {
@@ -48,7 +54,14 @@ function normalizeServerHistoryRows(rows: any[]): HistoryPoint[] {
   if (!Array.isArray(rows)) return []
   return rows
     .map((raw) => {
-      const tsRaw = raw.timestamp || (raw.unix_timestamp ? new Date(raw.unix_timestamp).toISOString() : null)
+      const fromUnix =
+        raw.unix_timestamp != null && raw.unix_timestamp !== ''
+          ? parseChartTimestamp(raw.unix_timestamp)?.toISOString() ?? null
+          : null
+      const tsRaw =
+        raw.timestamp != null && String(raw.timestamp).trim() !== ''
+          ? raw.timestamp
+          : fromUnix
       if (!tsRaw) return null
       const ts = normalizeMetricTimestampToIso(typeof tsRaw === 'string' ? tsRaw : new Date(tsRaw).toISOString())
       if (!ts) return null
@@ -69,7 +82,7 @@ function mergeHistoryChronological(server: HistoryPoint[], session: HistoryPoint
     .filter((r) => r?.timestamp)
     .map((r) => ({
       ...r,
-      _t: new Date(r.timestamp).getTime()
+      _t: metricTimestampToMs(r.timestamp) ?? 0
     }))
     .filter((r) => !Number.isNaN(r._t))
     .sort((a, b) => a._t - b._t)
@@ -257,7 +270,8 @@ export default function ServiceDetailPage() {
           const historyData = await historyResponse.json()
           const raw = Array.isArray(historyData.data) ? historyData.data : []
           serverHistoryPoints = normalizeServerHistoryRows(raw).sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            (a, b) =>
+              (metricTimestampToMs(a.timestamp) ?? 0) - (metricTimestampToMs(b.timestamp) ?? 0)
           )
         }
       } catch {
@@ -355,8 +369,8 @@ export default function ServiceDetailPage() {
   const historyChartRows = useMemo(() => {
     return serviceHistory
       .map((row) => {
-        const timeMs = new Date(row.timestamp).getTime()
-        if (Number.isNaN(timeMs)) return null
+        const timeMs = metricTimestampToMs(row.timestamp)
+        if (timeMs == null || Number.isNaN(timeMs)) return null
         return { ...row, timeMs }
       })
       .filter(Boolean) as (HistoryPoint & { timeMs: number })[]
@@ -653,7 +667,10 @@ export default function ServiceDetailPage() {
                     contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${Number(value).toFixed(4)}%`, 'CPU']}
-                    labelFormatter={(label) => formatLocalDateTime(label)}
+                    labelFormatter={(_, payload) => {
+                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
+                      return ts != null ? formatLocalDateTime(ts) : '—'
+                    }}
                   />
                   <Area 
                     type="monotone" 
@@ -691,7 +708,10 @@ export default function ServiceDetailPage() {
                     contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Mémoire']}
-                    labelFormatter={(label) => formatLocalDateTime(label)}
+                    labelFormatter={(_, payload) => {
+                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
+                      return ts != null ? formatLocalDateTime(ts) : '—'
+                    }}
                   />
                   <Area 
                     type="monotone" 
@@ -723,7 +743,10 @@ export default function ServiceDetailPage() {
                     contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)} MB`]}
-                    labelFormatter={(label) => formatLocalDateTime(label)}
+                    labelFormatter={(_, payload) => {
+                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
+                      return ts != null ? formatLocalDateTime(ts) : '—'
+                    }}
                   />
                   <Legend />
                   <Line 
@@ -757,6 +780,35 @@ export default function ServiceDetailPage() {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Lot A3 — point d’entrée corrélation logs × sécurité (vue détail service) */}
+        <div className="mb-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/40 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+                Corrélation observabilité / sécurité (chantier A3)
+              </p>
+              <p className="text-xs text-indigo-800/90 dark:text-indigo-200/90 mt-1">
+                Les logs ci-dessous viennent du conteneur / agrégateur. Pour les événements firewall, menaces et analyses réseau, ouvrez la vue sécurité ; pour les logs applicatifs filtrés par service, la page logs centralisée.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/backoffice/security"
+                  className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                >
+                  Vue sécurité
+                </Link>
+                <Link
+                  href={`/backoffice/services/logs?service=${encodeURIComponent(serviceName.replace(/^jobbingtrack-/, ''))}`}
+                  className="inline-flex items-center rounded-md border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs font-medium text-indigo-800 dark:text-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/50"
+                >
+                  Logs multi-services (filtre)
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Logs en Temps Réel */}

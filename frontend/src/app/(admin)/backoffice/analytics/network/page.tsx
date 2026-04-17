@@ -7,6 +7,7 @@ import {
   TimeRangeSelector,
   ChartPeriodCaption,
   useAnalyticsAutoRefresh,
+  usePersistedSharedAnalyticsRange,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
@@ -20,6 +21,8 @@ import {
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
+  metricRowToTimeMs,
+  metricTimestampToMs,
   normalizeMetricTimestampToIso,
 } from '@/lib/utils/date';
 import {
@@ -33,11 +36,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { analyticsService } from '@/lib/api/analytics.service';
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 
 interface NetPoint {
   timestamp: string;
+  timeMs?: number;
   rxMb?: number;
   txMb?: number;
 }
@@ -67,6 +72,21 @@ export default function NetworkPerformancePage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
+  usePersistedSharedAnalyticsRange({
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    windowEnd,
+    setWindowEnd,
+    followLive,
+    setFollowLive,
+  });
+
   const getParams = useCallback(() => {
     if (useCustomRange) {
       const { start, end } = localCalendarDayBounds(customStart, customEnd);
@@ -87,7 +107,7 @@ export default function NetworkPerformancePage() {
         const raw = await analyticsService.getSystemMetricsHistory({
           startDate,
           endDate,
-          limit: Math.min(limit, 2000),
+          limit,
           offset: 0,
         });
         const sorted: NetPoint[] = (raw || [])
@@ -98,6 +118,7 @@ export default function NetworkPerformancePage() {
                 ? d.timestamp
                 : (d.timestamp as Date)?.toISOString?.() ?? '';
             const ts = normalizeMetricTimestampToIso(rawTs);
+            const timeMs = metricRowToTimeMs(d, ts);
             const rxRaw =
               d.networkRxBytes != null
                 ? Number(d.networkRxBytes)
@@ -112,29 +133,36 @@ export default function NetworkPerformancePage() {
                   : undefined;
             return {
               timestamp: ts,
+              ...(timeMs != null ? { timeMs } : {}),
               rxMb: rxRaw != null && !Number.isNaN(rxRaw) ? rxRaw / (1024 * 1024) : undefined,
               txMb: txRaw != null && !Number.isNaN(txRaw) ? txRaw / (1024 * 1024) : undefined,
             };
           })
           .sort(
             (a: NetPoint, b: NetPoint) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
+              (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
           );
         const withGaps = injectMetricTimeGaps(sorted, METRIC_GAP_MS, ['rxMb', 'txMb']);
         setChartData(
-          withGaps.map((p) => {
-            const timeMs = new Date(p.timestamp).getTime();
-            return {
-              timeMs,
-              timestamp: p.timestamp,
-              time: formatLocalChartAxisTick(timeMs, { withDate: false }),
-              datetime: formatLocalDateTime(p.timestamp),
-              rxMb:
-                p.rxMb != null && !Number.isNaN(p.rxMb) ? Math.round(p.rxMb * 100) / 100 : null,
-              txMb:
-                p.txMb != null && !Number.isNaN(p.txMb) ? Math.round(p.txMb * 100) / 100 : null,
-            };
-          })
+          withGaps
+            .map((p) => {
+              const timeMs =
+                typeof p.timeMs === 'number' && Number.isFinite(p.timeMs)
+                  ? p.timeMs
+                  : (metricTimestampToMs(p.timestamp) ?? NaN);
+              return {
+                timeMs,
+                timestamp: p.timestamp,
+                time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+                datetime: formatLocalDateTime(p.timestamp),
+                rxMb:
+                  p.rxMb != null && !Number.isNaN(p.rxMb) ? Math.round(p.rxMb * 100) / 100 : null,
+                txMb:
+                  p.txMb != null && !Number.isNaN(p.txMb) ? Math.round(p.txMb * 100) / 100 : null,
+              };
+            })
+            .filter((row) => Number.isFinite(row.timeMs))
         );
       } catch (e) {
         console.error(e);
@@ -329,6 +357,7 @@ export default function NetworkPerformancePage() {
                   />
                   <YAxis tickFormatter={(v) => `${v} Mo`} tick={{ fontSize: 12 }} />
                   <Tooltip
+                    {...rechartsTooltipProps}
                     labelFormatter={(_, payload: unknown) => {
                       const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
                         ?.timestamp;

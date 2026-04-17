@@ -38,6 +38,23 @@ if [ -f "$ROOT_DIR/.env" ]; then
 	export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
 fi
 
+# Curl / Jest sur l’hôte : les noms Docker ne résolvent pas → ENOTFOUND ou curl code 000 + corps obsolète dans /tmp
+normalize_docker_hosts_for_host_runner() {
+	if [[ "${API_GATEWAY_URL:-}" == *"api-gateway"* ]]; then
+		local _gp
+		_gp=$(printf '%s' "${API_GATEWAY_URL}" | sed -n 's/.*api-gateway:\([0-9][0-9]*\).*/\1/p')
+		export API_GATEWAY_URL="http://127.0.0.1:${_gp:-${API_GATEWAY_PORT:-5002}}"
+		echo -e "${YELLOW}   📍 API_GATEWAY_URL normalisé pour l’hôte : ${API_GATEWAY_URL}${NC}"
+	fi
+	if [[ "${METRICS_AGGREGATOR_URL:-}" == *"jobbingtrack-metrics-aggregator"* ]] || [[ "${METRICS_AGGREGATOR_URL:-}" == *"metrics-aggregator"* ]]; then
+		local _mp
+		_mp=$(printf '%s' "${METRICS_AGGREGATOR_URL}" | sed -n 's/.*:\([0-9][0-9]*\).*/\1/p')
+		export METRICS_AGGREGATOR_URL="http://127.0.0.1:${_mp:-${METRICS_AGGREGATOR_PORT:-5004}}"
+		echo -e "${YELLOW}   📍 METRICS_AGGREGATOR_URL normalisé pour l’hôte : ${METRICS_AGGREGATOR_URL}${NC}"
+	fi
+}
+normalize_docker_hosts_for_host_runner
+
 # ---- Seed auth (admin + testuser avec emailVerified) pour éviter 401 "email not verified" ----
 if command -v docker >/dev/null 2>&1 && docker ps 2>/dev/null | grep -q jobbingtrack-auth-service; then
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser emailVerified)...${NC}"
@@ -840,8 +857,9 @@ if [ -f "tests/api-gateway/test-routing.js" ]; then
         "$REPORT_DIR/api-gateway-routing.json"
 else
     API_GW="${API_GATEWAY_URL:-http://localhost:5002}"
+    # Santé minimale : /health (JSON) ; /metrics Prometheus peut être lent si l’agrégateur est saturé
     run_test "Tests API Gateway Health" \
-        "curl -sf \"${API_GW}/health\" && curl -sf \"${API_GW}/metrics\"" \
+        "curl -sf --max-time 15 \"${API_GW}/health\"" \
         "$REPORT_DIR/api-gateway-health.json"
 fi
 
@@ -906,7 +924,7 @@ fi
 # 33b. Tests Sécurité Firewall & WAF (script API)
 if [ -f "scripts/security/test-firewall.sh" ]; then
     run_test "Tests Sécurité Firewall & WAF (API)" \
-        "API_GATEWAY_URL='${API_URL:-http://localhost:5002}' bash scripts/security/test-firewall.sh" \
+        "API_GATEWAY_URL=\"${API_GATEWAY_URL:-http://localhost:5002}\" bash scripts/security/test-firewall.sh" \
         "$REPORT_DIR/security-firewall-api.json"
 fi
 

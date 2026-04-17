@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -181,7 +181,9 @@ help-services: ## Afficher l'aide services
 	@echo "  make stop-service SERVICE=x - Arrêter un service"
 	@echo ""
 	@echo "🔄 RESTART:"
-	@echo "  make restart               - Redémarrer tous les services actifs (sans argument)"
+	@echo "  make restart               - Redémarrer les conteneurs actifs (sans recréation : env compose inchangées)"
+	@echo "  make restart-metrics-recreate - Recrée monitoring-c + metrics-aggregator (TZ / env / image)"
+	@echo "  make monitoring-clock-refresh - Recrée postgres + monitoring-c + agrégateur (applique .env fuseaux, volumes OK)"
 	@echo "  make restart-tests-api-services - Redémarrer application, interview, call, followup (fix tests API isArchived)"
 	@echo "  make restart-clean         - Redémarrage + nettoyage"
 	@echo "  make restart-full          - Redémarrage complet en conservant la DB (ex. après setup-ports)"
@@ -190,7 +192,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-watch          - Même sortie que status, en boucle (INTERVAL=30s, ex: INTERVAL=15)"
+	@echo "  make status-watch          - Statut en boucle : CLEAR=1 (défaut) réaffiche tout ; CLEAR=0 garde l’historique ; INTERVAL=5 (défaut) ; sans messages « répertoire » make"
 	@echo "  make status-live           - Statut synthétique en temps réel (actualisation 2s)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
@@ -249,6 +251,7 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
+	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer SANS vérification Docker
 up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode contournement)
@@ -260,6 +263,7 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services démarrés (mode NO-CHECK)!"
+	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer uniquement la stack monitoring (Postgres + monitoring-c + metrics-aggregator)
 up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-c, metrics-aggregator)
@@ -545,6 +549,7 @@ _up-full-internal:
 	
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
+	@printf '%s\n' up-full > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer TOUS les services (AVEC vérification Docker)
 up-full: ## Démarrer TOUS les services avec tous les profils (avec vérification Docker)
@@ -630,6 +635,7 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 # Arrêter tous les services (conserve les volumes = BDD, Redis, admin, etc. persistent)
 down: ## Arrêter tous les services (données conservées : admin, BDD, métriques)
 	@echo "🛑 Arrêt de tous les services JobbingTrack (volumes conservés)..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
 	# Arrêter conteneurs restants (ex. log-collector-c si démarré avec monitoring)
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
@@ -644,6 +650,7 @@ down-keep-data: ## Alias de down (données conservées)
 # Arrêter ET supprimer les volumes (BDD effacée, admin à recréer avec make create-admin-user)
 down-clean: ## Arrêter les services ET supprimer les volumes (tout effacer, admin à recréer)
 	@echo "⚠️  Arrêt + suppression des volumes (données effacées)..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
@@ -658,6 +665,21 @@ down-clean: ## Arrêter les services ET supprimer les volumes (tout effacer, adm
 # Redémarrer conteneurs actifs (docker compose restart uniquement, pas down/up)
 restart: ## Redémarrer seulement les conteneurs actuellement actifs (pas un down/up)
 	@echo "🔄 Redémarrage des services JobbingTrack actifs..."
+	@MODE=$$(cat "$(ROOT_DIR)/.jobbingtrack-stack-mode" 2>/dev/null | tr -d '\r\n' || true); \
+	if [ -n "$$MODE" ]; then \
+		printf '%b\n' "\033[0;90m📌 Dernier enregistrement de démarrage Makefile : \033[0;33m$$MODE\033[0;90m (fichier .jobbingtrack-stack-mode ; ignoré par Git)\033[0m"; \
+		if [ "$$MODE" = "up-dev" ]; then \
+			echo "   ℹ️  Dernier make up-dev (stack + db-push + seed + tests) : make restart ne relance pas les tests ni les migrations."; \
+		elif [ "$$MODE" = "up-full" ]; then \
+			echo "   ℹ️  Dernier make up-full : redémarrage des conteneurs uniquement."; \
+		elif [ "$$MODE" = "up-essential" ]; then \
+			echo "   ℹ️  Dernier make up (essentiels) : moins de microservices que up-full."; \
+		fi; \
+	else \
+		printf '%b\n' "\033[0;90m📌 Aucun fichier .jobbingtrack-stack-mode — démarrage non enregistré depuis cette machine (make up / up-full / up-dev) ou déjà effacé par make down.\033[0m"; \
+		echo "   💡 Ce n’est pas bloquant : la suite redémarre les conteneurs actifs."; \
+	fi
+	@echo "   💡 Nouvelles variables docker-compose (ex. TZ) ou image à jour : make restart-metrics-recreate — make restart seul ne recrée pas les conteneurs."
 	@ACTIVE_CONTAINERS=$$(docker ps -q --filter "name=jobbingtrack-*" | wc -l); \
 	if [ "$$ACTIVE_CONTAINERS" -eq 0 ]; then \
 		echo "ℹ️  Aucun conteneur JobbingTrack en cours d'exécution"; \
@@ -687,6 +709,31 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs (pas un dow
 	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 	@echo "✅ Services redémarrés"
 
+# Recréation ciblée monitoring (nouvelles env compose, image rebuild) — sans toucher Postgres ni le reste de la stack
+restart-metrics-recreate: ## Recrée monitoring-c + jobbingtrack-metrics-aggregator (--force-recreate, --no-deps)
+	@echo "♻️  Recréation forcée : monitoring-c + jobbingtrack-metrics-aggregator…"
+	$(call check_docker)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate --no-deps monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente stabilisation (20s)…"
+	@sleep 20
+	@echo "✅ Terminé. Vérifiez les graphiques (heure = fuseau navigateur). Sinon : make rebuild-service SERVICE=metrics-aggregator"
+
+# Remettre d’aplomb fuseaux + binaires monitoring depuis le .env (court downtime Postgres)
+# REBUILD_METRICS=1 : make rebuild-service SERVICE=metrics-aggregator avant le recreate (image à jour si pas de volume src)
+monitoring-clock-refresh: ## Recrée postgres + monitoring-c + metrics-aggregator (--force-recreate, volumes conservés)
+	@echo "♻️  monitoring-clock-refresh : postgres + monitoring-c + jobbingtrack-metrics-aggregator"
+	@echo "   → Applique POSTGRES_SYSTEM_METRICS_TZ / env compose depuis ton .env (données PostgreSQL conservées sur le volume)."
+	$(call check_docker)
+	@if [ "$${REBUILD_METRICS:-0}" = "1" ]; then \
+		echo "🔨 REBUILD_METRICS=1 → rebuild de l’image metrics-aggregator…"; \
+		$(MAKE) rebuild-service SERVICE=metrics-aggregator || exit 1; \
+	fi
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate postgres monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente stabilisation Postgres + agrégateur (35s)…"
+	@sleep 35
+	@echo "✅ Terminé. Recharge /backoffice/analytics/performances (heure locale navigateur)."
+	@echo "💡 Sans rebuild image : make restart-metrics-recreate suffit si seule l’env a changé."
+
 # Redémarrer les 4 services concernés par les tests API (isArchived/archived) pour charger le code à jour (volumes montés)
 restart-tests-api-services: ## Redémarrer application, interview, call, followup (après modif fallback isArchived)
 	@echo "🔄 Redémarrage des services Tests API (application, interview, call, followup)..."
@@ -709,6 +756,7 @@ fix-unhealthy-healthchecks: ## Recréer notification, profile, workflow pour app
 restart-clean: ## Redémarrage complet avec nettoyage
 	@echo "🔄 Redémarrage complet de JobbingTrack (avec nettoyage)..."
 	@echo "🧹 Nettoyage complet avant redémarrage..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes --timeout 30) || true
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop --time 30 || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm -f || true
@@ -962,6 +1010,9 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, ports, uptime)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
+	@echo ""
+	@printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"
+	@printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m est un binaire C : ecoute en \033[0;33m8015\033[0;90m dans le conteneur ; le \033[0;36m5098\033[0;90m (ou \033[0;36m$${MONITORING_C_PORT:-5098}\033[0;90m) est le mappage hote - acces reseau Docker via \033[0;36mmonitoring-c:8015\033[0;90m, pas exposition Internet par defaut.\033[0m"
 	@echo ""
 	@echo "🏗️  Infrastructure:"
 	@echo ""
@@ -1279,16 +1330,19 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
-# Même sortie que `status`, en boucle (vue complète). INTERVAL en secondes (défaut 30).
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=30 par défaut, Ctrl+C pour quitter)
-	@echo "📊 Statut détaillé — actualisation toutes les $(or $(INTERVAL),30)s (Ctrl+C pour quitter)"
-	@echo "💡 Vue allégée plus fréquente : make status-live"
+# Même sortie que `status`, en boucle (vue complète).
+# INTERVAL=s (défaut 5) · CLEAR=1 efface l’écran avant chaque statut (défaut) pour éviter l’effet « anciennes valeurs » empilées ; CLEAR=0 garde le défilement.
+# --no-print-directory : supprime les lignes make « Entrée / on quitte le répertoire » (couleurs du statut inchangées).
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, CLEAR=1, Ctrl+C pour quitter)
+	@echo "📊 Statut détaillé — actualisation toutes les $(or $(INTERVAL),5)s (Ctrl+C pour quitter)"
+	@printf '%b\n' "\033[0;90m💡 Chaque cycle relit Docker (pas de cache Makefile). CLEAR=0 pour empiler les sorties sans \`clear\`. Vue plus fréquente : make status-live\033[0m"
 	@echo ""
 	@while true; do \
-		$(MAKE) status; \
+		if [ "$(CLEAR)" != "0" ]; then clear; fi; \
+		$(MAKE) --no-print-directory status; \
 		echo ""; \
-		echo "⏱ Prochain rafraîchissement dans $(or $(INTERVAL),30)s…"; \
-		sleep $(or $(INTERVAL),30); \
+		printf '%b\n' "\033[0;90m🕐 $$(date '+%Y-%m-%d %H:%M:%S %z') — prochain cycle dans $(or $(INTERVAL),5)s (CLEAR=$(or $(CLEAR),1))\033[0m"; \
+		sleep $(or $(INTERVAL),5); \
 	done
 
 # Statut en temps réel (actualisation automatique)

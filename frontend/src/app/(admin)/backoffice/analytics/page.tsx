@@ -6,12 +6,20 @@ import { AdminLayout } from '@/components/features';
 import { ChartPeriodCaption } from '@/components/analytics/ChartPeriodCaption';
 import { formatRangeLabel, formatCustomRangeLabel, localCalendarDayBounds } from '@/components/analytics/timeRangeUtils';
 import type { TimeRangeOption as AnalyticsPresetRange } from '@/components/analytics/TimeRangeSelector';
-import { formatLocalChartAxisTick, formatLocalDateTime, normalizeMetricTimestampToIso } from '@/lib/utils/date';
+import {
+  formatLocalChartAxisTick,
+  formatLocalDateTime,
+  metricRowToTimeMs,
+  metricTimestampToMs,
+  normalizeMetricTimestampToIso,
+} from '@/lib/utils/date';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Cpu } from '@/lib/icons';
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
 
 interface CPUMetric {
   timestamp: string;
+  timeMs?: number;
   cpu_usage_percent: number;
 }
 
@@ -169,14 +177,18 @@ export default function AnalyticsPage() {
                        (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : 0);
             const timestamp = normalizeMetricTimestampToIso(item.timestamp);
             if (!timestamp) return null;
+            const timeMs = metricRowToTimeMs(item as Record<string, unknown>, timestamp);
             return {
               timestamp,
+              ...(timeMs != null ? { timeMs } : {}),
               cpu_usage_percent: Number(cpu)
             };
           })
           .filter((row): row is CPUMetric => row != null)
-          .sort((a: CPUMetric, b: CPUMetric) => 
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          .sort(
+            (a: CPUMetric, b: CPUMetric) =>
+              (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
+              (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
           );
         
         setCpuData(mapped);
@@ -206,8 +218,12 @@ export default function AnalyticsPage() {
     
     if (!shouldCompress) return data;
     
-    const firstTimestamp = new Date(data[0].timestamp).getTime();
-    const lastTimestamp = new Date(data[data.length - 1].timestamp).getTime();
+    const firstTimestamp =
+      data[0].timeMs ?? metricTimestampToMs(data[0].timestamp) ?? 0;
+    const lastTimestamp =
+      data[data.length - 1].timeMs ??
+      metricTimestampToMs(data[data.length - 1].timestamp) ??
+      0;
     const totalDuration = lastTimestamp - firstTimestamp;
     const intervalMs = Math.ceil(totalDuration / targetMaxPoints);
     
@@ -217,7 +233,10 @@ export default function AnalyticsPage() {
     let currentGroup: CPUMetric[] = [];
     
     for (const point of data) {
-      const pointTimestamp = new Date(point.timestamp).getTime();
+      const pointTimestamp =
+        typeof point.timeMs === 'number' && Number.isFinite(point.timeMs)
+          ? point.timeMs
+          : (metricTimestampToMs(point.timestamp) ?? NaN);
       
       // Si le point est dans l'intervalle actuel, l'ajouter au groupe
       if (pointTimestamp < currentIntervalStart + intervalMs) {
@@ -274,7 +293,10 @@ export default function AnalyticsPage() {
     const compressedData = compressDataPoints(cpuData, targetMaxPoints);
 
     return compressedData.map((item) => {
-      const timeMs = new Date(item.timestamp).getTime();
+      const timeMs =
+        typeof item.timeMs === 'number' && Number.isFinite(item.timeMs)
+          ? item.timeMs
+          : (metricTimestampToMs(item.timestamp) ?? NaN);
       return {
         timeMs,
         time: formatLocalChartAxisTick(timeMs, { withDate: false }),
@@ -289,7 +311,10 @@ export default function AnalyticsPage() {
   const chartDataRaw = useMemo(() => {
     if (cpuData.length === 0) return [];
     return cpuData.map((item) => {
-      const timeMs = new Date(item.timestamp).getTime();
+      const timeMs =
+        typeof item.timeMs === 'number' && Number.isFinite(item.timeMs)
+          ? item.timeMs
+          : (metricTimestampToMs(item.timestamp) ?? NaN);
       return {
         timeMs,
         time: formatLocalChartAxisTick(timeMs, { withDate: false }),
@@ -420,8 +445,12 @@ export default function AnalyticsPage() {
               <>
                 <p><strong>Dernière valeur:</strong> {cpuData[cpuData.length - 1]?.cpu_usage_percent.toFixed(2)}%</p>
                 <p>
-                  <strong>Dernier point série (API) :</strong>{' '}
-                  {cpuData[cpuData.length - 1]?.timestamp}
+                  <strong>Dernier point série (heure locale navigateur) :</strong>{' '}
+                  {formatLocalDateTime(cpuData.at(-1)?.timestamp)}
+                </p>
+                <p className="text-xs text-blue-800/90 dark:text-blue-200/90 mt-0.5">
+                  La valeur brute API reste en UTC (suffixe Z) ; l’affichage graphique et ce libellé suivent le fuseau
+                  du navigateur.
                 </p>
                 {cpuData.length > chartData.length ? (
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
@@ -475,13 +504,8 @@ export default function AnalyticsPage() {
                   tickFormatter={(value) => `${value}%`}
                   label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
+                <Tooltip
+                  {...rechartsTooltipProps}
                   labelFormatter={(_, payload) => {
                     const ts = payload?.[0]?.payload?.timestamp;
                     return ts != null ? formatLocalDateTime(ts) : '—';
@@ -541,13 +565,8 @@ export default function AnalyticsPage() {
                   tickFormatter={(value) => `${value}%`}
                   label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
+                <Tooltip
+                  {...rechartsTooltipProps}
                   labelFormatter={(_, payload) => {
                     const ts = payload?.[0]?.payload?.timestamp;
                     return ts != null ? formatLocalDateTime(ts) : '—';

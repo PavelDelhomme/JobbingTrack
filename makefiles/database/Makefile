@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
 
 # ============================================================================
 # AIDE
@@ -46,7 +46,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-restore file=x.sql - Restaurer depuis fichier"
 	@echo ""
 	@echo "🌍 ENVIRONNEMENTS:"
-	@echo "  make up-dev                - DB développement"
+	@echo "  make db-up-dev             - PostgreSQL/Redis DEV seuls (compose test) — pas confondre avec make up-dev (racine : stack + push + tests)"
 	@echo "  make up-test               - DB test"
 	@echo "  make up-staging            - DB staging"
 	@echo "  make db-replicate-schema-to-test - Copier le schéma (sans données) de la base principale vers la base de test"
@@ -359,8 +359,8 @@ db-reset: ## Réinitialisation complète (ATTENTION: Supprime toutes les donnée
 # ENVIRONNEMENTS MULTIPLES
 # ============================================================================
 
-# Démarrer environnement de développement
-up-dev: ## Démarrer l'environnement de développement
+# Démarrer PostgreSQL/Redis de dev (fichiers compose test) — la cible racine **up-dev** reste réservée au tout-en-un stack + BDD + tests.
+db-up-dev: ## Démarrer postgres-dev + redis-dev (ports 5433 / 6380)
 	@echo "🚀 Démarrage de l'environnement de développement..."
 	$(call check_docker)
 	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-dev redis-dev)

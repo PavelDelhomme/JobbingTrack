@@ -10,8 +10,9 @@
  */
 
 const axios = require('axios');
+const { normalizeGatewayUrlForHost } = require('./dockerHostUrl');
 
-const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const API_URL = normalizeGatewayUrlForHost(process.env.API_GATEWAY_URL);
 
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
@@ -120,4 +121,10 @@ function resetCache() {
   cachedAdmin = null;
 }
 
-module.exports = { getTestUser, getAdminUser, resetCache, API_URL };
+module.exports = {
+  getTestUser,
+  getAdminUser,
+  resetCache,
+  API_URL,
+  normalizeGatewayUrlForHost,
+};
