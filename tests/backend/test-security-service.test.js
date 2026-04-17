@@ -5,8 +5,7 @@
 
 const axios = require('axios');
 const { describe, it, expect, beforeAll } = require('@jest/globals');
-
-const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const { API_URL } = require('../helpers/auth.helper');
 /** Même défaut que docker-compose / tests/jest.setup.js — pas besoin d’exporter la variable à la main en local. */
 const DEFAULT_INTERNAL_SECRET = 'jobbingtrack-internal-security-dev';
 
@@ -194,7 +193,7 @@ describe('Security Service', () => {
     describe('POST /api/v1/security/firewall/block-ip', () => {
       it('devrait bloquer une IP', async () => {
         try {
-          const blockData = { ip: '192.168.1.999', reason: 'Test firewall' };
+          const blockData = { ip: '192.168.254.254', reason: 'Test firewall' };
           const response = await axios.post(`${API_URL}/api/v1/security/firewall/block-ip`, blockData, {
             headers: authHeaders
           });

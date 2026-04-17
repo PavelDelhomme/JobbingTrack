@@ -18,7 +18,9 @@ import {
   extractLinksFromMessage,
 } from '../utils/mailhog';
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+import { e2eGatewayBaseUrl } from '../helpers/gatewayUrl';
+
+const GATEWAY_URL = e2eGatewayBaseUrl();
 const FRONTEND_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5003';
 const REAL_EMAIL = process.env.TEST_REAL_EMAIL || '';
 

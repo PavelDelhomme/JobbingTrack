@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { e2eGatewayBaseUrl } from '../../../tests/e2e/helpers/gatewayUrl';
 
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
-const API_GATEWAY_URL = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = e2eGatewayBaseUrl();
 
 export const AUTH_FILE = path.join(__dirname, '.auth', 'admin.json');
 

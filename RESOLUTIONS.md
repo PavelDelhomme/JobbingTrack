@@ -4,6 +4,98 @@
 
 ---
 
+## 17 avril 2026 — Suite `make tests` : URLs hôte, script API, perf, gateway health, monitoring Jest
+
+### Problèmes observés (rapport type **`tests/results/20260417-222318/`**)
+- Jest **`ENOTFOUND api-gateway`** / **`monitoring-c`** ; **`ECONNREFUSED 127.0.0.1:3000`** quand **`.env`** pointe la gateway vers un mauvais port.
+- Script **`test-api-specific.sh`** : **`Status: 000`** avec un corps JSON qui semblait valide (fichier **`/tmp/response.txt`** partagé + **`curl` `000`** sans HTTP).
+- **`test-monitoring-c-endpoints.test.js`** : échec **`load_score`** absent dans certaines payloads gateway.
+- **`test-performance.js`** : **✅ 0/N** et sortie **0** même en échec total ; étape **`make tests`** marquée succès.
+- **`run-all-tests-with-reports.sh`** : test **API Gateway Health** trop strict (**`/health` && `/metrics`**) ; **`API_GATEWAY_URL`** avec nom Docker depuis l’hôte.
+
+### Correctifs
+1. **`tests/helpers/dockerHostUrl.js`** : normalisation **`api-gateway`**, **`monitoring-c`** (port hôte **`MONITORING_C_PORT`**), **`jobbingtrack-metrics-aggregator`** ; **`auth.helper`** s’appuie dessus.
+2. **`tests/api/test-monitoring-c-endpoints.test.js`** : URLs normalisées ; **`load_score`** non bloquant.
+3. **`tests/performance/test-performance.js`** : URLs + auth service ; icône charge si 0 succès ; **`process.exit(1)`** si API ou charge en échec.
+4. **`scripts/test-api-specific.sh`** : **`mktemp`** par appel **`test_endpoint`** ; normalisation **`api-gateway`** ; **`curl`** sans **`eval`**.
+5. **`scripts/run-all-tests-with-reports.sh`** : après **`.env`**, normalisation **`API_GATEWAY_URL`** / **`METRICS_AGGREGATOR_URL`** ; health gateway = **`curl -sf …/health`** seul (timeout 15 s) ; firewall : **`API_GATEWAY_URL`** exportée correctement.
+6. **`tests/api/test-bdd-relations.test.js`** : messages d’erreur explicites si pas de token / chaîne BDD incomplète.
+
+### Reste (hors ce commit)
+- Durcir **exit codes** des scripts intégration / sécurité quand **`ENOTFOUND`**.
+- Stabiliser **Playwright** (login, **`api-e2e`**) — **`TODOS.md`** lot F.
+- Backlog métriques / graphiques / tests dédiés par surface (réseau, applications, conteneurs, user analytics, stats) — **`PLAN.md`** A5 / F1.
+
+---
+
+## 7 avril 2026 (suite) — Tooltips Recharts (mode sombre) + fiabilité Jest (`tests/`) + test firewall
+
+### Problèmes
+- **Backoffice analytics** : survol des graphiques Recharts en **thème sombre** → infobulle **illisible** (texte clair sur fond clair ou équivalent).
+- **`make tests` / Jest `tests/api/`** : crash worker **`TypeError: Converting circular structure to JSON`** (sérialisation IPC Node 22).
+- **`tests/backend/test-security-service.test.js`** : IP **`192.168.1.999`** invalide → **400** ; **`API_GATEWAY_URL=http://api-gateway:…`** depuis l’hôte → **`ENOTFOUND`**.
+
+### Correctifs
+1. **`frontend/src/lib/charts/rechartsTooltipTheme.ts`** : styles **`contentStyle` / `labelStyle` / `itemStyle`** basés sur les **tokens CSS** shadcn (`hsl(var(--popover))`, etc.) ; import **`rechartsTooltipProps`** sur **`/backoffice/analytics`** (performances, réseau, conteneurs, page test CPU).
+2. **`tests/jest.config.js`** : **`maxWorkers: 1`** pour éviter les crashs worker sur la suite API.
+3. **`tests/helpers/auth.helper.js`** : **`normalizeGatewayUrlForHost`** — hostname **`api-gateway`** → **`http://127.0.0.1:<port>`** (port compose ou **`API_GATEWAY_PORT`** ou **5002**).
+4. **`tests/backend/test-security-service.test.js`** : **`API_URL`** depuis **`auth.helper`** ; IP de blocage de test **`192.168.254.254`**.
+5. **`tests/api/test-bdd-relations.test.js`** : suppression des **`return expect(…).toBeTruthy()`** (garder uniquement **`expect(…)`** pour l’échec rapide).
+
+### Vérification
+- Manuel : **`/backoffice/analytics/performances`** (et réseau / conteneurs / page CPU) en **dark** — infobulle lisible.
+- **`cd tests && npx jest api/ backend/test-security-service.test.js`** avec stack gateway joignable.
+
+---
+
+## 7 avril 2026 (suite) – Front analytics : **`timestampMs`** désaligné de la chaîne **`timestamp`**
+
+### Problème
+- Graphiques **performances** / **réseau** / **conteneurs** : l’axe ou les points pouvaient rester **décalés** (~2 h ou valeur « figée ») malgré un **ISO `timestamp`** correct dans la réponse JSON, car **`metricRowToTimeMs`** privilégiait **`timestampMs`** et **`normalizeMetricRows`** recopiait un **`timestampMs`** incohérent au lieu de le recalculer depuis l’ISO.
+
+### Correctifs
+1. **`frontend/src/lib/api/analytics.service.ts`** — fonction **`normalizeMetricRows`** (exportée pour les tests) : dès qu’un **`timestamp`** normalisé est un ISO parseable, **`timestampMs = Date.parse(ts)`** — **une seule source de vérité** côté client après sérialisation JSON.
+2. **`frontend/src/__tests__/unit/analytics-metric-rows-normalize.test.ts`** : garde-fou (**`TZ=Europe/Paris`**) — **`timestampMs`** erroné (+2 h) écrasé ; **`formatLocalChartAxisTick`** et **`metricRowToTimeMs`** cohérents avec l’instant attendu.
+
+### Vérification
+- **`npm run test:unit`** (inclus dans **`npm run test:unit-and-analytics`**) : la suite **`unit`** couvre ce fichier.
+- **Manuel** : recharger **`/backoffice/analytics/performances`**, utiliser **« Période actuelle (→ maintenant) »** — l’axe doit suivre l’**heure locale du navigateur** pour les points renvoyés avec ISO correct. Si les **lignes déjà stockées** en BDD ont été écrites avec une session Postgres hors **UTC** (naïfs décalés), corriger l’infra (**`POSTGRES_SYSTEM_METRICS_TZ`**, **`make monitoring-clock-refresh`**) reste nécessaire en parallèle (voir entrée **Historique `system_metrics`** ci-dessous).
+
+---
+
+## 7 avril 2026 (suite) – Historique **`system_metrics`** : axe ~2 h + **`make restart`** / mode de stack
+
+### Problème
+- Graphiques **performances** / **statistiques** : heures proches de **UTC** (ex. **09:07** sur l’axe alors que l’horloge locale affiche **11:07** en été européen) — lecture **`TIMESTAMP` sans fuseau** via Prisma **`$queryRaw`** sans normalisation **UTC** explicite.
+- Besoin de rappeler après un **`make up-dev`** que **`make restart`** ne relance pas les **tests** ni **`db-push-all`**.
+
+### Correctifs
+1. **`backend/metrics-aggregator-service/src/services/persistence.service.js`** : requête **`getSystemMetricsHistory`** — **`SELECT`**, filtres **`WHERE`** et **`ORDER BY`** sur **`(timestamp AT TIME ZONE …)`** où le fuseau = **`POSTGRES_SYSTEM_METRICS_TZ`** (défaut **UTC**, **même** valeur que la session **`postgres`** pour **`NOW()`**) — évite le décalage **+2 h** si Postgres était en **Europe/Paris** et le SQL supposait à tort **UTC**.
+2. **`docker-compose.yml`** : service **`jobbingtrack-metrics-aggregator`** — **`POSTGRES_SYSTEM_METRICS_TZ`** alignée sur **`postgres`** ; **`TZ=UTC`** pour le runtime Node.
+3. **Makefile** : cible **`make restart-metrics-recreate`** (et alias racine **`make restart-force-recreate-metrics`**) : **`docker compose up -d --force-recreate --no-deps`** sur **monitoring-c** + **jobbingtrack-metrics-aggregator** — **`make restart` seul** ne recrée pas les conteneurs (les **env** compose ne changent pas).
+4. **Makefile** : fichier racine **`.jobbingtrack-stack-mode`** (ignoré par Git) ; **`make restart`** affiche un rappel ; suppression sur **`make down`**, **`down-clean`**, **`restart-clean`**.
+
+### Vérification
+- **`make restart-metrics-recreate`** (ou **`make restart-force-recreate-metrics`** à la racine), puis **`/backoffice/analytics/performances`** : graduations et **« Dernier point (heure locale) »** alignés avec l’horloge du navigateur ; changer le fuseau OS/navigateur → les libellés suivent (**`Intl`** dans **`date.ts`**).
+- **`make restart`** : message affichant **`up-dev`** / **`up-full`** / **`up-essential`** selon le dernier démarrage enregistré — ne suffit **pas** à prendre en compte de nouvelles **env** Docker sur l’agrégateur.
+
+---
+
+## 7 avril 2026 (suite) – `make status` / `status-watch` : couleurs littérales `\033` + conflit `up-dev`
+
+### Problème
+- Sous **`/bin/sh`** (souvent **dash**), **`echo "\033[…]"`** n’interprète pas les séquences ANSI : la **légende des ports** s’affichait en texte brut dans **`make status`** et **`make status-watch`**.
+- **GNU Make** avertissait : *« ancienne recette ignorée pour la cible `up-dev` »* car **`up-dev`** était défini à la **racine** (tout-en-un) et dans **`makefiles/database/Makefile`** (PostgreSQL/Redis dev seuls).
+
+### Correctifs
+1. **`makefiles/services/Makefile`** : légende et messages colorés de la boucle → **`printf '%b\n' "…"`** ; **`INTERVAL`** par défaut **5** s (au lieu de 10) pour **`status-watch`**.
+2. **`makefiles/database/Makefile`** : renommage **`up-dev`** → **`db-up-dev`** (`.PHONY`, aide, recette) ; documentation **`makefiles/README.md`**, **`docs/development/makefile/README.md`**.
+
+### Vérification
+- **`make status`** puis **`make status-watch`** (quelques cycles) : légende grise/cyan/jaune lisible ; **`make -n up-dev`** ne doit plus signaler de recette ignorée pour la base (une seule cible **`up-dev`** = racine).
+
+---
+
 ## 7 avril 2026 (suite) – `/backoffice/analytics` : « Element type is invalid » (composant `undefined`)
 
 ### Problème
@@ -57,7 +149,7 @@
   - **`[security] error:`** sur **`iptables` Permission denied** : attendu dans le conteneur (process non root / namespace) ; l’API peut quand même répondre **201/200** (persistance DB).
   - **`[gateway] warn: Attaque détectée par WAF`** : le scénario **sous charge** envoie volontairement du trafic malveillant ; ce ne sont pas des erreurs de panne.
   - **Timestamps mélangés** dans le flux `docker logs` : tampon / lignes d’anciens runs possibles ; seul compte le **résumé final** (**PASS/FAIL**).
-  - **Make** : avertissements **cible `up-dev` dupliquée** entre Makefile racine et `makefiles/database/Makefile` — cosmétique, sans impact sur le live-check.
+  - **Make** : ~~avertissement cible `up-dev` dupliquée~~ — la cible base **`db-up-dev`** remplace l’ancienne **`up-dev`** dans **`makefiles/database/Makefile`** ; **`make up-dev`** à la **racine** reste le tout-en-un (up-full → push → seed → tests).
 
 ### Security-service : iptables en dev
 

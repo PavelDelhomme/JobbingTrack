@@ -7,4 +7,5 @@ export {
 } from './timeRangeUtils';
 export { ChartPeriodCaption } from './ChartPeriodCaption';
 export { useAnalyticsAutoRefresh, ymdLocal } from './useAnalyticsAutoRefresh';
+export { usePersistedSharedAnalyticsRange } from './usePersistedSharedAnalyticsRange';
 export { injectMetricTimeGaps } from './injectMetricTimeGaps';

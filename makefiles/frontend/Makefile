@@ -59,7 +59,7 @@ help-frontend: ## Afficher l'aide frontend
 	@echo "  make format-check-frontend - Vérifier formatage"
 	@echo ""
 	@echo "🧪 TESTS:"
-	@echo "  make test-unit-frontend    - Jest : unit + pages /backoffice/analytics (npm run test:unit-and-analytics)"
+	@echo "  make test-unit-frontend    - Jest : unit + analytics + date-metrics-display (npm run test:unit-and-analytics)"
 	@echo "  make test-audit-jest-scope-frontend - Audit : suites Jest hors gate (npm run test:audit-jest-scope)"
 	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
 	@echo "  make test-all-frontend     - Tous les tests"
@@ -145,8 +145,8 @@ format-check-frontend: ## Vérifier formatage (dans conteneur Docker)
 # TESTS
 # ============================================================================
 
-test-unit-frontend: ## Jest : tests unit (src/__tests__/unit) + pages analytics (smoke /backoffice/analytics)
-	@echo "🧪 Frontend Jest — npm run test:unit-and-analytics (rapport texte ; avec make test-all → tests/results/.../frontend-jest.json)"
+test-unit-frontend: ## Jest : unit + analytics + date-metrics-display (smoke /backoffice/analytics)
+	@echo "🧪 Frontend Jest — npm run test:unit-and-analytics (incl. **date-metrics-display** ; rapport texte ; avec make test-all → tests/results/.../frontend-jest.json)"
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
 		docker exec -w /app jobbingtrack-frontend npm run test:unit-and-analytics; \
 	else \
@@ -290,7 +290,7 @@ frontend-help: ## Aide frontend
 	@echo "  make format-frontend       - Prettier"
 	@echo ""
 	@echo "🧪 TESTS:"
-	@echo "  make test-unit-frontend    - Tests unitaires"
+	@echo "  make test-unit-frontend    - Jest unit + analytics + date-metrics-display"
 	@echo "  make test-e2e-frontend     - Tests E2E"
 	@echo "  make test-analytics        - Tests Analytics"
 	@echo "  make test-analytics-validate - Validation Analytics"

@@ -60,7 +60,7 @@ tests-help:
 	@echo "  make test-database            Tests base de données"
 	@echo "  make test-api                 Tests API complets"
 	@echo "  make test-backend             Tests services backend"
-	@echo "  make test-frontend            Tests frontend (Jest : unit + pages analytics)"
+	@echo "  make test-frontend            Tests frontend (Jest : unit + analytics + date-metrics-display / fuseaux)"
 	@echo "  make test-mobile              Tests mobile Playwright"
 	@echo "  make test-e2e                 Tests E2E Playwright"
 	@echo "  make test-performance         Tests de performance"
@@ -459,7 +459,7 @@ test-suite-full: ## Suite complète : test-frontend + test-database + status + t
 	@echo "║     🧪 SUITE COMPLÈTE - tests + test-all               ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo "💡 Logs en direct : dans un autre terminal : make logs-applicative"
-	@echo "📋 Ordre : test-frontend → test-database → status → test-all (tous les tests, dont Playwright E2E et MailHog)"
+	@echo "📋 Ordre : test-frontend → test-database → status → test-all (tous les tests, dont Playwright E2E et MailHog) ; test-frontend inclut **date-metrics-display** (affichage métriques / dates)"
 	@echo ""
 	@TEST_NOPROMPT=1 $(MAKE) -s test-frontend && \
 	 TEST_NOPROMPT=1 $(MAKE) -s test-database && \
@@ -496,7 +496,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo "   ✓ Tests Playwright E2E Frontend"
 	@echo "   ✓ Tests Playwright Emails (MailHog)"
 	@echo "   ✓ Tests Playwright Mobile"
-	@echo "   ✓ Tests Frontend Jest (unit + smoke pages /backoffice/analytics — npm run test:unit-and-analytics)"
+	@echo "   ✓ Tests Frontend Jest (unit + smoke /backoffice/analytics + **date-metrics-display** — npm run test:unit-and-analytics)"
 	@echo ""
 	@echo "⚡ PERFORMANCE & SÉCURITÉ :"
 	@echo "   ✓ Tests Performance"

@@ -24,6 +24,15 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   const api = (method, path, data) =>
     axios({ method, url: `${API_URL}/api/v1/${path}`, data, headers: authHeaders, validateStatus: () => true });
 
+  function requireTestUser() {
+    if (!validToken) {
+      throw new Error(
+        `Utilisateur test indisponible (API ${API_URL}). Corriger API_GATEWAY_URL sur l’hôte (ex. http://127.0.0.1:5002), ` +
+          `lancer la stack et le seed auth. Détails : ${setupErrors.join('; ') || 'beforeAll sans token'}`
+      );
+    }
+  }
+
   beforeAll(async () => {
     try {
       const user = await getTestUser();
@@ -47,7 +56,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   // ─── CRÉATION CHAÎNE COMPLÈTE ───
   describe('Chaîne de création Application → Entretien → Relance → Appel', () => {
     it('créer une entreprise', async () => {
-      if (!validToken) return expect(validToken).toBeTruthy();
+      requireTestUser();
       const res = await api('post', 'companies', {
         name: `${PREFIX} Corp ${Date.now()}`, industry: 'BDD Test', location: 'Paris'
       });
@@ -60,7 +69,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('créer un contact lié à l\'entreprise', async () => {
-      if (!companyId) return expect(companyId).toBeTruthy();
+      if (!companyId) throw new Error('companyId manquant — étape « créer une entreprise » a échoué ou API injoignable.');
       const res = await api('post', 'contacts', {
         firstName: PREFIX, lastName: `Rel${Date.now()}`,
         email: `bdd-${Date.now()}@test.local`
@@ -74,7 +83,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('créer une candidature liée à l\'entreprise', async () => {
-      if (!companyId) return expect(companyId).toBeTruthy();
+      if (!companyId) throw new Error('companyId manquant — étape « créer une entreprise » a échoué ou API injoignable.');
       const res = await api('post', 'applications', {
         companyId, position: `${PREFIX} Dev`, contractType: 'CDI', status: 'CANDIDATE_PENDING'
       });
@@ -87,7 +96,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('créer un entretien lié à la candidature', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       const res = await api('post', 'interviews', {
         applicationId, interviewDate: new Date(Date.now() + 86400000).toISOString(), status: 'SCHEDULED'
       });
@@ -100,7 +109,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('créer une relance liée à la candidature', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       const res = await api('post', 'followups', {
         applicationId, followUpDate: new Date(Date.now() + 86400000).toISOString(), status: 'PENDING'
       });
@@ -113,7 +122,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('créer un appel lié à la candidature', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       const res = await api('post', 'calls', {
         applicationId, callDate: new Date(Date.now() + 86400000).toISOString(),
         subject: `${PREFIX} Appel BDD`, status: 'SCHEDULED'
@@ -130,7 +139,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   // ─── VÉRIFICATION DES RELATIONS ───
   describe('Relations dans les détails', () => {
     it('le détail de la candidature devrait inclure entretiens et relances', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       const res = await api('get', `applications/${applicationId}`);
       expect(res.status).toBe(200);
       const app = res.data?.application;
@@ -145,7 +154,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('le détail de l\'entretien devrait inclure la candidature', async () => {
-      if (!interviewId) return expect(interviewId).toBeTruthy();
+      if (!interviewId) throw new Error('interviewId manquant — création entretien BDD incomplète.');
       const res = await api('get', `interviews/${interviewId}`);
       expect(res.status).toBe(200);
       const interview = res.data?.interview;
@@ -156,7 +165,9 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   // ─── COHÉRENCE SOFT DELETE ───
   describe('Cohérence soft delete', () => {
     it('supprimer l\'entretien ne devrait pas supprimer la candidature', async () => {
-      if (!interviewId || !applicationId) return expect(interviewId && applicationId).toBeTruthy();
+      if (!interviewId || !applicationId) {
+        throw new Error('interviewId ou applicationId manquant — données BDD incomplètes.');
+      }
       await api('delete', `interviews/${interviewId}`);
 
       const appRes = await api('get', `applications/${applicationId}`);
@@ -167,7 +178,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('supprimer la candidature devrait soft-delete les éléments liés', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
 
       const delRes = await api('delete', `applications/${applicationId}`);
       expect(delRes.status).toBe(200);
@@ -210,7 +221,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   // ─── COHÉRENCE ARCHIVAGE ───
   describe('Cohérence archivage cascade', () => {
     it('archiver la candidature devrait archiver les éléments liés', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       await api('post', `applications/${applicationId}/archive`, { reason: 'Test BDD' });
 
       const intArch = await api('get', 'interviews/archived');
@@ -222,7 +233,9 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
     });
 
     it('après désarchivage, les éléments liés devraient être visibles', async () => {
-      if (!applicationId || !interviewId) return expect(applicationId && interviewId).toBeTruthy();
+      if (!applicationId || !interviewId) {
+        throw new Error('applicationId ou interviewId manquant — données BDD incomplètes.');
+      }
       await new Promise(r => setTimeout(r, 1200));
       const res = await api('get', 'interviews');
       if (res.status !== 200) {
@@ -240,7 +253,7 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
   // ─── ÉVÉNEMENTS AUTO-CRÉÉS ───
   describe('Événements automatiquement créés', () => {
     it('les événements liés à la candidature/entretien devraient exister', async () => {
-      if (!applicationId) return expect(applicationId).toBeTruthy();
+      if (!applicationId) throw new Error('applicationId manquant — chaîne de création BDD incomplète.');
       // GET /events est paginé (ex. 50) : d’autres événements du user peuvent masquer le nôtre.
       // La timeline par candidature liste tous les événements liés (interview-service les crée à la création d’entretien).
       const timelineRes = await api('get', `events/timeline/application/${applicationId}`);

@@ -1,10 +1,83 @@
 /**
- * Formatage des dates/heures en heure locale de l'utilisateur (fuseau du navigateur).
- * Les API doivent continuer à renvoyer des ISO (UTC ou offset explicite) ; le front convertit à l’affichage.
- * `formatLocalDateTime` ajoute le nom court du fuseau (ex. « GMT+2 ») pour lever l’ambiguïté.
+ * Formatage des dates/heures en heure locale de l'utilisateur.
+ * Les API renvoient des ISO (UTC) ; le front convertit via **`displayTimeZoneOptions()`** :
+ * **`NEXT_PUBLIC_CHART_TIMEZONE`** ou **`NEXT_PUBLIC_TZ`** (IANA) en priorité, sinon fuseau navigateur,
+ * avec repli **Europe/Paris** si le navigateur annonce **`Atlantic/Reykjavik`** ou **`Iceland`**
+ * (= UTC toute l’année, souvent incohérent avec une horloge France métropolitaine en été).
  */
 
 const defaultLocale = typeof navigator !== 'undefined' ? navigator.language : 'fr-FR';
+
+/**
+ * Fuseau annoncé par le navigateur (sous Jest : **TZ**).
+ */
+function browserTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'timeZone'> | Record<string, never> {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return tz ? { timeZone: tz } : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Fuseaux équivalents UTC où l’affichage « heure locale » = heure UTC (décalage ~0 h / ~2 h vs France). */
+const UTC_LIKE_MISLEADING_ZONES = new Set(['Atlantic/Reykjavik', 'Iceland']);
+
+function readEnvDisplayTimeZone(): string | null {
+  if (typeof process === 'undefined') return null;
+  for (const key of ['NEXT_PUBLIC_CHART_TIMEZONE', 'NEXT_PUBLIC_TZ'] as const) {
+    const v = process.env[key];
+    if (typeof v !== 'string') continue;
+    const t = v.trim();
+    if (!t) continue;
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: t }).format(new Date());
+      return t;
+    } catch {
+      /* IANA inconnu pour ICU */
+    }
+  }
+  return null;
+}
+
+/**
+ * Fuseau passé à `Intl` pour `formatLocalDateTime`, axes graphiques, etc.
+ * Priorité : env **NEXT_PUBLIC_CHART_TIMEZONE** puis **NEXT_PUBLIC_TZ** ; sinon repli Paris si
+ * `Intl` annonce Reykjavik / Islande ; sinon fuseau navigateur.
+ */
+export function displayTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'timeZone'> | Record<string, never> {
+  const fromEnv = readEnvDisplayTimeZone();
+  if (fromEnv) return { timeZone: fromEnv };
+
+  const br = browserTimeZoneOptions();
+  const id = 'timeZone' in br && typeof br.timeZone === 'string' ? br.timeZone : '';
+  if (id && UTC_LIKE_MISLEADING_ZONES.has(id)) {
+    const fallback = 'Europe/Paris';
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: fallback }).format(new Date());
+      return { timeZone: fallback };
+    } catch {
+      return br;
+    }
+  }
+  return br;
+}
+
+/** Fuseau brut `Intl` (diagnostic). */
+export function getResolvedBrowserTimeZoneId(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch {
+    return '';
+  }
+}
+
+/** Fuseau réellement utilisé pour l’affichage (après env + repli Reykjavik). */
+export function getEffectiveDisplayTimeZoneId(): string {
+  const o = displayTimeZoneOptions();
+  if ('timeZone' in o && typeof o.timeZone === 'string' && o.timeZone) return o.timeZone;
+  return getResolvedBrowserTimeZoneId() || '—';
+}
 
 /**
  * Normalise un instant renvoyé par l’API vers une chaîne ISO **UTC** (`…Z` ou offset explicite).
@@ -50,12 +123,17 @@ export function formatLocalDateTime(
   } else if (typeof value === 'string') {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
+  } else if (typeof value === 'number' && Number.isFinite(value)) {
+    const n = value as number;
+    const ms = n < 1e12 ? n * 1000 : n;
+    d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
   if (Number.isNaN(d.getTime())) return '—';
 
   const resolved: Intl.DateTimeFormatOptions = {
+    ...displayTimeZoneOptions(),
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -68,6 +146,9 @@ export function formatLocalDateTime(
 
   if (resolved.dateStyle != null || resolved.timeStyle != null) {
     delete resolved.timeZoneName;
+  }
+  if ((resolved.dateStyle != null || resolved.timeStyle != null) && resolved.timeZone == null) {
+    Object.assign(resolved, displayTimeZoneOptions());
   }
 
   return d.toLocaleString(defaultLocale, resolved);
@@ -87,6 +168,10 @@ export function formatLocalDate(
   } else if (typeof value === 'string') {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
+  } else if (typeof value === 'number' && Number.isFinite(value)) {
+    const n = value as number;
+    const ms = n < 1e12 ? n * 1000 : n;
+    d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
@@ -95,6 +180,7 @@ export function formatLocalDate(
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    ...displayTimeZoneOptions(),
     ...options,
   });
 }
@@ -112,6 +198,10 @@ export function formatLocalTime(
   } else if (typeof value === 'string') {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
+  } else if (typeof value === 'number' && Number.isFinite(value)) {
+    const n = value as number;
+    const ms = n < 1e12 ? n * 1000 : n;
+    d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
@@ -121,6 +211,7 @@ export function formatLocalTime(
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
+    ...displayTimeZoneOptions(),
   });
 }
 
@@ -131,19 +222,68 @@ export function formatLocalTime(
  */
 export function parseChartTimestamp(value: unknown): Date | null {
   if (value == null) return null;
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    const ms = value < 1e12 ? value * 1000 : value;
+
+  let v: unknown = value;
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (v == null || typeof v !== 'object') break;
+    if ('value' in v && (v as { value: unknown }).value !== undefined) {
+      const inner = (v as { value: unknown }).value;
+      if (inner === v) break;
+      v = inner;
+      continue;
+    }
+    break;
+  }
+
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if (/^\d{10,13}$/.test(t)) {
+      const n = Number(t);
+      const ms = t.length <= 10 ? n * 1000 : n;
+      const d = new Date(ms);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    const ms = v < 1e12 ? v * 1000 : v;
     const d = new Date(ms);
     return Number.isNaN(d.getTime()) ? null : d;
   }
-  if (typeof value === 'object' && value !== null && 'getTime' in value) {
-    const d = value as Date;
+  if (typeof v === 'object' && v !== null && 'getTime' in v) {
+    const d = v as Date;
     return Number.isNaN(d.getTime()) ? null : d;
   }
-  const iso = normalizeMetricTimestampToIso(value);
+  const iso = normalizeMetricTimestampToIso(v);
   if (!iso) return null;
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Instant en ms pour graphiques / tri (métriques API), sans ambiguïté « heure locale du parseur ». */
+export function metricTimestampToMs(value: unknown): number | null {
+  const d = parseChartTimestamp(value);
+  return d ? d.getTime() : null;
+}
+
+/**
+ * Lit **`timestampMs`** sur la ligne ; après **`normalizeMetricRows`** (analytics), ce champ est
+ * aligné sur **`Date.parse(timestamp ISO)`** quand l’ISO est présent — évite un axe Recharts faux
+ * si l’API avait laissé un **`timestampMs`** divergent. Sinon dérive depuis l’ISO / **`timestamp`**.
+ */
+export function metricRowToTimeMs(
+  row: Record<string, unknown>,
+  normalizedIso: string
+): number | null {
+  const direct = row.timestampMs;
+  if (typeof direct === 'number' && Number.isFinite(direct)) return direct;
+  if (typeof direct === 'string' && /^\d{10,13}$/.test(direct.trim())) {
+    const t = direct.trim();
+    const n = Number(t);
+    const ms = t.length <= 10 ? n * 1000 : n;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+  return metricTimestampToMs(normalizedIso || row.timestamp);
 }
 
 /** Graduations d’axe : heure locale (option jour si série longue). */
@@ -154,8 +294,11 @@ export function formatLocalChartAxisTick(
   const d = parseChartTimestamp(value);
   if (!d) return '';
   const withDate = opts?.withDate ?? false;
+  /** `timeZone` en tête : certains moteurs appliquent mieux le fuseau qu’avec un spread en fin d’objet. */
+  const tz = displayTimeZoneOptions();
   if (withDate) {
     return d.toLocaleString(defaultLocale, {
+      ...tz,
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
@@ -164,6 +307,7 @@ export function formatLocalChartAxisTick(
     });
   }
   return d.toLocaleTimeString(defaultLocale, {
+    ...tz,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
 import { cacheManager } from '@/lib/cache/cacheManager'
+import { formatLocalChartAxisTick, metricTimestampToMs } from '@/lib/utils/date'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Settings, 
@@ -563,19 +564,13 @@ export default function StatisticsPage() {
     }
   }
 
-  // Formater le timestamp pour les graphiques (heure locale de l'utilisateur)
+  // Formater le timestamp pour les graphiques (instant API → heure locale navigateur)
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
+    const ms = metricTimestampToMs(timestamp)
+    if (ms == null) return '—'
     const timeRange = customization.timeRange
-
-    // Utiliser l'heure locale de l'utilisateur
-    if (timeRange === '1h' || timeRange === '6h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    } else if (timeRange === '24h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    } else {
-      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
-    }
+    const withDate = !(timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+    return formatLocalChartAxisTick(ms, { withDate })
   }
 
   // Préparer les données pour les graphiques (memoizé pour performance)
@@ -583,8 +578,9 @@ export default function StatisticsPage() {
     if (!metricsHistory || metricsHistory.length === 0) return []
     
     // Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
-    const sortedHistory = [...metricsHistory].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    const sortedHistory = [...metricsHistory].sort(
+      (a, b) =>
+        (metricTimestampToMs(a.timestamp) ?? 0) - (metricTimestampToMs(b.timestamp) ?? 0)
     )
     
     // Sous-échantillonnage pour les grandes périodes (optimisation)

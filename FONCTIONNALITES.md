@@ -1,6 +1,6 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Dernière mise à jour** : 7 avril 2026 (lot **G** sauvegardes / continuité : § 4.4 ; tests : **`STATUS.md`** § `make tests` ; validation produit : **`PLAN.md`** colonne **Validé**)
+**Dernière mise à jour** : 17 avril 2026 (tests **`make tests`** : état réel et prérequis — **`STATUS.md`**, **`ERRORS.md`**, lot **F1** **`PLAN.md`** ; lot **G** § 4.4 inchangé)
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
@@ -189,12 +189,12 @@ Le systeme utilise **deux mecanismes distincts** :
 
 ### 4.3 Pages specifiques backoffice
 - Statistiques & Monitoring (vue d'ensemble, securite, logs) — *chantier : **`PLAN.md`** lot **A** (monitoring + logs) puis lot **B** (sécurité) ; tâche **A5** = historique persisté et pages liées*
-- Analytics (performances reseau, CPU, conteneurs, utilisateur)
+- Analytics (performances réseau, CPU, conteneurs, utilisateur) : séries historiques avec **graduations heure locale** navigateur ; après normalisation des réponses (**`normalizeMetricRows`**), **`timestampMs`** suit l’**instant ISO** pour éviter un axe décalé si le JSON mélangeait les deux champs.
 - Securite (analyse, firewall, reseau, politiques, menaces, logs)
 - Services (liste, onglets, details, demarrer/arreter/redemarrer)
-- **Détail service** (`/backoffice/services/[nom]`, avril 2026) : métriques **Docker stats** avec précision affichée (CPU faible, mémoire usage/limites, réseau cumulé, **disque block I/O**), **historique** combinant fichiers agrégateur + points collectés pendant la session, **auto-rafraîchissement** paramétrable (10–60 s) et aide sur le compteur **PIDs** — lot **A1** dans `PLAN.md` (tâche **A5** pour persistance multi-pages).
+- **Détail service** (`/backoffice/services/[nom]`, avril 2026) : métriques **Docker stats** avec précision affichée (CPU faible, mémoire usage/limites, réseau cumulé, **disque block I/O**), **historique** combinant fichiers agrégateur + points collectés pendant la session, **auto-rafraîchissement** paramétrable (10–60 s) et aide sur le compteur **PIDs** — lot **A1** dans `PLAN.md` (tâche **A5** pour persistance multi-pages). **Lot A3 (partiel)** : encart **sécurité** + lien vers **logs multi-services** filtrés pour rapprocher logs conteneur et événements firewall / menaces.
 - Emails (envoi test, templates, configuration SMTP, delivrabilite, historique)
-- Tests (hub, API, backend, frontend, securite, performance, Playwright, rapports) — suite **`make tests`** documentée dans **`STATUS.md`** (prérequis Docker) ; gate Jest **`npm run test:unit-and-analytics`** décrite dans **`PLAN.md`** lot **F1**
+- Tests (hub, API, backend, frontend, securite, performance, Playwright, rapports) — suite **`make tests`** : prérequis **`make up-full`**, **`API_GATEWAY_URL`** joignable depuis la machine qui lance les scripts (souvent **`http://127.0.0.1:5002`**, pas les noms Docker seuls) ; le résumé « tout vert » peut masquer des étapes partielles — lire **`tests/results/<id>/report.html`**. Gate Jest front : **`npm run test:unit-and-analytics`** (**`PLAN.md`** lot **F1**). Détail des écarts actuels : **`ERRORS.md`**, **`STATUS.md`** (17/04/2026).
 - Parcours (predefinis, personnalise, rapports)
 - Archives / Corbeille
 - Utilisateurs (CRUD, filtres par role)
@@ -434,11 +434,11 @@ Utilisateur cree Entreprise (ou existante)
 - [x] Stack 21/21 services fonctionnels
 - [x] 47 tables BDD
 - [x] API Gateway avec tous les endpoints
-- [x] Tests API 61 (archivage + cascade + BDD + email + monitoring)
-- [x] Playwright E2E 233
-- [x] Tests securite (64 verifications, 0 critique)
-- [x] Tests performance (15/15, score 100/100)
-- [x] Tests integration OK
+- [x] Tests API (nombreux scénarios : archivage, cascade, BDD, email, monitoring) — **sous réserve** d’URL gateway correcte et stack up ; sinon échecs **`ENOTFOUND` / `ECONNREFUSED`** (voir **`ERRORS.md`**)
+- [~] Playwright E2E — volumineux ; échecs récurrents sur **login** (timeouts, toggle mot de passe), **api-e2e** si la base URL pointe vers un hôte injoignable depuis le navigateur — **`TODOS.md`** lot F
+- [~] Tests sécurité (script) — exécution **complète** (XSS, SQLi, CSRF, etc.) mais sorties **partielles** si **`API_GATEWAY_URL`** / headers **ENOTFOUND** ; le résumé « acceptable » + **60 sécurisées** ne signifie pas que chaque sonde a touché un service réel
+- [~] Tests performance avancés — le script mesure latences / charge ; **code de sortie non nul** si endpoints ou charge en échec (avril 2026) ; ne plus afficher **SUCCÈS** Jest/Makefile si tout est rouge (alignement en cours)
+- [~] Tests intégration système — peut afficher **SUCCÈS** alors que les sondes loggent **ENOTFOUND** (script tolérant) ; à interpréter avec **`tests/results/...`**
 - [x] Hub Tests operationnel
 - [x] SMTP / MailHog operationnels
 - [x] Monitoring custom (monitoring-c + metrics-aggregator)

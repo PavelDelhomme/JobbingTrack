@@ -16,6 +16,27 @@ try {
   console.error('[PERSISTENCE] ❌ Erreur initialisation Prisma:', error.message);
 }
 
+const METRICS_HISTORY_LIMIT_MAX = 60000;
+
+/**
+ * Colonne `public.system_metrics.timestamp` : TIMESTAMP **sans** fuseau, rempli par `NOW()` dans la session Postgres
+ * du conteneur **`postgres`** (`TZ` / `PGTZ` = **`POSTGRES_SYSTEM_METRICS_TZ`**, défaut **UTC**).
+ * La requête doit utiliser le **même** fuseau dans `AT TIME ZONE …` : sinon +2 h typiques si Postgres est en
+ * **Europe/Paris** et le SQL supposait à tort **UTC**.
+ */
+function systemMetricsTimestampAtTzSql() {
+  const raw = (process.env.POSTGRES_SYSTEM_METRICS_TZ || 'UTC').trim();
+  const z = /^[A-Za-z0-9_+\/.-]{1,64}$/.test(raw) ? raw : 'UTC';
+  const escaped = z.replace(/'/g, "''");
+  return `(timestamp AT TIME ZONE '${escaped}')`;
+}
+
+function clampMetricsHistoryLimit(raw, fallback = 100) {
+  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(Math.floor(n), METRICS_HISTORY_LIMIT_MAX);
+}
+
 /**
  * Driver SQL / Prisma peut renvoyer Date ou chaîne sans fuseau. On expose toujours de l’ISO UTC
  * pour le JSON afin que le front (fuseau navigateur) convertisse correctement.
@@ -511,11 +532,13 @@ class PersistenceService {
     }
     
     const {
-      limit = 100,
+      limit: rawLimit = 100,
       offset = 0,
       startDate = null,
       endDate = null,
     } = options;
+    const limit = clampMetricsHistoryLimit(rawLimit, 100);
+    const tsExpr = systemMetricsTimestampAtTzSql();
 
     const where = {};
     if (startDate || endDate) {
@@ -530,7 +553,7 @@ class PersistenceService {
       // au lieu de SystemMetricsSnapshot (Prisma) qui n'a pas ces champs
       let query = `
         SELECT 
-          timestamp,
+          ${tsExpr} AS "timestamp",
           cpu_load_1,
           cpu_load_5,
           cpu_load_15,
@@ -562,11 +585,11 @@ class PersistenceService {
       if (where.timestamp) {
         if (where.timestamp.gte) {
           const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
-          conditions.push(`timestamp >= '${gteDate}'`);
+          conditions.push(`${tsExpr} >= '${gteDate}'::timestamptz`);
         }
         if (where.timestamp.lte) {
           const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
-          conditions.push(`timestamp <= '${lteDate}'`);
+          conditions.push(`${tsExpr} <= '${lteDate}'::timestamptz`);
         }
       }
       
@@ -574,7 +597,7 @@ class PersistenceService {
         query += ' WHERE ' + conditions.join(' AND ');
       }
       
-      query += ` ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`;
+      query += ` ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${offset}`;
       
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
@@ -614,9 +637,11 @@ class PersistenceService {
         const iso = toIsoUtcString(row.timestamp);
         if (!iso) return null;
         const timestamp = new Date(iso);
+        const timestampMs = timestamp.getTime();
         return {
         id: `system_${timestamp.getTime()}`,
         timestamp: iso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
         cpuUsagePercent: row.cpu_usage_percent || 0,
         cpuCores: row.cpu_cores || 0,
         cpuLoadAverage1m: row.cpu_load_1,
@@ -665,7 +690,8 @@ class PersistenceService {
    */
   async getSystemMetricsHistoryFromSnapshot(options = {}) {
     if (!this.isDatabaseEnabled()) return [];
-    const { limit = 100, offset = 0, startDate = null, endDate = null } = options;
+    const { offset = 0, startDate = null, endDate = null } = options;
+    const limit = clampMetricsHistoryLimit(options.limit, 100);
     const where = {};
     if (startDate || endDate) {
       where.timestamp = {};
@@ -679,9 +705,15 @@ class PersistenceService {
         take: limit,
         skip: offset,
       });
-      return rows.map((row) => ({
+      return rows.map((row) => {
+        const tsIso =
+          toIsoUtcString(row.timestamp) ||
+          (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp));
+        const timestampMs = Date.parse(tsIso);
+        return {
         id: row.id,
-        timestamp: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
+        timestamp: tsIso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
         cpuUsagePercent: row.cpuUsagePercent ?? 0,
         cpu_percent: row.cpuUsagePercent ?? 0,
         cpuCores: row.cpuCores ?? 0,
@@ -697,8 +729,9 @@ class PersistenceService {
         availabilityPercent: row.availabilityPercent ?? null,
         loadScore: row.loadScore ?? null,
         responseTimeAvg: row.responseTimeAvg ?? null,
-        createdAt: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
-      }));
+        createdAt: tsIso,
+      };
+      });
     } catch (e) {
       console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
       return [];
@@ -714,11 +747,12 @@ class PersistenceService {
     }
     
     const {
-      limit = 100,
+      limit: rawLimit = 100,
       offset = 0,
       startDate = null,
       endDate = null,
     } = options;
+    const limit = clampMetricsHistoryLimit(rawLimit, 100);
 
     const where = { containerName };
     if (startDate || endDate) {
@@ -734,10 +768,17 @@ class PersistenceService {
         take: limit,
         skip: offset,
       });
-      return rows.map((row) => ({
-        ...row,
-        timestamp: toIsoUtcString(row.timestamp) || (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp)),
-      }));
+      return rows.map((row) => {
+        const tsIso =
+          toIsoUtcString(row.timestamp) ||
+          (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp));
+        const timestampMs = Date.parse(tsIso);
+        return {
+          ...row,
+          timestamp: tsIso,
+          ...(Number.isFinite(timestampMs) ? { timestampMs } : {}),
+        };
+      });
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {

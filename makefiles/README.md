@@ -91,7 +91,7 @@ make help-frontend     # Aide frontend complète
 |----------|----------|-------|
 | **Services** | `makefiles/services/Makefile` | up, down, restart, profiles |
 | **Diagnostic** | `makefiles/diagnostic/Makefile` | health, diagnostic-*, cors-fix |
-| **Database** | `makefiles/database/Makefile` | db-*, up-dev, up-test |
+| **Database** | `makefiles/database/Makefile` | db-*, db-up-dev, up-test |
 | **Build** | `makefiles/compilation/Makefile` | build, rebuild, clean |
 | **Tests** | `makefiles/tests/Makefile` | test-*, lint, format |
 | **Backend** | `makefiles/backend/Makefile` | monitoring-*, backend specifics |
@@ -133,13 +133,17 @@ make up                 # Démarrer services essentiels
 make up-no-check        # Démarrer SANS vérification Docker
 make up-full            # Démarrer TOUS les services
 make down               # Arrêter tous les services
-make restart            # Redémarrer conteneurs actifs
+make restart            # Redémarrer conteneurs actifs (pas de --force-recreate)
+make restart-metrics-recreate  # Recrée monitoring-c + metrics-aggregator (env / image)
+make monitoring-clock-refresh  # Recrée postgres + monitoring (fuseaux .env, volumes conservés)
 make restart-clean      # Redémarrage avec nettoyage
 make up-profile PROFILE=auth  # Démarrer un profil
 make stop-service SERVICE=x   # Arrêter un service
 make restart-service SERVICE=x # Redémarrer un service
 make logs-service SERVICE=x    # Logs d'un service
-make status             # Status détaillé
+make status             # Status détaillé (légende ports hôte → conteneur, ex. monitoring-c 8015)
+make status-watch       # Boucle : CLEAR=1 (défaut) efface l’écran chaque cycle ; CLEAR=0 garde le scroll ; INTERVAL=5 (défaut) ; sans messages « répertoire » make
+make status-live        # Statut compact toutes les ~2 s
 make ps                 # Liste conteneurs
 make logs               # Tous les logs
 ```
@@ -164,7 +168,7 @@ make db-reset           # Reset DB
 make db-backup          # Sauvegarde
 make db-restore file=x  # Restauration
 make db-fix-role        # Réparer rôle/DB
-make up-dev             # Env développement
+make db-up-dev          # PostgreSQL + Redis dev (compose test)
 make up-test            # Env test
 make up-all-dbs         # Tous les envs
 make reset-db DB=dev    # Reset env spécifique
@@ -215,7 +219,7 @@ Si deux Makefiles définissent la même target (ex: `help`), **la dernière incl
 **Solution :** Utilisez des préfixes explicites :
 - Services : `up-*`, `restart-*`, `stop-*`
 - Diagnostic : `diagnostic-*`, `cors-*`
-- Database : `db-*`, `up-dev`, `up-test`
+- Database : `db-*`, `db-up-dev`, `up-test` — **`make up-dev` à la racine** = stack + push + seed + tests (ne pas dupliquer dans database)
 - Tests : `test-*`, `lint`, `format`
 - Monitoring : `monitoring-*`
 

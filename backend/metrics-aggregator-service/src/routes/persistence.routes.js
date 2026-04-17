@@ -19,6 +19,13 @@ function serializeForJson(val) {
   return out;
 }
 
+/** Limite sécurisée pour les historiques métriques (points par requête). */
+function parseMetricsHistoryLimit(value, fallback = 100, max = 60000) {
+  const n = parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(n, max);
+}
+
 /**
  * Routes pour l'accès aux données persistées
  */
@@ -36,7 +43,7 @@ router.get('/system/metrics', async (req, res) => {
     console.log('[API] 📊 Requête métriques système:', { limit, offset, startDate, endDate });
     
     const metrics = await persistenceService.getSystemMetricsHistory({
-      limit: parseInt(limit) || 100,
+      limit: parseMetricsHistoryLimit(limit, 100),
       offset: parseInt(offset) || 0,
       startDate,
       endDate,
@@ -77,7 +84,7 @@ router.get('/containers/metrics', async (req, res) => {
     
     if (containerName) {
       const metrics = await persistenceService.getContainerMetricsHistory(containerName, {
-        limit: parseInt(limit) || 100,
+        limit: parseMetricsHistoryLimit(limit, 100),
         offset: parseInt(offset) || 0,
         startDate,
         endDate,
@@ -128,7 +135,7 @@ router.get('/containers/:containerName/metrics', async (req, res) => {
     const { limit, offset, startDate, endDate } = req.query;
     
     const metrics = await persistenceService.getContainerMetricsHistory(containerName, {
-      limit: parseInt(limit) || 100,
+      limit: parseMetricsHistoryLimit(limit, 100),
       offset: parseInt(offset) || 0,
       startDate,
       endDate,

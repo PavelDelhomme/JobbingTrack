@@ -7,6 +7,7 @@ import {
   TimeRangeSelector,
   ChartPeriodCaption,
   useAnalyticsAutoRefresh,
+  usePersistedSharedAnalyticsRange,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
@@ -20,6 +21,10 @@ import {
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
+  getEffectiveDisplayTimeZoneId,
+  getResolvedBrowserTimeZoneId,
+  metricRowToTimeMs,
+  metricTimestampToMs,
   normalizeMetricTimestampToIso,
 } from '@/lib/utils/date';
 import {
@@ -33,9 +38,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { analyticsService } from '@/lib/api/analytics.service';
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
 
 interface SystemMetric {
   timestamp: string;
+  /** Epoch ms (champ API `timestampMs` ou dérivé) pour l’axe / le tri. */
+  timeMs?: number;
   cpuUsagePercent?: number;
   memoryUsagePercent?: number;
   networkRxBytes?: number | null;
@@ -89,6 +97,21 @@ export default function PerformancesPage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
+  usePersistedSharedAnalyticsRange({
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    windowEnd,
+    setWindowEnd,
+    followLive,
+    setFollowLive,
+  });
+
   const getParams = useCallback(() => {
     if (useCustomRange) {
       const { start, end } = localCalendarDayBounds(customStart, customEnd);
@@ -133,8 +156,10 @@ export default function PerformancesPage() {
                   ? d.timestamp
                   : (d.timestamp as Date)?.toISOString?.() ?? '';
             const timestamp = normalizeMetricTimestampToIso(rawTs);
+            const timeMs = metricRowToTimeMs(d, timestamp);
             return {
             timestamp,
+            ...(timeMs != null ? { timeMs } : {}),
             cpuUsagePercent:
               d.cpuUsagePercent != null || d.cpu_usage_percent != null
                 ? Number(d.cpuUsagePercent ?? d.cpu_usage_percent)
@@ -159,8 +184,9 @@ export default function PerformancesPage() {
           })
           .filter((d: { timestamp: string }) => d.timestamp)
           .sort(
-            (a: { timestamp: string }, b: { timestamp: string }) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            (a: SystemMetric, b: SystemMetric) =>
+              (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
+              (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
           );
         const withGaps = injectMetricTimeGaps(
           sorted,
@@ -289,7 +315,10 @@ export default function PerformancesPage() {
     ];
     const compressed = compressData(rawData, targetPoints, keys);
     return compressed.map((d) => {
-      const timeMs = new Date(d.timestamp).getTime();
+      const timeMs =
+        typeof d.timeMs === 'number' && Number.isFinite(d.timeMs)
+          ? d.timeMs
+          : (metricTimestampToMs(d.timestamp) ?? NaN);
       const rxMb =
         d.networkRxBytes != null ? d.networkRxBytes / (1024 * 1024) : null;
       const txMb =
@@ -315,6 +344,11 @@ export default function PerformancesPage() {
 
   const perfAxisShowDate =
     chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;
+
+  const lastRawTimestamp = useMemo(() => {
+    if (rawData.length === 0) return null;
+    return rawData[rawData.length - 1]?.timestamp ?? null;
+  }, [rawData]);
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
@@ -401,6 +435,7 @@ export default function PerformancesPage() {
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip
+                    {...rechartsTooltipProps}
                     labelFormatter={(_, payload: unknown) => {
                       const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
                         ?.timestamp;
@@ -463,6 +498,7 @@ export default function PerformancesPage() {
                     />
                     <YAxis tickFormatter={(v) => `${v} Mo`} tick={{ fontSize: 12 }} />
                     <Tooltip
+                      {...rechartsTooltipProps}
                       labelFormatter={(_, payload: unknown) => {
                         const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
                           ?.timestamp;
@@ -498,8 +534,58 @@ export default function PerformancesPage() {
               </div>
             )}
 
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {rawData.length} points bruts → {chartData.length} points affichés
+            <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+              <span className="block">
+                {rawData.length} points bruts → {chartData.length} points affichés (compression pour lisibilité).
+              </span>
+              {lastRawTimestamp != null && (
+                <span className="block text-gray-600 dark:text-gray-300">
+                  <strong className="font-medium">Dernier point (heure locale) :</strong>{' '}
+                  {formatLocalDateTime(lastRawTimestamp)}
+                </span>
+              )}
+              {process.env.NODE_ENV === 'development' && (() => {
+                const browserTz = getResolvedBrowserTimeZoneId();
+                const displayTz = getEffectiveDisplayTimeZoneId();
+                return (
+                <span className="block text-xs text-amber-800/90 dark:text-amber-200/90 mt-1">
+                  Diagnostic (dev) — <strong>Intl (navigateur)</strong> :{' '}
+                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">{browserTz || '—'}</code>
+                  {' · '}
+                  <strong>Affichage graphiques</strong> :{' '}
+                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">{displayTz}</code>
+                  {lastRawTimestamp != null ? (
+                    <>
+                      {' '}
+                      · dernier horodatage API (UTC, suffixe Z) :{' '}
+                      <code className="break-all rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">
+                        {lastRawTimestamp}
+                      </code>
+                    </>
+                  ) : null}
+                  {browserTz !== displayTz ? (
+                    <span className="block mt-0.5">
+                      Correction automatique active (ex. Reykjavik/Islande → heure France métropolitaine) : rien à
+                      lancer à la main pour les graphiques. Optionnel :{' '}
+                      <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">
+                        NEXT_PUBLIC_CHART_TIMEZONE
+                      </code>{' '}
+                      dans le <code className="rounded px-1">.env</code> pour un autre fuseau IANA ; les variables{' '}
+                      <code className="rounded px-1">NEXT_PUBLIC_*</code> ne sont prises en compte qu’après
+                      redémarrage du processus Next ou du conteneur <code className="rounded px-1">frontend</code>{' '}
+                      (<code className="rounded px-1">make restart</code> côté Docker).
+                    </span>
+                  ) : null}
+                  {(browserTz === 'UTC' || browserTz === 'Etc/UTC') && browserTz === displayTz ? (
+                    <span className="block mt-0.5">
+                      Le navigateur annonce <strong>UTC</strong> : les graduations suivent l’UTC. Définis{' '}
+                      <code className="rounded bg-amber-100/80 px-1">NEXT_PUBLIC_CHART_TIMEZONE=Europe/Paris</code>{' '}
+                      ou corrige le fuseau du navigateur / du système.
+                    </span>
+                  ) : null}
+                </span>
+                );
+              })()}
             </p>
           </>
         )}

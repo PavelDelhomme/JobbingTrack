@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 7 avril 2026 (réf. lot **G** sauvegardes / continuité — spec **`PLAN.md`** § G, pas une erreur runtime)
+**Dernière mise à jour** : 17 avril 2026 (rapport **`tests/results/20260417-222318/`** + correctifs dépôt : URLs Docker pour Jest/perf, **`test-api-specific.sh`**, gateway health, sortie perf, **`loadScore`** — détail **RESOLUTIONS.md** § 17/04)
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -53,7 +53,15 @@ Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié 
 | **`make tests` / `test-all` sans stack Docker** | `scripts/run-all-tests-with-reports.sh` | Très nombreux échecs (ex. **ECONNREFUSED** `localhost:5002`, **No such container: jobbingtrack-auth-service**, MailHog absent, User Journey status 000) | **Comportement attendu** si `make up-full` n’est pas lancé — ne pas confondre avec une régression du dépôt ; relancer les tests après stack + BDD + **STATUS.md** § dernier rapport |
 | **Jest `tests/backend/test-security-service.test.js` (firewall/WAF via gateway)** | API Gateway + security-service | En local, **`tests/jest.setup.js`** et le test posent **`SECURITY_INTERNAL_SECRET=jobbingtrack-internal-security-dev`** (même défaut que **docker-compose** / **`.env.example`**) ; **`scripts/run-all-tests-with-reports.sh`** exporte aussi ce défaut puis charge **`.env`** | En **production**, définir impérativement un secret fort ; ne pas s’appuyer sur le défaut dev |
 | **Script API « events » / analytics** | Gateway → event-service | **404** sur routes inexistantes ou IDs invalides dans la suite globale | Vérifier les chemins attendus par `scripts/run-all-tests-with-reports.sh` ; lot **F1** **`PLAN.md`** |
-| **Playwright login (E2E)** | `frontend` | Timeouts / sélecteurs (toggle mot de passe, messages d’erreur) | Pile front + auth de test ; à stabiliser hors scope du correctif monitoring ci-dessus |
+| **Playwright E2E (`login.spec`, `api-e2e.spec`, agrégat `make tests`)** | `tests/e2e` + front | **Login** : timeouts, toggle mot de passe, identifiants. **`api-e2e`** : health / CRUD si mauvaise URL API. Rapport global souvent **échec** avec sous-suites **OK** | **`baseURL`** front réel ; **`e2eGatewayBaseUrl()`** ; rapport **`tests/results/<id>/report.html`** — **`STATUS.md`** § 17/04, **`PLAN.md`** F1 |
+| **Jest `tests/api/*` — `TypeError: Converting circular structure to JSON` (worker)** | Jest 29 + Node 22 | **Mitigation** : **`maxWorkers: 1`** dans **`tests/jest.config.js`** | Si ça réapparaît : éviter de retourner des objets axios bruts depuis les tests |
+| **Jest `tests/api/*` — `ENOTFOUND api-gateway` / `monitoring-c`** | `.env` Docker vs hôte | Les tests Node sur l’hôte ne résolvent pas les noms de service Docker | **`tests/helpers/dockerHostUrl.js`** + usage dans **`test-monitoring-c-endpoints`**, **`test-performance.js`**, **`auth.helper`** |
+| **Jest `tests/api/*` — `ECONNREFUSED 127.0.0.1:3000`** | `.env` | **`API_GATEWAY_URL`** ou **`API_URL`** pointe vers un port où **rien** n’écoute (souvent **3000** dashboard alors que la gateway publiée est **5002**) | Corriger **`.env`** : **`API_GATEWAY_URL=http://127.0.0.1:5002`** (ou le port mappé réel du compose) |
+| **Jest `tests/backend/test-security-service.test.js` — blocage IP** | Test | IP invalide | **Corrigé** : **`192.168.254.254`** + **`API_URL`** depuis **`auth.helper`** |
+| **Script « Tests API Backend » — `Status: 000` + corps JSON incohérent** | **`scripts/test-api-specific.sh`** | **`curl` `000`** = pas de réponse HTTP ; le JSON affiché venait souvent d’un **corps `/tmp/response.txt` réutilisé** entre appels | **Corrigé (17/04)** : **`mktemp`** par requête + normalisation **`api-gateway` → 127.0.0.1** en tête de script |
+| **Étape « Tests Performance Avancés » — succès vs 0/N** | **`tests/performance/test-performance.js`** | Le script affichait **✅ 0/N** et **`process.exit(0)`** même si tout échouait | **Corrigé (17/04)** : icône **⚠️** si 0 succès ; **`process.exit(1)`** si endpoints ou charge en échec — l’étape **`make tests`** peut maintenant **échouer honnêtement** |
+| **Tests intégration système / sécurité — `SUCCÈS` malgré `ENOTFOUND` dans la sortie** | Scripts **`tests/integration`** ou sécurité | Les scripts **terminent** sans **`exit 1`** même si des sondes n’atteignent pas l’API | À durcir plus tard (code de sortie) ou lire la sortie brute ; pas « tout vert » sémantiquement |
+| **Réponses JSON health différentes par microservice** | Health checks | Chaque service expose son propre schéma (`status` vs `success`, `version`, `port`, etc.) — **normal** côté produit ; gênant si on attend un format unique dans des tests manuels | Documenté **`STATUS.md`** ; option future : middleware ou contrat OpenAPI commun **non prioritaire** |
 
 ---
 
@@ -61,6 +69,8 @@ Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié 
 
 | Sujet | Détail |
 |-------|--------|
+| ~~Graphiques historiques système (~2 h vs horloge locale)~~ | **SQL** : **`system_metrics.timestamp`** naïf + **`NOW()`** — **`AT TIME ZONE`** = **`POSTGRES_SYSTEM_METRICS_TZ`** dans **`persistence.service.js`** ; **`make restart-metrics-recreate`** / **`monitoring-clock-refresh`** si besoin. **Front** : **`normalizeMetricRows`** aligne **`timestampMs`** sur l’**ISO** (`analytics.service.ts`) — voir **RESOLUTIONS.md** (7 avril 2026, entrées **system_metrics** + **timestampMs JSON**) ; **à revalider** porteur |
+| ~~Légende `make status` / `status-watch` : séquences `\033` affichées en clair~~ | **`echo`** sans **`-e`** sous **sh** ; corrigé par **`printf '%b'`** dans **`makefiles/services/Makefile`** — voir **RESOLUTIONS.md** (7 avril 2026) |
 | ~~Postgres `jobbingtrack` / rôle déjà existant~~ | `make db-fix-role` idempotent — voir **RESOLUTIONS.md** |
 | ~~Build APK Zip META-INF~~ | `flutter clean` + suppression outputs dans l’émulateur contrôleur |
 | ~~Loki ENOTFOUND~~ | `loki.service.js` : réponses vides si Loki absent |
