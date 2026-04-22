@@ -92,7 +92,7 @@ const INTRUSION_PATTERNS = {
       /\/api\/v1\/admin\/.*$/,
       /\/api\/v1\/internal\/.*$/,
       /\/api\/v1\/debug\/.*$/,
-      /\/api\/v1\/metrics/,
+      // /api/v1/metrics : proxy public gateway → agrégateur (backoffice / sondes) — ne pas journaliser comme intrusion
       /\/api\/v1\/health\/admin/
     ],
     severity: 'high',

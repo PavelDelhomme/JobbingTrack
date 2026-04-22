@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 22 avril 2026 — lien **`STATS.md`** (CVE / dépendances) ; **21 avril** : pièges **`make status`** / **`status-watch`** ; **7 avril** : alignement doc ; **17 avril** : rapport **`tests/results/20260417-222318/`** + correctifs — **RESOLUTIONS.md** § 17/04
+**Dernière mise à jour** : 7 avril 2026 — **`make up-full`** / **`ENOTFOUND`** (gateway vs security / metrics) ; **faux positifs** intrusion sur **`/api/v1/metrics`** ; **`up-full-timed`** ; **22 avril** : **`STATS.md`** ; **21 avril** : **`make status`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -36,6 +36,18 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **Redis** doit être joignable depuis la gateway si le middleware est actif (`INTRUSION_DETECTION_ENABLED` ≠ `false`). Sinon : erreurs Redis dans les logs du gateway ; désactiver temporairement **`INTRUSION_DETECTION_ENABLED=false`** le temps du diagnostic.
 - **Faux positifs** (ex. règles « critiques ») peuvent renvoyer **403** et bloquer une IP en Redis : ajuster les règles ou désactiver le middleware en dernier recours.
 - **Tests** : en **`NODE_ENV=test`** (Jest `backend/api-gateway`), le middleware **ne s’exécute pas** — les tests unitaires ne valident pas Redis sur ce point. Les E2E **Playwright** sont ignorés côté détecteur (User-Agent).
+- **`GET /api/v1/metrics` via le navigateur** : ce chemin est un **proxy** vers l’agrégateur de métriques (usage backoffice). Il ne doit **pas** être traité comme une « intrusion » **`unauthorized_access`** (sinon la vue sécurité se remplit d’alertes en dev). **Corrigé (07/04/2026)** : retrait du motif **`/api/v1/metrics`** du pattern **`UNAUTHORIZED_ACCESS`** dans **`intrusionDetector.js`**.
+
+### `make up-full` — `getaddrinfo ENOTFOUND` sur `security-service` / `jobbingtrack-metrics-aggregator`
+
+- **Cause** : jusqu’au correctif Makefile, l’**api-gateway** démarrait **avant** le profil **`full`** (security) et le profil **`monitoring`** (metrics-aggregator). Toute requête immédiate vers **`/api/v1/security/*`** ou **`/api/v1/metrics`** provoquait **`ENOTFOUND`** dans les logs ; le **retry avec fallback hostname** (`server.js`) pouvait aussi échouer tant que le conteneur cible n’existait pas.
+- **Mitigation (07/04/2026)** : **`makefiles/services/Makefile`** (`_up-full-internal`) — **pré-démarrage** de **`security-service`**, **`monitoring-c`** et **`jobbingtrack-metrics-aggregator`** puis courte attente **avant** la gateway.
+- **Logs bizarres `Proxy /api/v1/metrics: {"0":"g",...}`** : message d’erreur mal normalisé côté logger si la chaîne d’erreur n’était pas au format attendu — le handler proxy journalise désormais **`message` / `code` / fallback lisible**.
+
+### `make up-full-timed`
+
+- Cible **`makefiles/tests/Makefile`** : **`up-full-timed`** = mesure la durée d’un **`make up-full`** avec le mot-clé shell **`time`** (réel / user / sys), **pas** une variante « plus de services » que **`up-full`**.
+- **Portable** : la recette utilise **`bash -c 'time $(MAKE) …'`** parce que **`make`** invoque souvent **`/bin/sh`** (ex. **dash**), qui **n’a pas** la commande **`time`** — d’où l’erreur **`make: time: Aucun fichier ou dossier de ce nom`** (127) si on appelait **`time`** directement.
 
 ### Sauvegardes et reprise (pas une erreur — couverture à construire)
 

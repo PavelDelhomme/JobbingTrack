@@ -133,7 +133,7 @@ const KNOWN_SERVICES = {
   'jobbingtrack-security-service': { port: 3017, healthPath: '/api/v1/security/health' },
   'jobbingtrack-deployment-service': { port: 3016, healthPath: '/api/v1/health' },
   'jobbingtrack-monitoring-c': { port: 8015, healthPath: '/api/v1/health' },
-  'jobbingtrack-log-collector-c': { port: 5099, healthPath: '/health' },
+  'jobbingtrack-log-collector-c': { port: 3019, healthPath: '/health' },
   'jobbingtrack-frontend': { port: 3000, healthPath: '/health' },
   'jobbingtrack-postgres': { port: 5432, type: 'database' },
   'jobbingtrack-redis': { port: 6379, type: 'cache' },

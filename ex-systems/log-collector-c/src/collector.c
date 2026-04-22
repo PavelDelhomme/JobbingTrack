@@ -195,7 +195,8 @@ void read_new_log_lines(WatchInfo *watch) {
  * Boucle principale de collecte
  */
 int main(int argc, char *argv[]) {
-    int http_port = 5099;
+    /* Port d’écoute HTTP dans le conteneur : aligné stack JobbingTrack (30xx), hôte mappe 5099→3019 */
+    int http_port = 3019;
     
     if (argc > 1) {
         http_port = atoi(argv[1]);

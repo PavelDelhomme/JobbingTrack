@@ -7,6 +7,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
+const { normalizeDockerLogsQuery } = require('./utils/dockerLogsQuery');
 const {
   requestCorrelationMiddleware,
   forwardCorrelationHeaders,
@@ -404,7 +405,11 @@ app.get('/api/v1/metrics', async (req, res) => {
     }
     res.status(response.status).json(data);
   } catch (err) {
-    logger.error('Proxy /api/v1/metrics:', err.message);
+    const msg =
+      err?.response?.status != null
+        ? `HTTP ${err.response.status}`
+        : (err?.message || err?.code || (typeof err === 'string' ? err : String(err)));
+    logger.error(`Proxy /api/v1/metrics: ${msg}`);
     res.status(503).json({ success: false, error: 'Service métriques indisponible' });
   }
 });
@@ -586,7 +591,7 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Token d\'authentification requis' });
     }
     const { serviceName } = req.params;
-    const lines = Math.max(1, Math.min(500, parseInt(req.query.lines || '100', 10) || 100));
+    const norm = normalizeDockerLogsQuery(req.query);
     const metricsUrl = (process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014').replace(/\/$/, '');
     const raw = String(serviceName || '').replace(/^jobbingtrack-/, '');
     const candidates = [
@@ -598,7 +603,7 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
       if (tried.has(name)) continue;
       tried.add(name);
       try {
-        const url = `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${lines}`;
+        const url = `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?${norm.queryString}`;
         const response = await axios.get(url, {
           timeout: 20000,
           validateStatus: () => true,
@@ -617,6 +622,7 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
             errors: d.errors,
             warnings: d.warnings,
             source: 'metrics-aggregator',
+            query: { lines: norm.lines, since: norm.since, until: norm.until },
           });
         }
       } catch (e) {

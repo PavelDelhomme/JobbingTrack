@@ -4,6 +4,41 @@
 
 ---
 
+## 7 avril 2026 — `make up-full` : ENOTFOUND gateway → security / metrics ; faux positifs `/api/v1/metrics`
+
+### Problème
+- Les logs **`jobbingtrack-api-gateway`** montraient **`getaddrinfo ENOTFOUND`** pour **`security-service`** et **`jobbingtrack-security-service`**, et des erreurs proxy **`/api/v1/metrics`** (parfois sérialisées de façon illisible).
+- **Cause** : **`_up-full-internal`** démarrait **`api-gateway`** avant le batch **`--profile full`** (dont **`security-service`**) et avant le profil **`monitoring`** (**`jobbingtrack-metrics-aggregator`**). Le front / le navigateur interroge tout de suite ces routes → **DNS introuvable** pendant une fenêtre.
+- **Faux positifs sécurité** : le motif **`UNAUTHORIZED_ACCESS`** incluait **`/api/v1/metrics`** ; le dashboard appelle cette URL sans en-tête « admin » → alertes **`INTRUSION ÉLEVÉE`** et entrées **`unauthorized_access`** en base.
+
+### Correctifs
+1. **`makefiles/services/Makefile`** : après l’attente Postgres, **pré-démarrage** de **`security-service`** (profil **`full`**) puis **`monitoring-c`** + **`jobbingtrack-metrics-aggregator`** (profil **`monitoring`**), **6 s** d’attente, **puis** **`api-gateway`** + **`auth-service`**.
+2. **`backend/api-gateway/src/middleware/intrusionDetector.js`** : retrait de **`/api/v1/metrics`** des patterns **`UNAUTHORIZED_ACCESS`** (commentaire explicite).
+3. **`backend/api-gateway/src/server.js`** : journalisation d’erreur du proxy métriques avec **`message` / `code` / fallback** lisible.
+
+### Doc
+- **`ERRORS.md`**, **`STATUS.md`**, **`PLAN.md`**, **`TODOS.md`** mis à jour en parallèle (**`up-full-timed`**, pondération score **`securityScoreWeights`** côté **B10**).
+
+### Suite — `make up-full-timed` / `test-full-timed` (erreur 127 `time`)
+- Sous **`sh`** sans builtin **`time`**, **`make`** interprétait **`time`** comme une cible inexistante → **127**.
+- **`makefiles/tests/Makefile`** : **`bash -c 'time $(MAKE) up-full'`** (idem **`test-full-timed`**).
+
+---
+
+## 22 avril 2026 (suite) — Lot A2 : query logs gateway + port interne log-collector-c
+
+### A2 — Alignement `admin/logs` et proxy `/api/v1/services/:name/logs`
+- **`api-gateway/src/utils/dockerLogsQuery.js`** : whitelist **`since`/`until`** + **`lines`** 10–5000 (identique **`metrics-aggregator`** `docker.routes.js`) ; **`normalizeDockerLogsQuery()`** pour construire la query string du proxy.
+- **`server.js`** : le proxy vers l’agrégateur réutilise **`normalizeDockerLogsQuery`** ; réponse avec **`query`** effective.
+- **`logs.controller.js`** : même sanitisation avant **`docker exec`**.
+- **Tests Jest** : `tests/dockerLogsQuery.test.js` (sanitizers + **`normalizeDockerLogsQuery`**). Complément recommandé : smoke **`make tests`** / curl avec stack up.
+
+### log-collector-c — port d’écoute **3019** dans le conteneur (hôte **5099** inchangé)
+- **Problème** : mappage **5099:5099** prêtait à confusion avec la convention **50xx hôte → 30xx interne** des services Node.
+- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`ex-systems/log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/verify-system.sh`** ; **`scripts/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
+
+---
+
 ## 22 avril 2026 — Détection d’intrusion (gateway), B6, tests gateway, checklist préprod
 
 ### Contexte
