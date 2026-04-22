@@ -18,7 +18,7 @@
 #include <time.h>
 
 static int server_fd = -1;
-static int server_port = 5099;
+static int server_port = 3019;
 static bool server_running = false;
 static pthread_t server_thread;
 

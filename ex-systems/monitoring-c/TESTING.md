@@ -90,6 +90,8 @@ Pour implémenter la persistance, il faudra :
 
 ## Système de Logs (log-collector-c)
 
+- Depuis avril 2026 : le binaire écoute en **3019** **dans** le conteneur ; sur l’hôte le mapping typique est **5099→3019** (`LOG_COLLECTOR_C_PORT` / `LOG_COLLECTOR_C_INTERNAL_PORT`). Santé HTTP : **`http://log-collector-c:3019/health`** sur le réseau Compose.
+
 ### Fonctionnement
 
 Le `log-collector-c` utilise `inotify` pour surveiller les fichiers de logs Docker (`/var/lib/docker/containers/*/*-json.log`) et les collecte en temps réel.

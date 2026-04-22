@@ -617,7 +617,7 @@ test-full-timed: ## Mesure la durée de test-full (début, fin, time)
 	@echo "⏱️  Début: $$(date -Iseconds)"
 	@echo "📊 Mesure des ressources (time) pour: make test-full"
 	@echo ""
-	@time $(MAKE) test-full
+	@bash -c 'time $(MAKE) test-full'
 	@echo ""
 	@echo "⏱️  Fin: $$(date -Iseconds)"
 
@@ -625,7 +625,7 @@ up-full-timed: ## Mesure la durée de up-full (début, fin, time)
 	@echo "⏱️  Début: $$(date -Iseconds)"
 	@echo "📊 Mesure (time) pour: make up-full"
 	@echo ""
-	@time $(MAKE) up-full
+	@bash -c 'time $(MAKE) up-full'
 	@echo ""
 	@echo "⏱️  Fin: $$(date -Iseconds)"
 

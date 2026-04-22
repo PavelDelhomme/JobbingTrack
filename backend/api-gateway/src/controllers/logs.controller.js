@@ -2,6 +2,10 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
+const {
+  sanitizeDockerLogsSinceUntil,
+  clampDockerLogLines,
+} = require('../utils/dockerLogsQuery');
 
 // Map des noms de services (avec toutes les variantes possibles)
 const SERVICE_MAP = {
@@ -111,19 +115,19 @@ const getServiceLogs = async (req, res) => {
 
     logger.info(`📋 Admin ${req.user.email} consulte les logs de: ${dockerServiceName}`);
 
-    // Construire la commande docker logs
+    // Construire la commande docker logs (since/until : whitelist identique metrics-aggregator)
     let command = `docker logs ${containerName} --tail ${lines}`;
     
     if (timestamps === 'true') {
       command += ' --timestamps';
     }
     
-    if (since) {
-      command += ` --since ${since}`;
+    if (sinceArg) {
+      command += ` --since ${sinceArg}`;
     }
     
-    if (until) {
-      command += ` --until ${until}`;
+    if (untilArg) {
+      command += ` --until ${untilArg}`;
     }
 
     try {
@@ -138,7 +142,8 @@ const getServiceLogs = async (req, res) => {
         service: dockerServiceName,
         logs: logs.trim().split('\n'),
         lines: logs.trim().split('\n').length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        query: { lines, since: sinceArg || null, until: untilArg || null },
       });
     } catch (dockerError) {
       logger.warn(`Docker non accessible pour les logs de ${dockerServiceName}, utilisation de logs simulés:`, dockerError.message);
@@ -162,7 +167,8 @@ const getServiceLogs = async (req, res) => {
         lines: mockLogs.length,
         timestamp: new Date().toISOString(),
         fallback: true,
-        message: 'Logs simulés - Docker non accessible dans le conteneur'
+        message: 'Logs simulés - Docker non accessible dans le conteneur',
+        query: { lines, since: sinceArg || null, until: untilArg || null },
       });
     }
 
@@ -180,7 +186,7 @@ const getServiceLogs = async (req, res) => {
  */
 const getAllLogs = async (req, res) => {
   try {
-    const { lines = 50 } = req.query;
+    const lines = clampDockerLogLines(req.query.lines, 50);
 
     // Vérifier les permissions admin
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {

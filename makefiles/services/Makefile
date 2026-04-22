@@ -468,6 +468,13 @@ _up-full-internal:
 	@echo "⏳ Attente supplémentaire pour que PostgreSQL soit complètement prêt (3s)..."
 	@sleep 3
 	
+	# Avant la gateway : DNS joignable pour les proxys /api/v1/security/* et /api/v1/metrics (évite ENOTFOUND au boot)
+	@echo "🚀 Pré-démarrage security-service + monitoring-c + metrics-aggregator..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d security-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente résolution des noms security / metrics (6s)..."
+	@sleep 6
+	
 	# Démarrer services principaux
 	@echo "🚀 Démarrage des services principaux..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service)
@@ -1012,7 +1019,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo "=========================================="
 	@echo ""
 	@printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"
-	@printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m est un binaire C : ecoute en \033[0;33m8015\033[0;90m dans le conteneur ; le \033[0;36m5098\033[0;90m (ou \033[0;36m$${MONITORING_C_PORT:-5098}\033[0;90m) est le mappage hote - acces reseau Docker via \033[0;36mmonitoring-c:8015\033[0;90m, pas exposition Internet par defaut.\033[0m"
+	@printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m (C) ecoute \033[0;33m8015\033[0;90m dans le conteneur ; hote \033[0;36m5098\033[0;90m. \033[1;33mlog-collector-c\033[0;90m (C) ecoute \033[0;33m3019\033[0;90m dans le conteneur ; hote \033[0;36m5099\033[0;90m (pas 5099->5099). Acces reseau Docker : \033[0;36mlog-collector-c:3019\033[0;90m / \033[0;36mmonitoring-c:8015\033[0;90m.\033[0m"
 	@echo ""
 	@echo "🏗️  Infrastructure:"
 	@echo ""

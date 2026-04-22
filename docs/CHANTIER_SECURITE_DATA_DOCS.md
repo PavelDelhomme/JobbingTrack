@@ -18,7 +18,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 ## Lots (rappel)
 
 - **A** — Monitoring détaillé, logs multi-sources, corrélation, pipeline, **A5** métriques persistées / pages liées (voir **`PLAN.md`**).
-- **B** — Sécurité visible + **forensics** (**B6–B9**) + **B10** UX outils sécurité backoffice — **`PLAN.md`** § lot B. **B5** stable ; **B1** fait — voir **`RESOLUTIONS.md`**.
+- **B** — Sécurité visible + **forensics** (**B6–B9**) + **B10** UX outils sécurité backoffice — **`PLAN.md`** § lot B. **Table de périmètre** (firewall, politiques, menaces temps réel, mots de passe, déploiement, logs) : **`TODOS.md`** § **Lot B — Vision d’ensemble**. **B5** stable ; **B1** fait — voir **`RESOLUTIONS.md`**.
 - **C** — Suivi-intérim et données test / bases.
 - **D** — Crash mobile et observabilité.
 - **E** — Documentation exhaustive (PROCESSUS, revue `docs/`, etc.).

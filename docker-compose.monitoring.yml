@@ -52,7 +52,9 @@ services:
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
     ports:
-      - "${LOG_COLLECTOR_C_PORT:-5099}:5099"
+      # Hôte (5099 par défaut) → port interne 3019 (même logique 30xx que les services Node)
+      - "${LOG_COLLECTOR_C_PORT:-5099}:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"
+    command: ["./log-collector-c", "${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - POSTGRES_HOST=postgres

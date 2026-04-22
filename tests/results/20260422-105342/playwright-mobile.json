@@ -1,0 +1,6 @@
+{
+  "testName": "Playwright Mobile",
+  "status": "skipped",
+  "reason": "no adb device in state device; set RUN_PLAYWRIGHT_MOBILE=1 to force",
+  "timestamp": "2026-04-22T11:09:34+02:00"
+}
