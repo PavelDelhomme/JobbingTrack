@@ -1,0 +1,20 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-04-22T01:56:58+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 10,
+    "passed": 3,
+    "failed": 7
+  },
+  "output": "            id             |                    to                    |                    subject                     |     type     | status  | sentAt |        createdAt        \n---------------------------+------------------------------------------+------------------------------------------------+--------------+---------+--------+-------------------------\n cmo6wu28o00357121mc8te6d2 | e2e-test@mailhog.local                   | E2E Interaction Test - 1776672333436           | TEST         | FAILED  |        | 2026-04-20 08:05:33.528\n cmo6wsm3800347121teafw7ii | e2e-user-1776672260673@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-20 08:04:25.941\n cmo6wsic700337121qn56vf98 | e2e-user-1776672255818@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-20 08:04:21.079\n cmo6wsi8g00327121p0mf0sui | e2e-user-1776672260673@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-20 08:04:20.945\n cmo6wsi8400307121v0oxlsu2 | e2e-user-1776672260673@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-20 08:04:20.933\n cmo6wsi80002x7121gltfsgku | e2e-user-1776672255493@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-20 08:04:20.928\n cmo6wseh4002w71216wpgpzqg | e2e-user-1776672255818@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-20 08:04:16.072\n cmo6wseh2002u7121g3k7mm91 | e2e-user-1776672255818@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-20 08:04:16.07\n cmo6wse9r002r7121jz94gpq1 | e2e-user-1776672255493@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-20 08:04:15.807\n cmo6wse9p002p7121pevc3i1b | e2e-user-1776672255493@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-20 08:04:15.805\n(10 rows)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

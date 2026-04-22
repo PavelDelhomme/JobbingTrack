@@ -10,34 +10,16 @@ const {
   normalizeMetricsAggregatorUrl,
 } = require('../helpers/dockerHostUrl');
 
-function normalizeAuthServiceUrl(url, authPort) {
-  const base = (url && String(url).trim()) || `http://127.0.0.1:${authPort}`;
-  try {
-    const u = new URL(base);
-    if (
-      u.hostname === 'jobbingtrack-auth-service' ||
-      u.hostname === 'auth-service'
-    ) {
-      const port = u.port || authPort;
-      return `http://127.0.0.1:${port}`;
-    }
-  } catch (_) {
-    /* ignore */
-  }
-  return base;
-}
-
 class PerformanceTester {
   constructor() {
     this.metrics = [];
-    const authPort = process.env.AUTH_SERVICE_PORT || '5005';
     const metricsPort = process.env.METRICS_AGGREGATOR_PORT || '5004';
     const apiBase = normalizeGatewayUrlForHost(
       process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002'
     );
     this.services = {
+      /** Trafic applicatif mesuré via la gateway (WAF, rate limits, corrélation) — pas d’appel direct aux ports microservices sauf metrics-aggregator (sondage infra). */
       apiGateway: apiBase,
-      auth: normalizeAuthServiceUrl(process.env.AUTH_SERVICE_URL, authPort),
       metricsAggregator: normalizeMetricsAggregatorUrl(
         process.env.METRICS_AGGREGATOR_URL || `http://localhost:${metricsPort}`
       ),
@@ -65,7 +47,7 @@ class PerformanceTester {
 
     const endpoints = [
       { service: 'apiGateway', path: '/health', method: 'GET', label: 'Gateway Health' },
-      { service: 'auth', path: '/health', method: 'GET', label: 'Auth Health' },
+      { service: 'apiGateway', path: '/api/v1/auth/health', method: 'GET', label: 'Auth Health (gateway)' },
       { service: 'apiGateway', path: '/api/v1/applications', method: 'GET', label: 'Applications (list)' },
       { service: 'apiGateway', path: '/api/v1/companies', method: 'GET', label: 'Companies (list)' },
       { service: 'apiGateway', path: '/api/v1/contacts', method: 'GET', label: 'Contacts (list)' },
@@ -97,12 +79,12 @@ class PerformanceTester {
     const loadTests = light
       ? [
           { service: 'apiGateway', endpoint: '/health', requests: 5, label: 'Gateway Health' },
-          { service: 'auth', endpoint: '/health', requests: 4, label: 'Auth Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/auth/health', requests: 4, label: 'Auth Health (gateway)' },
           { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 4, label: 'Companies API' },
         ]
       : [
           { service: 'apiGateway', endpoint: '/health', requests: 10, label: 'Gateway Health' },
-          { service: 'auth', endpoint: '/health', requests: 8, label: 'Auth Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/auth/health', requests: 8, label: 'Auth Health (gateway)' },
           { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 6, label: 'Companies API' },
         ];
     if (light) console.log('   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)');

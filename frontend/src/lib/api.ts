@@ -1,9 +1,27 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { FRONTEND_URLS } from '@/config/ports.config';
 import { cacheManager } from '@/lib/cache/cacheManager';
 import { isCriticalService, isOptionalService, getServiceErrorMessage, shouldLogServiceError } from './services/serviceStatus';
 
 const API_BASE_URL = FRONTEND_URLS.api;
+
+/** Corrélation B6 : id par requête HTTP côté navigateur (complété / relayé par la gateway). */
+function attachClientRequestCorrelation(config: InternalAxiosRequestConfig) {
+    if (typeof window === 'undefined') return config;
+    const headers = (config.headers ?? {}) as Record<string, string>;
+    if (!headers['X-Request-Id'] && !headers['x-request-id']) {
+        const id =
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                ? crypto.randomUUID()
+                : `fe-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        headers['X-Request-Id'] = id;
+    }
+    if (!headers['X-Correlation-Id'] && !headers['x-correlation-id']) {
+        headers['X-Correlation-Id'] = headers['X-Request-Id'] || headers['x-request-id'] || '';
+    }
+    config.headers = headers as typeof config.headers;
+    return config;
+}
 
 // Cache simple pour éviter les requêtes dupliquées en cours
 const requestCache = new Map<string, Promise<any>>();
@@ -60,6 +78,7 @@ export const criticalApiClient = axios.create({
 
 // Intercepteur pour ajouter le token JWT automatiquement
 apiClient.interceptors.request.use((config) => {
+    attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
@@ -82,6 +101,7 @@ apiClient.interceptors.request.use((config) => {
 
 // Intercepteur pour criticalApiClient (même logique)
 criticalApiClient.interceptors.request.use((config) => {
+    attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         if (token) {

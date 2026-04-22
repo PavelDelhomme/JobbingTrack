@@ -193,7 +193,7 @@ help-services: ## Afficher l'aide services
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
 	@echo "  make status-watch          - Statut en boucle : CLEAR=1 (défaut) réaffiche tout ; CLEAR=0 garde l’historique ; INTERVAL=5 (défaut) ; sans messages « répertoire » make"
-	@echo "  make status-live           - Statut synthétique en temps réel (actualisation 2s)"
+	@echo "  make status-live           - Même détail que make status, boucle (INTERVAL=2s ; CLEAR=0 défaut)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
 	@echo "  make logs-service SERVICE=x - Logs d'un service"
@@ -1300,7 +1300,14 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
 	all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
 	if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
-	if [ "$$up_count" -eq 0 ]; then \
+	if [ "$$up_count" -eq 0 ] && [ "$$all_count" -eq 0 ]; then \
+		printf "📊 Résumé : \033[1;31maucun\033[0m conteneur \033[0;90mjobbingtrack-*\033[0m (stack non démarrée ou Docker inaccessible)\n"; \
+		if ! docker info >/dev/null 2>&1; then \
+			printf '%b\n' "\033[1;33m    → \`docker info\` échoue : démarrez Docker / droits (groupe docker) / contexte (\`docker context show\`).\033[0m"; \
+		else \
+			printf '%b\n' "\033[1;33m    → À la racine du dépôt : \033[0;36mmake up-full\033[1;33m ou \033[0;36mmake up\033[1;33m, puis \033[0;36mmake status\033[0m.\033[0m"; \
+		fi; \
+	elif [ "$$up_count" -eq 0 ]; then \
 		printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	elif [ "$$up_count" -lt "$$all_count" ]; then \
 		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
@@ -1331,91 +1338,39 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
 # Même sortie que `status`, en boucle (vue complète).
-# INTERVAL=s (défaut 5) · CLEAR=1 efface l’écran avant chaque statut (défaut) pour éviter l’effet « anciennes valeurs » empilées ; CLEAR=0 garde le défilement.
-# --no-print-directory : supprime les lignes make « Entrée / on quitte le répertoire » (couleurs du statut inchangées).
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, CLEAR=1, Ctrl+C pour quitter)
-	@echo "📊 Statut détaillé — actualisation toutes les $(or $(INTERVAL),5)s (Ctrl+C pour quitter)"
-	@printf '%b\n' "\033[0;90m💡 Chaque cycle relit Docker (pas de cache Makefile). CLEAR=0 pour empiler les sorties sans \`clear\`. Vue plus fréquente : make status-live\033[0m"
+# INTERVAL=s (défaut 5) · CLEAR=1 efface l’écran avant chaque cycle ; sans CLEAR=1, l’historique défile (défaut : pas d’effacement, lecture continue).
+# --no-print-directory : supprime les lignes make « Entrée / on quitte le répertoire ».
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, CLEAR défaut vide = pas clear ; CLEAR=1 pour plein écran)
+	@printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m$(or $(INTERVAL),5)s\033[0m \033[0;90m· Ctrl+C pour quitter\033[0m"
+	@printf '%b\n' "\033[0;90m💡 Même rendu que \033[0;36mmake status\033[0;90m. \033[1;33mCLEAR=1\033[0;90m pour \`clear\` chaque cycle ; défaut : défilement sans effacer. \033[0;36mmake status-live\033[0;90m = même chose, INTERVAL=2s.\033[0m"
 	@echo ""
-	@while true; do \
-		if [ "$(CLEAR)" != "0" ]; then clear; fi; \
+	@sep=0; while true; do \
+		if [ "$$sep" = 1 ] && [ "$(CLEAR)" != "1" ]; then \
+			printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"; \
+		fi; \
+		if [ "$(CLEAR)" = "1" ]; then clear; fi; \
 		$(MAKE) --no-print-directory status; \
+		sep=1; \
 		echo ""; \
-		printf '%b\n' "\033[0;90m🕐 $$(date '+%Y-%m-%d %H:%M:%S %z') — prochain cycle dans $(or $(INTERVAL),5)s (CLEAR=$(or $(CLEAR),1))\033[0m"; \
+		printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m$(or $(INTERVAL),5)s\033[0m  \033[0;35m(CLEAR=$(or $(CLEAR),0))\033[0m"; \
 		sleep $(or $(INTERVAL),5); \
 	done
 
-# Statut en temps réel (actualisation automatique)
-status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)
-	@echo "📊 Statut en temps réel des services JobbingTrack"
-	@echo "=========================================="
+# Même rendu que `make status`, boucle rapide (pas de vue « compacte » dupliquée — évite ports tronqués et services manquants).
+# INTERVAL=s (défaut 2) · CLEAR=1 pour effacer l’écran ; défaut : pas de clear (historique visible entre deux cycles).
+status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut 2, Ctrl+C pour quitter)
+	@printf '%b\n' "\033[0;36m📊 Statut live\033[0m — \033[0;90mmême sortie que\033[0m \033[1;33mmake status\033[0m \033[0;90m· cycle\033[0m \033[1;33m$(or $(INTERVAL),2)s\033[0m \033[0;90m·\033[0m \033[1;33mCLEAR=1\033[0;90m pour plein écran · Ctrl+C\033[0m"
 	@echo ""
-	@echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"
-	@echo ""
-	@while true; do \
-		clear; \
-		echo "📊 Statut détaillé des services JobbingTrack"; \
-		echo "=========================================="; \
-		echo ""; \
-		echo "🟢 Services essentiels:"; \
-		echo ""; \
-		services="postgres redis api-gateway frontend auth-service dashboard-service"; \
-		for service in $$services; do \
-			container="jobbingtrack-$$service"; \
-			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
-				if [ -n "$$ports" ]; then \
-					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
-					if [ -n "$$port_main" ]; then \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
-					else \
-						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
-					fi; \
-				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
-				fi; \
-			else \
-				printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
-			fi; \
-		done; \
-		echo ""; \
-		echo "🔵 Services optionnels:"; \
-		echo ""; \
-		services="application-service company-service contact-service interview-service followup-service call-service metrics-aggregator"; \
-		for service in $$services; do \
-			container="jobbingtrack-$$service"; \
-			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
-				if [ -n "$$ports" ]; then \
-					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
-					if [ -n "$$port_main" ]; then \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
-					else \
-						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
-					fi; \
-				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
-				fi; \
-			else \
-				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
-			fi; \
-		done; \
-		echo ""; \
-		up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
-		all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
-		if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
-		if [ "$$up_count" -eq 0 ]; then \
-			printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-		elif [ "$$up_count" -lt "$$all_count" ]; then \
-			printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-		else \
-			printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+	@sep=0; while true; do \
+		if [ "$$sep" = 1 ] && [ "$(CLEAR)" != "1" ]; then \
+			printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"; \
 		fi; \
+		if [ "$(CLEAR)" = "1" ]; then clear; fi; \
+		$(MAKE) --no-print-directory status; \
+		sep=1; \
 		echo ""; \
-		echo "💡 Actualisation dans 2 secondes... (Ctrl+C pour quitter)"; \
-		sleep 2; \
+		printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m$(or $(INTERVAL),2)s\033[0m  \033[0;35m(CLEAR=$(or $(CLEAR),0))\033[0m"; \
+		sleep $(or $(INTERVAL),2); \
 	done
 
 # Liste conteneurs actifs

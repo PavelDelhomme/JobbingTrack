@@ -85,6 +85,8 @@ router.post('/generate-test-data', authenticate, testdataController.generateTest
 router.post('/test-data/clear', authenticate, testdataController.clearTestData);
 router.post('/clear-test-data', authenticate, testdataController.clearTestData); // Alias pour backoffice Actions « Revenir à la base propre »
 router.get('/test-data/status', authenticate, testdataController.getTestDataStatus);
+router.get('/test-data/summary', authenticate, testdataController.getTestDataSummary);
+router.post('/test-data/tag-likely', authenticate, testdataController.tagLikelyTestData);
 
 // ✅ Export / Import / Cleanup (gestion des données)
 // Type frontend : applications, companies, contacts, all -> tableName backend (Application, Company, Contact)

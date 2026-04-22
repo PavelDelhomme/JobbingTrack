@@ -1,46 +1,37 @@
 {
-  "timestamp": "2026-04-17T20:49:39.022Z",
-  "totalVulnerabilities": 66,
+  "timestamp": "2026-04-22T00:13:38.181Z",
+  "totalVulnerabilities": 70,
   "critical": 0,
   "high": 0,
   "medium": 1,
   "low": 0,
-  "secure": 60,
+  "secure": 64,
   "vulnerabilities": [
     {
-      "endpoint": "/api/v1/auth/profile",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: getaddrinfo ENOTFOUND api-gateway"
-    },
-    {
-      "endpoint": "/api/v1/applications",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: getaddrinfo ENOTFOUND api-gateway"
-    },
-    {
-      "endpoint": "/api/v1/companies",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: getaddrinfo ENOTFOUND api-gateway"
-    },
-    {
-      "endpoint": "/api/v1/followups",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: getaddrinfo ENOTFOUND api-gateway"
-    },
-    {
-      "endpoint": "http://api-gateway:3000/api/v1/auth/login",
+      "endpoint": "http://127.0.0.1:5002/api/v1/auth/login",
       "vulnerability": "Rate Limiting",
       "severity": "MEDIUM",
       "description": "Aucun rate limiting détecté"
     },
     {
-      "header": "all",
-      "status": "SKIPPED",
-      "note": "Service non accessible"
+      "header": "x-content-type-options",
+      "status": "SECURE"
+    },
+    {
+      "header": "x-frame-options",
+      "status": "MISSING"
+    },
+    {
+      "header": "x-xss-protection",
+      "status": "MISSING"
+    },
+    {
+      "header": "strict-transport-security",
+      "status": "MISSING"
+    },
+    {
+      "header": "content-security-policy",
+      "status": "SECURE"
     }
   ]
 }

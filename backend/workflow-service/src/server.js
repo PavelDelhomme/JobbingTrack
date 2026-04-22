@@ -15,7 +15,13 @@ app.use(express.json());
 
 // Routes
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'workflow-service', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'OK',
+    service: 'workflow-service',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
 app.use('/api/v1/workflow', workflowRoutes);

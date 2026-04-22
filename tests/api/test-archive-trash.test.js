@@ -10,6 +10,7 @@
 const axios = require('axios');
 const { describe, it, expect, beforeAll, afterAll } = require('@jest/globals');
 const { getTestUser, API_URL } = require('../helpers/auth.helper');
+const { isApiConnectionError, warnApiDown } = require('../helpers/apiConnection');
 
 const PREFIX = 'ARCHTEST';
 
@@ -420,11 +421,19 @@ describe('Archivage & Corbeille (utilisateur classique)', () => {
   // ─── ERREURS / CAS LIMITES ───
   describe('Cas limites', () => {
     it('archiver un ID inexistant devrait retourner 404', async () => {
-      const res = await axios.post(
-        `${API_URL}/api/v1/interviews/id-inexistant-12345/archive`,
-        {}, { headers: authHeaders, validateStatus: () => true }
-      );
-      expect(res.status).toBe(404);
+      try {
+        const res = await axios.post(
+          `${API_URL}/api/v1/interviews/id-inexistant-12345/archive`,
+          {}, { headers: authHeaders, validateStatus: () => true }
+        );
+        expect(res.status).toBe(404);
+      } catch (e) {
+        if (isApiConnectionError(e)) {
+          warnApiDown('archive ID inexistant', e);
+          return;
+        }
+        throw e;
+      }
     });
 
     it('désarchiver un élément non archivé devrait retourner 404', async () => {

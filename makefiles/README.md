@@ -142,8 +142,8 @@ make stop-service SERVICE=x   # Arrêter un service
 make restart-service SERVICE=x # Redémarrer un service
 make logs-service SERVICE=x    # Logs d'un service
 make status             # Status détaillé (légende ports hôte → conteneur, ex. monitoring-c 8015)
-make status-watch       # Boucle : CLEAR=1 (défaut) efface l’écran chaque cycle ; CLEAR=0 garde le scroll ; INTERVAL=5 (défaut) ; sans messages « répertoire » make
-make status-live        # Statut compact toutes les ~2 s
+make status-watch       # Boucle : même sortie que make status ; défaut sans clear (défilement) ; CLEAR=1 efface l’écran ; INTERVAL=5 (défaut)
+make status-live        # Idem status-watch, INTERVAL=2 (défaut) ; toujours le détail complet make status
 make ps                 # Liste conteneurs
 make logs               # Tous les logs
 ```

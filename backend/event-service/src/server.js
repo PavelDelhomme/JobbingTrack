@@ -21,9 +21,11 @@ app.use(morgan('dev'));
 
 app.get('/health', (req, res) => {
   res.json({
-    success: true,
+    status: 'OK',
     service: 'event-service',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 

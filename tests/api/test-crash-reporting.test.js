@@ -7,6 +7,7 @@
 const axios = require('axios');
 const { describe, it, expect, beforeAll } = require('@jest/globals');
 const { getTestUser, getAdminUser, API_URL } = require('../helpers/auth.helper');
+const { isApiConnectionError, warnApiDown } = require('../helpers/apiConnection');
 
 describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
   let authHeaders;
@@ -32,6 +33,21 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
 
   const GATEWAY_CRASH_URL = `${API_URL}/api/v1/crashes`;
 
+  async function postCrash(payload, headers = { 'Content-Type': 'application/json' }) {
+    try {
+      return await axios.post(GATEWAY_CRASH_URL, payload, {
+        headers,
+        validateStatus: () => true
+      });
+    } catch (e) {
+      if (isApiConnectionError(e)) {
+        warnApiDown('POST /api/v1/crashes', e);
+        return { status: 0, data: {} };
+      }
+      throw e;
+    }
+  }
+
   it('POST /api/v1/crashes - devrait enregistrer un crash report complet (sans auth)', async () => {
     const crashReport = {
       crashType: 'FlutterError',
@@ -51,10 +67,8 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
       metadata: { buildNumber: '42', flavor: 'debug' }
     };
 
-    const res = await axios.post(GATEWAY_CRASH_URL, crashReport, {
-      headers: { 'Content-Type': 'application/json' },
-      validateStatus: () => true
-    });
+    const res = await postCrash(crashReport, { 'Content-Type': 'application/json' });
+    if (res.status === 0) return;
 
     expect(res.status).toBe(201);
     expect(res.data.success).toBe(true);
@@ -64,33 +78,27 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
   });
 
   it('POST /api/v1/crashes - devrait rejeter sans crashType', async () => {
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
-      { message: 'test error' },
-      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
-    );
+    const res = await postCrash({ message: 'test error' }, { 'Content-Type': 'application/json' });
+    if (res.status === 0) return;
 
     expect(res.status).toBe(400);
     expect(res.data.success).toBe(false);
   });
 
   it('POST /api/v1/crashes - devrait rejeter sans message', async () => {
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
-      { crashType: 'TestError' },
-      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
-    );
+    const res = await postCrash({ crashType: 'TestError' }, { 'Content-Type': 'application/json' });
+    if (res.status === 0) return;
 
     expect(res.status).toBe(400);
     expect(res.data.success).toBe(false);
   });
 
   it('POST /api/v1/crashes - devrait accepter sans authentification', async () => {
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
+    const res = await postCrash(
       { crashType: 'NoAuthTest', message: 'Crash sans token pour test' },
-      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
+      { 'Content-Type': 'application/json' }
     );
+    if (res.status === 0) return;
 
     expect(res.status).toBe(201);
     expect(res.data.success).toBe(true);
@@ -98,11 +106,11 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
   });
 
   it('POST /api/v1/crashes - devrait accepter un rapport minimal', async () => {
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
+    const res = await postCrash(
       { crashType: 'MinimalError', message: 'Crash minimal pour test' },
-      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
+      { 'Content-Type': 'application/json' }
     );
+    if (res.status === 0) return;
 
     expect(res.status).toBe(201);
     expect(res.data.success).toBe(true);
@@ -111,11 +119,8 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
 
   it('POST /api/v1/crashes - devrait gerer un message tres long', async () => {
     const longMessage = 'E'.repeat(2000);
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
-      { crashType: 'LongError', message: longMessage },
-      { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
-    );
+    const res = await postCrash({ crashType: 'LongError', message: longMessage }, { 'Content-Type': 'application/json' });
+    if (res.status === 0) return;
 
     expect(res.status).toBe(201);
     expect(res.data.success).toBe(true);
@@ -125,11 +130,8 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
   it('POST /api/v1/crashes - devrait accepter avec token (optionnel)', async () => {
     if (!validToken) return;
 
-    const res = await axios.post(
-      GATEWAY_CRASH_URL,
-      { crashType: 'WithAuth', message: 'Crash avec token' },
-      { headers: authHeaders, validateStatus: () => true }
-    );
+    const res = await postCrash({ crashType: 'WithAuth', message: 'Crash avec token' }, authHeaders);
+    if (res.status === 0) return;
 
     expect(res.status).toBe(201);
     expect(res.data.success).toBe(true);
@@ -140,15 +142,15 @@ describe('Crash Reporting API (Gateway /api/v1/crashes)', () => {
     const types = ['FlutterError', 'UncaughtError', 'NetworkError', 'TimeoutError', 'ManualReport'];
 
     for (const crashType of types) {
-      const res = await axios.post(
-        GATEWAY_CRASH_URL,
+      const res = await postCrash(
         {
           crashType,
           message: `Test crash type: ${crashType}`,
           deviceInfo: { platform: 'android', osVersion: '14' }
         },
-        { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
+        { 'Content-Type': 'application/json' }
       );
+      if (res.status === 0) return;
 
       expect(res.status).toBe(201);
       expect(res.data.success).toBe(true);

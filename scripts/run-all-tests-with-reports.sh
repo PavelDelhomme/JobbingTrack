@@ -40,16 +40,13 @@ fi
 
 # Curl / Jest sur l’hôte : les noms Docker ne résolvent pas → ENOTFOUND ou curl code 000 + corps obsolète dans /tmp
 normalize_docker_hosts_for_host_runner() {
+	# Sur l’hôte, ne jamais utiliser le port *interne* du conteneur (ex. :3000) : utiliser les ports publiés du compose.
 	if [[ "${API_GATEWAY_URL:-}" == *"api-gateway"* ]]; then
-		local _gp
-		_gp=$(printf '%s' "${API_GATEWAY_URL}" | sed -n 's/.*api-gateway:\([0-9][0-9]*\).*/\1/p')
-		export API_GATEWAY_URL="http://127.0.0.1:${_gp:-${API_GATEWAY_PORT:-5002}}"
+		export API_GATEWAY_URL="http://127.0.0.1:${API_GATEWAY_PORT:-5002}"
 		echo -e "${YELLOW}   📍 API_GATEWAY_URL normalisé pour l’hôte : ${API_GATEWAY_URL}${NC}"
 	fi
 	if [[ "${METRICS_AGGREGATOR_URL:-}" == *"jobbingtrack-metrics-aggregator"* ]] || [[ "${METRICS_AGGREGATOR_URL:-}" == *"metrics-aggregator"* ]]; then
-		local _mp
-		_mp=$(printf '%s' "${METRICS_AGGREGATOR_URL}" | sed -n 's/.*:\([0-9][0-9]*\).*/\1/p')
-		export METRICS_AGGREGATOR_URL="http://127.0.0.1:${_mp:-${METRICS_AGGREGATOR_PORT:-5004}}"
+		export METRICS_AGGREGATOR_URL="http://127.0.0.1:${METRICS_AGGREGATOR_PORT:-5004}"
 		echo -e "${YELLOW}   📍 METRICS_AGGREGATOR_URL normalisé pour l’hôte : ${METRICS_AGGREGATOR_URL}${NC}"
 	fi
 }
@@ -108,6 +105,19 @@ TOTAL_CATEGORIES=0     # Nombre de catégories de tests exécutées
 TEST_RESULTS=()
 STEP_NUM=0             # Compteur d'étapes pour affichage progression
 
+# JSON minimal pour Playwright Mobile en skip (évite printf avec guillemets imbriqués / apostrophes dans les raisons)
+write_playwright_mobile_skip_json() {
+    local reason=$1
+    local ts
+    ts=$(date -Iseconds 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ")
+    if command -v jq >/dev/null 2>&1; then
+        jq -n --arg testName "Playwright Mobile" --arg status "skipped" --arg reason "$reason" --arg ts "$ts" \
+            '{testName:$testName,status:$status,reason:$reason,timestamp:$ts}' > "$REPORT_DIR/playwright-mobile.json"
+    else
+        printf '{"testName":"Playwright Mobile","status":"skipped","reason":"%s","timestamp":"%s"}\n' "$reason" "$ts" > "$REPORT_DIR/playwright-mobile.json"
+    fi
+}
+
 # Fonction pour exécuter un test et capturer les résultats (sortie affichée en direct)
 run_test() {
     local test_name="$1"
@@ -120,8 +130,16 @@ run_test() {
     cd "$ROOT_DIR" 2>/dev/null || true
     
     STEP_NUM=$((STEP_NUM + 1))
+    local _role_badge=""
+    if [ "$user_type" = "admin" ]; then
+        _role_badge=$(echo -e "${RED}👑 ADMIN${NC}")
+    elif [ "$user_type" = "user" ]; then
+        _role_badge=$(echo -e "${GREEN}👤 USER${NC}")
+    else
+        _role_badge=$(echo -e "${YELLOW}⚙️ SYSTEM${NC}")
+    fi
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC} $([ "$user_type" = "admin" ] && echo -e "${RED}👑 ADMIN${NC}" || ([ "$user_type" = "user" ] && echo -e "${GREEN}👤 USER${NC}" || echo -e "${YELLOW}⚙️ SYSTEM${NC}"))"
+    echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC} ${_role_badge}"
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "  ${GREEN}▶ En cours – sortie ci-dessous (Ctrl+C pour arrêter)${NC}"
     echo ""
@@ -308,7 +326,7 @@ run_test() {
   "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')",
   "duration": $duration,
   "exitCode": $exit_code,
-  "status": "$([ $exit_code -eq 0 ] && echo "success" || echo "failed")",
+  "status": "$([ "$exit_code" -eq 0 ] && echo "success" || echo "failed")",
   "statistics": {
     "total": $total,
     "passed": $passed,
@@ -537,6 +555,19 @@ elif [ -f "tests/backend/test-security-service.test.js" ]; then
         "$REPORT_DIR/backend-services.json"
 fi
 
+# 6a. Jest — API Gateway (priorité **conteneur** : même image que la prod dev, deps déjà dans l’image ; fallback hôte si pas de stack)
+if docker ps 2>/dev/null | grep -q jobbingtrack-api-gateway; then
+    run_test "API Gateway (Jest — conteneur jobbingtrack-api-gateway)" \
+        "docker exec -w /app jobbingtrack-api-gateway sh -c 'npm test -- --forceExit --no-coverage 2>&1'" \
+        "$REPORT_DIR/api-gateway-jest.json" \
+        "system"
+elif [ -f "backend/api-gateway/package.json" ] && [ -f "backend/api-gateway/jest.config.js" ]; then
+    run_test "API Gateway (Jest — hôte, conteneur gateway absent)" \
+        "cd backend/api-gateway && ( [ -d node_modules ] || npm install --no-audit --no-fund ) && npx jest --forceExit --no-coverage 2>&1" \
+        "$REPORT_DIR/api-gateway-jest.json" \
+        "system"
+fi
+
 # 6b. Tests API Backend (script complet : auth, users, companies, applications, contacts, interviews, calls, events, followups, profile, notifications, metrics, dashboard, emails, workflow, security)
 API_BASE_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 run_test "Tests API Backend (script - tous services)" \
@@ -562,6 +593,7 @@ else
         (cd frontend && npm install --no-audit --no-fund 2>/dev/null || true && (timeout 180 ./node_modules/.bin/playwright install 2>&1 || timeout 180 npx playwright install 2>&1) | tail -5) || true
     fi
 fi
+echo -e "${YELLOW}💡 Playwright : si vous voyez _validateHostRequirements / dépendances manquantes sur Linux, depuis frontend/ : npx playwright install-deps (souvent avec sudo) puis npx playwright install.${NC}"
 echo ""
 
 # 7. Tests Playwright E2E Frontend (config standalone = pas de webServer, frontend déjà up sur 5003 avec make up-full)
@@ -570,14 +602,18 @@ PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-900}"
 PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
 PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-2}"
 API_E2E_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
+export PLAYWRIGHT_BASE_URL="$PLAYWRIGHT_BASE"
+export API_URL="$API_E2E_URL"
+export API_GATEWAY_URL="$API_E2E_URL"
+export PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-2}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; export PLAYWRIGHT_WORKERS=\"${PLAYWRIGHT_WORKERS:-2}\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-frontend-e2e.sh\" 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 elif [ -d "frontend/tests/e2e" ]; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; export API_URL=\"$API_E2E_URL\"; export API_GATEWAY_URL=\"$API_E2E_URL\"; export PLAYWRIGHT_WORKERS=\"${PLAYWRIGHT_WORKERS:-2}\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-frontend-e2e.sh\" 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 else
@@ -590,16 +626,20 @@ fi
 # 7b. Tests Emails + MailHog (config sans webServer → frontend déjà up sur 5003 avec make up-full)
 # Pour que les mails arrivent dans MailHog : auth-service doit avoir SMTP_HOST=mailhog SMTP_PORT=1025 (.env ou make up-full)
 if [ -f "tests/e2e/specs/admin-emails-mailhog.spec.ts" ]; then
+    : "${MAILHOG_WEB_URL:=http://localhost:8025}"
+    export MAILHOG_WEB_URL
     run_test "Playwright Emails MailHog" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"${MAILHOG_WEB_URL:-http://localhost:8025}\" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-mailhog.json" \
         "admin"
 fi
 
 # 7c. Tests Workflows Email complets (inscription, reset password, MailHog)
 if [ -f "tests/e2e/specs/email-workflows.spec.ts" ]; then
+    : "${MAILHOG_WEB_URL:=http://localhost:8025}"
+    export MAILHOG_WEB_URL
     run_test "Playwright Email Workflows" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"${MAILHOG_WEB_URL:-http://localhost:8025}\" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-email-workflows.json" \
         "user"
 fi
@@ -607,7 +647,7 @@ fi
 # 7d. Tests CRUD données complet (admin)
 if [ -f "tests/e2e/specs/admin-data-crud.spec.ts" ]; then
     run_test "Playwright CRUD Données (admin)" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && API_URL=\"${API_E2E_URL:-http://localhost:5002}\" API_GATEWAY_URL=\"${API_E2E_URL:-http://localhost:5002}\" npx playwright test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-data-crud.json" \
         "admin"
 fi
@@ -615,7 +655,7 @@ fi
 # 7e. Tests CRUD utilisateurs (admin)
 if [ -f "tests/e2e/specs/admin-users-crud.spec.ts" ]; then
     run_test "Playwright CRUD Utilisateurs (admin)" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-users-crud.json" \
         "admin"
 fi
@@ -623,15 +663,36 @@ fi
 # 7f. Tests Sécurité Backoffice complets (admin)
 if [ -f "tests/e2e/specs/admin-security-complete.spec.ts" ]; then
     run_test "Playwright Sécurité Backoffice (admin)" \
-        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-security-complete.json" \
         "admin"
 fi
 
-# 8. Tests Mobile Playwright – exclus du pipeline E2E principal (pas d'émulateur mobile)
-echo -e "${YELLOW}⚠️  Tests Mobile exclus (émulateur mobile non lancé)${NC}"
-_ts=$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')
-printf '%s\n' "{\"testName\":\"Playwright Mobile\",\"status\":\"skipped\",\"reason\":\"Tests mobiles exclus du pipeline E2E (emulateur non lance)\",\"timestamp\":\"$_ts\"}" > "$REPORT_DIR/playwright-mobile.json"
+# 8. Playwright Mobile : uniquement si emulateur ou appareil USB pret (adb) ou RUN_PLAYWRIGHT_MOBILE=1
+PLAYWRIGHT_MOBILE_FORCE=0
+case "${RUN_PLAYWRIGHT_MOBILE:-}" in 1|true|yes|on) PLAYWRIGHT_MOBILE_FORCE=1 ;; esac
+PLAYWRIGHT_MOBILE_ADB=0
+if command -v adb >/dev/null 2>&1; then
+    if adb devices 2>/dev/null | awk 'NR>1 && $2=="device"{f=1} END{exit !f}'; then
+        PLAYWRIGHT_MOBILE_ADB=1
+    fi
+fi
+PLAYWRIGHT_MOBILE_TIMEOUT="${PLAYWRIGHT_MOBILE_TIMEOUT:-600}"
+if [ "$PLAYWRIGHT_MOBILE_FORCE" = "1" ] || [ "$PLAYWRIGHT_MOBILE_ADB" = "1" ]; then
+    if [ -f "$ROOT_DIR/frontend/playwright.mobile.config.ts" ] && [ -d "$ROOT_DIR/frontend/tests/e2e/mobile" ]; then
+        echo -e "${BLUE}📱 Playwright Mobile (peripherique detecte ou RUN_PLAYWRIGHT_MOBILE=1)...${NC}"
+        run_test "Playwright Mobile E2E" \
+            "timeout $PLAYWRIGHT_MOBILE_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-mobile-e2e.sh\" 2>&1" \
+            "$REPORT_DIR/playwright-mobile.json" \
+            "system"
+    else
+        echo -e "${YELLOW}⚠️  playwright.mobile.config.ts ou tests/e2e/mobile absent — skip.${NC}"
+        write_playwright_mobile_skip_json "mobile config or tests directory missing"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Tests Playwright Mobile non lances (aucun appareil adb en etat device). Pour forcer : RUN_PLAYWRIGHT_MOBILE=1 make test-all${NC}"
+    write_playwright_mobile_skip_json "no adb device in state device; set RUN_PLAYWRIGHT_MOBILE=1 to force"
+fi
 echo ""
 
 # 9. Tests Frontend Jest (unit + pages analytics — pas la suite Jest complète du repo)
@@ -821,12 +882,12 @@ if [ -f "tests/services/test-workflow-service.js" ]; then
         "$REPORT_DIR/workflow-service.json"
 elif docker ps | grep -q jobbingtrack-workflow-service; then
     run_test "Tests Workflow Service (Health Check)" \
-        "curl -sf 'http://localhost:${WORKFLOW_SERVICE_PORT:-5016}/health' && echo OK || { echo 'Service non accessible (optionnel)'; exit 0; }" \
+        "curl -sf --max-time 10 'http://localhost:${WORKFLOW_SERVICE_PORT:-5016}/health' || { echo 'Service non accessible (optionnel)'; exit 0; }" \
         "$REPORT_DIR/workflow-service.json"
 else
     # Workflow optionnel (profil full) : ne pas faire échouer la catégorie si non démarré
     run_test "Tests Workflow Service (Health Check)" \
-        "curl -sf 'http://localhost:${WORKFLOW_SERVICE_PORT:-5016}/health' && echo OK || { echo 'Workflow non démarré (optionnel)'; exit 0; }" \
+        "curl -sf --max-time 10 'http://localhost:${WORKFLOW_SERVICE_PORT:-5016}/health' || { echo 'Workflow non démarré (optionnel)'; exit 0; }" \
         "$REPORT_DIR/workflow-service.json"
 fi
 

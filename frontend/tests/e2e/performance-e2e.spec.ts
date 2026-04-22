@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { e2eGatewayBaseUrl } from '../../../tests/e2e/helpers/gatewayUrl';
 
 const MAX_PAGE_LOAD_MS = 30_000;
 const MAX_API_RESPONSE_MS = 5_000;
+const GATEWAY_ORIGIN = e2eGatewayBaseUrl().replace(/\/$/, '');
 
 async function apiFetch(
   page: import('@playwright/test').Page,
@@ -9,18 +11,18 @@ async function apiFetch(
   endpoint: string,
 ): Promise<{ status: number; durationMs: number }> {
   return page.evaluate(
-    async ({ method, endpoint }) => {
+    async ({ method, endpoint, apiBase }) => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const start = performance.now();
-      const resp = await fetch(`http://localhost:5002${endpoint}`, { method, headers });
+      const resp = await fetch(`${apiBase}${endpoint}`, { method, headers });
       const durationMs = Math.round(performance.now() - start);
 
       return { status: resp.status, durationMs };
     },
-    { method, endpoint },
+    { method, endpoint, apiBase: GATEWAY_ORIGIN },
   );
 }
 
@@ -104,7 +106,8 @@ test.describe('⚡ Performance – Requêtes multiples', () => {
   });
 
   test('5 requêtes parallèles répondent toutes correctement', async ({ page }) => {
-    const res = await page.evaluate(async () => {
+    const apiBase = GATEWAY_ORIGIN;
+    const res = await page.evaluate(async (base: string) => {
       const token = localStorage.getItem('token') || '';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -122,14 +125,14 @@ test.describe('⚡ Performance – Requêtes multiples', () => {
       const start = performance.now();
       const results = await Promise.all(
         endpoints.map(async (ep) => {
-          const resp = await fetch(`http://localhost:5002${ep}`, { headers });
+          const resp = await fetch(`${base}${ep}`, { headers });
           return { endpoint: ep, status: resp.status };
         }),
       );
       const totalMs = Math.round(performance.now() - start);
 
       return { results, totalMs };
-    });
+    }, apiBase);
 
     for (const r of res.results) {
       expect([200, 304, 404]).toContain(r.status);

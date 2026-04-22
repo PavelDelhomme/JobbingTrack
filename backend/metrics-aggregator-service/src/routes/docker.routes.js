@@ -795,6 +795,19 @@ router.get('/services/all', async (req, res) => {
   }
 });
 
+/** Fenêtres relatives autorisées pour docker logs --since / --until (évite l'injection shell) */
+const DOCKER_LOGS_ALLOWED_RELATIVE = new Set([
+  '15m', '30m', '45m', '1h', '2h', '6h', '12h', '24h', '48h', '72h', '7d', '168h'
+]);
+
+function sanitizeDockerLogsSinceUntil(value) {
+  if (value == null || value === '') return null;
+  const v = String(value).trim();
+  if (DOCKER_LOGS_ALLOWED_RELATIVE.has(v)) return v;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/.test(v)) return v;
+  return null;
+}
+
 /**
  * Endpoint pour récupérer les logs Docker d'un service
  * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
@@ -802,7 +815,10 @@ router.get('/services/all', async (req, res) => {
 router.get('/service/:name/logs', async (req, res) => {
   try {
     const serviceName = req.params.name;
-    const lines = parseInt(req.query.lines) || 100;
+    let lines = parseInt(req.query.lines, 10) || 100;
+    lines = Math.min(5000, Math.max(10, lines));
+    const sinceArg = sanitizeDockerLogsSinceUntil(req.query.since);
+    const untilArg = sanitizeDockerLogsSinceUntil(req.query.until);
     
     if (process.env.REDUCE_METRICS_LOGS === '0') {
       console.log('[DOCKER ROUTES] 📜 Récupération logs pour:', serviceName, '- Lignes:', lines);
@@ -812,8 +828,13 @@ router.get('/service/:name/logs', async (req, res) => {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     
+    let dockerCmd = `docker logs ${serviceName} --tail ${lines} --timestamps`;
+    if (sinceArg) dockerCmd += ` --since ${sinceArg}`;
+    if (untilArg) dockerCmd += ` --until ${untilArg}`;
+    dockerCmd += ' 2>&1';
+
     // Récupérer les logs du conteneur Docker avec timestamps
-    const { stdout } = await execAsync(`docker logs ${serviceName} --tail ${lines} --timestamps 2>&1`);
+    const { stdout } = await execAsync(dockerCmd);
     
     // Traiter les logs (les timestamps sont au format: 2025-12-02T17:21:30.123456789Z message)
     const logLines = stdout.split('\n').filter(line => line.trim().length > 0);
@@ -840,7 +861,8 @@ router.get('/service/:name/logs', async (req, res) => {
       lines: logLines,
       errorLines: errorLines.slice(0, 10), // Limiter les erreurs affichées
       warningLines: warningLines.slice(0, 10), // Limiter les warnings affichés
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      query: { lines, since: sinceArg || null, until: untilArg || null }
     });
     
   } catch (error) {
