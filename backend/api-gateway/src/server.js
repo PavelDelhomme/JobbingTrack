@@ -7,6 +7,10 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
+const {
+  requestCorrelationMiddleware,
+  forwardCorrelationHeaders,
+} = require('./middleware/requestCorrelation');
 
 // ✅ Import des middlewares de sécurité personnalisés
 const { wafCheck } = require('./middleware/waf');
@@ -49,8 +53,12 @@ async function reportPayloadTooLarge(req, details = {}) {
     endpoint,
     contentLength,
     method: req.method,
+    requestId: req.requestId || undefined,
+    correlationId: req.correlationId || undefined,
     ...details,
   };
+
+  const corrHeaders = forwardCorrelationHeaders(req);
 
   try {
     await axios.post(`${SECURITY_SERVICE_URL}/api/v1/security/logs`, {
@@ -66,7 +74,7 @@ async function reportPayloadTooLarge(req, details = {}) {
       riskScore: 55,
       isBlocked: true,
       metadata: baseMetadata
-    }, { timeout: 3000 });
+    }, { timeout: 3000, headers: { ...corrHeaders } });
   } catch (logErr) {
     logger.warn('Impossible de persister le log payload_too_large', { message: logErr.message });
   }
@@ -77,7 +85,7 @@ async function reportPayloadTooLarge(req, details = {}) {
       sourceIp: sourceIp,
       severity: 'MEDIUM',
       metadata: baseMetadata
-    }, { timeout: 3000, headers: { ...securityServiceInternalHeaders() } });
+    }, { timeout: 3000, headers: { ...corrHeaders, ...securityServiceInternalHeaders() } });
   } catch (threatErr) {
     logger.warn('Impossible de persister la menace payload_too_large', { message: threatErr.message });
   }
@@ -176,17 +184,27 @@ app.use(cors({
     'Origin',
     'Access-Control-Request-Method',
     'Access-Control-Request-Headers',
-    'X-Custom-Header'
+    'X-Custom-Header',
+    'X-Request-Id',
+    'X-Correlation-Id',
   ],
+  exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
   optionsSuccessStatus: 200 // Support pour legacy browsers
 }));
 
 // ✅ Middleware de sécurité de base
 app.use(helmet());
 
+// ✅ Corrélation requêtes (B6) : avant parsers pour tracer aussi les 413 / chemins sans body
+app.use(requestCorrelationMiddleware);
+
 // ✅ Middleware de base (limite payload 64 Ko pour rejeter overflow → 413, conforme test E2E sécurité)
 app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
+
+// ✅ Détection d’intrusion (après body parser pour analyser le corps ; avant WAF)
+// Désactiver : INTRUSION_DETECTION_ENABLED=false — ignoré si User-Agent Playwright ou X-Test-Mode: true
+app.use(intrusionDetection);
 
 app.use((err, req, res, next) => {
   if (err && (err.type === 'entity.too.large' || err.status === 413)) {
@@ -214,10 +232,7 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ Middleware de sécurité personnalisés (ordre important)
-// 1. Détection d'intrusion (premier pour analyser toutes les requêtes)
-// ⚠️ TEMPORAIREMENT DÉSACTIVÉ - Cause des erreurs "patternConfig is not defined"
-// app.use(intrusionDetection);
-
+// 1. Détection d’intrusion : voir plus haut (après parsers JSON / urlencoded).
 // 2. WAF (Web Application Firewall)
 // Toujours actif en environnement courant pour garantir les validations sécurité live.
 app.use(wafCheck);
@@ -364,7 +379,11 @@ app.get('/api/v1/crashes', (req, res) => {
 app.get('/api/v1/metrics', async (req, res) => {
   const metricsUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
   try {
-    const response = await axios.get(`${metricsUrl}/api/v1/metrics`, { timeout: 10000, validateStatus: () => true });
+    const response = await axios.get(`${metricsUrl}/api/v1/metrics`, {
+      timeout: 10000,
+      validateStatus: () => true,
+      headers: { ...forwardCorrelationHeaders(req) },
+    });
     // ✅ Normaliser certains champs pour compatibilité tests/front (snake_case vs camelCase)
     const data = response.data && typeof response.data === 'object' ? response.data : {};
     if (data && typeof data === 'object') {
@@ -482,7 +501,7 @@ app.post('/api/v1/auth/register', async (req, res) => {
       `${authServiceUrl}/api/v1/auth/register`,
       req.body,
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...forwardCorrelationHeaders(req) },
         timeout: 10000,
         validateStatus: () => true
       }
@@ -580,7 +599,11 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
       tried.add(name);
       try {
         const url = `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${lines}`;
-        const response = await axios.get(url, { timeout: 20000, validateStatus: () => true });
+        const response = await axios.get(url, {
+          timeout: 20000,
+          validateStatus: () => true,
+          headers: { ...forwardCorrelationHeaders(req) },
+        });
         if (response.status === 200 && response.data) {
           const d = response.data;
           const lineArr = Array.isArray(d.lines) ? d.lines : (Array.isArray(d.logs) ? d.logs : []);
@@ -804,7 +827,10 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
         targetUrl = `${target}${req.originalUrl}`;
       }
 
-      logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`);
+      logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`, {
+        requestId: req.requestId,
+        correlationId: req.correlationId,
+      });
 
       const response = await axios({
         method: req.method,
@@ -812,6 +838,7 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
         data: req.body,
         headers: {
           ...req.headers,
+          ...forwardCorrelationHeaders(req),
           'X-Forwarded-For': req.ip,
           'X-Forwarded-Proto': req.protocol,
           'X-Forwarded-Host': req.get('host')
@@ -857,6 +884,7 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
               data: req.body,
               headers: {
                 ...req.headers,
+                ...forwardCorrelationHeaders(req),
                 'X-Forwarded-For': req.ip,
                 'X-Forwarded-Proto': req.protocol,
                 'X-Forwarded-Host': req.get('host')
@@ -961,7 +989,8 @@ app.get('/api/v1/services', async (req, res) => {
       const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
       // Utiliser l'endpoint /api/v1/docker/jobbingtrack/aggregated qui retourne containers
       const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/jobbingtrack/aggregated`, {
-        timeout: 10000
+        timeout: 10000,
+        headers: { ...forwardCorrelationHeaders(req) },
       });
 
       if (response.data && response.data.containers && Array.isArray(response.data.containers)) {

@@ -47,7 +47,7 @@ export default defineConfig({
   },
 
   projects: [
-    // iPhone 13 Pro (utilise chromium au lieu de webkit)
+    // iPhone 13 Pro — viewport iOS + moteur Chromium (channel sur WebKit = erreur Playwright)
     {
       name: 'iPhone 13 Pro',
       use: {
@@ -57,8 +57,7 @@ export default defineConfig({
         deviceScaleFactor: 3,
         isMobile: true,
         hasTouch: true,
-        // Forcer l'utilisation de chromium (plus stable, déjà installé)
-        channel: 'chromium',
+        browserName: 'chromium',
       },
     },
 
@@ -72,7 +71,7 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
-        channel: 'chromium',
+        browserName: 'chromium',
       },
     },
 
@@ -86,7 +85,7 @@ export default defineConfig({
         deviceScaleFactor: 3,
         isMobile: true,
         hasTouch: true,
-        channel: 'chromium',
+        browserName: 'chromium',
       },
     },
 
@@ -101,7 +100,6 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         userAgent: 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36',
-        channel: 'chromium',
       },
     },
 
@@ -116,7 +114,6 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         userAgent: 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36',
-        channel: 'chromium',
       },
     },
 
@@ -128,7 +125,7 @@ export default defineConfig({
         baseURL: process.env.FRONTEND_URL || 'http://localhost:5003',
         isMobile: true,
         hasTouch: true,
-        channel: 'chromium',
+        browserName: 'chromium',
       },
     },
   ],

@@ -2,13 +2,13 @@
 
 **Objectif** : rendre l’écosystème backoffice + API réellement opérationnel et cohérent (**monitoring / logs** en premier, **sécurité** ensuite, suivi-intérim, analytics), **à terme** **sauvegardes chiffrées délocalisées** et **continuité de service** (**lot G**), puis aligner la documentation sur l’état réel avec une feuille de route claire.
 
-**Documents liés** : `STATUS.md` (état courant et priorités produit), `TODOS.md` (cases à cocher opérationnelles), `docs/BACKLOG.md` (backlog large et tâches « plus tard »), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`** (index du chantier dans `docs/`) ; **lot G** (sauvegardes / continuité) : **`PLAN.md`** § G, **`FONCTIONNALITES.md`** § 4.4.
+**Documents liés** : `STATUS.md` (état courant et priorités produit), `TODOS.md` (cases à cocher opérationnelles), **`STATS.md`** (CVE / dépendances — tableaux à compléter après audits), **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** (NTP, secrets, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway **en conteneur**, vérifs **manuelles** avant prod), `docs/BACKLOG.md` (backlog large et tâches « plus tard »), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`** (index du chantier dans `docs/`) ; **lot G** (sauvegardes / continuité) : **`PLAN.md`** § G, **`FONCTIONNALITES.md`** § 4.4.
 
 **Plan Cursor (IDE)** : le fichier `.cursor/plans/chantier_securite_data_docs_2c0a63b7.plan.md` peut encore nommer les lots dans l’**ancien** ordre ; **source de vérité** : ce **`PLAN.md`** (lots **A** = monitoring, **B** = sécurité, **G** = backup / continuité, avril 2026).
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.
 
-**Dernière révision du plan** : 7 avril 2026 — **A5 (suite)** : persistance **localStorage**, timeout / clamp `limit`, alignement réseau ; **affichage temps** : dernier point et libellés via **`formatLocalDateTime`** / **`Intl` fuseau explicite** (`date.ts`) pour éviter la lecture de l’heure « dans l’ISO » comme heure locale ; tests **`date-metrics-display`** + **`normalizeMetricRows`** / **`analytics-metric-rows-normalize`** (alignement **`timestamp` ↔ timestampMs** après JSON) ; ajout **lot G** (sauvegardes chiffrées, API et backoffice admin, délocalisation, PCA/PRI) ; colonnes **État** / **Validé (porteur)** ; synthèses % par lot ; **pas de PR** tant que le porteur ne l’a pas demandé dans la conversation ; validation usage **uniquement** par vous ; **`make tests`** : **lot F1** / **`STATUS.md`**.
+**Dernière révision du plan** : 22 avril 2026 — **Lot B** : **B6** + **intrusionDetector** réactivé + **`PREPROD_PRODUCTION_CHECKLIST.md`** ; **B10** ; **`STATS.md`** ; **CVE + A2**. **Lot F** : **F3** couverture scripts **`tests/services/`** (smoke / health par microservice, alignement gateway). **21/04** : Makefile, **A2**, **C1**. *(7/04 : **C3**, **A5** ; **F1**.)*
 
 ---
 
@@ -30,7 +30,7 @@
 ## Critères d’acceptation globaux
 
 1. Le **monitoring** (détail par service, historique compréhensible, logs multi-services) reflète les métriques **temps réel** et, quand elles existent, les **séries déjà enregistrées** (snapshots / persistence), avec libellés clairs pour l’utilisateur.
-2. Les pages **sécurité** reflètent fidèlement les événements réels (dont payload overflow, injections, blocages).
+2. Les pages **sécurité** reflètent fidèlement les événements réels (dont payload overflow, injections, blocages) et, à terme (**B6–B9**), permettent une **reconstitution** raisonnable des actions sensibles et des chaînes de requêtes en cas d’incident (dans les limites du réalisme décrites au lot **B**).
 3. Le suivi-intérim affiche des données utiles et cohérentes avec la base active.
 4. La documentation est synchronisée avec l’état actuel et exploitable comme feuille de route de travail.
 
@@ -38,14 +38,14 @@
 
 ## Lot A — Monitoring détaillé des services, logs multi-sources, corrélation
 
-**Synthèse (indicatif)** — Technique **~35 %** · **Validé porteur** : **0/5** (compter les « Oui » dans **Validé** ci-dessous ; mettre à jour ce ratio vous-même).
+**Synthèse (indicatif)** — Technique **~40 %** · **Validé porteur** : **0/5** (compter les « Oui » dans **Validé** ci-dessous ; mettre à jour ce ratio vous-même).
 
 **Rappel sources de données** : le **temps réel** vient surtout de **Docker stats** / endpoints **`/api/v1/docker/service/:name`**. L’**historique fichier** est alimenté quand l’agrégateur enregistre des snapshots (`metricsHistory`, ex. sous `/tmp/metrics/history/services/<slug>/` en environnement typique) — ce n’est **pas** magiquement « toute la vie du conteneur » si la persistance n’a pas tourné ou si le conteneur est récent. Les **points « session »** sur la page détail complètent la courbe tant que l’onglet reste ouvert. Une voie **PostgreSQL** (`persistence`) existe côté agrégateur : l’**A5** vise à l’exploiter et à l’expliciter en UI.
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|------------------|
-| A1 | **Monitoring détaillé par service** : CPU / mémoire / réseau / disque avec **précision**, **historique** (snapshots dispo + session), **auto-rafraîchissement** (10–60 s), **PIDs** / **Block I/O** documentés ; sonde HTTP santé via **nom conteneur Docker** (plus `localhost` depuis l’agrégateur) ; axes graphiques en **heure locale** + jour si série &gt; 24 h | Partiel (07/04/2026) | Non | `frontend/.../services/[serviceName]/page.tsx` ; `metrics-aggregator-service` (`docker.routes.js`, `server.js`) ; **`make status-watch`** (boucle statut, **`INTERVAL=5`** par défaut ; légende ports en **`printf '%b'`**) |
-| A2 | Faire remonter les logs de **tous** les services avec filtres (service, niveau, type, période) | Partiel (07/04/2026) | Non | Gateway `admin/logs/*` ; **`/backoffice/services/logs`** ; reste niveau/type/période + `(development)/services/**` |
+| A1 | **Monitoring détaillé par service** : CPU / mémoire / réseau / disque avec **précision**, **historique** (snapshots dispo + session), **auto-rafraîchissement** (10–60 s), **PIDs** / **Block I/O** documentés ; sonde HTTP santé via **nom conteneur Docker** (plus `localhost` depuis l’agrégateur) ; axes graphiques en **heure locale** + jour si série &gt; 24 h | Partiel (07/04/2026) | Non | `frontend/.../services/[serviceName]/page.tsx` ; `metrics-aggregator-service` (`docker.routes.js`, `server.js`) ; **`make status-watch`** / **`status-live`** : boucle = **`make status`** ; défaut **sans** `clear` ; **`CLEAR=1`** pour effacer ; **`INTERVAL`** ; légende **`printf '%b'`** |
+| A2 | Faire remonter les logs de **tous** les services avec filtres (service, niveau, type, période) | Partiel (22/04/2026) | Non | **`/backoffice/services/logs`** + **`metrics-aggregator`** `GET /api/v1/docker/service/:name/logs` (**`lines`**, **`since`/`until`**) ; filtres **niveau / type / texte** ; **`(development)/services/applications`** + **`…/backoffice/[serviceName]`** → même route Docker. **Reste** : homogénéiser **`admin/logs/*`** gateway ; Loki |
 | A3 | Corréler logs techniques et événements sécurité dans les vues détail service | Partiel (07/04/2026) | Non | Encart liens **sécurité** + **logs multi-services** sur `/backoffice/services/[nom]` ; corrélation données unifiée (timeline / filtres croisés) encore à faire |
 | A4 | Clarifier le pipeline erreurs / warnings / crash (Gateway, security-service, backoffice) | Partiel | Non | **ERRORS.md** ; affiner après A2–A3 |
 | A5 | **Métriques déjà enregistrées** : brancher et **libeller** **live vs historique fichiers vs persistence BDD** sur détail service + pages monitoring liées ; enrichir **performances** / détail service (non pressé) ; **suite 07/04** : même `limit` API **réseau** que **performances** ; **timeout** axios + **clamp** `limit` (routes + SQL/Prisma) pour plages longues (ex. 30 j.) ; **localStorage** clé `jobbingtrack:analytics:shared-time-v1` pour réutiliser préréglage / plage perso / **suivre le direct** entre **performances**, **réseau**, **conteneurs** ; **affichage** : pas d’ISO brute pour « dernier point » ; **`date.ts`** (`parseChartTimestamp` objets `{ value }`, **`metricRowToTimeMs`**, **`Intl` fuseau**) ; **`timestampMs`** côté agrégateur + UI ; côté front, **`normalizeMetricRows`** aligne **`timestampMs`** sur l’**ISO** normalisé (évite décalage si JSON diverge) ; test **`analytics-metric-rows-normalize.test.ts`** ; **`injectMetricTimeGaps`** ; **`docker-compose.yml`** `postgres` **`TZ`/`PGTZ`** (`POSTGRES_SYSTEM_METRICS_TZ`, défaut UTC) ; lecture SQL **`system_metrics`** : **`AT TIME ZONE`** = **`POSTGRES_SYSTEM_METRICS_TZ`** (comme Postgres) ; **`make restart-metrics-recreate`** pour appliquer env/image ; agrégateur **`TZ=UTC`** ; test **`date-metrics-display.test.ts`** | Partiel (07/04/2026) | Non | `persistence.service.js`, `persistence.routes.js`, `analytics.service.ts`, `usePersistedSharedAnalyticsRange.ts`, `date.ts`, `injectMetricTimeGaps.ts`, `docker-compose.yml`, `analytics/page.tsx`, `analytics/performances`, `analytics/network|containers`, `centralMetricsService.ts`, `statistics`, `services/page.tsx` |
@@ -56,7 +56,7 @@
 
 ## Lot B — Sécurité visible et exploitable
 
-**Synthèse (indicatif)** — Technique **~75 %** · **Validé porteur** : **0/5** — à ajuster quand vous aurez rempli la colonne **Validé**.
+**Synthèse (indicatif)** — Technique **~62 %** (forensics **B6–B9** + UX **B10**) · **Validé porteur** : **0/10** — à ajuster quand vous aurez rempli la colonne **Validé**.
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|------------------|
@@ -65,20 +65,27 @@
 | B3 | Vue sécurité : distinguer explicitement détection / blocage manuel / blocage automatique | Partiel | Non | Légende + cartes sur vue sécurité ; **Analyse** : 3 panneaux (détections, manuels+lab, auto) ; firewall : badges origine |
 | B4 | Analyse réseau : éviter le conteneur « unknown » 100 % non actionnable | Partiel | Non | `containerCorrelation` + `correlationHint` API ; bannière et explications UI page réseau |
 | B5 | WAF + `make security-live-check` : auth firewall/WAF sur security-service (JWT ou `X-Internal-Secret`) ; scripts alignés ; **rebuild** image si deps (`jsonwebtoken`) ; volume `src` ; `FIREWALL_BASE_URL` / `AUTH_GATEWAY_URL` ; **`user: 0:0` + NET_ADMIN** pour **iptables** en dev | Fait (04/2026) | Non | `security-service/server.js`, `scripts/security/*.sh`, `docker-compose.yml` ; **RESOLUTIONS.md** § 8 avril 2026 |
+| B6 | **Corrélation bout en bout** : `X-Request-Id` / `X-Correlation-Id` (gateway → services) ; horodatage **serveur** (UTC, NTP en prod) ; propagation dans **logs applicatifs** et événements **security-service** pour reconstituer une session / une requête après incident | Partiel (22/04/2026) | Non | **Fait** : **`requestCorrelation.js`**, proxy + métriques/logs + `reportPayloadTooLarge` ; **intrusionDetector** réactivé (correctif **`BRUTE_FORCE`**, pas de **`next()`** après 403, garde-fous Jest/Playwright/`INTRUSION_DETECTION_ENABLED`) ; **CORS** ; **`frontend/src/lib/api.ts`** ; Jest gateway dans **`run-all-tests-with-reports.sh`**. **Reste** (détail **manuel** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**) : morgan / middleware **chaque** microservice ; **security-service** recherche par id ; **mobile** ; **NTP** hôtes |
+| B7 | **Journal d’audit applicatif** (actions sensibles backoffice + API admin) : connexions admin, exports, déblocages IP, **test-data** destructif, changements rôles ; **append-only** en base (pas d’UPDATE sur le contenu) ou table dédiée + **accès lecture** réservé rôle élevé ; **jamais** de secrets en clair dans les entrées | À faire | Non | Schéma Prisma / migrations ; routes gateway ; UI **Sécurité** ou **Admin** : filtre par acteur, période, type d’événement |
+| B8 | **Vue backoffice « investigation / post-incident »** : croisement **menaces WAF**, **audit B7**, **logs techniques** (A2), **IPs** ; export **horodaté** (CSV/JSON) avec **hash** ou empreinte pour **chaîne de conservation** légale / interne ; pas de promesse « preuve judiciaire » sans dispositif certifié — viser **traçabilité opérationnelle** forte | À faire | Non | `frontend/.../backoffice/security/**` ; APIs agrégation ; doc procédure dans **`docs/security/`** (à créer) : qui consulte, où stocker l’export |
+| B9 | **Mobile** : signalement **erreurs** + signaux **sécurité** (refresh révoqué, OTP échoué N fois, changement mot de passe, sortie session forcée) vers API **authentifiée** et **limité en taux** ; côté serveur, corrélation **compte + device + IP** ; **limitation honnête** : un téléphone **rooté / compromis** peut mentir — combiner avec signaux serveur et **B7** | À faire | Non | Apps **`mobile/`** et **`flutter-mobile-app/`** ; endpoint dédié (gateway) ; **lot D1** proche |
+| B10 | **UX backoffice — outils sécurité** : reprendre **`/backoffice/security`** et sous-pages (**firewall**, **analyse**, **réseau**, etc.) pour un ensemble **réellement utilisable** : lisibilité (hiérarchie visuelle, tableaux), **métriques cohérentes** avec les contrats API (libellés, unités, fenêtres temporelles), **empty states** honnêtes, **mesurabilité** (ce qui est compté / exclu), préparation des emplacements pour la vue **investigation (B8)** ; **vue d’ensemble** : éviter qu’un même **`network_threat_detected`** apparaisse à la fois comme **menace** et comme **log CRITICAL** (filtrage incidents **22/04**) | Partiel (22/04/2026) | Non | `frontend/src/app/(admin)/backoffice/security/**` ; **`centralMetricsService`** / clients API ; tests manuels checklist dans **`TODOS.md`** |
 
-**Note (priorisation)** : **B3** et **B4** restent **Partiels** côté technique ; poursuite en parallèle du lot **A** si besoin.
+**Note (réalisme — exigence « ultra sécurisé »)** : aucune pile logicielle n’est **mathématiquement incontournable** si l’attaquant contrôle l’hyperviseur, un compte **super-admin**, le binaire mobile modifié, ou la chaîne de build. L’objectif est une **défense en profondeur** : événements **difficiles à effacer silencieusement** (copies **WORM** / **SIEM** externe, **signatures** périodiques des blocs de logs, **mTLS** service-à-service), **détection** précoce, et **runbook** après intrusion (voir **lot G6**). Les tâches **B6–B9** formalisent cette traçabilité **API + backoffice + mobile**.
+
+**Note (priorisation)** : **B3** et **B4** restent **Partiels** ; poursuivre **B6** (services + persistance id) puis **B7–B8** ; **B10** (lisibilité / cohérence UI sécurité) peut avancer **en parallèle** dès que les réponses API sont stables, pour éviter de refaire l’UI deux fois.
 
 ---
 
 ## Lot C — Data backoffice et suivi-intérim (priorité produit)
 
-**Synthèse (indicatif)** — Technique **~0 %** · **Validé porteur** : **0/3**
+**Synthèse (indicatif)** — Technique **~45 %** (**C3** + début **C1** UX) · **Validé porteur** : **0/3**
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|------------------|
-| C1 | Diagnostiquer le vide fonctionnel de `/backoffice/suivi-interim` et corriger le flux agences / candidatures | À faire | Non | `SuiviInterimContent.tsx`, `datas/page.tsx` |
-| C2 | Cohérence base principale vs base test (sans supprimer `admin@jobbingtrack.test`) | À faire | Non | Makefile, `docs/database/MIGRATIONS_ET_BASES.md` |
-| C3 | Génération / nettoyage données test prévisibles et non destructifs | À faire | Non | `backend/generate-test-data.js`, routes admin gateway |
+| C1 | Diagnostiquer le vide fonctionnel de `/backoffice/suivi-interim` et corriger le flux agences / candidatures | Partiel (21/04/2026) | Non | Données **TEMP_AGENCY** + **`agencyId`** déjà branchées ; **21/04** : message d’erreur API, **Rafraîchir**, lien **test data** — **reste** : données métier / filtres / validation porteur (`SuiviInterimContent.tsx`, `datas/page.tsx`) |
+| C2 | Cohérence base principale vs base test (sans supprimer `admin@jobbingtrack.test`) | Partiel (07/04/2026) | Non | `make datas-remove-tests-tags`, **`make env-check`** / **`make env-append-missing`** ; doc à compléter : `docs/database/MIGRATIONS_ET_BASES.md` |
+| C3 | Génération / nettoyage données test prévisibles et non destructifs | Partiel (07/04/2026) | Non | **`testdata.controller.js`** : `POST /test-data/tag-likely`, `GET /test-data/summary`, clear étendu (**`Document`**, **`EmailLog`** test) ; **`TestDataTab.tsx`**, **`backoffice/test-data/page.tsx`** (marquer + case **balanced**) ; **`generate-test-data.js`** (`--balanced`, `_balanced` via API) ; alignement **`.env`** : **`scripts/env-align-with-example.cjs`** — **reste** : validation porteur, éventuellement stats backoffice « uniquement test » |
 
 ---
 
@@ -90,19 +97,21 @@
 |---|--------|------|------------------|------------------|
 | D1 | Normaliser les événements erreur / crash mobile (source, device, version, crashType) | À faire | Non | Mobile Flutter + endpoint notifications |
 | D2 | Vérifier la traçabilité bout en bout vers analytics / performance / logs | À faire | Non | dashboard-service, metrics-aggregator, pages stats (voir **lot A** / **A5**) |
-| D3 | Exploitation claire dans les pages monitoring / statistiques | À faire | Non | `frontend` pages admin stats / analytics |
+| D3 | Exploitation claire dans les pages monitoring / statistiques | À faire | Non | `frontend` pages admin stats / analytics — **dépend surtout du lot A5** (séries persistées + libellés live vs BDD) ; crash mobile (D1–D2) pour alimenter les compteurs |
+
+**Outillage mobile (hors livrable utilisateur)** : **`tools/adb-lib/`** — client ADB + flows (`loginFresh`, `navigateAllTabs`, …), scénarios, **`adb.exec` / `runner`** ; consommation typique : **`tests/user-journey/journey-builder.js`**, **`mobile/README.md`**. E2E Playwright mobile : device **`adb`** ou **`RUN_PLAYWRIGHT_MOBILE=1`** (voir **`STATUS.md`** § tests).
 
 ---
 
 ## Lot E — Documentation exhaustive et nettoyage
 
-**Synthèse (indicatif)** — Technique **~25 %** · **Validé porteur** : **0/3**
+**Synthèse (indicatif)** — Technique **~35 %** · **Validé porteur** : **0/3**
 
 **Note 07/04** : libellés de **période** analytics (fenêtres glissantes type 24 h) + rappel sous les graphiques — voir `STATUS.md` § Analytics ; `frontend/src/components/analytics/timeRangeUtils.ts`, `TimeRangeSelector.tsx`, `ChartPeriodCaption.tsx`.
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|----------------|
-| E1 | Mettre à jour et aligner : `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, `PROCESSUS_APPLICATION_MOBILE_ET_API.md`, `FONCTIONNALITES.md`, `docs/BACKLOG.md` | Partiel (07/04/2026) | Non | Racine + `docs/` |
+| E1 | Mettre à jour et aligner : `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, `PROCESSUS_APPLICATION_MOBILE_ET_API.md`, `FONCTIONNALITES.md`, `docs/BACKLOG.md` | Partiel (21/04/2026) | Non | Vague **21/04** : STATUS / PLAN / ERRORS / TODOS + **`makefiles/README.md`** (status-watch, status-live) ; **PROCESSUS**, **BACKLOG** revue large **à faire** |
 | E2 | Revue `docs/` (architecture, API, endpoints, metrics, décisions, changelog, DB, sécurité, mails, tests) | À faire | Non | Dossier `docs/` |
 | E3 | Nettoyer l’obsolète ; marquer explicitement le « non opérationnel » restant + plan d’action | À faire | Non | — |
 
@@ -110,12 +119,13 @@
 
 ## Lot F — Validation finale et livrables
 
-**Synthèse (indicatif)** — Technique **~20 %** · **Validé porteur** : **0/2**
+**Synthèse (indicatif)** — Technique **~22 %** · **Validé porteur** : **0/3**
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|----------------|
-| F1 | Tests ciblés API + E2E (monitoring / services, sécurité, backoffice, suivi-intérim, logs) | Partiel | Non | **`make tests`** : stack + **`.env`** avec **`API_GATEWAY_URL`** joignable depuis l’hôte (**`127.0.0.1:5002`** typ.). **17/04** : **`dockerHostUrl.js`**, **`test-api-specific.sh`** (**`mktemp`**), perf **`exit(1)`** si échecs, gateway health allégé, **`loadScore`** monitoring optionnel — **`RESOLUTIONS.md`** § 17/04. **Reste** : Playwright login / **`api-e2e`**, exit codes intégration/sécurité, résumé global **`make tests`**, tests métriques par surface (A5) |
+| F1 | Tests ciblés API + E2E (monitoring / services, sécurité, backoffice, suivi-intérim, logs) | Partiel | Non | **`make tests`** : stack + **`.env`** avec **`API_GATEWAY_URL`** joignable depuis l’hôte (**`127.0.0.1:5002`** typ.). **17/04** : **`dockerHostUrl.js`**, **`test-api-specific.sh`** (**`mktemp`**), perf **`exit(1)`** si échecs, gateway health allégé, **`loadScore`** monitoring optionnel — **`RESOLUTIONS.md`** § 17/04. **Principe sécurité / réalisme prod** : en perf **applicative**, faire transiter les requêtes par l’**API Gateway** (WAF, rate limit, corrélation), pas par les ports internes **300x** depuis l’hôte. **`tests/performance/test-performance.js`** : déjà aligné (listes companies, events, etc. + auth **`GET /api/v1/auth/health`**). **`tests/performance/test-load-advanced.js`** : stress **auth** aligné gateway ; **companies** / **applications** du même fichier restent sur l’ancien modèle **`localhost:300x`** — même traitement que **`test-performance.js`** à planifier (**F3** / refonte fichier). **Metrics-aggregator** : exception acceptable pour sondes **infra**. **Reste** : Playwright login / **`api-e2e`**, exit codes intégration/sécurité, résumé global **`make tests`**, tests métriques par surface (A5) |
 | F2 | Récapitulatif final : corrigé / reste à faire / risques / priorités opérationnelles | À faire | Non | — |
+| F3 | **Couverture `tests/services/`** + **alignement perf charge** : inventaire des microservices **sans** script dédié (smoke HTTP / health) vs ceux déjà couverts ; ajouter progressivement des **`test-*-service.js`** (ou équivalent) enchaînés par **`scripts/run-all-tests-with-reports.sh`** ; objectif **fumée cohérente** après **`make up-full`**, pas exhaustivité Jest de chaque route — tracer l’écart dans **`STATUS.md`**. **Refonte `tests/performance/test-load-advanced.js`** : remplacer les bases **`localhost:300x`** (companies, applications, …) par **`normalizeGatewayUrlForHost`** + chemins **`/api/v1/...`** comme **`test-performance.js`**, pour que **toute** la charge « métier » passe par la gateway (cohérent avec **F1**). | À faire | Non | `tests/services/` ; `tests/performance/test-load-advanced.js` ; `run-all-tests-with-reports.sh` ; alignement URLs **gateway** sauf **metrics-aggregator** documenté |
 
 ---
 
@@ -178,7 +188,7 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 ## Ordre de travail recommandé
 
 1. **A** (monitoring + logs) : **A1** détail service / agrégateur ; **A2** logs multi-filtres ; **A3** / **A4** ; **A5** persistance & libellés — **priorité chantier technique** actuelle.
-2. **B** (sécurité visible) : poursuivre **B3–B4** ; valider **B1–B2–B5** côté porteur quand vous avez testé (**colonne Validé**).
+2. **B** (sécurité visible + **forensics B6–B9** + **B10** UX) : poursuivre **B3–B4** ; valider **B1–B2–B5** côté porteur ; terminer **B6** côté microservices puis **B7** / **B8** ; **B9** avec le **lot D** ; **B10** en parallèle sur les pages **`/backoffice/security/**`**.
 3. **C** (produit intérim / données) en parallèle si possible.
 4. **D** lorsque les pipelines logs/métriques (**lot A**) sont stables.
 5. **E** en continu par **petites livraisons documentées** (sans PR tant que non demandé) ; éviter un gros « dump » doc en fin de chantier uniquement.
@@ -186,3 +196,17 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 7. **G** (sauvegardes / continuité) : **après** stabilisation des lots **A/B** et clarification des contraintes hébergeur ; ne pas ralentir le socle monitoring/sécurité sans cadrage **G1**.
 
 Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (aligné sur ce plan et sur **`ERRORS.md`** / **`FONCTIONNALITES.md`**).
+
+---
+
+## Analyse CVE & dépendances (suivi transversal)
+
+- **Document dédié** : **`STATS.md`** — inventaire **par service Node**, **frontend**, **mobile**, **images Docker** et **binaires C** ; commandes types (`npm audit`, **Docker Scout**, `flutter pub outdated`) ; tableau **à compléter** après chaque passe d’audit (dates + severités).
+- **Rapport « complet »** : il est **produit par les outils** (local ou CI), pas figé dans le dépôt ; **`STATS.md`** sert de **source de vérité humaine** pour savoir quoi scanner et où enregistrer les résultats.
+- **Lots concernés** : **B** (sécurité / surface d’attaque), **E** (doc), **F** (gate avant release si politique CVE stricte), **G** (images prod / registre).
+
+### Enchaînement **A2** (logs — après CVE / en parallèle)
+
+1. Gateway **`admin/logs/*`** : aligner **`since` / `until`** (même whitelist que **metrics-aggregator** `docker.routes.js`).
+2. Smoke tests ou E2E légers sur **`/backoffice/services/logs`** et vues **`(development)/services/**`** si la CI couvre le front.
+3. (Optionnel) **Loki** ou agrégateur texte si besoin dépasse **`docker logs`**.

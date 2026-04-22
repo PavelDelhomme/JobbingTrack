@@ -4,6 +4,26 @@
 
 ---
 
+## 22 avril 2026 — Détection d’intrusion (gateway), B6, tests gateway, checklist préprod
+
+### Contexte
+- Le middleware **`intrusionDetection`** était **désactivé** à cause de **`patternConfig is not defined`** (variable de boucle réutilisée pour le brute-force) et d’un **`next()`** appelé après une réponse **403** (double envoi).
+- Les actions **NTP**, validation **security-service** sur le terrain, et secrets **prod** ne peuvent pas être exécutées depuis le dépôt seul.
+
+### Correctifs
+1. **`intrusionDetector.js`** : `checkBruteForce(req, INTRUSION_PATTERNS.BRUTE_FORCE)` ; **`handleIntrusionResponse`** retourne **`true`** si la requête est terminée (403 critique) ; **`detect`** fait **`return`** dans ce cas.
+2. **Réactivation** dans **`server.js`** après parsers JSON (ordre cohérent avec le corps des requêtes). Garde-fous : **`INTRUSION_DETECTION_ENABLED=false`**, **`NODE_ENV=test`** (Jest), **`X-Test-Mode: true`**, User-Agent **Playwright** → pas d’exécution (évite faux positifs / Redis absent en test unitaire).
+3. **`requestCorrelation`** : inchangé fonctionnellement ; métadonnées / en-têtes vers **security-service** conservées.
+4. **`scripts/run-all-tests-with-reports.sh`** : étape **« API Gateway (Jest local) »** après les tests backend **`tests/`** (`api-gateway-jest.json`).
+5. **`.env.example`** : **`INTRUSION_DETECTION_ENABLED`** documenté.
+6. **Nouveau** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** ; **`TODOS.md`** § actions manuelles ; **`PLAN.md`** lien documentaire.
+
+### À faire côté porteur
+- Cocher la checklist **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** avant préprod/prod (y compris **§ F** SMTP / TLS / **`CRASH_REPORT_EMAIL`**).
+- **`make test-all`** : l’étape **Jest API Gateway** s’exécute d’abord dans le conteneur **`jobbingtrack-api-gateway`** si la stack est up (`docker ps`) ; le fallback **hôte** + `npm install` dans **`backend/api-gateway`** ne sert que sans conteneur.
+
+---
+
 ## 17 avril 2026 — Suite `make tests` : URLs hôte, script API, perf, gateway health, monitoring Jest
 
 ### Problèmes observés (rapport type **`tests/results/20260417-222318/`**)

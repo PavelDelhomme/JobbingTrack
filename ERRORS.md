@@ -1,12 +1,12 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 17 avril 2026 (rapport **`tests/results/20260417-222318/`** + correctifs dépôt : URLs Docker pour Jest/perf, **`test-api-specific.sh`**, gateway health, sortie perf, **`loadScore`** — détail **RESOLUTIONS.md** § 17/04)
+**Dernière mise à jour** : 22 avril 2026 — lien **`STATS.md`** (CVE / dépendances) ; **21 avril** : pièges **`make status`** / **`status-watch`** ; **7 avril** : alignement doc ; **17 avril** : rapport **`tests/results/20260417-222318/`** + correctifs — **RESOLUTIONS.md** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
-**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G**), **`TODOS.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G**), **`TODOS.md`**, **`STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
 
 ---
 
@@ -18,6 +18,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | **Débit d’erreurs** en **/min** | Correspond au champ **`rate_per_min`** du metrics-aggregator (débit), **pas** un pourcentage. |
 | Carte **Incidents sécurité** (nombre) | Données issues d’une **fenêtre courte** côté agrégateur (ex. erreurs récentes agrégées) ; ce n’est **pas** une vue « dernières 24 h » tant que l’API ne l’expose pas explicitement. |
 | **CPU total %** sous la moyenne conteneurs | Souvent une **somme** des CPU des conteneurs détectés ; peut varier si la liste Docker change, alors que la **moyenne** reste plus stable. |
+| **`make status` : tout DOWN, postgres « non créé », résumé vide** | Aucun conteneur **`jobbingtrack-*`** au moment du scan (Docker arrêté, mauvais répertoire, ou stack pas lancée). Le Makefile affiche désormais une **explication** après le résumé (**`docker info`** vs **`make up-full`**). |
+| **`make status-live` ancien** : ports **`5000-`**, services manquants, faux DOWN | L’ancienne **vue compacte** du Makefile tronquait les ports (`cut` sur `->`) et ne listait pas toute la stack. **Corrigé (21/04)** : **`status-live`** et **`status-watch`** relancent **`make status`** à chaque cycle. |
 
 ### Pipeline erreurs / logs (synthèse — à enrichir au lot **A**)
 
@@ -28,6 +30,12 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 5. **Backoffice** : cartes vue d’ensemble, pages **Développement → Services**, sécurité, statistiques.
 
 **Lot A (PLAN.md)** : logs **tous** services filtrables, corrélation avec la sécurité dans les vues détail, et doc pipeline affinée après implémentation.
+
+### Détection d’intrusion (API Gateway)
+
+- **Redis** doit être joignable depuis la gateway si le middleware est actif (`INTRUSION_DETECTION_ENABLED` ≠ `false`). Sinon : erreurs Redis dans les logs du gateway ; désactiver temporairement **`INTRUSION_DETECTION_ENABLED=false`** le temps du diagnostic.
+- **Faux positifs** (ex. règles « critiques ») peuvent renvoyer **403** et bloquer une IP en Redis : ajuster les règles ou désactiver le middleware en dernier recours.
+- **Tests** : en **`NODE_ENV=test`** (Jest `backend/api-gateway`), le middleware **ne s’exécute pas** — les tests unitaires ne valident pas Redis sur ce point. Les E2E **Playwright** sont ignorés côté détecteur (User-Agent).
 
 ### Sauvegardes et reprise (pas une erreur — couverture à construire)
 
@@ -62,6 +70,7 @@ Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié 
 | **Étape « Tests Performance Avancés » — succès vs 0/N** | **`tests/performance/test-performance.js`** | Le script affichait **✅ 0/N** et **`process.exit(0)`** même si tout échouait | **Corrigé (17/04)** : icône **⚠️** si 0 succès ; **`process.exit(1)`** si endpoints ou charge en échec — l’étape **`make tests`** peut maintenant **échouer honnêtement** |
 | **Tests intégration système / sécurité — `SUCCÈS` malgré `ENOTFOUND` dans la sortie** | Scripts **`tests/integration`** ou sécurité | Les scripts **terminent** sans **`exit 1`** même si des sondes n’atteignent pas l’API | À durcir plus tard (code de sortie) ou lire la sortie brute ; pas « tout vert » sémantiquement |
 | **Réponses JSON health différentes par microservice** | Health checks | Chaque service expose son propre schéma (`status` vs `success`, `version`, `port`, etc.) — **normal** côté produit ; gênant si on attend un format unique dans des tests manuels | Documenté **`STATUS.md`** ; option future : middleware ou contrat OpenAPI commun **non prioritaire** |
+| **Clés `.env` manquantes ou désalignées par rapport à `.env.example`** | Configuration locale | Variables absentes ou renommées : comportements silencieux ou tests qui tombent | **`make env-check`** (liste manquantes / exemples) ; **`make env-append-missing`** pour générer **`.env.append-from-example.txt`** (à fusionner **manuellement**) — **`scripts/env-align-with-example.cjs`**, **`STATUS.md`** § 7/04 |
 
 ---
 
@@ -71,6 +80,8 @@ Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié 
 |-------|--------|
 | ~~Graphiques historiques système (~2 h vs horloge locale)~~ | **SQL** : **`system_metrics.timestamp`** naïf + **`NOW()`** — **`AT TIME ZONE`** = **`POSTGRES_SYSTEM_METRICS_TZ`** dans **`persistence.service.js`** ; **`make restart-metrics-recreate`** / **`monitoring-clock-refresh`** si besoin. **Front** : **`normalizeMetricRows`** aligne **`timestampMs`** sur l’**ISO** (`analytics.service.ts`) — voir **RESOLUTIONS.md** (7 avril 2026, entrées **system_metrics** + **timestampMs JSON**) ; **à revalider** porteur |
 | ~~Légende `make status` / `status-watch` : séquences `\033` affichées en clair~~ | **`echo`** sans **`-e`** sous **sh** ; corrigé par **`printf '%b'`** dans **`makefiles/services/Makefile`** — voir **RESOLUTIONS.md** (7 avril 2026) |
+| ~~**`make status`** résumé **0/0** sans piste~~ | Message post-résumé + distinction **`docker info`** / **`make up-full`** — **21 avril 2026** |
+| ~~**`make status-live`** liste partielle / ports cassés~~ | Délégation à **`make status`** (identique à **`status-watch`**) — **21 avril 2026** |
 | ~~Postgres `jobbingtrack` / rôle déjà existant~~ | `make db-fix-role` idempotent — voir **RESOLUTIONS.md** |
 | ~~Build APK Zip META-INF~~ | `flutter clean` + suppression outputs dans l’émulateur contrôleur |
 | ~~Loki ENOTFOUND~~ | `loki.service.js` : réponses vides si Loki absent |

@@ -40,28 +40,73 @@ export default function ServiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const containerFullName = (() => {
+    const s = String(serviceName || '').trim();
+    if (!s) return '';
+    return s.startsWith('jobbingtrack-') ? s : `jobbingtrack-${s}`;
+  })();
+
+  const mapDockerLinesToLogs = (lines: string[]): ServiceLog[] => {
+    const short = serviceName.replace(/^jobbingtrack-/, '');
+    return lines.map((line) => {
+      const m = line.match(/^(\d{4}-\d{2}-\d{2}T[\d.:+Z-]+)\s+(.*)$/);
+      if (m) {
+        const message = m[2];
+        let level = 'info';
+        if (/error|fatal|exception|econnrefused/i.test(message)) level = 'error';
+        else if (/warn/i.test(message)) level = 'warn';
+        else if (/debug/i.test(message)) level = 'debug';
+        return { timestamp: m[1], level, message, service: short };
+      }
+      return {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: line,
+        service: short,
+      };
+    });
+  };
+
   const fetchServiceData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Récupérer les métriques du service
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
-      const metricsRes = await fetch(`${metricsUrl}/api/v1/container/jobbingtrack-${serviceName}`);
-      
+      if (!containerFullName || containerFullName === 'jobbingtrack-') {
+        setError('Nom de service invalide.');
+        setLogs([]);
+        setMetrics(null);
+        return;
+      }
+
+      const metricsUrl =
+        process.env.NEXT_PUBLIC_METRICS_URL ||
+        process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL ||
+        'http://localhost:5004';
+
+      // Métriques conteneur (nom complet jobbingtrack-…)
+      const metricsRes = await fetch(
+        `${metricsUrl}/api/v1/container/${encodeURIComponent(containerFullName)}`
+      );
+
       if (metricsRes.ok) {
         const metricsData = await metricsRes.json();
         setMetrics(metricsData.container);
       }
 
-      // Récupérer les logs du service
-      const logsRes = await fetch(`${metricsUrl}/api/v1/logs/${serviceName}?limit=50`);
-      
+      // Logs Docker (même source que /backoffice/services/logs — route docker du metrics-aggregator)
+      const logsRes = await fetch(
+        `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(containerFullName)}/logs?lines=120`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+
       if (logsRes.ok) {
         const logsData = await logsRes.json();
-        setLogs(logsData.logs || []);
+        const raw = Array.isArray(logsData.lines) ? logsData.lines : [];
+        setLogs(mapDockerLinesToLogs(raw));
+      } else {
+        setLogs([]);
       }
-
     } catch (err: any) {
       console.error('Error fetching service data:', err);
       setError(err.message);

@@ -212,6 +212,11 @@ export default function SecurityOverviewPage() {
         if (topThreatId) previousTopThreatRef.current = topThreatId
       }
 
+      // Ne pas dupliquer network_threat_detected en « log CRITICAL » : l’événement est déjà une menace structurée (table threats / kind threat).
+      const logsForIncidents = Array.isArray(logsArray)
+        ? (logsArray as any[]).filter((l) => String(l?.eventType || '') !== 'network_threat_detected')
+        : []
+
       const incidents: IncidentItem[] = [
         ...(Array.isArray(threatsArray) ? threatsArray.slice(0, 10).map((t: any) => ({
           id: `threat-${t.id}`,
@@ -221,14 +226,14 @@ export default function SecurityOverviewPage() {
           source: t.sourceIp || 'n/a',
           timestamp: t.detectedAt || new Date().toISOString(),
         })) : []),
-        ...(Array.isArray(logsArray) ? logsArray.slice(0, 10).map((l: any) => ({
+        ...logsForIncidents.slice(0, 10).map((l: any) => ({
           id: `log-${l.id}`,
           kind: 'log' as const,
           title: l.eventType || l.category || 'Log',
           severity: String(l.level || 'info').toUpperCase(),
           source: l.sourceIP || 'n/a',
           timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
-        })) : []),
+        })),
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 12)
       setRecentIncidents(incidents)
       setIncidentsPage(1)

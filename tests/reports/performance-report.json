@@ -1,15 +1,14 @@
 {
-  "timestamp": "2026-04-17T20:50:44.848Z",
+  "timestamp": "2026-04-22T00:13:48.822Z",
   "api": [
     {
       "service": "apiGateway",
       "path": "/health",
       "method": "GET",
       "label": "Gateway Health",
-      "success": false,
-      "duration": 440.13498300000003,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "success": true,
+      "duration": 13.009176999999994,
+      "status": 200
     },
     {
       "service": "auth",
@@ -17,8 +16,8 @@
       "method": "GET",
       "label": "Auth Health",
       "success": false,
-      "duration": 3798.8294379999998,
-      "error": "getaddrinfo ENOTFOUND auth-service",
+      "duration": 2.297169999999994,
+      "error": "connect ECONNREFUSED 127.0.0.1:3001",
       "status": 0
     },
     {
@@ -27,9 +26,9 @@
       "method": "GET",
       "label": "Applications (list)",
       "success": false,
-      "duration": 3323.4501279999995,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 4.685596000000004,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -37,9 +36,9 @@
       "method": "GET",
       "label": "Companies (list)",
       "success": false,
-      "duration": 3615.835545,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 4.008146000000011,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -47,9 +46,9 @@
       "method": "GET",
       "label": "Contacts (list)",
       "success": false,
-      "duration": 3968.862311000001,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 4.656701000000027,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -57,9 +56,9 @@
       "method": "GET",
       "label": "Interviews (list)",
       "success": false,
-      "duration": 3183.050165999999,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 3.698086999999987,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -67,9 +66,9 @@
       "method": "GET",
       "label": "Calls (list)",
       "success": false,
-      "duration": 3756.784689,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 3.3676059999999666,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -77,9 +76,9 @@
       "method": "GET",
       "label": "Followups (list)",
       "success": false,
-      "duration": 3970.0365009999987,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 5.115206999999998,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -87,9 +86,9 @@
       "method": "GET",
       "label": "Events (list)",
       "success": false,
-      "duration": 3720.1173930000004,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 4.0505489999999895,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "apiGateway",
@@ -97,29 +96,27 @@
       "method": "GET",
       "label": "Notifications (list)",
       "success": false,
-      "duration": 3719.315692999997,
-      "error": "getaddrinfo ENOTFOUND api-gateway",
-      "status": 0
+      "duration": 5.062284999999974,
+      "error": "Request failed with status code 401",
+      "status": 401
     },
     {
       "service": "metricsAggregator",
       "path": "/api/v1/metrics",
       "method": "GET",
       "label": "Métriques système",
-      "success": false,
-      "duration": 3665.6465250000037,
-      "error": "getaddrinfo ENOTFOUND metrics-aggregator",
-      "status": 0
+      "success": true,
+      "duration": 2.4552570000000173,
+      "status": 200
     },
     {
       "service": "metricsAggregator",
       "path": "/api/v1/docker/services/all",
       "method": "GET",
       "label": "Docker services",
-      "success": false,
-      "duration": 3773.151098999995,
-      "error": "getaddrinfo ENOTFOUND metrics-aggregator",
-      "status": 0
+      "success": true,
+      "duration": 2007.439259,
+      "status": 200
     }
   ],
   "load": {
@@ -128,12 +125,12 @@
         "service": "apiGateway",
         "endpoint": "/health",
         "label": "Gateway Health",
-        "successful": 0,
+        "successful": 5,
         "total": 5,
-        "averageTime": 6246.061952200001,
-        "maxTime": 10002.607871,
-        "minTime": 3395.2596940000003,
-        "successRate": "0.0%"
+        "averageTime": 3.6597194000000854,
+        "maxTime": 3.8125990000003185,
+        "minTime": 3.521559000000252,
+        "successRate": "100.0%"
       },
       {
         "service": "auth",
@@ -141,46 +138,57 @@
         "label": "Auth Health",
         "successful": 0,
         "total": 4,
-        "averageTime": 5239.771374999998,
-        "maxTime": 7114.445040999999,
-        "minTime": 3364.7855659999987,
+        "averageTime": 1.5824294999998756,
+        "maxTime": 2.035323999999946,
+        "minTime": 1.286721999999827,
         "successRate": "0.0%"
       },
       {
         "service": "apiGateway",
         "endpoint": "/api/v1/companies",
         "label": "Companies API",
-        "successful": 0,
+        "successful": 4,
         "total": 4,
-        "averageTime": 5198.176611500003,
-        "maxTime": 6901.651671000007,
-        "minTime": 3494.5988240000006,
-        "successRate": "0.0%"
+        "averageTime": 6.081287999999972,
+        "maxTime": 6.776241000000027,
+        "minTime": 4.893984999999702,
+        "successRate": "100.0%"
       }
     ],
     "overall": {
-      "successful": 0,
+      "successful": 9,
       "total": 13,
-      "averageTime": 5561.336646233333,
-      "successRate": "0.0%"
+      "averageTime": 3.7744789666666443,
+      "successRate": "69.2%"
     }
   },
   "systemMetrics": {
-    "cpu": null,
-    "memory": null,
+    "cpu": {
+      "load_1": 4.77,
+      "load_5": 4.79,
+      "load_15": 5.1,
+      "cores": 16,
+      "usage_percent": 32.41
+    },
+    "memory": {
+      "total_mb": 48051,
+      "used_mb": 43174,
+      "free_mb": 4877,
+      "usage_percent": 89.85
+    },
     "containers": 0,
-    "dataSource": "unavailable"
+    "dataSource": "metrics-aggregator"
   },
   "memoryStress": {
-    "heapIncreaseMB": 25.74053955078125,
-    "initialHeap": 9431952,
-    "finalHeap": 36422864
+    "heapIncreaseMB": 29.279747009277344,
+    "initialHeap": 11800496,
+    "finalHeap": 42502536
   },
   "summary": {
     "totalTests": 15,
-    "successfulTests": 0,
-    "averageResponseTime": 0,
+    "successfulTests": 13,
+    "averageResponseTime": 187.04980636363635,
     "totalRequests": 13,
-    "successfulRequests": 0
+    "successfulRequests": 9
   }
 }

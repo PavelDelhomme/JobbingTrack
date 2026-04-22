@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
+.PHONY: db-migrate db-seed datas-remove-tests-tags db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
 
 # ============================================================================
 # AIDE
@@ -28,6 +28,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make migrate-all           - Alias rapide pour db-migrate"
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
+	@echo "  make datas-remove-tests-tags - Supprimer uniquement isTestData (garde ADMIN_EMAIL / PROTECTED_USER_EMAILS)"
 	@echo "  make db-fix-role           - Réparer rôle et DB PostgreSQL"
 	@echo "  make db-fix-isarchived     - Ajouter colonne Application.isArchived (fix tests API sans rebuild)"
 	@echo ""
@@ -232,6 +233,17 @@ db-push-metrics: ## Prisma db push pour metrics-aggregator uniquement
 db-seed: ## Insérer des données de test
 	@echo "🌱 Insertion de données de test..."
 	./scripts/db/seed.sh
+
+# Même logique que POST /api/v1/admin/clear-test-data : lignes isTestData=true uniquement (backoffice propre, admin intact)
+datas-remove-tests-tags: ## Supprimer les données marquées test (isTestData), sans toucher ADMIN_EMAIL ni PROTECTED_USER_EMAILS
+	@echo "🧹 Suppression des enregistrements isTestData=true (DATABASE_URL depuis .env racine)..."
+	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
+	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js
+	@echo "✅ Terminé. Prévisualisation sans écriture : make datas-remove-tests-tags-dry-run"
+
+datas-remove-tests-tags-dry-run: ## Comptage seulement (aucune suppression)
+	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
+	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js --dry-run
 
 # Sauvegarde de la base de données
 db-backup: ## Créer une sauvegarde de la DB

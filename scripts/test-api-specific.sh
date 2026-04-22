@@ -2,6 +2,11 @@
 # Script pour tester des endpoints API spécifiques
 # Usage: ./scripts/test-api-specific.sh <test_type> [endpoint1] [endpoint2] ...
 # Pas de set -e : on exécute tous les tests même si certains échouent, pour un rapport complet (total / réussis / échoués).
+#
+# Smoke / joignabilité : le 5ᵉ argument de test_endpoint peut être une liste de codes acceptés
+# (ex. "200 204 404 405" pour archive/restore). Un 404 ou 405 ne veut pas dire que l’API est « correcte »
+# métier, seulement que la route existe ou que le gateway a répondu de façon cohérente avec la config
+# actuelle. Les 401 sur les services sans Bearer signifient « protégé, service vivant ».
 
 # Couleurs
 RED='\033[0;31m'
@@ -13,9 +18,9 @@ NC='\033[0m'
 
 # Configuration (API_GATEWAY_URL utilisé par le backoffice / CI)
 API_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
+# api-gateway:3000 = port *conteneur* ; sur l’hôte il faut API_GATEWAY_PORT (ex. 5002), sinon curl → 000
 if echo "${API_URL}" | grep -q 'api-gateway'; then
-	_gp=$(printf '%s' "${API_URL}" | sed -n 's/.*api-gateway:\([0-9][0-9]*\).*/\1/p')
-	API_URL="http://127.0.0.1:${_gp:-${API_GATEWAY_PORT:-5002}}"
+	API_URL="http://127.0.0.1:${API_GATEWAY_PORT:-5002}"
 	export API_URL
 fi
 TOKEN=""

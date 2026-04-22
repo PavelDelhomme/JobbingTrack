@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 17 avril 2026 (suite : **journal `make tests`** — rapport **`tests/results/20260417-222318/`** ; correctifs **URLs Docker → hôte**, **`test-api-specific.sh`**, perf **exit 1**, gateway health ; rappels **historique `system_metrics`**, **`make restart`**, **`.jobbingtrack-stack-mode`** — **ERRORS.md**, **RESOLUTIONS.md** § 17/04)
+**Dernière mise à jour** : 22 avril 2026 — **`STATS.md`** : gabarit **analyse CVE / dépendances** (tous microservices, front, mobile, images Docker) + commandes `npm audit` / Scout / `flutter pub outdated` ; **TODOS** / **PLAN** : sections fin (CVE + **prochaines briques A2**) ; **F3** : couverture **`tests/services/`** (smokes par microservice, préférence **gateway**) ; **perf** : santé auth **`GET /api/v1/auth/health`** via gateway ; **vue sécurité** : incidents temps réel sans doublon log **`network_threat_detected`** (déjà en menaces structurées). *(**21/04** : **PLAN** / **STATUS** / **ERRORS** / **TODOS** / **README** Makefile ; **status-watch** / **status-live** ; **SuiviInterimContent** ; **7/04** : **C3**, **`.env`** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -30,15 +30,28 @@
 
 | Lot | Thème | Statut | Où détailler |
 |-----|--------|--------|----------------|
-| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — détail service (précision, historique snapshots + session, auto-refresh, disque) ; **`/backoffice/services/logs`** ; **A5** partiel (SQL **`system_metrics` UTC** + doc fuseaux ; reste libellés « live vs BDD » partout) | `PLAN.md` § A, `metrics-aggregator-service`, `TODOS.md` |
+| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — détail service ; **`/backoffice/services/logs`** (logs Docker via **metrics-aggregator**, filtres locaux + **`since`** whitelist) ; **A5** partiel (SQL **`system_metrics` UTC** ; libellés « live vs BDD ») | `PLAN.md` § A, `docker.routes.js` (`/service/:name/logs`), `services/logs/page.tsx`, `TODOS.md` |
 | **B** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau actionnable) | **Partiellement livré** — **B1** cohérence / compteurs / fuseaux (07/04) ; **B3–B4** à poursuivre — voir `RESOLUTIONS.md` | `PLAN.md` § B, `firewallController.js`, `backoffice/security/*` |
-| **C** | Suivi-intérim, bases principal/test, données test | À faire | `PLAN.md` § C, `SuiviInterimContent.tsx` |
+| **C** | Suivi-intérim, bases principal/test, données test | **Partiel (07–21/04)** — **C3** livré partiellement (idem) ; **C2** **`make env-check`** ; **C1** : chargement agences + candidatures déjà en place ; **21/04** : UX erreur API + **Rafraîchir** + lien test data — flux métier / données à enrichir selon **P0** | `PLAN.md` § C, `SuiviInterimContent.tsx`, `testdata.controller.js` |
 | **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
-| **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (cette vague : ERRORS, FONCTIONNALITES, STATUS, PLAN, TODOS, RESOLUTIONS, index `docs/`) | `PLAN.md` § E, `TODOS.md` lot E |
-| **F** | Tests ciblés + bilan final chantier | **En cours** — Jest `test:unit-and-analytics` : `make test-unit-frontend`, inclus dans **`make test` / `make tests`** via `scripts/run-all-tests-with-reports.sh` (sortie capturée dans `tests/results/.../frontend-jest.json`) ; **ne couvre pas** tout le frontend Jest (`npm test` dans `frontend/` = suite plus large + mobile-emulator, services, etc.). **`npm run test:audit-jest-scope`** : liste explicite des fichiers de test hors gate (audit manuel / CI optionnelle). | `PLAN.md` § F |
+| **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (**22/04** : **`STATS.md`** CVE/gabarit + **CHANTIER** ; **21/04** : STATUS, PLAN, ERRORS, TODOS, README Makefile ; reste PROCESSUS, BACKLOG, revue **`docs/`**) | `PLAN.md` § E, `TODOS.md` lot E, **`STATS.md`** |
+| **F** | Tests ciblés + bilan final chantier | **En cours** — Jest `test:unit-and-analytics` : `make test-unit-frontend`, inclus dans **`make test` / `make tests`** via `scripts/run-all-tests-with-reports.sh` (sortie capturée dans `tests/results/.../frontend-jest.json`) ; **ne couvre pas** tout le frontend Jest (`npm test` dans `frontend/` = suite plus large + mobile-emulator, services, etc.). **`npm run test:audit-jest-scope`** : liste explicite des fichiers de test hors gate (audit manuel / CI optionnelle). **F3 (backlog)** : compléter **`tests/services/`** avec des smokes **health** / endpoints représentatifs pour chaque microservice encore absent (auth, application, call, interview, followup, metrics-aggregator, security, deployment, etc.) — trafic **préféré via API Gateway** pour coller au chemin prod ; exception **metrics-aggregator** pour sondes infra si besoin. Voir **`PLAN.md`** § **F3**. | `PLAN.md` § F |
 | **G** | **Sauvegardes chiffrées**, API backup **non publique**, **délocalisation**, UI admin, **PCA/PRI** (RPO/RTO, runbooks) | **À faire (spec)** — documenté **07/04/2026** ; implémentation **après** cadrage **G1** et stabilisation prioritaire **A/B** ; détail **`PLAN.md`** § G, **`FONCTIONNALITES.md`** § 4.4 | `PLAN.md` § G, futur `docs/operations/BACKUP_AND_DR.md`, `TODOS.md` lot G |
 
 **Critères d’acceptation** du chantier : voir **`PLAN.md`** (en-tête).
+
+### Tests de performance — chemins API (22/04/2026)
+
+- **Principe** : pour la perf **applicative**, faire transiter les requêtes par l’**API Gateway** (WAF, rate limit, corrélation), comme en usage réel ; réserver les appels **directs** au **metrics-aggregator** aux sondes **infra** (métriques hôte / Docker).
+- **`tests/performance/test-performance.js`** : les endpoints listés (companies, interviews, notifications, etc.) passent déjà par **`API_GATEWAY_URL`** ; la santé **auth** est **`GET /api/v1/auth/health`** sur la même base.
+- **`tests/performance/test-load-advanced.js`** : le stress **auth** a été basculé sur **`apiGateway` + `/api/v1/auth/health`** ; les entrées **companies** / **applications** (et le reste des clés **`localhost:300x`**) suivent encore l’**ancien modèle** ports microservices — à aligner sur la gateway (**`PLAN.md`** **F3** / tâche **F3b** dans **`TODOS.md`**).
+
+### Statistiques, monitoring, intérim, données test (7 avril 2026)
+
+- **Stats / monitoring** : les vues admin s’appuient sur **A5** (séries persistées, distinction live vs BDD, libellés) et sur **D1–D3** (crash mobile → analytics). Générer ou nettoyer des **données de test** ne suffit pas à « remplir » les graphiques sans **métriques** et **historiques** cohérents côté agrégateur / Postgres.
+- **Intérim** : **`/backoffice/suivi-interim`** reste priorité **C1** (données utiles, pas seulement l’UI).
+- **Données test** : après mise à jour du code gateway, **`make rebuild-service SERVICE=api-gateway`** (ou équivalent) si les routes **`/api/v1/admin/test-data/*`** ne répondent pas.
+- **`adb-lib`** : bibliothèque **Node** sous **`tools/adb-lib/`** (flows, scénarios, `journey-builder`) — **pas** un microservice ; utile pour **e2e mobile** quand un device **`adb`** est branché.
 
 ### Sauvegardes, API backup et continuité (plan 7 avril 2026)
 
@@ -69,7 +82,7 @@
 
 ### Monitoring & Makefile (07/04/2026)
 
-- **`make status-watch`** : en boucle (**`INTERVAL=5`** par défaut, ex. **`INTERVAL=30`** pour ralentir). Chaque cycle relance **`make status`** sans cache : les valeurs viennent de **Docker** ; si tu voyais d’anciennes lignes « figées », c’était surtout l’**empilement** dans le terminal — par défaut **`CLEAR=1`** efface l’écran avant chaque statut (**`CLEAR=0`** pour garder l’historique). **`--no-print-directory`** supprime les messages GNU make du type *« on quitte le répertoire »*. Les lignes d’aide en couleur utilisent **`printf '%b'`** (portable sous **`/bin/sh`**) : avec un **`echo`** sans **`-e`**, les séquences **`\033[…]`** pouvaient s’afficher en clair. Pour une vue plus fréquente et compacte : **`make status-live`** (~2 s).
+- **`make status-watch`** / **`make status-live`** : chaque cycle exécute **`make status`** (ports hôte → conteneur, santé, 22 services). Défaut **sans `clear`** (défilement continu, séparateur gris entre cycles) ; **`CLEAR=1`** pour effacer l’écran chaque fois. **`INTERVAL=5`** (watch) ou **`2`** (live). **`--no-print-directory`** évite les messages make « répertoire ». Aide : **`printf '%b'`** pour les couleurs sous **sh**.
 - **Ports `monitoring-c` (5098 → 8015)** : **8015** est le port **dans le conteneur** (binaire C) ; **5098** (ou **`MONITORING_C_PORT`**) est le port sur **ta machine**. Les services Node utilisent souvent un interne **301x** ; ce n’est pas une incohérence « exposition Internet » : l’agrégateur joint **`http://monitoring-c:8015`** sur le réseau Compose. Voir légende en tête de **`make status`** et commentaire dans **`docker-compose.yml`**.
 - **`make restart`** : en tête de cible, affichage du **dernier mode Makefile** lu dans **`.jobbingtrack-stack-mode`** (fichier à la racine du dépôt, **ignoré par Git**) : valeurs possibles **`up-dev`** (séquence racine : stack + push + seed + tests — le restart **ne** refait **pas** tests/migrations), **`up-full`**, **`up-essential`** (après **`make up`** / **`up-no-check`**). Le fichier est créé par **`make up`**, **`_up-full-internal`**, **`make up-dev`** (écrase après les tests) ; supprimé par **`make down`**, **`down-clean`**, **`restart-clean`**. Indication seulement : si le fichier est absent, le redémarrage des conteneurs reste possible.
 - **Sonde HTTP « service healthy »** (metrics-aggregator) : appel vers **`http://<nom-conteneur>:port/...`** sur le réseau Docker au lieu de **`localhost`** (sinon **HTTP dégradé** alors que Docker est **healthy**). Override local : **`METRICS_HTTP_PROBE_USE_LOCALHOST=true`** si l’agrégateur tourne hors réseau compose.
@@ -131,11 +144,13 @@
 - **Correctif** : **`/backoffice/services/[serviceName]`** — format **fr** pour CPU (jusqu’à quatre décimales sous 1 %, affichage « sous 0,01 % » si négligeable), ligne **valeur brute** ; mémoire **usage / limite / %** ; réseau en **KB** si besoin ; **Block I/O** (lecture/écriture cumul) ; texte d’aide sur les **PIDs** (`docker stats`) ; historique = **`/docker/service/.../history`** + complément **chartData** si présent + **points session** à chaque rafraîchissement ; graphiques avec **axe Y zoomé** ; auto **10 / 15 / 30 / 60 s** + horodatage dernier fetch.
 - **Backend** : `GET .../docker/service/:name` — **block_read_mb** / **block_write_mb** ; CPU/mémoire renvoyés avec **4 décimales** ; collecte **/host/proc** dans `server.js` : % en **4 décimales** (plus d’arrondi systématique à 0,1).
 
-### Logs applicatifs multi-services — backoffice (07/04/2026)
+### Logs applicatifs multi-services — backoffice (07–21/04/2026)
 
-- **Problème** : le menu « Services & Logs » pointait vers **`/backoffice/services/logs`**, capturé par la route dynamique **`[serviceName]`** (faux « service » nommé `logs`).
-- **Correctif** : page dédiée **`/backoffice/services/logs`** : liste des services (`GET /api/v1/admin/logs/services`), vue **tous conteneurs** (`/admin/logs/all`) ou **un service** (`/admin/logs/:slug`), choix du **tail**, champs **since / until** (Docker) appliqués au **rafraîchissement**, recherche texte locale sur les lignes affichées.
-- **Tests** : pas encore de test Jest dédié (hors gate `test:unit-and-analytics`).
+- **Problème** : le menu « Services & Logs » pointait vers **`/backoffice/services/logs`**, capturé par **`[serviceName]`** (faux service **`logs`**).
+- **Correctif** : page **`frontend/.../services/logs/page.tsx`** — liste des services via **`GET .../api/v1/docker/services/all`** (metrics-aggregator) ; logs par conteneur : **`GET /api/v1/docker/service/<jobbingtrack-…>/logs`** avec **`lines`**, **`since`** / **`until`** (whitelist côté **`metrics-aggregator-service`** `docker.routes.js`) ; filtres **niveau**, **type** (heuristique HTTP / SQL) et **recherche texte** côté navigateur ; lien vers la fiche **`/backoffice/services/[slug]`**.
+- **Gateway** `admin/logs/*` : peut compléter plus tard (lot **A2**) pour une source unique ou Loki ; pas requis pour la lecture Docker actuelle.
+- **Développement** : **`(development)/services/backoffice/[serviceName]`** et onglet **Logs** de **`(development)/services/applications`** utilisent la même route **`/api/v1/docker/service/…/logs`** (agrégateur) au lieu de logs simulés ou de l’ancienne route **`/api/v1/logs/:name`** seule.
+- **Tests** : pas de test Jest dédié dans la gate **`test:unit-and-analytics`**.
 
 ### Analytics utilisateur — plage et complétude (07/04/2026)
 
@@ -906,12 +921,13 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 ## Documentation
 
-**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, **`PLAN.md`**, **`TODOS.md`**. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, **`PLAN.md`**, **`TODOS.md`**, **`STATS.md`** (audits **CVE** / dépendances — résultats à remplir après outils). Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
 
 | Sujet | Fichier |
 |-------|---------|
 | **Plan chantier backoffice + API + doc (lots A–G)** | **`PLAN.md`** |
 | **Liste de tâches opérationnelles (cases à cocher)** | **`TODOS.md`** |
+| **CVE / dépendances / inventaire scans (à compléter)** | **`STATS.md`** |
 | **Index chantier dans docs/** | **`docs/CHANTIER_SECURITE_DATA_DOCS.md`** |
 | **Migrations Prisma et bases (principale vs test)** | `docs/database/MIGRATIONS_ET_BASES.md` |
 | **Guide pratique – quoi faire maintenant (backoffice, test-data, intérim, mobile, BDD)** | **`docs/GUIDE_ETAPES_ACTUELLES.md`** |

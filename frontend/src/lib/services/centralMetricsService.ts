@@ -533,13 +533,23 @@ class CentralMetricsService {
   }
 
   // Récupération des logs d'un service : via metrics-aggregator (page détail service ou Services & Logs)
-  async getServiceLogs(serviceName: string, options?: { lines?: number }): Promise<any | null> {
+  async getServiceLogs(
+    serviceName: string,
+    options?: { lines?: number; since?: string | null; until?: string | null }
+  ): Promise<any | null> {
     try {
       const name = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`
-      const res = await fetch(`${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${options?.lines ?? 100}`, {
-        headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
-        signal: AbortSignal.timeout(8000)
-      })
+      const params = new URLSearchParams()
+      params.set('lines', String(options?.lines ?? 100))
+      if (options?.since) params.set('since', options.since)
+      if (options?.until) params.set('until', options.until)
+      const res = await fetch(
+        `${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?${params.toString()}`,
+        {
+          headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+          signal: AbortSignal.timeout(15000)
+        }
+      )
       if (!res.ok) return null
       const data = await res.json()
       return data

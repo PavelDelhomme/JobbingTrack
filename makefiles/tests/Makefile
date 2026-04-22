@@ -78,7 +78,7 @@ tests-help:
 	@echo "  make test-suite-full          Suite complète : frontend + BDD + status + test-all (sans logs, sans attente)"
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
-	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
+	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets (dont Jest api-gateway **dans le conteneur** si jobbingtrack-api-gateway est up)"
 	@echo "  make test-full                Rebuild (--no-cache, lourd) + up + db + seed + test-all"
 	@echo "  make test-full-quick          ⚡ SANS rebuild : up-full + db + seed + test-all (léger)"
 	@echo "  make test-full-cached         Build avec cache + up + db + seed + test-all (compromis)"

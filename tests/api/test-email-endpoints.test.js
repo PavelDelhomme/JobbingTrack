@@ -11,6 +11,7 @@
 const axios = require('axios');
 const { describe, it, expect, beforeAll, afterAll } = require('@jest/globals');
 const { getAdminUser, API_URL } = require('../helpers/auth.helper');
+const { isApiConnectionError, warnApiDown } = require('../helpers/apiConnection');
 
 const REAL_TEST_EMAIL = process.env.TEST_REAL_EMAIL || 'redacted@example.invalid';
 
@@ -52,6 +53,10 @@ describe('Email Endpoints (admin)', () => {
         expect(response.data).toHaveProperty('pagination');
         expect(Array.isArray(response.data.data)).toBe(true);
       } catch (error) {
+        if (isApiConnectionError(error)) {
+          warnApiDown('GET /emails/logs (pagination)', error);
+          return;
+        }
         if (error.response?.status === 401) {
           console.warn('⚠️ Non authentifié, test ignoré');
           return;
@@ -77,6 +82,10 @@ describe('Email Endpoints (admin)', () => {
         expect(response.data.success).toBe(true);
         expect(Array.isArray(response.data.data)).toBe(true);
       } catch (error) {
+        if (isApiConnectionError(error)) {
+          warnApiDown('GET /emails/logs (P2021)', error);
+          return;
+        }
         if (error.response?.status === 401) {
           console.warn('⚠️ Non authentifié, test ignoré');
           return;

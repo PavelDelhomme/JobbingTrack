@@ -125,7 +125,7 @@ class LoadTester {
       { service: 'apiGateway', endpoint: '/health', requests: 50, concurrent: 5 },
       { service: 'companies', endpoint: '/api/v1/companies', requests: 100, concurrent: 10 },
       { service: 'applications', endpoint: '/api/v1/applications', requests: 75, concurrent: 8 },
-      { service: 'auth', endpoint: '/health', requests: 30, concurrent: 5 }
+      { service: 'apiGateway', endpoint: '/api/v1/auth/health', requests: 30, concurrent: 5 }
     ];
 
     const results = [];

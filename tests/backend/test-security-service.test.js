@@ -9,15 +9,36 @@ const { API_URL } = require('../helpers/auth.helper');
 /** Même défaut que docker-compose / tests/jest.setup.js — pas besoin d’exporter la variable à la main en local. */
 const DEFAULT_INTERNAL_SECRET = 'jobbingtrack-internal-security-dev';
 
+async function waitForApiGateway(maxMs = 45000, stepMs = 1500) {
+  const deadline = Date.now() + maxMs;
+  let lastErr;
+  while (Date.now() < deadline) {
+    try {
+      const r = await axios.get(`${API_URL}/health`, { timeout: 4000, validateStatus: () => true });
+      if (r.status === 200) return;
+      lastErr = new Error(`HTTP ${r.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+  // Ne pas bloquer toute la suite : les tests individuels gèrent déjà 503 / erreurs réseau
+  // eslint-disable-next-line no-console
+  console.warn(
+    `⚠ Gateway toujours injoignable après ${maxMs}ms (${lastErr?.code || lastErr?.message || lastErr}). Les tests firewall peuvent échouer.`
+  );
+}
+
 describe('Security Service', () => {
   let authHeaders;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     authHeaders = {
       'Content-Type': 'application/json',
       'X-Internal-Secret':
         process.env.SECURITY_INTERNAL_SECRET || DEFAULT_INTERNAL_SECRET
     };
+    await waitForApiGateway();
   });
 
   describe('GET /api/v1/security/logs', () => {

@@ -19,6 +19,7 @@ function httpGet(url) {
 }
 
 async function testFullSystem() {
+  let failed = 0;
   console.log('🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES');
   console.log('=====================================');
 
@@ -111,18 +112,27 @@ async function testFullSystem() {
     if (response.status === 200) {
       console.log('✅ Persistance OK - données historiques disponibles');
     } else if (response.status >= 500) {
-      console.log('⚠️ Persistance: erreur serveur (HTTP', response.status + ')');
+      console.log('❌ Persistance: erreur serveur (HTTP', response.status + ')');
+      failed += 1;
     } else {
       console.log('✅ Persistance répond (HTTP', response.status + ')');
     }
   } catch (err) {
     console.log('⚠️ Persistance:', err.code || err.message);
   }
+
+  return failed;
 }
 
-testFullSystem().then(() => {
-  console.log('\n🎉 TEST TERMINÉ');
-}).catch((err) => {
-  console.error('⚠️ Erreur:', err.message);
-  process.exit(1);
-});
+testFullSystem()
+  .then((failures) => {
+    console.log('\n🎉 TEST TERMINÉ');
+    if (failures > 0) {
+      console.log(`\n❌ ${failures} vérification(s) en échec (voir ci-dessus).`);
+      process.exit(1);
+    }
+  })
+  .catch((err) => {
+    console.error('⚠️ Erreur:', err.message);
+    process.exit(1);
+  });

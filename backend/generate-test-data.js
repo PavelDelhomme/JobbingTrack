@@ -2,6 +2,10 @@
 /**
  * 🎲 Script de génération de données de test cohérentes
  * Génère des données réalistes pour tous les services JobbingTrack
+ *
+ * Nettoyage des enregistrements marques isTestData (sans toucher aux comptes admin proteges) :
+ *   make datas-remove-tests-tags
+ * Preset ou volumes personnalises : voir PRESETS et l option --balanced ci-dessous.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -41,11 +45,11 @@ const PRESETS = {
     users: 4,
     companies: 8,
     applications: 12,
-    contacts: 10,
-    interviews: 4,
-    followups: 6,
-    calls: 4,
-    events: 8,
+    contacts: 24,
+    interviews: 6,
+    followups: 8,
+    calls: 6,
+    events: 12,
     deletedItems: 2,
     archivedItems: 2,
     description: 'Données minimales pour tests end-to-end'
@@ -232,13 +236,14 @@ async function main() {
   const presetName = args.find(arg => !arg.startsWith('--') && PRESETS[arg]);
   const configArg = args.find(arg => !arg.startsWith('--') && arg !== presetName);
   const isClean = args.includes('--clean');
+  let balanced = args.includes('--balanced') || process.env.GENERATE_TEST_DATA_BALANCED === '1';
   const tagArg = args.find(arg => arg.startsWith('--tag='));
   const testTag = tagArg ? tagArg.split('=')[1] : `test-${Date.now()}`;
 
-  let config = DEFAULT_CONFIG;
+  let config = { ...DEFAULT_CONFIG };
 
   if (presetName && PRESETS[presetName]) {
-    config = PRESETS[presetName];
+    config = { ...PRESETS[presetName] };
     console.log(`🎯 Preset utilisé: ${presetName}`);
     console.log(`📝 Description: ${PRESETS[presetName].description}`);
   } else if (presetName) {
@@ -249,11 +254,31 @@ async function main() {
   if (configArg) {
     try {
       const customConfig = JSON.parse(configArg);
-      config = { ...config, ...customConfig };
+      if (customConfig._balanced === true) {
+        balanced = true;
+        console.log('🔧 Option balanced (API / env) activée');
+      }
+      const { _balanced, ...rest } = customConfig;
+      config = { ...config, ...rest };
       console.log('🔧 Configuration personnalisée appliquée');
     } catch (error) {
       console.log('⚠️ Configuration personnalisée invalide, utilisation de la configuration par défaut');
     }
+  }
+
+  // Volumes plus coherents pour tableaux de bord (contacts / entretiens / relances / appels par rapport aux entreprises et candidatures)
+  if (balanced) {
+    const minContacts = Math.max(config.contacts, config.companies * 3, Math.ceil(config.applications * 0.35));
+    const minInterviews = Math.max(config.interviews, Math.ceil(config.applications * 0.28));
+    const minFollowups = Math.max(config.followups, Math.ceil(config.applications * 0.32));
+    const minCalls = Math.max(config.calls, Math.ceil(config.applications * 0.22));
+    const cap = (n, max) => Math.min(max, n);
+    config.contacts = cap(minContacts, 800);
+    config.interviews = cap(minInterviews, 400);
+    config.followups = cap(minFollowups, 500);
+    config.calls = cap(minCalls, 400);
+    config.events = Math.max(config.events, Math.ceil((config.interviews + config.followups + config.calls) * 1.1));
+    console.log('⚖️  Mode --balanced : contacts, entretiens, relances, appels et evenements augmentes pour des stats plus representatives');
   }
 
   if (isClean) {
@@ -276,14 +301,19 @@ async function main() {
     const user1Email = process.env.TEST_USER_EMAIL || 'user1@jobbingtrack.test';
     const user1Password = process.env.TEST_USER_PASSWORD || 'password123';
     const user1HashedPassword = user1Password === 'password123' ? hashedPassword : await bcrypt.hash(user1Password, 10);
+    const adminEmailNorm = String(process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test').trim().toLowerCase();
 
     const users = [];
     for (let i = 0; i < config.users; i++) {
       const email = i === 0 ? user1Email : `user${i + 1}@jobbingtrack.test`;
       const password = i === 0 ? user1HashedPassword : hashedPassword;
+      const isProtectedAdmin = String(email).trim().toLowerCase() === adminEmailNorm;
       const user = await prisma.user.upsert({
         where: { email },
-        update: { isTestData: true, ...(i === 0 ? { password: user1HashedPassword } : {}) },
+        update: {
+          ...(isProtectedAdmin ? {} : { isTestData: true }),
+          ...(i === 0 ? { password: user1HashedPassword } : {})
+        },
         create: {
           email,
           password,
@@ -291,7 +321,7 @@ async function main() {
           lastName: LAST_NAMES[i % LAST_NAMES.length],
           phone: `+3361234567${i}`,
           role: i === 0 ? 'SUPER_ADMIN' : (i === 1 ? 'ADMIN' : 'USER'),
-          isTestData: true
+          isTestData: !isProtectedAdmin
         }
       });
       users.push(user);

@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic env-check env-append-missing
 
 # ============================================================================
 # AIDE
@@ -39,6 +39,10 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "💡 EXEMPLES:"
 	@echo "  make health && make diagnostic    # Santé + Diagnostic"
 	@echo "  make diagnostic-fix               # Correction auto"
+	@echo ""
+	@echo "📄 ENV (.env vs .env.example):"
+	@echo "  make env-check                    - Clés manquantes / orphelines (sans modifier .env)"
+	@echo "  make env-append-missing           - Fichier .env.append-from-example.txt (à fusionner à la main)"
 	@echo ""
 	@echo "📖 Documentation: docs/troubleshooting/guide.md"
 	@echo ""
@@ -266,3 +270,14 @@ diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 # Afficher tous les ports exposés Docker
 status-port: ## Afficher tous les ports externes Docker utilisés par JobbingTrack
 	@./scripts/utils/show-ports.sh
+
+# ---------------------------------------------------------------------------
+# .env ↔ .env.example (alignement des clés)
+# ---------------------------------------------------------------------------
+
+env-check: ## Compare .env et .env.example (variables manquantes ou uniquement dans .env)
+	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs"
+
+env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .env, valeurs copiées depuis l’exemple) — ne modifie pas .env
+	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
+	@echo "👉 Fusionnez manuellement le contenu dans .env puis supprimez le fichier si besoin."

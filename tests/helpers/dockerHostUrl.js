@@ -10,8 +10,9 @@ function normalizeGatewayUrlForHost(url) {
   try {
     const u = new URL(base);
     if (u.hostname === 'api-gateway') {
-      const port = u.port || process.env.API_GATEWAY_PORT || '5002';
-      return `http://127.0.0.1:${port}`;
+      // Ne pas réutiliser u.port (ex. 3000 = port interne Docker) : depuis l’hôte = port publié compose
+      const hostPort = process.env.API_GATEWAY_PORT || '5002';
+      return `http://127.0.0.1:${hostPort}`;
     }
   } catch (_) {
     /* ignore */
@@ -43,8 +44,7 @@ function normalizeMetricsAggregatorUrl(url) {
       u.hostname === 'jobbingtrack-metrics-aggregator' ||
       u.hostname === 'metrics-aggregator'
     ) {
-      const port = u.port || defPort;
-      return `http://127.0.0.1:${port}`;
+      return `http://127.0.0.1:${defPort}`;
     }
   } catch (_) {
     /* ignore */

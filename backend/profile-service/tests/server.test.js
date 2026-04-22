@@ -11,6 +11,7 @@ describe('Profile Service - Tests de base', () => {
     expect(response.body).toHaveProperty('service', 'profile-service');
     expect(response.body).toHaveProperty('timestamp');
     expect(response.body).toHaveProperty('version');
+    expect(response.body).toHaveProperty('environment');
   });
 
   test('GET / devrait retourner 404 si pas de route', async () => {
