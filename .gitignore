@@ -16,6 +16,7 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.backup.*
+.env.append-from-example.txt
 
 # Production build
 dist/
