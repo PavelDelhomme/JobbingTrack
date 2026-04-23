@@ -61,6 +61,13 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **Ce n’est pas du code prod** : dans **`frontend/.../services/[serviceName]/page.test.tsx`**, le **`global.fetch` mocké** répond à l’URL qui contient **`/api/v1/metrics`** avec un petit JSON (`system.disk`, etc.) pour que **`jsdom`** puisse rendre la page **sans** agrégateur Docker réel.
 - **En runtime** (navigateur + stack **`make up-full`**), la même URL appelle le **vrai** metrics-aggregator ; le mock sert uniquement à **isoler** les tests unitaires du réseau.
 
+### Jest — `No tests found` avec un chemin contenant `[serviceName]`
+
+- **Cause** : **`--testPathPattern`** attend une **regex** ; les crochets **`[` `]`** du segment Next **`[serviceName]`** forment une **classe de caractères**, donc le motif ne correspond pas au fichier réel.
+- **Correctif** : depuis **`frontend/`**, utiliser **`--runTestsByPath`** avec le chemin littéral, par ex. **`npm run test:service-detail-page`** (voir **`package.json`**) :  
+  **`npx jest --runTestsByPath "src/app/(admin)/backoffice/services/[serviceName]/page.test.tsx"`**  
+  Les parenthèses **`(admin)`** peuvent aussi nécessiter une échappement ou **`--runTestsByPath`** plutôt qu’un motif regex approximatif.
+
 ### Sauvegardes et reprise (pas une erreur — couverture à construire)
 
 Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié : la **continuité** repose sur les pratiques d’exploitation manuelles (Docker, dumps SQL hors produit, etc.). La trajectoire cible (chiffrement, délocalisation, audit, UI admin) est décrite dans **`PLAN.md`** lot **G** et **`FONCTIONNALITES.md`** § **4.4** ; suivre **`TODOS.md`** lot **G** pour l’implémentation.

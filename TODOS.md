@@ -3,7 +3,7 @@
 Liste opérationnelle, alignée sur **`PLAN.md`** (lots A–G) et sur la logique de **`STATUS.md`**.  
 Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la section « Plus tard » de `STATUS.md`.
 
-**Dernière mise à jour** : 7 avril 2026 — **Alertes email rapports critiques** (spec **B11**), **analyse sécurité live « soft »** (**B12**), **graphes métriques** (suite **A1/A5**) notés **PLAN** / **STATUS** / **ERRORS** ; **`make type-check-frontend-log`** pour journal **`tsc`** complet. **`GET /api/v1/docker/service/:name/history`** : fusion **fichiers `/tmp/...`** + **`container_metrics_snapshots`** (Postgres) pour persistance au **rechargement** de la page détail service. **A1** : mock Jest **`/api/v1/metrics`** = choix CI sans Docker ; intégration réelle = stack + URL agrégateur (voir puce A1). *(23/04 : Block I/O + aggregated ; **ERRORS.md** mock metrics ; 22/04 : Jest gateway, **STATS**, **B6**.)*
+**Dernière mise à jour** : 7 avril 2026 — **A1** : **`useServiceHistoryChartData`** + **`serviceHistoryChartModel`** + **socle graphes** (voir **`RESOLUTIONS.md`** et **§ Lot A — socle / inventaire** ci-dessous). Sous-tâches **A1a–A1g**. **B11/B12**, **`make type-check-frontend-log`**. **`GET /api/v1/docker/service/:name/history`** : fichiers **`/tmp/...`** + **`container_metrics_snapshots`**. Mock Jest **`/api/v1/metrics`** (CI). *(23/04 : Block I/O + aggregated ; **ERRORS.md** ; 22/04 : Jest gateway, **STATS**, **B6**.)*
 
 **À ne pas confondre** : une mention du lot **A2** dans **`PLAN.md`** ou dans la rubrique **« Fait récemment »** (doc / structuration) **ne veut pas dire** que la tâche **A2** est terminée : la case **A2** ci-dessous reste **`[ ]` partielle** tant que **gateway `admin/logs/*`** + **Loki** (ou décision explicite) ne sont pas réglés.
 
@@ -41,7 +41,59 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 ## Lot A — Monitoring services + logs multi-sources (+ persistance)
 
-- [ ] A1 — Monitoring détail `/backoffice/services/[nom]` : **partiel (07 + 23/04)** — **Block I/O** + **PIDs** + **réseau** ; **disque hôte** (`GET /api/v1/metrics`) ; **historique** : graphes cumul / débit via **`/api/v1/docker/service/<nom>/history`** — **07/04** : la route agrégateur **fusionne** snapshots **fichiers** (`/tmp/metrics/history/services/<short>/`) et lignes **`container_metrics_snapshots`** (même schéma plat que le front : `cpu_percent`, `network_rx_mb`, `block_*`, etc.) ; réponse enrichie **`sources`** (`fileSnapshots` / `databaseRows`) + **`container`** (nom Docker complet). **Tests** : **`page.test.tsx`** garde **`global.fetch` mocké** (pas d’agrégateur dans Jest) — **option** hors CI : lancer l’agrégateur + `NEXT_PUBLIC_METRICS_URL` / URL gateway et scénario manuel ou **`RUN_SERVICE_DETAIL_INTEGRATION`** (à ajouter si besoin) pour valider bout en bout. **Reste A1 (gros morceau)** : **socle réutilisable** (hooks + composants graphes + normalisation dates) branché aussi sur **vue d’ensemble monitoring**, **Statistiques & Monitoring** (vues sécurité / stats / logs), **Métriques système & conteneurs**, **Historique système** (pagination / plages dates), **graphiques détail service** — une seule couche données/UI pour éviter la duplication (**aligné texte porteur Lot 1**). **Amorcé** : **`frontend/src/lib/monitoring/serviceDetailHistory.ts`** (`ServiceHistoryPoint`, **`normalizeServerHistoryRows`**, **`mergeHistoryChronological`**) importé par **`services/[serviceName]/page.tsx`** — étendre aux autres écrans ensuite. **Graphes (suite longue)** : le backoffice s’appuie sur un **système de graphiques dédié** (Recharts, thème tooltip, pages **analytics** / **statistique** / détail service) — **beaucoup d’améliorations prévues** (lisibilité, brush/zoom, homogénéisation des séries, perfs rendu) : traiter **progressivement** avec **A5** (live vs BDD) et **`ERRORS.md`** § fuseaux / limites `limit`. **Dette TypeScript** : voir **`ERRORS.md`** § **`type-check`** ; **`make type-check-frontend-log`** pour un **fichier log complet** ; **`npm install`** + alignement branche avec le dépôt principal. **Suite** : liste processus (`docker top` / API) ; autres vues « services » ; **A5** pour étiquetage explicite temps réel vs BDD partout.
+### Socle graphes / données partagés (cible lot A, élargie au backoffice)
+
+- **Vision** : le **socle** (fonctions pures de dérivation, hooks, composants Recharts réutilisables, tooltips / axes / légendes alignés) a démarré sur le **monitoring** (détail service), mais la **cible** est **toute page backoffice** qui affiche des **graphiques** ou des **vues tableau + séries** — dès qu’on standardise, sans casser l’existant.
+- **Règle porteur** : **ne pas supprimer** un graphe, une série ou un bloc de données **sans validation explicite**. Un refactor « socle » = **déplacement / factorisation** dans des modules dédiés, **pas** retrait fonctionnel tant que tu n’as pas validé écran par écran.
+
+### Inventaire — **Metrics système & conteneurs** : ce qui est déjà sur le nouveau socle
+
+- **Périmètre** : ici on parle du volet **métriques système & conteneurs** (charge, conteneurs Docker, séries agrégées), **pas** d’un cas isolé « un service au hasard ». Le **premier écran** déjà branché sur le socle (modèle + hook + composant) est le **détail d’un service** — parce que c’est là que vit l’**historique** exploitable (CPU, mémoire, réseau, Block I/O).
+- **Référence graphes** : le rendu **CPU / mémoire** (et le reste du bloc) dans **`MonitoringServiceHistoryCharts`** sur **`/backoffice/services/[nom]`** est **nettement plus abouti** que les graphes **CPU** (et voisins) des pages **performances / analytics** actuelles. **Objectif** : **réutiliser ce patron** (axes zoomés, tooltips, dérivés) sur les vues **metrics système & conteneurs** plus larges — **sans retirer** les graphes existants tant que tu n’as pas validé la bascule (règle porteur ci-dessus).
+
+| Zone (metrics système & conteneurs) | Fichiers / pièces | Validé par toi (rien en moins) |
+|-------------------------------------|-------------------|--------------------------------|
+| **Historique** détail conteneur / service : CPU, mémoire, réseau, Block I/O cumul, débit Block I/O | **`serviceHistoryChartModel.ts`**, **`useServiceHistoryChartData.ts`**, **`serviceHistorySources.ts`**, **`MonitoringServiceHistoryCharts.tsx`**, page **`services/[serviceName]/page.tsx`** | [ ] *(relecture visuelle)* |
+| **Performances** — CPU & mémoire % (système) | **`systemMetricsSeriesModel.ts`**, **`SystemCpuMemoryAreaCharts.tsx`**, page **`performances/page.tsx`** (`/backoffice/performances`) ; redirect **`analytics/performances`** → canonique | [ ] *(valider rendu — avril 2026)* |
+
+### Inventaire — pages backoffice avec Recharts **hors** socle unifié (pour plus tard / A1d / A5)
+
+*(Même composant **`recharts`** qu’aujourd’hui ; migration = chantier séparé quand tu priorises.)*
+
+- [ ] **`/backoffice/analytics`** — `analytics/page.tsx`
+- [x] **`/backoffice/performances`** — `performances/page.tsx` (redirect depuis **`/backoffice/analytics/performances`**)
+- [ ] **`/backoffice/analytics/network`** — `analytics/network/page.tsx`
+- [ ] **`/backoffice/analytics/containers`** — `analytics/containers/page.tsx`
+- [ ] **`/backoffice/statistics`** — `statistics/page.tsx`
+- [ ] **`/backoffice/statistique`** — `statistique/page.tsx`
+- [ ] **`/backoffice/tests-performance`** — `tests-performance/page.tsx`
+
+### Souhaits graphes / données / tableaux (à compléter par toi dans ce fichier)
+
+- [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** (drawer Tableau de bord) — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite** : **`analytics/containers`**, **`network`**, **`statistique`**, etc.
+- [ ] *(ex. : sparkline sur la liste **`/backoffice/services`** — voir A1d)*
+- [ ] …
+- [ ] …
+
+---
+
+- [ ] A1 — Monitoring détail `/backoffice/services/[nom]` + **socle graphes partagé** : **partiel (07 + 23 + 07/04)** — **Block I/O** + **PIDs** + **réseau** ; **disque hôte** ; historique **`/api/v1/docker/service/<nom>/history`** (fichiers + **`container_metrics_snapshots`**). **Tests** : **`page.test.tsx`** + mock **`/api/v1/metrics`** ; **`npm run test:service-detail-page`**, **`test:service-history-model`**. **Dette TS / CI** : **`ERRORS.md`** § `type-check` ; **`make type-check-frontend-log`**.
+
+  **A1a — Données brutes historique** — [x] partiel : **`serviceDetailHistory.ts`**. [x] **07/04** : **`serviceHistorySources.ts`** — **`loadServerHistoryPoints`** (fetch **`/history`**, fallback **`getAggregatorMetrics`** + **`historyPointsFromAggregatorChartData`**) ; tests **`serviceHistorySources.test.ts`**.
+
+  **A1b — Dérivés graphes (pure + hook)** — [x] **07/04** : **`serviceHistoryChartModel.ts`** + **`useServiceHistoryChartData.ts`** ; page détail branchée (**`RESOLUTIONS.md`**). [x] Tests unitaires modèle : **`serviceHistoryChartModel.test.ts`** (Jest ; **`npm run test:service-history-model`**).
+
+  **A1c — Composants Recharts réutilisables** — [x] **07/04** : bloc « Historique des performances » extrait vers **`MonitoringServiceHistoryCharts.tsx`** (props dérivées + domaines Y). [ ] Lazy **`@/lib/charts`** / **`rechartsTooltipProps`** partagés avec **analytics** si alignement schéma.
+
+  **A1d — Brancher le socle sur d’autres écrans** — [ ] Vue d’ensemble **`/backoffice`** (cartes / mini-séries si API alignée). [ ] **`/backoffice/analytics/*`** et **`statistique` / `statistics`** : réutiliser **`metricRowToTimeMs`**, **`injectMetricTimeGaps`**, **même vocabulaire** légendes (A5). [ ] Liste services **`/backoffice/services`** : hint ou sparkline optionnelle (basse prio).
+
+  **A1e — UX graphes** — [ ] Brush / zoom (plage) ; [ ] homogénéisation **couleurs** / **Légende** / **Tooltip** avec **`rechartsTooltipTheme`** partout ; [ ] **performances rendu** (sous-échantillonnage déjà partiel côté analytics — rapprocher les constantes `maxPoints`).
+
+  **A1f — Processus / API** — [ ] Exposer **liste PIDs** stable (`docker top` ou champ agrégateur) si produit le demande.
+
+  **A1g — A5 transverse** — [ ] Libellés **live vs fichiers vs BDD** sur détail service + pages reliées (voir puce **A5**).
+
+  **Roadmap sécurité / alertes** (hors périmètre code A1 mais lié produit) : **B11** emails incidents critiques ; **B12** analyse live « soft » — **`PLAN.md`** / **`STATUS.md`**.
 - [ ] A2 — Logs tous services + filtres — **partiel (21–22/04)** : **`/backoffice/services/logs`** + **`centralMetricsService.getServiceLogs`** + agrégateur **`since`/`until`** ; filtres **niveau / type / texte** ; **`(development)/services/applications`** (onglet logs) + **`(development)/services/backoffice/[serviceName]`** → **`/api/v1/docker/service/…/logs`**. **Suite A2 (22/04)** : **`api-gateway`** — **`dockerLogsQuery.js`** + **`normalizeDockerLogsQuery`** (proxy + réponse **`query`**) ; **`admin/logs/*`** ; **Jest** `tests/dockerLogsQuery.test.js` (incl. construction query proxy — **complément** : smoke curl / **`make tests`** avec stack). **Infra** : **log-collector-c** écoute **3019** dans le conteneur (**5099** hôte) ; **`make rebuild-log-collector-c`** après pull. **Reste** : smoke / E2E admin ; **Loki** → **`docs/BACKLOG.md`** si hors sprint.
 - [ ] A3 — Vues détail service : corrélation logs techniques × sécurité (**partiel** : encart liens sécurité + logs centralisés sur la page détail ; reste : vue unifiée / timeline / API si besoin).
 - [x] A4 — Synthèse pipeline dans `ERRORS.md` (§ Pièges + pipeline) ; **à réviser** après A2–A3.

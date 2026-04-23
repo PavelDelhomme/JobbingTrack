@@ -1,27 +1,23 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import Link from 'next/link';
-import { 
-  Server, Activity, TrendingUp, Database, Clock, 
+import {
+  Server, Activity, TrendingUp, Database, Clock,
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
-  RefreshCw, Terminal, BarChart3, Network, Shield,
+  RefreshCw, Terminal, Network, Shield,
   HardDrive, Info
 } from 'lucide-react';
-import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import {
   mergeHistoryChronological,
-  normalizeServerHistoryRows,
   type ServiceHistoryPoint,
 } from '@/lib/monitoring/serviceDetailHistory';
-import {
-  formatLocalDateTime,
-  formatLocalChartAxisTick,
-  metricTimestampToMs,
-} from '@/lib/utils/date';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { loadServerHistoryPoints } from '@/lib/monitoring/serviceHistorySources';
+import { useServiceHistoryChartData } from '@/lib/monitoring/useServiceHistoryChartData';
+import { MonitoringServiceHistoryCharts } from '@/components/monitoring/MonitoringServiceHistoryCharts';
+import { formatLocalDateTime } from '@/lib/utils/date';
 
 function formatCpuPercent(value: number | null | undefined): string {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0
@@ -62,7 +58,7 @@ export default function ServiceDetailPage() {
   
   const [serviceMetrics, setServiceMetrics] = useState<any>(null);
   const [serviceLogs, setServiceLogs] = useState<any>(null);
-  const [serviceHistory, setServiceHistory] = useState<any[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<ServiceHistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -236,67 +232,14 @@ export default function ServiceDetailPage() {
       }
       setHostDiskContext(hostDiskNext)
       
-      // Historique : snapshots disque (/history) + complément chartData agrégateur + courbe « session » (points à chaque rafraîchissement)
-      let serverHistoryPoints: ServiceHistoryPoint[] = []
-      try {
-        const historyResponse = await fetch(
-          `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(fullServiceName)}/history?limit=280`
-        )
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json()
-          const raw = Array.isArray(historyData.data) ? historyData.data : []
-          serverHistoryPoints = normalizeServerHistoryRows(raw).sort(
-            (a, b) =>
-              (metricTimestampToMs(a.timestamp) ?? 0) - (metricTimestampToMs(b.timestamp) ?? 0)
-          )
-        }
-      } catch {
-        // ignore
-      }
-
-      if (serverHistoryPoints.length === 0) {
-        try {
-          const metrics = await centralMetricsService.getAggregatorMetrics()
-          const chartData = (metrics as { chartData?: any[] })?.chartData
-          if (metrics && metrics.servicesList && Array.isArray(chartData) && chartData.length > 0) {
-            const service = metrics.servicesList.find(
-              (s: any) =>
-                s.rawName === fullServiceName ||
-                s.name === fullServiceName ||
-                s.name === serviceName ||
-                s.rawName === serviceName
-            )
-            if (service) {
-              const serviceKey = service.rawName ?? service.name ?? ''
-              serverHistoryPoints = chartData
-                .map((point: any) => ({
-                  timestamp: point.time || point.timestamp,
-                  cpu_percent: Number(point.services?.[serviceKey]?.cpu ?? service.metrics?.cpu?.percentage ?? 0) || 0,
-                  memory_percent: Number(point.services?.[serviceKey]?.memory ?? service.metrics?.memory?.percentage ?? 0) || 0,
-                  memory_usage_mb: Number(point.services?.[serviceKey]?.memory_mb ?? service.metrics?.memory?.usageMb ?? 0) || 0,
-                  network_rx_mb: Number(point.services?.[serviceKey]?.network_rx ?? service.metrics?.network?.rx_mb ?? 0) || 0,
-                  network_tx_mb: Number(point.services?.[serviceKey]?.network_tx ?? service.metrics?.network?.tx_mb ?? 0) || 0,
-                  block_read_mb:
-                    Number(
-                      point.services?.[serviceKey]?.block_read_mb ??
-                        point.services?.[serviceKey]?.block_read ??
-                        0
-                    ) || 0,
-                  block_write_mb:
-                    Number(
-                      point.services?.[serviceKey]?.block_write_mb ??
-                        point.services?.[serviceKey]?.block_write ??
-                        0
-                    ) || 0
-                }))
-                .filter((h: { timestamp?: string }) => Boolean(h.timestamp))
-                .slice(-80)
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
+      // Historique : snapshots disque (/history) + complément chartData agrégateur + courbe « session » (lot A1a → serviceHistorySources)
+      const serverHistoryPoints = await loadServerHistoryPoints({
+        metricsUrl,
+        fullServiceName,
+        serviceName,
+        historyLimit: 280,
+        chartDataMaxPoints: 80
+      })
 
       if (merged) {
         const ts = new Date().toISOString()
@@ -344,86 +287,15 @@ export default function ServiceDetailPage() {
     loadServiceData(true);
   };
 
-  const historyCpuMax = useMemo(() => {
-    if (!serviceHistory.length) return 1
-    const m = Math.max(0.02, ...serviceHistory.map((h) => Number(h.cpu_percent) || 0))
-    return Math.min(100, m * 1.2 + 0.05)
-  }, [serviceHistory])
-
-  const historyMemMax = useMemo(() => {
-    if (!serviceHistory.length) return 1
-    const m = Math.max(0.5, ...serviceHistory.map((h) => Number(h.memory_percent) || 0))
-    return Math.min(100, m * 1.15 + 0.5)
-  }, [serviceHistory])
-
-  const historyChartRows = useMemo(() => {
-    return serviceHistory
-      .map((row) => {
-        const timeMs = metricTimestampToMs(row.timestamp)
-        if (timeMs == null || Number.isNaN(timeMs)) return null
-        const blockRead = Number((row as ServiceHistoryPoint).block_read_mb)
-        const blockWrite = Number((row as ServiceHistoryPoint).block_write_mb)
-        return {
-          ...row,
-          block_read_mb: Number.isFinite(blockRead) ? blockRead : 0,
-          block_write_mb: Number.isFinite(blockWrite) ? blockWrite : 0,
-          timeMs
-        }
-      })
-      .filter(Boolean) as (ServiceHistoryPoint & { timeMs: number })[]
-  }, [serviceHistory])
-
-  /** Débit Block I/O (Mo/min) dérivé des cumuls consécutifs — même principe que l’interprétation « débit » réseau sur cumuls Docker */
-  const historyChartRowsIo = useMemo(() => {
-    const rows = historyChartRows
-    return rows.map((row, i) => {
-      if (i === 0) {
-        return { ...row, block_read_mb_per_min: 0, block_write_mb_per_min: 0 }
-      }
-      const prev = rows[i - 1]
-      const dtMs = row.timeMs - prev.timeMs
-      if (dtMs < 4000 || dtMs > 60 * 60 * 1000) {
-        return { ...row, block_read_mb_per_min: 0, block_write_mb_per_min: 0 }
-      }
-      const dtMin = dtMs / 60000
-      const dr = Math.max(0, Number(row.block_read_mb) - Number(prev.block_read_mb))
-      const dw = Math.max(0, Number(row.block_write_mb) - Number(prev.block_write_mb))
-      return {
-        ...row,
-        block_read_mb_per_min: dr / dtMin,
-        block_write_mb_per_min: dw / dtMin
-      }
-    })
-  }, [historyChartRows])
-
-  const historyAxisShowDate = useMemo(() => {
-    if (historyChartRows.length < 2) return false
-    const span =
-      historyChartRows[historyChartRows.length - 1].timeMs - historyChartRows[0].timeMs
-    return span > 24 * 60 * 60 * 1000
-  }, [historyChartRows])
-
-  const historyBlockMbMax = useMemo(() => {
-    if (!historyChartRows.length) return 1
-    const m = Math.max(
-      0.05,
-      ...historyChartRows.map((h) =>
-        Math.max(Number(h.block_read_mb) || 0, Number(h.block_write_mb) || 0)
-      )
-    )
-    return m * 1.08 + 0.02
-  }, [historyChartRows])
-
-  const historyIoRateMax = useMemo(() => {
-    if (!historyChartRowsIo.length) return 1
-    const m = Math.max(
-      0.01,
-      ...historyChartRowsIo.map((h) =>
-        Math.max(Number(h.block_read_mb_per_min) || 0, Number(h.block_write_mb_per_min) || 0)
-      )
-    )
-    return m * 1.15 + 0.01
-  }, [historyChartRowsIo])
+  const {
+    historyChartRows,
+    historyChartRowsIo,
+    historyCpuMax,
+    historyMemMax,
+    historyAxisShowDate,
+    historyBlockMbMax,
+    historyIoRateMax
+  } = useServiceHistoryChartData(serviceHistory)
 
   if (loading) {
     return (
@@ -734,263 +606,16 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        {/* Performance History */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-              <BarChart3 className="h-6 w-6 mr-2" />
-              Historique des Performances
-            </h2>
-            <span className="text-sm text-gray-500 text-right max-w-md">
-              {serviceHistory.length > 0
-                ? `${serviceHistory.length} points (fichiers agrégateur + session courante)`
-                : 'Aucune donnée — attendez quelques cycles ou activez l’auto-rafraîchissement'}
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            L’axe CPU est zoomé automatiquement quand la charge est faible. Les points « session » s’ajoutent à chaque rafraîchissement même sans historique disque.
-          </p>
-          
-          {serviceHistory.length > 0 ? (
-            <div>
-            
-            {/* Graphique CPU */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Utilisation CPU</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={historyChartRows}>
-                  <defs>
-                    <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timeMs"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    stroke="#9CA3AF"
-                    minTickGap={28}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
-                  />
-                  <YAxis stroke="#9CA3AF" unit="%" domain={[0, historyCpuMax]} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${Number(value).toFixed(4)}%`, 'CPU']}
-                    labelFormatter={(_, payload) => {
-                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-                      return ts != null ? formatLocalDateTime(ts) : '—'
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="cpu_percent" 
-                    stroke="#3B82F6" 
-                    fillOpacity={1} 
-                    fill="url(#colorCpu)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Graphique Mémoire */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Utilisation Mémoire</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={historyChartRows}>
-                  <defs>
-                    <linearGradient id="colorMemory" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timeMs"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    stroke="#9CA3AF"
-                    minTickGap={28}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
-                  />
-                  <YAxis stroke="#9CA3AF" unit="%" domain={[0, historyMemMax]} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Mémoire']}
-                    labelFormatter={(_, payload) => {
-                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-                      return ts != null ? formatLocalDateTime(ts) : '—'
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="memory_percent" 
-                    stroke="#10B981" 
-                    fillOpacity={1} 
-                    fill="url(#colorMemory)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Graphique Réseau */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Traffic Réseau</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={historyChartRows}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timeMs"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    stroke="#9CA3AF"
-                    minTickGap={28}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
-                  />
-                  <YAxis stroke="#9CA3AF" unit=" MB" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${value.toFixed(2)} MB`]}
-                    labelFormatter={(_, payload) => {
-                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-                      return ts != null ? formatLocalDateTime(ts) : '—'
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="network_rx_mb" 
-                    stroke="#F59E0B" 
-                    strokeWidth={2}
-                    name="RX (Réception)"
-                    dot={false}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="network_tx_mb" 
-                    stroke="#EF4444" 
-                    strokeWidth={2}
-                    name="TX (Transmission)"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Block I/O — cumuls (snapshots / session) */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Block I/O (cumul)</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Mêmes champs que <code className="text-[11px]">block_read_mb</code> / <code className="text-[11px]">block_write_mb</code> dans les fichiers d&apos;historique service (
-                <code className="text-[11px]">GET …/docker/service/&lt;nom&gt;/history</code>
-                ), alimentés par les snapshots <code className="text-[11px]">/docker/jobbingtrack/aggregated</code>.
-              </p>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={historyChartRows}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis
-                    dataKey="timeMs"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    stroke="#9CA3AF"
-                    minTickGap={28}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
-                  />
-                  <YAxis stroke="#9CA3AF" unit=" MB" domain={[0, historyBlockMbMax]} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${Number(value).toFixed(3)} MB`]}
-                    labelFormatter={(_, payload) => {
-                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-                      return ts != null ? formatLocalDateTime(ts) : '—'
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="block_read_mb"
-                    stroke="#6366F1"
-                    strokeWidth={2}
-                    name="Lecture cumul"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="block_write_mb"
-                    stroke="#A855F7"
-                    strokeWidth={2}
-                    name="Écriture cumul"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Débit Block I/O estimé (dérivée des cumuls) */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Block I/O — débit estimé</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Δ cumul / Δ temps entre points consécutifs (Mo/min). Peut chuter à 0 si le conteneur est recréé (cumuls remis à zéro) ou si l&apos;écart temporel est filtré (&gt; 1 h).
-              </p>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={historyChartRowsIo}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis
-                    dataKey="timeMs"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    stroke="#9CA3AF"
-                    minTickGap={28}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
-                  />
-                  <YAxis stroke="#9CA3AF" unit=" MB/min" domain={[0, historyIoRateMax]} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${Number(value).toFixed(3)} MB/min`]}
-                    labelFormatter={(_, payload) => {
-                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-                      return ts != null ? formatLocalDateTime(ts) : '—'
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="block_read_mb_per_min"
-                    stroke="#4F46E5"
-                    strokeWidth={2}
-                    name="Lecture (estim.)"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="block_write_mb_per_min"
-                    stroke="#7C3AED"
-                    strokeWidth={2}
-                    name="Écriture (estim.)"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          ) : (
-            <div className="text-center py-12">
-              <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">
-                Aucun historique de performance disponible pour ce service.
-              </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                Les données d'historique s'accumuleront au fil du temps.
-              </p>
-            </div>
-          )}
-        </div>
+        <MonitoringServiceHistoryCharts
+          serviceHistoryLength={serviceHistory.length}
+          historyChartRows={historyChartRows}
+          historyChartRowsIo={historyChartRowsIo}
+          historyCpuMax={historyCpuMax}
+          historyMemMax={historyMemMax}
+          historyAxisShowDate={historyAxisShowDate}
+          historyBlockMbMax={historyBlockMbMax}
+          historyIoRateMax={historyIoRateMax}
+        />
 
         {/* Lot A3 — point d’entrée corrélation logs × sécurité (vue détail service) */}
         <div className="mb-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/40 p-4 shadow-sm">

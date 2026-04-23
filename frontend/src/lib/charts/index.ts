@@ -27,3 +27,6 @@ export const PieChart = lazyRechart(() => import('recharts').then((mod) => ({ de
 export const Pie = lazyRechart(() => import('recharts').then((mod) => ({ default: mod.Pie })));
 export const Cell = lazyRechart(() => import('recharts').then((mod) => ({ default: mod.Cell })));
 
+export * from './systemMetricsSeriesModel';
+export * from './rechartsTooltipTheme';
+

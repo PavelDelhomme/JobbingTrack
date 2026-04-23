@@ -84,7 +84,7 @@ test.describe('📊 Statistiques & Monitoring', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performances & Analytics', () => {
   test('page Performances complètes', async ({ page }) => {
-    await page.goto('/backoffice/analytics/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
