@@ -17,6 +17,8 @@ jest.mock('recharts', () => ({
     <div data-testid="recharts-responsive">{children}</div>
   ),
   LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AreaChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Area: () => null,
   Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
@@ -50,7 +52,7 @@ jest.mock('@/lib/services/statisticsService', () => ({
 }));
 
 import AnalyticsCpuPage from '../page';
-import PerformancesPage from '../performances/page';
+import PerformancesPage from '../../performances/page';
 import NetworkPage from '../network/page';
 import ContainersPage from '../containers/page';
 import ApplicationPage from '../application/page';
@@ -76,11 +78,11 @@ describe('Smoke routes /backoffice/analytics', () => {
     expect(document.querySelector('[data-testid="admin-layout"]')).toBeTruthy();
   });
 
-  it('monte /backoffice/analytics/performances', async () => {
+  it('monte /backoffice/performances (vue Performances)', async () => {
     await act(async () => {
       render(<PerformancesPage />);
     });
-    expect(document.body.textContent).toMatch(/Performances complètes|Chargement/);
+    expect(document.body.textContent).toMatch(/Performances|Chargement/);
   });
 
   it('monte /backoffice/analytics/network', async () => {

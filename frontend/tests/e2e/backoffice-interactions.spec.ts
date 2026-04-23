@@ -448,7 +448,7 @@ test.describe('⚡ Interactions Analytics', () => {
   });
 
   test('page Performances affiche des métriques interactives', async ({ page }) => {
-    await page.goto('/backoffice/analytics/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';

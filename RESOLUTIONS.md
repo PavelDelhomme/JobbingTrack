@@ -1,6 +1,27 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : avril 2026
+**Dernière mise à jour** : 7 avril 2026
+
+---
+
+## 7 avril 2026 — Lot A1 : socle graphes historique service (`useServiceHistoryChartData` + modèle pur)
+
+### Contexte
+- La dérivation des séries Recharts (lignes avec **`timeMs`**, débit Block I/O Mo/min, plafonds d’axes CPU/mémoire/I-O) vivait en **sept `useMemo`** dans **`services/[serviceName]/page.tsx`**, sans réutilisation possible pour les autres écrans monitoring.
+
+### Correctifs
+1. **`frontend/src/lib/monitoring/serviceHistoryChartModel.ts`** : fonctions pures **`buildHistoryChartRows`**, **`buildHistoryChartRowsIo`**, **`historyCpuMaxY`**, **`historyMemMaxY`**, **`historyAxisShowDateForSpan`**, **`historyBlockMbMaxY`**, **`historyIoRateMaxY`** (export des types **`ServiceHistoryChartRow`** / **`ServiceHistoryIoRow`**).
+2. **`frontend/src/lib/monitoring/useServiceHistoryChartData.ts`** : hook **`useServiceHistoryChartData(serviceHistory)`** qui enchaîne les **`useMemo`** et retourne l’objet attendu par la page.
+3. **`frontend/.../services/[serviceName]/page.tsx`** : import du hook ; **`serviceHistory`** typé **`ServiceHistoryPoint[]`** ; suppression des **`useMemo`** dupliqués et de l’import **`useMemo`**.
+
+### Complément (même jour — A1a / A1c / tests A1b)
+- **`frontend/src/lib/monitoring/serviceHistorySources.ts`** : **`loadServerHistoryPoints`**, **`historyPointsFromAggregatorChartData`** ; la page détail appelle **`loadServerHistoryPoints`** dans **`loadServiceData`**.
+- **`frontend/src/components/monitoring/MonitoringServiceHistoryCharts.tsx`** : bloc Recharts « Historique des performances ».
+- **Tests** : **`serviceHistoryChartModel.test.ts`**, **`serviceHistorySources.test.ts`** ; scripts **`npm run test:service-detail-page`**, **`test:service-history-model`** ; **`ERRORS.md`** § Jest **`testPathPattern`** vs crochets **`[serviceName]`**.
+
+### Suite (A1 — même lot)
+- Lazy **`@/lib/charts`** / **`rechartsTooltipProps`** homogènes avec **analytics** si schéma aligné.
+- Brancher le **hook** (ou le modèle seul) sur **vue d’ensemble** `/backoffice`, **analytics**, **statistique**, si le schéma de points est aligné.
 
 ---
 

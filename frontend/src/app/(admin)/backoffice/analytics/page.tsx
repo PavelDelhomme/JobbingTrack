@@ -406,9 +406,9 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              href: '/backoffice/analytics/performances',
-              title: 'Historique système',
-              desc: 'CPU, mémoire, réseau — mêmes plages / personnalisé que les autres vues.',
+              href: '/backoffice/performances',
+              title: 'Performances',
+              desc: 'Historique système : CPU, mémoire, réseau — plages partagées avec les autres vues analytics.',
             },
             {
               href: '/backoffice/analytics/containers',
