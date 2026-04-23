@@ -115,7 +115,7 @@ export default function TestsPerformancePage() {
   const loadServices = async () => {
     try {
       const servicesList = await centralMetricsService.getAllServices()
-      setServices(servicesList.map(s => s.name || s.rawName || ''))
+      setServices((servicesList ?? []).map(s => s.name || s.rawName || ''))
     } catch (error) {
       console.error('Erreur chargement services:', error)
     }

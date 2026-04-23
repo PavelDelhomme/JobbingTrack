@@ -298,27 +298,26 @@ export default function StatisticsPage() {
 
         setMetricsHistory(formattedHistory)
 
-        // Récupérer aussi l'historique par service si disponible
-        if (item.services && Array.isArray(item.services)) {
-          const serviceHistoryData: ServiceMetricsHistory[] = []
-          history.forEach((item: any) => {
-            if (item.services && Array.isArray(item.services)) {
-              item.services.forEach((service: any) => {
-                serviceHistoryData.push({
-                  service: service.name,
-                  timestamp: item.timestamp,
-                  cpu_percent: parseFloat(service.cpu_percent) || 0,
-                  memory_usage_mb: parseFloat(service.memory_usage_mb) || 0,
-                  network_rx_mb: parseFloat(service.network_rx_mb) || 0,
-                  network_tx_mb: parseFloat(service.network_tx_mb) || 0,
-                  response_time_ms: parseFloat(service.response_time_ms) || 0,
-                  error_count_5m: parseInt(service.error_count_5m) || 0,
-                  error_rate_per_min: parseFloat(service.error_rate_per_min) || 0,
-                  status: service.status || 'unknown'
-                })
+        const serviceHistoryData: ServiceMetricsHistory[] = []
+        history.forEach((histItem: any) => {
+          if (histItem.services && Array.isArray(histItem.services)) {
+            histItem.services.forEach((service: any) => {
+              serviceHistoryData.push({
+                service: service.name,
+                timestamp: histItem.timestamp,
+                cpu_percent: parseFloat(service.cpu_percent) || 0,
+                memory_usage_mb: parseFloat(service.memory_usage_mb) || 0,
+                network_rx_mb: parseFloat(service.network_rx_mb) || 0,
+                network_tx_mb: parseFloat(service.network_tx_mb) || 0,
+                response_time_ms: parseFloat(service.response_time_ms) || 0,
+                error_count_5m: parseInt(service.error_count_5m) || 0,
+                error_rate_per_min: parseFloat(service.error_rate_per_min) || 0,
+                status: service.status || 'unknown'
               })
-            }
-          })
+            })
+          }
+        })
+        if (serviceHistoryData.length > 0) {
           setServiceHistory(serviceHistoryData)
         }
       }
@@ -411,34 +410,37 @@ export default function StatisticsPage() {
       const endTime = Date.now()
       const startTime = endTime - timeRangeMs
 
-      const metricsStats = await centralMetricsService.getMetricsStats({
+      const metricsStats = (await centralMetricsService.getMetricsStats({
         startTime,
         endTime
-      })
+      })) as Record<string, any> | null
+
+      const num = (v: unknown, fallback = '0') => parseFloat(String(v ?? fallback))
+      const int = (v: unknown, fallback = '0') => parseInt(String(v ?? fallback), 10)
 
       // Calculer les statistiques système avec les nouvelles données
       const systemStats = {
         cpu: {
-          current: parseFloat(metrics?.system?.cpu?.usage || '0'),
-          average: parseFloat(metricsStats?.cpu?.avg || '0'),
-          max: parseFloat(metricsStats?.cpu?.max || '0'),
-          min: parseFloat(metricsStats?.cpu?.min || '0')
+          current: num(metrics?.system?.cpu?.usage),
+          average: num(metricsStats?.cpu?.avg),
+          max: num(metricsStats?.cpu?.max),
+          min: num(metricsStats?.cpu?.min)
         },
         memory: {
-          current: parseFloat(metrics?.system?.memory?.usage || '0'),
-          average: parseFloat(metricsStats?.memory?.avg || '0'),
-          max: parseFloat(metricsStats?.memory?.max || '0'),
-          min: parseFloat(metricsStats?.memory?.min || '0')
+          current: num(metrics?.system?.memory?.usage),
+          average: num(metricsStats?.memory?.avg),
+          max: num(metricsStats?.memory?.max),
+          min: num(metricsStats?.memory?.min)
         },
         network: {
-          totalRx: parseFloat(metrics?.system?.network?.total_rx_mb || '0'),
-          totalTx: parseFloat(metrics?.system?.network?.total_tx_mb || '0'),
-          avgRx: parseFloat(metricsStats?.network?.rx_mb_avg || '0'),
-          avgTx: parseFloat(metricsStats?.network?.tx_mb_avg || '0')
+          totalRx: num(metrics?.system?.network?.total_rx_mb),
+          totalTx: num(metrics?.system?.network?.total_tx_mb),
+          avgRx: num(metricsStats?.network?.rx_mb_avg),
+          avgTx: num(metricsStats?.network?.tx_mb_avg)
         },
-        availability: parseFloat(metrics?.health?.availability_percent || '100'),
-        totalRequests: parseInt(metricsStats?.requests?.total || '0'),
-        totalErrors: parseInt(metricsStats?.errors?.total || '0')
+        availability: num(metrics?.health?.availability_percent, '100'),
+        totalRequests: int(metricsStats?.requests?.total),
+        totalErrors: int(metricsStats?.errors?.total)
       }
 
       // Formater les services
@@ -489,9 +491,9 @@ export default function StatisticsPage() {
           bySize: appStats?.companies?.by_size || {}
         },
         performance: {
-          averageResponseTime: parseFloat(metricsStats?.response_time?.avg || '0'),
-          successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
-          errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
+          averageResponseTime: num(metricsStats?.response_time?.avg),
+          successRate: 100 - num(metricsStats?.errors?.rate, '0.0'),
+          errorRate: num(metricsStats?.errors?.rate, '0.0')
         }
       }
 
@@ -2049,19 +2051,23 @@ function LogsTab({ serviceHistory, formatTimestamp }: any) {
   )
 }
 
+const STAT_CARD_COLORS = {
+  blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+  green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+  purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+  orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+} as const
+type StatCardColorKey = keyof typeof STAT_CARD_COLORS
+
 // Composant StatCard
 function StatCard({ icon, title, value, trend, color, subtitle }: any) {
-  const colors = {
-    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-    green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-    orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-  }
+  const colorKey: StatCardColorKey =
+    color && color in STAT_CARD_COLORS ? (color as StatCardColorKey) : 'blue'
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-2">
-        <div className={`p-2 rounded-lg ${colors[color]}`}>
+        <div className={`p-2 rounded-lg ${STAT_CARD_COLORS[colorKey]}`}>
           {icon}
         </div>
         {trend !== undefined && (

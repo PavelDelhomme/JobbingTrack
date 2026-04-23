@@ -28,10 +28,11 @@ export async function POST(request: NextRequest) {
     const userMode = body.userMode || 'admin';
 
     const command = `cd "${projectRoot}" && node "${testScriptPath}" custom '${stepsJson}'`;
-    const env: Record<string, string> = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       API_URL: apiUrl,
-      OUTPUT_JSON: 'true'
+      OUTPUT_JSON: 'true',
+      NODE_ENV: process.env.NODE_ENV || 'development'
     };
 
     if (userMode === 'user') {

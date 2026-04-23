@@ -4,7 +4,7 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete test-audit-jest-scope-frontend
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend type-check-frontend-log clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete test-audit-jest-scope-frontend
 
 FRONTEND_DIR := frontend
 
@@ -54,7 +54,8 @@ help-frontend: ## Afficher l'aide frontend
 	@echo ""
 	@echo "🔍 QUALITÉ DU CODE:"
 	@echo "  make lint-frontend         - Vérifier avec ESLint"
-	@echo "  make type-check-frontend   - Vérifier types TypeScript"
+	@echo "  make type-check-frontend      - Vérifier types TypeScript (tsc)"
+	@echo "  make type-check-frontend-log - tsc + journal frontend/logs/tsc-*.log (hôte, sortie complète)"
 	@echo "  make format-frontend       - Formater avec Prettier"
 	@echo "  make format-check-frontend - Vérifier formatage"
 	@echo ""
@@ -114,14 +115,32 @@ lint-frontend: ## ESLint (dans conteneur Docker)
 		cd $(FRONTEND_DIR) && npm run lint || true; \
 	fi
 
-type-check-frontend: ## TypeScript check (dans conteneur Docker)
+type-check-frontend: ## TypeScript check (dans conteneur Docker si up, sinon hôte)
 	@echo "🔍 TypeScript check..."
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
-		docker exec -w /app jobbingtrack-frontend npm run type-check || true; \
+		docker exec -w /app jobbingtrack-frontend npm run type-check; \
 	else \
-		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
-		cd $(FRONTEND_DIR) && npm run type-check || true; \
+		echo "⚠️  Conteneur jobbingtrack-frontend absent — exécution sur l'hôte ($(FRONTEND_DIR))."; \
+		cd $(FRONTEND_DIR) && npm run type-check; \
 	fi
+
+# Journal complet : le terminal tronque souvent l'historique ; le fichier garde toutes les lignes d'erreur.
+# Exécution sur l'hôte (répertoire courant = racine du dépôt en général). En conteneur : docker exec -w /app jobbingtrack-frontend sh -c 'npm run type-check 2>&1 | tee /tmp/tsc.log'
+type-check-frontend-log: ## tsc --noEmit (hôte) : tee → frontend/logs/tsc-<timestamp>.log + comptage « error TS » + fin du log
+	@echo "🔍 TypeScript check (journal complet, hôte)…"
+	@mkdir -p $(FRONTEND_DIR)/logs
+	@bash -c 'set -o pipefail; FR="$(abspath $(FRONTEND_DIR))"; \
+	  if [ ! -x "$$FR/node_modules/.bin/tsc" ]; then echo "❌ Installez les deps : cd $(FRONTEND_DIR) && npm install"; exit 1; fi; \
+	  OUT="$$FR/logs/tsc-$$(date +%Y%m%d-%H%M%S).log"; \
+	  echo "📝 Journal : $$OUT"; \
+	  ( cd "$$FR" && ./node_modules/.bin/tsc --noEmit 2>&1 | tee "$$OUT" ); \
+	  EXIT=$${PIPESTATUS[0]}; \
+	  echo ""; echo "──────── Résumé ────────"; \
+	  C=$$(grep -c "error TS" "$$OUT" 2>/dev/null || true); \
+	  echo "Lignes contenant « error TS » : $$C"; \
+	  echo "── Dernières 40 lignes ──"; \
+	  tail -n 40 "$$OUT"; \
+	  exit $$EXIT'
 
 format-frontend: ## Prettier format (dans conteneur Docker)
 	@echo "💅 Formatage Prettier..."

@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 7 avril 2026 — **`make up-full`** : **`_up-full-internal`** pré-démarre **`security-service`** + **`monitoring-c`** + **`jobbingtrack-metrics-aggregator`** avant **`api-gateway`** pour limiter les **`ENOTFOUND`** sur les proxys **`/api/v1/security/*`** et **`/api/v1/metrics`** ; **intrusionDetector** : **`GET /api/v1/metrics`** (navigateur / backoffice) n’est plus journalisé comme **`unauthorized_access`** ; **`make up-full-timed`** = mesure **`time`** de **`up-full`** (**`makefiles/tests/Makefile`**). *(**22/04** : **`STATS.md`**, **F3**, incidents **`network_threat_detected`** ; **21/04** : Makefile status ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
+**Dernière mise à jour** : 7 avril 2026 — **Roadmap doc** : **B11** emails de **rapport sur incidents critiques** (sécurité, firewall, **down** service) ; **B12** analyse sécurité **live** à **faible coût** CPU/RAM ; **A1/A5** **poursuite des graphiques** métriques backoffice (socle Recharts / analytics / statistique / détail service). **Qualité** : **`make type-check-frontend-log`** (journal **`tsc`** complet dans **`frontend/logs/`**) ; pièges **`npm run type-check`** → **`ERRORS.md`**. *(**23/04** : **Lot A1** — historique **Block I/O** + **`aggregated`** ; **7/04** : **`make up-full`**, intrusion **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -30,7 +30,7 @@
 
 | Lot | Thème | Statut | Où détailler |
 |-----|--------|--------|----------------|
-| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — détail service ; **`/backoffice/services/logs`** (logs Docker via **metrics-aggregator**, filtres locaux + **`since`** whitelist) ; **A5** partiel (SQL **`system_metrics` UTC** ; libellés « live vs BDD ») | `PLAN.md` § A, `docker.routes.js` (`/service/:name/logs`), `services/logs/page.tsx`, `TODOS.md` |
+| **A** | **A1** Monitoring détail service · **A2** Logs multi-filtres · **A3** Corrélation · **A4** Pipeline · **A5** Persisté vs live + pages liées | **En cours** — **A1 (23/04)** : graphes historique **Block I/O** (cumul + débit) + champs snapshots **`aggregated`** ; **`/backoffice/services/logs`** ; **A5** partiel (SQL **`system_metrics` UTC** ; libellés « live vs BDD ») | `PLAN.md` § A, `docker.routes.js` (`/jobbingtrack/aggregated`, `/service/:name/history`), `[serviceName]/page.tsx`, `TODOS.md` |
 | **B** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau actionnable) | **Partiellement livré** — **B1** cohérence / compteurs / fuseaux (07/04) ; **B3–B4** à poursuivre — voir `RESOLUTIONS.md` | `PLAN.md` § B, `firewallController.js`, `backoffice/security/*` |
 | **C** | Suivi-intérim, bases principal/test, données test | **Partiel (07–21/04)** — **C3** livré partiellement (idem) ; **C2** **`make env-check`** ; **C1** : chargement agences + candidatures déjà en place ; **21/04** : UX erreur API + **Rafraîchir** + lien test data — flux métier / données à enrichir selon **P0** | `PLAN.md` § C, `SuiviInterimContent.tsx`, `testdata.controller.js` |
 | **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
@@ -156,6 +156,11 @@
 
 - **API** `dashboard-service` : fenêtre **`days`** ou **`startDate` / `endDate`** (ISO), plafond 366 j., validation des bornes.
 - **Front** `/backoffice/user-analytics` : modes **préréglé** / **plage personnalisée**, mêmes paramètres pour stats, versions, événements, erreurs ; onglet performance enrichi (lignes issues de l’API).
+
+### Analytics utilisateur — périmètre événements (cadrage — 07/04/2026, suite)
+
+- **À cadrer dans `PLAN.md` lot D (D4) + `TODOS.md`** : distinguer clairement **(1)** comportements **admin dans le backoffice web** (navigation, actions sensibles → croiser **B7** audit), **(2)** événements **application mobile** (utilisateurs finaux), **(3)** actions **hors écran mobile** mais **mesurables côté serveur** : envoi / validation de **code ou lien email** (inscription, **reset mot de passe**), taux d’ouverture de liens, échecs OTP — pour des stats **cohérentes** même quand l’utilisateur n’ouvre pas l’app entre-temps.
+- **Priorité environnement** : tout valider d’abord en **local** (ex. Postgres **UP** au **`make status`**) ; la **prod** reste hors périmètre immédiat tant que le porteur ne l’active pas.
 
 ### Mise à jour observabilité & tableau de bord admin (07/04/2026)
 

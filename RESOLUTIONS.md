@@ -25,6 +25,22 @@
 
 ---
 
+## 23 avril 2026 — Lot A1 : historique Block I/O + snapshots agrégés
+
+### Contexte
+- Les snapshots fichier par service (**`metricsHistory.saveServiceSnapshots`**, alimentés par **`GET /api/v1/docker/jobbingtrack/aggregated`**) ne contenaient pas **`block_read_mb` / `block_write_mb`** dans chaque entrée **`containers[]`**, donc **`GET …/docker/service/<nom>/history`** ne pouvait pas alimenter de courbes I/O alignées CPU/mémoire/réseau.
+- Le **mock `fetch`** vers **`/api/v1/metrics`** dans **`page.test.tsx`** sert **uniquement** aux **tests Jest** (voir **`ERRORS.md`** § Tests Jest) — pas au runtime.
+
+### Correctifs
+1. **`backend/metrics-aggregator-service/src/routes/docker.routes.js`** : pour chaque ligne **`serviceInsights`**, ajout de **`block_read_mb`** et **`block_write_mb`** (octets Docker stats → Mo) ; même chose dans **`servicesSummary[].metrics`**.
+2. **`frontend/.../services/[serviceName]/page.tsx`** : type **`HistoryPoint`** étendu ; **`normalizeServerHistoryRows`** ; points de **session** ; fallback **`chartData`** ; graphes **Block I/O (cumul)** et **débit estimé** (ΔMo / Δt en Mo/min) ; **`historyChartRowsIo`**.
+3. **Tests** : **`page.test.tsx`** (historique mock avec I/O ; attentes graphiques ; mock **`/api/v1/metrics`** inchangé côté rôle).
+
+### Reste (produit / A1)
+- **Liste des processus** (ex. `docker top`) : pas implémentée — à cadrer si besoin enquête / support.
+
+---
+
 ## 22 avril 2026 (suite) — Lot A2 : query logs gateway + port interne log-collector-c
 
 ### A2 — Alignement `admin/logs` et proxy `/api/v1/services/:name/logs`

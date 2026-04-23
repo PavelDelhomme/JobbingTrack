@@ -101,7 +101,9 @@ class CacheManager {
     // Limiter la taille du cache mémoire
     if (this.memoryCache.size > this.MAX_MEMORY_SIZE) {
       const firstKey = this.memoryCache.keys().next().value;
-      this.memoryCache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.memoryCache.delete(firstKey);
+      }
     }
 
     // 2. Stocker dans localStorage si demandé

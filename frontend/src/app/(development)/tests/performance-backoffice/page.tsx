@@ -39,7 +39,7 @@ import {
   BookOpen,
   Lightbulb,
   Users,
-  Building,
+  Building2,
   Briefcase,
   Shield,
   // Lightning,

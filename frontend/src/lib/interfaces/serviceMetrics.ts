@@ -49,4 +49,9 @@ export interface ServiceMetrics {
     rx?: number | null
     tx?: number | null
   }
+  /** Sonde HTTP agrégateur / monitoring-c */
+  http_status?: number
+  /** Raccourcis alignés sur les stats Docker brutes */
+  cpu_percent?: number
+  memory_mb?: number
 }

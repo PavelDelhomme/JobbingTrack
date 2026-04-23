@@ -104,7 +104,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     }
   }
 
-  const updateRefreshInterval = (key: keyof typeof preferences.refreshInterval, value: number) => {
+  const updateRefreshInterval = (key: keyof UserPreferences['refreshInterval'], value: number) => {
     if (!preferences) return
     setPreferences({
       ...preferences,

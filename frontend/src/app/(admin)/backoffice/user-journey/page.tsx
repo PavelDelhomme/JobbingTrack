@@ -40,7 +40,7 @@ type JourneyStep = {
   name: string;
   description: string;
   icon: any;
-  status: 'pending' | 'running' | 'success' | 'error';
+  status: 'pending' | 'running' | 'success' | 'error' | 'warning' | 'skipped';
   duration?: number;
   result?: any;
   error?: string;
@@ -734,7 +734,7 @@ export default function UserJourneyPage() {
   }, [selectedScenario, initialSteps]);
 
   // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
-  const handleFetchResponse = useCallback(async (response: Response) => {
+  const handleFetchResponse = useCallback(async (response: Response): Promise<any> => {
     const contentType = response.headers.get('content-type');
     
     if (!contentType || !contentType.includes('application/json')) {
@@ -752,7 +752,7 @@ export default function UserJourneyPage() {
   }, []);
 
   // ✅ OPTIMISATION : Fonction extractList (pas de useCallback car générique TypeScript)
-  const extractList = <T,>(payload: any, primaryKey?: string): T[] => {
+  const extractList = <T = any>(payload: any, primaryKey?: string): T[] => {
     if (Array.isArray(payload)) {
       return payload as T[];
     }

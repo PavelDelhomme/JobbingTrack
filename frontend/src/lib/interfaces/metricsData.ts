@@ -41,6 +41,7 @@ export interface HealthOverview {
   offline?: number
   containers_running?: number
   containers_total?: number
+  per_service?: Array<{ name: string; status?: string; last_check?: string }>
 }
 
 /** Données exposées par monitoring-c / metrics-aggregator (système) */
@@ -62,6 +63,9 @@ export interface MetricsData {
   system: SystemMetrics
   containers: ContainerMetrics
   timestamp: string
+  /** Agrégats monitoring-c (racine, en plus de monitoringC) */
+  avg_cpu_percent?: number | null
+  avg_memory_percent?: number | null
   network?: NetworkMetricsOverview
   responseTime?: ResponseTimeOverview
   errors?: ErrorMetricsOverview

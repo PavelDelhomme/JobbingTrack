@@ -92,10 +92,6 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const currentStatus = typeof application.status === 'object' && application.status !== null && 'code' in application.status
-    ? (application.status as { code: string }).code
-    : String(application.status)
-
   if (authLoading || loading) {
     return (
       <AdminLayout>
@@ -115,6 +111,11 @@ export default function ApplicationDetailPage() {
       </AdminLayout>
     )
   }
+
+  const currentStatus =
+    typeof application.status === 'object' && application.status !== null && 'code' in application.status
+      ? (application.status as { code: string }).code
+      : String(application.status)
 
   return (
     <AdminLayout>

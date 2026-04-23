@@ -249,6 +249,7 @@ help: ## Afficher l'aide complète
 	@echo "  make test-api               - Tests API complets"
 	@echo "  make test-backend           - Tests services backend"
 	@echo "  make test-frontend          - Tests frontend (Jest)"
+	@echo "  make type-check-frontend-log - TypeScript : tsc + fichier frontend/logs/tsc-*.log (sortie complète)"
 	@echo "  make test-mobile            - Tests mobile Playwright"
 	@echo "  make test-e2e               - Tests E2E Playwright"
 	@echo "  make test-e2e-mobile-email  - Tests E2E émulateur + inscription / Email Monitor"

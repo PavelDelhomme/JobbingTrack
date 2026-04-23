@@ -766,11 +766,12 @@ class CentralMetricsService {
             if (s.http_status === 200) {
               return true
             }
-            if (s.status === 'running' && s.http_status >= 400) {
+            const http = s.http_status ?? 0
+            if (s.status === 'running' && http >= 400) {
               return true // Dégradé mais disponible
             }
             // Si http_status === 0 mais on a des métriques CPU/mémoire, le service est disponible
-            if (s.http_status === 0 && (s.cpu_percent > 0 || s.memory_mb > 0)) {
+            if (http === 0 && ((s.cpu_percent ?? 0) > 0 || (s.memory_mb ?? 0) > 0)) {
               return true
             }
             return false
@@ -851,9 +852,12 @@ class CentralMetricsService {
     
     // ✅ NOUVEAU : Calculer le pourcentage de mémoire projet par rapport à la mémoire système totale
     const systemTotalMemoryMb = data.memory?.total_mb || 0
-    const memoryProjectPercent = systemTotalMemoryMb > 0 ? (projectMemoryMb / systemTotalMemoryMb) * 100 : 0
+    const projectMemoryMbSafe = projectMemoryMb ?? 0
+    const memoryProjectPercent =
+      systemTotalMemoryMb > 0 ? (projectMemoryMbSafe / systemTotalMemoryMb) * 100 : 0
     // Pourcentage par rapport à la limite des conteneurs (pour affichage détaillé)
-    const avgMemoryPercentContainers = totalMemoryLimitMb > 0 ? (projectMemoryMb / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
+    const avgMemoryPercentContainers =
+      totalMemoryLimitMb > 0 ? (projectMemoryMbSafe / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
     
     return {
       services: servicesMap, 
@@ -962,8 +966,7 @@ class CentralMetricsService {
         per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) 
       },
       overallLoadScore: loadScore,
-      servicesList: servicesList, // ✅ IMPORTANT : Inclure servicesList pour analytics
-      services: servicesMap // ✅ Aussi inclure services pour compatibilité
+      servicesList: servicesList // ✅ IMPORTANT : Inclure servicesList pour analytics
     }
   }
 
@@ -1089,7 +1092,7 @@ class CentralMetricsService {
   /**
    * Récupère les statistiques sur une période
    */
-  async getMetricsStats(options?: { startTime?: number; endTime?: number }) {
+  async getMetricsStats(options?: { startTime?: number; endTime?: number }): Promise<Record<string, unknown> | null> {
     // Stats sur période : à implémenter côté metrics-aggregator si besoin
     return null
   }

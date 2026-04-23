@@ -93,6 +93,7 @@
         "@testing-library/dom": "^10.4.0",
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.0.1",
+        "@types/jest": "^29.5.14",
         "@types/js-cookie": "^3.0.6",
         "@types/jszip": "^3.4.0",
         "@types/socket.io-client": "^1.4.36",

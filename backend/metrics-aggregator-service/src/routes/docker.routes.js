@@ -4,6 +4,7 @@ const router = express.Router();
 const dockerService = require('../services/docker.service');
 const metricsHistory = require('../services/metricsHistory.service');
 const lokiService = require('../services/loki.service');
+const persistenceService = require('../services/persistence.service');
 
 const SERVICE_HEALTH_CONFIG = {
   'jobbingtrack-auth-service': { port: 8001, path: '/api/v1/auth/health' },
@@ -383,6 +384,8 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       const memoryLimitMb = parseFloat((stat.memory_limit / (1024 * 1024)).toFixed(2));
       const networkRxMb = parseFloat((stat.network_rx / (1024 * 1024)).toFixed(2));
       const networkTxMb = parseFloat((stat.network_tx / (1024 * 1024)).toFixed(2));
+      const blockReadMb = parseFloat(((stat.block_read ?? 0) / (1024 * 1024)).toFixed(4));
+      const blockWriteMb = parseFloat(((stat.block_write ?? 0) / (1024 * 1024)).toFixed(4));
 
       return {
         name: stat.name,
@@ -393,6 +396,8 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
         memory_limit_mb: memoryLimitMb,
         network_rx_mb: networkRxMb,
         network_tx_mb: networkTxMb,
+        block_read_mb: blockReadMb,
+        block_write_mb: blockWriteMb,
         pids: stat.pids,
         health_status: healthInfo.status,
         response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
@@ -447,7 +452,9 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
         memory_usage_mb: service.memory_usage_mb,
         memory_limit_mb: service.memory_limit_mb,
         network_rx_mb: service.network_rx_mb,
-        network_tx_mb: service.network_tx_mb
+        network_tx_mb: service.network_tx_mb,
+        block_read_mb: service.block_read_mb,
+        block_write_mb: service.block_write_mb
       },
       response_time_ms: service.response_time_ms,
       error_rate_per_min: service.error_rate_per_min,
@@ -875,30 +882,135 @@ router.get('/service/:name/logs', async (req, res) => {
   }
 });
 
+function metricsHistoryNum(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'bigint') return Number(v);
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Aligné sur les snapshots fichiers `saveServiceSnapshots` + `normalizeServerHistoryRows` (front).
+ */
+function containerMetricsDbRowToFlatHistoryPoint(row) {
+  const memUse = metricsHistoryNum(row.memoryUsageBytes);
+  const memLim = Math.max(metricsHistoryNum(row.memoryLimitBytes), 1);
+  let memPct = metricsHistoryNum(row.memoryUsagePercent);
+  if (!memPct && memUse) memPct = (memUse / memLim) * 100;
+  const rx = metricsHistoryNum(row.networkRxBytes);
+  const tx = metricsHistoryNum(row.networkTxBytes);
+  const br = metricsHistoryNum(row.blockReadBytes);
+  const bw = metricsHistoryNum(row.blockWriteBytes);
+  const ts = row.timestamp;
+  const tsIso =
+    typeof ts === 'string' && ts.trim()
+      ? ts.trim()
+      : ts instanceof Date && !Number.isNaN(ts.getTime())
+        ? ts.toISOString()
+        : null;
+  if (!tsIso) return null;
+  const tsMs = row.timestampMs ?? Date.parse(tsIso);
+  return {
+    timestamp: tsIso,
+    ...(Number.isFinite(tsMs) ? { unix_timestamp: tsMs } : {}),
+    cpu_percent: metricsHistoryNum(row.cpuUsagePercent),
+    memory_percent: memPct,
+    memory_usage_mb: memUse / (1024 * 1024),
+    network_rx_mb: rx / (1024 * 1024),
+    network_tx_mb: tx / (1024 * 1024),
+    block_read_mb: br / (1024 * 1024),
+    block_write_mb: bw / (1024 * 1024)
+  };
+}
+
+/**
+ * Fichiers `/tmp/.../services/<short>/` (rafraîchissement agrégateur) + Postgres `container_metrics_snapshots`
+ * (collecteur). Même fenêtre temporelle : la BDD l’emporte sur le doublon (persistance au rechargement).
+ */
+function mergeServiceHistoryFileAndDb(fileSnapshots, dbFlatPoints, numericLimit) {
+  const bucketMs = 2000;
+  const toMs = (p) => {
+    if (p.unix_timestamp != null) {
+      const u = Number(p.unix_timestamp);
+      if (Number.isFinite(u)) return u;
+    }
+    if (p.timestamp) {
+      const d = Date.parse(p.timestamp);
+      if (Number.isFinite(d)) return d;
+    }
+    return NaN;
+  };
+  const m = new Map();
+  const put = (p, prio) => {
+    if (!p || p.timestamp == null) return;
+    const ms = toMs(p);
+    if (!Number.isFinite(ms)) return;
+    const b = Math.floor(ms / bucketMs) * bucketMs;
+    const cur = m.get(b);
+    if (!cur || prio >= cur.prio) m.set(b, { p, prio });
+  };
+  for (const p of fileSnapshots) put(p, 1);
+  for (const p of dbFlatPoints) put(p, 2);
+  const sorted = Array.from(m.keys())
+    .sort((a, b) => a - b)
+    .map((k) => m.get(k).p);
+  const lim = Number.isFinite(numericLimit) && numericLimit > 0 ? Math.floor(numericLimit) : 100;
+  return sorted.slice(-lim);
+}
+
 /**
  * Endpoint pour récupérer l'historique d'un service spécifique
  * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
  */
 router.get('/service/:name/history', async (req, res) => {
   try {
-    const serviceName = req.params.name.replace('jobbingtrack-', '');
+    const rawName = (req.params.name || '').trim();
+    const serviceName = rawName.replace(/^jobbingtrack-/, '');
+    const fullContainerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`;
     const { 
       startTime = Date.now() - 3600000,
       endTime = Date.now(),
       limit = 100
     } = req.query;
-    
-    const history = await metricsHistory.getServiceHistory(serviceName, {
-      startTime: parseInt(startTime),
-      endTime: parseInt(endTime),
-      limit: parseInt(limit)
+    const st = parseInt(String(startTime), 10);
+    const et = parseInt(String(endTime), 10);
+    const safeLimit = Number.isFinite(parseInt(String(limit), 10)) && parseInt(String(limit), 10) > 0
+      ? parseInt(String(limit), 10)
+      : 100;
+
+    const historyFiles = await metricsHistory.getServiceHistory(serviceName, {
+      startTime: Number.isFinite(st) ? st : Date.now() - 3600000,
+      endTime: Number.isFinite(et) ? et : Date.now(),
+      limit: Math.min(500, safeLimit * 3)
     });
-    
+
+    let dbRows = [];
+    try {
+      const startDate = Number.isFinite(st) ? new Date(st).toISOString() : null;
+      const endDate = Number.isFinite(et) ? new Date(et).toISOString() : null;
+      dbRows = await persistenceService.getContainerMetricsHistory(fullContainerName, {
+        limit: Math.min(60000, Math.max(safeLimit * 5, 300)),
+        offset: 0,
+        startDate,
+        endDate
+      });
+    } catch (e) {
+      console.warn('[DOCKER ROUTES] Historique BDD conteneur (merge history):', e.message);
+    }
+
+    const dbFlat = dbRows.map(containerMetricsDbRowToFlatHistoryPoint).filter(Boolean);
+    const merged = mergeServiceHistoryFileAndDb(historyFiles, dbFlat, safeLimit);
+
     res.json({
       success: true,
       service: serviceName,
-      count: history.length,
-      data: history,
+      container: fullContainerName,
+      count: merged.length,
+      data: merged,
+      sources: {
+        fileSnapshots: historyFiles.length,
+        databaseRows: dbFlat.length
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {

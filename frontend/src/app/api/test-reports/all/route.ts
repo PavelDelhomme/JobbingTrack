@@ -34,6 +34,8 @@ interface TestReport {
   generatedAtISO?: string
   path: string
   htmlPath?: string
+  /** Chemin relatif summary.json si présent */
+  summaryPath?: string
   pdfPath?: string
   jsonPath?: string
   summary?: any

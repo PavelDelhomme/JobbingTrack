@@ -14,6 +14,13 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
+type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+
+function toUserRole(role: string | undefined): UserRole {
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'USER') return role;
+  return 'USER';
+}
+
 interface User {
   id: string;
   email: string;
@@ -106,7 +113,8 @@ export default function UserDetailPage() {
           lastName: userData.lastName || '',
           email: userData.email || '',
           phone: userData.phone || '',
-          role: userData.role || 'USER',
+          password: '',
+          role: toUserRole(userData.role),
           isActive: userData.isActive !== undefined ? userData.isActive : true,
         });
       } else {
@@ -216,7 +224,8 @@ export default function UserDetailPage() {
         lastName: user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
-        role: user.role || 'USER',
+        password: '',
+        role: toUserRole(user.role),
         isActive: user.isActive !== undefined ? user.isActive : true,
       });
     }
@@ -475,6 +484,10 @@ export default function UserDetailPage() {
         </div>
       </AdminLayout>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (

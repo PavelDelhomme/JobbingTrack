@@ -58,6 +58,8 @@ make test-monitoring
 # Commandes frontend (makefiles/frontend/Makefile)
 make dev-frontend
 make build-frontend
+make type-check-frontend       # tsc --noEmit (conteneur si up, sinon hôte)
+make type-check-frontend-log  # idem + fichier frontend/logs/tsc-<date>.log (sortie complète)
 ```
 
 ### Ordre des includes

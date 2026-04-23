@@ -39,8 +39,9 @@
 - [ ] **`SMTP_USER`** et **`SMTP_PASS`** : renseigner les **identifiants réels** du fournisseur (OVH, SendGrid, etc.) — **jamais** de placeholders en prod ; le **`.env`** reste hors Git.
 - [ ] **TLS / SSL** : aligner **`SMTP_PORT`**, **`SMTP_SECURE`**, **`SMTP_USE_SSL`** (et évent. `TLS_REJECT_UNAUTHORIZED` si besoin) sur la **doc officielle** du fournisseur (ex. **465** implicit TLS vs **587** STARTTLS).
 - [ ] **`CRASH_REPORT_EMAIL`** : utiliser une **adresse dédiée** (boîte fonctionnelle, filtrage, quota) digne d’un **flux crash report** (sujet lisible, pas une boîte personnelle unique sans tri) ; vérifier que les services qui envoient les rapports (auth / gateway / mobile selon config) **pointent** bien vers cette adresse en prod.
+- [ ] **(Roadmap — lot B11 / `TODOS.md`)** Alertes **email** sur **incidents critiques** (sécurité très grave, firewall, **down** service ou partie du projet) : quand implémenté, prévoir **boîtes / listes dédiées**, **seuils** et **rate-limit** côté produit pour ne pas saturer la même file que les crash reports ; réutiliser la même **base SMTP** et les mêmes exigences TLS que ci-dessus.
 - [ ] En dev **MailHog** : conserver une valeur de test cohérente ; voir **`docs/emails/`** et **`.env.example`**.
 
 ---
 
-*Dernière mise à jour : avril 2026 — F SMTP / crash report ; E Jest gateway conteneur + perf scripts gateway.*
+*Dernière mise à jour : avril 2026 — F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*

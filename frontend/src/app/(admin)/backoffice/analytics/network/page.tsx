@@ -363,12 +363,14 @@ export default function NetworkPerformancePage() {
                         ?.timestamp;
                       return ts != null ? formatLocalDateTime(ts) : '—';
                     }}
-                    formatter={
-                      ((v: number | null, name: string) => [
-                        v != null && !Number.isNaN(Number(v)) ? `${Number(v).toFixed(2)} Mo` : '—',
-                        name === 'rxMb' ? 'RX (Mo)' : 'TX (Mo)',
-                      ]) as (v: number | null, name: string) => [string, string]
-                    }
+                    formatter={(value, name) => {
+                      const n = typeof value === 'number' ? value : Number(value)
+                      const label = name === 'rxMb' ? 'RX (Mo)' : 'TX (Mo)'
+                      return [
+                        value != null && value !== '' && !Number.isNaN(n) ? `${n.toFixed(2)} Mo` : '—',
+                        label,
+                      ]
+                    }}
                   />
                   <Legend />
                   <Line
