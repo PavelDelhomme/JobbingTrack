@@ -8,7 +8,7 @@
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.
 
-**Dernière révision du plan** : 7 avril 2026 — **Lot B** : **`make up-full`** ordre services (security + metrics avant gateway) ; **intrusion** : **`/api/v1/metrics`** retiré des motifs **`UNAUTHORIZED_ACCESS`** ; **B10** note pondération score (`localStorage`). *(22/04 : **B6**, **STATS**, **A2** ; **21/04** : Makefile, **C1** ; **7/04** : **C3**, **A5** ; **F1**.)*
+**Dernière révision du plan** : 7 avril 2026 — **A1** : route **`/service/:name/history`** = fusion **fichiers** + **`container_metrics_snapshots`** (reload page détail) ; **reste** : **refactor socle** graphes / données partagé (**A1** + **A5**) et **poursuite des graphiques** (backoffice : Recharts, analytics, statistique, détail service — voir **TODOS** A1). **B (roadmap)** : **B11** alertes **email** configurables sur **incidents critiques** (sécurité grave, firewall, **down** service ou partie du projet — seuils, destinataires, anti-spam) ; **B12** analyse sécurité **quasi temps réel** à **faible coût** CPU/RAM (intervalles adaptatifs, pas de polling lourd). **D** : note **analytics utilisateur** (événements : backoffice web vs mobile vs email/auth). *(23/04 : Block I/O **aggregated** ; **B** 7/04 ; 22/04 : **B6**, **STATS**, **A2** ; **C1** ; **F1**.)*
 
 ---
 
@@ -40,11 +40,11 @@
 
 **Synthèse (indicatif)** — Technique **~40 %** · **Validé porteur** : **0/5** (compter les « Oui » dans **Validé** ci-dessous ; mettre à jour ce ratio vous-même).
 
-**Rappel sources de données** : le **temps réel** vient surtout de **Docker stats** / endpoints **`/api/v1/docker/service/:name`**. L’**historique fichier** est alimenté quand l’agrégateur enregistre des snapshots (`metricsHistory`, ex. sous `/tmp/metrics/history/services/<slug>/` en environnement typique) — ce n’est **pas** magiquement « toute la vie du conteneur » si la persistance n’a pas tourné ou si le conteneur est récent. Les **points « session »** sur la page détail complètent la courbe tant que l’onglet reste ouvert. Une voie **PostgreSQL** (`persistence`) existe côté agrégateur : l’**A5** vise à l’exploiter et à l’expliciter en UI.
+**Rappel sources de données** : le **temps réel** vient surtout de **Docker stats** / endpoints **`/api/v1/docker/service/:name`**. L’**historique fichier** est alimenté quand l’agrégateur enregistre des snapshots (`metricsHistory`, ex. sous `/tmp/metrics/history/services/<slug>/` en environnement typique) — ce n’est **pas** magiquement « toute la vie du conteneur » si la persistance n’a pas tourné ou si le conteneur est récent. Les **points « session »** sur la page détail complètent la courbe tant que l’onglet reste ouvert. **07/04** : l’endpoint **`GET /api/v1/docker/service/:name/history`** **fusionne** aussi les lignes **PostgreSQL** `container_metrics_snapshots` (collecteur) avec les fichiers, pour un historique **visible après rechargement** en dev. L’**A5** vise à **libeller** clairement live vs fichiers vs BDD partout dans l’UI.
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|------------------|
-| A1 | **Monitoring détaillé par service** : CPU / mémoire / réseau / disque avec **précision**, **historique** (snapshots dispo + session), **auto-rafraîchissement** (10–60 s), **PIDs** / **Block I/O** documentés ; sonde HTTP santé via **nom conteneur Docker** (plus `localhost` depuis l’agrégateur) ; axes graphiques en **heure locale** + jour si série &gt; 24 h | Partiel (07/04/2026) | Non | `frontend/.../services/[serviceName]/page.tsx` ; `metrics-aggregator-service` (`docker.routes.js`, `server.js`) ; **`make status-watch`** / **`status-live`** : boucle = **`make status`** ; défaut **sans** `clear` ; **`CLEAR=1`** pour effacer ; **`INTERVAL`** ; légende **`printf '%b'`** |
+| A1 | **Monitoring détaillé par service** : CPU / mémoire / réseau / disque avec **précision**, **historique** (snapshots + session + **BDD**), **auto-rafraîchissement** (10–60 s), **PIDs** / **Block I/O** ; **23/04** : **Block I/O** dans **`aggregated`** + courbes **cumul / débit** ; **07/04** : **`/service/:name/history`** fusionne **fichiers** + **`container_metrics_snapshots`** ; **reste (gros)** : **socle unique** (hooks, graphes Recharts, normalisation dates) réutilisable sur **vue d’ensemble monitoring**, **Statistiques & Monitoring** (sécurité / stats / logs), **métriques système & conteneurs**, **historique système**, **détail service** — **refactor** progressif pour supprimer la duplication ; liste processus ; **A5** pour légendes live vs BDD | Partiel (07 + 23/04/2026) | Non | `frontend/.../services/[serviceName]/page.tsx` ; `metrics-aggregator-service` **`docker.routes.js`** ; composants **`@/components/analytics/*`** (extension) ; **`make status`** / Postgres **local** |
 | A2 | Faire remonter les logs de **tous** les services avec filtres (service, niveau, type, période) | Partiel (22/04/2026) | Non | **`/backoffice/services/logs`** + **`metrics-aggregator`** `GET /api/v1/docker/service/:name/logs` (**`lines`**, **`since`/`until`**) ; filtres **niveau / type / texte** ; **`(development)/services/applications`** + **`…/backoffice/[serviceName]`** → même route Docker. **Gateway (22/04)** : **`dockerLogsQuery.js`** + **`normalizeDockerLogsQuery`** ; proxy **`GET /api/v1/services/:serviceName/logs`** ; **`admin/logs/*`** ; Jest **`dockerLogsQuery.test.js`**. **log-collector-c** : port interne **3019** (hôte **5099**) — **`docker-compose.monitoring.yml`**, image C, **`metrics-aggregator`** `KNOWN_SERVICES`. **Reste** : smoke / E2E admin ; **Loki** |
 | A3 | Corréler logs techniques et événements sécurité dans les vues détail service | Partiel (07/04/2026) | Non | Encart liens **sécurité** + **logs multi-services** sur `/backoffice/services/[nom]` ; corrélation données unifiée (timeline / filtres croisés) encore à faire |
 | A4 | Clarifier le pipeline erreurs / warnings / crash (Gateway, security-service, backoffice) | Partiel | Non | **ERRORS.md** ; affiner après A2–A3 |
@@ -75,6 +75,8 @@
 
 **Note (priorisation)** : **B3** et **B4** restent **Partiels** ; poursuivre **B6** (services + persistance id) puis **B7–B8** ; **B10** (lisibilité / cohérence UI sécurité) peut avancer **en parallèle** dès que les réponses API sont stables, pour éviter de refaire l’UI deux fois.
 
+**Évolutions cadrées (voir `TODOS.md` B11–B12)** — **B11** : configuration d’**envois email** de **rapport / alerte** sur événements **critiques** (vulnérabilités, menaces très graves, incidents **firewall**, **indisponibilité** service ou sous-système) — réutiliser le cadrage **SMTP** / secrets (**`PREPROD_PRODUCTION_CHECKLIST.md`**, **`CRASH_REPORT_EMAIL`**) et étendre aux canaux ops ; **B12** : boucle d’**analyse sécurité** plus **« live »** tout en restant **douce** sur mémoire et CPU (cadence, fenêtres, limites de requêtes).
+
 ---
 
 ## Lot C — Data backoffice et suivi-intérim (priorité produit)
@@ -91,13 +93,16 @@
 
 ## Lot D — Mobile crash et observabilité applicative
 
-**Synthèse (indicatif)** — Technique **~0 %** · **Validé porteur** : **0/3**
+**Synthèse (indicatif)** — Technique **~0 %** · **Validé porteur** : **0/4** (tâches **D1–D4** ; **D4** = cadrage analytics utilisateur / événements)
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|--------|------|------------------|------------------|
 | D1 | Normaliser les événements erreur / crash mobile (source, device, version, crashType) | À faire | Non | Mobile Flutter + endpoint notifications |
 | D2 | Vérifier la traçabilité bout en bout vers analytics / performance / logs | À faire | Non | dashboard-service, metrics-aggregator, pages stats (voir **lot A** / **A5**) |
 | D3 | Exploitation claire dans les pages monitoring / statistiques | À faire | Non | `frontend` pages admin stats / analytics — **dépend surtout du lot A5** (séries persistées + libellés live vs BDD) ; crash mobile (D1–D2) pour alimenter les compteurs |
+| D4 | **Analytics utilisateur — événements** : documenter puis implémenter un **périmètre explicite** — (a) **backoffice web** (sessions / actions **admin** dans le navigateur) **≠** (b) **app mobile** utilisateurs finaux ; (c) **parcours transverses** trackés **côté API** : emails (**validation inscription**, **reset mot de passe**, codes / liens) = observabilité **au-delà du seul client mobile** ; schéma d’événements, tables (`user_events`, auth, **B7** audit), routes **`dashboard-service` / user-analytics**, libellés UI ; corriger incohérences (**`ERRORS.md`**, table manquante, 404 versions) | À faire | Non | **`TODOS.md` D4** ; `user-analytics` ; **auth-service** ; **B7** ; alignement **D1–D3** |
+
+**Note — périmètre « analytics utilisateur »** : le backoffice peut afficher des **statistiques** qui mélangent aujourd’hui plusieurs origines. La tâche **D4** impose de **nommer** ce qui est mesuré (admin web vs mobile vs **funnel email/auth**) pour éviter les interprétations fausses et dupliquer le minimum de code (**lot A1** côté graphes temps / historique, **A5** côté séries persistées).
 
 **Outillage mobile (hors livrable utilisateur)** : **`tools/adb-lib/`** — client ADB + flows (`loginFresh`, `navigateAllTabs`, …), scénarios, **`adb.exec` / `runner`** ; consommation typique : **`tests/user-journey/journey-builder.js`**, **`mobile/README.md`**. E2E Playwright mobile : device **`adb`** ou **`RUN_PLAYWRIGHT_MOBILE=1`** (voir **`STATUS.md`** § tests).
 

@@ -204,6 +204,8 @@ make dev-frontend       # Dev server
 make build-frontend     # Build prod
 make lint-frontend      # ESLint
 make format-frontend    # Prettier
+make type-check-frontend      # tsc --noEmit
+make type-check-frontend-log  # idem + fichier frontend/logs/tsc-<date>.log (évite la troncature terminal)
 make test-unit-frontend # Tests unitaires
 ```
 

@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
               cpu_usage_percent: Number(cpu)
             };
           })
-          .filter((row): row is CPUMetric => row != null)
+          .filter((row: CPUMetric | null): row is CPUMetric => row != null)
           .sort(
             (a: CPUMetric, b: CPUMetric) =>
               (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -

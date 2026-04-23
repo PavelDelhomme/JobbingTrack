@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo, memo, Suspense, lazy } from 'react'
+import { useState, useEffect, useMemo, memo, Suspense, lazy, type ReactNode } from 'react'
 import { AdminLayout } from '@/components/features'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
+import type { MetricsData } from '@/lib/interfaces'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
 import { cacheManager } from '@/lib/cache/cacheManager'
 import { formatLocalChartAxisTick, metricTimestampToMs } from '@/lib/utils/date'
@@ -428,7 +429,7 @@ export default function StatisticsPage() {
 
       // 2. Récupérer les métriques en temps réel avec cache
       const cacheKey = `statistics_metrics_${customization.timeRange}`
-      let metrics = await cacheManager.get(cacheKey, { ttl: 10000 }) // Cache 10 secondes
+      let metrics: MetricsData | null = (await cacheManager.get(cacheKey, { ttl: 10000 })) as MetricsData | null
       
       if (!metrics) {
         metrics = await centralMetricsService.fetchMetrics()
@@ -450,26 +451,26 @@ export default function StatisticsPage() {
       // Calculer les statistiques système avec les nouvelles données
       const systemStats = {
         cpu: {
-          current: parseFloat(metrics?.system?.cpu?.usage || '0'),
-          average: parseFloat(metricsStats?.cpu?.avg || '0'),
-          max: parseFloat(metricsStats?.cpu?.max || '0'),
-          min: parseFloat(metricsStats?.cpu?.min || '0')
+          current: parseFloat(String(metrics?.system?.cpu?.usage || '0')),
+          average: parseFloat(String((metricsStats as any)?.cpu?.avg || '0')),
+          max: parseFloat(String((metricsStats as any)?.cpu?.max || '0')),
+          min: parseFloat(String((metricsStats as any)?.cpu?.min || '0'))
         },
         memory: {
-          current: parseFloat(metrics?.system?.memory?.usage || '0'),
-          average: parseFloat(metricsStats?.memory?.avg || '0'),
-          max: parseFloat(metricsStats?.memory?.max || '0'),
-          min: parseFloat(metricsStats?.memory?.min || '0')
+          current: parseFloat(String(metrics?.system?.memory?.usage || '0')),
+          average: parseFloat(String((metricsStats as any)?.memory?.avg || '0')),
+          max: parseFloat(String((metricsStats as any)?.memory?.max || '0')),
+          min: parseFloat(String((metricsStats as any)?.memory?.min || '0'))
         },
         network: {
-          totalRx: parseFloat(metrics?.system?.network?.total_rx_mb || '0'),
-          totalTx: parseFloat(metrics?.system?.network?.total_tx_mb || '0'),
-          avgRx: parseFloat(metricsStats?.network?.rx_mb_avg || '0'),
-          avgTx: parseFloat(metricsStats?.network?.tx_mb_avg || '0')
+          totalRx: parseFloat(String(metrics?.system?.network?.total_rx_mb || '0')),
+          totalTx: parseFloat(String(metrics?.system?.network?.total_tx_mb || '0')),
+          avgRx: parseFloat(String((metricsStats as any)?.network?.rx_mb_avg || '0')),
+          avgTx: parseFloat(String((metricsStats as any)?.network?.tx_mb_avg || '0'))
         },
-        availability: parseFloat(metrics?.health?.availability_percent || '100'),
-        totalRequests: parseInt(metricsStats?.requests?.total || '0'),
-        totalErrors: parseInt(metricsStats?.errors?.total || '0')
+        availability: parseFloat(String(metrics?.health?.availability_percent || '100')),
+        totalRequests: parseInt(String((metricsStats as any)?.requests?.total || '0')),
+        totalErrors: parseInt(String((metricsStats as any)?.errors?.total || '0'))
       }
 
       // Formater les services
@@ -513,7 +514,7 @@ export default function StatisticsPage() {
       const servicesWithResponseTime = servicesArray.filter(s => s.responseTime > 0)
       const averageResponseTime = servicesWithResponseTime.length > 0
         ? servicesWithResponseTime.reduce((sum, s) => sum + s.responseTime, 0) / servicesWithResponseTime.length
-        : parseFloat(metricsStats?.response_time?.avg || '0')
+        : parseFloat(String((metricsStats as any)?.response_time?.avg || '0'))
 
       // Formater les données récupérées ou utiliser des valeurs par défaut
       const mockAppStats = {
@@ -537,8 +538,8 @@ export default function StatisticsPage() {
         },
         performance: {
           averageResponseTime: averageResponseTime,
-          successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
-          errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
+          successRate: 100 - parseFloat(String((metricsStats as any)?.errors?.rate || '0.0')),
+          errorRate: parseFloat(String((metricsStats as any)?.errors?.rate || '0.0'))
         }
       }
 
@@ -2119,8 +2120,17 @@ const LogsTab = memo(function LogsTab({ serviceHistory, formatTimestamp }: any) 
 })
 
 // Composant StatCard avec logique de tendance correcte
-function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'negative-is-bad' }: any) {
-  const colors = {
+type StatCardColor = 'blue' | 'green' | 'purple' | 'orange'
+function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'negative-is-bad' }: {
+  icon: ReactNode
+  title: string
+  value: ReactNode
+  trend?: number | null
+  color: StatCardColor
+  subtitle?: string
+  trendType?: 'negative-is-bad' | 'positive-is-good' | 'positive-is-bad'
+}) {
+  const colors: Record<StatCardColor, string> = {
     blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',

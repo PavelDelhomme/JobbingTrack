@@ -10,6 +10,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "downlevelIteration": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
@@ -32,13 +33,15 @@
     ".next/types/**/*.ts",
     "src/**/*"
   ],
-  "types": ["jest", "@testing-library/jest-dom", "node"],
   "exclude": [
     "node_modules",
     ".next",
     "dist",
     "playwright.config.ts",
     "playwright.mobile.config.ts",
-    "tests"
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**"
   ]
 }

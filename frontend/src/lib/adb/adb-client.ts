@@ -207,7 +207,7 @@ export class AdbClient {
       if (n.text?.trim()) items.push(n.text.trim().slice(0, 50));
       if (n.contentDesc?.trim() && n.contentDesc !== n.text) items.push(n.contentDesc.trim().slice(0, 50));
     }
-    const unique = [...new Set(items)].filter(Boolean).slice(0, maxItems);
+    const unique = Array.from(new Set(items)).filter(Boolean).slice(0, maxItems);
     return unique.join(' | ') || '(aucun texte)';
   }
 

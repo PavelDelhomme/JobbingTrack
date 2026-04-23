@@ -3,9 +3,15 @@ import { cn } from '@/lib/utils';
 
 interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   className?: string;
+  /** Alias Radix / shadcn : appelé après le changement d’état */
+  onCheckedChange?: (checked: boolean) => void;
 }
 
-export function Switch({ className, ...props }: SwitchProps) {
+export function Switch({ className, onCheckedChange, onChange, ...props }: SwitchProps) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange?.(e);
+    onCheckedChange?.(e.target.checked);
+  };
   return (
     <label className={cn(
       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -17,6 +23,7 @@ export function Switch({ className, ...props }: SwitchProps) {
         type="checkbox"
         className="sr-only"
         {...props}
+        onChange={handleChange}
       />
       <span
         className={cn(

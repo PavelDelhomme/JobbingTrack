@@ -7,26 +7,21 @@ import Link from 'next/link';
 import { 
   Server, Activity, TrendingUp, Database, Clock, 
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
-  RefreshCw, Terminal, BarChart3, Zap, Network, Shield
+  RefreshCw, Terminal, BarChart3, Network, Shield,
+  HardDrive, Info
 } from 'lucide-react';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
+import {
+  mergeHistoryChronological,
+  normalizeServerHistoryRows,
+  type ServiceHistoryPoint,
+} from '@/lib/monitoring/serviceDetailHistory';
 import {
   formatLocalDateTime,
   formatLocalChartAxisTick,
   metricTimestampToMs,
-  normalizeMetricTimestampToIso,
-  parseChartTimestamp,
 } from '@/lib/utils/date';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
-
-type HistoryPoint = {
-  timestamp: string
-  cpu_percent: number
-  memory_percent: number
-  memory_usage_mb: number
-  network_rx_mb: number
-  network_tx_mb: number
-}
 
 function formatCpuPercent(value: number | null | undefined): string {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0
@@ -50,57 +45,13 @@ function cpuBarWidthPercent(cpu: number): string {
   return `${w}%`
 }
 
-function normalizeServerHistoryRows(rows: any[]): HistoryPoint[] {
-  if (!Array.isArray(rows)) return []
-  return rows
-    .map((raw) => {
-      const fromUnix =
-        raw.unix_timestamp != null && raw.unix_timestamp !== ''
-          ? parseChartTimestamp(raw.unix_timestamp)?.toISOString() ?? null
-          : null
-      const tsRaw =
-        raw.timestamp != null && String(raw.timestamp).trim() !== ''
-          ? raw.timestamp
-          : fromUnix
-      if (!tsRaw) return null
-      const ts = normalizeMetricTimestampToIso(typeof tsRaw === 'string' ? tsRaw : new Date(tsRaw).toISOString())
-      if (!ts) return null
-      return {
-        timestamp: ts,
-        cpu_percent: Number(raw.cpu_percent ?? raw.metrics?.cpu?.percentage ?? 0) || 0,
-        memory_percent: Number(raw.memory_percent ?? raw.metrics?.memory?.percentage ?? 0) || 0,
-        memory_usage_mb: Number(raw.memory_usage_mb ?? 0) || 0,
-        network_rx_mb: Number(raw.network_rx_mb ?? raw.network_rx ?? 0) || 0,
-        network_tx_mb: Number(raw.network_tx_mb ?? raw.network_tx ?? 0) || 0
-      }
-    })
-    .filter(Boolean) as HistoryPoint[]
-}
-
-function mergeHistoryChronological(server: HistoryPoint[], session: HistoryPoint[], maxPoints = 320): HistoryPoint[] {
-  const all = [...server, ...session]
-    .filter((r) => r?.timestamp)
-    .map((r) => ({
-      ...r,
-      _t: metricTimestampToMs(r.timestamp) ?? 0
-    }))
-    .filter((r) => !Number.isNaN(r._t))
-    .sort((a, b) => a._t - b._t)
-  const out: HistoryPoint[] = []
-  let lastBucket = -Infinity
-  for (const row of all) {
-    const bucket = Math.floor(row._t / 2000)
-    if (out.length && bucket === lastBucket) {
-      const { _t, ...rest } = row
-      out[out.length - 1] = rest as HistoryPoint
-    } else {
-      const { _t, ...rest } = row
-      out.push(rest as HistoryPoint)
-      lastBucket = bucket
-    }
-  }
-  return out.slice(-maxPoints)
-}
+/** Disque principal vu par l’agrégateur (hôte / VM), distinct du Block I/O du conteneur */
+type HostDiskContext = {
+  usagePercent: number
+  mount?: string
+  usedGb?: number
+  totalGb?: number
+} | null
 
 export default function ServiceDetailPage() {
   const params = useParams();
@@ -120,7 +71,8 @@ export default function ServiceDetailPage() {
   const [lastMetricsAt, setLastMetricsAt] = useState<Date | null>(null);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(15);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const sessionHistoryRef = useRef<HistoryPoint[]>([]);
+  const [hostDiskContext, setHostDiskContext] = useState<HostDiskContext>(null);
+  const sessionHistoryRef = useRef<ServiceHistoryPoint[]>([]);
 
   useEffect(() => {
     sessionHistoryRef.current = []
@@ -259,9 +211,33 @@ export default function ServiceDetailPage() {
       } catch (logsErr) {
         // Ne pas faire planter la page
       }
+
+      // Contexte disque hôte (GET /api/v1/metrics — même agrégateur ; utile pour corréler charge hôte vs I/O conteneur)
+      let hostDiskNext: HostDiskContext = null
+      try {
+        const hostRes = await fetch(`${metricsUrl}/api/v1/metrics`)
+        if (hostRes.ok) {
+          const hostJson = await hostRes.json()
+          const d0 = hostJson?.system?.disk?.[0]
+          if (d0) {
+            const up = Number(d0.usage_percent ?? d0.usage ?? NaN)
+            if (!Number.isNaN(up)) {
+              hostDiskNext = {
+                usagePercent: Math.round(up),
+                mount: typeof d0.mount === 'string' ? d0.mount : undefined,
+                usedGb: typeof d0.used === 'number' ? d0.used : undefined,
+                totalGb: typeof d0.total === 'number' ? d0.total : undefined
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+      setHostDiskContext(hostDiskNext)
       
       // Historique : snapshots disque (/history) + complément chartData agrégateur + courbe « session » (points à chaque rafraîchissement)
-      let serverHistoryPoints: HistoryPoint[] = []
+      let serverHistoryPoints: ServiceHistoryPoint[] = []
       try {
         const historyResponse = await fetch(
           `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(fullServiceName)}/history?limit=280`
@@ -299,7 +275,19 @@ export default function ServiceDetailPage() {
                   memory_percent: Number(point.services?.[serviceKey]?.memory ?? service.metrics?.memory?.percentage ?? 0) || 0,
                   memory_usage_mb: Number(point.services?.[serviceKey]?.memory_mb ?? service.metrics?.memory?.usageMb ?? 0) || 0,
                   network_rx_mb: Number(point.services?.[serviceKey]?.network_rx ?? service.metrics?.network?.rx_mb ?? 0) || 0,
-                  network_tx_mb: Number(point.services?.[serviceKey]?.network_tx ?? service.metrics?.network?.tx_mb ?? 0) || 0
+                  network_tx_mb: Number(point.services?.[serviceKey]?.network_tx ?? service.metrics?.network?.tx_mb ?? 0) || 0,
+                  block_read_mb:
+                    Number(
+                      point.services?.[serviceKey]?.block_read_mb ??
+                        point.services?.[serviceKey]?.block_read ??
+                        0
+                    ) || 0,
+                  block_write_mb:
+                    Number(
+                      point.services?.[serviceKey]?.block_write_mb ??
+                        point.services?.[serviceKey]?.block_write ??
+                        0
+                    ) || 0
                 }))
                 .filter((h: { timestamp?: string }) => Boolean(h.timestamp))
                 .slice(-80)
@@ -320,7 +308,9 @@ export default function ServiceDetailPage() {
             memory_percent: Number(merged.memory_percent) || 0,
             memory_usage_mb: Number(merged.memory_usage_mb) || 0,
             network_rx_mb: Number(merged.network_rx_mb) || 0,
-            network_tx_mb: Number(merged.network_tx_mb) || 0
+            network_tx_mb: Number(merged.network_tx_mb) || 0,
+            block_read_mb: Number(merged.block_read_mb) || 0,
+            block_write_mb: Number(merged.block_write_mb) || 0
           }
         ].slice(-260)
         setLastMetricsAt(new Date())
@@ -371,10 +361,40 @@ export default function ServiceDetailPage() {
       .map((row) => {
         const timeMs = metricTimestampToMs(row.timestamp)
         if (timeMs == null || Number.isNaN(timeMs)) return null
-        return { ...row, timeMs }
+        const blockRead = Number((row as ServiceHistoryPoint).block_read_mb)
+        const blockWrite = Number((row as ServiceHistoryPoint).block_write_mb)
+        return {
+          ...row,
+          block_read_mb: Number.isFinite(blockRead) ? blockRead : 0,
+          block_write_mb: Number.isFinite(blockWrite) ? blockWrite : 0,
+          timeMs
+        }
       })
-      .filter(Boolean) as (HistoryPoint & { timeMs: number })[]
+      .filter(Boolean) as (ServiceHistoryPoint & { timeMs: number })[]
   }, [serviceHistory])
+
+  /** Débit Block I/O (Mo/min) dérivé des cumuls consécutifs — même principe que l’interprétation « débit » réseau sur cumuls Docker */
+  const historyChartRowsIo = useMemo(() => {
+    const rows = historyChartRows
+    return rows.map((row, i) => {
+      if (i === 0) {
+        return { ...row, block_read_mb_per_min: 0, block_write_mb_per_min: 0 }
+      }
+      const prev = rows[i - 1]
+      const dtMs = row.timeMs - prev.timeMs
+      if (dtMs < 4000 || dtMs > 60 * 60 * 1000) {
+        return { ...row, block_read_mb_per_min: 0, block_write_mb_per_min: 0 }
+      }
+      const dtMin = dtMs / 60000
+      const dr = Math.max(0, Number(row.block_read_mb) - Number(prev.block_read_mb))
+      const dw = Math.max(0, Number(row.block_write_mb) - Number(prev.block_write_mb))
+      return {
+        ...row,
+        block_read_mb_per_min: dr / dtMin,
+        block_write_mb_per_min: dw / dtMin
+      }
+    })
+  }, [historyChartRows])
 
   const historyAxisShowDate = useMemo(() => {
     if (historyChartRows.length < 2) return false
@@ -382,6 +402,28 @@ export default function ServiceDetailPage() {
       historyChartRows[historyChartRows.length - 1].timeMs - historyChartRows[0].timeMs
     return span > 24 * 60 * 60 * 1000
   }, [historyChartRows])
+
+  const historyBlockMbMax = useMemo(() => {
+    if (!historyChartRows.length) return 1
+    const m = Math.max(
+      0.05,
+      ...historyChartRows.map((h) =>
+        Math.max(Number(h.block_read_mb) || 0, Number(h.block_write_mb) || 0)
+      )
+    )
+    return m * 1.08 + 0.02
+  }, [historyChartRows])
+
+  const historyIoRateMax = useMemo(() => {
+    if (!historyChartRowsIo.length) return 1
+    const m = Math.max(
+      0.01,
+      ...historyChartRowsIo.map((h) =>
+        Math.max(Number(h.block_read_mb_per_min) || 0, Number(h.block_write_mb_per_min) || 0)
+      )
+    )
+    return m * 1.15 + 0.01
+  }, [historyChartRowsIo])
 
   if (loading) {
     return (
@@ -406,7 +448,9 @@ export default function ServiceDetailPage() {
   const networkTxMb = serviceMetrics?.network_tx_mb || 0;
   const blockReadMb = serviceMetrics?.block_read_mb ?? 0;
   const blockWriteMb = serviceMetrics?.block_write_mb ?? 0;
-  const pids = serviceMetrics?.pids ?? 0;
+  const pidsRaw = serviceMetrics?.pids;
+  const pidsDisplay =
+    pidsRaw != null && pidsRaw !== '' && !Number.isNaN(Number(pidsRaw)) ? Number(pidsRaw) : null;
   const responseTime = serviceMetrics?.response_time_ms;
   
   // Log uniquement en mode développement et seulement lors du premier rendu
@@ -588,7 +632,9 @@ export default function ServiceDetailPage() {
               <Activity className="h-8 w-8 text-green-600" />
               <span className="text-sm font-medium text-green-600">cgroup</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{pids}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {pidsDisplay != null ? pidsDisplay : '—'}
+            </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">Processus / tâches (PIDs)</p>
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 leading-relaxed">
               Compteur renvoyé par <strong>docker stats</strong> pour ce conteneur (processus visibles dans le cgroup, pas la liste des commandes).
@@ -611,15 +657,81 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">
-          <span className="font-semibold text-gray-900 dark:text-gray-100">Disque (Block I/O)</span>
-          <span className="mx-2">·</span>
-          Lecture cumulée : <span className="tabular-nums font-medium">{formatMegabytes(blockReadMb)}</span>
-          <span className="mx-2">·</span>
-          Écriture cumulée : <span className="tabular-nums font-medium">{formatMegabytes(blockWriteMb)}</span>
-          <p className="text-xs text-gray-500 mt-1">
-            Cumuls depuis la création / dernier redémarrage du conteneur (même logique que le réseau).
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-3">
+              <HardDrive className="h-8 w-8 text-slate-600 dark:text-slate-300 shrink-0" aria-hidden />
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Block I/O conteneur (Docker stats)</p>
+                <p>
+                  Lecture cumulée :{' '}
+                  <span className="tabular-nums font-medium">{formatMegabytes(blockReadMb)}</span>
+                  <span className="mx-2 text-gray-400">·</span>
+                  Écriture cumulée :{' '}
+                  <span className="tabular-nums font-medium">{formatMegabytes(blockWriteMb)}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Cumuls depuis la création ou le dernier redémarrage du conteneur (équivalent <code className="text-[11px]">docker stats</code>).
+                  Ce n’est <strong>pas</strong> l’espace disque occupé par les couches d’image : uniquement les octets lus/écrits par le cgroup.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-3">
+              <HardDrive className="h-8 w-8 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Disque hôte (contexte)</p>
+                {hostDiskContext ? (
+                  <>
+                    <p className="tabular-nums">
+                      Utilisation :{' '}
+                      <span className="font-medium">{hostDiskContext.usagePercent} %</span>
+                      {hostDiskContext.mount ? (
+                        <span className="text-gray-500 dark:text-gray-400"> — point de montage {hostDiskContext.mount}</span>
+                      ) : null}
+                    </p>
+                    {hostDiskContext.usedGb != null && hostDiskContext.totalGb != null ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        ≈ {hostDiskContext.usedGb} Go / {hostDiskContext.totalGb} Go (agrégateur / monitoring-c, pas par conteneur)
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Données issues de <code className="text-[11px]">GET /api/v1/metrics</code> sur le nœud observé par l’agrégateur.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Indisponible (agrégateur ou route <code className="text-[11px]">/api/v1/metrics</code> injoignable depuis le navigateur).
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200">
+          <div className="flex gap-2">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden />
+            <div className="space-y-2">
+              <p className="font-semibold text-blue-900 dark:text-blue-200">Réutilisation monitoring → sécurité &amp; autres vues</p>
+              <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                <li>
+                  Les métriques conteneur de cette page viennent de{' '}
+                  <code className="text-[11px]">GET …/api/v1/docker/service/&lt;nom&gt;</code> (metrics-aggregator) : CPU, mémoire, réseau,{' '}
+                  <strong>PIDs</strong>, <strong>Block I/O</strong>, erreurs 5 min — même famille de données que la liste services et le backoffice performance.
+                </li>
+                <li>
+                  Pour la <strong>sécurité</strong> (lots <strong>B3–B4</strong>, corrélation <strong>B6</strong>), les vues réseau / analyse peuvent s’appuyer sur les mêmes endpoints agrégateur + les logs Docker (
+                  <code className="text-[11px]">…/docker/service/&lt;nom&gt;/logs</code>) sans dupliquer la collecte côté front.
+                </li>
+                <li>
+                  Piste documentée dans <strong>TODOS.md</strong> (lot A1 / A3) : exposer côté API un contrat stable (champs nommés) si plusieurs écrans consomment les mêmes séries.
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* Performance History */}
@@ -763,6 +875,104 @@ export default function ServiceDetailPage() {
                     stroke="#EF4444" 
                     strokeWidth={2}
                     name="TX (Transmission)"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Block I/O — cumuls (snapshots / session) */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Block I/O (cumul)</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Mêmes champs que <code className="text-[11px]">block_read_mb</code> / <code className="text-[11px]">block_write_mb</code> dans les fichiers d&apos;historique service (
+                <code className="text-[11px]">GET …/docker/service/&lt;nom&gt;/history</code>
+                ), alimentés par les snapshots <code className="text-[11px]">/docker/jobbingtrack/aggregated</code>.
+              </p>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={historyChartRows}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    stroke="#9CA3AF"
+                    minTickGap={28}
+                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
+                  />
+                  <YAxis stroke="#9CA3AF" unit=" MB" domain={[0, historyBlockMbMax]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    labelStyle={{ color: '#F9FAFB' }}
+                    formatter={(value: any) => [`${Number(value).toFixed(3)} MB`]}
+                    labelFormatter={(_, payload) => {
+                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
+                      return ts != null ? formatLocalDateTime(ts) : '—'
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="block_read_mb"
+                    stroke="#6366F1"
+                    strokeWidth={2}
+                    name="Lecture cumul"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="block_write_mb"
+                    stroke="#A855F7"
+                    strokeWidth={2}
+                    name="Écriture cumul"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Débit Block I/O estimé (dérivée des cumuls) */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Block I/O — débit estimé</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Δ cumul / Δ temps entre points consécutifs (Mo/min). Peut chuter à 0 si le conteneur est recréé (cumuls remis à zéro) ou si l&apos;écart temporel est filtré (&gt; 1 h).
+              </p>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={historyChartRowsIo}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    stroke="#9CA3AF"
+                    minTickGap={28}
+                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: historyAxisShowDate })}
+                  />
+                  <YAxis stroke="#9CA3AF" unit=" MB/min" domain={[0, historyIoRateMax]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    labelStyle={{ color: '#F9FAFB' }}
+                    formatter={(value: any) => [`${Number(value).toFixed(3)} MB/min`]}
+                    labelFormatter={(_, payload) => {
+                      const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
+                      return ts != null ? formatLocalDateTime(ts) : '—'
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="block_read_mb_per_min"
+                    stroke="#4F46E5"
+                    strokeWidth={2}
+                    name="Lecture (estim.)"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="block_write_mb_per_min"
+                    stroke="#7C3AED"
+                    strokeWidth={2}
+                    name="Écriture (estim.)"
                     dot={false}
                   />
                 </LineChart>

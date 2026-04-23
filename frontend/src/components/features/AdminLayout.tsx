@@ -531,7 +531,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               {/* Sous-items (retrait supplémentaire sous l'item parent) */}
                               {hasSubItems && isItemExpanded && (
                                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
-                                  {item.subItems.map((subItem) => {
+                                  {(item.subItems ?? []).map((subItem) => {
                                     const isSubActive = !subItem.external && pathname === subItem.href
                                     const linkClass = `
                                           flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all relative group

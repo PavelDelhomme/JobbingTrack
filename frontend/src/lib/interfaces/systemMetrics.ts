@@ -7,6 +7,9 @@ export interface SystemMetrics {
     containers_only?: number | string
     per_core?: number | string
     loadScore?: number | string
+    load_1?: number | string
+    load_5?: number | string
+    load_15?: number | string
   }
   memory: {
     total: number | string
@@ -16,16 +19,25 @@ export interface SystemMetrics {
     usage_percent?: number | string
     usage_mb?: number | string
     limit_mb?: number | string
+    used_mb?: number | string
+    total_mb?: number | string
+    free_mb?: number | string
   }
   load: {
     average: number | string
     cores: number[] | number | string
+    load_1?: number | string
+    load_5?: number | string
+    load_15?: number | string
   }
   disk: Array<{
-    mount: string
+    mount?: string
+    name?: string
     total: number | string
     used: number | string
+    free?: number | string
     usage: number | string
+    usage_percent_number?: number | string
   }>
   network?: {
     total_rx_mb?: number | string

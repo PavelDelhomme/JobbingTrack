@@ -9,6 +9,9 @@ lerna-debug.log*
 # Dernier mode de démarrage Makefile (up / up-full / up-dev) — make restart affiche un rappel
 .jobbingtrack-stack-mode
 
+# Marqueur manuel historique (nettoyage doc nov. 2025) — ne pas versionner
+.nettoyage_effectue
+
 # Environment files
 .env
 .env.local

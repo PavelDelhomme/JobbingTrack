@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 7 avril 2026 — **`make up-full`** / **`ENOTFOUND`** (gateway vs security / metrics) ; **faux positifs** intrusion sur **`/api/v1/metrics`** ; **`up-full-timed`** ; **22 avril** : **`STATS.md`** ; **21 avril** : **`make status`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 7 avril 2026 — **`type-check` / journal `tsc`** ; **Tests Jest** : mock **`/api/v1/metrics`** (page détail service — **§ dédié**) ; **7 avril** : **`make up-full`** / **`ENOTFOUND`** ; **faux positifs** intrusion **`/api/v1/metrics`** ; **`up-full-timed`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -48,6 +48,18 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 - Cible **`makefiles/tests/Makefile`** : **`up-full-timed`** = mesure la durée d’un **`make up-full`** avec le mot-clé shell **`time`** (réel / user / sys), **pas** une variante « plus de services » que **`up-full`**.
 - **Portable** : la recette utilise **`bash -c 'time $(MAKE) …'`** parce que **`make`** invoque souvent **`/bin/sh`** (ex. **dash**), qui **n’a pas** la commande **`time`** — d’où l’erreur **`make: time: Aucun fichier ou dossier de ce nom`** (127) si on appelait **`time`** directement.
+
+### `npm run type-check` (frontend) — centaines d’erreurs dans le terminal
+
+- **Normal si** : la branche n’a pas les derniers correctifs **`tsconfig.json`** / pages **`statistique`**, **`user-journey`**, etc. ; ou **`node_modules`** incomplet (**`npm install`** dans **`frontend/`** notamment pour **`@types/jest`**).
+- **Fichiers `*.test.tsx` / `__tests__`** : le projet peut **exclure** ces chemins du **`tsc`** principal pour que **`type-check`** reflète le code applicatif ; les tests restent couverts par **`npm test`** / **Jest**. Si les tests **sont** inclus dans **`tsc`**, il faut **`@types/jest`** installé et des types cohérents pour **`jest` / `expect` / `describe`**.
+- **Conteneur `jobbingtrack-frontend`** : l’image ou le volume monté peut **différer** du dépôt sur ta machine — aligner le code et **`npm install`** dans le même environnement que celui où tu lances **`tsc`**.
+- **Terminal qui tronque** : le défilement limite l’historique affiché ; pour un fichier complet, depuis la racine du dépôt : **`make type-check-frontend-log`** → journal sous **`frontend/logs/tsc-<horodatage>.log`** (dépôt Git ignore le contenu du dossier **`logs/`**, pas le **`.gitignore`** du dossier).
+
+### Tests Jest — mock `GET /api/v1/metrics` (page détail service)
+
+- **Ce n’est pas du code prod** : dans **`frontend/.../services/[serviceName]/page.test.tsx`**, le **`global.fetch` mocké** répond à l’URL qui contient **`/api/v1/metrics`** avec un petit JSON (`system.disk`, etc.) pour que **`jsdom`** puisse rendre la page **sans** agrégateur Docker réel.
+- **En runtime** (navigateur + stack **`make up-full`**), la même URL appelle le **vrai** metrics-aggregator ; le mock sert uniquement à **isoler** les tests unitaires du réseau.
 
 ### Sauvegardes et reprise (pas une erreur — couverture à construire)
 

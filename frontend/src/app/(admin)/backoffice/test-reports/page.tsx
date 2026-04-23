@@ -15,6 +15,8 @@ interface CompareReportData {
   name: string
   date: string
   time: string
+  /** ISO UTC pour affichage cohérent (optionnel) */
+  generatedAtISO?: string
   category: string
   summary: { total: number; passed: number; failed: number; skipped: number }
   tests: Array<{ num: number; name: string; status: 'pass' | 'fail'; expected: string; actual: string }>
@@ -91,6 +93,8 @@ interface TestReport {
   passed?: number
   failed?: number
   skipped?: number
+  /** Résumé JSON (ex. rapports sécurité imbriqués) */
+  summary?: unknown
   status?: 'success' | 'failed' | 'partial' | 'unknown'
   type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'other'
   size?: number

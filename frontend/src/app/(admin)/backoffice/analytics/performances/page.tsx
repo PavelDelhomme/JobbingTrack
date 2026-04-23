@@ -441,12 +441,14 @@ export default function PerformancesPage() {
                         ?.timestamp;
                       return ts != null ? formatLocalDateTime(ts) : '—';
                     }}
-                    formatter={((value: number | null, name: string) => [
-                      value != null && !Number.isNaN(Number(value))
-                        ? `${Number(value).toFixed(2)}%`
-                        : '—',
-                      name === 'cpu' ? 'CPU' : 'Mémoire',
-                    ]) as (value: number | null, name: string) => [string, string]}
+                    formatter={(value, name) => {
+                      const n = typeof value === 'number' ? value : Number(value)
+                      const label = name === 'cpu' ? 'CPU' : 'Mémoire'
+                      return [
+                        value != null && value !== '' && !Number.isNaN(n) ? `${n.toFixed(2)}%` : '—',
+                        label,
+                      ]
+                    }}
                   />
                   <Legend />
                   <Line
