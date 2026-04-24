@@ -107,7 +107,7 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 - [ ] **A1 — lot parent** : cocher la case principale **A1** seulement quand **A1d / A1e / A1g** auront avancé selon **ton** objectif produit (ou quand tu auras explicitement décidé de reporter le reste dans **`docs/BACKLOG.md`**).
 
-- [ ] **A1c** — Lazy-load **`recharts`** / partage **`rechartsTooltipProps`** avec **analytics** (réduit bundle page détail + homogénéise tooltips).
+- [x] **A1c — partiel** : **`next/dynamic`** (`ssr: false`) pour **`MonitoringServiceHistoryCharts`** sur la page détail service ; tooltips via **`rechartsTooltipProps`** dans **`MonitoringServiceHistoryCharts.tsx`**. **Reste** : lazy / alignement sur **autres** pages Recharts lourdes (**analytics**).
 
 - [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`statistics` / `statistique`** (axes, gaps, légendes) ; option liste **`/backoffice/services`** (hint ou sparkline — basse prio).
 

@@ -13,6 +13,17 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
+// next/dynamic : en Jest, éviter le décalage micro-tâches du chunk lazy (waitFor fragile sur titres courts).
+jest.mock('next/dynamic', () => ({
+  __esModule: true,
+  default: () => {
+    const {
+      MonitoringServiceHistoryCharts,
+    } = require('@/components/monitoring/MonitoringServiceHistoryCharts')
+    return MonitoringServiceHistoryCharts
+  },
+}))
+
 // Mock du service centralMetricsService
 jest.mock('@/lib/services/centralMetricsService', () => ({
   centralMetricsService: {
@@ -120,9 +131,9 @@ describe('ServiceDetailPage', () => {
   })
 
   beforeEach(() => {
-    // Reset des mocks
-    jest.clearAllMocks()
-    
+    // Ne pas appeler jest.clearAllMocks() ici : il efface aussi l’implémentation de **next/dynamic** mockée
+    // (composant graphes synchrone en Jest), ce qui casse les tests « unhealthy » / « postgres ».
+
     // Configuration des mocks
     mockRouter = {
       push: jest.fn(),
@@ -314,10 +325,11 @@ describe('ServiceDetailPage', () => {
   describe('Historique des performances', () => {
     it('devrait afficher la section historique', async () => {
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Historique des Performances/i)).toBeInTheDocument()
-      })
+
+      // L’encart « Sources des courbes » contient aussi la sous-chaîne « Historique des performances » : cibler le **h2** du bloc graphes.
+      expect(
+        await screen.findByRole('heading', { level: 2, name: /Historique des Performances/i })
+      ).toBeInTheDocument()
     })
 
     it('devrait afficher le nombre de points de données', async () => {
@@ -561,11 +573,9 @@ describe('ServiceDetailPage', () => {
       }) as jest.Mock
 
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Service non disponible/i)).toBeInTheDocument()
-        expect(screen.getByText(/Docker: unhealthy/i)).toBeInTheDocument()
-      })
+
+      expect(await screen.findByText(/Service non disponible/i, undefined, { timeout: 5000 })).toBeInTheDocument()
+      expect(await screen.findByText(/Docker: unhealthy/i, undefined, { timeout: 3000 })).toBeInTheDocument()
     })
 
     it('devrait gérer un service sans endpoint HTTP', async () => {
@@ -587,11 +597,10 @@ describe('ServiceDetailPage', () => {
       ) as jest.Mock
 
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/postgres/i)).toBeInTheDocument()
-        // Le temps de réponse ne devrait pas être affiché pour les DB
-      })
+
+      // Le libellé « PostgreSQL » dans l’encart sources (A1g) matche aussi /postgres/i — cibler le titre principal.
+      const title = await screen.findByRole('heading', { level: 1, name: /^postgres$/i }, { timeout: 5000 })
+      expect(title).toBeInTheDocument()
     })
   })
 })
