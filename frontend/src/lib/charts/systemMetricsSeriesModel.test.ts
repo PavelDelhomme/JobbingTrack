@@ -1,7 +1,10 @@
 import {
+  buildSystemNetworkMbRateRows,
   filterSystemPercentRows,
   systemCpuAxisMax,
   systemMemoryAxisMax,
+  systemNetworkRateAxisMax,
+  type SystemNetworkMbRow,
   type SystemPercentSeriesRow,
 } from '@/lib/charts/systemMetricsSeriesModel'
 
@@ -28,5 +31,16 @@ describe('systemMetricsSeriesModel', () => {
       { timeMs: NaN, timestamp: '', cpu: 0, memory: 0 },
     ]
     expect(filterSystemPercentRows(mixed)).toHaveLength(2)
+  })
+
+  it('buildSystemNetworkMbRateRows calcule Mo/min sur 1 minute', () => {
+    const net: SystemNetworkMbRow[] = [
+      { timeMs: 0, timestamp: 'a', cpu: null, memory: null, networkRxMb: 10, networkTxMb: 5 },
+      { timeMs: 60_000, timestamp: 'b', cpu: null, memory: null, networkRxMb: 12, networkTxMb: 7 },
+    ]
+    const r = buildSystemNetworkMbRateRows(net)
+    expect(r[1].networkRxMbPerMin).toBeCloseTo(2, 5)
+    expect(r[1].networkTxMbPerMin).toBeCloseTo(2, 5)
+    expect(systemNetworkRateAxisMax(r)).toBeGreaterThan(2)
   })
 })

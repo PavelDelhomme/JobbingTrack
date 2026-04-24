@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, memo, Suspense, lazy } from 'react'
 import { AdminLayout } from '@/components/features'
+import { StatisticsSubNav } from './StatisticsSubNav'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
@@ -683,6 +684,7 @@ export default function StatisticsPage() {
   return (
     <AdminLayout>
       <div>
+        <StatisticsSubNav />
         {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex-1 min-w-0">
