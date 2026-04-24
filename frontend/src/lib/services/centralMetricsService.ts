@@ -444,6 +444,7 @@ class CentralMetricsService {
    * L'aggregator récupère les données depuis monitoring-c et les persiste en BDD ; le frontend ne parle qu'à l'aggregator.
    */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
+    this.updateToken()
     const endpoint = '/api/v1/metrics'
     const headers: HeadersInit = { 'Accept': 'application/json' }
     if (this.token) (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`
