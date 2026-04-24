@@ -14,17 +14,11 @@ import {
   YAxis,
 } from 'recharts'
 import { formatLocalChartAxisTick, formatLocalDateTime } from '@/lib/utils/date'
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
 import type {
   ServiceHistoryChartRow,
   ServiceHistoryIoRow,
 } from '@/lib/monitoring/serviceHistoryChartModel'
-
-const tooltipContentStyle = {
-  backgroundColor: '#1F2937',
-  border: 'none',
-  borderRadius: '8px',
-} as const
-const tooltipLabelStyle = { color: '#F9FAFB' } as const
 
 export type MonitoringServiceHistoryChartsProps = {
   serviceHistoryLength: number
@@ -96,8 +90,7 @@ export function MonitoringServiceHistoryCharts({
                 />
                 <YAxis stroke="#9CA3AF" unit="%" domain={[0, historyCpuMax]} />
                 <Tooltip
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={tooltipLabelStyle}
+                  {...rechartsTooltipProps}
                   formatter={(value: number) => [`${Number(value).toFixed(4)}%`, 'CPU']}
                   labelFormatter={historyTooltipLabel}
                 />
@@ -127,8 +120,7 @@ export function MonitoringServiceHistoryCharts({
                 />
                 <YAxis stroke="#9CA3AF" unit="%" domain={[0, historyMemMax]} />
                 <Tooltip
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={tooltipLabelStyle}
+                  {...rechartsTooltipProps}
                   formatter={(value: number) => [`${Number(value).toFixed(2)}%`, 'Mémoire']}
                   labelFormatter={historyTooltipLabel}
                 />
@@ -158,8 +150,7 @@ export function MonitoringServiceHistoryCharts({
                 />
                 <YAxis stroke="#9CA3AF" unit=" MB" />
                 <Tooltip
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={tooltipLabelStyle}
+                  {...rechartsTooltipProps}
                   formatter={(value: number) => [`${value.toFixed(2)} MB`]}
                   labelFormatter={historyTooltipLabel}
                 />
@@ -191,8 +182,7 @@ export function MonitoringServiceHistoryCharts({
                 />
                 <YAxis stroke="#9CA3AF" unit=" MB" domain={[0, historyBlockMbMax]} />
                 <Tooltip
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={tooltipLabelStyle}
+                  {...rechartsTooltipProps}
                   formatter={(value: number) => [`${Number(value).toFixed(3)} MB`]}
                   labelFormatter={historyTooltipLabel}
                 />
@@ -222,8 +212,7 @@ export function MonitoringServiceHistoryCharts({
                 />
                 <YAxis stroke="#9CA3AF" unit=" MB/min" domain={[0, historyIoRateMax]} />
                 <Tooltip
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={tooltipLabelStyle}
+                  {...rechartsTooltipProps}
                   formatter={(value: number) => [`${Number(value).toFixed(3)} MB/min`]}
                   labelFormatter={historyTooltipLabel}
                 />

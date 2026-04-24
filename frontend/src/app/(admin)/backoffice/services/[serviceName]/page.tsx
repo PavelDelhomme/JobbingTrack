@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import Link from 'next/link';
@@ -16,8 +17,23 @@ import {
 } from '@/lib/monitoring/serviceDetailHistory';
 import { loadServerHistoryPoints } from '@/lib/monitoring/serviceHistorySources';
 import { useServiceHistoryChartData } from '@/lib/monitoring/useServiceHistoryChartData';
-import { MonitoringServiceHistoryCharts } from '@/components/monitoring/MonitoringServiceHistoryCharts';
 import { formatLocalDateTime } from '@/lib/utils/date';
+
+/** Lot A1c : chargement client de Recharts pour réduire le JS initial de la route. */
+const MonitoringServiceHistoryCharts = dynamic(
+  () =>
+    import('@/components/monitoring/MonitoringServiceHistoryCharts').then(
+      (m) => m.MonitoringServiceHistoryCharts
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 p-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        Chargement des graphiques d&apos;historique…
+      </div>
+    ),
+  }
+);
 
 function formatCpuPercent(value: number | null | undefined): string {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0
