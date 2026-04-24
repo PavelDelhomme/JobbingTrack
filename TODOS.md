@@ -45,6 +45,7 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 - **Vision** : le **socle** (fonctions pures de dérivation, hooks, composants Recharts réutilisables, tooltips / axes / légendes alignés) a démarré sur le **monitoring** (détail service), mais la **cible** est **toute page backoffice** qui affiche des **graphiques** ou des **vues tableau + séries** — dès qu’on standardise, sans casser l’existant.
 - **Règle porteur** : **ne pas supprimer** un graphe, une série ou un bloc de données **sans validation explicite**. Un refactor « socle » = **déplacement / factorisation** dans des modules dédiés, **pas** retrait fonctionnel tant que tu n’as pas validé écran par écran.
+- **Navigation (préambule lot A — avril 2026)** : drawer **Tableau de bord** — **Vue d’ensemble** ; **Performances** (`/backoffice/performances`, sous-entrées **Synthèse**, **Temps de réponse** → ancre `#latence` / route alias `/latency`, **Conteneurs** pont → Analytics, **Disque** stub, **Réseau (détail)** → `/analytics/network`) ; **Statistiques** (entrée dédiée + **Vue d’ensemble**, **App data**, **Sécurité**, **Logs (stats)** — stubs ciblés hors analytics) ; **Analytics** (hub + conteneurs, application, analytics utilisateur — **sans** doublon « Statistiques » dans ce sous-menu). **Annulation** : `git revert` / commit parent si besoin.
 
 ### Inventaire — **Metrics système & conteneurs** : ce qui est déjà sur le nouveau socle
 
@@ -61,16 +62,25 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 *(Même composant **`recharts`** qu’aujourd’hui ; migration = chantier séparé quand tu priorises.)*
 
 - [ ] **`/backoffice/analytics`** — `analytics/page.tsx`
-- [x] **`/backoffice/performances`** — `performances/page.tsx` (redirect depuis **`/backoffice/analytics/performances`**)
+- [x] **`/backoffice/performances`** — `performances/page.tsx` (redirect depuis **`/backoffice/analytics/performances`** ; sous-routes **`/latency`**, **`/containers`**, **`/disk`**)
 - [ ] **`/backoffice/analytics/network`** — `analytics/network/page.tsx`
 - [ ] **`/backoffice/analytics/containers`** — `analytics/containers/page.tsx`
 - [ ] **`/backoffice/statistics`** — `statistics/page.tsx`
 - [ ] **`/backoffice/statistique`** — `statistique/page.tsx`
 - [ ] **`/backoffice/tests-performance`** — `tests-performance/page.tsx`
 
+### Feuille de route — réseau cumul vs activité, hub Analytics, application « métriques », sécurité
+
+- **Réseau (snapshots agrégateur)** : les compteurs **RX/TX** sont souvent des **cumuls** → courbe monotone peu parlante seule. **Fait (Performances)** : **débit Mo/min** (`buildSystemNetworkMbRateRows`) + **graphique combiné** CPU % vs RX/TX Mo/min (`SystemCpuNetworkCorrelationChart.tsx`, deux axes Y). **Suite** : **brush** / zoom aligné ; **fenêtre glissante** (moyenne) côté API ; corrélation **mémoire** optionnelle ; **graphiques supplémentaires** sur **`/backoffice/analytics/network`** (histogrammes / répartition par conteneur si données disponibles).
+- **Hub `/backoffice/analytics` vs `/backoffice/performances`** : **Analytics** = vue **rapide** (test CPU + liens) ; **Performances** = **historique complet** système (CPU, mémoire, **temps de réponse agrégé** `responseTimeAvg` quand la persistance le remplit, réseau cumul + débit). Encart renvoi **Performances** sur la page Analytics (avril 2026).
+- **Sous-menu Performances** : **Fait (07/04)** — entrées drawer + **`PerformancesSubNav`** : synthèse unique (cartes), **pont conteneurs** → Analytics, **stub disque** (feuille de route disque hôte / alignement détail service), **réseau** reste catégorie à part (page détail Analytics). **Suite** : routes dédiées CPU-only / mémoire-only seulement si le porteur impose le découpage (sinon ancrages internes).
+- **Application** (drawer **Analytics**) : **sous-routes** `/application/performance` (ex-page live), `/application/activity`, `/application/feedback` + **`ApplicationSubNav`** ; redirect `/application` → **performance**. Périmètre cible inchangé : **perf mobile**, **traces** (resets, etc.), **retours** (emails / signalements) — pages **activité** et **retours** = emplacements réservés (chantier données **user-analytics**, **event-service**, **mail**).
+- **Sécurité × observabilité** : exploiter **charge réseau**, **métriques**, **analytics** pour **surcharge**, **menaces**, **politiques** (lots **B** + **A**) — gros chantier : règles de corrélation, seuils, pas seulement réafficher des graphes dans la vue sécurité.
+
 ### Souhaits graphes / données / tableaux (à compléter par toi dans ce fichier)
 
 - [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** (drawer Tableau de bord) — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite** : **`analytics/containers`**, **`network`**, **`statistique`**, etc.
+- [x] **Réseau** : débit **Mo/min** sur **Performances** (dérivé cumul — avril 2026).
 - [ ] *(ex. : sparkline sur la liste **`/backoffice/services`** — voir A1d)*
 - [ ] …
 - [ ] …

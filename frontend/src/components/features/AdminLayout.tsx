@@ -221,13 +221,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        { name: 'Performances', href: '/backoffice/performances', icon: '📉' },
-        { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
-        { name: 'Métriques système & conteneurs', href: '/backoffice/analytics', icon: '⚡' },
-        { name: 'Réseau (métriques)', href: '/backoffice/analytics/network', icon: '🌐' },
-        { name: 'Application (métriques)', href: '/backoffice/analytics/application', icon: '📱' },
-        { name: 'Conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
-        { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
+        {
+          name: 'Performances',
+          href: '/backoffice/performances',
+          icon: '📉',
+          subItems: [
+            { name: 'Synthèse', href: '/backoffice/performances', icon: '📊' },
+            { name: 'Temps de réponse', href: '/backoffice/performances/latency', icon: '⏱️' },
+            { name: 'Conteneurs', href: '/backoffice/performances/containers', icon: '🐳' },
+            { name: 'Disque', href: '/backoffice/performances/disk', icon: '💽' },
+            { name: 'Réseau (détail)', href: '/backoffice/analytics/network', icon: '🌐' },
+          ],
+        },
+        {
+          name: 'Statistiques',
+          href: '/backoffice/statistics',
+          icon: '📈',
+          subItems: [
+            { name: 'Vue d’ensemble', href: '/backoffice/statistics', icon: '📊' },
+            { name: 'App data', href: '/backoffice/statistics/app-data', icon: '📦' },
+            { name: 'Sécurité', href: '/backoffice/statistics/security', icon: '🛡️' },
+            { name: 'Logs (stats)', href: '/backoffice/statistics/logs', icon: '📜' },
+          ],
+        },
+        {
+          name: 'Analytics',
+          href: '/backoffice/analytics',
+          icon: '⚡',
+          subItems: [
+            { name: 'Conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
+            {
+              name: 'Application',
+              href: '/backoffice/analytics/application/performance',
+              icon: '📱',
+              subItems: [
+                { name: 'Performances live', href: '/backoffice/analytics/application/performance', icon: '📊' },
+                { name: 'Activité & traces', href: '/backoffice/analytics/application/activity', icon: '👣' },
+                { name: 'Retours & signalements', href: '/backoffice/analytics/application/feedback', icon: '✉️' },
+              ],
+            },
+            { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '👤' },
+          ],
+        },
       ]
     },
     {

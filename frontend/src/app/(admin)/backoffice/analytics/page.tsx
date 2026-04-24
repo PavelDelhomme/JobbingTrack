@@ -343,6 +343,16 @@ export default function AnalyticsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-blue-200 bg-blue-50/90 px-4 py-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+          <strong className="font-semibold">Hub « rapide »</strong> : test CPU ci-dessous et liens vers les vues
+          détaillées. Pour l&apos;<strong>historique complet</strong> CPU, mémoire, réseau (cumul + débit, plages
+          partagées) →{' '}
+          <Link href="/backoffice/performances" className="font-medium underline hover:no-underline">
+            Performances
+          </Link>
+          .
+        </div>
+
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Cpu className="w-6 h-6" />
@@ -421,9 +431,9 @@ export default function AnalyticsPage() {
               desc: 'Charge et évolution réseau.',
             },
             {
-              href: '/backoffice/analytics/application',
+              href: '/backoffice/analytics/application/performance',
               title: 'Application',
-              desc: 'Stats applicatives et rafraîchissement live.',
+              desc: 'Performances live, activité & traces, retours — sous-pages dédiées.',
             },
           ].map((item) => (
             <Link

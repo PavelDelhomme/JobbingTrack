@@ -55,7 +55,9 @@ import AnalyticsCpuPage from '../page';
 import PerformancesPage from '../../performances/page';
 import NetworkPage from '../network/page';
 import ContainersPage from '../containers/page';
-import ApplicationPage from '../application/page';
+import ApplicationPerformancePage from '../application/performance/page';
+import ApplicationActivityPage from '../application/activity/page';
+import ApplicationFeedbackPage from '../application/feedback/page';
 
 describe('Smoke routes /backoffice/analytics', () => {
   beforeEach(() => {
@@ -99,10 +101,24 @@ describe('Smoke routes /backoffice/analytics', () => {
     expect(document.body.textContent).toMatch(/Analytics conteneurs|Chargement/);
   });
 
-  it('monte /backoffice/analytics/application', async () => {
+  it('monte /backoffice/analytics/application/performance', async () => {
     await act(async () => {
-      render(<ApplicationPage />);
+      render(<ApplicationPerformancePage />);
     });
-    expect(document.body.textContent).toMatch(/Performances applicatives|Chargement/);
+    expect(document.body.textContent).toMatch(/Application — performances|Chargement/);
+  });
+
+  it('monte /backoffice/analytics/application/activity', async () => {
+    await act(async () => {
+      render(<ApplicationActivityPage />);
+    });
+    expect(document.body.textContent).toMatch(/activité|traces/);
+  });
+
+  it('monte /backoffice/analytics/application/feedback', async () => {
+    await act(async () => {
+      render(<ApplicationFeedbackPage />);
+    });
+    expect(document.body.textContent).toMatch(/Retours|signalements/);
   });
 });
