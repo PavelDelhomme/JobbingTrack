@@ -13,6 +13,13 @@
 - **Run antérieur** (`20260417-211711/`) : voir **RESOLUTIONS.md** (entrées 7 et 17 avril) pour l’historique des correctifs (tooltips, Jest worker, firewall, etc.).
 - **`make test-suite-full`** : enchaîne **frontend Jest + BDD + status + test-all** (voir `makefiles/tests/Makefile`) ; le pas **test-frontend** couvre aussi **`src/__tests__/unit/date-metrics-display.test.ts`**. Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
 
+### Journalisation gateway — `GET /api/v1/security/*`, firewall, WAF (avril 2026)
+
+- **Ce n’est en général pas une « erreur JobbingTrack » isolée** : des requêtes **HTTP 200** ou des logs **info** qui enchaînent `security-service` indiquent qu’un **client** interroge la sécurité (souvent le **backoffice** sur une page firewall / menaces / analyse avec **rafraîchissement périodique**). La gateway journalise le proxy — c’est attendu tant que l’UI ou un script poll en boucle.
+- **Quand s’inquiéter** : codes **5xx**, timeouts, **403** massifs, ou trafic **sans** page sécurité ouverte (alors chercher un **service** ou un **cron** qui appellerait la gateway en direct).
+- **Diagnostic rapide** : quels onglets navigateur sont ouverts sur **`/backoffice/security/*`** ; intervalle de refresh dans le code front concerné ; corrélation **horodatage** ↔ action utilisateur. Pistes d’amélioration : espacer le polling, mutualiser les endpoints, ou réduire le niveau de log côté gateway en dev — tâches de suivi dans **`TODOS.md`** (dernière section) et **`ERRORS.md`** § homonyme.
+- **Historique / validation** : les chantiers **doc + BDD + validation porteur** sont rappelés en **dernière section** de **`TODOS.md`** (tout ajout « méta » doit y rester en bas de fichier pour lisibilité).
+
 ## Comment lire ce fichier
 
 | Bloc (ordre d’apparition) | Rôle |

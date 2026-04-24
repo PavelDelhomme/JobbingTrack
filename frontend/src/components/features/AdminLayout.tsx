@@ -38,6 +38,15 @@ interface NavSection {
   isCollapsible?: boolean
 }
 
+/** Correspondance pathname sur un item ou un sous-arbre (sous-menus imbriqués, ex. Analytics → Application). */
+function navItemMatchesPath(pathname: string, item: NavItem): boolean {
+  if (item.href && !item.external && pathname === item.href) return true
+  if (item.subItems?.length) {
+    return item.subItems.some((sub) => navItemMatchesPath(pathname, sub))
+  }
+  return false
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -191,27 +200,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
 
-  // Fonction pour vérifier si une section contient l'élément actif
-  const isSectionActive = (section: NavSection) => {
-    return section.items.some(item => {
-      if (pathname === item.href) return true
-      if (item.subItems) {
-        return item.subItems.some(subItem => pathname === subItem.href)
-      }
-      return false
-    })
-  }
+  const isSectionActive = (section: NavSection) =>
+    section.items.some((item) => navItemMatchesPath(pathname, item))
 
-  // Fonction pour obtenir l'élément actif dans une section
-  const getActiveItemInSection = (section: NavSection) => {
-    return section.items.find(item => {
-      if (pathname === item.href) return true
-      if (item.subItems) {
-        return item.subItems.some(subItem => pathname === subItem.href)
-      }
-      return false
-    })
-  }
+  const getActiveItemInSection = (section: NavSection) =>
+    section.items.find((item) => navItemMatchesPath(pathname, item))
 
   const sections: NavSection[] = [
     {
@@ -442,7 +435,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Navigation - Scrollable */}
           <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
-            {sections.map((section) => (
+            {sections.map((section) => {
+              const showSectionItems =
+                !section.isCollapsible ||
+                isSectionActive(section) ||
+                expandedSections[section.id] !== false
+              return (
               <div key={section.id} className="mb-4">
                 {/* Section Header - Cliquable */}
                 <button
@@ -466,22 +464,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     </span>
                   </div>
                   {section.isCollapsible && (
-                    <span className={`transform transition-transform ${expandedSections[section.id] ? 'rotate-90' : ''}`}>
+                    <span className={`transform transition-transform ${showSectionItems ? 'rotate-90' : ''}`}>
                       ▶
                     </span>
                   )}
                 </button>
 
-                {/* Section Items - Collapsible (indentés sous le titre de section) */}
-                {(!section.isCollapsible || expandedSections[section.id]) && (
+                {/* Section Items : ouvert si la section est active (sous-route) ou si l’utilisateur n’a pas replié explicitement à false */}
+                {showSectionItems && (
                   <div className="pl-4 space-y-1 border-l border-gray-200 dark:border-gray-700 ml-2">
                     {section.items.map((item) => {
-                      const isActive = pathname === item.href
-                      const hasSubItems = item.subItems && item.subItems.length > 0
-                      const isSubItemActive = hasSubItems && item.subItems?.some(subItem => pathname === subItem.href)
+                      const isActive = !!(item.href && !item.external && pathname === item.href)
+                      const hasSubItems = !!(item.subItems && item.subItems.length > 0)
+                      const isSubItemActive =
+                        hasSubItems && item.subItems!.some((sub) => navItemMatchesPath(pathname, sub))
                       const itemKey = `item-${item.name}-${section.id}`
-                      // Expanded par défaut si on est sur cette page ou un sous-item ; sinon état sauvegardé
-                      const isItemExpanded = expandedSections[itemKey] ?? (hasSubItems && (isSubItemActive || isActive))
+                      const routeNeedsSubmenuOpen = hasSubItems && (isSubItemActive || isActive)
+                      const showItemSubItems =
+                        hasSubItems &&
+                        (routeNeedsSubmenuOpen || expandedSections[itemKey] !== false)
                       const activeItem = getActiveItemInSection(section)
 
                       const content = (
@@ -553,21 +554,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       toggleSection(itemKey)
                                     }}
                                     className={`ml-1 px-2 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-all ${
-                                      isItemExpanded ? 'text-white bg-gray-700' : ''
+                                      showItemSubItems ? 'text-white bg-gray-700' : ''
                                     }`}
                                     aria-label="Expander les sous-items"
                                   >
-                                    <span className={`transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
+                                    <span className={`transform transition-transform ${showItemSubItems ? 'rotate-90' : ''}`}>
                                       ▶
                                     </span>
                                   </button>
                                 )}
                               </div>
                               {/* Sous-items (retrait supplémentaire sous l'item parent) */}
-                              {hasSubItems && isItemExpanded && (
+                              {hasSubItems && showItemSubItems && (
                                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                                   {(item.subItems ?? []).map((subItem) => {
-                                    const isSubActive = !subItem.external && pathname === subItem.href
+                                    const isSubActive =
+                                      !subItem.external && navItemMatchesPath(pathname, subItem)
                                     const linkClass = `
                                           flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all relative group
                                           ${isSubActive
@@ -612,7 +614,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </nav>
 
           {/* User info - Toujours en bas */}

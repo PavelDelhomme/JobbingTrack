@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import Link from 'next/link';
@@ -41,6 +41,34 @@ function cpuBarWidthPercent(cpu: number): string {
   return `${w}%`
 }
 
+/** Lignes très verbeuses (souvent normales sur api-gateway) — masquables à la demande. */
+function isFirewallNoiseMessage(message: string): boolean {
+  return /firewall|waf|iptables|ip\s*block|blocked\s|unblock|rate.?limit|security.?middleware/i.test(message)
+}
+
+function serviceLogLineClass(message: string): string {
+  const m = message.toLowerCase()
+  if (isFirewallNoiseMessage(message)) {
+    return 'text-purple-300/95 break-words'
+  }
+  if (/\b(get|post|put|patch|delete)\s+\//i.test(message)) {
+    return 'text-cyan-300/95 break-words'
+  }
+  if (/\berror\b|\bexception\b|\bfatal\b|\beconnrefused\b|\b5\d\d\b|\bfail(ed)?\b/i.test(m)) {
+    return 'text-red-400 font-semibold break-words'
+  }
+  if (/\bwarn(ing)?\b/.test(m)) {
+    return 'text-amber-300/95 break-words'
+  }
+  if (/\binfo\b|\bhttp\b.*\b200\b/.test(m)) {
+    return 'text-slate-300/95 break-words'
+  }
+  if (/\bdebug\b|\btrace\b/.test(m)) {
+    return 'text-gray-500 break-words'
+  }
+  return 'text-emerald-300/90 break-words'
+}
+
 /** Disque principal vu par l’agrégateur (hôte / VM), distinct du Block I/O du conteneur */
 type HostDiskContext = {
   usagePercent: number
@@ -62,6 +90,7 @@ export default function ServiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [hideFirewallNoise, setHideFirewallNoise] = useState(false);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [isLogsWidgetVisible, setIsLogsWidgetVisible] = useState(false);
   const [lastMetricsAt, setLastMetricsAt] = useState<Date | null>(null);
@@ -96,12 +125,26 @@ export default function ServiceDetailPage() {
     };
   }, []);
 
+  const displayLogLines = useMemo(() => {
+    const raw = serviceLogs?.lines
+    if (!Array.isArray(raw) || raw.length === 0) return []
+    const tail = raw.slice(-220)
+    const filtered = hideFirewallNoise
+      ? tail.filter((line: string) => {
+          const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+([\s\S]*)$/)
+          const message = timestampMatch ? timestampMatch[2] : line
+          return !isFirewallNoiseMessage(message)
+        })
+      : tail
+    return filtered.slice(-120)
+  }, [serviceLogs?.lines, hideFirewallNoise])
+
   // Auto-scroll vers le bas des logs UNIQUEMENT si le widget est visible
   useEffect(() => {
     if (autoScroll && logsEndRef.current && isLogsWidgetVisible) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [serviceLogs, autoScroll, isLogsWidgetVisible]);
+  }, [serviceLogs, displayLogLines, autoScroll, isLogsWidgetVisible]);
 
   const loadServiceData = async (showRefreshing = false) => {
     try {
@@ -606,6 +649,21 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
+        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/40 px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300">
+          <p className="font-medium text-slate-800 dark:text-slate-200 mb-1">Sources des courbes « Historique des performances » (A1 / A5)</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            <li>
+              <strong>Temps réel (session)</strong> : points ajoutés tant que cette page est ouverte (rafraîchissement auto) — ils complètent la courbe mais ne remplacent pas la persistance.
+            </li>
+            <li>
+              <strong>Fichiers agrégateur</strong> : route <code className="text-[11px]">GET …/docker/service/&lt;nom&gt;/history</code> (snapshots écrits par l’agrégateur, ex. sous <code className="text-[11px]">/tmp/metrics/…</code> en dev typique).
+            </li>
+            <li>
+              <strong>Base PostgreSQL</strong> : lignes <code className="text-[11px]">container_metrics_snapshots</code> fusionnées dans la même réponse d’historique lorsque la collecte les alimente.
+            </li>
+          </ul>
+        </div>
+
         <MonitoringServiceHistoryCharts
           serviceHistoryLength={serviceHistory.length}
           historyChartRows={historyChartRows}
@@ -654,7 +712,7 @@ export default function ServiceDetailPage() {
               Logs du Service (Temps Réel)
             </h2>
             {serviceLogs?.lines && serviceLogs.lines.length > 0 && (
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   onClick={() => setAutoScroll(!autoScroll)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
@@ -665,8 +723,21 @@ export default function ServiceDetailPage() {
                 >
                   {autoScroll ? '✓ Auto-Scroll Actif' : 'Auto-Scroll Désactivé'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setHideFirewallNoise((v) => !v)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    hideFirewallNoise
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                  title="Masque les lignes détectées comme firewall / WAF / rate-limit (souvent très verbeuses sur la gateway)"
+                >
+                  {hideFirewallNoise ? 'Firewall : masqué' : 'Firewall : tout afficher'}
+                </button>
                 <span className="text-sm text-gray-500">
                   {serviceLogs?.total ?? serviceLogs?.lines?.length ?? 0} lignes
+                  {hideFirewallNoise ? ` · affichées ${displayLogLines.length}` : ''}
                 </span>
                 {(serviceLogs?.errors ?? 0) > 0 && (
                   <span className="flex items-center text-sm font-medium text-red-600">
@@ -704,11 +775,16 @@ export default function ServiceDetailPage() {
           {/* All Logs - Affichage Terminal Style */}
           {serviceLogs?.lines && serviceLogs.lines.length > 0 ? (
             <>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Couleurs : erreurs / avertissements / requêtes HTTP / firewall (violet). Le statut{' '}
+                <strong className="font-medium text-gray-700 dark:text-gray-300">make status</strong> indique que le
+                conteneur tourne, pas qu’une route backoffice précise a été appelée récemment.
+              </p>
               <div className="relative">
-                <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
-                  {serviceLogs.lines.slice(-100).map((line: string, index: number) => {
+                <div className="max-h-[500px] overflow-y-auto rounded-lg bg-zinc-950 p-3 font-mono text-[11px] leading-snug sm:text-xs sm:p-4">
+                  {displayLogLines.map((line: string, index: number) => {
                     // Parser le timestamp Docker (format: 2025-12-02T17:21:30.123456789Z message)
-                    const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+(.*)$/);
+                    const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+([\s\S]*)$/);
                     const timestamp = timestampMatch ? timestampMatch[1] : null;
                     const message = timestampMatch ? timestampMatch[2] : line;
                     
@@ -723,24 +799,14 @@ export default function ServiceDetailPage() {
                     }
                     
                     return (
-                      <div 
-                        key={index} 
-                        className={`py-0.5 leading-relaxed ${
-                          message.toLowerCase().includes('error') || message.toLowerCase().includes('exception') || message.toLowerCase().includes('fatal')
-                            ? 'text-red-400 font-semibold'
-                            : message.toLowerCase().includes('warn')
-                            ? 'text-yellow-400'
-                            : message.toLowerCase().includes('info')
-                            ? 'text-blue-300'
-                            : message.toLowerCase().includes('debug')
-                            ? 'text-gray-500'
-                            : 'text-green-400'
-                        }`}
+                      <div
+                        key={`${index}-${line.slice(0, 24)}`}
+                        className="grid grid-cols-1 gap-x-2 border-b border-white/[0.06] py-1.5 sm:grid-cols-[minmax(0,10.5rem)_1fr]"
                       >
-                        {formattedDate && (
-                          <span className="text-gray-500 mr-2">[{formattedDate}]</span>
-                        )}
-                        {message}
+                        <div className="text-gray-500 shrink-0 tabular-nums">
+                          {formattedDate ? formattedDate : '—'}
+                        </div>
+                        <div className={`min-w-0 ${serviceLogLineClass(message)}`}>{message}</div>
                       </div>
                     );
                   })}
