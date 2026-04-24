@@ -37,6 +37,15 @@ jest.mock('@/lib/api/analytics.service', () => ({
 
 jest.mock('@/lib/services/centralMetricsService', () => ({
   centralMetricsService: {
+    getAggregatorMetrics: jest.fn().mockResolvedValue({
+      servicesList: [],
+      monitoringC: {},
+    }),
+  },
+}));
+
+jest.mock('@/lib/services/centralMetricsService', () => ({
+  centralMetricsService: {
     fetchMetrics: jest.fn().mockResolvedValue({
       performance: {},
       system: {},

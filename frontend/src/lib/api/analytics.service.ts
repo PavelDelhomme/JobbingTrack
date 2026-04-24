@@ -274,6 +274,39 @@ export class AnalyticsService {
   }
 
   /**
+   * Logs agrégés persistés (metrics-aggregator).
+   */
+  async getPersistenceLogs(options: {
+    limit?: number;
+    offset?: number;
+    serviceName?: string;
+    level?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (options.limit != null) params.append('limit', String(options.limit));
+      if (options.offset != null) params.append('offset', String(options.offset));
+      if (options.serviceName) params.append('serviceName', options.serviceName);
+      if (options.level) params.append('level', options.level);
+      if (options.startDate) params.append('startDate', options.startDate);
+      if (options.endDate) params.append('endDate', options.endDate);
+      if (options.search) params.append('search', options.search);
+
+      const response = await axios.get(
+        `${METRICS_API_URL}/api/v1/persistence/logs?${params.toString()}`,
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
+      );
+      return Array.isArray(response.data?.data) ? response.data.data : [];
+    } catch (error) {
+      console.error('Erreur récupération logs persistance:', error);
+      return [];
+    }
+  }
+
+  /**
    * Calculer le temps de réponse moyen depuis l'historique
    */
   async getAverageResponseTime(hours: number = 24) {
@@ -289,8 +322,8 @@ export class AnalyticsService {
         return null;
       }
 
-      // Pour le moment, on retourne les métriques système
-      // TODO: Ajouter les temps de réponse réels dans la persistance
+      // Persistance : voir `responseTimeAvg` / `avg_response_time_ms` sur **`getSystemMetricsHistory`** et
+      // **`pickSystemResponseTimeAvgMsFromRow`** côté frontend. Ici : fallback CPU / mémoire uniquement.
       return {
         avgCpu: history.reduce((acc: number, h: any) => acc + h.cpuUsagePercent, 0) / history.length,
         avgMemory: history.reduce((acc: number, h: any) => acc + h.memoryUsagePercent, 0) / history.length,

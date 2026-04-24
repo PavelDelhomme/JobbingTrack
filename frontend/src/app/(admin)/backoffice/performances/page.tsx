@@ -36,10 +36,15 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from 'recharts';
 import { analyticsService } from '@/lib/api/analytics.service';
 import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
 import { PerformancesSubNav } from './PerformancesSubNav';
+import { pickSystemResponseTimeAvgMsFromRow } from '@/lib/metrics/pickSystemResponseTimeFromRow';
+import { centralMetricsService } from '@/lib/services/centralMetricsService';
+import type { MetricsData } from '@/lib/interfaces';
 import { SystemCpuMemoryAreaCharts } from '@/components/charts/SystemCpuMemoryAreaCharts';
 import { SystemCpuNetworkCorrelationChart } from '@/components/charts/SystemCpuNetworkCorrelationChart';
 import {
@@ -59,23 +64,6 @@ interface SystemMetric {
   responseTimeAvgMs?: number | null;
   networkRxBytes?: number | null;
   networkTxBytes?: number | null;
-}
-
-function pickResponseTimeAvgMs(d: Record<string, unknown>): number | undefined {
-  const keys = [
-    'responseTimeAvg',
-    'avg_response_time_ms',
-    'response_time_avg',
-    'responseTimeMs',
-    'avgResponseTimeMs',
-  ] as const;
-  for (const k of keys) {
-    const v = d[k];
-    if (v == null) continue;
-    const n = Number(v);
-    if (Number.isFinite(n)) return n;
-  }
-  return undefined;
 }
 
 function compressData<T extends { timestamp: string }>(
@@ -114,6 +102,8 @@ const METRIC_GAP_MS = 15 * 60 * 1000;
  */
 export default function PerformancesPage() {
   const [rawData, setRawData] = useState<SystemMetric[]>([]);
+  /** Dernier snapshot `GET /api/v1/metrics` (sondes par service / endpoints). */
+  const [liveMetrics, setLiveMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
@@ -173,12 +163,16 @@ export default function PerformancesPage() {
       if (!silent) setLoading(true);
       try {
         const { startDate, endDate, limit } = getParams();
-        const data = await analyticsService.getSystemMetricsHistory({
-          startDate,
-          endDate,
-          limit,
-          offset: 0,
-        });
+        const [data, live] = await Promise.all([
+          analyticsService.getSystemMetricsHistory({
+            startDate,
+            endDate,
+            limit,
+            offset: 0,
+          }),
+          centralMetricsService.getAggregatorMetrics(),
+        ]);
+        setLiveMetrics(live);
         const sorted = (data || [])
           .map((d: Record<string, unknown>) => {
             const rawTs =
@@ -212,10 +206,7 @@ export default function PerformancesPage() {
                 : d.total_network_tx_bytes != null
                   ? Number(d.total_network_tx_bytes)
                   : null,
-            responseTimeAvgMs: (() => {
-              const v = pickResponseTimeAvgMs(d);
-              return v !== undefined ? v : null;
-            })(),
+            responseTimeAvgMs: pickSystemResponseTimeAvgMsFromRow(d),
           };
           })
           .filter((d: { timestamp: string }) => d.timestamp)
@@ -436,6 +427,41 @@ export default function PerformancesPage() {
     if (rawData.length === 0) return null;
     return rawData[rawData.length - 1]?.timestamp ?? null;
   }, [rawData]);
+
+  const liveEndpointBars = useMemo(() => {
+    const parseMs = (v: unknown): number | null => {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+      if (typeof v === 'string') {
+        const n = parseFloat(v.replace(/[^\d.]/g, ''));
+        return Number.isFinite(n) && n > 0 ? n : null;
+      }
+      return null;
+    };
+    const list = liveMetrics?.servicesList ?? [];
+    return list
+      .map((s) => {
+        const ms =
+          parseMs(s.responseTimeMs) ??
+          parseMs(s.responseTime) ??
+          parseMs(s.health?.responseTime);
+        const name = (s.displayName || s.name || 'service').slice(0, 48);
+        return { name, ms, status: s.status ?? s.health?.status };
+      })
+      .filter((r): r is { name: string; ms: number; status?: string } => r.ms != null)
+      .sort((a, b) => b.ms - a.ms)
+      .slice(0, 20);
+  }, [liveMetrics]);
+
+  const liveOverviewMs = useMemo(() => {
+    const m = liveMetrics?.monitoringC?.avg_response_time_ms;
+    if (typeof m === 'number' && Number.isFinite(m)) return m;
+    const r = liveMetrics?.responseTime?.average_ms;
+    if (r != null) {
+      const n = Number(r);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }, [liveMetrics]);
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
@@ -828,6 +854,56 @@ export default function PerformancesPage() {
               })()}
             </p>
           </>
+        )}
+
+        {!loading && (
+          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              Temps de réponse des endpoints (instantané)
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Données issues du même flux que le tableau de bord : <code className="text-[11px]">GET /api/v1/metrics</code>{' '}
+              sur le metrics-aggregator (sondes HTTP par microservice). Complète la courbe « persistance »
+              ci-dessus, qui reflète l’agrégat enregistré dans le temps.
+            </p>
+            {liveOverviewMs != null && (
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                Moyenne monitoring-c / agrégat :{' '}
+                <strong className="font-semibold">{liveOverviewMs.toFixed(1)} ms</strong>
+              </p>
+            )}
+            {liveEndpointBars.length === 0 ? (
+              <p className="mt-3 text-sm text-amber-800 dark:text-amber-200/90">
+                Aucune mesure par service exploitable (agrégateur injoignable, auth, ou sondes sans temps de
+                réponse).
+              </p>
+            ) : (
+              <div className="mt-4 w-full min-h-[240px]">
+                <ResponsiveContainer width="100%" height={Math.max(240, liveEndpointBars.length * 28)}>
+                  <BarChart
+                    layout="vertical"
+                    data={liveEndpointBars}
+                    margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-40" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11 }} unit=" ms" />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={160}
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      formatter={(value: number) => [`${Number(value).toFixed(1)} ms`, 'Réponse']}
+                    />
+                    <Bar dataKey="ms" name="ms" fill="#0d9488" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </AdminLayout>

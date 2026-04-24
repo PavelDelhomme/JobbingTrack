@@ -63,7 +63,7 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 - [ ] **`/backoffice/analytics`** — `analytics/page.tsx`
 - [x] **`/backoffice/performances`** — `performances/page.tsx` (redirect depuis **`/backoffice/analytics/performances`** ; sous-routes **`/latency`**, **`/containers`**, **`/disk`**)
-- [ ] **`/backoffice/analytics/network`** — `analytics/network/page.tsx`
+- [x] **`/backoffice/analytics/network`** — `analytics/network/page.tsx` (cumul Mo, **débit Mo/min**, **corrélation CPU**, **temps de réponse** si colonne présente — avril 2026)
 - [ ] **`/backoffice/analytics/containers`** — `analytics/containers/page.tsx`
 - [ ] **`/backoffice/statistics`** — `statistics/page.tsx`
 - [ ] **`/backoffice/statistique`** — `statistique/page.tsx`
@@ -80,7 +80,9 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 ### Souhaits graphes / données / tableaux (à compléter par toi dans ce fichier)
 
 - [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** (drawer Tableau de bord) — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite** : **`analytics/containers`**, **`network`**, **`statistique`**, etc.
-- [x] **Réseau** : débit **Mo/min** sur **Performances** (dérivé cumul — avril 2026).
+- [x] **Réseau** : débit **Mo/min** sur **Performances** (dérivé cumul — avril 2026) ; **même socle** sur **`/backoffice/analytics/network`**.
+- [x] **Temps de réponse** : persistance (`pickSystemResponseTimeAvgMsFromRow`, test **`pickSystemResponseTimeFromRow.test.ts`**) + **instantané** par service (`GET /api/v1/metrics` / `centralMetricsService.getAggregatorMetrics` sur **Performances**).
+- [x] **Statistiques** sous-pages **App data** / **Sécurité** / **Logs (stats)** : requêtes réelles (`statisticsService`, `analyticsService` security + persistance logs/stats).
 - [ ] *(ex. : sparkline sur la liste **`/backoffice/services`** — voir A1d)*
 - [ ] …
 - [ ] …
