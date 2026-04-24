@@ -241,7 +241,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Vue d’ensemble', href: '/backoffice/statistics', icon: '📊' },
             { name: 'App data', href: '/backoffice/statistics/app-data', icon: '📦' },
             { name: 'Sécurité', href: '/backoffice/statistics/security', icon: '🛡️' },
-            { name: 'Logs (stats)', href: '/backoffice/statistics/logs', icon: '📜' },
+            { name: 'Logs (stats)', href: '/backoffice/statistics/log-stats', icon: '📜' },
           ],
         },
         {

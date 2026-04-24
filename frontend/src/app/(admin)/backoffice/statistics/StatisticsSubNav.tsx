@@ -7,7 +7,7 @@ const TABS = [
   { href: '/backoffice/statistics', label: 'Vue d’ensemble' },
   { href: '/backoffice/statistics/app-data', label: 'App data' },
   { href: '/backoffice/statistics/security', label: 'Sécurité' },
-  { href: '/backoffice/statistics/logs', label: 'Logs (stats)' },
+  { href: '/backoffice/statistics/log-stats', label: 'Logs (stats)' },
 ] as const
 
 export function StatisticsSubNav() {
