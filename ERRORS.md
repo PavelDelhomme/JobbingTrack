@@ -21,6 +21,18 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | **`make status` : tout DOWN, postgres « non créé », résumé vide** | Aucun conteneur **`jobbingtrack-*`** au moment du scan (Docker arrêté, mauvais répertoire, ou stack pas lancée). Le Makefile affiche désormais une **explication** après le résumé (**`docker info`** vs **`make up-full`**). |
 | **`make status-live` ancien** : ports **`5000-`**, services manquants, faux DOWN | L’ancienne **vue compacte** du Makefile tronquait les ports (`cut` sur `->`) et ne listait pas toute la stack. **Corrigé (21/04)** : **`status-live`** et **`status-watch`** relancent **`make status`** à chaque cycle. |
 
+### Next.js — `use client` et baril `@/components/features`
+
+- **Symptôme** : échec de compilation « You're importing a component that needs `useState` … none of its parents are marked with `use client` », trace **`features/index.ts`** → **`GlobalSearch.tsx`** alors que la page n’importe que **`AdminLayout`** (ex. **`/backoffice/performances/containers`**).
+- **Cause** : le **baril** réexporte des modules qui utilisent des hooks ; une **page Server Component** qui fait **`import { AdminLayout } from '@/components/features'`** entraîne l’analyse du baril entier côté serveur.
+- **Correctif** : tout composant du baril avec hooks doit commencer par **`'use client'`** ; alternative : **`import AdminLayout from '@/components/features/AdminLayout'`** depuis les pages RSC. **Garde-fou** : test Jest **`GlobalSearch.client-boundary.test.ts`** (07/04/2026).
+
+### Gateway — journaux répétés `GET /api/v1/security/*` (firewall, WAF, menaces)
+
+- **Interprétation** : des lignes **info** en rafale sur **`jobbingtrack-api-gateway`** vers **`security-service`** reflètent surtout un **client HTTP** (navigateur sur le backoffice sécurité, onglet laissé ouvert avec **auto-refresh**, ou équivalent). Ce n’est **pas** une preuve d’erreur applicative tant que les réponses sont **2xx** et cohérentes avec une UI active.
+- **Si vous suspectez un dysfonctionnement** : vérifier les **codes HTTP** et la corrélation avec les pages ouvertes ; chercher un **polling** trop agressif dans **`frontend/.../backoffice/security/*`** ; confirmer qu’aucun **script** ou service ne tape la gateway en boucle sans garde-fous.
+- **Pistes correctives** : augmenter l’intervalle entre requêtes, regrouper les données sur un endpoint unique, ou ajuster le **niveau de log** de la gateway en développement — suivi dans **`TODOS.md`** (dernière section) et synthèse **`STATUS.md`** § journalisation gateway.
+
 ### Pipeline erreurs / logs (synthèse — à enrichir au lot **A**)
 
 1. **API Gateway** : trafic entrant, codes HTTP, routage vers les microservices.

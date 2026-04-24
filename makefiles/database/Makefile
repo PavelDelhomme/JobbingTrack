@@ -119,8 +119,8 @@ migrate-restart: ## Appliquer les migrations puis redémarrer les services actif
 	@echo ""
 	@echo "✅ Migrations appliquées et services redémarrés !"
 
-db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push)
-	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables"
+db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push) ; DB_PUSH_VERBOSE=1 pour les NOTICE psql complètes
+	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables (NOTICE SQL réduites par défaut — DB_PUSH_VERBOSE=1)"
 	@echo "   Services poussés : auth, application, company, contact, interview, call, followup, event, workflow"
 	@echo "   Tables security/deployment/metrics : via schéma auth ou init-key-tables (pas de push séparé)"
 	@echo ""

@@ -265,7 +265,7 @@ endef
 
 # Fonction wrapper simple pour Docker Compose
 define docker_compose
-	if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
 		docker compose --ansi never $(1); \
 	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
 		docker-compose --ansi never $(1); \

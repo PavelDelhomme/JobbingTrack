@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Synchronise les schémas Prisma de tous les services (db push).
 # Utilisé par: make db-push-all
+# DB_PUSH_VERBOSE=1 : laisse passer tous les messages psql (NOTICE « already exists », etc.).
 # À exécuter depuis la racine du projet (ou avec ROOT_DIR défini).
 #
 # Ce que fait make db-push-all (tout en une commande, pas d'étape de vérification séparée) :
@@ -15,6 +16,15 @@
 set -e
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT_DIR"
+
+# Réduit le bruit « NOTICE: relation … already exists » (idempotent). DB_PUSH_VERBOSE=1 pour tout voir.
+psql_in_postgres() {
+  if [ "${DB_PUSH_VERBOSE:-0}" = "1" ]; then
+    docker exec -i jobbingtrack-postgres psql "$@"
+  else
+    docker exec -e "PGOPTIONS=-c client_min_messages=WARNING" -i jobbingtrack-postgres psql "$@"
+  fi
+}
 
 # Liste des services avec schéma Prisma PARTAGÉ (même schéma complet ou compatible).
 # Ne pas inclure security-service, deployment-service ni metrics-aggregator : leur schéma
@@ -138,7 +148,7 @@ if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
   echo "━━━ Partie 2/3 – Tables monitoring (init-system-metrics.sql) ━━━"
   echo "  system_metrics, container_metrics, service_availability_history"
-  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" && echo "  ✅ Tables system_metrics / service_availability_history OK" || echo "  ⚠️  init-system-metrics.sql a échoué (on continue ; ensure-metrics-aggregator créera les tables si besoin)"
+  psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" && echo "  ✅ Tables system_metrics / service_availability_history OK" || echo "  ⚠️  init-system-metrics.sql a échoué (on continue ; ensure-metrics-aggregator créera les tables si besoin)"
   echo ""
 fi
 
@@ -149,7 +159,7 @@ if [ -f "${ROOT_DIR}/scripts/db/init-key-tables.sql" ]; then
   echo "  security_logs, network_*, EmailLog, EmailTemplate, security_alerts, etc."
   PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
   PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
-  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql"; then
+  if psql_in_postgres -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql"; then
     echo "  ✅ Tables security_logs / EmailLog / EmailTemplate / network_* OK"
   else
     echo "  ❌ Erreur init-key-tables (vérifiez les logs ci-dessus)"
@@ -163,7 +173,7 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
   echo "[DB-PUSH-ALL] Seed templates email (EmailTemplate)"
   PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
   PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
-  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/seed-email-templates.sql"; then
+  if psql_in_postgres -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/seed-email-templates.sql"; then
     echo "  ✅ Templates email insérés (ou déjà présents)"
   else
     echo "  ⚠️  Seed templates email ignoré (tables peut-être absentes : relancer init-key-tables)"
@@ -174,7 +184,7 @@ fi
 # Garantir les tables metrics-aggregator (évite « unhealthy » si init-system-metrics / init-key-tables ont échoué partiellement)
 if [ -f "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Ensure – Tables metrics-aggregator (system_metrics_snapshots, container_metrics_snapshots, service_availability_history)"
-  if docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql"; then
+  if psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql"; then
     echo "  ✅ Tables metrics-aggregator OK"
   else
     echo "  ⚠️  ensure-metrics-aggregator-tables a échoué (vérifiez Postgres)"

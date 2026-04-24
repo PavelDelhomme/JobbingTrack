@@ -192,8 +192,9 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-watch          - Statut en boucle : CLEAR=1 (défaut) réaffiche tout ; CLEAR=0 garde l’historique ; INTERVAL=5 (défaut) ; sans messages « répertoire » make"
-	@echo "  make status-live           - Même détail que make status, boucle (INTERVAL=2s ; CLEAR=0 défaut)"
+	@echo "  make status-watch          - Statut en boucle (INTERVAL=5) : ALTSCREEN=1 défaut = buffer terminal alternatif (remplace l’affichage sans polluer le scrollback) ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 pour désactiver le retour à la ligne selon largeur terminal"
+	@echo "  make status-live           - Idem, INTERVAL=2s par défaut (même options ALTSCREEN / CLEAR / STATUS_FOLD)"
+	@echo "  STATUS_LEGEND=1 make status — affiche la légende longue des ports (désactivée par défaut)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
 	@echo "  make logs-service SERVICE=x - Logs d'un service"
@@ -1013,14 +1014,19 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # STATUS ET LOGS
 # ============================================================================
 
+# Légende longue des ports (monitoring-c, log-collector-c, etc.) : STATUS_LEGEND=1 make status
+STATUS_LEGEND ?= 0
+
 # Statut détaillé
 status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, ports, uptime)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
 	@echo ""
-	@printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"
-	@printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m (C) ecoute \033[0;33m8015\033[0;90m dans le conteneur ; hote \033[0;36m5098\033[0;90m. \033[1;33mlog-collector-c\033[0;90m (C) ecoute \033[0;33m3019\033[0;90m dans le conteneur ; hote \033[0;36m5099\033[0;90m (pas 5099->5099). Acces reseau Docker : \033[0;36mlog-collector-c:3019\033[0;90m / \033[0;36mmonitoring-c:8015\033[0;90m.\033[0m"
-	@echo ""
+	@if [ "$(STATUS_LEGEND)" = "1" ]; then \
+		printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"; \
+		printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m (C) ecoute \033[0;33m8015\033[0;90m dans le conteneur ; hote \033[0;36m5098\033[0;90m. \033[1;33mlog-collector-c\033[0;90m (C) ecoute \033[0;33m3019\033[0;90m dans le conteneur ; hote \033[0;36m5099\033[0;90m (pas 5099->5099). Acces reseau Docker : \033[0;36mlog-collector-c:3019\033[0;90m / \033[0;36mmonitoring-c:8015\033[0;90m.\033[0m"; \
+		echo ""; \
+	fi
 	@echo "🏗️  Infrastructure:"
 	@echo ""
 	@services="postgres redis"; \
@@ -1344,41 +1350,16 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
-# Même sortie que `status`, en boucle (vue complète).
-# INTERVAL=s (défaut 5) · CLEAR=1 efface l’écran avant chaque cycle ; sans CLEAR=1, l’historique défile (défaut : pas d’effacement, lecture continue).
-# --no-print-directory : supprime les lignes make « Entrée / on quitte le répertoire ».
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, CLEAR défaut vide = pas clear ; CLEAR=1 pour plein écran)
-	@printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m$(or $(INTERVAL),5)s\033[0m \033[0;90m· Ctrl+C pour quitter\033[0m"
-	@printf '%b\n' "\033[0;90m💡 Même rendu que \033[0;36mmake status\033[0;90m. \033[1;33mCLEAR=1\033[0;90m pour \`clear\` chaque cycle ; défaut : défilement sans effacer. \033[0;36mmake status-live\033[0;90m = même chose, INTERVAL=2s.\033[0m"
-	@echo ""
-	@sep=0; while true; do \
-		if [ "$$sep" = 1 ] && [ "$(CLEAR)" != "1" ]; then \
-			printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"; \
-		fi; \
-		if [ "$(CLEAR)" = "1" ]; then clear; fi; \
-		$(MAKE) --no-print-directory status; \
-		sep=1; \
-		echo ""; \
-		printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m$(or $(INTERVAL),5)s\033[0m  \033[0;35m(CLEAR=$(or $(CLEAR),0))\033[0m"; \
-		sleep $(or $(INTERVAL),5); \
-	done
+# Boucle `make status` : script \`scripts/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
+# INTERVAL=s · ALTSCREEN=1 (défaut) = pas d’empilement dans le scrollback · ALTSCREEN=0 = ancien défilement · CLEAR=1 + ALTSCREEN=0 = clear plein écran.
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, ALTSCREEN=1 par défaut — voir scripts/status-watch-loop.sh)
+	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
 
 # Même rendu que `make status`, boucle rapide (pas de vue « compacte » dupliquée — évite ports tronqués et services manquants).
-# INTERVAL=s (défaut 2) · CLEAR=1 pour effacer l’écran ; défaut : pas de clear (historique visible entre deux cycles).
 status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut 2, Ctrl+C pour quitter)
-	@printf '%b\n' "\033[0;36m📊 Statut live\033[0m — \033[0;90mmême sortie que\033[0m \033[1;33mmake status\033[0m \033[0;90m· cycle\033[0m \033[1;33m$(or $(INTERVAL),2)s\033[0m \033[0;90m·\033[0m \033[1;33mCLEAR=1\033[0;90m pour plein écran · Ctrl+C\033[0m"
-	@echo ""
-	@sep=0; while true; do \
-		if [ "$$sep" = 1 ] && [ "$(CLEAR)" != "1" ]; then \
-			printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"; \
-		fi; \
-		if [ "$(CLEAR)" = "1" ]; then clear; fi; \
-		$(MAKE) --no-print-directory status; \
-		sep=1; \
-		echo ""; \
-		printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m$(or $(INTERVAL),2)s\033[0m  \033[0;35m(CLEAR=$(or $(CLEAR),0))\033[0m"; \
-		sleep $(or $(INTERVAL),2); \
-	done
+	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),2)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs

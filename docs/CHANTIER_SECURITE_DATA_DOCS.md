@@ -7,7 +7,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 | Fichier | Rôle |
 |---------|------|
 | **[PLAN.md](../PLAN.md)** | Lots A–**G**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité ) |
-| **[TODOS.md](../TODOS.md)** | Cases à cocher opérationnelles |
+| **[TODOS.md](../TODOS.md)** | Cases à cocher opérationnelles ; **dernière section** = méta (validation porteur, audit BDD avant tests, logs gateway sécurité, refonte doc racine + `docs/`) |
 | **[STATS.md](../STATS.md)** | Suivi **CVE** / dépendances (npm, Docker, Flutter) — tableaux à compléter après audits |
 | **[docs/operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** | NTP, secrets, intrusion gateway, vérifs **B6** avant mise en prod |
 | **[STATUS.md](../STATUS.md)** | État projet + **tableau de suivi des lots** + priorités P0–P2 |

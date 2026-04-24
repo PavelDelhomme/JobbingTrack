@@ -111,6 +111,9 @@ export default function PerformancesPage() {
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
   const silentNextFetch = useRef(false);
+  const [locationHash, setLocationHash] = useState('');
+  const prevLocationHashRef = useRef('');
+  const scrolledLatenceAnchorRef = useRef(false);
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
     const d = new Date();
@@ -133,6 +136,20 @@ export default function PerformancesPage() {
     followLive,
     setFollowLive,
   });
+
+  useEffect(() => {
+    const read = () => setLocationHash(typeof window !== 'undefined' ? window.location.hash : '');
+    read();
+    window.addEventListener('hashchange', read);
+    return () => window.removeEventListener('hashchange', read);
+  }, []);
+
+  useEffect(() => {
+    if (locationHash === '#latence' && prevLocationHashRef.current !== '#latence') {
+      scrolledLatenceAnchorRef.current = false;
+    }
+    prevLocationHashRef.current = locationHash;
+  }, [locationHash]);
 
   const getParams = useCallback(() => {
     if (useCustomRange) {
@@ -415,13 +432,18 @@ export default function PerformancesPage() {
   )
 
   useEffect(() => {
-    if (typeof window === 'undefined' || loading) return
-    if (window.location.hash !== '#latence') return
-    const el = document.getElementById('latence')
-    if (el) {
-      requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    if (typeof window === 'undefined') return;
+    if (locationHash !== '#latence') {
+      scrolledLatenceAnchorRef.current = false;
+      return;
     }
-  }, [loading, chartData.length, showResponseTime])
+    if (loading) return;
+    if (scrolledLatenceAnchorRef.current) return;
+    const el = document.getElementById('latence');
+    if (!el) return;
+    scrolledLatenceAnchorRef.current = true;
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [loading, chartData.length, showResponseTime, locationHash]);
 
   const lastRawTimestamp = useMemo(() => {
     if (rawData.length === 0) return null;
