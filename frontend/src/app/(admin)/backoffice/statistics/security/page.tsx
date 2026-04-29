@@ -1,49 +1,155 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
 import { StatisticsSubNav } from '../StatisticsSubNav'
 import { analyticsService } from '@/lib/api/analytics.service'
 
-type SecuritySummary = Record<string, unknown> | null
+function num(v: unknown): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string') {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : 0
+  }
+  return 0
+}
+
+function rowDateKey(row: Record<string, unknown>): string | null {
+  const t = row.timestamp ?? row.createdAt
+  if (t instanceof Date) return t.toISOString().slice(0, 10)
+  if (typeof t === 'string' || typeof t === 'number') {
+    const d = new Date(t)
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+  }
+  return null
+}
+
+type DayBucket = {
+  day: string
+  failedLogins: number
+  sqlInjections: number
+  xssAttempts: number
+  suspicious: number
+  alerts: number
+  rateLimit: number
+  invalidToken: number
+  snapshots: number
+  scoreSum: number
+  scoreCount: number
+}
 
 export default function StatisticsSecurityPage() {
-  const [summary, setSummary] = useState<SecuritySummary>(null)
   const [metrics, setMetrics] = useState<Record<string, unknown>[]>([])
+  const [pSummary, setPSummary] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const hoursWindow = 7 * 24
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const hours = 7 * 24
-      const [s, m] = await Promise.all([
-        analyticsService.getSecuritySummary(hours),
-        analyticsService.getSecurityMetrics(hours),
+      const [m, s] = await Promise.all([
+        analyticsService.getSecurityMetrics(hoursWindow),
+        analyticsService.getSecurityPersistenceSummary(hoursWindow),
       ])
-      setSummary(s && typeof s === 'object' ? (s as Record<string, unknown>) : null)
-      setMetrics(Array.isArray(m) ? (m as Record<string, unknown>[]) : [])
+      setMetrics(Array.isArray(m) ? m : [])
+      setPSummary(s && typeof s === 'object' ? s : null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hoursWindow])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  const overview = summary && typeof summary === 'object' ? (summary as Record<string, unknown>) : null
+  const fromMetrics = useMemo(() => {
+    if (!metrics.length) {
+      return {
+        byDay: [] as DayBucket[],
+        recentScores: [] as { t: string; score: number }[],
+        blockedIpTouches: 0,
+      }
+    }
+
+    const dayMap = new Map<string, DayBucket>()
+    let blockedTouches = 0
+    const scoreSeries: { t: string; score: number; ms: number }[] = []
+
+    for (const row of metrics) {
+      const day = rowDateKey(row)
+      if (day) {
+        const b =
+          dayMap.get(day) ||
+          ({
+            day,
+            failedLogins: 0,
+            sqlInjections: 0,
+            xssAttempts: 0,
+            suspicious: 0,
+            alerts: 0,
+            rateLimit: 0,
+            invalidToken: 0,
+            snapshots: 0,
+            scoreSum: 0,
+            scoreCount: 0,
+          } satisfies DayBucket)
+        b.failedLogins += num(row.failedLoginAttempts)
+        b.sqlInjections += num(row.potentialSqlInjections)
+        b.xssAttempts += num(row.potentialXssAttempts)
+        b.suspicious += num(row.suspiciousActivities)
+        b.alerts += num(row.activeSecurityAlerts)
+        b.rateLimit += num(row.rateLimitExceeded)
+        b.invalidToken += num(row.invalidTokenAttempts)
+        b.snapshots += 1
+        if (row.securityScore !== undefined && row.securityScore !== null) {
+          b.scoreSum += num(row.securityScore)
+          b.scoreCount += 1
+        }
+        dayMap.set(day, b)
+      }
+
+      const ips = row.blockedIPs
+      if (Array.isArray(ips)) blockedTouches += ips.length
+
+      const ts = row.timestamp ?? row.createdAt
+      const sc = num(row.securityScore)
+      if (typeof ts === 'string' || typeof ts === 'number' || ts instanceof Date) {
+        const ms = new Date(ts as string | number | Date).getTime()
+        if (!Number.isNaN(ms)) {
+          scoreSeries.push({ t: String(ts), score: sc, ms })
+        }
+      }
+    }
+
+    const byDay = Array.from(dayMap.values()).sort((a, b) => a.day.localeCompare(b.day))
+    scoreSeries.sort((a, b) => a.ms - b.ms)
+    const recentScores = scoreSeries.slice(-36).map(({ t, score }) => ({ t, score }))
+
+    return { byDay, recentScores, blockedIpTouches: blockedTouches }
+  }, [metrics])
+
+  const avgScoreFromDays = useMemo(() => {
+    const rows = fromMetrics.byDay.filter((d) => d.scoreCount > 0)
+    if (rows.length === 0) return null
+    const sum = rows.reduce((a, d) => a + d.scoreSum, 0)
+    const n = rows.reduce((a, d) => a + d.scoreCount, 0)
+    return n > 0 ? sum / n : null
+  }, [fromMetrics.byDay])
 
   return (
     <AdminLayout>
-      <div className="p-6 mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-6">
         <StatisticsSubNav />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Statistiques — Sécurité</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Statistiques — Sécurité (persistance)
+          </h1>
           <button
             type="button"
             onClick={() => void load()}
@@ -52,9 +158,26 @@ export default function StatisticsSecurityPage() {
             Rafraîchir
           </button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Agrégats via <code className="text-xs">GET /api/v1/security/stats</code> (gateway) et série persistée{' '}
-          <code className="text-xs">/api/v1/persistence/security/metrics</code> (metrics-aggregator).
+
+        <div className="rounded-lg border border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100">
+          <strong className="font-semibold">Rôle de cette page</strong> : tendances et agrégats issus de la{' '}
+          <strong>base persistée</strong> du metrics-aggregator (fenêtre {hoursWindow} h). Les compteurs live,
+          menaces récentes et pilotage se trouvent sous{' '}
+          <Link href="/backoffice/security" className="font-medium underline hover:no-underline">
+            Sécurité
+          </Link>
+          — pas de doublon volontaire.
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Données :{' '}
+          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+            GET …/persistence/security/metrics
+          </code>{' '}
+          +{' '}
+          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+            …/persistence/security/summary
+          </code>
         </p>
 
         {loading ? (
@@ -63,57 +186,167 @@ export default function StatisticsSecurityPage() {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
-            {overview && Object.keys(overview).length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {Object.entries(overview)
-                  .filter(([, v]) => v != null && typeof v !== 'object')
-                  .slice(0, 12)
-                  .map(([k, v]) => (
+            {/* Résumé agrégateur (BDD) */}
+            <div>
+              <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Synthèse sur la période (agrégateur)
+              </h2>
+              {pSummary ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Échecs connexion (cumul)</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums">{num(pSummary.totalFailedLogins)}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Tentatives SQLi / XSS (cumul)</p>
+                    <p className="mt-1 text-lg font-bold tabular-nums">
+                      {num(pSummary.totalSqlInjectionAttempts)} / {num(pSummary.totalXssAttempts)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Activités suspectes / alertes</p>
+                    <p className="mt-1 text-lg font-bold tabular-nums">
+                      {num(pSummary.totalSuspiciousActivities)} / {num(pSummary.totalSecurityAlerts)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">IP uniques bloquées (période)</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums">{num(pSummary.uniqueBlockedIPs)}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Score sécurité moyen (snapshots)</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums">
+                      {num(pSummary.avgSecurityScore).toFixed(1)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Points de série / période</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums">
+                      {num(pSummary.dataPoints)} <span className="text-sm font-normal">· {String(pSummary.period ?? '')}</span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Résumé persisté indisponible (table vide ou erreur agrégateur).
+                </p>
+              )}
+            </div>
+
+            {/* Tendance : score récent */}
+            {fromMetrics.recentScores.length > 0 && (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Score sécurité — derniers snapshots
+                </h2>
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                  Chaque barre = un enregistrement persisté (0–100). Utile pour voir la dérive après déploiement ou
+                  incident.
+                </p>
+                <div className="flex h-10 items-end gap-0.5 overflow-x-auto">
+                  {fromMetrics.recentScores.map((p, i) => (
                     <div
-                      key={k}
-                      className="rounded-lg border border-gray-200 bg-white p-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-                    >
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{k}</p>
-                      <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">{String(v)}</p>
-                    </div>
+                      key={i}
+                      title={`${p.t} — ${p.score}`}
+                      className="min-w-[6px] flex-1 rounded-t bg-violet-500/80 dark:bg-violet-400/70"
+                      style={{ height: `${Math.max(8, (p.score / 100) * 100)}%` }}
+                    />
                   ))}
+                </div>
+                {avgScoreFromDays != null && (
+                  <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    Moyenne sur jours avec données :{' '}
+                    <span className="font-semibold tabular-nums">{avgScoreFromDays.toFixed(1)}</span>
+                  </p>
+                )}
               </div>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Pas de résumé sécurité (droits, service security ou données vides).
-              </p>
             )}
 
+            {/* Agrégation par jour */}
+            {fromMetrics.byDay.length > 0 && (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Agrégation par jour (séries persistées)
+                </h2>
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                  Somme des compteurs par jour civil (UTC) sur les snapshots de la fenêtre. Blocages IP :{' '}
+                  {fromMetrics.blockedIpTouches} entrées listées dans les lignes (non dédupliquées jour par jour).
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/80">
+                        <th className="px-2 py-2 font-medium">Jour</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">Échecs login</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">SQLi</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">XSS</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">Suspect</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">Alertes</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">429 / token</th>
+                        <th className="px-2 py-2 font-medium tabular-nums">Score Ø</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fromMetrics.byDay.map((d) => (
+                        <tr key={d.day} className="border-b border-gray-100 dark:border-gray-700/80">
+                          <td className="px-2 py-1.5 font-mono">{d.day}</td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.failedLogins}</td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.sqlInjections}</td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.xssAttempts}</td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.suspicious}</td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.alerts}</td>
+                          <td className="px-2 py-1.5 tabular-nums">
+                            {d.rateLimit} / {d.invalidToken}
+                          </td>
+                          <td className="px-2 py-1.5 tabular-nums">
+                            {d.scoreCount > 0 ? (d.scoreSum / d.scoreCount).toFixed(1) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Audit compact */}
             <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
               <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                Points persistés (metrics-aggregator)
+                Derniers enregistrements (extrait)
               </h2>
               {metrics.length === 0 ? (
-                <p className="text-sm text-gray-500">Aucune entrée sur la période.</p>
+                <p className="text-sm text-gray-500">Aucune série sur la période.</p>
               ) : (
-                <ul className="max-h-64 space-y-1 overflow-auto text-xs text-gray-700 dark:text-gray-300">
-                  {metrics.slice(0, 40).map((row, i) => (
-                    <li key={i} className="font-mono">
-                      {JSON.stringify(row).slice(0, 200)}
-                      {JSON.stringify(row).length > 200 ? '…' : ''}
+                <ul className="max-h-56 space-y-1 overflow-auto font-mono text-[10px] text-gray-700 dark:text-gray-300">
+                  {metrics.slice(0, 20).map((row, i) => (
+                    <li key={i}>
+                      {String(row.timestamp ?? '—')} · score {num(row.securityScore)} · ko login{' '}
+                      {num(row.failedLoginAttempts)} · sql {num(row.potentialSqlInjections)} · xss{' '}
+                      {num(row.potentialXssAttempts)}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3 text-sm">
               <Link
                 href="/backoffice/statistics"
-                className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
+                className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
               >
-                ← Vue d’ensemble
+                ← Statistiques
               </Link>
               <Link
                 href="/backoffice/security"
-                className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
+                className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
               >
-                Vue opérationnelle Sécurité →
+                Sécurité (opérationnel) →
+              </Link>
+              <Link
+                href="/backoffice/security/analysis"
+                className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
+              >
+                Analyse →
               </Link>
             </div>
           </>

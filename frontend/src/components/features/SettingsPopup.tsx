@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '@/lib/hooks/theme'
 import { useAuth } from '@/lib/hooks/auth'

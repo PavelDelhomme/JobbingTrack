@@ -93,7 +93,7 @@ TOTAL ESTIMÉ                   : ~2-6 MB
 
 ---
 
-### 3. Page Statistiques (`/backoffice/statistique`)
+### 3. Page Statistiques (`/backoffice/statistics`)
 
 #### Problèmes Identifiés
 
@@ -306,7 +306,7 @@ TOTAL ESTIMÉ                   : ~2-6 MB
 - **Lazy Loading** : ❌ Non (recommandé)
 - **Intervalles** : 3 (objectif : ≤2) ⚠️
 
-### Page Statistiques (`/backoffice/statistique`)
+### Page Statistiques (`/backoffice/statistics`)
 
 **Métriques actuelles :**
 - **Lignes de code** : 2153 lignes

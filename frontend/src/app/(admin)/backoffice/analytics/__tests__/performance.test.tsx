@@ -1,12 +1,13 @@
 /**
- * Tests légers liés à la page analytics (Test CPU)
+ * Tests légers liés à la page Performances (séries CPU / mémoire — source).
+ * L’ancien hub CPU sous `/backoffice/analytics` a été retiré au profit d’un hub métier.
  */
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-describe('AnalyticsPage — contraintes perf / mémoire (source)', () => {
-  const pagePath = join(__dirname, '../page.tsx');
+describe('PerformancesPage — contraintes perf / mémoire (source)', () => {
+  const pagePath = join(__dirname, '../../performances/page.tsx');
 
   it('charge la logique en moins de 2 s (sanity)', async () => {
     const start = performance.now();
@@ -17,7 +18,7 @@ describe('AnalyticsPage — contraintes perf / mémoire (source)', () => {
   it('mémorise le libellé de période et la préparation des données', () => {
     if (!existsSync(pagePath)) return;
     const pageContent = readFileSync(pagePath, 'utf8');
-    expect(pageContent).toMatch(/chartPeriodLabel = useMemo/);
+    expect(pageContent).toMatch(/rangeLabel = useCustomRange/);
     expect(pageContent).toMatch(/chartData = useMemo/);
   });
 
@@ -28,7 +29,7 @@ describe('AnalyticsPage — contraintes perf / mémoire (source)', () => {
   });
 });
 
-describe('AnalyticsPage — mémoire (sanity)', () => {
+describe('PerformancesPage — mémoire (sanity)', () => {
   it('boucle courte sans explosion de heap', async () => {
     const initial = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
       ?.usedJSHeapSize ?? 0;

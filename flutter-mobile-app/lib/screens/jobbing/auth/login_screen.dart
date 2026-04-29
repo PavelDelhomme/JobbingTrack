@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jobbingtrack_flutter/screens/home_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/dashboard/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

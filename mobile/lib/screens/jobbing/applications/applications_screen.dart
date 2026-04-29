@@ -13,8 +13,8 @@ import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:jobbingtrack_mobile/screens/application_form_screen.dart';
-import 'package:jobbingtrack_mobile/screens/application_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class ApplicationsScreen extends StatefulWidget {

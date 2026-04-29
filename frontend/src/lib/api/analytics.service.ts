@@ -1,7 +1,33 @@
 import axios from 'axios';
 import { normalizeMetricTimestampToIso } from '@/lib/utils/date';
 
-const METRICS_API_URL = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+/** Base des routes `/api/v1/...` de l’agrégateur (hôte direct ou proxy Next). */
+function getMetricsV1Base(): string {
+  const via =
+    process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === 'true' ||
+    process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === '1';
+  if (via) {
+    if (typeof window !== 'undefined') {
+      return '/api/metrics-aggregator';
+    }
+    const fromEnv = process.env.METRICS_AGGREGATOR_INTERNAL_URL?.replace(/\/$/, '');
+    if (fromEnv) {
+      return `${fromEnv}/api/v1`;
+    }
+    const port = process.env.METRICS_AGGREGATOR_INTERNAL_PORT || '3014';
+    const internal =
+      process.env.PROJECT_ROOT === '/app'
+        ? `http://jobbingtrack-metrics-aggregator:${port}`
+        : `http://127.0.0.1:${process.env.METRICS_AGGREGATOR_PORT || '5004'}`;
+    return `${internal}/api/v1`;
+  }
+  const host = (
+    process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL ||
+    process.env.NEXT_PUBLIC_METRICS_URL ||
+    'http://localhost:5004'
+  ).replace(/\/$/, '');
+  return `${host}/api/v1`;
+}
 
 /** Historiques longs (ex. 30 j.) : évite les timeouts axios par défaut. */
 const METRICS_HISTORY_AXIOS_TIMEOUT_MS = 120_000;
@@ -36,6 +62,10 @@ export function normalizeMetricRows(rows: unknown[]): Record<string, unknown>[] 
 }
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
+function persistenceContainerSegment(containerName: string): string {
+  return encodeURIComponent(String(containerName || '').replace(/^\//, '').trim());
+}
+
 export class AnalyticsService {
   /**
    * Récupérer les métriques système historiques
@@ -54,7 +84,7 @@ export class AnalyticsService {
       if (options.endDate) params.append('endDate', options.endDate);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/system/metrics?${params.toString()}`,
+        `${getMetricsV1Base()}/persistence/system/metrics?${params.toString()}`,
         { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
       );
 
@@ -82,7 +112,7 @@ export class AnalyticsService {
       if (options.endDate) params.append('endDate', options.endDate);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/metrics?${params.toString()}`,
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/metrics?${params.toString()}`,
         { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
       );
 
@@ -116,7 +146,7 @@ export class AnalyticsService {
       if (options.search) params.append('search', options.search);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/logs?${params.toString()}`
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/logs?${params.toString()}`
       );
 
       return response.data.data || [];
@@ -139,7 +169,7 @@ export class AnalyticsService {
       if (options.since) params.append('since', options.since.toString());
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/logs/live?${params.toString()}`
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/logs/live?${params.toString()}`
       );
 
       return response.data.data || [];
@@ -155,7 +185,7 @@ export class AnalyticsService {
   async getServiceAvailabilityStats(serviceName: string, hours: number = 24) {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/services/${serviceName}/availability?hours=${hours}`
+        `${getMetricsV1Base()}/persistence/services/${serviceName}/availability?hours=${hours}`
       );
 
       return response.data.data || null;
@@ -171,13 +201,31 @@ export class AnalyticsService {
   async getSecurityMetrics(hours: number = 24) {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/security/metrics?hours=${hours}`
+        `${getMetricsV1Base()}/persistence/security/metrics?hours=${hours}`
       );
 
       return response.data.data || [];
     } catch (error) {
       console.error('Erreur récupération métriques sécurité:', error);
       return [];
+    }
+  }
+
+  /**
+   * Résumé agrégé des métriques de sécurité persistées (BDD agrégateur — pas la gateway).
+   */
+  async getSecurityPersistenceSummary(hours: number = 24) {
+    try {
+      const response = await axios.get(
+        `${getMetricsV1Base()}/persistence/security/summary?hours=${hours}`
+      );
+      if (response.data?.success && response.data?.data) {
+        return response.data.data as Record<string, unknown>;
+      }
+      return null;
+    } catch (error) {
+      console.error('Erreur récupération résumé sécurité (persistance):', error);
+      return null;
     }
   }
 
@@ -208,7 +256,7 @@ export class AnalyticsService {
   async inspectContainer(containerName: string) {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/inspect`
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/inspect`
       );
 
       return response.data.data || null;
@@ -224,7 +272,7 @@ export class AnalyticsService {
   async getContainerStats(containerName: string) {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/containers/${containerName}/stats`
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/stats`
       );
 
       return response.data.data || null;
@@ -240,15 +288,20 @@ export class AnalyticsService {
   async getContainersList(): Promise<{ name: string; service_type?: string; health_status?: string; [key: string]: unknown }[]> {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/docker/services/all`,
+        `${getMetricsV1Base()}/docker/services/all`,
         { timeout: 15000 }
       );
       if (response.data?.services && Array.isArray(response.data.services)) {
-        return response.data.services.map((s: { name: string; health_status?: string }) => ({
-          name: s.name,
-          health_status: s.health_status,
-          service_type: s.name?.replace(/^jobbingtrack-/, ''),
-        }));
+        return response.data.services.map((s: { name: string; health_status?: string }) => {
+          const name = String(s.name || '')
+            .replace(/^\//, '')
+            .trim();
+          return {
+            name,
+            health_status: s.health_status,
+            service_type: name.replace(/^jobbingtrack-/, ''),
+          };
+        });
       }
       return [];
     } catch (error) {
@@ -263,7 +316,7 @@ export class AnalyticsService {
   async getPersistenceStats() {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/stats`
+        `${getMetricsV1Base()}/persistence/stats`
       );
 
       return response.data.data || null;
@@ -296,7 +349,7 @@ export class AnalyticsService {
       if (options.search) params.append('search', options.search);
 
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/persistence/logs?${params.toString()}`,
+        `${getMetricsV1Base()}/persistence/logs?${params.toString()}`,
         { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
       );
       return Array.isArray(response.data?.data) ? response.data.data : [];

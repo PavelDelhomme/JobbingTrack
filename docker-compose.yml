@@ -106,6 +106,10 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-192.168.1.134}:${API_GATEWAY_PORT:-5002}}
       - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-192.168.1.134}:${AUTH_SERVICE_PORT:-5005}}
       - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-192.168.1.134}:${METRICS_AGGREGATOR_PORT:-5004}}
+      # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
+      # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
+      - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
+      - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - HOST_IP=${HOST_IP:-192.168.1.134}
       - FRONTEND_PORT=${FRONTEND_PORT:-5003}
       - API_GATEWAY_PORT=${API_GATEWAY_PORT:-5002}
@@ -139,8 +143,9 @@ services:
     depends_on:
       - api-gateway
     restart: unless-stopped
+    # Liveness Next seul : `/health` (route App) — pas la racine `/` (app shell + auth) ni l’ancienne réécriture vers la gateway.
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || curl -f http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || curl -fsS -o /dev/null http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

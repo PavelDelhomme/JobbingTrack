@@ -5,7 +5,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev -H 0.0.0.0",
-        "build": "next build",
+        "build": "NODE_OPTIONS='--require ./scripts/self-server-polyfill.cjs' next build",
         "start": "next start -H 0.0.0.0",
         "lint": "next lint",
         "lint:fix": "next lint --fix",

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import {
@@ -45,8 +46,27 @@ import { PerformancesSubNav } from './PerformancesSubNav';
 import { pickSystemResponseTimeAvgMsFromRow } from '@/lib/metrics/pickSystemResponseTimeFromRow';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import type { MetricsData } from '@/lib/interfaces';
-import { SystemCpuMemoryAreaCharts } from '@/components/charts/SystemCpuMemoryAreaCharts';
-import { SystemCpuNetworkCorrelationChart } from '@/components/charts/SystemCpuNetworkCorrelationChart';
+
+/** A1c : Recharts lourd en chunk séparé (même socle que le détail service). */
+const chartHeavyLoading = () => (
+  <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-400">
+    Chargement du graphique…
+  </div>
+);
+
+const SystemCpuMemoryAreaCharts = dynamic(
+  () =>
+    import('@/components/charts/SystemCpuMemoryAreaCharts').then((m) => m.SystemCpuMemoryAreaCharts),
+  { ssr: false, loading: chartHeavyLoading }
+);
+
+const SystemCpuNetworkCorrelationChart = dynamic(
+  () =>
+    import('@/components/charts/SystemCpuNetworkCorrelationChart').then(
+      (m) => m.SystemCpuNetworkCorrelationChart
+    ),
+  { ssr: false, loading: chartHeavyLoading }
+);
 import {
   buildSystemNetworkMbRateRows,
   systemNetworkRateAxisMax,
@@ -509,7 +529,7 @@ export default function PerformancesPage() {
             href="/backoffice/analytics"
             className="inline-flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
-            Métriques système &amp; conteneurs
+            Analytics (appli &amp; utilisateurs)
           </Link>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400">

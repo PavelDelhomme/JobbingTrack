@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 7 avril 2026 — **`type-check` / journal `tsc`** ; **Tests Jest** : mock **`/api/v1/metrics`** (page détail service — **§ dédié**) ; **7 avril** : **`make up-full`** / **`ENOTFOUND`** ; **faux positifs** intrusion **`/api/v1/metrics`** ; **`up-full-timed`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 24 avril 2026 — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -20,6 +20,25 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | **CPU total %** sous la moyenne conteneurs | Souvent une **somme** des CPU des conteneurs détectés ; peut varier si la liste Docker change, alors que la **moyenne** reste plus stable. |
 | **`make status` : tout DOWN, postgres « non créé », résumé vide** | Aucun conteneur **`jobbingtrack-*`** au moment du scan (Docker arrêté, mauvais répertoire, ou stack pas lancée). Le Makefile affiche désormais une **explication** après le résumé (**`docker info`** vs **`make up-full`**). |
 | **`make status-live` ancien** : ports **`5000-`**, services manquants, faux DOWN | L’ancienne **vue compacte** du Makefile tronquait les ports (`cut` sur `->`) et ne listait pas toute la stack. **Corrigé (21/04)** : **`status-live`** et **`status-watch`** relancent **`make status`** à chaque cycle. |
+
+### Next.js — `next build` : `ReferenceError: self is not defined` (chunk serveur `vendors.js`)
+
+- **Cause** : certaines dépendances (souvent chaîne **OpenTelemetry** / libs pensées pour le navigateur) référencent **`self`** au **chargement** du module côté Node pendant **Collecting page data**.
+- **Correctif dépôt** : le script **`npm run build`** du frontend préfixe le process avec **`NODE_OPTIONS='--require ./scripts/self-server-polyfill.cjs'`** (`frontend/package.json`) pour définir **`globalThis.self`** avant le chargement des chunks. **`src/instrumentation.ts`** complète pour l’exécution serveur (`next start`) quand **`experimental.instrumentationHook`** est activé.
+- **À ne pas faire** : injecter un **BannerPlugin** webpack sur des chunks au hasard — cela peut **casser** le **`webpack-runtime.js`** (erreurs du type **`Cannot read properties of undefined (reading 'length')`**).
+
+### Next.js — `GET /health` ou `HEAD /` en **500** sur le conteneur frontend (logs `jobbingtrack-frontend`)
+
+- **Symptôme** : **`GET /health`**, parfois **`GET /`** ou pages backoffice en **500** pendant quelques secondes, puis **200** après recompilation / reload ; **`webpack.hot-update.json` en 500** avec *Fast Refresh had to perform a full reload*.
+- **Cause fréquente (1)** : erreur de compilation ou runtime (ex. composant baril **`features`** sans **`'use client'`** alors qu’il utilise des hooks) — tant que le bundle est invalide, Next répond **500** sur les routes concernées.
+- **Cause (2) — corrigé (24/04/2026)** : **`next.config.js`** réécrivait **`/health`** vers **`/api/health`** puis vers l’**API Gateway**. Un probe sur le **port frontend** dépendait donc du proxy vers la gateway ; indisponibilité transitoire ou erreur proxy → **500** même si le process Next était OK. Désormais **`GET` / `HEAD /health`** sont servis par **`src/app/health/route.ts`** (liveness locale). Santé **stack / gateway** : **`GET /api/health`** (toujours réécrit vers la gateway).
+- **Pistes** : vérifier les logs **au-dessus** du `500` (trace compile) ; **`docker compose logs -f jobbingtrack-frontend`** ; après correctif code, laisser finir une compilation ou redémarrer le service frontend.
+
+### Analytics conteneurs — liste OK mais **graphes vides** / chargement très long
+
+- **Cause fréquente (noms Docker)** : `docker ps --format "{{json .}}"` peut exposer **`Names`** avec un **slash initial** (`/jobbingtrack-…`). La persistance (**`container_metrics_snapshots`**) enregistre les noms **sans** slash (alignés sur la collecte `collectContainerMetrics`). Les requêtes Prisma **`WHERE containerName = '/jobbingtrack-…'`** ne matchent pas → **0 point** sur les graphes. **Corrigé (04/2026)** : normalisation côté **`metrics-aggregator`** (`docker.routes.js` `/services/all`, **`normaliseServiceKey`**) et côté **`persistence.service.getContainerMetricsHistory`** + encodage URL côté **`frontend/src/lib/api/analytics.service.ts`**.
+- **Lenteur « Tous les conteneurs »** : la page lançait **un historique complet par conteneur en parallèle** (centaines de milliers de lignes possibles → timeouts axios 120 s × N). **Mitigation** : file d’attente **5 requêtes concurrentes max** (`promisePool` sur **`performances/containers/page.tsx`**).
+- **Prérequis données** : sans tâche de persistance / sans table **`container_metrics_snapshots`**, les séries restent vides — vérifier **`jobbingtrack-metrics-aggregator`**, **`make db-push-all`**, logs **`[PERSISTENCE]`**.
 
 ### Next.js — `use client` et baril `@/components/features`
 
