@@ -41,6 +41,16 @@ function getSystemCpuPercentForDisplay(systemMetrics: any): number | undefined {
   return undefined
 }
 
+/** Parse un pourcentage ou nombre issu des métriques conteneur (string « 12.3% » ou number). */
+function parseContainerMetricNumber(v: unknown): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string') {
+    const n = parseFloat(v.replace(/%/g, '').replace(',', '.').trim())
+    return Number.isFinite(n) ? n : NaN
+  }
+  return NaN
+}
+
 /** Libellé droite « État des services » : le badge vert = processus joignable, pas forcément durée d’uptime remontée par l’agrégateur. */
 function serviceAvailabilityCaption(service: {
   status?: string
@@ -251,6 +261,32 @@ export default function BackofficePage() {
   // On conserve une valeur par défaut (22) mais permet override via env.
   const expectedJobbingtrackContainers =
     Number(process.env.NEXT_PUBLIC_EXPECTED_JOBBINGTRACK_CONTAINERS || 22) || 22
+
+  /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
+  const jobbingtrackContainerRows = useMemo(() => {
+    if (!containerMetrics || typeof containerMetrics !== 'object') return []
+    type M = {
+      cpu?: { percentage?: unknown; usage?: unknown }
+      memory?: { percentage?: unknown; usageMb?: unknown; usage?: unknown }
+    }
+    return Object.entries(containerMetrics as Record<string, M>)
+      .filter(([key]) => key.startsWith('jobbingtrack-'))
+      .map(([fullName, m]) => {
+        const cpu = parseContainerMetricNumber(m?.cpu?.percentage ?? m?.cpu?.usage)
+        const memPct = parseContainerMetricNumber(m?.memory?.percentage)
+        const memMb = parseContainerMetricNumber(m?.memory?.usageMb ?? m?.memory?.usage)
+        return {
+          fullName,
+          shortName: fullName.replace(/^jobbingtrack-/, ''),
+          cpu: Number.isFinite(cpu) ? cpu : null,
+          memPct: Number.isFinite(memPct) ? memPct : null,
+          memMb: Number.isFinite(memMb) ? memMb : null,
+        }
+      })
+      .filter((r) => r.cpu != null || r.memPct != null || r.memMb != null)
+      .sort((a, b) => (b.cpu ?? 0) - (a.cpu ?? 0))
+      .slice(0, 20)
+  }, [containerMetrics])
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -847,7 +883,7 @@ export default function BackofficePage() {
       <div className="space-y-6 md:space-y-8">
         {/* Ligne 1 : pilotage produit / dispo — Ligne 2 : ressources conteneurs (évite 6 cartes serrées sur une seule rangée) */}
         <div className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
             <MetricCard
               title="Sessions actives"
               value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
@@ -857,13 +893,15 @@ export default function BackofficePage() {
               href="/backoffice/users"
             />
             <MetricCard
-              title="Incidents sécurité"
+              title="Signaux sécurité"
               value={stats.recentErrors !== undefined ? stats.recentErrors : '...'}
-              subtitle="Fenêtre courte (agrégateur), pas 24 h"
+              subtitle="Événements sécurité récents"
               icon={<Shield className="h-6 w-6" />}
               color="red"
               href="/backoffice/security"
             />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
             <MetricCard
               title="Santé système"
               value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
@@ -881,7 +919,7 @@ export default function BackofficePage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
             <MetricCard
-              title="CPU projet (conteneurs)"
+              title="CPU conteneurs JobbingTrack"
               value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
                 ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
                 : systemMetrics?.cpu?.containers_only !== undefined
@@ -905,7 +943,7 @@ export default function BackofficePage() {
                 : 'green'}
             />
             <MetricCard
-              title="Mémoire projet (conteneurs)"
+              title="Mémoire conteneurs JobbingTrack"
               value={systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
                 ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
                 : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
@@ -928,6 +966,65 @@ export default function BackofficePage() {
                 ? 'yellow'
                 : 'green'}
             />
+          </div>
+
+          {/* Détail CPU / mémoire par conteneur jobbingtrack-* (même source que la carte, précision par service) */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/35">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
+                Conteneurs JobbingTrack — CPU &amp; mémoire (instantané)
+              </h2>
+              <Link
+                href="/backoffice/performances/containers"
+                className="text-xs font-medium text-indigo-700 underline hover:no-underline dark:text-indigo-300"
+              >
+                Graphiques &amp; historique →
+              </Link>
+            </div>
+            {jobbingtrackContainerRows.length === 0 ? (
+              <p className="text-xs text-indigo-900/80 dark:text-indigo-200/90">
+                Aucune ligne conteneur pour l’instant (token agrégateur, monitoring ou liste Docker). Les cartes
+                ci-dessus utilisent les agrégats projet lorsque disponibles.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-indigo-100 bg-white/90 dark:border-indigo-900 dark:bg-gray-900/80">
+                <table className="min-w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-indigo-100 bg-indigo-100/50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-100">
+                      <th className="px-3 py-2 font-medium">Conteneur</th>
+                      <th className="px-3 py-2 font-medium tabular-nums">CPU %</th>
+                      <th className="px-3 py-2 font-medium tabular-nums">Mémoire %</th>
+                      <th className="px-3 py-2 font-medium tabular-nums">RAM (MB)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobbingtrackContainerRows.map((row) => (
+                      <tr
+                        key={row.fullName}
+                        className="border-b border-indigo-50 last:border-0 dark:border-indigo-900/50"
+                      >
+                        <td className="px-3 py-1.5 font-mono text-[11px] text-gray-800 dark:text-gray-200">
+                          {row.shortName}
+                        </td>
+                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                          {row.cpu != null ? `${safeToFixed(row.cpu, 1)}%` : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                          {row.memPct != null ? `${safeToFixed(row.memPct, 1)}%` : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                          {row.memMb != null ? safeToFixed(row.memMb, 0) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="border-t border-indigo-100 px-3 py-2 text-[10px] text-gray-500 dark:border-indigo-800 dark:text-gray-400">
+                  Uniquement les clés Docker préfixées <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">jobbingtrack-</code>
+                  · tri par CPU décroissant · max 20 lignes
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1359,12 +1456,47 @@ export default function BackofficePage() {
                 </p>
               </div>
               <Link
-                href="/services/backoffice"
+                href="/backoffice/services/logs"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
               >
                 Services &amp; logs →
               </Link>
             </div>
+            <nav
+              className="mb-4 flex flex-wrap gap-2 text-[11px] font-medium"
+              aria-label="Raccourcis Performances"
+            >
+              <Link
+                href="/backoffice/performances"
+                className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Synthèse
+              </Link>
+              <Link
+                href="/backoffice/performances/latency"
+                className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Latence
+              </Link>
+              <Link
+                href="/backoffice/performances/containers"
+                className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Conteneurs
+              </Link>
+              <Link
+                href="/backoffice/performances/disk"
+                className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Disque
+              </Link>
+              <Link
+                href="/backoffice/performances/network"
+                className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Réseau
+              </Link>
+            </nav>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span
@@ -1553,7 +1685,7 @@ export default function BackofficePage() {
                                  '⚠️ En cours de test'}
                               </span>
                             </div>
-                            {service.responseTime !== 'N/A' && (
+                            {(service.responseTime !== 'N/A' && service.responseTime !== undefined && service.responseTime !== null) && (
                               <div className="flex justify-between items-center mt-1">
                                 <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
                                 <span className="font-medium text-blue-600 dark:text-blue-400">
@@ -1573,11 +1705,13 @@ export default function BackofficePage() {
                                 <span className="text-gray-700 dark:text-gray-300 font-medium">CPU:</span>
                               </div>
                               <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                {service.metrics.cpu?.percentage !== undefined 
-                                  ? `${service.metrics.cpu.percentage.toFixed(1)}%` 
-                                  : service.metrics.cpu 
-                                  ? `${service.metrics.cpu.toFixed(1)}%` 
-                                  : 'N/A'}
+                                {service.metrics.cpu?.percentage !== undefined
+                                  ? `${service.metrics.cpu.percentage.toFixed(1)}%`
+                                  : service.metrics.cpu_percent !== undefined
+                                  ? `${Number(service.metrics.cpu_percent).toFixed(1)}%`
+                                  : service.metrics.cpu
+                                  ? `${service.metrics.cpu.toFixed(1)}%`
+                                  : (service.status === 'running' ? 'Actif (non remonté)' : 'N/A')}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
@@ -1586,14 +1720,18 @@ export default function BackofficePage() {
                                 <span className="text-gray-700 dark:text-gray-300 font-medium">Mémoire:</span>
                               </div>
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                {service.metrics.memory?.percentage !== undefined 
-                                  ? `${service.metrics.memory.percentage.toFixed(1)}%` 
-                                  : service.metrics.memory?.percent 
-                                  ? `${service.metrics.memory.percent.toFixed(1)}%` 
-                                  : 'N/A'}
-                                {service.metrics.memory?.usage && (
+                                {service.metrics.memory?.percentage !== undefined
+                                  ? `${service.metrics.memory.percentage.toFixed(1)}%`
+                                  : service.metrics.memory_percent !== undefined
+                                  ? `${Number(service.metrics.memory_percent).toFixed(1)}%`
+                                  : service.metrics.memory?.percent
+                                  ? `${service.metrics.memory.percent.toFixed(1)}%`
+                                  : (service.status === 'running' ? 'Actif (non remonté)' : 'N/A')}
+                                {(service.metrics.memory?.usage || service.metrics.memory_usage_mb) && (
                                   <span className="text-xs ml-1 text-gray-500">
-                                    ({(service.metrics.memory.usage / 1024 / 1024).toFixed(0)} MB)
+                                    ({service.metrics.memory?.usage
+                                      ? (service.metrics.memory.usage / 1024 / 1024).toFixed(0)
+                                      : Number(service.metrics.memory_usage_mb).toFixed(0)} MB)
                                   </span>
                                 )}
                               </span>

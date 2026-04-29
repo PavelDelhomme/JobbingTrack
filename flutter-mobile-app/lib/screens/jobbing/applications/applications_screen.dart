@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/application_provider.dart';
-import '../main.dart';
+import 'package:jobbingtrack_flutter/main.dart';
+import 'package:jobbingtrack_flutter/providers/application_provider.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});

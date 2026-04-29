@@ -13,7 +13,7 @@ const TABS = [
   },
   { href: '/backoffice/performances/containers', label: 'Conteneurs', hash: null },
   { href: '/backoffice/performances/disk', label: 'Disque', hash: null },
-  { href: '/backoffice/analytics/network', label: 'Réseau (détail)', hash: null },
+  { href: '/backoffice/performances/network', label: 'Réseau (détail)', hash: null },
 ] as const
 
 function useLocationHash(): string {
@@ -32,9 +32,6 @@ export function PerformancesSubNav() {
   const hash = useLocationHash()
 
   const isActive = (tab: (typeof TABS)[number]) => {
-    if (tab.href.startsWith('/backoffice/analytics/')) {
-      return pathname === tab.href || pathname.startsWith(`${tab.href}/`)
-    }
     if (tab.hash === '#latence') {
       return (
         pathname === '/backoffice/performances/latency' ||

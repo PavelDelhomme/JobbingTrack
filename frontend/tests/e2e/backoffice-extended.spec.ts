@@ -55,7 +55,7 @@ test.describe('📋 Données individuelles – interactions', () => {
 test.describe('📈 Analytics – interactions avancées', () => {
   test.describe.configure({ timeout: 90_000 });
   test('page Performances réseau affiche métriques et boutons', async ({ page }) => {
-    await page.goto('/backoffice/analytics/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectLoaded(page);
     const body = await page.locator('body').textContent() ?? '';
     expect(/réseau|network|métrique|metric|performance/i.test(body)).toBe(true);
@@ -67,7 +67,7 @@ test.describe('📈 Analytics – interactions avancées', () => {
   });
 
   test('page Analytics conteneurs affiche des conteneurs', async ({ page }) => {
-    await page.goto('/backoffice/analytics/containers', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances/containers', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectLoaded(page);
     const body = await page.locator('body').textContent() ?? '';
     expect(/conteneur|container|docker/i.test(body)).toBe(true);

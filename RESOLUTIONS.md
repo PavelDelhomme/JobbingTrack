@@ -1,6 +1,33 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : 7 avril 2026
+**Dernière mise à jour** : 24 avril 2026
+
+---
+
+## 24 avril 2026 — Analytics conteneurs : graphes vides + lenteur ; `next build` / `self`
+
+### Problème
+- Graphes **CPU / mémoire** vides alors que la liste de conteneurs s’affichait ; chargement **très long** en mode **Tous les conteneurs**.
+- **`next build`** : **`ReferenceError: self is not defined`** pendant la collecte des pages ; tentatives de **BannerPlugin** webpack sur `vendors.js` → régression **`webpack-runtime.js`**.
+
+### Correctifs
+1. **metrics-aggregator** — **`docker.routes.js`** : fonction **`normalizeDockerPsName`** ; **`/api/v1/docker/services/all`** renvoie des **`name`** sans slash ; **`statsMap`** indexé sous forme brute et canonique ; **`normaliseServiceKey`** normalise l’entrée (probes HTTP cohérents).
+2. **metrics-aggregator** — **`persistence.service.js`** : **`getContainerMetricsHistory`** filtre sur **`containerName`** normalisé (sans `/` initial).
+3. **frontend** — **`analytics.service.ts`** : segment de chemin **`encodeURIComponent`** + normalisation liste ; **`containers/page.tsx`** : **`promisePool`** (concurrence **5**) pour les historiques multi-conteneurs.
+4. **frontend** — **`scripts/self-server-polyfill.cjs`** + **`package.json`** `build` avec **`NODE_OPTIONS='--require …'`** ; **`src/instrumentation.ts`** + **`next.config.js`** `experimental.instrumentationHook`.
+5. **`ERRORS.md`** : sections **Analytics conteneurs** et **`self` / `next build`**.
+
+---
+
+## 24 avril 2026 — Frontend : `GET /health` en 500 (réécriture vers l’API Gateway)
+
+### Problème
+- Les logs **`jobbingtrack-frontend`** montraient **`GET /health` 500** (et parfois **`GET /` 500**) alors que le souci immédiat pouvait être une **erreur de compile** ou un **proxy** ; la réécriture **`/health` → `/api/health` → `http://api-gateway:3000/health`** faisait dépendre la liveness **sur le port Next** de la joignabilité de la **gateway** dans Docker.
+
+### Correctifs
+1. **`frontend/next.config.js`** : suppression de la réécriture **`source: '/health'`** ; conservation de **`/api/health`** → gateway pour une sonde « stack » si besoin.
+2. **`frontend/src/app/health/route.ts`** : ajout de **`HEAD`** (statut **200** sans corps) pour les probes **`wget --spider`** / **`curl -I`**.
+3. **`ERRORS.md`** : section **Next.js — `GET /health` ou `HEAD /` en 500** (compile vs ancienne réécriture).
 
 ---
 

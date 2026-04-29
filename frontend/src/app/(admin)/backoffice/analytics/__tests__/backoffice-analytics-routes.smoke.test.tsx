@@ -41,11 +41,6 @@ jest.mock('@/lib/services/centralMetricsService', () => ({
       servicesList: [],
       monitoringC: {},
     }),
-  },
-}));
-
-jest.mock('@/lib/services/centralMetricsService', () => ({
-  centralMetricsService: {
     fetchMetrics: jest.fn().mockResolvedValue({
       performance: {},
       system: {},
@@ -60,10 +55,10 @@ jest.mock('@/lib/services/statisticsService', () => ({
   },
 }));
 
-import AnalyticsCpuPage from '../page';
+import AnalyticsHubPage from '../page';
 import PerformancesPage from '../../performances/page';
-import NetworkPage from '../network/page';
-import ContainersPage from '../containers/page';
+import NetworkPage from '../../performances/network/page';
+import ContainersPage from '../../performances/containers/page';
 import ApplicationPerformancePage from '../application/performance/page';
 import ApplicationActivityPage from '../application/activity/page';
 import ApplicationFeedbackPage from '../application/feedback/page';
@@ -82,9 +77,9 @@ describe('Smoke routes /backoffice/analytics', () => {
     jest.clearAllMocks();
   });
 
-  it('monte /backoffice/analytics (métriques système)', async () => {
+  it('monte /backoffice/analytics (hub appli & utilisateurs)', async () => {
     await act(async () => {
-      render(<AnalyticsCpuPage />);
+      render(<AnalyticsHubPage />);
     });
     expect(document.querySelector('[data-testid="admin-layout"]')).toBeTruthy();
   });
@@ -96,18 +91,18 @@ describe('Smoke routes /backoffice/analytics', () => {
     expect(document.body.textContent).toMatch(/Performances|Chargement/);
   });
 
-  it('monte /backoffice/analytics/network', async () => {
+  it('monte /backoffice/performances/network', async () => {
     await act(async () => {
       render(<NetworkPage />);
     });
     expect(document.body.textContent).toMatch(/Performances réseau|Chargement/);
   });
 
-  it('monte /backoffice/analytics/containers', async () => {
+  it('monte /backoffice/performances/containers', async () => {
     await act(async () => {
       render(<ContainersPage />);
     });
-    expect(document.body.textContent).toMatch(/Analytics conteneurs|Chargement/);
+    expect(document.body.textContent).toMatch(/Performances — conteneurs|Chargement/);
   });
 
   it('monte /backoffice/analytics/application/performance', async () => {

@@ -364,7 +364,7 @@ test.describe('💾 Interactions Data Management', () => {
 test.describe('📊 Interactions Statistiques', () => {
   test('cliquer onglets Vue d\'ensemble / Sécurité / Logs change le contenu', async ({ page }) => {
     test.setTimeout(90000);
-    await page.goto('/backoffice/statistique', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
     // La page attend les stats API : le h1 n’apparaît qu’après chargement (pas seulement le spinner).

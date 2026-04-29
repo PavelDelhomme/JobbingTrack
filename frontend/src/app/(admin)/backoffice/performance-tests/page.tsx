@@ -29,6 +29,12 @@ interface TestStatus {
   duration?: number;
 }
 
+type PerfRunMode =
+  | 'performance-backend'
+  | 'performance-frontend'
+  | 'both'
+  | 'performance-infrastructure'
+
 export default function PerformanceTestsPage() {
   const { token } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
@@ -227,7 +233,7 @@ export default function PerformanceTestsPage() {
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const [selectedTestType, setSelectedTestType] = useState<'performance-backend' | 'performance-frontend' | 'both'>('both')
+  const [selectedTestType, setSelectedTestType] = useState<PerfRunMode>('both')
 
   const toggleTestType = (testId: string) => {
     setAvailableTestTypes(prev => prev.map(test => 
@@ -235,11 +241,11 @@ export default function PerformanceTestsPage() {
     ))
   }
 
-  const startTests = async (testType?: 'performance-backend' | 'performance-frontend' | 'both') => {
+  const startTests = async (testType?: PerfRunMode) => {
     const typeToRun = testType || selectedTestType
     const selectedTests = availableTestTypes.filter(t => t.enabled)
-    
-    if (selectedTests.length === 0) {
+
+    if (typeToRun !== 'performance-infrastructure' && selectedTests.length === 0) {
       alert('Veuillez sélectionner au moins un type de test à exécuter')
       return
     }
@@ -275,13 +281,70 @@ export default function PerformanceTestsPage() {
         { name: 'Tests Mémoire', status: 'pending', progress: 0 }
       )
     }
+    if (typeToRun === 'performance-infrastructure') {
+      testStatusesList = [
+        {
+          name: 'Infrastructure — `make test-database` (schéma BDD, enums, relations)',
+          status: 'pending',
+          progress: 0,
+        },
+      ]
+    }
     setTestStatuses(testStatusesList)
 
-    addLog(`🚀 Démarrage des tests de performance: ${typeToRun === 'both' ? 'Backend + Frontend' : typeToRun}`);
-    addLog(`📋 Types de tests sélectionnés: ${selectedTests.map(t => t.name).join(', ')}`);
-    addLog('📋 Tests en cours...');
+    const modeLabel =
+      typeToRun === 'both'
+        ? 'Backend + Frontend'
+        : typeToRun === 'performance-infrastructure'
+          ? 'Infrastructure (BDD / schéma)'
+          : typeToRun
+    addLog(`🚀 Démarrage des tests de performance: ${modeLabel}`)
+    if (typeToRun !== 'performance-infrastructure') {
+      addLog(`📋 Types de tests sélectionnés: ${selectedTests.map(t => t.name).join(', ')}`)
+    }
+    addLog('📋 Tests en cours...')
 
     try {
+      if (typeToRun === 'performance-infrastructure') {
+        addLog('📡 Lancement suite infrastructure (`make test-database`)…')
+        setTestStatuses((prev) =>
+          prev.map((t, idx) => (idx === 0 ? { ...t, status: 'running', progress: 0 } : t))
+        )
+        try {
+          const res = await fetch('/api/test/run-performance-infrastructure', { method: 'POST' })
+          const data = (await res.json().catch(() => ({}))) as {
+            success?: boolean
+            skipped?: boolean
+            message?: string
+            error?: string
+            tail?: string
+          }
+          if (data.skipped) {
+            addLog(`ℹ️ ${data.message || 'Passage infrastructure ignoré en conteneur.'}`)
+            setTestStatuses((prev) =>
+              prev.map((t, idx) => (idx === 0 ? { ...t, status: 'completed', progress: 100 } : t))
+            )
+          } else if (res.ok && data.success) {
+            addLog('✅ Suite infrastructure terminée (voir sortie make / champ tail côté API).')
+            if (data.tail) addLog(data.tail.slice(0, 1500))
+            setTestStatuses((prev) =>
+              prev.map((t, idx) => (idx === 0 ? { ...t, status: 'completed', progress: 100 } : t))
+            )
+          } else {
+            addLog(`❌ Infrastructure: ${data.error || res.statusText}`)
+            if (data.tail) addLog(data.tail.slice(0, 1500))
+            setTestStatuses((prev) =>
+              prev.map((t, idx) => (idx === 0 ? { ...t, status: 'error', progress: 0 } : t))
+            )
+          }
+        } catch (error) {
+          addLog(`⚠️ Erreur lancement infrastructure: ${error}`)
+          setTestStatuses((prev) =>
+            prev.map((t, idx) => (idx === 0 ? { ...t, status: 'error', progress: 0 } : t))
+          )
+        }
+      }
+
       // Lancer les tests réels via l'API
       if (typeToRun === 'performance-backend' || typeToRun === 'both') {
         addLog('📡 Lancement des tests backend...')
@@ -383,6 +446,7 @@ export default function PerformanceTestsPage() {
                   <option value="both">Backend + Frontend</option>
                   <option value="performance-backend">Backend uniquement</option>
                   <option value="performance-frontend">Frontend uniquement</option>
+                  <option value="performance-infrastructure">Infrastructure (BDD / schéma)</option>
                 </select>
               )}
               <button 

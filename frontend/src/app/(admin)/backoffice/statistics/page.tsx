@@ -53,6 +53,7 @@ import {
   Cell,
   ComposedChart
 } from 'recharts'
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
 
 // Types
 interface MetricsHistory {
@@ -221,7 +222,7 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
-  // ✅ SUPPRESSION : Onglet services retiré car déjà présent dans /backoffice/analytics
+  // ✅ SUPPRESSION : onglet services retiré — voir /backoffice/services et Services & Logs
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'logs'>('overview')
 
   // États pour la personnalisation
@@ -794,7 +795,7 @@ export default function StatisticsPage() {
           <nav className="flex space-x-4 overflow-x-auto">
             {[
               { id: 'overview', label: '📊 Vue d\'ensemble', icon: BarChart3 },
-              // ✅ SUPPRESSION : Onglet Services retiré car déjà présent dans /backoffice/analytics > Services & Logs
+              // ✅ SUPPRESSION : onglet Services — /backoffice/services et Services & Logs
               { id: 'security', label: '🔒 Sécurité', icon: Shield },
               { id: 'logs', label: '📊 Statistiques Logs', icon: FileText }
             ].map((tab) => (
@@ -824,7 +825,7 @@ export default function StatisticsPage() {
               router={router}
             />
           )}
-          {/* ✅ SUPPRESSION : Onglet Services retiré - Disponible dans /backoffice/analytics > Services & Logs */}
+          {/* ✅ SUPPRESSION : onglet Services — /backoffice/services, Services & Logs */}
           {activeTab === 'security' && (
             <SecurityTab 
               stats={stats}
@@ -1003,14 +1004,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F3F4F6'
-                }}
-              />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
               <Area 
                 type="monotone" 
@@ -1059,7 +1053,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
             </RechartsPieChart>
           </ResponsiveContainer>
@@ -1089,7 +1083,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
             </RechartsPieChart>
           </ResponsiveContainer>
@@ -1117,14 +1111,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 style={{ fontSize: '11px' }}
                 width={120}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F3F4F6'
-                }}
-              />
+              <Tooltip {...rechartsTooltipProps} />
               <Bar dataKey="value" fill={COLORS.info} name="Nombre" />
             </BarChart>
           </ResponsiveContainer>
@@ -1174,7 +1161,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...rechartsTooltipProps} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
@@ -1220,7 +1207,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...rechartsTooltipProps} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
@@ -1252,14 +1239,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                     height={60}
                   />
                   <YAxis stroke="#9CA3AF" style={{ fontSize: '10px' }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
+                  <Tooltip {...rechartsTooltipProps} />
                   <Bar dataKey="value" fill={COLORS.secondary} />
                 </BarChart>
               </ResponsiveContainer>
@@ -1357,14 +1337,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[0, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="cpu" 
@@ -1402,14 +1375,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[0, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="memory" 
@@ -1440,14 +1406,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
                 <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (%)" />
@@ -1597,14 +1556,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Legend />
                     <Line 
                       type="monotone" 
@@ -1647,14 +1599,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Area 
                       type="monotone" 
                       dataKey="responseTime" 
@@ -1684,14 +1629,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Legend />
                     <Area 
                       type="monotone" 
@@ -1732,14 +1670,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Bar 
                       dataKey="errorRate" 
                       fill={COLORS.danger}
@@ -1776,14 +1707,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
               style={{ fontSize: '11px' }}
               width={150}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937', 
-                border: 'none',
-                borderRadius: '8px',
-                color: '#F3F4F6'
-              }}
-            />
+            <Tooltip {...rechartsTooltipProps} />
             <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
           </BarChart>
         </ResponsiveContainer>
@@ -1887,14 +1811,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Area 
                   type="monotone" 
@@ -1935,14 +1852,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Area 
                   type="monotone" 
@@ -2053,14 +1963,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[90, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Line 
                   type="monotone" 
                   dataKey="availability" 
@@ -2096,14 +1999,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="errorRate" 
@@ -2171,7 +2067,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                 <Cell fill={COLORS.warning} />
                 <Cell fill={COLORS.danger} />
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
             </RechartsPieChart>
           </ResponsiveContainer>
         </div>
@@ -2221,14 +2117,7 @@ const LogsTab = memo(function LogsTab({ serviceHistory, formatTimestamp }: any) 
               stroke="#9CA3AF"
               style={{ fontSize: '12px' }}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937', 
-                border: 'none',
-                borderRadius: '8px',
-                color: '#F3F4F6'
-              }}
-            />
+            <Tooltip {...rechartsTooltipProps} />
             <Legend />
             <Bar dataKey="totalErrors" fill={COLORS.danger} name="Total Erreurs" />
             <Bar dataKey="avgErrorRate" fill={COLORS.warning} name="Taux Moyen (/min)" />

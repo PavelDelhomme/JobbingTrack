@@ -61,12 +61,12 @@ test.describe('🏠 Dashboard principal', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📊 Statistiques & Monitoring', () => {
   test('page Statistiques & Monitoring Global', async ({ page }) => {
-    await page.goto('/backoffice/statistique', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('onglets Vue ensemble / Sécurité / Logs', async ({ page }) => {
-    await page.goto('/backoffice/statistique', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'Vue d');
     await expectTabClickable(page, 'curit');
@@ -89,7 +89,7 @@ test.describe('⚡ Performances & Analytics', () => {
   });
 
   test('page Performances réseau', async ({ page }) => {
-    await page.goto('/backoffice/analytics/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
@@ -99,7 +99,7 @@ test.describe('⚡ Performances & Analytics', () => {
   });
 
   test('page Analytics conteneurs', async ({ page }) => {
-    await page.goto('/backoffice/analytics/containers', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/performances/containers', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
@@ -155,7 +155,7 @@ test.describe('🔒 Sécurité', () => {
 
   test('page Logs de sécurité (onglet Sécurité dans statistique)', async ({ page }) => {
     test.setTimeout(90000);
-    await page.goto('/backoffice/statistique', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'curit');
   });

@@ -223,7 +223,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Temps de réponse', href: '/backoffice/performances/latency', icon: '⏱️' },
             { name: 'Conteneurs', href: '/backoffice/performances/containers', icon: '🐳' },
             { name: 'Disque', href: '/backoffice/performances/disk', icon: '💽' },
-            { name: 'Réseau (détail)', href: '/backoffice/analytics/network', icon: '🌐' },
+            { name: 'Réseau (détail)', href: '/backoffice/performances/network', icon: '🌐' },
           ],
         },
         {
@@ -242,7 +242,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: '/backoffice/analytics',
           icon: '⚡',
           subItems: [
-            { name: 'Conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
             {
               name: 'Application',
               href: '/backoffice/analytics/application/performance',

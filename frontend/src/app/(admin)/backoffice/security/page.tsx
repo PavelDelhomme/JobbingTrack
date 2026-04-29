@@ -353,7 +353,7 @@ export default function SecurityOverviewPage() {
     },
     { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Opérateur + tests lab (RFC5737)', href: '/backoffice/security/firewall' },
     { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/backoffice/security/firewall' },
-    { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistique' },
+    { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistics' },
   ]
 
   const runSafeBlockTest = async () => {

@@ -1,11 +1,33 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-Liste opérationnelle, alignée sur **`PLAN.md`** (lots A–G) et sur la logique de **`STATUS.md`**.  
-Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la section « Plus tard » de `STATUS.md`.
+**Dernière mise à jour : 7 avril 2026** — **Synthèse `/backoffice`** : tableau **CPU % / mémoire % / RAM MB** par conteneur **`jobbingtrack-*`** + cartes renommées ; **Performance** : raccourcis **Synthèse / Latence / Conteneurs / Disque / Réseau** + lien **Services & logs** corrigé. **Statistiques — Sécurité** : **persistance seule** (synthèse agrégée, score, **par jour**, extrait) — pas les mêmes blocs que **`/backoffice/security`**. **A1** : lazy Recharts **`/backoffice/performances/containers`** ; **hub `/backoffice/analytics`** métier uniquement ; **H1** : **`scripts/README.md`**. **Statistiques** : **`/backoffice/statistics`** + redirects ; **vue d’ensemble** : **`rechartsTooltipProps`** sur tous les **`<Tooltip>`** (**07/04**). **Suite & suivi** ci-dessous. **Mobile** : **`jobbing/`** + smoke ; **`flutter-mobile-app`**. **Lot H**.
 
-**Dernière mise à jour** : 7 avril 2026 — **A1** : bloc **« Que faire concrètement ? »** (déjà fait / reste) + encart **sources d’historique** sur la page détail service ; **Dernière section** : méta (validation porteur, audit BDD, gateway, refonte doc racine + `docs/`). Voir aussi **`RESOLUTIONS.md`** et **§ Lot A — inventaire** ci-dessous. **B11/B12**, **`make type-check-frontend-log`**. *(07/04 : **`GlobalSearch`**, drawer, scroll **`#latence`**, **`STATUS_LEGEND`** / **`STATUS_FOLD`** ; 23/04 : Block I/O ; **ERRORS.md** ; 22/04 : Jest gateway, **STATS**, **B6**.)*
+Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.
 
-**À ne pas confondre** : une mention du lot **A2** dans **`PLAN.md`** ou dans la rubrique **« Fait récemment »** (doc / structuration) **ne veut pas dire** que la tâche **A2** est terminée : la case **A2** ci-dessous reste **`[ ]` partielle** tant que **gateway `admin/logs/*`** + **Loki** (ou décision explicite) ne sont pas réglés.
+## Lire ce fichier (validation vs inventaire)
+
+- **Inventaire / cases `[x]` ici** : le code ou la procédure **existe dans le dépôt** ; ce n’est **pas** automatiquement « validé par le porteur ». L’acceptation produit reste **`PLAN.md`** (colonne **Validé**) ou une mention datée dans **`STATUS.md`**.
+- **Où regarder dans le projet** : les tableaux du lot **A** (Recharts, métriques) indiquent d’abord le **chemin fichier** (`frontend/src/app/(admin)/backoffice/...`, composants sous `frontend/src/components/...`). L’URL navigateur (**`/backoffice/...`**) sert surtout à la QA manuelle une fois le fichier identifié.
+- **À ne pas confondre** : une mention du lot **A2** dans **`PLAN.md`** ou dans **« Fait récemment »** ne veut pas dire **A2** terminée : la case **A2** reste **`[ ]` partielle** tant que **gateway `admin/logs/*`** + **Loki** (ou décision explicite) ne sont pas réglés.
+- **Next.js (RSC) + baril `@/components/features`** : tout fichier exporté par ce baril et qui utilise des **hooks React** doit commencer par **`'use client'`**. Sinon, une page **serveur** qui importe seulement `AdminLayout` depuis le baril peut quand même faire analyser le graphe d’exports et **échouer à la compile** (ex. **`SettingsPopup.tsx`**, corrigé **07/04**). Vérification recommandée : **`./node_modules/.bin/next build`** dans **`frontend/`** (ou **`npm run dev`** sur les routes touchées).
+
+---
+
+## Suite & suivi explicite (post-livraisons, hors cœur des lots A–G)
+
+**Rôle de ce bloc** : noter ici ce qui a été **évoqué en fin de chantier** ou **« à faire ensuite »** sans mériter tout de suite une case dans **A1–H** détaillée. Ce n’est **pas** le backlog long terme (**`docs/BACKLOG.md`** reste la file « officielle » reportée). **Règle** : une ligne = une intention ; cocher quand c’est fait ; si le sujet grossit, **créer** une entrée dans le lot concerné (**A–H** ou **`PLAN.md`**) et **retirer** la ligne d’ici pour éviter le double compte.
+
+- [x] **Front — lot A1 (partiel)** : lazy + `rechartsTooltipProps` sur **`/backoffice/performances/containers`** (`AnalyticsContainersChartsBundle`) ; hub **`/backoffice/analytics`** recentré **application + utilisateurs** (plus de CPU système sur cette route, **07/04**). *Case = code en dépôt ; QA navigateur / build = à faire côté porteur (voir § RSC ci-dessus).*
+- [ ] **Front — lot A1 (suite)** : **`/backoffice/statistics`** — **fait** : **`rechartsTooltipProps`** sur la vue d’ensemble **`statistics/page.tsx`** (**07/04**) ; **reste** : **`next/dynamic`** sur les gros graphes si le bundle reste trop lourd (voir inventaire Recharts ci-dessous).
+- [x] **Doc perf** — **`docs/performance/RAPPORT_PERFORMANCE.md`** : titres de section alignés sur **`/backoffice/statistics`** (**24/04**).
+- [x] **`tools/README.md`** : index **`adb-lib`** + **`emulator-controller`** (**24/04**, lot H2).
+- [x] **`mobile/test/widget_test.dart`** : smoke **app → écran Connexion** (**24/04**).
+- [ ] **Mobile (`mobile/`)** : renommage optionnel `home_screen` → `dashboard_screen` ; barrel **`lib/screens/screens.dart`** si tu veux des imports courts.
+- [x] **`flutter-mobile-app/lib/screens/`** : même logique **`jobbing/*`** + **`routes`** nommées pour **`/applications`** etc. (**24/04** ; vérifier **Provider** si tu branches l’API sur cet exemple).
+- [x] **Scripts** — table *script → Makefile / doc* dans **`scripts/README.md`** (suite lot **H1**, **07/04**).
+- [ ] **Env sans défauts codés** : voir **HX1** en bas de fichier (audit `|| '…'` / ports magiques sur tout le monorepo).
+- [x] **Synthèse `/backoffice`** : stats **CPU & mémoire** explicites **conteneurs JobbingTrack** (cartes + tableau par `jobbingtrack-*`, lien **Performances → Conteneurs**) ; encart **Performance** enrichi (**07/04**).
+- [x] **Statistiques `/backoffice/statistics/security`** : **uniquement persistance** (résumé `…/security/summary` + tendance score + **agrégat par jour** + extrait lignes) — **sans** doublon des cartes live de **`/backoffice/security`** (**07/04**).
 
 ---
 
@@ -38,6 +60,7 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 - [x] **21/04** — **STATUS** / **PLAN** / **ERRORS** / **TODOS** / **README** : **`make status-watch`** & **`status-live`** (= **`make status`**, **`CLEAR`**, résumé stack vide) ; section logs backoffice (metrics-aggregator) ; **mise à jour des textes `PLAN.md`** pour cadrer les lots **A2**, **C1**, **E1** (≠ livraison complète de ces lots) ; pièges **ERRORS** (`make status` DOWN, ancien **status-live**).
 - [x] **24/04** — **`make status` vs backoffice** : le statut Makefile reflète l’**état des conteneurs** (UP / healthy / ports), pas l’activité d’une page Next.js (ex. Statistiques) ni le volume de requêtes utilisateur. **`status-watch` / `status-live`** : script **`scripts/status-watch-loop.sh`** — **buffer terminal alternatif par défaut** (`ALTSCREEN=1`) pour réafficher le bloc courant **sans empiler** les cycles dans l’historique du terminal ; `ALTSCREEN=0` pour l’ancien défilement ; **`CLEAR=1`** + `ALTSCREEN=0` pour `clear` classique. **UI logs détail service** : grille date / message, couleurs (HTTP, firewall, erreurs), bouton masquer bruit firewall/WAF.
 - [x] **07/04 (complément)** — **`make status`** : légende longue des ports (**`STATUS_LEGEND=1`** pour l’afficher ; **désactivée par défaut**). **`status-watch-loop.sh`** : **`STATUS_FOLD=1`** (défaut) — sortie de **`make status`** passée dans **`fold -s -w $(tput cols)`** ; **`STATUS_FOLD=0`** pour désactiver. **Front** : **`GlobalSearch.tsx`** avec **`'use client'`** (build RSC + baril **`features`**), chevron drawer **Performances** ouvert si sous-route active, **Synthèse Performances** : scroll vers **`#latence`** une seule fois par navigation vers l’ancre (pas à chaque reload des graphes). Test **`GlobalSearch.client-boundary.test.ts`** ; **`ERRORS.md`** § baril RSC.
+- [x] **07/04** — **`SettingsPopup.tsx`** : **`'use client'`** en tête (hooks + réexport baril **`@/components/features`** ; pages RSC comme **`/backoffice/performances/containers`**).
 
 ---
 
@@ -47,35 +70,41 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 - **Vision** : le **socle** (fonctions pures de dérivation, hooks, composants Recharts réutilisables, tooltips / axes / légendes alignés) a démarré sur le **monitoring** (détail service), mais la **cible** est **toute page backoffice** qui affiche des **graphiques** ou des **vues tableau + séries** — dès qu’on standardise, sans casser l’existant.
 - **Règle porteur** : **ne pas supprimer** un graphe, une série ou un bloc de données **sans validation explicite**. Un refactor « socle » = **déplacement / factorisation** dans des modules dédiés, **pas** retrait fonctionnel tant que tu n’as pas validé écran par écran.
-- **Navigation (préambule lot A — avril 2026)** : drawer **Tableau de bord** — **Vue d’ensemble** ; **Performances** (`/backoffice/performances`, sous-entrées **Synthèse**, **Temps de réponse** → ancre `#latence` / route alias `/latency`, **Conteneurs** pont → Analytics, **Disque** stub, **Réseau (détail)** → `/analytics/network`) ; **Statistiques** (entrée dédiée + **Vue d’ensemble**, **App data**, **Sécurité**, **Logs (stats)** → route **`/backoffice/statistics/log-stats`** car le motif `logs/` est **gitignoré**) ; **Analytics** (hub + conteneurs, application, analytics utilisateur — **sans** doublon « Statistiques » dans ce sous-menu). **Annulation** : `git revert` / commit parent si besoin.
+- **Navigation (préambule lot A — avril 2026)** : drawer **Tableau de bord** — **Vue d’ensemble** ; **Performances** (`/backoffice/performances`, sous-entrées **Synthèse**, **Temps de réponse** → ancre `#latence` / route alias `/latency`, **Conteneurs** (graphes Docker), **Disque** stub, **Réseau (détail)** → **`/backoffice/performances/network`**) ; **Statistiques** : canon **`/backoffice/statistics`** (+ sous-routes **app-data**, **security**, **`log-stats`** — motif `logs/` **gitignoré**) ; l’URL **`/backoffice/statistique`** redirige vers la canonique ; **Analytics** (hub **application + utilisateurs** + sous-routes applicatives ; **pas** de conteneurs / CPU système ici — anciennes URLs **`/backoffice/analytics/containers`** et **`/backoffice/analytics/network`** → **redirect** vers Performances). **Annulation** : `git revert` / commit parent si besoin.
 
 ### Inventaire — **Metrics système & conteneurs** : ce qui est déjà sur le nouveau socle
 
 - **Périmètre** : ici on parle du volet **métriques système & conteneurs** (charge, conteneurs Docker, séries agrégées), **pas** d’un cas isolé « un service au hasard ». Le **premier écran** déjà branché sur le socle (modèle + hook + composant) est le **détail d’un service** — parce que c’est là que vit l’**historique** exploitable (CPU, mémoire, réseau, Block I/O).
 - **Référence graphes** : le rendu **CPU / mémoire** (et le reste du bloc) dans **`MonitoringServiceHistoryCharts`** sur **`/backoffice/services/[nom]`** est **nettement plus abouti** que les graphes **CPU** (et voisins) des pages **performances / analytics** actuelles. **Objectif** : **réutiliser ce patron** (axes zoomés, tooltips, dérivés) sur les vues **metrics système & conteneurs** plus larges — **sans retirer** les graphes existants tant que tu n’as pas validé la bascule (règle porteur ci-dessus).
 
-| Zone (metrics système & conteneurs) | Fichiers / pièces | Validé par toi (rien en moins) |
-|-------------------------------------|-------------------|--------------------------------|
-| **Historique** détail conteneur / service : CPU, mémoire, réseau, Block I/O cumul, débit Block I/O | **`serviceHistoryChartModel.ts`**, **`useServiceHistoryChartData.ts`**, **`serviceHistorySources.ts`**, **`MonitoringServiceHistoryCharts.tsx`**, page **`services/[serviceName]/page.tsx`** (encart sources session / fichiers / BDD — **A1g** partiel) | [ ] *(relecture visuelle + reste A1d–A1e)* |
-| **Performances** — CPU & mémoire % (système) | **`systemMetricsSeriesModel.ts`**, **`SystemCpuMemoryAreaCharts.tsx`**, page **`performances/page.tsx`** (`/backoffice/performances`) ; redirect **`analytics/performances`** → canonique | [ ] *(valider rendu — avril 2026)* |
+| Zone (metrics système & conteneurs) | Fichiers / pièces *(chemins relatifs au dépôt)* | Validé par toi *(relecture visuelle / prod)* |
+|-------------------------------------|-----------------------------------------------|--------------------------------|
+| **Historique** détail conteneur / service : CPU, mémoire, réseau, Block I/O cumul, débit Block I/O | `frontend/src/lib/monitoring/serviceHistoryChartModel.ts`, `useServiceHistoryChartData.ts`, `serviceHistorySources.ts`, `frontend/src/components/monitoring/MonitoringServiceHistoryCharts.tsx`, `frontend/src/app/(admin)/backoffice/services/[serviceName]/page.tsx` — URL QA : **`/backoffice/services/<nom>`** | [ ] |
+| **Performances** — CPU & mémoire % (système) | `frontend/src/lib/charts/systemMetricsSeriesModel.ts`, `frontend/src/components/charts/SystemCpuMemoryAreaCharts.tsx`, `frontend/src/app/(admin)/backoffice/performances/page.tsx` — **`/backoffice/performances`** ; alias `analytics/performances` → canonique | [ ] |
 
-### Inventaire — pages backoffice avec Recharts **hors** socle unifié (pour plus tard / A1d / A5)
+### Inventaire — pages backoffice avec Recharts **hors** socle unifié (A1c / A1d / A5)
 
-*(Même composant **`recharts`** qu’aujourd’hui ; migration = chantier séparé quand tu priorises.)*
+*(Composant **`recharts`**. **A1c** : lazy = **`next/dynamic`** + tooltips **`rechartsTooltipProps`** quand c’est fait.)*
 
-- [ ] **`/backoffice/analytics`** — `analytics/page.tsx`
-- [x] **`/backoffice/performances`** — `performances/page.tsx` (redirect depuis **`/backoffice/analytics/performances`** ; sous-routes **`/latency`**, **`/containers`**, **`/disk`**)
-- [x] **`/backoffice/analytics/network`** — `analytics/network/page.tsx` (cumul Mo, **débit Mo/min**, **corrélation CPU**, **temps de réponse** si colonne présente — avril 2026)
-- [ ] **`/backoffice/analytics/containers`** — `analytics/containers/page.tsx`
-- [ ] **`/backoffice/statistics`** — `statistics/page.tsx`
-- [ ] **`/backoffice/statistique`** — `statistique/page.tsx`
-- [ ] **`/backoffice/tests-performance`** — `tests-performance/page.tsx`
+| URL (QA navigateur) | Fichier source principal | Lazy / tooltips *(état 24/04)* |
+|--------------------|---------------------------|--------------------------------|
+| **`/backoffice/analytics`** | `frontend/src/app/(admin)/backoffice/analytics/page.tsx` | Hub cartes (application, utilisateurs, lien Performances) — **sans** Recharts système |
+| **`/backoffice/performances`** | `frontend/src/app/(admin)/backoffice/performances/page.tsx` | **Partiel** : `SystemCpuMemoryAreaCharts` + `SystemCpuNetworkCorrelationChart` en `dynamic` ; graphes inline sur la page |
+| **`/backoffice/performances/network`** | `frontend/src/app/(admin)/backoffice/performances/network/page.tsx` | **Partiel** : corrélation en `dynamic` (ex-`/backoffice/analytics/network`) |
+| **`/backoffice/performances/containers`** | `.../performances/containers/page.tsx` + `components/charts/AnalyticsContainersChartsBundle.tsx` | **A1c** : `rechartsTooltipProps` + lazy bundle Recharts (**07/04**, déplacé depuis Analytics) |
+| **`/backoffice/analytics/application/*`** | `frontend/src/app/(admin)/backoffice/analytics/application/**/page.tsx` | À inventorier au fil des écrans (perf / activité / feedback) |
+| **`/backoffice/statistics`** (+ sous-pages) | `frontend/src/app/(admin)/backoffice/statistics/page.tsx`, `app-data/page.tsx`, `security/page.tsx`, `log-stats/page.tsx`, `StatisticsSubNav.tsx` | **Vue d’ensemble** : tooltips **`rechartsTooltipProps`** (**07/04**) ; **lazy** gros graphes = **reste A1e** |
+| **`/backoffice/statistique`** | `frontend/src/app/(admin)/backoffice/statistique/page.tsx` | **Redirection serveur** → **`/backoffice/statistics`** (plus de doublon de contenu) |
+| **`/backoffice/tests-performance`** | `frontend/src/app/(admin)/backoffice/tests-performance/page.tsx` | Graphes Recharts inline — **reste** alignement thème / lazy si besoin |
+| **`/backoffice/performance-tests`** | `frontend/src/app/(admin)/backoffice/performance-tests/page.tsx` | Pas Recharts sur la même logique ; option **Infrastructure** ajoutée **24/04** |
+
+| **`/statistics`** (hors `backoffice/`) | `frontend/src/app/(admin)/statistics/page.tsx` | **Redirect** → **`/backoffice/statistics`** (**24/04**) |
 
 ### Feuille de route — réseau cumul vs activité, hub Analytics, application « métriques », sécurité
 
-- **Réseau (snapshots agrégateur)** : les compteurs **RX/TX** sont souvent des **cumuls** → courbe monotone peu parlante seule. **Fait (Performances)** : **débit Mo/min** (`buildSystemNetworkMbRateRows`) + **graphique combiné** CPU % vs RX/TX Mo/min (`SystemCpuNetworkCorrelationChart.tsx`, deux axes Y). **Suite** : **brush** / zoom aligné ; **fenêtre glissante** (moyenne) côté API ; corrélation **mémoire** optionnelle ; **graphiques supplémentaires** sur **`/backoffice/analytics/network`** (histogrammes / répartition par conteneur si données disponibles).
-- **Hub `/backoffice/analytics` vs `/backoffice/performances`** : **Analytics** = vue **rapide** (test CPU + liens) ; **Performances** = **historique complet** système (CPU, mémoire, **temps de réponse agrégé** `responseTimeAvg` quand la persistance le remplit, réseau cumul + débit). Encart renvoi **Performances** sur la page Analytics (avril 2026).
-- **Sous-menu Performances** : **Fait (07/04)** — entrées drawer + **`PerformancesSubNav`** : synthèse unique (cartes), **pont conteneurs** → Analytics, **stub disque** (feuille de route disque hôte / alignement détail service), **réseau** reste catégorie à part (page détail Analytics). **Suite** : routes dédiées CPU-only / mémoire-only seulement si le porteur impose le découpage (sinon ancrages internes).
+- **Réseau (snapshots agrégateur)** : les compteurs **RX/TX** sont souvent des **cumuls** → courbe monotone peu parlante seule. **Fait (Performances)** : **débit Mo/min** (`buildSystemNetworkMbRateRows`) + **graphique combiné** CPU % vs RX/TX Mo/min (`SystemCpuNetworkCorrelationChart.tsx`, deux axes Y). **Suite** : **brush** / zoom aligné ; **fenêtre glissante** (moyenne) côté API ; corrélation **mémoire** optionnelle ; **graphiques supplémentaires** sur **`/backoffice/performances/network`** (histogrammes / répartition par conteneur si données disponibles).
+- **Hub `/backoffice/analytics` vs `/backoffice/performances`** : **Analytics** = entrée **métier** (application, utilisateurs, lien Statistiques) ; **Performances** = **historique infra** système (CPU, mémoire, **temps de réponse agrégé** `responseTimeAvg` quand la persistance le remplit, réseau cumul + débit, **conteneurs**). **Fait (07/04)** : retrait du test CPU et des cartes infra sur le hub Analytics.
+- **Sous-menu Performances** : **Fait (07/04)** — entrées drawer + **`PerformancesSubNav`** : synthèse unique (cartes), **conteneurs** (graphes sur **`/backoffice/performances/containers`**), **stub disque**, **réseau** sur **`/backoffice/performances/network`**. Anciennes routes sous **`/backoffice/analytics/containers|network`** = **redirect** Next vers Performances. **Suite** : routes dédiées CPU-only / mémoire-only seulement si le porteur impose le découpage (sinon ancrages internes).
 - **Application** (drawer **Analytics**) : **sous-routes** `/application/performance` (ex-page live), `/application/activity`, `/application/feedback` + **`ApplicationSubNav`** ; redirect `/application` → **performance**. Périmètre cible inchangé : **perf mobile**, **traces** (resets, etc.), **retours** (emails / signalements) — pages **activité** et **retours** = emplacements réservés (chantier données **user-analytics**, **event-service**, **mail**).
 - **Sécurité × observabilité** : exploiter **charge réseau**, **métriques**, **analytics** pour **surcharge**, **menaces**, **politiques** (lots **B** + **A**) — gros chantier : règles de corrélation, seuils, pas seulement réafficher des graphes dans la vue sécurité.
 
@@ -83,11 +112,18 @@ Les sujets volontairement reportés restent dans **`docs/BACKLOG.md`** et la sec
 
 *(Ajoute une puce `[ ]` par idée ; l’équipe ne devine pas les priorités métier.)*
 
-- [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite possible** : **`analytics/containers`**, **`statistique`**, etc.
-- [x] **Réseau** : débit **Mo/min** sur **Performances** ; idem **`/backoffice/analytics/network`**.
+- [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite possible** : **`/backoffice/performances/containers`**, **`/backoffice/statistics`**, etc.
+- [x] **Réseau** : débit **Mo/min** sur **Performances** ; page détail **`/backoffice/performances/network`**.
 - [x] **Temps de réponse** : persistance + instantané par service sur **Performances**.
 - [x] **Statistiques** : sous-pages **App data** / **Sécurité** / **Logs (stats)** branchées.
-- [ ] **À toi** : ex. sparkline CPU sur **`/backoffice/services`** (voir **A1d**) ; autres besoins : **une ligne = une intention**.
+- [ ] **Liste services** : **vraie** sparkline / mini-série **historique** (API légère ou cache) — aujourd’hui **jauge CPU** instantanée + **`title`** ligne (voir **A1d**).
+- [ ] **Export** : CSV / JSON des séries affichées (performances, réseau, détail service) pour analyse externe.
+- [ ] **Brush / plage** : zoom synchronisé entre plusieurs graphes d’une même page (**A1e**).
+- [ ] **Seuils & alertes visuelles** : bandes ou lignes de référence (CPU %, latence ms) configurables.
+- [ ] **Tableaux** : colonnes triables + mémorisation préférences (localStorage) sur vues « lourdes » (logs agrégés, stats).
+- [ ] **Heatmap** : charge par service × tranche horaire (données agrégateur / BDD à dimensionner).
+- [ ] **Comparatif** : superposer deux périodes ou deux conteneurs sur un même graphe (hors simple multi-line actuel).
+- [ ] **PIDs historisés** : courbe ou tableau si **A1f** (contrat API) validé produit.
 
 ---
 
@@ -107,13 +143,13 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 - [ ] **A1 — lot parent** : cocher la case principale **A1** seulement quand **A1d / A1e / A1g** auront avancé selon **ton** objectif produit (ou quand tu auras explicitement décidé de reporter le reste dans **`docs/BACKLOG.md`**).
 
-- [x] **A1c — partiel** : **`next/dynamic`** (`ssr: false`) pour **`MonitoringServiceHistoryCharts`** sur la page détail service ; tooltips via **`rechartsTooltipProps`** dans **`MonitoringServiceHistoryCharts.tsx`**. **Reste** : lazy / alignement sur **autres** pages Recharts lourdes (**analytics**).
+- [x] **A1c — partiel (étendu 07/04)** : **`next/dynamic`** pour **`MonitoringServiceHistoryCharts`** (détail service) ; **`SystemCpuMemoryAreaCharts`** + **`SystemCpuNetworkCorrelationChart`** (**Performances**) ; **`SystemCpuNetworkCorrelationChart`** (**Analytics réseau**). **Reste** : extraire / lazy les gros **`LineChart`** encore inline (**hub analytics**, **containers**, **statistiques**) si le bundle reste trop lourd.
 
-- [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`statistics` / `statistique`** (axes, gaps, légendes) ; option liste **`/backoffice/services`** (hint ou sparkline — basse prio).
+- [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`/backoffice/statistics`** (axes, gaps, légendes) ; liste **`/backoffice/services`** : **fait (partiel)** — **`title`** ligne + **jauge CPU** sous le nom (pas de Recharts) ; suite = sparkline **historique** si tu valides l’API.
 
-- [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **analytics**.
+- [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **Performances**. **Partiel** : tooltips **`performances/containers`** (graph mémoire multi-conteneurs) alignés thème ; **`/backoffice/statistics`** vue d’ensemble (**`page.tsx`**, **07/04**).
 
-- [ ] **A1f** — Contrat API **PIDs** stable (ex. `docker top`) **si** tu en as besoin côté produit.
+- [ ] **A1f** — Contrat API **PIDs** stable (ex. `docker top` ou champ agrégateur versionné) **si** tu en as besoin côté produit ; aujourd’hui **instantané** liste services via **`GET …/metrics`** / services.
 
 - [x] **A1g — partiel (07/04/2026)** : encart **sources d’historique** (session / fichiers agrégateur / Postgres) sur **`services/[serviceName]/page.tsx`**. **Reste A1g** : même logique de libellés sur **autres** pages monitoring (**A5** global).
 
@@ -203,6 +239,42 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
 
 ---
 
+## Lot H — Hygiène dépôt : `scripts/`, `tools/`, `services/`, mobile
+
+Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, usage réel, doc. Cocher au fil de l’eau.
+
+### H1 — Dossier **`scripts/`** (~90 fichiers à la racine du dossier + sous-dossiers `db/`, `monitoring/`, `testing/`, etc.)
+
+- [ ] **Cartographie** : pour chaque script référencé par **`Makefile`** / **`package.json`** / CI / doc, noter l’appelant dans un **`scripts/README.md`** (table *script → usage*).
+- [ ] **Sous-dossiers** : regrouper les scripts « one-shot » ou par domaine (**`scripts/legacy/`**, **`scripts/one-off/`**) sans casser les chemins **`Makefile`** ; grep des références avant déplacement.
+- [ ] **Morts ou doublons** : scripts jamais cités — archiver ou supprimer après confirmation (ne pas supprimer à l’aveugle).
+
+### H2 — Dossier **`tools/`** (`adb-lib`, `emulator-controller`, etc.)
+
+- [x] **Usage réel** : parcours mobile / ADB documentés dans **`STATUS.md`** et **`tests/user-journey/README.md`** ; **`make up-full`** peut lancer **`tools/emulator-controller`** (voir README du sous-dossier).
+- [x] **README racine `tools/`** : **`tools/README.md`** — index vers **`adb-lib`** et **`emulator-controller`** (**24/04**).
+
+### H3 — Dossier racine **`services/`** (microservices Python FastAPI)
+
+- [ ] **Rôle** : services Python **hors** dossier `backend/*-service` (ex. **`services/application-service`**, **`services/dashboard-service`**) — vérifier quels conteneurs **`docker-compose`** les montent encore ; croiser **`docs/core/services/README.md`**.
+- [ ] **Doc** : si un service n’est plus déployé, marquer **déprécié** + cible de retrait ou fusion vers équivalent Node.
+
+### H4 — **`mobile-native-app/`** (actuellement **un seul `Dockerfile`**)
+
+- [ ] **Décision** : emplacement réservé build natif / image slim ; si **non utilisé** dans la CI ni le compose principal — documenter **« placeholder »** ou supprimer après backup (voir aussi **`docs/getting-started/GUIDE_STRUCTURE.md`** § dossiers mobile).
+
+### H5 — Application Flutter **`mobile/lib/screens/`**
+
+- [x] **Structure dossiers (24/04)** : `screens/admin/admin_screen.dart` ; `screens/jobbing/auth/*` ; `screens/jobbing/dashboard/` (`home_screen`, `analytics_screen`, `statistics_screen`) ; `screens/jobbing/applications/*` ; `screens/jobbing/calendar/events_screen.dart` ; `screens/jobbing/users/` ; dossiers dédiés **companies**, **contacts**, **interviews**, **followups**, **calls**, **search**, **trash**, **logs**, **test_data** — **`main.dart`** et imports internes (candidatures / auth) mis à jour.
+- [ ] **Suite** : voir **« Suite & suivi explicite »** (renommages, barrel) ; smoke **`widget_test.dart`** y est suivi.
+
+### H6 — Vision produit **dashboard** (mobile)
+
+- **Utilisateur standard** : après connexion, **un** écran d’accueil type **dashboard** = **ses** statistiques, relances, entretiens à venir (données **scopées utilisateur**).
+- **Administrateur** : **même point d’entrée** (même navigation de base) mais données et actions **étendues** (vue « tous les utilisateurs » / équivalent **backoffice** côté API — rôles **`ADMIN`** / **`SUPER_ADMIN`**). À cadrer avec l’API auth et les écrans **`admin_*`** existants.
+
+---
+
 ## Lot G — Sauvegardes sécurisées, API, délocalisation, continuité (PCA/PRI)
 
 Spec détaillée : **`PLAN.md`** § **G** ; fonctionnel : **`FONCTIONNALITES.md`** § **4.4** ; statut projet : **`STATUS.md`** § *Sauvegardes…*.
@@ -248,9 +320,9 @@ Ne pas confondre avec le chantier ci-dessus ; ce sont les **P0** globaux du proj
 
 ## Comment utiliser ce fichier
 
-1. Cocher `[x]` quand la tâche est **réellement** mergée et vérifiable.
-2. Si une tâche devient du « plus tard », la **déplacer** vers `docs/BACKLOG.md` avec une courte justification, et la retirer d’ici pour limiter le bruit.
-3. Le plan détaillé et les critères d’acceptation : **`PLAN.md`**.
+1. Cocher `[x]` quand la tâche est **réellement** mergée et vérifiable ; la validation porteur reste **`PLAN.md`** / **`STATUS.md`** (voir **« Lire ce fichier »** en tête).
+2. Si une tâche devient du « plus tard », la **déplacer** vers **`docs/BACKLOG.md`** avec une courte justification.
+3. Critères détaillés des lots : **`PLAN.md`**.
 
 ---
 
@@ -295,10 +367,14 @@ Remplir **`STATS.md`** après chaque passe d'outils ; cocher ici quand le **proc
 
 ## Dernière section du fichier — méta-chantiers (ne rien ajouter *après* sans déplacer ce bloc)
 
-**Règle** : toute nouvelle tâche « transverse » (doc globale, audit BDD, validation porteur) s’ajoute **dans cette section** ou juste **au-dessus du tiret `---` qui précède**, pour garder **en bas de fichier** l’historique des chantiers structurels.
+**Règle** : toute nouvelle tâche « transverse » (doc globale, audit BDD, validation porteur) s’ajoute **dans cette section** ou juste **au-dessus du tiret `---` qui précède**, pour garder **en bas de fichier** l’historique des chantiers structurels. Les **petites suites** post-chantier vont plutôt dans **« Suite & suivi explicite »** (haut du fichier, après *Lire ce fichier*).
 
 - [ ] **Validation produit (porteur)** : pour chaque lot livré techniquement, **vous** cochez **`PLAN.md`** (**Validé (porteur)**) ou une mention datée dans **`STATUS.md`** ; tant que ce n’est pas fait, le livrable reste « en attente d’acceptation » même si le code est mergé.
 - [ ] **Revue base de données avant grosse passe de tests** : aligner schéma maître (**auth-service** / `db-push-all`), scripts **`scripts/db/*.sql`**, tables listées dans **`ERRORS.md`**, et attentes des services (déploiements, logs agrégés, etc.) — objectif : éviter les écarts « table absente » / doubles définitions lors de **`make tests`** ou **`make test-suite-full`**. Croiser **lot A2**, **A5**, **C** (données test) dans ce fichier.
 - [ ] **Trafic répété `GET /api/v1/security/*` via la gateway** : ce flux correspond en général à un **client** (UI backoffice sécurité / firewall en rafraîchissement, onglet ouvert) — **ce n’est pas** une erreur isolée « mystérieuse » ; si le volume pose problème (logs, charge), **diagnostiquer la source** (quel onglet, quel intervalle) puis réduire le polling ou mutualiser les requêtes — voir **`STATUS.md`** § journalisation / diagnostic et **`ERRORS.md`** § homonyme.
 - [ ] **Refonte documentation (racine + `docs/`)** : reprendre **tous** les **`.md` à la racine** et **tous les `.md` sous `docs/`** de façon **structurée** (rôles, doublons, liens, ordre de lecture, index unique ou fil d’Ariane clair) ; aligner **PLAN**, **STATUS**, **TODOS**, **ERRORS**, **RESOLUTIONS**, **STATS**, **FONCTIONNALITES**, **`docs/BACKLOG.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**. *À planifier explicitement avant grosses réécritures.*
+- [ ] **HX1 — Variables d’environnement sans « fallback magique »** : le porteur souhaite **ne pas** coder de valeurs par défaut du type **`process.env.X || '3000'`** dans le dépôt (risque : prod silencieusement mal configurée). **Périmètre** : audit **`next.config.js`**, **frontend**, **backend** (chaque service), **mobile** (`mobile/`, `flutter-mobile-app/`), scripts — remplacer par **variables obligatoires** documentées dans **`.env.example`** / runbooks, ou échec explicite au démarrage si critique.
+- [ ] **HX2 — Audit transverse « sécurité × doc × config »** : parcourir **toutes** les zones du dépôt (front, back, mobile, Docker, CI) pour repérer **URLs / secrets / schémas internes** dans la doc ou les commentaires **trop exposants** (faille d’ingénierie sociale ou fuite d’architecture) ; **niveau de détail** des guides : suffisant pour exploiter, pas de cookbook d’attaque. Croiser **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`docs/BACKLOG.md`**.
+- [ ] **HX3 — Environnements prod / préprod / tests conteneurs** : formaliser une **matrice** (compose profiles, fichiers env, noms d’images, jeux de données) pour éviter les dérives « même stack que le dev » ; une ligne dans **`STATUS.md`** ou doc **`docs/operations/`** une fois le modèle figé.
+- [ ] **HX4 — Session backoffice : reconnexion / expiration** : lorsqu’une **reconnexion** est demandée sans message clair (JWT expiré, middleware, refresh, WebSocket metrics), **instrumenter** (message UI + corrélation `requestId` / logs gateway) et documenter le comportement attendu dans **`ERRORS.md`** ou **`RESOLUTIONS.md`** — diagnostic reproductible pour le porteur.
 

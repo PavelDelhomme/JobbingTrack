@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
-import 'package:jobbingtrack_mobile/screens/pending_verification_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/auth/pending_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

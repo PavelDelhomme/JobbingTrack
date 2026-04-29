@@ -199,6 +199,26 @@ make tests-interface-web
 4. **Messages** : Emojis pour clarté visuelle
 5. **Erreurs** : Exit codes appropriés (0 = succès, 1 = erreur)
 
+## Makefile et documentation (lot H1 — point d’entrée)
+
+La plupart des scripts sont invoqués via **`make`** (racine du dépôt inclut `makefiles/**/*.mk`). Ce tableau résume les liens **script → cible Make / doc** les plus utiles ; le détail des cibles reste dans **`make help`** et les fichiers sous **`makefiles/`**.
+
+| Script (chemin relatif) | Cible ou usage Makefile / doc |
+|-------------------------|-------------------------------|
+| `scripts/verify-user-journey.sh` | `make tests-user-journey` (`makefiles/tests/Makefile`) |
+| `scripts/start-tests.sh` | `make tests-interface-web` (`makefiles/tests/Makefile`) |
+| `scripts/run-all-tests-with-reports.sh` | `make test-all` / `make tests` (`makefiles/tests/Makefile`) |
+| `scripts/status-watch-loop.sh` | `make status-watch`, `make status-live` (`makefiles/services/Makefile`) |
+| `scripts/color-logs.sh` | Pipes `docker compose logs` (cibles logs dans `makefiles/services/Makefile`) |
+| `scripts/db/db-push-all.sh` | `make db-push-all` (`makefiles/database/Makefile`) |
+| `scripts/db/seed.sh` | Cibles seed BDD (`makefiles/database/Makefile`) |
+| `scripts/monitoring/monitoring.sh` | `make mon`, variantes quick / log fichier (`makefiles/utils/Makefile`, `makefiles/backend/Makefile`) |
+| `scripts/benchmark-all-backoffice.sh` | `make benchmark-backoffice-before` / `after` (`Makefile` racine) |
+| `scripts/compare-all-backoffice.sh` | `make benchmark-backoffice-compare` |
+| `scripts/setup-playwright.sh` | `make test-mobile-install` (`makefiles/tests/Makefile.mobile-tests`) |
+| `scripts/core/check.sh`, `scripts/utils/diagnostic.sh` | Diagnostics (`makefiles/diagnostic/Makefile`) |
+| `scripts/make-menu.sh` | `make help` (`makefiles/help/Makefile`) |
+
 ## 🔗 Liens Utiles
 
 - [Documentation Tests](../docs/tests/)

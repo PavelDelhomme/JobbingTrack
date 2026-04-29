@@ -14,6 +14,7 @@ const nextConfig = {
         pagesBufferLength: 2,
     },
     experimental: {
+        instrumentationHook: true,
         serverComponentsExternalPackages: ['socket.io-client'],
         // ✅ Compression et optimisation des assets
         // lucide-react retiré : avec le baril @/lib/icons, optimizePackageImports peut laisser
@@ -70,7 +71,14 @@ const nextConfig = {
         } : false,
     },
     async rewrites() {
+        const metricsInternalPort = process.env.METRICS_AGGREGATOR_INTERNAL_PORT || '3014';
         return [
+            // Métriques agrégateur (persistance, docker/services) : le navigateur appelle
+            // `/api/metrics-aggregator/...` (même origine que le front) → pas de HOST_IP:5004 ni CORS.
+            {
+                source: '/api/metrics-aggregator/:path*',
+                destination: `http://jobbingtrack-metrics-aggregator:${metricsInternalPort}/api/v1/:path*`,
+            },
             {
                 source: '/api/v1/:path*',
                 // ✅ Utiliser le nom Docker pour la communication inter-conteneurs
@@ -80,8 +88,9 @@ const nextConfig = {
                 source: '/api/health',
                 destination: 'http://api-gateway:3000/health',
             },
-            // /health pour healthchecks (monitoring-c) → même réponse que /api/health
-            { source: '/health', destination: '/api/health' },
+            // Ne pas réécrire `/health` : laisser `src/app/health/route.ts` répondre (liveness Next
+            // seul). Sinon tout probe sur le port frontend dépend de l’API Gateway → 500 si proxy
+            // ou compile échoue. Santé agrégée gateway : `GET /api/health` (réécriture ci-dessus).
         ];
     },
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {

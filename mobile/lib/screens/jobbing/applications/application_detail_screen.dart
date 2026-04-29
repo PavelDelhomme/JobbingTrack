@@ -6,7 +6,7 @@ import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
-import 'package:jobbingtrack_mobile/screens/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:intl/intl.dart';
 
 /// Écran détail d'une candidature : infos, liste relances/entretiens/appels, actions Ajouter relance / entretien / appel.

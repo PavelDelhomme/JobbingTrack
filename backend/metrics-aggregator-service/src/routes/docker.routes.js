@@ -30,15 +30,23 @@ const SERVICE_HEALTH_CONFIG = {
 
 const FIVE_MINUTES_IN_MINUTES = 5;
 
+/** `docker ps --format "{{json .}}"` : le champ Names peut être `/jobbingtrack-foo` ; la persistance et Prisma utilisent `jobbingtrack-foo`. */
+function normalizeDockerPsName(namesField) {
+  if (namesField == null) return '';
+  const raw = Array.isArray(namesField) ? namesField[0] : String(namesField);
+  return raw.replace(/^\//, '').trim();
+}
+
 function normaliseServiceKey(containerName = '') {
-  if (!containerName) return null;
+  const stripped = normalizeDockerPsName(containerName);
+  if (!stripped) return null;
   const variants = new Set([
-    containerName,
-    containerName.replace(/-prod$/, ''),
-    containerName.replace(/-preview$/, ''),
-    containerName.replace(/-staging$/, ''),
-    containerName.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
-    containerName.replace(/_[0-9]+$/, '')
+    stripped,
+    stripped.replace(/-prod$/, ''),
+    stripped.replace(/-preview$/, ''),
+    stripped.replace(/-staging$/, ''),
+    stripped.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
+    stripped.replace(/_[0-9]+$/, '')
   ]);
 
   for (const variant of variants) {
@@ -604,7 +612,8 @@ router.get('/services/all', async (req, res) => {
       .filter(line => line.length > 0)
       .map(line => JSON.parse(line))
       .filter(container => {
-        const name = container.Names;
+        const name = normalizeDockerPsName(container.Names);
+        container.canonicalName = name;
 
         // Optionnel: exclure MailHog si demandé explicitement
         if (!includeMailhog && name.toLowerCase().includes('mailhog')) {
@@ -633,7 +642,11 @@ router.get('/services/all', async (req, res) => {
     const runningStats = await dockerService.getAllContainersStats();
     const statsMap = {};
     runningStats.forEach(stat => {
-      statsMap[stat.name] = stat;
+      if (!stat || !stat.name) return;
+      const raw = String(stat.name);
+      const canon = normalizeDockerPsName(raw);
+      statsMap[raw] = stat;
+      if (canon && canon !== raw) statsMap[canon] = stat;
     });
     
     // Récupérer le health status et l'état réel pour tous les conteneurs
@@ -641,7 +654,7 @@ router.get('/services/all', async (req, res) => {
     const containerStateMap = {}; // Map pour stocker l'état réel des conteneurs
     for (const container of allContainers) {
       try {
-        const containerName = container.Names;
+        const containerName = container.canonicalName || normalizeDockerPsName(container.Names);
         const { stdout: inspectOut } = await execAsync(`docker inspect --format='{{json .State}}' ${containerName}`);
         const state = JSON.parse(inspectOut);
         
@@ -667,15 +680,16 @@ router.get('/services/all', async (req, res) => {
           state: state
         };
       } catch (err) {
-        console.error(`[DOCKER ROUTES] Erreur inspection ${container.Names}:`, err.message);
+        const cn = container.canonicalName || normalizeDockerPsName(container.Names);
+        console.error(`[DOCKER ROUTES] Erreur inspection ${cn}:`, err.message);
         // Fallback : utiliser container.State mais c'est moins fiable
         const isRunning = container.State === 'running';
-        healthStatusMap[container.Names] = {
+        healthStatusMap[cn] = {
           health: 'unknown',
           running: isRunning,
           status: container.State
         };
-        containerStateMap[container.Names] = {
+        containerStateMap[cn] = {
           isRunning: isRunning,
           status: container.State,
           state: null
@@ -686,7 +700,7 @@ router.get('/services/all', async (req, res) => {
     // ✅ Effectuer les HTTP health checks en PARALLÈLE pour tous les services
     const healthChecks = await Promise.allSettled(
       allContainers.map(async (container) => {
-        const name = container.Names;
+        const name = container.canonicalName || normalizeDockerPsName(container.Names);
         // Utiliser l'état réel du conteneur depuis containerStateMap
         const containerState = containerStateMap[name] || { isRunning: container.State === 'running' };
         const isRunning = containerState.isRunning;
@@ -715,7 +729,7 @@ router.get('/services/all', async (req, res) => {
     
     // Mapper tous les conteneurs avec leurs stats, health status Docker ET HTTP
     const services = allContainers.map(container => {
-      const name = container.Names;
+      const name = container.canonicalName || normalizeDockerPsName(container.Names);
       // Utiliser l'état réel du conteneur depuis containerStateMap
       const containerState = containerStateMap[name] || { isRunning: container.State === 'running', status: container.State };
       const isRunning = containerState.isRunning;
@@ -754,7 +768,7 @@ router.get('/services/all', async (req, res) => {
       ) && dockerHealthInfo.health !== 'unhealthy';
       
       return {
-        name: name,
+        name,
         status: actualStatus, // Utiliser le statut réel du conteneur
         health_status: dockerHealthInfo.health, // Statut Docker natif (none, healthy, unhealthy, starting)
         is_running: isRunning, // Utiliser l'état réel (state.Running)

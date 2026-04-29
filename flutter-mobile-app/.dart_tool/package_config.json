@@ -15,7 +15,7 @@
     },
     {
       "name": "characters",
-      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/characters-1.4.0",
+      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/characters-1.4.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -59,7 +59,7 @@
       "name": "flutter",
       "rootUri": "file:///usr/lib/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_lints",
@@ -71,19 +71,19 @@
       "name": "flutter_localizations",
       "rootUri": "file:///usr/lib/flutter/packages/flutter_localizations",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_test",
       "rootUri": "file:///usr/lib/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_web_plugins",
       "rootUri": "file:///usr/lib/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "http",
@@ -129,15 +129,15 @@
     },
     {
       "name": "matcher",
-      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/matcher-0.12.17",
+      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/matcher-0.12.18",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.7"
     },
     {
       "name": "material_color_utilities",
-      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/material_color_utilities-0.11.1",
+      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
       "packageUri": "lib/",
-      "languageVersion": "2.17"
+      "languageVersion": "3.5"
     },
     {
       "name": "meta",
@@ -239,7 +239,7 @@
       "name": "sky_engine",
       "rootUri": "file:///usr/lib/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "source_span",
@@ -273,9 +273,9 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/test_api-0.7.7",
+      "rootUri": "file:///home/pactivisme/.pub-cache/hosted/pub.dev/test_api-0.7.9",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "typed_data",
@@ -315,8 +315,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.10.1",
+  "generatorVersion": "3.11.4",
   "flutterRoot": "file:///usr/lib/flutter",
-  "flutterVersion": "3.38.1",
+  "flutterVersion": "3.41.2",
   "pubCache": "file:///home/pactivisme/.pub-cache"
 }

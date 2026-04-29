@@ -745,6 +745,13 @@ class PersistenceService {
     if (!this.isDatabaseEnabled()) {
       return [];
     }
+
+    const canonicalName = String(containerName || '')
+      .replace(/^\//, '')
+      .trim();
+    if (!canonicalName) {
+      return [];
+    }
     
     const {
       limit: rawLimit = 100,
@@ -754,7 +761,7 @@ class PersistenceService {
     } = options;
     const limit = clampMetricsHistoryLimit(rawLimit, 100);
 
-    const where = { containerName };
+    const where = { containerName: canonicalName };
     if (startDate || endDate) {
       where.timestamp = {};
       if (startDate) where.timestamp.gte = new Date(startDate);
