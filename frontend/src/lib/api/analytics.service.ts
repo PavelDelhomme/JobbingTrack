@@ -185,13 +185,64 @@ export class AnalyticsService {
   async getServiceAvailabilityStats(serviceName: string, hours: number = 24) {
     try {
       const response = await axios.get(
-        `${getMetricsV1Base()}/persistence/services/${serviceName}/availability?hours=${hours}`
+        `${getMetricsV1Base()}/persistence/services/${persistenceContainerSegment(serviceName)}/availability?hours=${hours}`
       );
 
       return response.data.data || null;
     } catch (error) {
       console.error(`Erreur récupération disponibilité ${serviceName}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Historique health / temps de réponse (ms) par service — `service_availability_history`.
+   * Même clé que le conteneur (`jobbingtrack-…`) côté persistance agrégateur.
+   */
+  async getServiceAvailabilityHistory(
+    serviceName: string,
+    options: {
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+    } = {}
+  ) {
+    try {
+      const params = new URLSearchParams();
+      params.append('history', '1');
+      if (options.limit != null) params.append('limit', String(options.limit));
+      if (options.startDate) params.append('startDate', options.startDate);
+      if (options.endDate) params.append('endDate', options.endDate);
+      const normalized = String(serviceName || '').replace(/^\//, '').trim();
+      const aliases = Array.from(
+        new Set(
+          [
+            normalized,
+            normalized.replace(/^jobbingtrack-/, ''),
+            normalized.startsWith('jobbingtrack-') ? null : `jobbingtrack-${normalized}`,
+          ].filter((x): x is string => Boolean(x))
+        )
+      );
+
+      for (const candidate of aliases) {
+        const response = await axios.get(
+          `${getMetricsV1Base()}/persistence/services/${persistenceContainerSegment(candidate)}/availability?${params.toString()}`,
+          { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, validateStatus: (s) => s < 500 }
+        );
+        if (response.status !== 200) {
+          continue;
+        }
+        const raw = response.data?.data;
+        if (!Array.isArray(raw)) {
+          continue;
+        }
+        if (raw.length > 0) {
+          return normalizeMetricRows(raw);
+        }
+      }
+      return [];
+    } catch {
+      return [];
     }
   }
 
@@ -285,11 +336,14 @@ export class AnalyticsService {
   /**
    * Récupérer la liste des conteneurs (depuis metrics-aggregator docker/services/all)
    */
-  async getContainersList(): Promise<{ name: string; service_type?: string; health_status?: string; [key: string]: unknown }[]> {
+  async getContainersList(options?: { timeoutMs?: number }): Promise<
+    { name: string; service_type?: string; health_status?: string; [key: string]: unknown }[]
+  > {
     try {
+      const timeout = options?.timeoutMs ?? 15000;
       const response = await axios.get(
         `${getMetricsV1Base()}/docker/services/all`,
-        { timeout: 15000 }
+        { timeout }
       );
       if (response.data?.services && Array.isArray(response.data.services)) {
         return response.data.services.map((s: { name: string; health_status?: string }) => {

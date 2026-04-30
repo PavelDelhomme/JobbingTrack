@@ -8,8 +8,7 @@ import Link from 'next/link';
 import {
   Server, Activity, TrendingUp, Database, Clock,
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
-  RefreshCw, Terminal, Network, Shield,
-  HardDrive, Info
+  RefreshCw, Terminal, Network, HardDrive
 } from 'lucide-react';
 import {
   mergeHistoryChronological,
@@ -217,6 +216,43 @@ export default function ServiceDetailPage() {
         }
       }
 
+      // Fallback 2 : liste agrégée des services (souvent disponible même si la route /service/<name> échoue ponctuellement)
+      if (!merged) {
+        try {
+          const allServicesRes = await fetch(`${metricsUrl}/api/v1/docker/services/all`);
+          if (allServicesRes.ok) {
+            const allServicesJson = await allServicesRes.json();
+            const services = Array.isArray(allServicesJson?.services) ? allServicesJson.services : [];
+            const found = services.find((s: any) => {
+              const n = String(s?.name || '').replace(/^\//, '');
+              return n === fullServiceName || n === serviceName;
+            });
+            if (found) {
+              merged = {
+                name: found.name || fullServiceName,
+                cpu_percent: found.cpu_percent ?? 0,
+                memory_percent: found.memory_percent ?? 0,
+                memory_usage_mb: found.memory_usage_mb ?? 0,
+                memory_limit_mb: found.memory_limit_mb ?? 0,
+                network_rx_mb: found.network_rx_mb ?? 0,
+                network_tx_mb: found.network_tx_mb ?? 0,
+                block_read_mb: found.block_read_mb ?? 0,
+                block_write_mb: found.block_write_mb ?? 0,
+                response_time_ms: found.response_time_ms ?? null,
+                health_status_http: found.health_status_http ?? found.health_status ?? 'unknown',
+                health_status_docker: found.health_status_docker ?? 'none',
+                pids: found.pids ?? null,
+                image: found.image,
+                ports: found.ports,
+                created: found.created
+              };
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       if (!merged) {
         try {
           const metricsRes = await fetch(`${metricsUrl}/api/v1/metrics`);
@@ -407,9 +443,7 @@ export default function ServiceDetailPage() {
                 <Server className="h-8 w-8 mr-3 text-blue-600" />
                 {serviceName}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {serviceMetrics ? 'Monitoring détaillé du service' : 'Service non détecté — vérifiez que le conteneur est démarré et que metrics-aggregator est accessible'}
-              </p>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Monitoring détaillé du service</p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
@@ -490,11 +524,6 @@ export default function ServiceDetailPage() {
                     HTTP: {httpHealth}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-xl">
-                  Docker reflète le healthcheck du conteneur. HTTP est une sonde depuis l&apos;agrégateur vers
-                  l&apos;endpoint du service sur le réseau Docker : si Docker est sain mais HTTP dégradé, cause
-                  fréquente = endpoint injoignable depuis l&apos;agrégateur ou réponse 4xx/5xx sur le chemin de health.
-                </p>
               </div>
             </div>
             {responseTime && (
@@ -642,44 +671,6 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        <div className="bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200">
-          <div className="flex gap-2">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden />
-            <div className="space-y-2">
-              <p className="font-semibold text-blue-900 dark:text-blue-200">Réutilisation monitoring → sécurité &amp; autres vues</p>
-              <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                <li>
-                  Les métriques conteneur de cette page viennent de{' '}
-                  <code className="text-[11px]">GET …/api/v1/docker/service/&lt;nom&gt;</code> (metrics-aggregator) : CPU, mémoire, réseau,{' '}
-                  <strong>PIDs</strong>, <strong>Block I/O</strong>, erreurs 5 min — même famille de données que la liste services et le backoffice performance.
-                </li>
-                <li>
-                  Pour la <strong>sécurité</strong> (lots <strong>B3–B4</strong>, corrélation <strong>B6</strong>), les vues réseau / analyse peuvent s’appuyer sur les mêmes endpoints agrégateur + les logs Docker (
-                  <code className="text-[11px]">…/docker/service/&lt;nom&gt;/logs</code>) sans dupliquer la collecte côté front.
-                </li>
-                <li>
-                  Piste documentée dans <strong>TODOS.md</strong> (lot A1 / A3) : exposer côté API un contrat stable (champs nommés) si plusieurs écrans consomment les mêmes séries.
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/40 px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300">
-          <p className="font-medium text-slate-800 dark:text-slate-200 mb-1">Sources des courbes « Historique des performances » (A1 / A5)</p>
-          <ul className="list-disc pl-4 space-y-0.5">
-            <li>
-              <strong>Temps réel (session)</strong> : points ajoutés tant que cette page est ouverte (rafraîchissement auto) — ils complètent la courbe mais ne remplacent pas la persistance.
-            </li>
-            <li>
-              <strong>Fichiers agrégateur</strong> : route <code className="text-[11px]">GET …/docker/service/&lt;nom&gt;/history</code> (snapshots écrits par l’agrégateur, ex. sous <code className="text-[11px]">/tmp/metrics/…</code> en dev typique).
-            </li>
-            <li>
-              <strong>Base PostgreSQL</strong> : lignes <code className="text-[11px]">container_metrics_snapshots</code> fusionnées dans la même réponse d’historique lorsque la collecte les alimente.
-            </li>
-          </ul>
-        </div>
-
         <MonitoringServiceHistoryCharts
           serviceHistoryLength={serviceHistory.length}
           historyChartRows={historyChartRows}
@@ -690,35 +681,6 @@ export default function ServiceDetailPage() {
           historyBlockMbMax={historyBlockMbMax}
           historyIoRateMax={historyIoRateMax}
         />
-
-        {/* Lot A3 — point d’entrée corrélation logs × sécurité (vue détail service) */}
-        <div className="mb-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/40 p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" aria-hidden />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
-                Corrélation observabilité / sécurité (chantier A3)
-              </p>
-              <p className="text-xs text-indigo-800/90 dark:text-indigo-200/90 mt-1">
-                Les logs ci-dessous viennent du conteneur / agrégateur. Pour les événements firewall, menaces et analyses réseau, ouvrez la vue sécurité ; pour les logs applicatifs filtrés par service, la page logs centralisée.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href="/backoffice/security"
-                  className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
-                >
-                  Vue sécurité
-                </Link>
-                <Link
-                  href={`/backoffice/services/logs?service=${encodeURIComponent(serviceName.replace(/^jobbingtrack-/, ''))}`}
-                  className="inline-flex items-center rounded-md border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs font-medium text-indigo-800 dark:text-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/50"
-                >
-                  Logs multi-services (filtre)
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Logs en Temps Réel */}
         <div ref={logsContainerRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">

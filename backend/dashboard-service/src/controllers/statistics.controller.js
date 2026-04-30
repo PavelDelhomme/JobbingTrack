@@ -24,6 +24,7 @@ const getAggregatedStatistics = async (req, res) => {
     // Récupérer les statistiques de chaque service en parallèle (limit=1 pour avoir seulement pagination.total)
     const [
       usersStats,
+      activeSessionsStats,
       applicationsStats,
       companiesStats,
       contactsStats,
@@ -31,6 +32,10 @@ const getAggregatedStatistics = async (req, res) => {
     ] = await Promise.allSettled([
       axios.get(`${AUTH_SERVICE_URL}/api/v1/auth/users`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
         logger.warn('Erreur récupération users:', err.message);
+        return { status: 'rejected', reason: err };
+      }),
+      axios.get(`${AUTH_SERVICE_URL}/api/v1/auth/sessions/active`, axiosConfig).catch(err => {
+        logger.warn('Erreur récupération sessions actives:', err.message);
         return { status: 'rejected', reason: err };
       }),
       axios.get(`${APPLICATION_SERVICE_URL}/api/v1/applications`, { ...axiosConfig, params: { limit: 1 } }).catch(err => {
@@ -52,7 +57,7 @@ const getAggregatedStatistics = async (req, res) => {
     ]);
 
     // Traiter les utilisateurs
-    let users = { total: 0, byRole: {}, activeUsers: 0, newThisMonth: 0 };
+    let users = { total: 0, byRole: {}, activeUsers: 0, newThisMonth: 0, activeSource: 'estimated_total' };
     if (usersStats.status === 'fulfilled' && usersStats.value.data) {
       const d = usersStats.value.data;
       users.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.users) ? d.users.length : 0);
@@ -65,6 +70,14 @@ const getAggregatedStatistics = async (req, res) => {
       thisMonth.setDate(1);
       users.newThisMonth = userData.filter(u => new Date(u.createdAt) >= thisMonth).length;
       users.activeUsers = users.total;
+    }
+    if (activeSessionsStats.status === 'fulfilled' && activeSessionsStats.value.data) {
+      const d = activeSessionsStats.value.data;
+      const sessionsTotal = d.total != null ? Number(d.total) : (Array.isArray(d.sessions) ? d.sessions.length : 0);
+      if (Number.isFinite(sessionsTotal) && sessionsTotal >= 0) {
+        users.activeUsers = sessionsTotal;
+        users.activeSource = 'sessions_last_30m';
+      }
     }
 
     // Traiter les candidatures
@@ -160,6 +173,7 @@ const getAggregatedStatistics = async (req, res) => {
           total: users.total,
           by_role: users.byRole,
           active: users.activeUsers,
+          active_source: users.activeSource,
           new_this_month: users.newThisMonth,
           new_this_week: users.newThisMonth // Approximation pour cette semaine
         },
@@ -234,7 +248,89 @@ const getAggregatedStatistics = async (req, res) => {
   }
 };
 
+/**
+ * Récupérer une timeline simplifiée (fallback) des statistiques.
+ * Note: ce service ne persiste pas encore d'historique fin, on retourne
+ * une série minimale cohérente avec l'état courant pour éviter les 404 front.
+ */
+const getStatisticsTimeline = async (req, res) => {
+  try {
+    const { time_range = '24h', limit = 500 } = req.query;
+    const now = new Date();
+    const current = await new Promise((resolve) => {
+      const fakeRes = {
+        json: (data) => resolve(data),
+      };
+      getAggregatedStatistics(req, fakeRes);
+    });
+    const stats = current?.statistics || {};
+    const point = {
+      timestamp: now.toISOString(),
+      total_users: Number(stats?.users?.total || 0),
+      active_users: Number(stats?.users?.active || 0),
+      total_applications: Number(stats?.applications?.total || 0),
+      total_companies: Number(stats?.companies?.total || 0),
+      total_contacts: Number(stats?.contacts?.total || 0),
+      total_interviews: Number(stats?.interviews?.total || 0),
+      new_this_week: Number(stats?.summary?.new_this_week || 0),
+      new_this_month: Number(stats?.summary?.new_this_month || 0),
+      applications_by_status: stats?.applications?.by_status || {},
+      users_by_role: stats?.users?.by_role || {},
+      companies_by_industry: stats?.companies?.by_industry || {},
+    };
+    return res.json({
+      success: true,
+      time_range,
+      limit: Number(limit) || 500,
+      timeline: [point],
+      note: 'Timeline simplifiée (fallback) en attendant la persistance historique dédiée.',
+    });
+  } catch (error) {
+    logger.error('Erreur récupération timeline statistiques:', error);
+    return res.json({ success: true, timeline: [] });
+  }
+};
+
+const getStatisticsSummary = async (req, res) => {
+  try {
+    const current = await new Promise((resolve) => {
+      const fakeRes = {
+        json: (data) => resolve(data),
+      };
+      getAggregatedStatistics(req, fakeRes);
+    });
+    return res.json({
+      success: true,
+      summary: current?.statistics?.summary || {
+        total_users: 0,
+        total_applications: 0,
+        total_companies: 0,
+        total_contacts: 0,
+        total_interviews: 0,
+        active_users: 0,
+        new_this_week: 0,
+        new_this_month: 0,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Erreur récupération résumé statistiques:', error);
+    return res.json({ success: true, summary: null });
+  }
+};
+
+const collectStatistics = async (req, res) => {
+  return res.json({
+    success: true,
+    message: 'Collecte pilotée par les services sources; endpoint de compatibilité actif.',
+    timestamp: new Date().toISOString(),
+  });
+};
+
 module.exports = {
-  getAggregatedStatistics
+  getAggregatedStatistics,
+  getStatisticsTimeline,
+  getStatisticsSummary,
+  collectStatistics,
 };
 

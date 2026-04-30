@@ -128,6 +128,8 @@ services:
       - TZ=${TZ:-Europe/Paris}
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
       - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
+      # Build/cache Next en dehors de /app (bind mount) pour éviter EACCES sur fichiers root hérités.
+      - NEXT_DIST_DIR=/tmp/.next-local
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
@@ -135,7 +137,9 @@ services:
       - ./tests/user-journey-reports:/tmp/tests/user-journey-reports
       - /app/node_modules
       - /app/.next
-    user: "1001:1001"
+    # Aligner l'utilisateur conteneur sur l'utilisateur hôte (pactivisme=1000)
+    # pour éviter EACCES sur /app/tsconfig.json et autres fichiers bind-mount.
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     working_dir: /app
     networks:
       - jobbingtrack-network

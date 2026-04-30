@@ -81,6 +81,7 @@ export interface TimeRangeSelectorProps {
   canGoNext: boolean;
   onPeriodNow?: () => void;
   options?: TimeRangeOption[];
+  showNavigationHint?: boolean;
 }
 
 export function TimeRangeSelector({
@@ -98,6 +99,7 @@ export function TimeRangeSelector({
   canGoNext,
   onPeriodNow,
   options = DEFAULT_OPTIONS,
+  showNavigationHint = true,
 }: TimeRangeSelectorProps) {
   return (
     <>
@@ -151,9 +153,11 @@ export function TimeRangeSelector({
           {PERIODE_ACTUELLE_LABEL}
         </button>
       </div>
-      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 max-w-4xl leading-relaxed">
-        {periodNavigationHint(timeRange, useCustomRange, customEnd)}
-      </p>
+      {showNavigationHint && (
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 max-w-4xl leading-relaxed">
+          {periodNavigationHint(timeRange, useCustomRange, customEnd)}
+        </p>
+      )}
 
       <details className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden mt-3">
         <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 [list-style:inside]">

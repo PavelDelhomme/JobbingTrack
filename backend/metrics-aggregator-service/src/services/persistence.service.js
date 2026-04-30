@@ -1043,6 +1043,47 @@ class PersistenceService {
   }
 
   /**
+   * Historique des checks health / temps de réponse par service (table `service_availability_history`).
+   */
+  async getServiceAvailabilityHistory(serviceName, options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    if (this._missingTables.has('service_availability_history')) {
+      return [];
+    }
+    const { startDate, endDate } = options;
+    const limit = clampMetricsHistoryLimit(
+      typeof options.limit === 'number' ? options.limit : parseInt(String(options.limit ?? ''), 10),
+      400
+    );
+    const where = { serviceName };
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = new Date(startDate);
+      if (endDate) where.timestamp.lte = new Date(endDate);
+    }
+    try {
+      const rows = await prisma.serviceAvailabilityHistory.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      });
+      const chronological = rows.slice().reverse();
+      return chronological.map((row) => ({
+        ...row,
+        timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
+      }));
+    } catch (error) {
+      if (this._isTableMissing(error, 'service_availability_history')) {
+        this._warnOnceMissing('service_availability_history', 'service_availability_history');
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Récupérer les métriques de sécurité récentes
    */
   async getSecurityMetrics(hours = 24) {

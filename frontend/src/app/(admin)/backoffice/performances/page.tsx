@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import {
   TimeRangeSelector,
-  ChartPeriodCaption,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
   injectMetricTimeGaps,
@@ -22,8 +21,6 @@ import {
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
-  getEffectiveDisplayTimeZoneId,
-  getResolvedBrowserTimeZoneId,
   metricRowToTimeMs,
   metricTimestampToMs,
   normalizeMetricTimestampToIso,
@@ -42,7 +39,6 @@ import {
 } from 'recharts';
 import { analyticsService } from '@/lib/api/analytics.service';
 import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
-import { PerformancesSubNav } from './PerformancesSubNav';
 import { pickSystemResponseTimeAvgMsFromRow } from '@/lib/metrics/pickSystemResponseTimeFromRow';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import type { MetricsData } from '@/lib/interfaces';
@@ -301,8 +297,8 @@ export default function PerformancesPage() {
   });
 
   const { rangeStart, rangeEnd } = getParams();
-  const chartXDomainMin = rangeStart.getTime();
-  const chartXDomainMax = rangeEnd.getTime();
+  const requestedDomainMin = rangeStart.getTime();
+  const requestedDomainMax = rangeEnd.getTime();
   const rangeLabel = useCustomRange
     ? formatCustomRangeLabel(customStart, customEnd)
     : formatRangeLabel(rangeStart, rangeEnd, timeRange);
@@ -424,6 +420,38 @@ export default function PerformancesPage() {
       };
     });
   }, [rawData]);
+  const dataTimeBounds = useMemo(() => {
+    const points = chartData
+      .filter((d) => Number.isFinite(d.timeMs))
+      .filter(
+        (d) =>
+          d.cpu != null ||
+          d.memory != null ||
+          d.networkRxMb != null ||
+          d.networkTxMb != null ||
+          d.responseTimeMs != null
+      );
+    if (points.length === 0) return null;
+    const first = points[0]?.timeMs;
+    const last = points[points.length - 1]?.timeMs;
+    if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+    return { min: Number(first), max: Number(last) };
+  }, [chartData]);
+  const chartDomain = useMemo(() => {
+    if (!dataTimeBounds) {
+      return { min: requestedDomainMin, max: requestedDomainMax, autoFitted: false };
+    }
+    const requestedSpan = Math.max(1, requestedDomainMax - requestedDomainMin);
+    const dataSpan = Math.max(1, dataTimeBounds.max - dataTimeBounds.min);
+    const coverageRatio = dataSpan / requestedSpan;
+    // Si la période demandée est largement vide (service démarré récemment), on cadre sur la vraie plage.
+    if (coverageRatio < 0.45) {
+      return { min: dataTimeBounds.min, max: dataTimeBounds.max, autoFitted: true };
+    }
+    return { min: requestedDomainMin, max: requestedDomainMax, autoFitted: false };
+  }, [dataTimeBounds, requestedDomainMin, requestedDomainMax]);
+  const chartXDomainMin = chartDomain.min;
+  const chartXDomainMax = chartDomain.max;
 
   const perfAxisShowDate =
     chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;
@@ -465,11 +493,6 @@ export default function PerformancesPage() {
     requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }, [loading, chartData.length, showResponseTime, locationHash]);
 
-  const lastRawTimestamp = useMemo(() => {
-    if (rawData.length === 0) return null;
-    return rawData[rawData.length - 1]?.timestamp ?? null;
-  }, [rawData]);
-
   const liveEndpointBars = useMemo(() => {
     const parseMs = (v: unknown): number | null => {
       if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
@@ -492,6 +515,30 @@ export default function PerformancesPage() {
       .filter((r): r is { name: string; ms: number; status?: string } => r.ms != null)
       .sort((a, b) => b.ms - a.ms)
       .slice(0, 20);
+  }, [liveMetrics]);
+
+  const liveEndpointNoMeasure = useMemo(() => {
+    const parseMs = (v: unknown): number | null => {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+      if (typeof v === 'string') {
+        const n = parseFloat(v.replace(/[^\d.]/g, ''));
+        return Number.isFinite(n) && n > 0 ? n : null;
+      }
+      return null;
+    };
+    const list = liveMetrics?.servicesList ?? [];
+    return list
+      .map((s) => {
+        const ms =
+          parseMs(s.responseTimeMs) ??
+          parseMs(s.responseTime) ??
+          parseMs(s.health?.responseTime);
+        const name = (s.displayName || s.name || 'service').slice(0, 48);
+        return { name, ms };
+      })
+      .filter((r) => r.ms == null)
+      .map((r) => r.name)
+      .slice(0, 30);
   }, [liveMetrics]);
 
   const liveOverviewMs = useMemo(() => {
@@ -532,22 +579,13 @@ export default function PerformancesPage() {
             Analytics (appli &amp; utilisateurs)
           </Link>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Vue dédiée (drawer « Performances ») : historique agrégateur, socle graphes réutilisable (lot A —{' '}
-          <code className="text-[11px]">TODOS.md</code>).
-        </p>
 
         <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
               Performances
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-              Historique système : CPU, mémoire, temps de réponse agrégé (si exposé par la persistance) et réseau
-              sur la période choisie (snapshots agrégateur).
-            </p>
           </div>
-          <PerformancesSubNav />
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <TimeRangeSelector
               timeRange={timeRange}
@@ -563,6 +601,7 @@ export default function PerformancesPage() {
               goNext={goNext}
               canGoNext={canGoNext}
               onPeriodNow={handlePeriodNow}
+              showNavigationHint={false}
             />
           </div>
         </div>
@@ -582,10 +621,6 @@ export default function PerformancesPage() {
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                 CPU et mémoire (%)
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                Aires séparées et axes zoomés — même logique que l’historique du détail service (socle graphes).
-              </p>
-              <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[240px] sm:min-h-[400px]">
                 <SystemCpuMemoryAreaCharts
                   chartData={chartData}
@@ -605,12 +640,6 @@ export default function PerformancesPage() {
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                   Temps de réponse agrégé (ms)
                 </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  Moyenne côté persistance (<code className="text-[11px]">responseTimeAvg</code> /{' '}
-                  <code className="text-[11px]">avg_response_time_ms</code>) — complète la lecture CPU / mémoire ;
-                  le détail par service reste sur le monitoring dédié.
-                </p>
-                <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[220px] sm:min-h-[280px]">
                   <ResponsiveContainer width="100%" height={280} minHeight={220}>
                     <LineChart
@@ -689,11 +718,6 @@ export default function PerformancesPage() {
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                     Réseau — cumul (Mo)
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Compteurs agrégés (souvent croissants). Pour repérer les pics d&apos;activité, utiliser le graphique
-                    « débit » ci-dessous ; corrélation visuelle avec CPU / mémoire : cartes du dessus.
-                  </p>
-                  <ChartPeriodCaption label={rangeLabel} />
                   <div className="w-full min-h-[240px] sm:min-h-[280px]">
                     <ResponsiveContainer width="100%" height={280} minHeight={220}>
                       <LineChart
@@ -753,12 +777,6 @@ export default function PerformancesPage() {
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                     Réseau — débit estimé (Mo/min)
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Δ cumul / Δ temps entre points (après compression affichage). Chute à 0 si trou &gt; 1 h ou reset
-                    compteur. Compare les pics à la courbe CPU / mémoire pour voir si une charge réseau coïncide avec
-                    une charge calcul.
-                  </p>
-                  <ChartPeriodCaption label={rangeLabel} />
                   <div className="w-full min-h-[220px] sm:min-h-[280px]">
                     <ResponsiveContainer width="100%" height={280} minHeight={220}>
                       <LineChart
@@ -824,11 +842,6 @@ export default function PerformancesPage() {
                     <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                       Corrélation CPU (%) vs débit réseau (Mo/min)
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Axe gauche : CPU % — axe droit : RX/TX en Mo/min (même échelle de temps que les graphiques
-                      ci-dessus).
-                    </p>
-                    <ChartPeriodCaption label={rangeLabel} />
                     <SystemCpuNetworkCorrelationChart
                       rows={networkChartRows}
                       xDomainMin={chartXDomainMin}
@@ -846,54 +859,6 @@ export default function PerformancesPage() {
               <span className="block">
                 {rawData.length} points bruts → {chartData.length} points affichés (compression pour lisibilité).
               </span>
-              {lastRawTimestamp != null && (
-                <span className="block text-gray-600 dark:text-gray-300">
-                  <strong className="font-medium">Dernier point (heure locale) :</strong>{' '}
-                  {formatLocalDateTime(lastRawTimestamp)}
-                </span>
-              )}
-              {process.env.NODE_ENV === 'development' && (() => {
-                const browserTz = getResolvedBrowserTimeZoneId();
-                const displayTz = getEffectiveDisplayTimeZoneId();
-                return (
-                <span className="block text-xs text-amber-800/90 dark:text-amber-200/90 mt-1">
-                  Diagnostic (dev) — <strong>Intl (navigateur)</strong> :{' '}
-                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">{browserTz || '—'}</code>
-                  {' · '}
-                  <strong>Affichage graphiques</strong> :{' '}
-                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">{displayTz}</code>
-                  {lastRawTimestamp != null ? (
-                    <>
-                      {' '}
-                      · dernier horodatage API (UTC, suffixe Z) :{' '}
-                      <code className="break-all rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">
-                        {lastRawTimestamp}
-                      </code>
-                    </>
-                  ) : null}
-                  {browserTz !== displayTz ? (
-                    <span className="block mt-0.5">
-                      Correction automatique active (ex. Reykjavik/Islande → heure France métropolitaine) : rien à
-                      lancer à la main pour les graphiques. Optionnel :{' '}
-                      <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">
-                        NEXT_PUBLIC_CHART_TIMEZONE
-                      </code>{' '}
-                      dans le <code className="rounded px-1">.env</code> pour un autre fuseau IANA ; les variables{' '}
-                      <code className="rounded px-1">NEXT_PUBLIC_*</code> ne sont prises en compte qu’après
-                      redémarrage du processus Next ou du conteneur <code className="rounded px-1">frontend</code>{' '}
-                      (<code className="rounded px-1">make restart</code> côté Docker).
-                    </span>
-                  ) : null}
-                  {(browserTz === 'UTC' || browserTz === 'Etc/UTC') && browserTz === displayTz ? (
-                    <span className="block mt-0.5">
-                      Le navigateur annonce <strong>UTC</strong> : les graduations suivent l’UTC. Définis{' '}
-                      <code className="rounded bg-amber-100/80 px-1">NEXT_PUBLIC_CHART_TIMEZONE=Europe/Paris</code>{' '}
-                      ou corrige le fuseau du navigateur / du système.
-                    </span>
-                  ) : null}
-                </span>
-                );
-              })()}
             </p>
           </>
         )}
@@ -903,11 +868,6 @@ export default function PerformancesPage() {
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
               Temps de réponse des endpoints (instantané)
             </h2>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Données issues du même flux que le tableau de bord : <code className="text-[11px]">GET /api/v1/metrics</code>{' '}
-              sur le metrics-aggregator (sondes HTTP par microservice). Complète la courbe « persistance »
-              ci-dessus, qui reflète l’agrégat enregistré dans le temps.
-            </p>
             {liveOverviewMs != null && (
               <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                 Moyenne monitoring-c / agrégat :{' '}
@@ -945,8 +905,15 @@ export default function PerformancesPage() {
                 </ResponsiveContainer>
               </div>
             )}
+            {liveEndpointNoMeasure.length > 0 && (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
+                <span className="font-medium">Services sans mesure instantanée :</span>{' '}
+                {liveEndpointNoMeasure.join(', ')}
+              </div>
+            )}
           </div>
         )}
+
       </div>
     </AdminLayout>
   );

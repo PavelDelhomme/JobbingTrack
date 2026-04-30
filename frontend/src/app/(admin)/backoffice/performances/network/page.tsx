@@ -450,9 +450,6 @@ export default function NetworkPerformancePage() {
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                 Réception (RX) et émission (TX) — Mo (cumul)
               </h2>
-              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                Compteurs agrégés ; le graphique suivant montre le débit dérivé entre points.
-              </p>
               <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[240px] sm:min-h-[360px]">
                 <ResponsiveContainer width="100%" height={360} minHeight={240}>
