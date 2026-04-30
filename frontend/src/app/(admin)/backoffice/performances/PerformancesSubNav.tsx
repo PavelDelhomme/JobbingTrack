@@ -14,6 +14,7 @@ const TABS = [
   { href: '/backoffice/performances/containers', label: 'Conteneurs', hash: null },
   { href: '/backoffice/performances/disk', label: 'Disque', hash: null },
   { href: '/backoffice/performances/network', label: 'Réseau (détail)', hash: null },
+  { href: '/backoffice/performances/correlation', label: 'Corrélation', hash: null },
 ] as const
 
 function useLocationHash(): string {

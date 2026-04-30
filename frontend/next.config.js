@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Évite les conflits quand `.next` a été créé par root (exécution Docker)
+    // et contourne les bundles potentiellement corrompus.
+    distDir: process.env.NEXT_DIST_DIR || '.next-local',
     output: 'standalone',
     // Permet au build de passer malgré les warnings ESLint (lint à lancer séparément)
     eslint: { ignoreDuringBuilds: true },
@@ -42,6 +45,8 @@ const nextConfig = {
         deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
         imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
         minimumCacheTTL: 60,
+        // Configuration pour éviter les erreurs de fichiers manquants
+        unoptimized: true,
     },
     env: {
         // Ports externes
@@ -179,11 +184,6 @@ const nextConfig = {
         };
 
         return config;
-    },
-    
-    // Configuration pour éviter les erreurs de fichiers manquants
-    images: {
-        unoptimized: true,
     },
 };
 

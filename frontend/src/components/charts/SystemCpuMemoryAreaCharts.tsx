@@ -61,9 +61,6 @@ export function SystemCpuMemoryAreaCharts({
         <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">
           Utilisation CPU
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-          Axe Y zoomé automatiquement quand la charge est faible (même principe que le détail conteneur).
-        </p>
         <ResponsiveContainer width="100%" height={chartHeight} minHeight={180}>
           <AreaChart data={rows} margin={{ top: 8, right: 16, left: 4, bottom: bottom }}>
             <defs>

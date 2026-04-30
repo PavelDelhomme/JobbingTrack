@@ -224,6 +224,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Conteneurs', href: '/backoffice/performances/containers', icon: '🐳' },
             { name: 'Disque', href: '/backoffice/performances/disk', icon: '💽' },
             { name: 'Réseau (détail)', href: '/backoffice/performances/network', icon: '🌐' },
+            { name: 'Corrélation', href: '/backoffice/performances/correlation', icon: '🧩' },
           ],
         },
         {

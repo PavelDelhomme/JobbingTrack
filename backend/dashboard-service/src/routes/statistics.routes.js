@@ -6,6 +6,9 @@ const controller = require('../controllers/statistics.controller');
 // Route principale pour les statistiques agrégées (avec auth optionnel)
 // L'authentification sera vérifiée par l'API Gateway
 router.get('/', controller.getAggregatedStatistics);
+router.get('/timeline', controller.getStatisticsTimeline);
+router.get('/summary', controller.getStatisticsSummary);
+router.post('/collect', controller.collectStatistics);
 
 module.exports = router;
 

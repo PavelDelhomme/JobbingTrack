@@ -4,6 +4,12 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+### Mise à jour rapide (29 avril 2026)
+
+- **Erreur JS bloquante front corrigée** : le chargement infini avec `layout.js` (`literal not terminated`) était causé par un cache/bundle Next invalide dans `frontend/.next` possédé par `root`.
+- **Correctif appliqué** : `frontend/next.config.js` utilise désormais `distDir: process.env.NEXT_DIST_DIR || '.next-local'` pour forcer un dossier de build écrivable par l’utilisateur.
+- **Impact** : `next dev` redémarre correctement sans rester bloqué sur “Chargement…”. Si le navigateur conserve un ancien bundle, faire un hard refresh (`Ctrl+F5`).
+
 ### Validation produit, PR et tests (11 avril 2026)
 
 - **Pull requests** : **aucune PR** tant que le porteur ne l’a pas demandé explicitement dans la conversation (rappel aussi dans **`PLAN.md`** en-tête).
@@ -177,6 +183,9 @@
 - **Performance (panneau)** : affichage du temps de réponse même à **0 ms** ; **débit d’erreurs** exprimé en **erreurs/min** (cohérent avec `rate_per_min` côté agrégateur, ce n’est pas un pourcentage).
 - **CPU projet** : sous-titre qui précise que le **total %** est une **somme sur les conteneurs détectés** et peut varier si la liste change.
 - **Suite du chantier** : sécurité multi-vues, logs multi-services, suivi-intérim, doc — détaillé dans **`PLAN.md`** / **`TODOS.md`**.
+- **30/04/2026 — Corrélation Performances (suite)** : tri colonnes sur la synthèse + tri/filtres sur le tableau incidents ; liste services ordonnée (**en mémoire d’abord**, puis alphabétique). Corrélation incidents resserrée (borne d’alignement temporel) + fallback CPU/TR plus robuste. Limite constatée : plusieurs logs ne portent pas encore `requestId`/IP/endpoint dans leur payload — enrichissement à faire côté services / gateway pour investigation avancée.
+- **30/04/2026 — Contrat de logs (démarrage)** : `auth-service` branche un middleware de contexte requête (`requestId`, `correlationId`, IP, endpoint, méthode, protocole, port) et injecte automatiquement ces champs dans les logs `WARN/ERROR` envoyés au central logger. Cela améliore la corrélation backoffice incidents ; extension aux autres services encore à faire.
+- **30/04/2026 — Contrat de logs (extension)** : même mécanisme branché sur `dashboard-service` et `security-service` (middleware contexte + enrichissement logger). Effet attendu : plus de colonnes exploitables (`requestId`/IP/endpoint/proto/port) dans la corrélation incidents. Point restant : certains services n’émettent toujours pas d’I/O historisé, visibilité ajoutée côté UI (`Qualité des données`).
 
 ### Mise à jour sécurité (26/03/2026)
 

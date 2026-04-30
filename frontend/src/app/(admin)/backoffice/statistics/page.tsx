@@ -100,6 +100,7 @@ interface Statistics {
     total: number
     byRole: Record<string, number>
     activeUsers: number
+    activeSource?: string
     newThisMonth: number
     newThisWeek?: number
   }
@@ -211,6 +212,12 @@ const PIE_COLORS = [
   COLORS.pink,
   COLORS.indigo
 ]
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Admin',
+  SUPER_ADMIN: 'Super admin',
+  USER: 'Utilisateur',
+}
 
 export default function StatisticsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -574,6 +581,7 @@ export default function StatisticsPage() {
           total: appStats?.users?.total || 0,
           byRole: appStats?.users?.by_role || {},
           activeUsers: appStats?.users?.active || 0,
+          activeSource: appStats?.users?.active_source,
           newThisMonth: appStats?.users?.new_this_month || 0,
           newThisWeek: appStats?.users?.new_this_week ?? 0
         },
@@ -860,6 +868,21 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
     ? (stats.contacts?.total || 0) - (previousStats.contacts?.total || 0)
     : 0
 
+  const usersByRoleData = useMemo(
+    () =>
+      Object.entries(stats.users.byRole || {}).map(([role, count]) => ({
+        name: ROLE_LABELS[role] || role,
+        value: Number(count) || 0,
+      })),
+    [stats.users.byRole]
+  )
+  const usersActiveLooksEstimated =
+    stats.users.activeSource !== 'sessions_last_30m' &&
+    typeof stats.users.total === 'number' &&
+    typeof stats.users.activeUsers === 'number' &&
+    stats.users.total > 0 &&
+    stats.users.activeUsers === stats.users.total
+
   return (
     <div className="space-y-6">
       {/* Statistiques des données : totaux + évolution */}
@@ -953,7 +976,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
           value={stats.users.total.toLocaleString()}
           trend={usersTrend}
           color="blue"
-          subtitle={`${stats.users.activeUsers || 0} actifs • ${stats.users.newThisMonth || 0} ce mois`}
+          subtitle={`${stats.users.activeUsers || 0} actifs (${usersActiveLooksEstimated ? 'estimation' : 'mesuré'}) • ${stats.users.newThisMonth || 0} ce mois`}
           trendType="positive-is-good"
         />
         <StatCard
@@ -1067,19 +1090,16 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
           <ResponsiveContainer width="100%" height={300}>
             <RechartsPieChart>
               <Pie
-                data={Object.entries(stats.users.byRole || {}).map(([role, count]) => ({
-                  name: role,
-                  value: count
-                }))}
+                data={usersByRoleData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={false}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
-                {Object.entries(stats.users.byRole || {}).map((entry, index) => (
+                {usersByRoleData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
@@ -1087,6 +1107,20 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
               <Legend />
             </RechartsPieChart>
           </ResponsiveContainer>
+          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+            {usersByRoleData.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                  />
+                  {entry.name}
+                </span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{entry.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Répartition des entreprises par secteur */}
@@ -1191,19 +1225,24 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 </span>
               </div>
             </div>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {usersActiveLooksEstimated
+                ? "Actifs = estimation (actuellement alignée sur le total utilisateurs faute de signal d'activité dédié)."
+                : "Actifs = valeur remontée par le service d'authentification."}
+            </p>
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <ResponsiveContainer width="100%" height={150}>
                 <RechartsPieChart>
                   <Pie
-                    data={Object.entries(stats.users.byRole).map(([name, value]) => ({ name, value }))}
+                    data={usersByRoleData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={50}
-                    label
+                    label={false}
                   >
-                    {Object.entries(stats.users.byRole).map((entry, index) => (
+                    {usersByRoleData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>

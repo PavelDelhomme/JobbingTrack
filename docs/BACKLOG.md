@@ -10,6 +10,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Terminé récemment
 
+- [x] **Fix runtime Next bloqué** : `next.config.js` passe sur un `distDir` utilisateur (`.next-local`) pour contourner les permissions root sur `frontend/.next` et les bundles `layout.js` invalides (29/04).
 - [x] **Fix `getApplication` 500** : relation `activities` (inexistante) → `statusHistory`. (26/02)
 - [x] **Fix routes `isUUID` → `isString`** : IDs Prisma sont des CUIDs, pas UUIDs. (26/02)
 - [x] **Fix `api-e2e.spec.ts`** : credentials desynchronises → `_testCreds` direct. (26/02)
@@ -77,6 +78,9 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [x] **Tests sécurité API** : XSS, SQLi, CSRF, payload overflow (tests/security, security-e2e.spec.ts).
 - [ ] **Alertes email sur incidents critiques** (sécurité très grave, firewall, **down** service / sous-système) — cadrage **`TODOS.md` B11** + **`PREPROD_PRODUCTION_CHECKLIST.md`** § SMTP.
 - [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
+- [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
+- [ ] **Forensics logs — déploiement progressif** : après `auth-service` (30/04), étendre middleware + contexte logger à `application-service`, `dashboard-service`, `security-service` et valider visuellement dans `/backoffice/performances/correlation` la présence effective IP/endpoint/requestId/port/proto.
+- [ ] **Forensics logs — déploiement progressif** : après `auth-service` + `dashboard-service` + `security-service` (30/04), étendre middleware + contexte logger à `application-service`, `company-service`, `contact-service`, `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service` et valider visuellement dans `/backoffice/performances/correlation` la présence effective IP/endpoint/requestId/port/proto.
 
 ## Références
 
