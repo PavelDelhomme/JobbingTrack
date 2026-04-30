@@ -186,6 +186,16 @@ function readMetricValueAsMb(
   return null
 }
 
+function readNestedNumber(obj: Record<string, unknown>, path: string[]): number | null {
+  let cur: unknown = obj
+  for (const key of path) {
+    if (!cur || typeof cur !== 'object') return null
+    cur = (cur as Record<string, unknown>)[key]
+  }
+  const n = Number(cur)
+  return Number.isFinite(n) ? n : null
+}
+
 type AggLogRow = {
   level?: string | null
   message?: string | null
@@ -426,6 +436,15 @@ type RowSummary = {
   rtLastMs: number | null
 }
 
+type LiveContainerFallback = {
+  cpuPercent: number | null
+  memoryPercent: number | null
+  networkRxMb: number | null
+  networkTxMb: number | null
+  ioReadMb: number | null
+  ioWriteMb: number | null
+}
+
 function finiteNums(xs: (number | null | undefined)[]): number[] {
   return xs.filter((x): x is number => x != null && Number.isFinite(x))
 }
@@ -466,9 +485,30 @@ function numericRangeDelta(values: (number | null | undefined)[]): number | null
 function summarizeWindow(
   rows: ContainerPoint[],
   merged: MergedServicePoint[],
-  availability?: AvailabilityPoint[]
+  availability?: AvailabilityPoint[],
+  liveFallback?: LiveContainerFallback
 ): RowSummary | null {
-  if (rows.length === 0) return null
+  if (rows.length === 0) {
+    const rtAvail = finiteNums((availability ?? []).map((a) => a.responseTimeMs))
+    const rtMaxMs = rtAvail.length ? Math.max(...rtAvail) : null
+    const rtLastMs = rtAvail.length ? rtAvail[rtAvail.length - 1] : null
+    if (!liveFallback && rtMaxMs == null && rtLastMs == null) return null
+    return {
+      points: 0,
+      cpuMax: liveFallback?.cpuPercent ?? null,
+      memMax: liveFallback?.memoryPercent ?? null,
+      netDeltaMb:
+        liveFallback && (liveFallback.networkRxMb != null || liveFallback.networkTxMb != null)
+          ? (liveFallback.networkRxMb ?? 0) + (liveFallback.networkTxMb ?? 0)
+          : null,
+      ioDeltaMb:
+        liveFallback && (liveFallback.ioReadMb != null || liveFallback.ioWriteMb != null)
+          ? (liveFallback.ioReadMb ?? 0) + (liveFallback.ioWriteMb ?? 0)
+          : null,
+      rtMaxMs,
+      rtLastMs,
+    }
+  }
   const cpu = finiteNums(rows.map((r) => r.cpu))
   const mem = finiteNums(rows.map((r) => r.memory))
   const rx = rows.map((r) => r.networkRxMb)
@@ -485,6 +525,13 @@ function summarizeWindow(
     const rtx = numericRangeDelta(tx)
     if (rrx != null || rtx != null) netDeltaMb = (rrx ?? 0) + (rtx ?? 0)
   }
+  if ((netDeltaMb == null || netDeltaMb <= 0) && liveFallback) {
+    const rxNow = liveFallback.networkRxMb
+    const txNow = liveFallback.networkTxMb
+    if (rxNow != null || txNow != null) {
+      netDeltaMb = (rxNow ?? 0) + (txNow ?? 0)
+    }
+  }
 
   let ioDeltaMb: number | null = null
   const dir = cumulativePositiveIncrements(ir)
@@ -494,6 +541,13 @@ function summarizeWindow(
     const rir = numericRangeDelta(ir)
     const riw = numericRangeDelta(iw)
     if (rir != null || riw != null) ioDeltaMb = (rir ?? 0) + (riw ?? 0)
+  }
+  if ((ioDeltaMb == null || ioDeltaMb <= 0) && liveFallback) {
+    const readNow = liveFallback.ioReadMb
+    const writeNow = liveFallback.ioWriteMb
+    if (readNow != null || writeNow != null) {
+      ioDeltaMb = (readNow ?? 0) + (writeNow ?? 0)
+    }
   }
 
   const rtMerged = finiteNums(merged.map((m) => m.responseTimeMs))
@@ -522,8 +576,8 @@ function summarizeWindow(
 
   return {
     points: rows.length,
-    cpuMax: cpu.length ? Math.max(...cpu) : null,
-    memMax: mem.length ? Math.max(...mem) : null,
+    cpuMax: cpu.length ? Math.max(...cpu) : liveFallback?.cpuPercent ?? null,
+    memMax: mem.length ? Math.max(...mem) : liveFallback?.memoryPercent ?? null,
     netDeltaMb,
     ioDeltaMb,
     rtMaxMs,
@@ -806,6 +860,7 @@ export default function PerformancesCorrelationPage() {
   const [containerRows, setContainerRows] = useState<Record<string, ContainerPoint[]>>({})
   const [availabilityByService, setAvailabilityByService] = useState<Record<string, AvailabilityPoint[]>>({})
   const [dataQualityByService, setDataQualityByService] = useState<Record<string, ServiceDataQuality>>({})
+  const [liveFallbackByService, setLiveFallbackByService] = useState<Record<string, LiveContainerFallback>>({})
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
   const [focusIncidents, setFocusIncidents] = useState<FocusIncidentSummary | null>(null)
   const [focusIncidentsLoading, setFocusIncidentsLoading] = useState(false)
@@ -962,6 +1017,7 @@ export default function PerformancesCorrelationPage() {
       setContainerRows({})
       setAvailabilityByService({})
       setDataQualityByService({})
+      setLiveFallbackByService({})
       return
     }
     ;(async () => {
@@ -976,7 +1032,7 @@ export default function PerformancesCorrelationPage() {
       }
       const availLimit = Math.min(15000, Math.max(200, fetchLimits.historyLimit * 3))
       const results = await promisePool(loadedOrder, FETCH_CONCURRENCY, async (name) => {
-        const [rows, availRaw, availStats] = await Promise.all([
+        const [rows, availRaw, availStats, liveStats] = await Promise.all([
           analyticsService.getContainerMetricsHistory(name, opts),
           analyticsService.getServiceAvailabilityHistory(name, {
             startDate: opts.startDate,
@@ -984,6 +1040,7 @@ export default function PerformancesCorrelationPage() {
             limit: availLimit,
           }),
           analyticsService.getServiceAvailabilityStats(name, Math.max(1, Math.ceil(hours))),
+          analyticsService.getContainerStats(name),
         ])
         const parsed: ContainerPoint[] = (rows || [])
           .map((r: Record<string, unknown>) => {
@@ -1067,6 +1124,45 @@ export default function PerformancesCorrelationPage() {
           availabilityHistory.length > 0
             ? availabilityHistory
             : buildAvailabilityFallbackFromStats(availStats as AvailabilityStatsLike, bounds)
+        const liveRaw = (liveStats && typeof liveStats === 'object' ? (liveStats as Record<string, unknown>) : {}) as Record<
+          string,
+          unknown
+        >
+        const liveMemoryPct =
+          readNumericField(liveRaw, ['memory_percent', 'memoryPercent']) ?? readNestedNumber(liveRaw, ['memory', 'percentage'])
+        const liveCpuPct = readNumericField(liveRaw, ['cpu_percent', 'cpuPercent']) ?? readNestedNumber(liveRaw, ['cpu', 'percentage'])
+        const liveNetworkRxMb =
+          readMetricValueAsMb(liveRaw, ['network_rx', 'networkRxBytes'], ['network_rx_mb', 'networkRxMb']) ??
+          (readNestedNumber(liveRaw, ['network', 'rx']) != null ? readNestedNumber(liveRaw, ['network', 'rx'])! / (1024 * 1024) : null)
+        const liveNetworkTxMb =
+          readMetricValueAsMb(liveRaw, ['network_tx', 'networkTxBytes'], ['network_tx_mb', 'networkTxMb']) ??
+          (readNestedNumber(liveRaw, ['network', 'tx']) != null ? readNestedNumber(liveRaw, ['network', 'tx'])! / (1024 * 1024) : null)
+        const liveIoReadMb =
+          readMetricValueAsMb(
+            liveRaw,
+            ['block_read', 'blockReadBytes', 'block_io_read_bytes'],
+            ['block_read_mb', 'blockIoReadMb', 'block_io_read_mb']
+          ) ??
+          (readNestedNumber(liveRaw, ['blockIO', 'read']) != null
+            ? readNestedNumber(liveRaw, ['blockIO', 'read'])! / (1024 * 1024)
+            : null)
+        const liveIoWriteMb =
+          readMetricValueAsMb(
+            liveRaw,
+            ['block_write', 'blockWriteBytes', 'block_io_write_bytes'],
+            ['block_write_mb', 'blockIoWriteMb', 'block_io_write_mb']
+          ) ??
+          (readNestedNumber(liveRaw, ['blockIO', 'write']) != null
+            ? readNestedNumber(liveRaw, ['blockIO', 'write'])! / (1024 * 1024)
+            : null)
+        const liveFallback: LiveContainerFallback = {
+          cpuPercent: liveCpuPct,
+          memoryPercent: liveMemoryPct,
+          networkRxMb: liveNetworkRxMb,
+          networkTxMb: liveNetworkTxMb,
+          ioReadMb: Number.isFinite(liveIoReadMb) ? liveIoReadMb : null,
+          ioWriteMb: Number.isFinite(liveIoWriteMb) ? liveIoWriteMb : null,
+        }
         const ioPoints = parsed.filter((p) => p.ioReadMb != null || p.ioWriteMb != null).length
         const trSource: ServiceDataQuality['trSource'] =
           availabilityHistory.length > 0 ? 'history' : availability.length > 0 ? 'stats-fallback' : 'none'
@@ -1080,6 +1176,7 @@ export default function PerformancesCorrelationPage() {
             trSource,
             trPoints: availability.length,
           } satisfies ServiceDataQuality,
+          liveFallback,
         }
       })
       if (cancelled) return
@@ -1110,6 +1207,16 @@ export default function PerformancesCorrelationPage() {
         }
         results.forEach((r) => {
           next[r.name] = r.quality
+        })
+        return next
+      })
+      setLiveFallbackByService((prev) => {
+        const next: Record<string, LiveContainerFallback> = { ...prev }
+        for (const k of Object.keys(next)) {
+          if (!loadedOrder.includes(k)) delete next[k]
+        }
+        results.forEach((r) => {
+          next[r.name] = r.liveFallback
         })
         return next
       })
@@ -1183,11 +1290,11 @@ export default function PerformancesCorrelationPage() {
         const merged = mergedByContainer[name] || []
         const sum =
           loaded && rows && rows.length > 0
-            ? summarizeWindow(rows, merged, availabilityByService[name])
+            ? summarizeWindow(rows, merged, availabilityByService[name], liveFallbackByService[name])
             : null
         return { name, loaded, sum, isFocus: focusName === name }
       })
-  }, [containers, listFilter, loadedOrder, containerRows, mergedByContainer, focusName, availabilityByService])
+  }, [containers, listFilter, loadedOrder, containerRows, mergedByContainer, focusName, availabilityByService, liveFallbackByService])
 
   const sortedTableRows = useMemo(() => {
     if (summarySort.direction == null) return tableRows
