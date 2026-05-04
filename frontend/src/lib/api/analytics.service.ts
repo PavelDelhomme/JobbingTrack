@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { normalizeMetricTimestampToIso } from '@/lib/utils/date';
 
 /** Base des routes `/api/v1/...` de l’agrégateur (hôte direct ou proxy Next). */
@@ -32,9 +32,15 @@ function getMetricsV1Base(): string {
 /** Historiques longs (ex. 30 j.) : évite les timeouts axios par défaut. */
 const METRICS_HISTORY_AXIOS_TIMEOUT_MS = 120_000;
 
-/** Reload React / navigation : requêtes axios annulées — ne pas spammer la console. */
+/** Reload React / navigation / Strict Mode : requêtes axios annulées — ne pas spammer la console. */
 function isBenignAxiosInterrupt(error: unknown): boolean {
-  if (error == null || typeof error !== 'object') return false;
+  if (error == null) return false;
+  if (isAxiosError(error)) {
+    if (error.code === 'ERR_CANCELED' || error.code === 'ECONNABORTED') return true;
+    const msg = String(error.message || '').toLowerCase();
+    if (msg.includes('aborted') || msg.includes('cancel')) return true;
+  }
+  if (typeof error !== 'object') return false;
   const e = error as { code?: string; name?: string; message?: string };
   if (e.code === 'ERR_CANCELED' || e.code === 'ECONNABORTED') return true;
   if (e.name === 'CanceledError' || e.name === 'AbortError') return true;

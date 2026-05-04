@@ -26,7 +26,8 @@ while true; do
   docker compose "$@" logs -f -t 2>&1 | bash "$ROOT_DIR/scripts/color-logs.sh"
   pipe=("${PIPESTATUS[@]}")
   dc="${pipe[0]:-1}"
-  if [[ "$dc" == "130" ]] || [[ "$dc" == "141" ]]; then
+  # 130 = Ctrl+C sur docker compose — quitter. 141 = SIGPIPE (pipeline/couleurs) — reconnecter, ne pas confondre avec Ctrl+C.
+  if [[ "$dc" == "130" ]]; then
     exit 130
   fi
   echo "[logs-watch] Flux interrompu (code ${dc}) — reconnexion dans 3s… (Ctrl+C pour quitter définitivement)"
