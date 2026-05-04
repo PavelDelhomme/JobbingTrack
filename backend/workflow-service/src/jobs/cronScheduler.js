@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const workflowEngine = require('../services/workflowEngine');
 const { PrismaClient } = require('@prisma/client');
-const axios = require('axios');
+const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
@@ -10,61 +10,61 @@ class CronScheduler {
   start() {
     // Vérifie les exécutions en attente toutes les heures
     cron.schedule('0 * * * *', async () => {
-      console.log('🔄 Checking pending workflow executions...');
+      logger.info('🔄 Checking pending workflow executions...');
       await this.processPendingExecutions();
     });
 
     // Vérifie les candidatures anciennes tous les jours à 9h
     cron.schedule('0 9 * * *', async () => {
-      console.log('🔄 Checking applications for auto-followup...');
+      logger.info('🔄 Checking applications for auto-followup...');
       await this.checkApplicationsForAutoFollowup();
     });
 
     // ✅ NOUVEAU - Nettoie la corbeille automatiquement tous les jours à 2h du matin
     cron.schedule('0 2 * * *', async () => {
-      console.log('🗑️ Auto-cleaning trash (items older than 30 days)...');
+      logger.info('🗑️ Auto-cleaning trash (items older than 30 days)...');
       await this.autoCleanTrash();
     });
 
     // ✅ NOUVEAU - Envoie des rappels pour les entretiens à venir (tous les jours à 8h)
     cron.schedule('0 8 * * *', async () => {
-      console.log('📅 Sending interview reminders...');
+      logger.info('📅 Sending interview reminders...');
       await this.sendInterviewReminders();
     });
 
     // ✅ NOUVEAU - Envoie des rappels pour les relances à faire (tous les jours à 10h)
     cron.schedule('0 10 * * *', async () => {
-      console.log('📧 Sending followup reminders...');
+      logger.info('📧 Sending followup reminders...');
       await this.sendFollowupReminders();
     });
 
     // ✅ Notifications "Penser à relancer" (candidatures > 7j sans réponse) + transition auto → NO_RESPONSE à 9h30
     cron.schedule('30 9 * * *', async () => {
-      console.log('📋 Sending application reminders (no response > 7 days) + auto transition...');
+      logger.info('📋 Sending application reminders (no response > 7 days) + auto transition...');
       await this.sendApplicationReminders();
     });
 
     // ✅ 3.2b - Notification "Relance sans réponse" (> 5j après une relance) à 10h15
     cron.schedule('15 10 * * *', async () => {
-      console.log('📧 Sending follow-up no-response reminders...');
+      logger.info('📧 Sending follow-up no-response reminders...');
       await this.sendFollowUpNoResponseReminders();
     });
 
     // ✅ 3.2b - Notification "Retour entretien attendu" (entretien passé sans feedback) à 8h15
     cron.schedule('15 8 * * *', async () => {
-      console.log('📅 Sending interview feedback reminders...');
+      logger.info('📅 Sending interview feedback reminders...');
       await this.sendInterviewFeedbackReminders();
     });
 
-    console.log('⏰ Cron scheduler started with 8 jobs');
-    console.log('   - Pending workflow executions: every hour');
-    console.log('   - Auto-followup check: daily at 9:00');
-    console.log('   - Trash auto-clean: daily at 2:00');
-    console.log('   - Interview reminders: daily at 8:00');
-    console.log('   - Application reminders (7d) + transition NO_RESPONSE: daily at 9:30');
-    console.log('   - Followup reminders: daily at 10:00');
-    console.log('   - Follow-up no-response reminders: daily at 10:15');
-    console.log('   - Interview feedback reminders: daily at 8:15');
+    logger.info('⏰ Cron scheduler started with 8 jobs');
+    logger.info('   - Pending workflow executions: every hour');
+    logger.info('   - Auto-followup check: daily at 9:00');
+    logger.info('   - Trash auto-clean: daily at 2:00');
+    logger.info('   - Interview reminders: daily at 8:00');
+    logger.info('   - Application reminders (7d) + transition NO_RESPONSE: daily at 9:30');
+    logger.info('   - Followup reminders: daily at 10:00');
+    logger.info('   - Follow-up no-response reminders: daily at 10:15');
+    logger.info('   - Interview feedback reminders: daily at 8:15');
   }
 
   async processPendingExecutions() {
@@ -72,7 +72,7 @@ class CronScheduler {
       // Vérifier si la table existe avant d'essayer de la lire
       if (!prisma.workflowRun || typeof prisma.workflowRun.findMany !== 'function') {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowRun not available, processing ignored (development mode)');
+          logger.warn('Table WorkflowRun not available, processing ignored (development mode)');
           return;
         }
         throw new Error('Table WorkflowRun not available');
@@ -93,7 +93,7 @@ class CronScheduler {
       } catch (error) {
         // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
         if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowRun non trouvée, traitement ignoré (mode développement)');
+          logger.warn('Table WorkflowRun non trouvée, traitement ignoré (mode développement)');
           return;
         }
         throw error;
@@ -102,9 +102,9 @@ class CronScheduler {
       for (const execution of pendingExecutions) {
         try {
           await workflowEngine.executeActions(execution);
-          console.log(`✅ Executed workflow ${execution.id}`);
+          logger.info(`✅ Executed workflow ${execution.id}`);
         } catch (error) {
-          console.error(`❌ Error executing workflow ${execution.id}:`, error);
+          logger.error(`❌ Error executing workflow ${execution.id}:`, error);
           
           // Essayer de mettre à jour le statut, ignorer si la table n'existe pas
           try {
@@ -119,15 +119,15 @@ class CronScheduler {
             }
           } catch (updateError) {
             if ((updateError.code === 'P2021' || updateError.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-              console.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
+              logger.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
             } else {
-              console.error('Erreur lors de la mise à jour du statut:', updateError);
+              logger.error('Erreur lors de la mise à jour du statut:', updateError);
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error processing pending executions:', error);
+      logger.error('Error processing pending executions:', error);
     }
   }
 
@@ -136,7 +136,7 @@ class CronScheduler {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
     // Cette logique sera implémentée selon tes besoins spécifiques
-    console.log('Checking applications older than', sevenDaysAgo);
+    logger.info('Checking applications older than', sevenDaysAgo);
   }
 
   /**
@@ -145,7 +145,7 @@ class CronScheduler {
   async autoCleanTrash() {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      console.log(`🗑️ Nettoyage automatique de la corbeille (éléments avant ${thirtyDaysAgo.toISOString()})`);
+      logger.info(`🗑️ Nettoyage automatique de la corbeille (éléments avant ${thirtyDaysAgo.toISOString()})`);
 
       // Supprimer les candidatures anciennes (si le champ deletedAt existe)
       // Note: Le modèle Application dans workflow-service n'a pas de champ deletedAt
@@ -163,12 +163,12 @@ class CronScheduler {
       } catch (error) {
         // Si le champ deletedAt n'existe pas, ignorer silencieusement
         if (error.message?.includes('Unknown argument `deletedAt`')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Application');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Application');
         } else {
           throw error;
         }
       }
-      console.log(`   ✅ ${deletedApplications.count} candidatures supprimées définitivement`);
+      logger.info(`   ✅ ${deletedApplications.count} candidatures supprimées définitivement`);
 
       // Supprimer les contacts anciens (si le champ deletedAt existe)
       let deletedContacts = { count: 0 };
@@ -183,12 +183,12 @@ class CronScheduler {
         });
       } catch (error) {
         if (error.message?.includes('Unknown argument `deletedAt`')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Contact');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Contact');
         } else {
           throw error;
         }
       }
-      console.log(`   ✅ ${deletedContacts.count} contacts supprimés définitivement`);
+      logger.info(`   ✅ ${deletedContacts.count} contacts supprimés définitivement`);
 
       // Supprimer les entretiens anciens (si le champ deletedAt existe)
       let deletedInterviews = { count: 0 };
@@ -203,12 +203,12 @@ class CronScheduler {
         });
       } catch (error) {
         if (error.message?.includes('Unknown argument `deletedAt`')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Interview');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Interview');
         } else {
           throw error;
         }
       }
-      console.log(`   ✅ ${deletedInterviews.count} entretiens supprimés définitivement`);
+      logger.info(`   ✅ ${deletedInterviews.count} entretiens supprimés définitivement`);
 
       // Supprimer les relances anciennes (si le champ deletedAt existe)
       let deletedFollowUps = { count: 0 };
@@ -223,12 +223,12 @@ class CronScheduler {
         });
       } catch (error) {
         if (error.message?.includes('Unknown argument `deletedAt`')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma FollowUp');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma FollowUp');
         } else {
           throw error;
         }
       }
-      console.log(`   ✅ ${deletedFollowUps.count} relances supprimées définitivement`);
+      logger.info(`   ✅ ${deletedFollowUps.count} relances supprimées définitivement`);
 
       // Supprimer les appels anciens (si le champ deletedAt existe)
       let deletedCalls = { count: 0 };
@@ -243,12 +243,12 @@ class CronScheduler {
         });
       } catch (error) {
         if (error.message?.includes('Unknown argument `deletedAt`')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Call');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Call');
         } else {
           throw error;
         }
       }
-      console.log(`   ✅ ${deletedCalls.count} appels supprimés définitivement`);
+      logger.info(`   ✅ ${deletedCalls.count} appels supprimés définitivement`);
 
       // Supprimer les entreprises en corbeille depuis > 30 jours (sans applications liées)
       let deletedCompanies = { count: 0 };
@@ -276,12 +276,12 @@ class CronScheduler {
         }
       } catch (error) {
         if (error.message?.includes('Unknown argument')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Company');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Company');
         } else {
-          console.warn('   ⚠️ Erreur suppression entreprises:', error.message);
+          logger.warn('   ⚠️ Erreur suppression entreprises:', error.message);
         }
       }
-      console.log(`   ✅ ${deletedCompanies.count} entreprises supprimées définitivement`);
+      logger.info(`   ✅ ${deletedCompanies.count} entreprises supprimées définitivement`);
 
       // Supprimer les événements en corbeille depuis > 30 jours
       let deletedEvents = { count: 0 };
@@ -296,18 +296,18 @@ class CronScheduler {
         });
       } catch (error) {
         if (error.message?.includes('Unknown argument')) {
-          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Event');
+          logger.info('   ⚠️ Champ deletedAt non disponible dans le schéma Event');
         } else {
-          console.warn('   ⚠️ Erreur suppression événements:', error.message);
+          logger.warn('   ⚠️ Erreur suppression événements:', error.message);
         }
       }
-      console.log(`   ✅ ${deletedEvents.count} événements supprimés définitivement`);
+      logger.info(`   ✅ ${deletedEvents.count} événements supprimés définitivement`);
 
       const total = deletedApplications.count + deletedContacts.count + deletedInterviews.count + deletedFollowUps.count + deletedCalls.count + deletedCompanies.count + deletedEvents.count;
-      console.log(`🎉 Nettoyage terminé: ${total} éléments supprimés au total`);
+      logger.info(`🎉 Nettoyage terminé: ${total} éléments supprimés au total`);
 
     } catch (error) {
-      console.error('❌ Erreur lors du nettoyage automatique:', error);
+      logger.error('❌ Erreur lors du nettoyage automatique:', error);
     }
   }
 
@@ -344,12 +344,12 @@ class CronScheduler {
             }
           });
         } catch (e) {
-          console.warn('   Notification rappel entretien:', e.message);
+          logger.warn('   Notification rappel entretien:', e.message);
         }
       }
-      console.log(`   📅 ${upcoming.length} rappels entretien créés`);
+      logger.info(`   📅 ${upcoming.length} rappels entretien créés`);
     } catch (error) {
-      console.error('❌ Erreur rappels entretiens:', error);
+      logger.error('❌ Erreur rappels entretiens:', error);
     }
   }
 
@@ -388,12 +388,12 @@ class CronScheduler {
             }
           });
         } catch (e) {
-          console.warn('   Notification rappel relance:', e.message);
+          logger.warn('   Notification rappel relance:', e.message);
         }
       }
-      console.log(`   📧 ${followUps.length} rappels relance créés`);
+      logger.info(`   📧 ${followUps.length} rappels relance créés`);
     } catch (error) {
-      console.error('❌ Erreur rappels relances:', error);
+      logger.error('❌ Erreur rappels relances:', error);
     }
   }
 
@@ -449,15 +449,15 @@ class CronScheduler {
             });
             transitionsCount++;
           } catch (e) {
-            console.warn(`   Transition NO_RESPONSE pour ${app.id}:`, e.message);
+            logger.warn(`   Transition NO_RESPONSE pour ${app.id}:`, e.message);
           }
         } catch (e) {
-          console.warn('   Notification relance candidature:', e.message);
+          logger.warn('   Notification relance candidature:', e.message);
         }
       }
-      console.log(`   📋 ${notificationsCreated} notifications "Penser à relancer" créées, ${transitionsCount} transitions → NO_RESPONSE`);
+      logger.info(`   📋 ${notificationsCreated} notifications "Penser à relancer" créées, ${transitionsCount} transitions → NO_RESPONSE`);
     } catch (error) {
-      console.error('❌ Erreur notifications candidatures:', error);
+      logger.error('❌ Erreur notifications candidatures:', error);
     }
   }
 
@@ -514,12 +514,12 @@ class CronScheduler {
           });
           created++;
         } catch (e) {
-          console.warn('   Notification relance sans réponse:', e.message);
+          logger.warn('   Notification relance sans réponse:', e.message);
         }
       }
-      console.log(`   📧 ${created} notifications "Relance sans réponse" créées`);
+      logger.info(`   📧 ${created} notifications "Relance sans réponse" créées`);
     } catch (error) {
-      console.error('❌ Erreur notifications relance sans réponse:', error);
+      logger.error('❌ Erreur notifications relance sans réponse:', error);
     }
   }
 
@@ -562,12 +562,12 @@ class CronScheduler {
           });
           created++;
         } catch (e) {
-          console.warn('   Notification retour entretien:', e.message);
+          logger.warn('   Notification retour entretien:', e.message);
         }
       }
-      console.log(`   📅 ${created} notifications "Retour entretien attendu" créées`);
+      logger.info(`   📅 ${created} notifications "Retour entretien attendu" créées`);
     } catch (error) {
-      console.error('❌ Erreur notifications retour entretien:', error);
+      logger.error('❌ Erreur notifications retour entretien:', error);
     }
   }
 

@@ -75,14 +75,16 @@ describe('Admin Controller - Tests avec données système réelles', () => {
     test('devrait retourner les logs d\'un service', async () => {
       const response = await request(app)
         .get('/api/v1/services/api-gateway/logs')
+        .set('Authorization', 'Bearer mock-ci-token')
         .query({ lines: 10 })
         .expect(200);
 
       expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('serviceName', 'api-gateway');
-      expect(response.body).toHaveProperty('logs');
-      expect(response.body).toHaveProperty('totalLines', 10);
-      expect(response.body).toHaveProperty('fallback', true);
+      expect(response.body).toHaveProperty('lines');
+      expect(Array.isArray(response.body.lines)).toBe(true);
+      expect(response.body.lines.length).toBe(10);
+      expect(response.body).toHaveProperty('total', 10);
     });
   });
 

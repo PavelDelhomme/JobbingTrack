@@ -10,6 +10,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Terminé récemment
 
+- [x] **Forensics `api-gateway` (06/2026)** : corrélation **ALS**, logs structurés + **centralLogger**, **`TRUST_PROXY_HOPS`**, Jest **22/22** — **`STATUS.md`**, **`TODOS.md`**, **`PLAN.md`** A3/B6.
 - [x] **Backoffice + BDD (05/2026)** : colonne **`Company.isTestData`** alignée schéma maître auth + fix SQL `db-push-all` ; gateway **`/api/v1/services`** tolère metrics-aggregator indisponible (réponse fallback, pas 503) — voir **`STATUS.md`**, **`ERRORS.md`**, **`TODOS.md`**.
 - [x] **Fix runtime Next bloqué** : `next.config.js` passe sur un `distDir` utilisateur (`.next-local`) pour contourner les permissions root sur `frontend/.next` et les bundles `layout.js` invalides (29/04).
 - [x] **Fix `getApplication` 500** : relation `activities` (inexistante) → `statusHistory`. (26/02)
@@ -84,7 +85,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **Alertes email sur incidents critiques** (sécurité très grave, firewall, **down** service / sous-système) — cadrage **`TODOS.md` B11** + **`PREPROD_PRODUCTION_CHECKLIST.md`** § SMTP.
 - [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
 - [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
-- [ ] **Forensics logs — déploiement progressif** : lot **05/2026** : `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service` alignés (middleware + central logging) ; **reste** : `api-gateway`, `workflow-service` au besoin, QA `/backoffice/performances/correlation`.
+- [ ] **Forensics logs — déploiement progressif** : lot **05–06/2026** : microservices listés précédemment + **`api-gateway`** + **`workflow-service`** (**ALS** / contexte, Winston, **`centralLogger`**, **`TRUST_PROXY_HOPS`**) ; **reste** : QA porteur `/backoffice/performances/correlation`.
 
 ## Références
 

@@ -221,6 +221,8 @@ type FocusIncidentAlignedRow = {
   ip: string | null
   protocol: string | null
   port: string | null
+  /** Code HTTP issu des métadonnées persistées (ex. proxy gateway : upstreamHttpStatus). */
+  httpStatus: string | null
   message: string
   nearestCpu: number | null
   nearestMemory: number | null
@@ -236,6 +238,7 @@ type IncidentSortKey =
   | 'requestId'
   | 'endpoint'
   | 'ip'
+  | 'httpStatus'
   | 'nearestCpu'
   | 'nearestMemory'
   | 'nearestRtMs'
@@ -270,6 +273,7 @@ function parseIncidentContext(row: AggLogRow): {
   ip: string | null
   protocol: string | null
   port: string | null
+  httpStatus: string | null
 } {
   const metadata = row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, unknown>) : null
   const message = String(row.message || '')
@@ -297,7 +301,23 @@ function parseIncidentContext(row: AggLogRow): {
       ? String(metadata.port)
       : null) ||
     (message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1] ?? null)
-  return { requestId, endpoint, ip, protocol, port: portRaw }
+  let httpFromMeta: string | null = null
+  if (metadata) {
+    for (const k of ['httpStatus', 'statusCode', 'upstreamHttpStatus'] as const) {
+      const v = metadata[k]
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        httpFromMeta = String(Math.trunc(v))
+        break
+      }
+      if (typeof v === 'string' && /^\d{1,3}$/.test(v.trim())) {
+        httpFromMeta = v.trim()
+        break
+      }
+    }
+  }
+  const httpStatus =
+    httpFromMeta ?? message.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1] ?? null
+  return { requestId, endpoint, ip, protocol, port: portRaw, httpStatus }
 }
 
 function nextSortDirection(curr: SortDirection): SortDirection {
@@ -412,6 +432,19 @@ function mergeAvailabilityOntoMerged(
     const rt = bestD <= maxDeltaMs ? bestRt : null
     return { ...p, responseTimeMs: rt }
   })
+}
+
+/** Alias `serviceName` en base (logs centralisés) vs nom conteneur Docker `jobbingtrack-*`. */
+function persistenceServiceAliases(containerFullName: string): string[] {
+  const full = containerFullName.trim()
+  if (!full) return []
+  const out = new Set<string>([full])
+  const noPrefix = full.replace(/^jobbingtrack-/, '')
+  if (noPrefix && noPrefix !== full) {
+    out.add(noPrefix)
+    out.add(`jobbingtrack-${noPrefix}`)
+  }
+  return [...out]
 }
 
 function shortContainerName(full: string) {
@@ -1240,7 +1273,7 @@ export default function PerformancesCorrelationPage() {
         const bounds = computeQueryBounds({ windowMode, presetHours, appliedCustom })
         const [logs, secSummary] = await Promise.all([
           analyticsService.getPersistenceLogs({
-            serviceName: focusName,
+            serviceNames: persistenceServiceAliases(focusName),
             startDate: bounds.start.toISOString(),
             endDate: bounds.end.toISOString(),
             limit: 1200,
@@ -1358,6 +1391,7 @@ export default function PerformancesCorrelationPage() {
           ip: ctx.ip,
           protocol: ctx.protocol,
           port: ctx.port,
+          httpStatus: ctx.httpStatus,
           message: String(row.message || ''),
           nearestCpu: near?.point.cpu ?? near?.point.system_cpu ?? null,
           nearestMemory: near?.point.memory ?? null,
@@ -1381,7 +1415,7 @@ export default function PerformancesCorrelationPage() {
     const q = incidentSearch.trim().toLowerCase()
     if (q) {
       rows = rows.filter((r) =>
-        [r.message, r.endpoint, r.ip, r.requestId, r.protocol, r.port]
+        [r.message, r.endpoint, r.ip, r.requestId, r.protocol, r.port, r.httpStatus]
           .filter((v): v is string => typeof v === 'string')
           .some((v) => v.toLowerCase().includes(q))
       )
@@ -1403,6 +1437,12 @@ export default function PerformancesCorrelationPage() {
           return withStr(a.endpoint).localeCompare(withStr(b.endpoint)) * dir
         case 'ip':
           return withStr(a.ip).localeCompare(withStr(b.ip)) * dir
+        case 'httpStatus': {
+          const av = withNum(Number.parseInt(withStr(a.httpStatus), 10))
+          const bv = withNum(Number.parseInt(withStr(b.httpStatus), 10))
+          if (av === bv) return 0
+          return (av - bv) * dir
+        }
         case 'nearestCpu':
           return (withNum(a.nearestCpu) - withNum(b.nearestCpu)) * dir
         case 'nearestMemory':
@@ -1923,17 +1963,24 @@ export default function PerformancesCorrelationPage() {
                               type="search"
                               value={incidentSearch}
                               onChange={(e) => setIncidentSearch(e.target.value)}
-                              placeholder="Filtre texte (message/endpoint/IP/requestId)…"
+                              placeholder="Filtre texte (message/endpoint/IP/HTTP/requestId)…"
                               className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             />
                           </div>
                           {filteredSortedIncidentRows.length === 0 ? (
-                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                              Aucun événement corrélable sur la période (ou logs indisponibles).
-                            </p>
+                            <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
+                              <p>Aucun log persisté WARN/ERROR sur cette période pour ce conteneur (ou agrégateur indisponible).</p>
+                              <p className="text-[11px] leading-snug">
+                                Les logs centralisés ne stockent que WARN/ERROR/FATAL. Vérifiez que{' '}
+                                <strong>jobbingtrack-metrics-aggregator</strong> tourne (<code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">make up-full</code> ou profil
+                                monitoring), que <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">make db-push-all</code> a créé la table{' '}
+                                <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">aggregated_logs</code>, et que{' '}
+                                <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">ENABLE_CENTRAL_LOGGING</code> n’est pas désactivé sur les services.
+                              </p>
+                            </div>
                           ) : (
                             <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-                              <table className="w-full min-w-[980px] text-left text-xs">
+                              <table className="w-full min-w-[1040px] text-left text-xs">
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                   <tr>
                                     <th className="px-2 py-2">
@@ -1959,6 +2006,11 @@ export default function PerformancesCorrelationPage() {
                                     <th className="px-2 py-2">
                                       <button type="button" onClick={() => onToggleIncidentSort('ip')} className="hover:underline">
                                         IP
+                                      </button>
+                                    </th>
+                                    <th className="px-2 py-2 text-right">
+                                      <button type="button" onClick={() => onToggleIncidentSort('httpStatus')} className="hover:underline">
+                                        HTTP
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">Proto</th>
@@ -1999,6 +2051,9 @@ export default function PerformancesCorrelationPage() {
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.endpoint ?? '—'}</td>
                                       <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
                                         {r.ip ?? '—'}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                                        {r.httpStatus ?? '—'}
                                       </td>
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.protocol ?? '—'}</td>
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.port ?? '—'}</td>

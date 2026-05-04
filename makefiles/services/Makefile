@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -1389,6 +1389,11 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo ""
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
+
+# Même pipeline couleur que `logs` : reconnexion automatique si le flux s’interrompt (redémarrage conteneurs, etc.)
+logs-watch: ## Logs temps réel avec reconnexion auto — Ctrl+C pour quitter
+	@chmod +x "$(ROOT_DIR)/scripts/logs-watch.sh" 2>/dev/null; true
+	@cd $(ROOT_DIR) && exec bash "$(ROOT_DIR)/scripts/logs-watch.sh" $(COMPOSE_FILES_ESSENTIAL)
 
 # Logs sans Redis ni Postgres (uniquement services applicatifs + infra légère)
 logs-app: ## Logs en temps réel SANS redis ni postgres (moins de bruit)

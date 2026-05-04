@@ -19,6 +19,8 @@ describe('API Gateway - Tests de base', () => {
   test('CORS headers devraient être présents', async () => {
     const response = await request(app)
       .options('/api/v1/auth/login')
+      .set('Origin', 'http://localhost:8080')
+      .set('Access-Control-Request-Method', 'POST')
       .expect(200);
 
     // Vérifier que la requête OPTIONS fonctionne
