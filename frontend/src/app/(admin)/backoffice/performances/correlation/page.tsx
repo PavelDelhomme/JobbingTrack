@@ -267,6 +267,18 @@ function countSecuritySignalsInLogs(rows: AggLogRow[]): number {
   }).length
 }
 
+/** Winston / central logger peuvent imbriquer les champs dans `metadata.metadata`. */
+function mergeAggLogMetadata(row: AggLogRow): Record<string, unknown> | null {
+  const raw = row.metadata
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const o = raw as Record<string, unknown>
+  const inner = o.metadata
+  if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+    return { ...o, ...(inner as Record<string, unknown>) }
+  }
+  return o
+}
+
 function parseIncidentContext(row: AggLogRow): {
   requestId: string | null
   endpoint: string | null
@@ -275,7 +287,7 @@ function parseIncidentContext(row: AggLogRow): {
   port: string | null
   httpStatus: string | null
 } {
-  const metadata = row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, unknown>) : null
+  const metadata = mergeAggLogMetadata(row)
   const message = String(row.message || '')
   const requestIdFromMessage =
     message.match(/\b(?:request[_ -]?id|correlation[_ -]?id)\s*[:=]\s*([a-zA-Z0-9-]{6,})/i)?.[1] ?? null

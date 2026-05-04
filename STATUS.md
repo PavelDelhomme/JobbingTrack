@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 6 mai 2026 — **Gateway forensics** livrée (§ **6 mai 2026**). **Lot A1 (socle graphes, rappel 7 avril)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
+**Dernière mise à jour** : 7 mai 2026 — correctifs **corrélation / logs / console** (§ **7 mai 2026**) ; point d’entrée précédent **6 mai 2026** — **Gateway forensics** (§ **6 mai 2026**). **Lot A1 (socle graphes, rappel 7 avril)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -14,6 +14,15 @@
 
 - **`application-service`**, **`company-service`**, **`contact-service`** : même schéma que auth/dashboard/security — middleware **`requestContext`** (IDs corrélation, IP via `trust proxy`, endpoint, port local), enrichissement Winston pour WARN/ERROR, envoi optionnel vers metrics-aggregator via **`centralLogger`** (`ENABLE_CENTRAL_LOGGING`, dépendance **axios** ajoutée côté company).
 - **Suite** : étendre aux autres microservices listés dans **`TODOS.md`** / **`docs/BACKLOG.md`**, puis QA corrélation `/backoffice/performances/correlation`.
+
+### 7 mai 2026 — Corrélation perf, `logs-watch`, rechargements navigateur (PLAN A3 / suite)
+
+- **`scripts/logs-watch.sh`** : le code de sortie **141** (souvent **SIGPIPE** sur le pipe vers `color-logs.sh` quand le flux Docker se coupe) **ne quitte plus** comme un Ctrl+C — **seul 130** arrête ; **141** déclenche la **reconnexion** en boucle (affichage couleurs inchangé).
+- **Front** — **`analytics.service.ts`** : les erreurs axios **bénignes** au rechargement de page (**`ECONNABORTED`**, *Request aborted*, annulation React) sont mieux filtrées (**`isAxiosError`**) pour éviter le spam console « Erreur stats … ».
+- **Corrélation** — **`/backoffice/performances/correlation`** : **`parseIncidentContext`** fusionne désormais **`metadata`** et un éventuel sous-objet **`metadata.metadata`** (double imbrication côté Winston / central logger), pour remplir **requestId**, **endpoint**, **IP**, **HTTP**, etc. quand les champs sont imbriqués.
+- **Browserslist** : avertissement *caniuse-lite is N months old* — lancer dans **`frontend/`** : **`npm run browserslist:update`** (script ajouté au **`package.json`**).
+- **Rechargement** : **`NS_BINDING_ABORTED`** / XHR interrompus pendant une navigation ou un strict remount sont **courants** ; après correctif, les logs « erreur » associées ne devraient plus polluer la console pour les annulations attendues. **Reste** : QA porteur — tableau incidents **Léger / Complet**, colonnes pleines, série **I/O bloc** / cumuls ; voir **`TODOS.md`** (graphe corrélation, observabilité qualité données).
+- **Sécurité / tests** : cible **`make test-security`** (voir **`makefiles/tests/Makefile`**) — ne pas lancer des scénarios de blocage contre **votre** IP admin : utiliser **`LAB_BLOCK_IP`** / mode lab documenté (**`PLAN.md`** B2, **`TODOS.md`**).
 
 ### 6 mai 2026 — Contrat forensics **`api-gateway`** (PLAN A3 / B6)
 

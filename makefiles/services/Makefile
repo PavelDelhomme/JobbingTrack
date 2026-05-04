@@ -1382,6 +1382,7 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo "📋 Logs en temps réel des services JobbingTrack (suivi continu)"
 	@echo "==============================================================="
 	@echo "⏹️  Pour arrêter : Ctrl+C  |  Pour voir les dernières lignes sans suivi : make logs-tail"
+	@echo "🔁 Conteneurs qui redémarrent / flux coupé : make logs-watch (même pipeline couleurs, reconnexion auto)"
 	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
 	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"

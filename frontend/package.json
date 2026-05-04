@@ -12,6 +12,7 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "type-check": "tsc --noEmit",
+        "browserslist:update": "npx update-browserslist-db@latest",
         "clean": "rm -rf .next node_modules/.cache",
         "test": "npx jest",
         "test:ci": "npx jest --ci --coverage --watchAll=false",
