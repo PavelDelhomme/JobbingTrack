@@ -134,14 +134,17 @@ model Company {
   country           String?   @default("France")
   logoUrl           String?
   description       String?
-  
+
+  // Données de test (nettoyage ciblé) — doit rester aligné avec backend/prisma + company-service (db push = auth uniquement)
+  isTestData        Boolean   @default(false)
+
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
   isArchived        Boolean             @default(false)
   archivedAt        DateTime?
-  
+
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   applications      Application[]      // Candidatures où cette company est l'employeur (entreprise utilisatrice)
@@ -150,10 +153,11 @@ model Company {
   followUps         FollowUp[]
   calls             Call[]
   interviews        Interview[]
-  
+
   @@index([userId])
   @@index([name])
   @@index([companyType])
+  @@index([isTestData])
 }
 
 enum CompanyType {

@@ -12,6 +12,8 @@ const {
   requestCorrelationMiddleware,
   forwardCorrelationHeaders,
 } = require('./middleware/requestCorrelation');
+const { logMetricsAggregatorFailure } = require('./utils/logMetricsAggregatorFailure');
+const { buildFallbackServicesPayload } = require('./utils/servicesMetricsFallback');
 
 // ✅ Import des middlewares de sécurité personnalisés
 const { wafCheck } = require('./middleware/waf');
@@ -1057,25 +1059,9 @@ app.get('/api/v1/services', async (req, res) => {
         throw new Error(`Format de réponse invalide du service de métriques. Réponse: ${JSON.stringify(response.data ? Object.keys(response.data).slice(0, 5) : 'N/A')}`);
       }
     } catch (metricsError) {
-      logger.error('Service de métriques non disponible:', {
-        error: metricsError.message,
-        url: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
-        timestamp: new Date().toISOString()
-      });
-
-      // Retourner une erreur claire au lieu du fallback hardcodé
-      return res.status(503).json({
-        success: false,
-        error: 'Service de métriques indisponible',
-        message: 'Impossible de récupérer les informations des services car le système de monitoring n\'est pas accessible.',
-        details: {
-          metricsServiceUrl: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
-          errorType: metricsError.code || 'UNKNOWN',
-          errorMessage: metricsError.message,
-          timestamp: new Date().toISOString(),
-          suggestion: 'Vérifiez que le service de métriques est démarré avec "make metrics-start" ou "docker-compose up jobbingtrack-metrics-aggregator"'
-        }
-      });
+      logMetricsAggregatorFailure(logger, metricsError, { route: 'GET /api/v1/services (server.js)' });
+      // Même stratégie que admin.controller : 200 + fallback pour ne pas bloquer le backoffice (503 prolongeait « Chargement… »).
+      return res.status(200).json(buildFallbackServicesPayload());
     }
 
     res.status(200).json({

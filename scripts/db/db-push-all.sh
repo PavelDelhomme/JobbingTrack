@@ -107,6 +107,17 @@ else
 fi
 echo ""
 
+# Alignement colonne Company.isTestData (schéma auth maître vs clients company-service ; idempotent)
+if [ -f "${ROOT_DIR}/scripts/db/fix-company-isTestData.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Company.isTestData (schéma métier / auth maître)"
+  if psql_in_postgres -U "${POSTGRES_USER:-jobbingtrack}" -d "${POSTGRES_DB:-jobbingtrack}" -f - < "${ROOT_DIR}/scripts/db/fix-company-isTestData.sql"; then
+    echo "  ✅ Company.isTestData présente (ou déjà OK)"
+  else
+    echo "  ⚠️  fix-company-isTestData ignoré (vérifiez Postgres)"
+  fi
+  echo ""
+fi
+
 # Les autres services ne font PAS de push — ils utilisent leur schema local
 # uniquement pour générer le client Prisma (fait au docker build).
 for service in "${SERVICES[@]}"; do

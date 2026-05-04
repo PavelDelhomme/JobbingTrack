@@ -196,7 +196,9 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 
 **Performance / orchestration** : PERF_LIGHT=1 dans run-all-tests-with-reports.sh. E2E et perf à des étapes séquentielles ; PLAYWRIGHT_WORKERS=2 par défaut pour limiter la charge CPU.
 
-**Service de métriques (metrics-aggregator)** : le message « Service de métriques non disponible: timeout of 10000ms exceeded » dans les logs de l’api-gateway est **normal** si le metrics-aggregator n’est pas démarré ou est lent. La génération de données de test et le backoffice continuent de fonctionner ; seules les métriques/analytics peuvent être indisponibles.
+**Service de métriques (metrics-aggregator)** : timeout (**10000 ms**) ou **ECONNREFUSED** dans les logs gateway sont **fréquents au redémarrage** (cold start, fenêtre pendant laquelle **`make db-push-all`** redémarre explicitement **metrics-aggregator**). À partir de **05/2026** : log **`warn`** + champ **`transient`** pour ces cas ; **`GET /api/v1/services`** renvoie **200** avec liste **fallback** (`metricsUnavailable`, `dataSource: fallback`) pour ne pas bloquer **`/backoffice`** sur une erreur monitoring.
+
+**Postgres `column Company.isTestData does not exist`** : **`make db-push-all`** ne fait **`prisma db push` que depuis auth-service** ; si le modèle **Company** dans **`backend/auth-service/prisma/schema.prisma`** était en retard sur **`company-service`**, la colonne manquait en base alors que Prisma company-service la sélectionne → **500 sur `/api/v1/companies`**. **Corrigé** : champ **`isTestData`** ajouté au modèle Company auth ; **`scripts/db/fix-company-isTestData.sql`** appliqué par **`db-push-all.sh`**.
 
 **Avant de relancer** : `make db-push-all && make seed-auth && make up-full && make tests`.
 

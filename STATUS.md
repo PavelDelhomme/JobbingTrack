@@ -10,6 +10,16 @@
 - **Correctif appliqué** : `frontend/next.config.js` utilise désormais `distDir: process.env.NEXT_DIST_DIR || '.next-local'` pour forcer un dossier de build écrivable par l’utilisateur.
 - **Impact** : `next dev` redémarre correctement sans rester bloqué sur “Chargement…”. Si le navigateur conserve un ancien bundle, faire un hard refresh (`Ctrl+F5`).
 
+### Reprise (30 avril 2026) — logs forensics multi-services
+
+- **`application-service`**, **`company-service`**, **`contact-service`** : même schéma que auth/dashboard/security — middleware **`requestContext`** (IDs corrélation, IP via `trust proxy`, endpoint, port local), enrichissement Winston pour WARN/ERROR, envoi optionnel vers metrics-aggregator via **`centralLogger`** (`ENABLE_CENTRAL_LOGGING`, dépendance **axios** ajoutée côté company).
+- **Suite** : étendre aux autres microservices listés dans **`TODOS.md`** / **`docs/BACKLOG.md`**, puis QA corrélation `/backoffice/performances/correlation`.
+
+### 4 mai 2026 — Backoffice bloqué sur « Chargement… », companies 500, logs gateway métriques
+
+- **Symptômes** : première visite **`/backoffice`** après redémarrage = compilation Next (~12 s) + **`GET /api/v1/services`** pouvait échouer si metrics-aggregator était encore indisponible (**timeout** / **ECONNREFUSED** pendant relance post **`make db-push-all`**). **`GET /api/v1/companies`** pouvait répondre **500** avec Postgres **`Company.isTestData` absent**.
+- **Correctifs dépôt** : **`Company.isTestData`** ajouté au schéma maître **`auth-service/prisma/schema.prisma`** ; **`scripts/db/fix-company-isTestData.sql`** dans **`make db-push-all`** ; gateway **`/api/v1/services`** → **200 + fallback** au lieu de **503** ; logs métriques distinguent **transitoire** (**warn**) vs **erreur durable** (**error**). **À faire localement** : **`make db-push-all`** une fois le code tiré, puis **`make rebuild-service SERVICE=auth-service`** (ou rebuild stack) pour que le conteneur auth embarque le schéma à jour ; en attendant, le script SQL ajoute la colonne directement.
+
 ### Validation produit, PR et tests (11 avril 2026)
 
 - **Pull requests** : **aucune PR** tant que le porteur ne l’a pas demandé explicitement dans la conversation (rappel aussi dans **`PLAN.md`** en-tête).
