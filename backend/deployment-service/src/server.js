@@ -7,18 +7,24 @@ const rollbackRoutes = require('./routes/rollbackRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { logger } = require('./utils/logger');
+const { requestContextMiddleware } = require('./utils/requestContext');
 const { initializeDatabase } = require('./config/database');
 const deploymentScheduler = require('./services/deploymentScheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3016;
+app.set('trust proxy', true);
 
 // Configuration de sécurité et middlewares
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Correlation-Id', 'X-Requested-With'],
+  exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
 }));
+app.use(requestContextMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

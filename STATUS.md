@@ -15,6 +15,17 @@
 - **`application-service`**, **`company-service`**, **`contact-service`** : même schéma que auth/dashboard/security — middleware **`requestContext`** (IDs corrélation, IP via `trust proxy`, endpoint, port local), enrichissement Winston pour WARN/ERROR, envoi optionnel vers metrics-aggregator via **`centralLogger`** (`ENABLE_CENTRAL_LOGGING`, dépendance **axios** ajoutée côté company).
 - **Suite** : étendre aux autres microservices listés dans **`TODOS.md`** / **`docs/BACKLOG.md`**, puis QA corrélation `/backoffice/performances/correlation`.
 
+### 5 mai 2026 — Contrat forensics (suite PLAN A3 / B6)
+
+- **Microservices** : `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service` — middleware **`requestContext`** (IDs, IP, endpoint, port), Winston enrichi, envoi optionnel WARN/ERROR vers metrics-aggregator (**`centralLogger`**), CORS **`X-Request-Id` / `X-Correlation-Id`**, **`trust proxy`**. **`profile-service`** : correction du **`logger.js`** (syntaxe) + **`logger-filter`** local pour l’image Docker.
+- **Suite** : **`api-gateway`** (journalisation structurée des requêtes proxy au-delà des seuls en-têtes forwardés), puis QA corrélation **`/backoffice/performances/correlation`** — voir **`TODOS.md`**, **`PLAN.md`** A3.
+
+### 4 mai 2026 (complément) — Vue d’ensemble backoffice, Redis, séquence pull
+
+- **UI** : sur **`/backoffice`**, suppression des encarts texte « Explication des métriques », « Agrégateur : temps de réponse… » et le paragraphe sur le débit à 0 (allègement demandé par le porteur).
+- **Post-pull** : séquence recommandée **`git pull` → `make db-push-all` → `make up-full`** notée en fin de **`PLAN.md`** et **`TODOS.md`** (**HX5** / séquence stack).
+- **Redis** : warning **`Memory overcommit must be enabled`** → action **hôte** `sysctl vm.overcommit_memory=1` (voir **`TODOS.md`** **HX5**), pas une « erreur » du conteneur seul.
+
 ### 4 mai 2026 — Backoffice bloqué sur « Chargement… », companies 500, logs gateway métriques
 
 - **Symptômes** : première visite **`/backoffice`** après redémarrage = compilation Next (~12 s) + **`GET /api/v1/services`** pouvait échouer si metrics-aggregator était encore indisponible (**timeout** / **ECONNREFUSED** pendant relance post **`make db-push-all`**). **`GET /api/v1/companies`** pouvait répondre **500** avec Postgres **`Company.isTestData` absent**.
