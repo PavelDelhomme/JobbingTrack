@@ -69,6 +69,9 @@ services:
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}
       - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
+      - SERVICE_NAME=jobbingtrack-api-gateway
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src

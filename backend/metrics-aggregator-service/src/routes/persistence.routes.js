@@ -447,12 +447,22 @@ router.post('/logs', async (req, res) => {
  */
 router.get('/logs', async (req, res) => {
   try {
-    const { limit, offset, serviceName, level, startDate, endDate, search } = req.query;
-    
+    const { limit, offset, serviceName, serviceNames, level, startDate, endDate, search } = req.query;
+
+    let serviceNamesList = null;
+    if (serviceNames != null && String(serviceNames).trim()) {
+      serviceNamesList = String(serviceNames)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 32);
+    }
+
     const logs = await persistenceService.getAggregatedLogs({
       limit: parseInt(limit) || 100,
       offset: parseInt(offset) || 0,
       serviceName,
+      serviceNames: serviceNamesList,
       level,
       startDate,
       endDate,

@@ -857,14 +857,17 @@ test-e2e-mobile-email-verification: ## Tests E2E mobile – inscription + vérif
 # ================================================================
 # 🔒 TEST SÉCURITÉ - Tests de sécurité (WAF, auth, injection, etc.)
 # ================================================================
-test-security: ## Tests de sécurité (scripts dans tests/security/)
+test-security: ## Tests de sécurité API gateway (XSS, SQLi, rate limit, headers…). API_GATEWAY_URL par défaut http://127.0.0.1:5002 — ne pas lancer depuis la même IP admin que le pare-feu en mode blocage strict (voir TODOS / docs sécurité lab).
 	$(call check_help_read,test-security)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║        🔒 TESTS SÉCURITÉ - JobbingTrack               ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
 	@if [ -f "tests/security/test-security.js" ]; then \
-		cd tests && node security/test-security.js 2>&1 || exit 1; \
+		cd "$(ROOT_DIR)" && \
+		API_GATEWAY_URL="$${API_GATEWAY_URL:-http://127.0.0.1:5002}" \
+		PROJECT_ROOT="$(ROOT_DIR)" \
+		node tests/security/test-security.js 2>&1 || exit 1; \
 	else \
 		echo "⚠️  tests/security/test-security.js non trouvé"; exit 1; \
 	fi

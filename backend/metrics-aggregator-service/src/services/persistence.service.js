@@ -871,13 +871,22 @@ class PersistenceService {
         return null;
       }
       
+      let metaJson = metadata ?? null;
+      if (metaJson != null && typeof metaJson === 'object') {
+        try {
+          metaJson = JSON.parse(JSON.stringify(metaJson));
+        } catch {
+          metaJson = { _serializationError: true, raw: String(metadata) };
+        }
+      }
+
       const saved = await prisma.aggregatedLog.create({
         data: {
           timestamp: new Date(),
           serviceName: serviceName || 'unknown',
           level: level || 'INFO',
           message: message || '',
-          metadata: metadata || null,
+          metadata: metaJson,
           stackTrace: stackTrace || null,
           userId: userId || null,
           requestId: requestId || null,
@@ -936,6 +945,7 @@ class PersistenceService {
         limit = 100,
         offset = 0,
         serviceName = null,
+        serviceNames = null,
         level = null,
         startDate = null,
         endDate = null,
@@ -943,8 +953,15 @@ class PersistenceService {
       } = options;
 
       const where = {};
-      
-      if (serviceName) where.serviceName = serviceName;
+
+      const namesIn = Array.isArray(serviceNames)
+        ? serviceNames.filter((s) => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+        : null;
+      if (namesIn && namesIn.length > 0) {
+        where.serviceName = { in: namesIn.slice(0, 32) };
+      } else if (serviceName) {
+        where.serviceName = serviceName;
+      }
       if (level) where.level = level;
       
       if (startDate || endDate) {

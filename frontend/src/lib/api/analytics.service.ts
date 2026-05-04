@@ -32,6 +32,21 @@ function getMetricsV1Base(): string {
 /** Historiques longs (ex. 30 j.) : évite les timeouts axios par défaut. */
 const METRICS_HISTORY_AXIOS_TIMEOUT_MS = 120_000;
 
+/** Reload React / navigation : requêtes axios annulées — ne pas spammer la console. */
+function isBenignAxiosInterrupt(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const e = error as { code?: string; name?: string; message?: string };
+  if (e.code === 'ERR_CANCELED' || e.code === 'ECONNABORTED') return true;
+  if (e.name === 'CanceledError' || e.name === 'AbortError') return true;
+  const m = String(e.message || '').toLowerCase();
+  return m.includes('aborted') || m.includes('canceled');
+}
+
+function logAxiosError(context: string, error: unknown): void {
+  if (isBenignAxiosInterrupt(error)) return;
+  console.error(context, error);
+}
+
 /**
  * Aligne chaque ligne sur un instant unique : d’abord **timestamp** normalisé (ISO UTC),
  * puis **`timestampMs` = Date.parse(ts)`** quand c’est possible. Évite un décalage d’environ
@@ -90,7 +105,7 @@ export class AnalyticsService {
 
       return normalizeMetricRows(response.data.data || []);
     } catch (error) {
-      console.error('Erreur récupération historique système:', error);
+      logAxiosError('Erreur récupération historique système:', error);
       return [];
     }
   }
@@ -118,7 +133,7 @@ export class AnalyticsService {
 
       return normalizeMetricRows(response.data.data || []);
     } catch (error) {
-      console.error(`Erreur récupération historique ${containerName}:`, error);
+      logAxiosError(`Erreur récupération historique ${containerName}:`, error);
       return [];
     }
   }
@@ -151,7 +166,7 @@ export class AnalyticsService {
 
       return response.data.data || [];
     } catch (error) {
-      console.error(`Erreur récupération logs ${containerName}:`, error);
+      logAxiosError(`Erreur récupération logs ${containerName}:`, error);
       return [];
     }
   }
@@ -174,7 +189,7 @@ export class AnalyticsService {
 
       return response.data.data || [];
     } catch (error) {
-      console.error(`Erreur récupération logs live ${containerName}:`, error);
+      logAxiosError(`Erreur récupération logs live ${containerName}:`, error);
       return [];
     }
   }
@@ -190,7 +205,7 @@ export class AnalyticsService {
 
       return response.data.data || null;
     } catch (error) {
-      console.error(`Erreur récupération disponibilité ${serviceName}:`, error);
+      logAxiosError(`Erreur récupération disponibilité ${serviceName}:`, error);
       return null;
     }
   }
@@ -257,7 +272,7 @@ export class AnalyticsService {
 
       return response.data.data || [];
     } catch (error) {
-      console.error('Erreur récupération métriques sécurité:', error);
+      logAxiosError('Erreur récupération métriques sécurité:', error);
       return [];
     }
   }
@@ -275,7 +290,7 @@ export class AnalyticsService {
       }
       return null;
     } catch (error) {
-      console.error('Erreur récupération résumé sécurité (persistance):', error);
+      logAxiosError('Erreur récupération résumé sécurité (persistance):', error);
       return null;
     }
   }
@@ -296,7 +311,7 @@ export class AnalyticsService {
       }
       return null;
     } catch (error) {
-      console.error('Erreur récupération résumé sécurité:', error);
+      logAxiosError('Erreur récupération résumé sécurité:', error);
       return null;
     }
   }
@@ -312,7 +327,7 @@ export class AnalyticsService {
 
       return response.data.data || null;
     } catch (error) {
-      console.error(`Erreur inspection ${containerName}:`, error);
+      logAxiosError(`Erreur inspection ${containerName}:`, error);
       return null;
     }
   }
@@ -328,7 +343,7 @@ export class AnalyticsService {
 
       return response.data.data || null;
     } catch (error) {
-      console.error(`Erreur stats ${containerName}:`, error);
+      logAxiosError(`Erreur stats ${containerName}:`, error);
       return null;
     }
   }
@@ -359,7 +374,7 @@ export class AnalyticsService {
       }
       return [];
     } catch (error) {
-      console.error('Erreur récupération liste conteneurs:', error);
+      logAxiosError('Erreur récupération liste conteneurs:', error);
       return [];
     }
   }
@@ -375,7 +390,7 @@ export class AnalyticsService {
 
       return response.data.data || null;
     } catch (error) {
-      console.error('Erreur stats persistance:', error);
+      logAxiosError('Erreur stats persistance:', error);
       return null;
     }
   }
@@ -387,6 +402,8 @@ export class AnalyticsService {
     limit?: number;
     offset?: number;
     serviceName?: string;
+    /** Plusieurs alias (ex. `jobbingtrack-foo-service` vs `foo-service` côté central logger). */
+    serviceNames?: string[];
     level?: string;
     startDate?: string;
     endDate?: string;
@@ -397,6 +414,9 @@ export class AnalyticsService {
       if (options.limit != null) params.append('limit', String(options.limit));
       if (options.offset != null) params.append('offset', String(options.offset));
       if (options.serviceName) params.append('serviceName', options.serviceName);
+      if (options.serviceNames != null && options.serviceNames.length > 0) {
+        params.append('serviceNames', options.serviceNames.filter(Boolean).join(','));
+      }
       if (options.level) params.append('level', options.level);
       if (options.startDate) params.append('startDate', options.startDate);
       if (options.endDate) params.append('endDate', options.endDate);
@@ -408,7 +428,7 @@ export class AnalyticsService {
       );
       return Array.isArray(response.data?.data) ? response.data.data : [];
     } catch (error) {
-      console.error('Erreur récupération logs persistance:', error);
+      logAxiosError('Erreur récupération logs persistance:', error);
       return [];
     }
   }
@@ -437,7 +457,7 @@ export class AnalyticsService {
         dataPoints: history.length,
       };
     } catch (error) {
-      console.error('Erreur calcul temps de réponse moyen:', error);
+      logAxiosError('Erreur calcul temps de réponse moyen:', error);
       return null;
     }
   }
@@ -455,7 +475,7 @@ export class AnalyticsService {
         failedRequests: 0,
       };
     } catch (error) {
-      console.error('Erreur calcul taux erreurs réseau:', error);
+      logAxiosError('Erreur calcul taux erreurs réseau:', error);
       return null;
     }
   }

@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 7 avril 2026 — **Lot A1 (socle graphes)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
+**Dernière mise à jour** : 6 mai 2026 — **Gateway forensics** livrée (§ **6 mai 2026**). **Lot A1 (socle graphes, rappel 7 avril)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -15,10 +15,17 @@
 - **`application-service`**, **`company-service`**, **`contact-service`** : même schéma que auth/dashboard/security — middleware **`requestContext`** (IDs corrélation, IP via `trust proxy`, endpoint, port local), enrichissement Winston pour WARN/ERROR, envoi optionnel vers metrics-aggregator via **`centralLogger`** (`ENABLE_CENTRAL_LOGGING`, dépendance **axios** ajoutée côté company).
 - **Suite** : étendre aux autres microservices listés dans **`TODOS.md`** / **`docs/BACKLOG.md`**, puis QA corrélation `/backoffice/performances/correlation`.
 
+### 6 mai 2026 — Contrat forensics **`api-gateway`** (PLAN A3 / B6)
+
+- **`backend/api-gateway`** : **`requestCorrelation.js`** (**AsyncLocalStorage**, `requestId` / `correlationId`, méthode, endpoint, protocole, port, IP client), **`getRequestContext`** ; Winston enrichi avec le contexte ; transport **`centralLogger`** vers metrics-aggregator (désactivé sous Jest pour éviter les appels réseau) ; **`app.set('trust proxy', …)`** en **nombre de sauts** via **`TRUST_PROXY_HOPS`** (défaut **1**) — compatible **express-rate-limit v7** (évite **`ERR_ERL_PERMISSIVE_TRUST_PROXY`** si `true`).
+- **Tests** : **`cd backend/api-gateway && npx jest --ci --watchAll=false`** — **22/22** (fallbacks **`NODE_ENV=test`** pour auth et logs service, CORS OPTIONS avec **Origin**).
+- **`workflow-service` (06/05)** : même socle (**`src/utils/requestContext`**, **`logger`**, **`centralLogger`**, **`dotenv`**, **`TRUST_PROXY_HOPS`**) ; routes + health sous contexte ; tâches planifiées et moteur branchés sur **Winston** (WARN/ERROR → central si activé).
+- **Front corrélation** : tableau incidents — colonne **HTTP** triable + extraction **`httpStatus` / `statusCode` / `upstreamHttpStatus`** depuis les métadonnées persistées.
+- **Suite** : **QA porteur** corrélation **`/backoffice/performances/correlation`** — **`TODOS.md`**, **`PLAN.md`** A3.
+
 ### 5 mai 2026 — Contrat forensics (suite PLAN A3 / B6)
 
 - **Microservices** : `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service` — middleware **`requestContext`** (IDs, IP, endpoint, port), Winston enrichi, envoi optionnel WARN/ERROR vers metrics-aggregator (**`centralLogger`**), CORS **`X-Request-Id` / `X-Correlation-Id`**, **`trust proxy`**. **`profile-service`** : correction du **`logger.js`** (syntaxe) + **`logger-filter`** local pour l’image Docker.
-- **Suite** : **`api-gateway`** (journalisation structurée des requêtes proxy au-delà des seuls en-têtes forwardés), puis QA corrélation **`/backoffice/performances/correlation`** — voir **`TODOS.md`**, **`PLAN.md`** A3.
 
 ### 4 mai 2026 (complément) — Vue d’ensemble backoffice, Redis, séquence pull
 

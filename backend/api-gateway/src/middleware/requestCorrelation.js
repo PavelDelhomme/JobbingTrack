@@ -1,4 +1,7 @@
 const crypto = require('crypto');
+const { AsyncLocalStorage } = require('async_hooks');
+
+const store = new AsyncLocalStorage();
 
 /** Identifiants acceptés depuis le client (évite en-têtes arbitraires / CRLF). */
 const SAFE_CORRELATION_ID = /^[a-zA-Z0-9._-]{8,128}$/;
@@ -10,9 +13,19 @@ function normalizeIncomingId(value) {
   return SAFE_CORRELATION_ID.test(s) ? s : null;
 }
 
+function inferClientIp(req) {
+  if (!req.get) return req.ip || req.socket?.remoteAddress || null;
+  const xff = req.get('x-forwarded-for');
+  if (xff) {
+    const first = String(xff).split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.ip || req.socket?.remoteAddress || null;
+}
+
 /**
  * Attache `req.requestId` et `req.correlationId`, renvoie les en-têtes au client,
- * et fournit des en-têtes à recoller sur les appels sortants (axios) vers les microservices.
+ * expose le contexte forensics via AsyncLocalStorage pour Winston (aligné microservices B6).
  */
 function requestCorrelationMiddleware(req, res, next) {
   const fromRequest = normalizeIncomingId(req.get('X-Request-Id') || req.get('x-request-id'));
@@ -26,7 +39,22 @@ function requestCorrelationMiddleware(req, res, next) {
 
   res.setHeader('X-Request-Id', requestId);
   res.setHeader('X-Correlation-Id', correlationId);
-  next();
+
+  const context = {
+    requestId,
+    correlationId,
+    method: req.method,
+    endpoint: req.originalUrl || req.url,
+    protocol: req.protocol || (req.secure ? 'https' : 'http'),
+    port: req.socket?.localPort ?? null,
+    clientIp: inferClientIp(req),
+  };
+
+  store.run(context, next);
+}
+
+function getRequestContext() {
+  return store.getStore() || null;
 }
 
 function forwardCorrelationHeaders(req) {
@@ -40,4 +68,5 @@ function forwardCorrelationHeaders(req) {
 module.exports = {
   requestCorrelationMiddleware,
   forwardCorrelationHeaders,
+  getRequestContext,
 };
