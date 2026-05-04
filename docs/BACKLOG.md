@@ -72,6 +72,10 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **CI/CD** : déploiement automatisé après tests passés.
 - [ ] **Déploiement** : voir `docs/deployment/DEPLOIEMENT_FINAL.md`.
 
+## Priorité basse – Infra hôte (Docker / noyau)
+
+- [ ] **Redis — `vm.overcommit_memory`** : sur la machine hôte, activer **`vm.overcommit_memory=1`** (sysctl + persistance) pour supprimer l’avertissement *Memory overcommit must be enabled* et limiter les risques BGSAVE / réplication — **`TODOS.md`** **HX5**, fin **`PLAN.md`**.
+
 ## Priorité basse – Sécurité
 
 - [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.
@@ -80,7 +84,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **Alertes email sur incidents critiques** (sécurité très grave, firewall, **down** service / sous-système) — cadrage **`TODOS.md` B11** + **`PREPROD_PRODUCTION_CHECKLIST.md`** § SMTP.
 - [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
 - [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
-- [ ] **Forensics logs — déploiement progressif** : après `auth-service` + `dashboard-service` + `security-service` + **`application-service`** + **`company-service`** + **`contact-service`** (middleware + logger + central logging, reprise 30/04), étendre à `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service`, `api-gateway` puis valider dans `/backoffice/performances/correlation` la présence effective IP/endpoint/requestId/port/proto.
+- [ ] **Forensics logs — déploiement progressif** : lot **05/2026** : `interview-service`, `call-service`, `followup-service`, `event-service`, `profile-service`, `notification-service`, `deployment-service` alignés (middleware + central logging) ; **reste** : `api-gateway`, `workflow-service` au besoin, QA `/backoffice/performances/correlation`.
 
 ## Références
 

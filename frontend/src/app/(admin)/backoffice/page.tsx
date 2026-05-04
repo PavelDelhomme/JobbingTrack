@@ -1379,22 +1379,6 @@ export default function BackofficePage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                <p className="font-medium mb-1">💡 Explication des métriques :</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li><strong>Charge Système</strong> : Load average sur 1 minute. Normal si {'<'} 1.0 par core, critique si {'>'} 1.5 par core</li>
-                  <li><strong>CPU Système</strong> : Utilisation CPU globale de la machine (tous les processus). Seuil critique: {'>'} 80%. <strong>CPU Projet</strong> en dessous : CPU des conteneurs JobbingTrack uniquement</li>
-                  <li><strong>Mémoire Système</strong> : Mémoire totale utilisée par tout le système. Seuil critique: {'>'} 90%</li>
-                  <li><strong>Conteneurs actifs</strong> : Nombre de conteneurs JobbingTrack actuellement actifs</li>
-                  <li><strong>Mémoire Projet</strong> : Part de la mémoire système utilisée par les conteneurs JobbingTrack. Seuil critique: {'>'} 20%</li>
-                </ul>
-                <p className="mt-2 font-medium">🎨 Indicateurs :</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>🟢 <strong>Vert</strong> : Normal - Tout fonctionne bien</li>
-                  <li>🟡 <strong>Jaune</strong> : Attention - Surveillance recommandée</li>
-                  <li>🔴 <strong>Rouge</strong> : Critique - Action requise</li>
-                </ul>
-              </div>
             </div>
           ) : null}
           </div>
@@ -1451,9 +1435,6 @@ export default function BackofficePage() {
                   <TrendingUp className="h-5 w-5" />
                   Performance
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
-                  Agrégateur : temps de réponse moyen, débit d&apos;erreurs (erreurs/min, pas un %). Auth : sessions actives.
-                </p>
               </div>
               <Link
                 href="/backoffice/services/logs"
@@ -1573,9 +1554,6 @@ export default function BackofficePage() {
                   </div>
                 </>
               )}
-              <p className="text-xs text-gray-500 dark:text-gray-400 pt-3 mt-1 border-t border-dashed border-gray-200 dark:border-gray-600 leading-relaxed">
-                Un débit à 0 peut indiquer une fenêtre sans erreurs agrégées ou une métrique non alimentée ; pour le détail par service, utiliser Services &amp; logs ou le lot B (logs multi-sources, voir doc projet).
-              </p>
             </div>
           </div>
         </div>

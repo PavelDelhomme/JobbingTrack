@@ -198,6 +198,8 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 
 **Service de métriques (metrics-aggregator)** : timeout (**10000 ms**) ou **ECONNREFUSED** dans les logs gateway sont **fréquents au redémarrage** (cold start, fenêtre pendant laquelle **`make db-push-all`** redémarre explicitement **metrics-aggregator**). À partir de **05/2026** : log **`warn`** + champ **`transient`** pour ces cas ; **`GET /api/v1/services`** renvoie **200** avec liste **fallback** (`metricsUnavailable`, `dataSource: fallback`) pour ne pas bloquer **`/backoffice`** sur une erreur monitoring.
 
+**Images Docker après ajout de `axios` (call / followup / event)** : si le build utilise un `package-lock` figé ou une couche cache, exécuter **`npm install`** dans le service ou **`make rebuild-service SERVICE=…`** pour que **`centralLogger`** puisse poster vers metrics-aggregator.
+
 **Postgres `column Company.isTestData does not exist`** : **`make db-push-all`** ne fait **`prisma db push` que depuis auth-service** ; si le modèle **Company** dans **`backend/auth-service/prisma/schema.prisma`** était en retard sur **`company-service`**, la colonne manquait en base alors que Prisma company-service la sélectionne → **500 sur `/api/v1/companies`**. **Corrigé** : champ **`isTestData`** ajouté au modèle Company auth ; **`scripts/db/fix-company-isTestData.sql`** appliqué par **`db-push-all.sh`**.
 
 **Avant de relancer** : `make db-push-all && make seed-auth && make up-full && make tests`.
