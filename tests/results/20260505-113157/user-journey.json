@@ -1,0 +1,20 @@
+{
+  "testName": "User Journey (API)",
+  "userType": "user",
+  "command": "bash scripts/verify-user-journey.sh",
+  "timestamp": "2026-05-05T11:31:59+02:00",
+  "duration": 1,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2
+  },
+  "output": "╔════════════════════════════════════════════════════════╗\n║     Vérification User Journey - JobbingTrack          ║\n╚════════════════════════════════════════════════════════╝\n\n✨ Ce script utilise un token permanent qui n'expire jamais !\n\n═══ 1. Health Checks ═══\n[1] Test: API Health\n   ✓ PASS - Status: 200\n\n═══ 2. Authentification ═══\n   ✓ Token utilisateur seedé obtenu (rôle USER, email vérifié).\n[2] Test: Login admin\n   ✓ PASS - Status: 200\n   ✓ Token admin obtenu (rôle SUPER_ADMIN): eyJhbGciOiJIUzI1NiIs...\n\n═══ Génération Token Permanent ═══\nGénération d'un token de test permanent (100 ans)...\n   ⚠ Génération du token permanent échouée (status 403)\n   ⚠ Utilisation du token normal (expire dans 7 jours)\n[3] Test: Get Profile\n   ✓ PASS - Status: 200\n\n═══ 3. Companies ═══\n[4] Test: List Companies\n   ✓ PASS - Status: 200\n[5] Test: Create Company\n   ✓ PASS - Status: 201\n\n═══ 4. Applications ═══\n[6] Test: List Applications\n   ✓ PASS - Status: 200\n[7] Test: Create Application\n   ✗ FAIL - Status: 500 (attendu: 201)\n   Réponse: {\"success\":false,\"error\":\"\nInvalid `prisma.application.create()` invocation in\n/app/src/controllers/application.controller.js:85:46\n\n  82 \n  83 let application;\n  84 try {\n→ 85   application = \n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

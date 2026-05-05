@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Performance Avancés (CPU & endpoints)",
+  "userType": "user",
+  "command": "PERF_LIGHT=1 node tests/performance/test-performance.js",
+  "timestamp": "2026-05-05T11:59:14+02:00",
+  "duration": 4,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0
+  },
+  "output": "🧪 Lancement des tests de performance...\n\n📊 Génération du rapport de performance...\n\n⚡ Test des performances API (endpoints réels)...\n   Gateway Health: ✅ 17ms \n   Auth Health (gateway): ✅ 4ms \n   Applications (list): ✅ 5ms (auth requise, OK)\n   Companies (list): ✅ 4ms (auth requise, OK)\n   Contacts (list): ✅ 3ms (auth requise, OK)\n   Interviews (list): ✅ 4ms (auth requise, OK)\n   Calls (list): ✅ 4ms (auth requise, OK)\n   Followups (list): ✅ 4ms (auth requise, OK)\n   Events (list): ✅ 5ms (auth requise, OK)\n   Notifications (list): ✅ 13ms (auth requise, OK)\n   Métriques système: ✅ 10ms \n   Docker services: ✅ 2446ms \n🔥 Test de charge...\n   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)\n📊 Charge: Gateway Health (5 requêtes parallèles)\n   ✅ 5/5 succès - moy: 3ms, max: 3ms\n📊 Charge: Auth Health (gateway) (4 requêtes parallèles)\n   ✅ 4/4 succès - moy: 6ms, max: 8ms\n📊 Charge: Companies API (4 requêtes parallèles)\n   ✅ 4/4 succès - moy: 7ms, max: 8ms\n📊 Charge globale: 13/13 succès, moy: 5ms\n🧠 Collecte des métriques système (metrics-aggregator)...\n   ✅ CPU: 20.7% (16 coeurs)\n   ✅ Mémoire: 45.4/46.9 GB (96.9%)\n📊 Test traitement de données (stress mémoire)...\n   ✅ Traitement 1000 éléments: 11ms\n   ✅ Traitement 5000 éléments: 47ms\n   ✅ Traitement 10000 éléments: 57ms\n   ✅ Augmentation heap: 29.2 MB\n\n✅ Rapport sauvegardé: tests/reports/performance-report.json\n\n📊 ANALYSE DES PERFORMANCES:\n=====================================\n🧪 Tests: 15/15 réussis\n⏱️ Temps moyen: 210ms\n📊 Requêtes charge: 13/13 (100.0%)\n\n🎯 Score: 95/100\n✅ Performances excellentes\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 24 avril 2026 — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 7 mai 2026 — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -128,6 +128,12 @@ Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié 
 | Logs backoffice surtout « sécurité » | metrics-aggregator + UI | Lot **A** : logs **tous** services, filtres service/niveau/période | Voir `PLAN.md` § A, `(development)/services/backoffice` |
 | CSS @-o-keyframes (Opera legacy) | Frontend | Warning console « Unrecognized at-rule » | Optionnel : supprimer le préfixe Opera |
 | **`make tests` / `test-all` sans stack Docker** | `scripts/run-all-tests-with-reports.sh` | Très nombreux échecs (ex. **ECONNREFUSED** `localhost:5002`, **No such container: jobbingtrack-auth-service**, MailHog absent, User Journey status 000) | **Comportement attendu** si `make up-full` n’est pas lancé — ne pas confondre avec une régression du dépôt ; relancer les tests après stack + BDD + **STATUS.md** § dernier rapport |
+| **Run 05/05/2026 `api-backend-script` + `user-journey` + `playwright-data-crud` : KO sur candidatures** | `application-service` / Prisma | `Create/Read/Update/Delete application` renvoient 500 (stack `Invalid prisma.application.create/findFirst` dans `application.controller.js`) ; effet domino sur plusieurs catégories tests | Corriger le modèle/requête Prisma côté `application-service` (controller + schéma/migration si dérive), puis relancer les scripts `test-api-specific.sh` et `verify-user-journey.sh` avant un `make tests` complet |
+| **API Gateway Jest (run 05/05/2026) — 2 tests KO** | `backend/api-gateway/tests` | `server.test.js` attend `access-control-allow-origin` même sans `Origin` ; `admin.controller.test.js` attend 200 sur logs mais reçoit 401 (auth désormais requise) | Ajuster les tests au contrat réel (préflight avec `Origin` explicite, route logs avec auth admin ou assertion 401/200 selon contexte) |
+| **Frontend Jest analytics (run 05/05/2026) — `tab-components.test.tsx` obsolète** | `frontend/src/app/(admin)/backoffice/analytics/__tests__/tab-components.test.tsx` | Le test vérifie l’ancienne page analytics (select + Recharts + callbacks), mais `analytics/page.tsx` est devenu un hub ; 3 assertions cassent sans bug runtime | Mettre à jour/supprimer ce test de structure source et le remplacer par des assertions alignées sur le hub actuel |
+| **Playwright E2E login (run 05/05/2026)** | `frontend/tests/e2e/login.spec.ts` | Échecs sur login valide (`token` null après submit), login invalide (message attendu absent), toggle mot de passe (type reste `password`) | Revoir sélecteurs/attentes (`expect.poll`, message d’erreur, bouton toggle), vérifier le flux UI réel actuel (labels/DOM) |
+| **Playwright E2E suivi-intérim (run 05/05/2026)** | `frontend/tests/e2e/suivi-interim.spec.ts` | Sélecteur menu `Gestion des données` introuvable (`toBeVisible` timeout) | Adapter le test au menu/drawer actuel (libellé, structure DOM, état replié) |
+| **Playwright Mobile E2E (run 05/05/2026)** | `scripts/playwright-mobile-e2e.sh` / suite mobile | Timeout global 600s (exit 124), rapport tronqué ; la catégorie échoue même si des cas unitaires passent | Créer un mode smoke court pour l’agrégat `make tests` et déplacer la campagne mobile longue dans une cible dédiée |
 | **Jest `tests/backend/test-security-service.test.js` (firewall/WAF via gateway)** | API Gateway + security-service | En local, **`tests/jest.setup.js`** et le test posent **`SECURITY_INTERNAL_SECRET=jobbingtrack-internal-security-dev`** (même défaut que **docker-compose** / **`.env.example`**) ; **`scripts/run-all-tests-with-reports.sh`** exporte aussi ce défaut puis charge **`.env`** | En **production**, définir impérativement un secret fort ; ne pas s’appuyer sur le défaut dev |
 | **Script API « events » / analytics** | Gateway → event-service | **404** sur routes inexistantes ou IDs invalides dans la suite globale | Vérifier les chemins attendus par `scripts/run-all-tests-with-reports.sh` ; lot **F1** **`PLAN.md`** |
 | **Playwright E2E (`login.spec`, `api-e2e.spec`, agrégat `make tests`)** | `tests/e2e` + front | **Login** : timeouts, toggle mot de passe, identifiants. **`api-e2e`** : health / CRUD si mauvaise URL API. Rapport global souvent **échec** avec sous-suites **OK** | **`baseURL`** front réel ; **`e2eGatewayBaseUrl()`** ; rapport **`tests/results/<id>/report.html`** — **`STATUS.md`** § 17/04, **`PLAN.md`** F1 |
@@ -185,6 +191,11 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 | test-status-cascade.test.js | POSITIVE → reçu INTERVIEW_DONE au lieu de OFFER_RECEIVED | Cascade statut asynchrone ou délai trop court. | Retries augmentés : 20 itérations × 800 ms avant assertion OFFER_RECEIVED. |
 
 ### Playwright E2E (restore, Archives/Corbeille, mobile-emulator)
+
+### Playwright — lignes `-` (skipped) dans la sortie
+
+- Les lignes préfixées par **`-`** signifient **tests ignorés/non exécutés** (généralement parce qu’un test précédent du bloc a échoué dans une suite dépendante/serial), pas des tests passés.
+- Exemple run `20260505-113157` : après l’échec de création candidature dans `admin-data-crud.spec.ts`, plusieurs tests aval sont marqués `-` car ils dépendent de `applicationId`.
 | Test | Erreur | Cause | Résolution |
 |------|--------|--------|------------|
 | archive-interactions ~l.120 | Restore candidature: 400 | Backend/gateway retourne 400 (validation ou état). | Test accepte 200 ou 400 ; si 400, log warning + vérifier make db-push-all et application-service. |
