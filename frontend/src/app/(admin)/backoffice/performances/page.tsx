@@ -512,7 +512,8 @@ export default function PerformancesPage() {
         const name = (s.displayName || s.name || 'service').slice(0, 48);
         return { name, ms, status: s.status ?? s.health?.status };
       })
-      .filter((r): r is { name: string; ms: number; status?: string } => r.ms != null)
+      .filter((r) => r.ms != null)
+      .map((r) => ({ ...r, ms: r.ms as number }))
       .sort((a, b) => b.ms - a.ms)
       .slice(0, 20);
   }, [liveMetrics]);

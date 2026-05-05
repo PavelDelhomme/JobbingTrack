@@ -23,6 +23,7 @@
 - **Browserslist** : avertissement *caniuse-lite is N months old* — lancer dans **`frontend/`** : **`npm run browserslist:update`** (script ajouté au **`package.json`**).
 - **Rechargement** : **`NS_BINDING_ABORTED`** / XHR interrompus pendant une navigation ou un strict remount sont **courants** ; après correctif, les logs « erreur » associées ne devraient plus polluer la console pour les annulations attendues. **Reste** : QA porteur — tableau incidents **Léger / Complet**, colonnes pleines, série **I/O bloc** / cumuls ; voir **`TODOS.md`** (graphe corrélation, observabilité qualité données).
 - **Sécurité / tests** : cible **`make test-security`** (voir **`makefiles/tests/Makefile`**) — ne pas lancer des scénarios de blocage contre **votre** IP admin : utiliser **`LAB_BLOCK_IP`** / mode lab documenté (**`PLAN.md`** B2, **`TODOS.md`**).
+- **Qualité TypeScript** : correctifs appliqués sur **`latency/page.tsx`**, **`performances/page.tsx`** et **`instrumentation.ts`** ; vérification **`tsc --noEmit`** repassée **verte** (07/05). Détail conservé dans **`ERRORS.md`** § `npm run type-check`.
 
 ### 6 mai 2026 — Contrat forensics **`api-gateway`** (PLAN A3 / B6)
 

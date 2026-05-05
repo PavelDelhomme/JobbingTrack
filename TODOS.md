@@ -173,6 +173,7 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 **Qualité / CI (hors « feature » mais bloque parfois)**  
 Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-frontend-log`**.
+- [x] **Type-check frontend (07/05)** : prédicats `ms != null` corrigés sur **`performances/latency/page.tsx`** et **`performances/page.tsx`** (tri sûr), typage serveur ajusté sur **`frontend/src/instrumentation.ts`** (`self` côté Node), puis **`tsc --noEmit`** repassé **vert**.
 
 **Roadmap sécurité** (liée mais hors A1) : **B11** / **B12** — **`PLAN.md`** / **`STATUS.md`**.
 
