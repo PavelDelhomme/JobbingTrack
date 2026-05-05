@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "🎯 JobbingTrack" [level=2] [ref=e6]
+      - paragraph [ref=e7]: Créez votre compte pour commencer
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: Prénom *
+            - textbox "Prénom *" [ref=e13]:
+              - /placeholder: John
+          - generic [ref=e14]:
+            - generic [ref=e15]: Nom *
+            - textbox "Nom *" [ref=e16]:
+              - /placeholder: Doe
+        - generic [ref=e17]:
+          - generic [ref=e18]: Email *
+          - textbox "Email *" [ref=e19]:
+            - /placeholder: redacted@example.invalid
+        - generic [ref=e20]:
+          - generic [ref=e21]: Téléphone (optionnel)
+          - textbox "Téléphone (optionnel)" [ref=e22]:
+            - /placeholder: +33 6 12 34 56 78
+        - generic [ref=e23]:
+          - generic [ref=e24]: Mot de passe *
+          - textbox "Mot de passe *" [ref=e25]:
+            - /placeholder: Minimum 6 caractères
+        - generic [ref=e26]:
+          - generic [ref=e27]: Confirmer le mot de passe *
+          - textbox "Confirmer le mot de passe *" [ref=e28]:
+            - /placeholder: Confirmez votre mot de passe
+      - paragraph [ref=e30]: 💡 En créant un compte, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+      - button "Créer mon compte" [ref=e32] [cursor=pointer]
+      - paragraph [ref=e34]:
+        - text: Vous avez déjà un compte ?
+        - link "Se connecter" [ref=e35] [cursor=pointer]:
+          - /url: /login
+  - alert [ref=e36]
+```

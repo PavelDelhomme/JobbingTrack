@@ -96,6 +96,7 @@ export class AnalyticsService {
     offset?: number;
     startDate?: string;
     endDate?: string;
+    signal?: AbortSignal;
   } = {}) {
     try {
       const params = new URLSearchParams();
@@ -106,7 +107,7 @@ export class AnalyticsService {
 
       const response = await axios.get(
         `${getMetricsV1Base()}/persistence/system/metrics?${params.toString()}`,
-        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, signal: options.signal }
       );
 
       return normalizeMetricRows(response.data.data || []);
@@ -124,6 +125,7 @@ export class AnalyticsService {
     offset?: number;
     startDate?: string;
     endDate?: string;
+    signal?: AbortSignal;
   } = {}) {
     try {
       const params = new URLSearchParams();
@@ -134,7 +136,7 @@ export class AnalyticsService {
 
       const response = await axios.get(
         `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/metrics?${params.toString()}`,
-        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, signal: options.signal }
       );
 
       return normalizeMetricRows(response.data.data || []);
@@ -203,10 +205,11 @@ export class AnalyticsService {
   /**
    * Récupérer les statistiques de disponibilité d'un service
    */
-  async getServiceAvailabilityStats(serviceName: string, hours: number = 24) {
+  async getServiceAvailabilityStats(serviceName: string, hours: number = 24, signal?: AbortSignal) {
     try {
       const response = await axios.get(
-        `${getMetricsV1Base()}/persistence/services/${persistenceContainerSegment(serviceName)}/availability?hours=${hours}`
+        `${getMetricsV1Base()}/persistence/services/${persistenceContainerSegment(serviceName)}/availability?hours=${hours}`,
+        { signal }
       );
 
       return response.data.data || null;
@@ -226,6 +229,7 @@ export class AnalyticsService {
       startDate?: string;
       endDate?: string;
       limit?: number;
+      signal?: AbortSignal;
     } = {}
   ) {
     try {
@@ -248,7 +252,11 @@ export class AnalyticsService {
       for (const candidate of aliases) {
         const response = await axios.get(
           `${getMetricsV1Base()}/persistence/services/${persistenceContainerSegment(candidate)}/availability?${params.toString()}`,
-          { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, validateStatus: (s) => s < 500 }
+          {
+            timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS,
+            validateStatus: (s) => s < 500,
+            signal: options.signal,
+          }
         );
         if (response.status !== 200) {
           continue;
@@ -286,10 +294,11 @@ export class AnalyticsService {
   /**
    * Résumé agrégé des métriques de sécurité persistées (BDD agrégateur — pas la gateway).
    */
-  async getSecurityPersistenceSummary(hours: number = 24) {
+  async getSecurityPersistenceSummary(hours: number = 24, signal?: AbortSignal) {
     try {
       const response = await axios.get(
-        `${getMetricsV1Base()}/persistence/security/summary?hours=${hours}`
+        `${getMetricsV1Base()}/persistence/security/summary?hours=${hours}`,
+        { signal }
       );
       if (response.data?.success && response.data?.data) {
         return response.data.data as Record<string, unknown>;
@@ -341,10 +350,11 @@ export class AnalyticsService {
   /**
    * Récupérer les stats en temps réel d'un conteneur
    */
-  async getContainerStats(containerName: string) {
+  async getContainerStats(containerName: string, signal?: AbortSignal) {
     try {
       const response = await axios.get(
-        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/stats`
+        `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/stats`,
+        { signal }
       );
 
       return response.data.data || null;
@@ -357,14 +367,14 @@ export class AnalyticsService {
   /**
    * Récupérer la liste des conteneurs (depuis metrics-aggregator docker/services/all)
    */
-  async getContainersList(options?: { timeoutMs?: number }): Promise<
+  async getContainersList(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<
     { name: string; service_type?: string; health_status?: string; [key: string]: unknown }[]
   > {
     try {
       const timeout = options?.timeoutMs ?? 15000;
       const response = await axios.get(
         `${getMetricsV1Base()}/docker/services/all`,
-        { timeout }
+        { timeout, signal: options?.signal }
       );
       if (response.data?.services && Array.isArray(response.data.services)) {
         return response.data.services.map((s: { name: string; health_status?: string }) => {
@@ -414,6 +424,7 @@ export class AnalyticsService {
     startDate?: string;
     endDate?: string;
     search?: string;
+    signal?: AbortSignal;
   } = {}) {
     try {
       const params = new URLSearchParams();
@@ -430,7 +441,7 @@ export class AnalyticsService {
 
       const response = await axios.get(
         `${getMetricsV1Base()}/persistence/logs?${params.toString()}`,
-        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS }
+        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, signal: options.signal }
       );
       return Array.isArray(response.data?.data) ? response.data.data : [];
     } catch (error) {

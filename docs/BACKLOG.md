@@ -53,6 +53,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité moyenne – API et fonctionnalités
 
+- [ ] **Stabilisation post-run `make tests` 05/05/2026 (`tests/results/20260505-113157`)** : corriger `application-service` (Prisma `application.create/findFirst`), adapter tests gateway Jest (CORS/logs auth), mettre à jour `tab-components.test.tsx` (analytics hub), stabiliser Playwright `login.spec.ts` et `suivi-interim.spec.ts`.
 - [ ] **Backoffice – Email Monitor** : vérifier que tous les emails envoyés (vérification, reset password, etc.) s'affichent correctement dans la page email-monitor ; tester complètement la partie email-monitor (filtres par type, liste, rafraîchissement).
 - [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
 - [ ] **Documentation API** : Swagger/OpenAPI.
@@ -65,6 +66,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **App mobile Flutter** : auth, dashboard, CRUD, calendrier, notifications, sync offline.
 - [ ] **Émulateur mobile – Build APK** : corriger `flutter_local_notifications`.
 - [ ] **Logs Android (logcat)** : streamer dans l'UI.
+- [ ] **Playwright mobile dans `make tests`** : séparer une cible smoke (rapide, stable) de la campagne longue (actuellement timeout 600s / exit 124 dans l’agrégat).
 
 ## Priorité moyenne – CI/CD et déploiement
 
@@ -86,6 +88,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
 - [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
 - [ ] **Forensics logs — déploiement progressif** : lot **05–06/2026** : microservices listés précédemment + **`api-gateway`** + **`workflow-service`** (**ALS** / contexte, Winston, **`centralLogger`**, **`TRUST_PROXY_HOPS`**) ; **reste** : QA porteur `/backoffice/performances/correlation`.
+- [ ] **Corrélation fine incidents (A3/B8)** : combler les colonnes encore vides en pratique (`requestId`, endpoint, IP, proto/port, HTTP, CPU/Mémoire/TR proches, écart sec) avec contrat de logs homogène + règles d’alignement plus strictes.
 
 ## Références
 

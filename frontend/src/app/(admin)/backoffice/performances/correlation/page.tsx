@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Brush,
 } from 'recharts'
 import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
 
@@ -338,6 +339,11 @@ function nextSortDirection(curr: SortDirection): SortDirection {
   return null
 }
 
+function sortGlyph(active: boolean, direction: SortDirection): string {
+  if (!active || direction == null) return '↕'
+  return direction === 'asc' ? '↑' : '↓'
+}
+
 function downsampleByStep<T>(rows: T[], max: number): T[] {
   if (rows.length <= max) return rows
   const step = Math.ceil(rows.length / max)
@@ -653,6 +659,27 @@ function ServiceDashboardCard({
 }) {
   const short = shortContainerName(fullName)
   const chartData = useMemo(() => downsampleByStep(mergedRows, maxPointsPerChart), [mergedRows, maxPointsPerChart])
+  const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null)
+  const brushStart = brushRange?.startIndex ?? Math.max(0, chartData.length - Math.min(chartData.length, 80))
+  const brushEnd = brushRange?.endIndex ?? Math.max(0, chartData.length - 1)
+
+  useEffect(() => {
+    setBrushRange((prev) => {
+      if (!prev) return null
+      if (chartData.length === 0) return null
+      const nextStart = Math.max(0, Math.min(prev.startIndex, chartData.length - 1))
+      const nextEnd = Math.max(nextStart, Math.min(prev.endIndex, chartData.length - 1))
+      if (nextStart === prev.startIndex && nextEnd === prev.endIndex) return prev
+      return { startIndex: nextStart, endIndex: nextEnd }
+    })
+  }, [chartData.length])
+
+  const onBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
+    if (chartData.length === 0) return
+    const startIndex = Math.max(0, Math.min(range.startIndex ?? 0, chartData.length - 1))
+    const endIndex = Math.max(startIndex, Math.min(range.endIndex ?? chartData.length - 1, chartData.length - 1))
+    setBrushRange({ startIndex, endIndex })
+  }, [chartData.length])
 
   const xCommon = {
     dataKey: 'timeMs' as const,
@@ -726,6 +753,15 @@ function ServiceDashboardCard({
                   connectNulls
                   isAnimationActive={false}
                 />
+                <Brush
+                  dataKey="timeMs"
+                  height={18}
+                  travellerWidth={8}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms as number)}
+                  onChange={onBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -766,6 +802,15 @@ function ServiceDashboardCard({
                   connectNulls
                   isAnimationActive={false}
                 />
+                <Brush
+                  dataKey="timeMs"
+                  height={18}
+                  travellerWidth={8}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms as number)}
+                  onChange={onBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -800,6 +845,15 @@ function ServiceDashboardCard({
                   dot={false}
                   connectNulls
                   isAnimationActive={false}
+                />
+                <Brush
+                  dataKey="timeMs"
+                  height={18}
+                  travellerWidth={8}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms as number)}
+                  onChange={onBrushChange}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -838,6 +892,15 @@ function ServiceDashboardCard({
                   connectNulls
                   isAnimationActive={false}
                 />
+                <Brush
+                  dataKey="timeMs"
+                  height={18}
+                  travellerWidth={8}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms as number)}
+                  onChange={onBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -867,6 +930,15 @@ function ServiceDashboardCard({
                   connectNulls
                   isAnimationActive={false}
                 />
+                <Brush
+                  dataKey="timeMs"
+                  height={18}
+                  travellerWidth={8}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
+                  tickFormatter={(ms) => formatLocalChartAxisTick(ms as number)}
+                  onChange={onBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -881,6 +953,7 @@ export default function PerformancesCorrelationPage() {
   const limits = useMemo(() => limitsForMode(perfMode), [perfMode])
   const firstRequestRef = useRef(true)
   const bootstrappedRef = useRef(false)
+  const loadAbortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     setPerfMode(readStoredPerfMode())
@@ -961,6 +1034,9 @@ export default function PerformancesCorrelationPage() {
   }, [customStartInput, customEndInput])
 
   const load = useCallback(async () => {
+    loadAbortRef.current?.abort()
+    const controller = new AbortController()
+    loadAbortRef.current = controller
     if (firstRequestRef.current) setInitialLoading(true)
     else setRefreshing(true)
     try {
@@ -973,9 +1049,11 @@ export default function PerformancesCorrelationPage() {
           endDate: bounds.end.toISOString(),
           limit: fetchLimits.systemHistoryLimit,
           offset: 0,
+          signal: controller.signal,
         }),
-        analyticsService.getContainersList({ timeoutMs: 45_000 }),
+        analyticsService.getContainersList({ timeoutMs: 45_000, signal: controller.signal }),
       ])
+      if (controller.signal.aborted) return
 
       const names = (rawContainers || [])
         .map((c) => c.name)
@@ -1029,8 +1107,13 @@ export default function PerformancesCorrelationPage() {
       setSystemRows(normalizedSystem)
       setLastUpdatedAt(new Date().toISOString())
     } finally {
-      setInitialLoading(false)
-      setRefreshing(false)
+      if (loadAbortRef.current === controller) {
+        loadAbortRef.current = null
+      }
+      if (!controller.signal.aborted) {
+        setInitialLoading(false)
+        setRefreshing(false)
+      }
       firstRequestRef.current = false
     }
   }, [limits, windowMode, presetHours, appliedCustom])
@@ -1040,7 +1123,10 @@ export default function PerformancesCorrelationPage() {
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void load()
     }, limits.autoRefreshMs)
-    return () => window.clearInterval(id)
+    return () => {
+      window.clearInterval(id)
+      loadAbortRef.current?.abort()
+    }
   }, [load, limits.autoRefreshMs])
 
   useEffect(() => {
@@ -1058,6 +1144,7 @@ export default function PerformancesCorrelationPage() {
 
   useEffect(() => {
     let cancelled = false
+    const controller = new AbortController()
     if (loadedOrder.length === 0) {
       setContainerRows({})
       setAvailabilityByService({})
@@ -1078,14 +1165,15 @@ export default function PerformancesCorrelationPage() {
       const availLimit = Math.min(15000, Math.max(200, fetchLimits.historyLimit * 3))
       const results = await promisePool(loadedOrder, FETCH_CONCURRENCY, async (name) => {
         const [rows, availRaw, availStats, liveStats] = await Promise.all([
-          analyticsService.getContainerMetricsHistory(name, opts),
+          analyticsService.getContainerMetricsHistory(name, { ...opts, signal: controller.signal }),
           analyticsService.getServiceAvailabilityHistory(name, {
             startDate: opts.startDate,
             endDate: opts.endDate,
             limit: availLimit,
+            signal: controller.signal,
           }),
-          analyticsService.getServiceAvailabilityStats(name, Math.max(1, Math.ceil(hours))),
-          analyticsService.getContainerStats(name),
+          analyticsService.getServiceAvailabilityStats(name, Math.max(1, Math.ceil(hours)), controller.signal),
+          analyticsService.getContainerStats(name, controller.signal),
         ])
         const parsed: ContainerPoint[] = (rows || [])
           .map((r: Record<string, unknown>) => {
@@ -1268,11 +1356,13 @@ export default function PerformancesCorrelationPage() {
     })()
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [loadedOrder, limits, windowMode, presetHours, appliedCustom])
 
   useEffect(() => {
     let cancelled = false
+    const controller = new AbortController()
     if (!focusName) {
       setFocusIncidents(null)
       setSecurityWindowScore(null)
@@ -1289,8 +1379,9 @@ export default function PerformancesCorrelationPage() {
             startDate: bounds.start.toISOString(),
             endDate: bounds.end.toISOString(),
             limit: 1200,
+            signal: controller.signal,
           }),
-          analyticsService.getSecurityPersistenceSummary(hoursFromBounds(bounds.start, bounds.end)),
+          analyticsService.getSecurityPersistenceSummary(hoursFromBounds(bounds.start, bounds.end), controller.signal),
         ])
         if (cancelled) return
         const rows = (Array.isArray(logs) ? logs : []) as AggLogRow[]
@@ -1311,6 +1402,7 @@ export default function PerformancesCorrelationPage() {
     })()
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [focusName, windowMode, presetHours, appliedCustom])
 
@@ -1759,49 +1851,57 @@ export default function PerformancesCorrelationPage() {
                       <thead className="sticky top-0 z-[1] bg-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                         <tr>
                           <th className="px-3 py-2">
-                            <button type="button" onClick={() => onToggleSummarySort('name')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('name')} className="inline-flex items-center gap-1 hover:underline">
                               Service
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'name', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 text-right">
-                            <button type="button" onClick={() => onToggleSummarySort('points')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('points')} className="inline-flex items-center gap-1 hover:underline">
                               Pts
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'points', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 text-right">
-                            <button type="button" onClick={() => onToggleSummarySort('cpuMax')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('cpuMax')} className="inline-flex items-center gap-1 hover:underline">
                               CPU max
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'cpuMax', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 text-right">
-                            <button type="button" onClick={() => onToggleSummarySort('memMax')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('memMax')} className="inline-flex items-center gap-1 hover:underline">
                               Mémoire max
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'memMax', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th
                             className="px-3 py-2 text-right"
                             title="Variation cumul Rx+Tx (Mo) entre premier et dernier point valide ; vide si reset compteur."
                           >
-                            <button type="button" onClick={() => onToggleSummarySort('netDeltaMb')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('netDeltaMb')} className="inline-flex items-center gap-1 hover:underline">
                               Δ Réseau
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'netDeltaMb', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th
                             className="px-3 py-2 text-right"
                             title="Idem lecture+écriture bloc (Mo)."
                           >
-                            <button type="button" onClick={() => onToggleSummarySort('ioDeltaMb')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('ioDeltaMb')} className="inline-flex items-center gap-1 hover:underline">
                               Δ I/O
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'ioDeltaMb', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 text-right" title="Max sur la période (health + alignement conteneur).">
-                            <button type="button" onClick={() => onToggleSummarySort('rtMaxMs')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('rtMaxMs')} className="inline-flex items-center gap-1 hover:underline">
                               TR max
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'rtMaxMs', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 text-right" title="Dernier check health avec temps connu.">
-                            <button type="button" onClick={() => onToggleSummarySort('rtLastMs')} className="hover:underline">
+                            <button type="button" onClick={() => onToggleSummarySort('rtLastMs')} className="inline-flex items-center gap-1 hover:underline">
                               TR fin
+                              <span className="text-[10px] text-gray-500">{sortGlyph(summarySort.key === 'rtLastMs', summarySort.direction)}</span>
                             </button>
                           </th>
                           <th className="px-3 py-2 w-24">Action</th>
@@ -1996,55 +2096,65 @@ export default function PerformancesCorrelationPage() {
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                   <tr>
                                     <th className="px-2 py-2">
-                                      <button type="button" onClick={() => onToggleIncidentSort('timestamp')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('timestamp')} className="inline-flex items-center gap-1 hover:underline">
                                         Horodatage
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'timestamp', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">
-                                      <button type="button" onClick={() => onToggleIncidentSort('level')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('level')} className="inline-flex items-center gap-1 hover:underline">
                                         Niveau
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'level', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">
-                                      <button type="button" onClick={() => onToggleIncidentSort('requestId')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('requestId')} className="inline-flex items-center gap-1 hover:underline">
                                         requestId
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'requestId', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">
-                                      <button type="button" onClick={() => onToggleIncidentSort('endpoint')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('endpoint')} className="inline-flex items-center gap-1 hover:underline">
                                         Endpoint
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'endpoint', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">
-                                      <button type="button" onClick={() => onToggleIncidentSort('ip')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('ip')} className="inline-flex items-center gap-1 hover:underline">
                                         IP
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'ip', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2 text-right">
-                                      <button type="button" onClick={() => onToggleIncidentSort('httpStatus')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('httpStatus')} className="inline-flex items-center gap-1 hover:underline">
                                         HTTP
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'httpStatus', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">Proto</th>
                                     <th className="px-2 py-2">Port</th>
                                     <th className="px-2 py-2 text-right">
-                                      <button type="button" onClick={() => onToggleIncidentSort('nearestCpu')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('nearestCpu')} className="inline-flex items-center gap-1 hover:underline">
                                         CPU % proche
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'nearestCpu', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2 text-right">
-                                      <button type="button" onClick={() => onToggleIncidentSort('nearestMemory')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('nearestMemory')} className="inline-flex items-center gap-1 hover:underline">
                                         Mémoire % proche
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'nearestMemory', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2 text-right">
-                                      <button type="button" onClick={() => onToggleIncidentSort('nearestRtMs')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('nearestRtMs')} className="inline-flex items-center gap-1 hover:underline">
                                         TR ms proche
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'nearestRtMs', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2 text-right">
-                                      <button type="button" onClick={() => onToggleIncidentSort('deltaSec')} className="hover:underline">
+                                      <button type="button" onClick={() => onToggleIncidentSort('deltaSec')} className="inline-flex items-center gap-1 hover:underline">
                                         Écart (s)
+                                        <span className="text-[10px] text-gray-500">{sortGlyph(incidentSort.key === 'deltaSec', incidentSort.direction)}</span>
                                       </button>
                                     </th>
                                     <th className="px-2 py-2">Message</th>
