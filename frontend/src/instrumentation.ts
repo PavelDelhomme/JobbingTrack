@@ -5,8 +5,8 @@
  */
 export function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
-  const g = globalThis as typeof globalThis & { self?: typeof globalThis };
+  const g = globalThis as typeof globalThis & { self?: Window & typeof globalThis };
   if (typeof g.self === 'undefined') {
-    g.self = g;
+    g.self = globalThis as unknown as Window & typeof globalThis;
   }
 }

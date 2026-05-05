@@ -87,6 +87,13 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **Conteneur `jobbingtrack-frontend`** : l’image ou le volume monté peut **différer** du dépôt sur ta machine — aligner le code et **`npm install`** dans le même environnement que celui où tu lances **`tsc`**.
 - **Terminal qui tronque** : le défilement limite l’historique affiché ; pour un fichier complet, depuis la racine du dépôt : **`make type-check-frontend-log`** → journal sous **`frontend/logs/tsc-<horodatage>.log`** (dépôt Git ignore le contenu du dossier **`logs/`**, pas le **`.gitignore`** du dossier).
 
+#### État constaté le 07/05/2026 (corrigé le 07/05/2026)
+
+- **`frontend/src/app/(admin)/backoffice/performances/latency/page.tsx`** — prédicat remplacé par `filter` + `map` avec narrowing explicite de `ms` (tri sûr).
+- **`frontend/src/app/(admin)/backoffice/performances/page.tsx`** — même correction (`ms` non-null avant tri).
+- **`frontend/src/instrumentation.ts`** — affectation `self` gardée côté Node avec cast explicite compatible `Window & typeof globalThis`.
+- **Vérification** : **`frontend`** → **`./node_modules/.bin/tsc --noEmit --pretty false`** = **OK**.
+
 ### Tests Jest — mock `GET /api/v1/metrics` (page détail service)
 
 - **Ce n’est pas du code prod** : dans **`frontend/.../services/[serviceName]/page.test.tsx`**, le **`global.fetch` mocké** répond à l’URL qui contient **`/api/v1/metrics`** avec un petit JSON (`system.disk`, etc.) pour que **`jsdom`** puisse rendre la page **sans** agrégateur Docker réel.

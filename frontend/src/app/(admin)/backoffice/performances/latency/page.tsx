@@ -216,7 +216,10 @@ export default function PerformancesLatencyPage() {
   }, [liveMetrics])
 
   const measuredRows = useMemo(
-    () => liveEndpointRows.filter((r): r is LiveEndpointRow & { ms: number } => r.ms != null),
+    () =>
+      liveEndpointRows
+        .filter((r) => r.ms != null)
+        .map((r) => ({ ...r, ms: r.ms as number })),
     [liveEndpointRows]
   )
   const missingRows = useMemo(() => liveEndpointRows.filter((r) => r.ms == null), [liveEndpointRows])
