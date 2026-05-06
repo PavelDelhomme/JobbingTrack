@@ -229,6 +229,7 @@ type FocusIncidentAlignedRow = {
   nearestMemory: number | null
   nearestRtMs: number | null
   deltaSec: number | null
+  emptyReason: string | null
 }
 
 type SortDirection = 'asc' | 'desc' | null
@@ -325,19 +326,33 @@ function parseIncidentContext(row: AggLogRow): {
     null
   const endpoint =
     (typeof ctx.endpoint === 'string' && ctx.endpoint) ||
+    (typeof ctx.originalUrl === 'string' && ctx.originalUrl) ||
+    (typeof ctx.requestPath === 'string' && ctx.requestPath) ||
+    (typeof ctx.route === 'string' && ctx.route) ||
     (typeof ctx.path === 'string' && ctx.path) ||
     (typeof ctx.url === 'string' && ctx.url) ||
     (message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i)?.[2] ?? null)
   const ip =
     (typeof ctx.ip === 'string' && ctx.ip) ||
     (typeof ctx.clientIp === 'string' && ctx.clientIp) ||
+    (typeof ctx.forwardedFor === 'string' && ctx.forwardedFor.split(',')[0]?.trim()) ||
+    (typeof ctx.xForwardedFor === 'string' && ctx.xForwardedFor.split(',')[0]?.trim()) ||
+    (typeof ctx.remoteAddress === 'string' && ctx.remoteAddress) ||
     (message.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0] ?? null)
   const protocol =
     (typeof ctx.protocol === 'string' && ctx.protocol) ||
+    (typeof ctx.proto === 'string' && ctx.proto) ||
+    (typeof ctx.scheme === 'string' && ctx.scheme) ||
     (message.match(/\b(https?|grpc|ws|wss)\b/i)?.[1] ?? null)
   const portRaw =
     ((typeof ctx.port === 'number' || typeof ctx.port === 'string')
       ? String(ctx.port)
+      : null) ||
+    ((typeof ctx.localPort === 'number' || typeof ctx.localPort === 'string')
+      ? String(ctx.localPort)
+      : null) ||
+    ((typeof ctx.serverPort === 'number' || typeof ctx.serverPort === 'string')
+      ? String(ctx.serverPort)
       : null) ||
     (message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1] ?? null) ||
     (message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1] ?? null)
@@ -369,9 +384,59 @@ function nextSortDirection(curr: SortDirection): SortDirection {
   return null
 }
 
+function buildIncidentEmptyReason(row: {
+  requestId: string | null
+  endpoint: string | null
+  ip: string | null
+  protocol: string | null
+  port: string | null
+  httpStatus: string | null
+  nearestCpu: number | null
+  nearestMemory: number | null
+  nearestRtMs: number | null
+  deltaSec: number | null
+}): string | null {
+  const hasAnyContext = Boolean(row.requestId || row.endpoint || row.ip || row.protocol || row.port || row.httpStatus)
+  const hasAnyMetric = row.nearestCpu != null || row.nearestMemory != null || row.nearestRtMs != null
+
+  const missingContextCount = [
+    row.requestId,
+    row.endpoint,
+    row.ip,
+    row.protocol,
+    row.port,
+    row.httpStatus,
+  ].filter((v) => !v).length
+  const missingMetricCount = [row.nearestCpu, row.nearestMemory, row.nearestRtMs].filter((v) => v == null).length
+
+  if (missingContextCount === 0 && missingMetricCount === 0 && row.deltaSec != null) {
+    return null
+  }
+
+  const reasons: string[] = []
+  if (!hasAnyContext) {
+    reasons.push('source absente')
+  } else if (missingContextCount > 0) {
+    reasons.push('champ manquant (contexte)')
+  }
+
+  if (!hasAnyMetric && row.deltaSec == null) {
+    reasons.push('hors fenêtre')
+  } else if (missingMetricCount > 0) {
+    reasons.push('champ manquant (métriques)')
+  }
+
+  return reasons.length > 0 ? reasons.join(' | ') : null
+}
+
 function sortGlyph(active: boolean, direction: SortDirection): string {
   if (!active || direction == null) return '↕'
   return direction === 'asc' ? '↑' : '↓'
+}
+
+function withMissingReason(value: string | null | undefined, reason: string | null): string {
+  if (typeof value === 'string' && value.trim().length > 0) return value
+  return reason || '—'
 }
 
 function downsampleByStep<T>(rows: T[], max: number): T[] {
@@ -1546,9 +1611,14 @@ export default function PerformancesCorrelationPage() {
           nearestMemory: near?.point.memory ?? near?.point.system_memory ?? nearSystem?.system_memory ?? null,
           nearestRtMs: near?.point.responseTimeMs ?? findNearestResponseTime(ts),
           deltaSec: near?.deltaSec ?? null,
+          emptyReason: null,
         } satisfies FocusIncidentAlignedRow
       })
       .filter((x): x is FocusIncidentAlignedRow => x != null)
+      .map((row) => ({
+        ...row,
+        emptyReason: buildIncidentEmptyReason(row),
+      }))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 30)
   }, [focusLogs, focusName, mergedByContainer, availabilityByService, systemRows])
@@ -2213,28 +2283,28 @@ export default function PerformancesCorrelationPage() {
                                       </td>
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.level}</td>
                                       <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-                                        {r.requestId ?? '—'}
+                                        {withMissingReason(r.requestId, r.emptyReason)}
                                       </td>
-                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.endpoint ?? '—'}</td>
+                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{withMissingReason(r.endpoint, r.emptyReason)}</td>
                                       <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-                                        {r.ip ?? '—'}
+                                        {withMissingReason(r.ip, r.emptyReason)}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.httpStatus ?? '—'}
+                                        {withMissingReason(r.httpStatus, r.emptyReason)}
                                       </td>
-                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.protocol ?? '—'}</td>
-                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{r.port ?? '—'}</td>
+                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{withMissingReason(r.protocol, r.emptyReason)}</td>
+                                      <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{withMissingReason(r.port, r.emptyReason)}</td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {fmt1(r.nearestCpu)}
-                                      </td>
-                                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {fmt1(r.nearestMemory)}
+                                        {r.nearestCpu == null ? withMissingReason(null, r.emptyReason) : fmt1(r.nearestCpu)}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {fmt0(r.nearestRtMs)}
+                                        {r.nearestMemory == null ? withMissingReason(null, r.emptyReason) : fmt1(r.nearestMemory)}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.deltaSec ?? '—'}
+                                        {r.nearestRtMs == null ? withMissingReason(null, r.emptyReason) : fmt0(r.nearestRtMs)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                                        {r.deltaSec == null ? withMissingReason(null, r.emptyReason) : r.deltaSec}
                                       </td>
                                       <td className="max-w-[24rem] truncate px-2 py-1.5 text-gray-700 dark:text-gray-300">
                                         {r.message || '—'}
