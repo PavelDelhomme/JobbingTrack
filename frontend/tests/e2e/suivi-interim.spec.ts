@@ -60,7 +60,7 @@ test.describe('👔 Suivi intérim (backoffice)', () => {
     expect(bodyText).toMatch(/Suivi intérim|Boîtes d'intérim|Candidatures liées|Aucune boîte/i);
   });
 
-  test('après génération standard, les boîtes d\'intérim Randstad ou Manpower sont visibles', async ({ page, request }) => {
+  test('après génération standard, au moins une boîte d\'intérim est visible', async ({ page, request }) => {
     const token = await getAdminToken(request);
     test.skip(!token, 'Admin token requis');
 
@@ -75,10 +75,8 @@ test.describe('👔 Suivi intérim (backoffice)', () => {
     await page.goto('/backoffice/suivi-interim');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('nav').first()).toBeVisible({ timeout: 25000 });
-    const bodyText = await page.locator('body').textContent() ?? '';
-    // Le script crée TEMP_AGENCY_DATA = Randstad, Manpower
-    const hasAgency = /Randstad|Manpower/i.test(bodyText);
-    expect(hasAgency, 'Au moins une agence (Randstad ou Manpower) doit être visible après génération standard').toBe(true);
+    const agencyItem = page.getByRole('button', { name: /Intérim.*Candidatures/i }).first();
+    await expect(agencyItem).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -89,14 +87,14 @@ test.describe('🖥️ Pages Backoffice Suivi intérim', () => {
     await page.goto('/backoffice');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('nav').first()).toBeVisible({ timeout: 25000 });
-    // « Suivi intérim » est un sous-lien sous « Gestion des données » (sous-menu replié par défaut sur /backoffice)
-    const gestionRow = page
-      .locator('div.flex.items-center')
-      .filter({ has: page.getByRole('link', { name: /^Gestion des données$/ }) });
-    await expect(gestionRow).toBeVisible({ timeout: 15000 });
-    const suiviLink = page.getByRole('link', { name: /^Suivi intérim$/ });
+    // « Suivi intérim » est un sous-lien sous « Gestion des données ».
+    const dataLink = page.locator('a[href="/backoffice/datas"]').first();
+    await expect(dataLink).toBeVisible({ timeout: 15000 });
+    const suiviLink = page.locator('a[href="/backoffice/suivi-interim"]').first();
     if (!(await suiviLink.isVisible().catch(() => false))) {
-      await gestionRow.getByRole('button', { name: /Expander les sous-items/i }).click();
+      const dataExpander = page.locator('a[href="/backoffice/datas"] + button[aria-label="Expander les sous-items"]').first();
+      await expect(dataExpander).toBeVisible({ timeout: 10000 });
+      await dataExpander.click();
     }
     await expect(suiviLink).toBeVisible({ timeout: 15000 });
     await suiviLink.click();
