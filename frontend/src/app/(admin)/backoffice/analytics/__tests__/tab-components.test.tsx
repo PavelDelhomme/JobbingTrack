@@ -1,5 +1,5 @@
 /**
- * Vérifie que la page analytics actuelle (Test CPU) reste structurée correctement.
+ * Vérifie que la page Analytics (hub) expose bien les entrées attendues.
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -15,22 +15,23 @@ describe('Analytics page.tsx — structure source', () => {
     expect(src).toMatch(/export default function AnalyticsPage/);
   });
 
-  it('utilise useMemo pour le libellé de période', () => {
+  it('présente le hub métier (application + utilisateurs)', () => {
     const src = readFileSync(pagePath, 'utf8');
-    expect(src).toMatch(/chartPeriodLabel/);
-    expect(src).toMatch(/useMemo\(/);
+    expect(src).toMatch(/Hub Analytics/);
+    expect(src).toMatch(/title:\s*'Application'/);
+    expect(src).toMatch(/title:\s*'Utilisateurs'/);
   });
 
-  it('utilise useCallback pour les paramètres temporels et le fetch', () => {
+  it('redirige les métriques infra vers Performances', () => {
     const src = readFileSync(pagePath, 'utf8');
-    expect(src).toMatch(/getTimeRangeParams = useCallback/);
-    expect(src).toMatch(/fetchCPUData = useCallback/);
+    expect(src).toMatch(/title:\s*'Performances \(infra\)'/);
+    expect(src).toMatch(/href:\s*'\/backoffice\/performances'/);
+    expect(src).toMatch(/métriques machine/i);
   });
 
-  it('affiche un sélecteur de période et Recharts', () => {
+  it('propose un lien vers Statistiques', () => {
     const src = readFileSync(pagePath, 'utf8');
-    expect(src).toMatch(/<select/);
-    expect(src).toMatch(/LineChart/);
-    expect(src).toMatch(/ChartPeriodCaption/);
+    expect(src).toMatch(/\/backoffice\/statistics/);
+    expect(src).toMatch(/Statistiques agrégées/);
   });
 });
