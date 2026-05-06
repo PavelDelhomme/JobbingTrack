@@ -11,20 +11,20 @@ services:
     image: postgres:15
     container_name: jobbingtrack-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       # `public.system_metrics.timestamp` = TIMESTAMP sans fuseau, alimenté par NOW() (monitoring-c).
       # Session UTC explicite : alignée avec `toIsoUtcString` côté metrics-aggregator (suffixe Z).
-      TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
       PGTZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
     ports:
       - "${POSTGRES_PORT:-5000}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
       - jobbingtrack_postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -57,21 +57,21 @@ services:
     ports:
       - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
-      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
-      - INTRUSION_DETECTION_ENABLED=${INTRUSION_DETECTION_ENABLED:-true}
+      # Ordre alphabétique des noms de variables (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}
-      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
-      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
+      - INTRUSION_DETECTION_ENABLED=${INTRUSION_DETECTION_ENABLED:-true}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
       - SERVICE_NAME=jobbingtrack-api-gateway
+      - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
@@ -105,36 +105,36 @@ services:
     ports:
       - "0.0.0.0:${FRONTEND_PORT:-5003}:${FRONTEND_INTERNAL_PORT:-3000}"
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-192.168.1.134}:${API_GATEWAY_PORT:-5002}}
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-192.168.1.134}:${AUTH_SERVICE_PORT:-5005}}
-      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-192.168.1.134}:${METRICS_AGGREGATOR_PORT:-5004}}
-      # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
-      # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
-      - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
-      - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
-      - HOST_IP=${HOST_IP:-192.168.1.134}
-      - FRONTEND_PORT=${FRONTEND_PORT:-5003}
+      # Ordre alphabétique (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
       - API_GATEWAY_PORT=${API_GATEWAY_PORT:-5002}
+      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
       - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-5005}
+      - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
+      - FRONTEND_PORT=${FRONTEND_PORT:-5003}
+      - HOST_IP=${HOST_IP:-localhost}
+      - HOSTNAME=0.0.0.0
+      - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
+      - NEXT_DIST_DIR=/tmp/.next-local
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-localhost}:${API_GATEWAY_PORT:-5002}}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-localhost}:${AUTH_SERVICE_PORT:-5005}}
       - NEXT_PUBLIC_CHART_TIMEZONE=${NEXT_PUBLIC_CHART_TIMEZONE:-}
-      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
+      # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
+      # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
+      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-localhost}:${METRICS_AGGREGATOR_PORT:-5004}}
+      - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
+      - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
+      - NODE_ENV=development
       # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
-      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
       - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=2048}
-      - HOSTNAME=0.0.0.0
       - PORT=3000
       - PROJECT_ROOT=/app
       - TESTS_RESULTS_DIR=/app/tests/results
-      - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
       - TZ=${TZ:-Europe/Paris}
-      - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
-      - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
-      # Build/cache Next en dehors de /app (bind mount) pour éviter EACCES sur fichiers root hérités.
-      - NEXT_DIST_DIR=/tmp/.next-local
+      - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
@@ -173,14 +173,14 @@ services:
     ports:
       - "${MONITORING_C_PORT:-5098}:8015"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
-      - PROCFS_PATH=/host/proc
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - PROCFS_PATH=/host/proc
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -216,21 +216,21 @@ services:
       retries: 3
       start_period: 40s
     environment:
-      - NODE_ENV=development
       # Même convention que le service **postgres** pour interpréter `system_metrics.timestamp` (naïf + NOW()).
+      - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
+      - METRICS_API_KEY=${METRICS_API_KEY:-jobbingtrack-metrics-secret-key}
+      - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
+      - MONITORING_C_URL=http://monitoring-c:8015
+      - NODE_ENV=development
+      - PORT=3014
       - POSTGRES_SYSTEM_METRICS_TZ=${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+      - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
       # Runtime Node (logs, Date) : UTC conseillé ; l’affichage utilisateur = fuseau navigateur côté front.
       - TZ=UTC
-      - PORT=3014
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - MONITORING_C_URL=http://monitoring-c:8015
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - METRICS_API_KEY=jobbingtrack-metrics-secret-key
-      - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
-      - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
-      - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
-      - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
-      - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -268,29 +268,29 @@ services:
       - ./backend/auth-service/test-email-diagnostic.js:/app/test-email-diagnostic.js:ro
     command: npm run dev
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - APP_URL=${APP_URL:-http://localhost:5003}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - HOST_IP=${HOST_IP:-localhost}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
+      - SMTP_FROM=${SMTP_FROM}
       - SMTP_HOST=${SMTP_HOST:-ssl0.ovh.net}
+      - SMTP_PASS=${SMTP_PASS}
       - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
       - SMTP_SECURE=${SMTP_SECURE:-false}
       - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - APP_URL=${APP_URL:-http://localhost:5003}
-      - HOST_IP=${HOST_IP:-localhost}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
-      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
     networks:
       - jobbingtrack-network
     depends_on:
@@ -324,15 +324,15 @@ services:
       - ./backend/application-service/package.json:/app/package.json:ro
     command: npm run dev
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
-      - PORT=3002
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=true
+      - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - NODE_ENV=development
+      - PORT=3002
       - SERVICE_NAME=application-service
-      - ENABLE_CENTRAL_LOGGING=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -366,14 +366,14 @@ services:
       - ./backend/company-service/package.json:/app/package.json:ro
     command: npm run dev
     environment:
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=true
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3003
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
-      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - SERVICE_NAME=company-service
-      - ENABLE_CENTRAL_LOGGING=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -406,11 +406,11 @@ services:
       - ./backend/contact-service/src:/app/src
       - ./backend/contact-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=3004
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - NODE_ENV=development
+      - PORT=3004
     depends_on:
       postgres:
         condition: service_healthy
@@ -440,9 +440,10 @@ services:
       - ./backend/interview-service/src:/app/src
       - ./backend/interview-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3005
     depends_on:
       postgres:
         condition: service_healthy
@@ -472,10 +473,10 @@ services:
       - ./backend/call-service/src:/app/src
       - ./backend/call-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
     depends_on:
       postgres:
         condition: service_healthy
@@ -502,10 +503,10 @@ services:
     ports:
       - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3011}"
     environment:
-      - NODE_ENV=development
-      - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=development
+      - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
     depends_on:
       postgres:
         condition: service_healthy
@@ -535,10 +536,10 @@ services:
       - ./backend/followup-service/src:/app/src
       - ./backend/followup-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
     depends_on:
       postgres:
         condition: service_healthy
@@ -565,8 +566,10 @@ services:
     ports:
       - "${PROFILE_SERVICE_PORT:-5013}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
     environment:
-      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3009
     depends_on:
       postgres:
         condition: service_healthy
@@ -593,15 +596,15 @@ services:
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
     environment:
+      - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.com}
       - SMTP_HOST=${SMTP_HOST:-mailhog}
       - SMTP_PORT=${SMTP_PORT:-1025}
-      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.com}
-      - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -635,15 +638,15 @@ services:
       - ./backend/dashboard-service/package.json:/app/package.json:ro
     command: npm start
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - APPLICATION_SERVICE_URL=http://jobbingtrack-application-service:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}
+      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - COMPANY_SERVICE_URL=http://jobbingtrack-company-service:${COMPANY_SERVICE_INTERNAL_PORT:-3003}
       - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -670,9 +673,9 @@ services:
     ports:
       - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - NODE_ENV=development
       - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -714,21 +717,23 @@ services:
     ports:
       - "${SECURITY_SERVICE_PORT:-5017}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
     environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DEBUG=
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - LOG_LEVEL=info
       - NODE_ENV=development
       - PORT=3017
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - LOG_LEVEL=info
-      - SECURITY_SERVICE_URL=http://security-service:3017
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
       - PRISMA_DISABLE_WARNINGS=true
-      - DEBUG=
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_SERVICE_URL=http://security-service:3017
       - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
       # Même principe que api-gateway : le code src sur l’hôte est pris en compte sans rebuild image
       - ./backend/security-service/src:/app/src
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -761,11 +766,11 @@ services:
     ports:
       - "${DEPLOYMENT_SERVICE_PORT:-5018}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
     environment:
-      - NODE_ENV=development
-      - PORT=3016
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
+      - NODE_ENV=development
+      - PORT=3016
     depends_on:
       postgres:
         condition: service_healthy

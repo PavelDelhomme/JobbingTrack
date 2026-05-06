@@ -2,9 +2,9 @@
 
 **Rôle** : centraliser **où** et **comment** analyser les vulnérabilités connues (**CVE**) et les dépendances pour **chaque service Node**, **le frontend**, **les outils**, **les images Docker** et **l’application mobile**. Ce fichier est une **feuille de suivi** : les chiffres et dates se remplissent après exécution des outils **sur votre machine** ou en **CI** — ce n’est pas un rapport CVE généré automatiquement par le dépôt.
 
-**Documents liés** : **`PLAN.md`** (lot **B** sécurité, lot **A** observabilité), **`TODOS.md`** § fin (CVE + briques **A2**), **`ERRORS.md`**, **`STATUS.md`**.
+**Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14** infra compose, lot **A** observabilité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`ERRORS.md`**, **`STATUS.md`**.
 
-**Dernière mise à jour** : 22 avril 2026 — création du gabarit et inventaire des surfaces.
+**Dernière mise à jour** : 6 mai 2026 — lien lot **B14** / durcissement runtime ; gabarit CVE inchangé (22 avril 2026).
 
 ---
 

@@ -81,6 +81,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité basse – Sécurité
 
+- [ ] **B14 — Durcissement Docker Compose & runtime** : secrets sans fallback en prod, proxy **`docker.sock`**, Redis **`requirepass`**, non-root collecteurs, **`read_only`** / limites — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14**.
 - [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.
 - [ ] **WAF** : remplacer la config mock par une vraie en production.
 - [x] **Tests sécurité API** : XSS, SQLi, CSRF, payload overflow (tests/security, security-e2e.spec.ts).

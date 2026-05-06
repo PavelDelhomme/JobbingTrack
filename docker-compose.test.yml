@@ -12,8 +12,8 @@ services:
     container_name: jobbingtrack-postgres-dev
     environment:
       POSTGRES_DB: jobbingtrack
-      POSTGRES_USER: jobbingtrack
       POSTGRES_PASSWORD: jobbingtrack123
+      POSTGRES_USER: jobbingtrack
     ports:
       - "5433:5432"
     volumes:
@@ -34,8 +34,8 @@ services:
     container_name: jobbingtrack-postgres-test
     environment:
       POSTGRES_DB: jobbingtrack
-      POSTGRES_USER: jobbingtrack
       POSTGRES_PASSWORD: jobbingtrack123
+      POSTGRES_USER: jobbingtrack
     ports:
       - "5434:5432"
     volumes:
@@ -60,8 +60,8 @@ services:
     container_name: jobbingtrack-postgres-staging
     environment:
       POSTGRES_DB: jobbingtrack
-      POSTGRES_USER: jobbingtrack
       POSTGRES_PASSWORD: jobbingtrack123
+      POSTGRES_USER: jobbingtrack
     ports:
       - "5435:5432"
     volumes:
@@ -86,8 +86,8 @@ services:
     container_name: jobbingtrack-postgres-prod
     environment:
       POSTGRES_DB: jobbingtrack
-      POSTGRES_USER: jobbingtrack
       POSTGRES_PASSWORD: jobbingtrack123
+      POSTGRES_USER: jobbingtrack
     ports:
       - "5436:5432"
     volumes:

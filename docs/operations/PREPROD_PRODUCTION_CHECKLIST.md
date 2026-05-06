@@ -2,7 +2,7 @@
 
 **Rôle** : regrouper ce que **seul un humain sur l’infra** peut valider (hôte, NTP, TLS, secrets, observabilité). Les tâches **automatisables dans le dépôt** restent dans **`PLAN.md`** / **`TODOS.md`** / **`make tests`**.
 
-**Documents liés** : **`PLAN.md`** (lots B, G), **`TODOS.md`**, **`STATS.md`** (CVE), **`docs/deployment/production/README.md`**, **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`** (VPS / Portainer / NPM / OVH), **`docs/tests/TESTS_END.md`**.
+**Documents liés** : **`PLAN.md`** (lots B, G), **`TODOS.md`**, **`STATS.md`** (CVE), **`docs/deployment/production/README.md`**, **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`** (VPS / Portainer / NPM / OVH), **`docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md`** (inventaire `.env` / secrets **hors Git** avant VPS), **`docs/tests/TESTS_END.md`**.
 
 ---
 
@@ -13,6 +13,7 @@
 
 ## B. Secrets & réseau
 
+- [ ] **Compose / conteneurs** : suivre **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (**lot B14**, **BX1–BX14**) — pas de réutilisation des **fallbacks de dev** en prod ; **`METRICS_API_KEY`**, **`JWT_SECRET`**, **`POSTGRES_PASSWORD`**, **`REDIS_PASSWORD`** (quand Redis sera sécurisé) : **forts** et **hors Git**.
 - [ ] **`SECURITY_INTERNAL_SECRET`** (et secrets JWT) : **valeurs fortes** uniques ; **aucun** défaut type `jobbingtrack-internal-security-dev` en production (voir **`ERRORS.md`**).
 - [ ] Endpoints backup / admin : **non exposés** sur Internet sans tunnel ou IP allowlist (**lot G**).
 

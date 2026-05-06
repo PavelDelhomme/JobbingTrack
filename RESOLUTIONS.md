@@ -4,6 +4,22 @@
 
 ---
 
+## 6 mai 2026 — Durcissement partiel Docker Compose & suivi sécurité infra (lot B14)
+
+### Contexte
+- Audit externe (Perplexity) listant secrets par défaut, montage **`docker.sock`**, **`WAF_ENABLED=false`** sur la gateway, Redis sans auth, fichiers **`*.backup.*`** versionnés, **`JWT_SECRET`** manquant côté **profile-service**, etc.
+
+### Correctifs livrés (dépôt)
+1. **`docker-compose.yml`** : **`WAF_ENABLED=${WAF_ENABLED:-true}`** ; **`METRICS_API_KEY=${METRICS_API_KEY:-…}`** ; **profile-service** : **`JWT_SECRET`** aligné sur les autres services ; healthcheck **postgres** : **`pg_isready -U $POSTGRES_USER -d $POSTGRES_DB`** (variables conteneur) ; **frontend** : défaut **`HOST_IP=localhost`** pour les **`NEXT_PUBLIC_*`** ; **security-service** : **`security_opt: no-new-privileges:true`**.
+2. **`.env.example`** : **`WAF_ENABLED=true`** (comportement type prod ; **`false`** seulement pour diagnostic local), **`METRICS_API_KEY`**, **`HOST_IP=localhost`**, sections variables en **ordre alphabétique** ; **`make env-reorder`** pour réaligner **`.env`**.
+3. Suppression des fichiers **`backend/api-gateway/src/server.js.backup.20251023_*`** ; **`.gitignore`** : **`**/*.backup.*`** ; ajustement règle Docker : **`/.dockerignore`** seulement à la racine (pour ne plus ignorer **`backend/.dockerignore`** versionné) ; **`backend/.dockerignore`** pour exclure les backups du contexte de build.
+4. Documentation : **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** ; mises à jour **`PLAN.md`** (**B14**), **`TODOS.md`**, **`STATUS.md`**, **`ERRORS.md`**, **`FONCTIONNALITES.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+
+### Reste
+- Chantiers **BX1–BX14** (Redis **`requirepass`**, proxy socket, non-root collecteurs, **`read_only`**, limites ressources, compose prod strict, bootstrap admin, etc.) — ne pas les traiter « en douce » sans plan de migration : **`TODOS.md`** § **B14**.
+
+---
+
 ## 24 avril 2026 — Analytics conteneurs : graphes vides + lenteur ; `next build` / `self`
 
 ### Problème
