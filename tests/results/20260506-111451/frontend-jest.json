@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Frontend Jest (unit + pages analytics)",
+  "userType": "system",
+  "command": "bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && npm run test:unit-and-analytics 2>&1'",
+  "timestamp": "2026-05-06T11:18:03+02:00",
+  "duration": 6,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "output": "\nup to date in 808ms\n\n> jobbingtrack-frontend@1.0.1 test:unit-and-analytics\n> npm run test:unit && npm run test:analytics-pages\n\n\n> jobbingtrack-frontend@1.0.1 test:unit\n> npx jest unit --passWithNoTests\n\nPASS src/__tests__/unit/date-metrics-display.test.ts\nPASS src/__tests__/unit/analytics-metric-rows-normalize.test.ts\nPASS src/__tests__/unit/threatSignals.test.ts\nPASS src/__tests__/unit/pickSystemResponseTimeFromRow.test.ts\nPASS src/__tests__/unit/sample.test.ts\n\nTest Suites: 5 passed, 5 total\nTests:       18 passed, 18 total\nSnapshots:   0 total\nTime:        0.817 s, estimated 1 s\nRan all test suites matching /unit/i.\n\n> jobbingtrack-frontend@1.0.1 test:analytics-pages\n> npx jest --testPathPattern=backoffice/analytics --passWithNoTests\n\nPASS src/app/(admin)/backoffice/analytics/__tests__/backoffice-analytics-routes.smoke.test.tsx\nPASS src/app/(admin)/backoffice/analytics/__tests__/analytics-page.test.tsx\nPASS src/app/(admin)/backoffice/analytics/__tests__/performance.test.tsx\nPASS src/app/(admin)/backoffice/analytics/__tests__/react-errors-detector.test.tsx\nPASS src/app/(admin)/backoffice/analytics/__tests__/tab-components.test.tsx\n\nTest Suites: 5 passed, 5 total\nTests:       20 passed, 20 total\nSnapshots:   0 total\nTime:        1.345 s\nRan all test suites matching /backoffice\\/analytics/i.\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}
