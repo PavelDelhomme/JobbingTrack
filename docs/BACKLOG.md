@@ -53,7 +53,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité moyenne – API et fonctionnalités
 
-- [ ] **Stabilisation post-run `make tests` 05/05/2026 (`tests/results/20260505-113157`)** : corriger `application-service` (Prisma `application.create/findFirst`), adapter tests gateway Jest (CORS/logs auth), mettre à jour `tab-components.test.tsx` (analytics hub), stabiliser Playwright `login.spec.ts` et `suivi-interim.spec.ts`.
+- [ ] **Stabilisation post-run `make tests` 05/05/2026 (`tests/results/20260505-113157`)** : backend candidatures **corrigé partiellement** (`application-service` create/get/update/delete + archive/trash avec fallback legacy ; création candidature repasse 201 sur scripts ciblés). Dashboard : **socle de fiabilisation appliqué** (`restart: unless-stopped` + précheck santé avant campagne). Sécurité : **itération 1 anti faux-positifs** appliquée sur intrusion detector. Restent : adaptation tests gateway Jest (CORS/logs auth), mise à jour `tab-components.test.tsx` (analytics hub), stabilisation Playwright `login.spec.ts` et `suivi-interim.spec.ts`, calibration sécurité terrain 24-48h.
 - [ ] **Backoffice – Email Monitor** : vérifier que tous les emails envoyés (vérification, reset password, etc.) s'affichent correctement dans la page email-monitor ; tester complètement la partie email-monitor (filtres par type, liste, rafraîchissement).
 - [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
 - [ ] **Documentation API** : Swagger/OpenAPI.
@@ -88,7 +88,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
 - [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
 - [ ] **Forensics logs — déploiement progressif** : lot **05–06/2026** : microservices listés précédemment + **`api-gateway`** + **`workflow-service`** (**ALS** / contexte, Winston, **`centralLogger`**, **`TRUST_PROXY_HOPS`**) ; **reste** : QA porteur `/backoffice/performances/correlation`.
-- [ ] **Corrélation fine incidents (A3/B8)** : combler les colonnes encore vides en pratique (`requestId`, endpoint, IP, proto/port, HTTP, CPU/Mémoire/TR proches, écart sec) avec contrat de logs homogène + règles d’alignement plus strictes.
+- [ ] **Corrélation fine incidents (A3/B8)** : combler les colonnes encore vides en pratique (`requestId`, endpoint, IP, proto/port, HTTP, CPU/Mémoire/TR proches, écart sec) avec contrat de logs homogène + règles d’alignement plus strictes. Inclure la vérification I/O bloc : distinguer « trou de persistance » (`null`) vs « vraie mesure zéro » (`0/0` Docker hôte).
 
 ## Références
 
