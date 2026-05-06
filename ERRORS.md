@@ -1,12 +1,21 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 7 mai 2026 — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 6 mai 2026 — **dette sécurité Compose / runtime** : suivi **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** **B14** (secrets, **`docker.sock`**, Redis, non-root, etc.). **7 mai 2026** — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
-**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G**), **`TODOS.md`**, **`STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G** + **B14** infra), **`TODOS.md`**, **`STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+
+---
+
+## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)
+
+- **Fallbacks secrets** dans **`docker-compose.yml`** / **`.env`** de dev : pratique courante pour **`make up-full`**, **dangereux** si les mêmes valeurs se retrouvent en **prod**. Mitigation : fichier compose **prod** + secrets manager ; voir **B14** / **BX1**.
+- **`/var/run/docker.sock`** monté dans un conteneur : **même en `:ro`**, risque **équivalent root hôte** si le service est compromis — **BX2**.
+- **Redis sans mot de passe** : tout process sur le réseau Docker interne peut lire/écraser les clés de session — **BX5** (migration planifiée).
+- **WAF gateway** : **`${WAF_ENABLED:-true}`** ; **`.env.example`** utilise **`WAF_ENABLED=true`** (comportement proche prod). Pour diagnostiquer des blocages WAF en local uniquement : **`WAF_ENABLED=false`** dans **`.env`** (ne pas committer).
 
 ---
 

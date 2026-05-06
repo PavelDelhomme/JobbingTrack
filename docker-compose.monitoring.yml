@@ -18,13 +18,13 @@ services:
     ports:
       - "5098:8015"
     environment:
+      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-15}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -57,11 +57,11 @@ services:
     command: ["./log-collector-c", "${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro

@@ -1,6 +1,6 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 7 mai 2026** — **07/05** : analyse run `make tests` **`tests/results/20260505-113157`** (21 KO / 720), correctifs **`logs-watch`** (141 vs 130), filtre console axios **aborted**, fusion **`metadata.metadata`** incidents corrélation, script **`npm run browserslist:update`**. **Synthèse `/backoffice`** : tableau **CPU % / mémoire % / RAM MB** par conteneur **`jobbingtrack-*`** + cartes renommées ; **Performance** : raccourcis **Synthèse / Latence / Conteneurs / Disque / Réseau** + lien **Services & logs** corrigé. **Statistiques — Sécurité** : **persistance seule** (synthèse agrégée, score, **par jour**, extrait) — pas les mêmes blocs que **`/backoffice/security`**. **A1** : lazy Recharts **`/backoffice/performances/containers`** ; **hub `/backoffice/analytics`** métier uniquement ; **H1** : **`scripts/README.md`**. **Statistiques** : **`/backoffice/statistics`** + redirects ; **vue d’ensemble** : **`rechartsTooltipProps`** sur tous les **`<Tooltip>`** (**07/04**). **Suite & suivi** ci-dessous. **Mobile** : **`jobbing/`** + smoke ; **`flutter-mobile-app`**. **Lot H**.
+**Dernière mise à jour : 6 mai 2026** — **B14** : audit **durcissement Compose / runtime** (Perplexity + suivi interne) — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, correctifs partiels **`docker-compose.yml`** / **`.env.example`** / suppression backups gateway — **07/05** : analyse run `make tests` **`tests/results/20260505-113157`** (21 KO / 720), correctifs **`logs-watch`** (141 vs 130), filtre console axios **aborted**, fusion **`metadata.metadata`** incidents corrélation, script **`npm run browserslist:update`**. **Synthèse `/backoffice`** : tableau **CPU % / mémoire % / RAM MB** par conteneur **`jobbingtrack-*`** + cartes renommées ; **Performance** : raccourcis **Synthèse / Latence / Conteneurs / Disque / Réseau** + lien **Services & logs** corrigé. **Statistiques — Sécurité** : **persistance seule** (synthèse agrégée, score, **par jour**, extrait) — pas les mêmes blocs que **`/backoffice/security`**. **A1** : lazy Recharts **`/backoffice/performances/containers`** ; **hub `/backoffice/analytics`** métier uniquement ; **H1** : **`scripts/README.md`**. **Statistiques** : **`/backoffice/statistics`** + redirects ; **vue d’ensemble** : **`rechartsTooltipProps`** sur tous les **`<Tooltip>`** (**07/04**). **Suite & suivi** ci-dessous. **Mobile** : **`jobbing/`** + smoke ; **`flutter-mobile-app`**. **Lot H**.
 
 ## Priorité immédiate 6 mai 2026 — perf ressources + corrélation
 
@@ -210,7 +210,7 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
 | **Menaces & analyse temps réel** | Logs **`eventType`**, table menaces, **`networkThreatDetector`** ; pages **Analyse**, **Réseau**, vue d’ensemble | **B3**, **B4**, **B6**, **B10** |
 | **Logs techniques utiles enquête** | **`/backoffice/services/logs`** (metrics-aggregator) + **corrélation** avec sécurité | **A2**, **A3**, **B8** |
 | **Mot de passe (complexité, reset)** | **`auth-service`** (ex. `min: 6` aujourd’hui), emails reset ; durcissement = évolution produit + **B7** audit si besoin | Auth + **B7** ; **`.env.example`** |
-| **Déploiement / secrets / prod** | Compose, **`PREPROD_PRODUCTION_CHECKLIST.md`**, **`INTRUSION_DETECTION_ENABLED`**, secrets forts | **B5**, **B6** ; lot **G** ; checklist **§ manuel** ci-dessous |
+| **Déploiement / secrets / prod** | Compose, **`PREPROD_PRODUCTION_CHECKLIST.md`**, **`INTRUSION_DETECTION_ENABLED`**, secrets forts ; **B14** durcissement **`docker-compose`** / **`docker.sock`** / Redis / non-root | **B5**, **B6**, **B14** ; lot **G** ; **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** |
 | **Sauvegardes & continuité** | Pas encore le même code que le firewall — **lot G** | **G1–G7** |
 
 - [x] B1 — Cohérence : `blockOrigin` sur IPs bloquées + affichage firewall / analyse (affiner si besoin).
@@ -232,6 +232,22 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
   - [ ] **Plan de transition** : cibles algorithmiques hybrides/PQC (quand supportées), rotation certs/clés, compatibilité clients et rollback.
   - [ ] **Tests dédiés** : non-régression fonctionnelle, perf/latence handshake, interop environnements, procédures incident.
   - [ ] **Documentation ops** : runbook migration crypto + checklists préprod/prod.
+
+- [ ] **B14 — Durcissement Docker Compose & runtime** : feuille de route **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (priorisation **BX1–BX14**). **Ne pas** casser **`make up-full`** sans migration documentée (secrets, Redis, clients `REDIS_URL`, proxy socket). **Fait (6 mai 2026, partiel)** : WAF gateway piloté par **`${WAF_ENABLED:-true}`** + **`.env.example`** **`WAF_ENABLED=true`** (comportement type prod ; **`false`** seulement pour diagnostic local) ; **`METRICS_API_KEY`** via variable ; **`JWT_SECRET`** sur **profile-service** ; healthcheck **postgres** aligné **`POSTGRES_USER`** / **`POSTGRES_DB`** ; **frontend** fallback **`HOST_IP=localhost`** ; **security-service** **`no-new-privileges`** ; suppression **`server.js.backup.*`** + **gitignore** / **`backend/.dockerignore`**. **Reste** :
+  - [ ] **BX1** — Retirer les **fallbacks secrets** dangereux du chemin **prod** (fichier compose dédié ou variables **`${VAR:?message}`** après pipeline secrets) ; garder un chemin **dev** explicite documenté.
+  - [ ] **BX2** — Remplacer le montage direct **`/var/run/docker.sock`** par **socket proxy** (ou API limitée) pour les services qui n’en ont pas besoin au niveau root-hôte.
+  - [ ] **BX3** — **Non-root** pour **monitoring-c** / **metrics-aggregator** (images + permissions) ; **security-service** : documenter l’exception **iptables** ou alternative.
+  - [ ] **BX4** — (Suivi) WAF gateway : valider en **`make tests`** / E2E avec **`WAF_ENABLED=true`** et ajuster règles si besoin.
+  - [ ] **BX5** — **Redis** : **`requirepass`** / ACL + mise à jour de **tous** les **`REDIS_URL`** / clients ; tests de non-régression session / intrusion detector.
+  - [ ] **BX6** — (Suite) **`.dockerignore`** aux autres contextes de build si besoin ; interdire tout nouveau `*.backup.*` versionné.
+  - [ ] **BX7** — **ADMIN_*** bootstrap **auth-service** : réduire exposition (secret Docker / init one-shot / doc prod).
+  - [ ] **BX8** — (Suivi) Vérifier **tous** les services avec **`jwt.verify`** : même **`JWT_SECRET`** que l’émetteur ; pas de service « oublié » dans les profils compose.
+  - [ ] **BX9** — (Suivi) **`no-new-privileges`** sur **security-service** : valider **`make security-live-check`** + firewall réel après durcissement.
+  - [ ] **BX10** — (Suivi) **Frontend** : aucune IP privée « maison » en fallback dans les autres fichiers (grep périodique).
+  - [ ] **BX11** — **`read_only: true`** + **`tmpfs`** là où l’écriture disque n’est pas requise (service par service).
+  - [ ] **BX12** — Limites **CPU/RAM** (Swarm **`deploy.resources`**, Portainer, systemd, ou doc équivalente).
+  - [ ] **BX13** — (Fait partiel postgres) — vérifier les **autres** healthchecks avec identifiants hardcodés.
+  - [ ] **BX14** — Politique de **redémarrage** (backoff / max attempts) en orchestration prod ; documenter le risque **crash loop** avec **`unless-stopped`**.
 
 ---
 

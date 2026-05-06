@@ -12,6 +12,9 @@ lerna-debug.log*
 # Marqueur manuel historique (nettoyage doc nov. 2025) — ne pas versionner
 .nettoyage_effectue
 
+# Sauvegardes de code / artefacts backup (ne pas versionner)
+**/*.backup.*
+
 # Environment files
 .env
 .env.local
@@ -20,6 +23,12 @@ lerna-debug.log*
 .env.production.local
 .env.backup.*
 .env.append-from-example.txt
+
+# Rapports d’audit variables / secrets — ne jamais committer le contenu ; seul README.md reste suivi
+reports/env-audit/*
+!reports/env-audit/README.md
+*.env.secrets-report.*
+*.env.inventory.local
 
 # Production build
 dist/
@@ -83,7 +92,8 @@ temp/
 
 # Docker
 docker-compose.override.yml
-.dockerignore
+# Ignorer uniquement un `.dockerignore` à la racine (local) ; les sous-dossiers peuvent versionner le leur (ex. `backend/.dockerignore`).
+/.dockerignore
 
 # Backup files
 backups/

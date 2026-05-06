@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic env-check env-append-missing
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic env-check env-append-missing env-reorder
 
 # ============================================================================
 # AIDE
@@ -42,6 +42,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo ""
 	@echo "📄 ENV (.env vs .env.example):"
 	@echo "  make env-check                    - Clés manquantes / orphelines (sans modifier .env)"
+	@echo "  make env-reorder                  - Réordonne .env comme .env.example (conserve tes valeurs)"
 	@echo "  make env-append-missing           - Fichier .env.append-from-example.txt (à fusionner à la main)"
 	@echo ""
 	@echo "📖 Documentation: docs/troubleshooting/guide.md"
@@ -281,3 +282,6 @@ env-check: ## Compare .env et .env.example (variables manquantes ou uniquement d
 env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .env, valeurs copiées depuis l’exemple) — ne modifie pas .env
 	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
 	@echo "👉 Fusionnez manuellement le contenu dans .env puis supprimez le fichier si besoin."
+
+env-reorder: ## Réordonne .env comme .env.example en conservant tes valeurs (voir scripts/reorder-env-from-example.cjs)
+	@node "$(ROOT_DIR)/scripts/reorder-env-from-example.cjs" --write

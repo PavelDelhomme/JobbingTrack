@@ -1,131 +1,15 @@
-#!/bin/bash
-# Script pour générer le fichier .env.example avec toutes les variables de ports
+#!/usr/bin/env bash
+# =============================================================================
+# DÉPRÉCIÉ — ne pas utiliser pour régénérer .env.example
+# =============================================================================
+# La source de vérité pour les variables (ordre alphabétique, VPS, Portainer)
+# est le fichier **/.env.example** à la racine du dépôt**, maintenu à la main.
+#
+# Pour aligner les clés : make env-check
+# Pour réordonner ton .env sans perdre tes valeurs : make env-reorder
+#
+# Voir : docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md
+# =============================================================================
 
-cat > .env.example << 'EOF'
-# Configuration JobbingTrack Microservices
-
-# ============================================
-# PORTS - Configuration centralisée des ports
-# ============================================
-# Ports externes (exposés sur l'hôte)
-FRONTEND_PORT=8080
-API_GATEWAY_PORT=3000
-AUTH_SERVICE_PORT=8001
-APPLICATION_SERVICE_PORT=8002
-COMPANY_SERVICE_PORT=8003
-CONTACT_SERVICE_PORT=8004
-INTERVIEW_SERVICE_PORT=8005
-CALL_SERVICE_PORT=8006
-EVENT_SERVICE_PORT=8007
-FOLLOWUP_SERVICE_PORT=8008
-METRICS_AGGREGATOR_PORT=8014
-DASHBOARD_SERVICE_PORT=8012
-POSTGRES_PORT=5432
-REDIS_PORT=6379
-MAILHOG_PORT=8025
-
-# Ports internes (dans les conteneurs Docker)
-FRONTEND_INTERNAL_PORT=3000
-API_GATEWAY_INTERNAL_PORT=3000
-AUTH_SERVICE_INTERNAL_PORT=3001
-APPLICATION_SERVICE_INTERNAL_PORT=3002
-COMPANY_SERVICE_INTERNAL_PORT=3003
-CONTACT_SERVICE_INTERNAL_PORT=3004
-INTERVIEW_SERVICE_INTERNAL_PORT=3005
-CALL_SERVICE_INTERNAL_PORT=3006
-EVENT_SERVICE_INTERNAL_PORT=3007
-FOLLOWUP_SERVICE_INTERNAL_PORT=3008
-METRICS_AGGREGATOR_INTERNAL_PORT=3014
-DASHBOARD_SERVICE_INTERNAL_PORT=3000
-POSTGRES_INTERNAL_PORT=5432
-REDIS_INTERNAL_PORT=6379
-
-# URLs Frontend (pour le client)
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:8001
-NEXT_PUBLIC_METRICS_URL=http://localhost:8014
-NEXT_PUBLIC_FRONTEND_URL=http://localhost:8080
-
-# URLs Services (pour communication inter-conteneurs Docker)
-AUTH_SERVICE_URL=http://auth-service:3001
-APPLICATION_SERVICE_URL=http://application-service:3002
-COMPANY_SERVICE_URL=http://company-service:3003
-CONTACT_SERVICE_URL=http://contact-service:3004
-INTERVIEW_SERVICE_URL=http://interview-service:3005
-CALL_SERVICE_URL=http://call-service:3006
-EVENT_SERVICE_URL=http://event-service:3007
-FOLLOWUP_SERVICE_URL=http://followup-service:3008
-METRICS_AGGREGATOR_URL=http://metrics-aggregator:3014
-DASHBOARD_SERVICE_URL=http://dashboard-service:3000
-API_GATEWAY_URL=http://api-gateway:3000
-
-# ============================================
-# BASE DE DONNÉES
-# ============================================
-DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public
-POSTGRES_USER=jobbingtrack
-POSTGRES_PASSWORD=jobbingtrack123
-POSTGRES_DB=jobbingtrack
-POSTGRES_HOST=postgres
-
-# ============================================
-# CONFIGURATION ADMIN
-# ============================================
-ADMIN_EMAIL=admin@jobbingtrack.test
-ADMIN_PASSWORD=password123
-ADMIN_FIRST_NAME=Admin
-ADMIN_LAST_NAME=JobbingTrack
-
-# ============================================
-# JWT
-# ============================================
-JWT_SECRET=your-secret-key-change-in-production-2025
-JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
-JWT_EXPIRES_IN=24h
-JWT_REFRESH_EXPIRES_IN=7d
-
-# ============================================
-# API GATEWAY
-# ============================================
-PORT=3000
-NODE_ENV=development
-ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000,http://localhost:5173
-
-# ============================================
-# EMAIL CONFIGURATION (SMTP)
-# ============================================
-SMTP_HOST=
-SMTP_PORT=465
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>
-SMTP_REPLY_TO=noreply@jobbingtrack.test
-SMTP_SECURE=true
-FRONTEND_URL=http://localhost:8080
-
-# ============================================
-# REDIS
-# ============================================
-REDIS_URL=redis://localhost:6379
-
-# ============================================
-# LOGGING
-# ============================================
-LOG_LEVEL=info
-
-# ============================================
-# MONITORING STACK (Prometheus + Loki + cAdvisor)
-# ============================================
-METRICS_API_KEY=jobbingtrack-metrics-secret-key-change-me
-GRAFANA_ADMIN_PASSWORD=change-me-in-production
-
-# ============================================
-# RÉTENTION DES DONNÉES
-# ============================================
-PROMETHEUS_RETENTION_TIME=90d
-PROMETHEUS_RETENTION_SIZE=50GB
-LOKI_RETENTION_DAYS=30
-EOF
-
-echo "✅ Fichier .env.example généré avec succès !"
-
+echo "Ce script est déprécié. Utilisez le fichier racine .env.example et : make env-check / make env-reorder" >&2
+exit 1
