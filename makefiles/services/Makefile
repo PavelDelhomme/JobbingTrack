@@ -1388,6 +1388,7 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"
 	@echo "   Redis/Postgres: grisé (dim). Sans Redis/Postgres: make logs-app"
 	@echo ""
+	@printf '\033]0;Logs\007' >/dev/tty 2>/dev/null || true
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
 

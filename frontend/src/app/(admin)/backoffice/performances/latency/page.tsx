@@ -36,8 +36,10 @@ import {
   Legend,
   BarChart,
   Bar,
+  Brush,
 } from 'recharts'
 import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
+import { chartXDomainFromDataRange } from '@/lib/charts/chartTimeDomain'
 
 type LatencyRow = {
   timestamp: string
@@ -68,6 +70,7 @@ export default function PerformancesLatencyPage() {
   })
   const [customEnd, setCustomEnd] = useState(() => ymdLocal())
   const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
 
   usePersistedSharedAnalyticsRange({
     timeRange,
@@ -150,6 +153,14 @@ export default function PerformancesLatencyPage() {
     void fetchData()
   }, [fetchData, softTick])
 
+  useEffect(() => {
+    if (rows.length === 0) {
+      setBrushRange(null)
+      return
+    }
+    setBrushRange({ start: 0, end: rows.length - 1 })
+  }, [rows])
+
   const bumpWindowEndToNow = useCallback(() => {
     setWindowEnd(new Date())
   }, [])
@@ -171,7 +182,22 @@ export default function PerformancesLatencyPage() {
     : formatRangeLabel(rangeStart, rangeEnd, timeRange)
   const chartXDomainMin = rangeStart.getTime()
   const chartXDomainMax = rangeEnd.getTime()
-  const axisShowDate = chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000
+  const [chartXEffMin, chartXEffMax] = useMemo(
+    () => chartXDomainFromDataRange(chartXDomainMin, chartXDomainMax, rows.map((r) => r.timeMs)),
+    [chartXDomainMin, chartXDomainMax, rows]
+  )
+  const axisShowDate = chartXEffMax - chartXEffMin > 24 * 60 * 60 * 1000
+
+  const brushAvgMs = useMemo(() => {
+    if (!brushRange || rows.length === 0) return null
+    const s = Math.max(0, Math.min(brushRange.start, brushRange.end))
+    const e = Math.min(rows.length - 1, Math.max(brushRange.start, brushRange.end))
+    const slice = rows
+      .slice(s, e + 1)
+      .filter((r) => r.responseTimeMs != null && Number.isFinite(Number(r.responseTimeMs)))
+    if (slice.length === 0) return null
+    return slice.reduce((acc, r) => acc + Number(r.responseTimeMs), 0) / slice.length
+  }, [brushRange, rows])
 
   const goPrev = useCallback(() => {
     setFollowLive(false)
@@ -272,19 +298,26 @@ export default function PerformancesLatencyPage() {
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Historique agrégé (ms)</h2>
+          {rows.length > 0 && (
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {brushAvgMs != null
+                ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
+                : 'Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus.'}
+            </p>
+          )}
           {loadingHistory && rows.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Chargement…</p>
           ) : rows.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Aucune donnée sur la période.</p>
           ) : (
             <div className="mt-4 w-full min-h-[260px]">
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={rows} margin={{ top: 8, right: 20, left: 8, bottom: 50 }}>
+              <ResponsiveContainer width="100%" height={380}>
+                <LineChart data={rows} margin={{ top: 8, right: 20, left: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
                   <XAxis
                     dataKey="timeMs"
                     type="number"
-                    domain={[chartXDomainMin, chartXDomainMax]}
+                    domain={[chartXEffMin, chartXEffMax]}
                     angle={axisShowDate ? -40 : -35}
                     textAnchor="end"
                     height={axisShowDate ? 72 : 60}
@@ -310,6 +343,18 @@ export default function PerformancesLatencyPage() {
                     dot={false}
                     connectNulls={false}
                     name="Temps de réponse (ms)"
+                  />
+                  <Brush
+                    dataKey="timeMs"
+                    height={28}
+                    stroke="#64748b"
+                    fill="rgba(100, 116, 139, 0.12)"
+                    travellerWidth={10}
+                    tickFormatter={(v) => formatLocalChartAxisTick(Number(v), { withDate: axisShowDate })}
+                    onChange={(e: { startIndex?: number; endIndex?: number } | undefined) => {
+                      if (e?.startIndex == null || e?.endIndex == null) return
+                      setBrushRange({ start: e.startIndex, end: e.endIndex })
+                    }}
                   />
                 </LineChart>
               </ResponsiveContainer>

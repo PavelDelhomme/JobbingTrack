@@ -6,10 +6,14 @@ set -u
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR" || exit 1
 
+set_term_title() { printf '\033]0;%s\007' "$1" 2>/dev/null || true; }
+set_term_title "Logs"
+
 if [[ $# -lt 1 ]]; then
   set -- -f docker-compose.yml
 fi
 
+trap 'set_term_title ""' EXIT
 trap 'echo ""; echo "⏹ logs-watch arrêté."; exit 130' INT
 
 echo "📋 logs-watch — suivi continu (reconnexion auto si le flux s’interrompt) — Ctrl+C pour quitter"

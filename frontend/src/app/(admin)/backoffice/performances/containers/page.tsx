@@ -26,6 +26,7 @@ import {
   metricTimestampToMs,
   normalizeMetricTimestampToIso,
 } from '@/lib/utils/date';
+import { chartXDomainFromDataRange } from '@/lib/charts/chartTimeDomain';
 import { analyticsService } from '@/lib/api/analytics.service';
 
 const AnalyticsContainersChartsBundle = dynamic(
@@ -400,38 +401,71 @@ export default function ContainersAnalyticsPage() {
     const names = Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0);
     if (names.length === 0) return [];
     const toKey = (n: string) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_');
-    const allTs = new Set<string>();
-    names.forEach((n) => rawMetricsByContainer[n].forEach((m) => allTs.add(m.timestamp)));
-    const sortedTs = Array.from(allTs).sort(
-      (a, b) => (metricTimestampToMs(a) ?? 0) - (metricTimestampToMs(b) ?? 0)
-    );
-    const target = 200;
-    const step = sortedTs.length <= target ? 1 : Math.ceil(sortedTs.length / target);
-    const sampledTs = sortedTs.filter((_, i) => i % step === 0);
-    const getVal = (arr: ContainerMetric[], ts: string, key: 'cpuUsagePercent' | 'memoryUsagePercent') => {
-      const m = arr.find((x) => x.timestamp === ts);
-      if (!m || m[key] == null) return null;
-      return Number(m[key]);
+    /** Les séries par conteneur n’ont pas le même horodatage exact : on aligne au point le plus proche. */
+    const MAX_ALIGN_MS = 120_000;
+    const rowTimeMs = (m: ContainerMetric): number | null => {
+      if (typeof m.timeMs === 'number' && Number.isFinite(m.timeMs)) return m.timeMs;
+      return metricTimestampToMs(m.timestamp);
     };
-    return sampledTs.map((ts) => {
-      const timeMs = metricTimestampToMs(ts) ?? NaN;
+    const getNearestVal = (
+      arr: ContainerMetric[],
+      targetMs: number,
+      key: 'cpuUsagePercent' | 'memoryUsagePercent'
+    ): number | null => {
+      let best: ContainerMetric | null = null;
+      let bestD = Infinity;
+      for (const x of arr) {
+        const ms = rowTimeMs(x);
+        if (ms == null || !Number.isFinite(ms)) continue;
+        const d = Math.abs(ms - targetMs);
+        if (d <= MAX_ALIGN_MS && d < bestD) {
+          bestD = d;
+          best = x;
+        }
+      }
+      if (!best || best[key] == null) return null;
+      return Number(best[key]);
+    };
+    const allMs = new Set<number>();
+    names.forEach((n) => {
+      rawMetricsByContainer[n].forEach((m) => {
+        const ms = rowTimeMs(m);
+        if (ms != null && Number.isFinite(ms)) allMs.add(ms);
+      });
+    });
+    const sortedMs = Array.from(allMs).sort((a, b) => a - b);
+    const target = 200;
+    const step = sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
+    const sampledMs = sortedMs.filter((_, i) => i % step === 0);
+    return sampledMs.map((targetMs) => {
+      const iso = new Date(targetMs).toISOString();
       const point: Record<string, string | number | null> = {
-        timeMs,
-        timestamp: ts,
-        time: formatLocalChartAxisTick(timeMs, { withDate: false }),
-        datetime: formatLocalDateTime(ts),
+        timeMs: targetMs,
+        timestamp: iso,
+        time: formatLocalChartAxisTick(targetMs, { withDate: false }),
+        datetime: formatLocalDateTime(iso),
       };
       names.forEach((n) => {
         const k = toKey(n);
-        point[`cpu_${k}`] = getVal(rawMetricsByContainer[n], ts, 'cpuUsagePercent');
-        point[`memory_${k}`] = getVal(rawMetricsByContainer[n], ts, 'memoryUsagePercent');
+        point[`cpu_${k}`] = getNearestVal(rawMetricsByContainer[n], targetMs, 'cpuUsagePercent');
+        point[`memory_${k}`] = getNearestVal(rawMetricsByContainer[n], targetMs, 'memoryUsagePercent');
       });
       return point;
     });
   }, [rawMetrics, rawMetricsByContainer, selectedContainer]);
 
+  const [chartXDomainEffMin, chartXDomainEffMax] = useMemo(
+    () =>
+      chartXDomainFromDataRange(
+        chartXDomainMin,
+        chartXDomainMax,
+        chartData.map((d) => Number(d.timeMs))
+      ),
+    [chartData, chartXDomainMin, chartXDomainMax]
+  );
+
   const containerAxisShowDate =
-    chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;
+    chartXDomainEffMax - chartXDomainEffMin > 24 * 60 * 60 * 1000;
 
   const isAllContainers = selectedContainer === ALL_CONTAINERS_VALUE;
   const containerNamesForChart = isAllContainers
@@ -528,8 +562,8 @@ export default function ContainersAnalyticsPage() {
           <AnalyticsContainersChartsBundle
             mode="multi"
             rangeLabel={rangeLabel}
-            chartXDomainMin={chartXDomainMin}
-            chartXDomainMax={chartXDomainMax}
+            chartXDomainMin={chartXDomainEffMin}
+            chartXDomainMax={chartXDomainEffMax}
             containerAxisShowDate={containerAxisShowDate}
             chartData={chartData}
             containerNamesForChart={containerNamesForChart}
@@ -540,8 +574,8 @@ export default function ContainersAnalyticsPage() {
           <AnalyticsContainersChartsBundle
             mode="single"
             rangeLabel={rangeLabel}
-            chartXDomainMin={chartXDomainMin}
-            chartXDomainMax={chartXDomainMax}
+            chartXDomainMin={chartXDomainEffMin}
+            chartXDomainMax={chartXDomainEffMax}
             containerAxisShowDate={containerAxisShowDate}
             chartData={chartData}
             containerNamesForChart={[]}

@@ -122,7 +122,9 @@ services:
       - NEXT_PUBLIC_APP_VERSION=1.0.0
       - NEXT_PUBLIC_CHART_TIMEZONE=${NEXT_PUBLIC_CHART_TIMEZONE:-}
       - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
-      - WATCHPACK_POLLING=true
+      # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
+      - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=2048}
       - HOSTNAME=0.0.0.0
       - PORT=3000
       - PROJECT_ROOT=/app
@@ -152,7 +154,7 @@ services:
     restart: unless-stopped
     # Liveness Next seul : `/health` (route App) — pas la racine `/` (app shell + auth) ni l’ancienne réécriture vers la gateway.
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || curl -fsS -o /dev/null http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -172,7 +174,7 @@ services:
       - "${MONITORING_C_PORT:-5098}:8015"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-15}
+      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
       - PROCFS_PATH=/host/proc
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -224,7 +226,7 @@ services:
       - MONITORING_C_URL=http://monitoring-c:8015
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
-      - METRICS_COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-300000}
+      - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
       - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
       - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
       - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}

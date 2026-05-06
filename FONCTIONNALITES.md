@@ -137,6 +137,7 @@ Le systeme utilise **deux mecanismes distincts** :
 - **État des services (aperçu)** : point vert = service considéré joignable ; colonne de droite = uptime si disponible, sinon **En ligne**, **~X ms**, ou **—**.
 - **Panneau Performance** : temps de réponse ms (metrics-aggregator), **débit d’erreurs en /min** (`rate_per_min`, pas un %), sessions actives (auth), trafic RX/TX si métriques réseau présentes ; lien vers **Services & logs** (`/services/backoffice`) ; légende des sources en UI.
 - Accès rapide aux sections admin ; métriques détaillées par service : page **Services** backoffice.
+- **Corrélation incidents (performances)** : tableau détaillé requestId/endpoint/IP/HTTP/proto/port avec tri/filtres ; en cas de chargement, affichage d'un skeleton animé pour signaler clairement l'état en cours.
 
 ### 4.2 Gestion des donnees (CRUD complet)
 

@@ -2,7 +2,7 @@
 
 **Rôle** : regrouper ce que **seul un humain sur l’infra** peut valider (hôte, NTP, TLS, secrets, observabilité). Les tâches **automatisables dans le dépôt** restent dans **`PLAN.md`** / **`TODOS.md`** / **`make tests`**.
 
-**Documents liés** : **`PLAN.md`** (lots B, G), **`TODOS.md`**, **`STATS.md`** (CVE), **`docs/deployment/production/README.md`**, **`docs/tests/TESTS_END.md`**.
+**Documents liés** : **`PLAN.md`** (lots B, G), **`TODOS.md`**, **`STATS.md`** (CVE), **`docs/deployment/production/README.md`**, **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`** (VPS / Portainer / NPM / OVH), **`docs/tests/TESTS_END.md`**.
 
 ---
 

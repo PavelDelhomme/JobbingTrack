@@ -14,8 +14,9 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts'
-import { formatLocalChartAxisTick, metricTimestampToMs } from '@/lib/utils/date'
+import { formatLocalChartAxisTick, metricRowToTimeMs, normalizeMetricTimestampToIso } from '@/lib/utils/date'
 import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
+import { chartXDomainFromDataRange } from '@/lib/charts/chartTimeDomain'
 
 export default function PerformancesDiskStubPage() {
   const [rows, setRows] = useState<any[]>([])
@@ -40,27 +41,54 @@ export default function PerformancesDiskStubPage() {
     void run()
   }, [])
 
-  const chartData = useMemo(
-    () =>
-      rows
-        .map((r) => {
-          const timeMs = metricTimestampToMs(r.timestamp)
-          const used = Number(r.diskUsedGb ?? r.disk_used_gb ?? 0)
-          const total = Number(r.diskTotalGb ?? r.disk_total_gb ?? 0)
-          const usage = Number(r.diskUsagePercent ?? r.disk_usage_percent ?? 0)
-          return {
-            timestamp: r.timestamp,
-            timeMs,
-            usage,
-            used,
-            total,
-          }
-        })
-        .filter((r) => Number.isFinite(r.timeMs)),
-    [rows]
-  )
+  const chartData = useMemo(() => {
+    const toGb = (bytes: unknown): number | null => {
+      if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return null
+      return bytes / (1024 * 1024 * 1024)
+    }
+    const pickGb = (row: Record<string, unknown>, gbKeys: string[], byteKeys: string[]): number | null => {
+      for (const k of byteKeys) {
+        const g = toGb(row[k])
+        if (g != null) return g
+      }
+      for (const k of gbKeys) {
+        const v = row[k]
+        if (v != null && Number.isFinite(Number(v)) && Number(v) > 0) return Number(v)
+      }
+      return null
+    }
+    return rows
+      .map((raw) => {
+        const r = raw as Record<string, unknown>
+        const tsIso = normalizeMetricTimestampToIso(r.timestamp as string) || String(r.timestamp ?? '')
+        const timeMs = metricRowToTimeMs(r, tsIso)
+        const usageRaw = r.diskUsagePercent ?? r.disk_usage_percent
+        const usage = usageRaw != null && Number.isFinite(Number(usageRaw)) ? Number(usageRaw) : NaN
+        const used =
+          pickGb(r, ['diskUsedGb', 'disk_used_gb'], ['diskUsedBytes', 'disk_used_bytes']) ?? NaN
+        const total =
+          pickGb(r, ['diskTotalGb', 'disk_total_gb'], ['diskTotalBytes', 'disk_total_bytes']) ?? NaN
+        return {
+          timestamp: tsIso || (r.timestamp as string),
+          timeMs: timeMs ?? NaN,
+          usage,
+          used,
+          total,
+        }
+      })
+      .filter((row) => Number.isFinite(row.timeMs))
+      .sort((a, b) => a.timeMs - b.timeMs)
+  }, [rows])
 
-  const latest = chartData[chartData.length - 1]
+  const [chartXMin, chartXMax] = useMemo(() => {
+    const rangeEndMs = Date.now()
+    const rangeStartMs = rangeEndMs - 24 * 60 * 60 * 1000
+    return chartXDomainFromDataRange(rangeStartMs, rangeEndMs, chartData.map((d) => d.timeMs))
+  }, [chartData])
+
+  const axisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000
+
+  const latest = chartData.length ? chartData[chartData.length - 1] : null
 
   return (
     <AdminLayout>
@@ -85,15 +113,21 @@ export default function PerformancesDiskStubPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400">Usage disque actuel</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{latest.usage.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {latest && Number.isFinite(latest.usage) ? `${latest.usage.toFixed(1)}%` : '—'}
+                </p>
               </div>
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400">Volume utilisé</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{latest.used.toFixed(1)} GB</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {latest && Number.isFinite(latest.used) ? `${latest.used.toFixed(1)} GB` : '—'}
+                </p>
               </div>
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400">Volume total</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{latest.total.toFixed(1)} GB</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {latest && Number.isFinite(latest.total) ? `${latest.total.toFixed(1)} GB` : '—'}
+                </p>
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -103,7 +137,12 @@ export default function PerformancesDiskStubPage() {
                   <XAxis
                     dataKey="timeMs"
                     type="number"
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: false })}
+                    domain={[chartXMin, chartXMax]}
+                    angle={-35}
+                    textAnchor="end"
+                    height={axisShowDate ? 68 : 56}
+                    minTickGap={axisShowDate ? 28 : 20}
+                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: axisShowDate })}
                   />
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <Tooltip

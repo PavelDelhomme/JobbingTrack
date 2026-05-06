@@ -1108,3 +1108,19 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 | Module ADB | `tools/adb-lib/index.js` (voir JSDoc en haut du fichier) |
 | Deploiement | `docs/deployment/DEPLOIEMENT_FINAL.md` |
 | Commandes utiles | `docs/COMMANDES_UTILES.md` |
+
+---
+
+## 6 mai 2026 — Priorite immediate corrélation + performance ressources
+
+- Corrélation front: état de chargement du tableau incidents amélioré (skeleton animé) dans `frontend/src/app/(admin)/backoffice/performances/correlation/page.tsx` pour ne plus afficher de cases ambiguës pendant le fetch.
+- Corrélation forensics (en cours): renforcer `requestId`, `endpoint`, `IP`, `HTTP`, `proto`, `port` sur toute la chaîne (gateway -> services -> logs persistés -> parsing front) avec vérification champ par champ.
+- Diagnostic CPU/RAM: pression élevée observée sur `frontend` et `metrics-aggregator`; audit code en cours sur la boucle de collecte, santé HTTP et persistance pour réduire la charge de fond.
+- Priorité monitoring C: remplacer progressivement les appels externes coûteux (`docker stats`, `docker inspect`, `curl` séquentiels) par collecte native (Docker socket/cgroups, checks asynchrones).
+- Priorité log collector C: corriger les limites de surveillance (rotation logs, découverte dynamique des nouveaux conteneurs, boucle de lecture bloquante).
+- Objectif opérationnel: réduire fortement l'empreinte CPU/RAM/IO de `metrics-aggregator`, `monitoring-c`, `log-collector-c`, `redis`, et limiter l'impact perçu côté `frontend`.
+- Mesure live (6 échantillons): `frontend` reste le hotspot principal (pics ~303% CPU, ~3.7-3.9 GiB RAM), `metrics-aggregator` a des pics ponctuels (~87%) mais mémoire contenue (~198-278 MiB), `monitoring-c` pic ponctuel observé (~41%), `redis` faible (~8 MiB).
+- Correctif perf appliqué sur `metrics-aggregator` (`backend/metrics-aggregator-service/src/server.js`): throttling du fallback Docker et des health checks services pour éviter les cycles coûteux inutiles quand `monitoring-c` est disponible.
+- Correctif perf appliqué sur `frontend` (`docker-compose.yml`): désactivation du polling watchpack par défaut, limite mémoire Node (`--max-old-space-size=2048`) et healthcheck simplifié (single `curl`).
+- Mesure post-correctifs (6 échantillons): `frontend` passe à ~1-2.6% CPU et ~220-232 MiB RAM (forte baisse), `metrics-aggregator` garde des pics ponctuels (jusqu'à ~88%) mais CPU bas entre cycles; `monitoring-c` faible hors cycle.
+- Réglage cadence collecte: `monitoring-c` par défaut 30s (`METRICS_COLLECTION_INTERVAL_SEC`), `metrics-aggregator` collecte configurable (défaut 15s via `METRICS_COLLECTION_INTERVAL_SECONDS`).

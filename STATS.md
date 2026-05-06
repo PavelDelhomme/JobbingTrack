@@ -121,3 +121,44 @@ Voir **`TODOS.md`** (fin de fichier) pour les cases à cocher détaillées. En r
 ---
 
 *Ce fichier peut être versionné avec des **commits** du type : « STATS: audit npm services 22/04 — 0 critical » en mettant à jour uniquement les lignes du tableau concerné.*
+
+---
+
+## 6 mai 2026 — Suivi charge monitoring (CPU/RAM/IO)
+
+Objectif: suivre l'impact réel de la collecte métriques pour rendre le monitoring quasi imperceptible en ressources.
+
+| Composant | Symptôme actuel observé | Risque principal | Mesure à produire |
+|-----------|--------------------------|------------------|-------------------|
+| `jobbingtrack-metrics-aggregator` | pics CPU fréquents (~100%+) | saturation boucle collecte | profil CPU + répartition temps par étape |
+| `jobbingtrack-frontend` | pics CPU élevés (~300%+) | UI monitoring trop coûteuse | profil rendu React + fréquence re-fetch |
+| `jobbingtrack-monitoring-c` | coûts fork/exec potentiels | overhead système stable | CPU moyen/p95 + nb appels externes/cycle |
+| `jobbingtrack-log-collector-c` | risque blocage lecture logs | latence + backlog | débit logs, latence traitement, dropped lines |
+| `jobbingtrack-redis` | mémoire jugée trop haute | swap/OOM/perf dégradée | used_memory, peak, fragmentation, eviction |
+
+### Critères de validation
+
+- CPU moyen par composant monitoring sous seuil défini (baseline -> cible).
+- Pas de montée RAM non bornée (growth contrôlée, fragmentation suivie).
+- IO disque monitoring stable et proportionné au volume réel.
+- Tableau corrélation front lisible en chargement et sans placeholders trompeurs.
+
+### Baseline runtime (6 mai 2026, 6 samples / 5s)
+
+| Composant | CPU observé | RAM observée |
+|-----------|-------------|--------------|
+| `jobbingtrack-frontend` | 0% -> 303.38% (pics) | 3.70 -> 3.92 GiB |
+| `jobbingtrack-metrics-aggregator` | 0.04% -> 87.65% (ponctuel) | 198 -> 278 MiB |
+| `jobbingtrack-monitoring-c` | 0% -> 40.90% (ponctuel) | 2.97 -> 5.60 MiB |
+| `jobbingtrack-log-collector-c` | ~0% stable | ~1.28 MiB stable |
+| `jobbingtrack-redis` | 0.29% -> 2.41% | 7.69 -> 7.94 MiB |
+
+### Mesure après optimisations immédiates (6 mai 2026, 6 samples / 5s)
+
+| Composant | CPU observé | RAM observée |
+|-----------|-------------|--------------|
+| `jobbingtrack-frontend` | 1.17% -> 1.74% (hors point à 2.6% série précédente) | 231 -> 232.5 MiB |
+| `jobbingtrack-metrics-aggregator` | ~0% entre cycles, pics 53-88% | 200 -> 250 MiB |
+| `jobbingtrack-monitoring-c` | ~0% entre cycles, pics 3-4% | 1.7 -> 18 MiB |
+| `jobbingtrack-log-collector-c` | ~0% stable | ~1.28 MiB stable |
+| `jobbingtrack-redis` | 0.28% -> 2.78% | 7.4 -> 17.9 MiB (pic ponctuel) |
