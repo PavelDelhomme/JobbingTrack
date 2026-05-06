@@ -12,6 +12,68 @@ function generateApplicationId() {
   return 'c' + Date.now().toString(36) + crypto.randomBytes(8).toString('hex');
 }
 
+function errorText(error) {
+  const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
+  const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
+  return `${msg}${hint}`;
+}
+
+/**
+ * Schéma BDD parfois en retard vs client Prisma (ex: deletedAt / isArchived / statusEngineOptOut…).
+ * On détecte ces dérives pour activer les fallbacks SQL.
+ */
+function isLegacyApplicationSchemaError(error) {
+  const full = errorText(error);
+  const aboutApplication =
+    full.includes('prisma.application') || full.includes('"Application"') || full.includes('Application');
+  const schemaMismatchHints =
+    full.includes('P2021') ||
+    full.includes('P2022') ||
+    full.includes('does not exist') ||
+    full.includes('Unknown arg') ||
+    full.includes('Perhaps you meant') ||
+    full.includes('column');
+  return aboutApplication && schemaMismatchHints;
+}
+
+function mapRawApplicationRow(row) {
+  if (!row) return null;
+  const { archived, ...rest } = row;
+  return {
+    ...rest,
+    id: row.id ?? row.Id,
+    userId: row.userId ?? row.userid,
+    companyId: row.companyId ?? row.companyid,
+    agencyId: row.agencyId ?? row.agencyid ?? null,
+    platformId: row.platformId ?? row.platformid ?? null,
+    statusId: row.statusId ?? row.statusid ?? null,
+    isArchived: archived ?? false
+  };
+}
+
+async function findApplicationRawById(id, userId, options = {}) {
+  const { excludeDeleted = true } = options;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 ${excludeDeleted ? 'AND "deletedAt" IS NULL' : ''} LIMIT 1`,
+      id,
+      userId
+    );
+    return mapRawApplicationRow(rows?.[0]);
+  } catch (error) {
+    const full = errorText(error);
+    if (excludeDeleted && full.includes('deletedAt') && full.includes('does not exist')) {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
+        id,
+        userId
+      );
+      return mapRawApplicationRow(rows?.[0]);
+    }
+    throw error;
+  }
+}
+
 const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://event-service:3011';
 
 // CREATE - Créer une candidature
@@ -110,11 +172,7 @@ const createApplication = async (req, res, next) => {
         }
       });
     } catch (createErr) {
-      const msg = (createErr && createErr.message) || (createErr && createErr.cause && createErr.cause.message) || String(createErr);
-      const hint = (createErr && createErr.meta && typeof createErr.meta === 'object' && createErr.meta.message) || '';
-      const full = msg + hint;
-      const isArchivedColumnError = full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'));
-      if (!isArchivedColumnError) throw createErr;
+      if (!isLegacyApplicationSchemaError(createErr)) throw createErr;
 
       try {
         application = await prisma.application.create({
@@ -149,29 +207,61 @@ const createApplication = async (req, res, next) => {
         // Second create() peut encore lever (RETURNING avec isArchived) → fallback INSERT raw
         const appId = generateApplicationId();
         const appDate = applicationDate ? new Date(applicationDate) : new Date();
-        const rows = await prisma.$queryRawUnsafe(
-          `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, false)
-           RETURNING *`,
-          appId,
-          req.user.id,
-          finalCompanyId,
-          agencyId || null,
-          platformId || null,
-          position || '',
-          description || null,
-          jobUrl || null,
-          location || null,
-          contractType || 'CDI',
-          workMode || null,
-          applicationType || 'OFFRE',
-          statusRow.id,
-          appDate,
-          salaryMin ?? null,
-          salaryMax ?? null,
-          salaryNegotiable === true,
-          notes || null
-        );
+        let rows;
+        try {
+          rows = await prisma.$queryRawUnsafe(
+            `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived", "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::"ContractType", $11::"WorkMode", $12::"ApplicationType", $13, $14, $15, $16, $17, $18, false, NOW(), NOW())
+             RETURNING *`,
+            appId,
+            req.user.id,
+            finalCompanyId,
+            agencyId || null,
+            platformId || null,
+            position || '',
+            description || null,
+            jobUrl || null,
+            location || null,
+            contractType || 'CDI',
+            workMode || null,
+            applicationType || 'OFFRE',
+            statusRow.id,
+            appDate,
+            salaryMin ?? null,
+            salaryMax ?? null,
+            salaryNegotiable === true,
+            notes || null
+          );
+        } catch (rawInsertErr) {
+          const full = errorText(rawInsertErr);
+          // Schéma plus ancien sans createdAt/updatedAt explicites : fallback sur insert minimal.
+          if (!(full.includes('createdAt') || full.includes('updatedAt')) || !full.includes('does not exist')) {
+            throw rawInsertErr;
+          }
+          rows = await prisma.$queryRawUnsafe(
+            `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::"ContractType", $11::"WorkMode", $12::"ApplicationType", $13, $14, $15, $16, $17, $18, false)
+             RETURNING *`,
+            appId,
+            req.user.id,
+            finalCompanyId,
+            agencyId || null,
+            platformId || null,
+            position || '',
+            description || null,
+            jobUrl || null,
+            location || null,
+            contractType || 'CDI',
+            workMode || null,
+            applicationType || 'OFFRE',
+            statusRow.id,
+            appDate,
+            salaryMin ?? null,
+            salaryMax ?? null,
+            salaryNegotiable === true,
+            notes || null
+          );
+        }
         const row = rows?.[0];
         if (!row) throw secondErr;
         const rid = row.id ?? row.Id;
@@ -489,11 +579,7 @@ const getApplication = async (req, res, next) => {
 
     return res.json({ success: true, application });
   } catch (error) {
-    const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
-    const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
-    const full = msg + hint;
-    // Fallback si le client Prisma envoie isArchived alors que la BDD a "archived"
-    if (full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'))) {
+    if (isLegacyApplicationSchemaError(error)) {
       try {
         const rows = await prisma.$queryRawUnsafe(
           `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
@@ -504,8 +590,7 @@ const getApplication = async (req, res, next) => {
         if (!row) {
           return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
         }
-        const { archived, ...rest } = row;
-        const application = { ...rest, isArchived: archived ?? false };
+        const application = mapRawApplicationRow(row);
         return res.json({ success: true, application });
       } catch (rawErr) {
         logger.warn('Fallback getApplication (archived) failed:', rawErr.message);
@@ -522,9 +607,15 @@ const updateApplication = async (req, res, next) => {
     const { id } = req.params;
     const { companyName, companyData, ...body } = req.body;
 
-    const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id }
-    });
+    let existingApplication;
+    try {
+      existingApplication = await prisma.application.findFirst({
+        where: { id, userId: req.user.id }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      existingApplication = await findApplicationRawById(id, req.user.id, { excludeDeleted: false });
+    }
 
     if (!existingApplication) {
       return res.status(404).json({
@@ -562,11 +653,48 @@ const updateApplication = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Aucun champ à mettre à jour' });
     }
 
-    const application = await prisma.application.update({
-      where: { id },
-      data: updateData,
-      include: { company: true, agency: true, platform: true, status: true }
-    });
+    let application;
+    try {
+      application = await prisma.application.update({
+        where: { id },
+        data: updateData,
+        include: { company: true, agency: true, platform: true, status: true }
+      });
+    } catch (updateErr) {
+      if (!isLegacyApplicationSchemaError(updateErr)) throw updateErr;
+      const allowedRawCols = new Set([
+        'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
+        'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
+        'notes', 'platformId', 'companyId', 'agencyId', 'statusId', 'thankYouEmailSentAt'
+      ]);
+      const entries = Object.entries(updateData).filter(([k]) => allowedRawCols.has(k));
+      if (entries.length > 0) {
+        const setClauses = [];
+        const params = [];
+        for (let i = 0; i < entries.length; i++) {
+          const [key, value] = entries[i];
+          setClauses.push(`"${key}" = $${i + 1}`);
+          params.push(value);
+        }
+        const idParam = entries.length + 1;
+        const userParam = entries.length + 2;
+        const rows = await prisma.$queryRawUnsafe(
+          `UPDATE "Application" SET ${setClauses.join(', ')}, "updatedAt" = NOW() WHERE "id" = $${idParam} AND "userId" = $${userParam} RETURNING *`,
+          ...params,
+          id,
+          req.user.id
+        );
+        application = mapRawApplicationRow(rows?.[0]);
+      } else {
+        application = await findApplicationRawById(id, req.user.id, { excludeDeleted: false });
+      }
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          error: 'Candidature non trouvée'
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -586,9 +714,15 @@ const deleteApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id, deletedAt: null }
-    });
+    let existingApplication;
+    try {
+      existingApplication = await prisma.application.findFirst({
+        where: { id, userId: req.user.id, deletedAt: null }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      existingApplication = await findApplicationRawById(id, req.user.id, { excludeDeleted: true });
+    }
 
     if (!existingApplication) {
       return res.status(404).json({
@@ -598,10 +732,16 @@ const deleteApplication = async (req, res, next) => {
     }
 
     const now = new Date();
-    await prisma.application.update({
-      where: { id },
-      data: { deletedAt: now }
-    });
+    try {
+      await prisma.application.update({
+        where: { id },
+        data: { deletedAt: now }
+      });
+    } catch (deleteErr) {
+      if (!isLegacyApplicationSchemaError(deleteErr)) throw deleteErr;
+      // Ancien schéma (ou client Prisma en décalage) : fallback hard delete pour ne pas bloquer les scripts API.
+      await prisma.$executeRawUnsafe(`DELETE FROM "Application" WHERE "id" = $1 AND "userId" = $2`, id, req.user.id);
+    }
 
     // Cascade: soft-delete les éléments liés
     try {
