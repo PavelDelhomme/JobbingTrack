@@ -55,6 +55,18 @@
 - **Règle appliquée** : si le statut final est succès, `failed` est forcé à `0` et `passed` est réaligné sur `total` quand `total` est disponible.
 - **Impact attendu** : cohérence `summary.json` ↔ `report.txt` sur les runs où une commande interne fait des retries/fallbacks dans la même catégorie.
 
+### 07/05/2026 — sécurité : ajout d’un axe “préparation post-quantique”
+
+- **Planification** : création d’un lot **B13** (préparation **PQC** / crypto-agilité) dans `PLAN.md` et déclinaison exécutable dans `TODOS.md`.
+- **Backlog** : ajout d’un chantier transverse post-quantique dans `docs/BACKLOG.md` (inventaire, migration, tests, conformité).
+- **Risque documenté** : entrée dédiée dans `ERRORS.md` pour suivre le risque “**harvest now, decrypt later**” tant que la feuille de route n’est pas exécutée.
+
+### 07/05/2026 — corrélation incidents : transparence des colonnes vides
+
+- **Front `/backoffice/performances/correlation`** : remplacement des `—` par une raison explicite **dans les colonnes concernées** (sans colonne dédiée) dans le tableau “Corrélation fine incidents ↔ points métriques”.
+- **Raisons affichées** : `source absente`, `champ manquant (contexte)`, `champ manquant (métriques)`, `hors fenêtre` (selon présence des métadonnées logs et alignement temporel métriques).
+- **Objectif** : éviter les valeurs opaques sur `requestId` / `endpoint` / `IP` / `HTTP` / `Proto` / `Port` / `CPU%` / `Mémoire%` / `TR` / `Écart` et accélérer le diagnostic A3/B8.
+
 ### 05/05/2026 — bilan run `make tests` `tests/results/20260505-113157`
 
 - **Résultat global** : **720** tests, **699** OK, **21** KO (**97.08 %**). Échecs concentrés sur 7 catégories : `User Journey (API)`, `API Gateway (Jest conteneur)`, `Tests API Backend (script)`, `Playwright E2E Frontend`, `Playwright CRUD Données`, `Playwright Mobile E2E`, `Tests Frontend Jest (analytics pages)`.

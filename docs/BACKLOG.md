@@ -89,6 +89,11 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
 - [ ] **Forensics logs — déploiement progressif** : lot **05–06/2026** : microservices listés précédemment + **`api-gateway`** + **`workflow-service`** (**ALS** / contexte, Winston, **`centralLogger`**, **`TRUST_PROXY_HOPS`**) ; **reste** : QA porteur `/backoffice/performances/correlation`.
 - [ ] **Corrélation fine incidents (A3/B8)** : combler les colonnes encore vides en pratique (`requestId`, endpoint, IP, proto/port, HTTP, CPU/Mémoire/TR proches, écart sec) avec contrat de logs homogène + règles d’alignement plus strictes. Inclure la vérification I/O bloc : distinguer « trou de persistance » (`null`) vs « vraie mesure zéro » (`0/0` Docker hôte).
+- [ ] **Préparation post-quantique (PQC) — programme transverse** :
+  - gouvernance crypto-agile (inventaire, propriétaires, dépendances externes),
+  - stratégie de migration progressive pour chiffrement en transit/au repos/signatures,
+  - couverture tests et observabilité pendant transition,
+  - suivi conformité/réglementaire selon échéances applicables.
 
 ## Références
 
