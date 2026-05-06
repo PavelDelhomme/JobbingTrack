@@ -3,19 +3,88 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
+function errorText(error) {
+  const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
+  const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
+  return `${msg}${hint}`;
+}
+
+function isLegacyApplicationSchemaError(error) {
+  const full = errorText(error);
+  const aboutApplication =
+    full.includes('prisma.application') || full.includes('"Application"') || full.includes('Application');
+  const schemaMismatchHints =
+    full.includes('P2021') ||
+    full.includes('P2022') ||
+    full.includes('does not exist') ||
+    full.includes('Unknown arg') ||
+    full.includes('Perhaps you meant') ||
+    full.includes('column');
+  return aboutApplication && schemaMismatchHints;
+}
+
+function mapRawApplicationRow(row) {
+  if (!row) return null;
+  const { archived, ...rest } = row;
+  return {
+    ...rest,
+    id: row.id ?? row.Id,
+    userId: row.userId ?? row.userid,
+    companyId: row.companyId ?? row.companyid,
+    agencyId: row.agencyId ?? row.agencyid ?? null,
+    platformId: row.platformId ?? row.platformid ?? null,
+    statusId: row.statusId ?? row.statusid ?? null,
+    isArchived: archived ?? false
+  };
+}
+
+async function findApplicationRawByArchiveState(id, userId, archivedState) {
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 AND archived = $3 LIMIT 1`,
+    id,
+    userId,
+    Boolean(archivedState)
+  );
+  return mapRawApplicationRow(rows?.[0]);
+}
+
+async function listApplicationsRaw(userId, options = {}) {
+  const { archived = null, deleted = null } = options;
+  const clauses = [`"userId" = $1`];
+  const params = [userId];
+  if (archived !== null) {
+    clauses.push(`archived = $${params.length + 1}`);
+    params.push(Boolean(archived));
+  }
+  if (deleted === true) clauses.push(`"deletedAt" IS NOT NULL`);
+  if (deleted === false) clauses.push(`"deletedAt" IS NULL`);
+  const where = clauses.join(' AND ');
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT * FROM "Application" WHERE ${where} ORDER BY "updatedAt" DESC`,
+    ...params
+  );
+  return (rows || []).map(mapRawApplicationRow);
+}
+
 // ARCHIVER UNE CANDIDATURE
 const archiveApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const application = await prisma.application.findFirst({
-      where: {
-        id,
-        userId: req.user.id,
-        isArchived: false
-      }
-    });
+    let application;
+    try {
+      application = await prisma.application.findFirst({
+        where: {
+          id,
+          userId: req.user.id,
+          isArchived: false
+        }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      application = await findApplicationRawByArchiveState(id, req.user.id, false);
+    }
 
     if (!application) {
       return res.status(404).json({
@@ -25,13 +94,24 @@ const archiveApplication = async (req, res, next) => {
     }
 
     // Archiver la candidature
-    const archivedApplication = await prisma.application.update({
-      where: { id },
-      data: {
-        isArchived: true,
-        archivedAt: new Date()
-      }
-    });
+    let archivedApplication;
+    try {
+      archivedApplication = await prisma.application.update({
+        where: { id },
+        data: {
+          isArchived: true,
+          archivedAt: new Date()
+        }
+      });
+    } catch (updateErr) {
+      if (!isLegacyApplicationSchemaError(updateErr)) throw updateErr;
+      const rows = await prisma.$queryRawUnsafe(
+        `UPDATE "Application" SET archived = true, "archivedAt" = NOW(), "updatedAt" = NOW() WHERE "id" = $1 AND "userId" = $2 RETURNING *`,
+        id,
+        req.user.id
+      );
+      archivedApplication = mapRawApplicationRow(rows?.[0]);
+    }
 
     // Archiver automatiquement tous les éléments liés
     await archiveRelatedElements(id, req.user.id, reason);
@@ -69,13 +149,19 @@ const restoreApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const application = await prisma.application.findFirst({
-      where: {
-        id,
-        userId: req.user.id,
-        isArchived: true
-      }
-    });
+    let application;
+    try {
+      application = await prisma.application.findFirst({
+        where: {
+          id,
+          userId: req.user.id,
+          isArchived: true
+        }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      application = await findApplicationRawByArchiveState(id, req.user.id, true);
+    }
 
     if (!application) {
       return res.status(404).json({
@@ -85,13 +171,24 @@ const restoreApplication = async (req, res, next) => {
     }
 
     // Restaurer la candidature
-    const restoredApplication = await prisma.application.update({
-      where: { id },
-      data: {
-        isArchived: false,
-        archivedAt: null
-      }
-    });
+    let restoredApplication;
+    try {
+      restoredApplication = await prisma.application.update({
+        where: { id },
+        data: {
+          isArchived: false,
+          archivedAt: null
+        }
+      });
+    } catch (updateErr) {
+      if (!isLegacyApplicationSchemaError(updateErr)) throw updateErr;
+      const rows = await prisma.$queryRawUnsafe(
+        `UPDATE "Application" SET archived = false, "archivedAt" = NULL, "updatedAt" = NOW() WHERE "id" = $1 AND "userId" = $2 RETURNING *`,
+        id,
+        req.user.id
+      );
+      restoredApplication = mapRawApplicationRow(rows?.[0]);
+    }
 
     // Restaurer automatiquement les éléments liés
     await restoreRelatedElements(id);
@@ -141,26 +238,39 @@ const getArchivedApplications = async (req, res, next) => {
       })
     };
 
-    const [applications, total] = await Promise.all([
-      prisma.application.findMany({
-        where,
-        include: {
-          company: true,
-          platform: true,
-          _count: {
-            select: {
-              interviews: true,
-              followUps: true,
-              calls: true
+    let applications;
+    let total;
+    try {
+      [applications, total] = await Promise.all([
+        prisma.application.findMany({
+          where,
+          include: {
+            company: true,
+            platform: true,
+            _count: {
+              select: {
+                interviews: true,
+                followUps: true,
+                calls: true
+              }
             }
-          }
-        },
-        orderBy: { archivedAt: 'desc' },
-        skip: parseInt(offset),
-        take: parseInt(limit)
-      }),
-      prisma.application.count({ where })
-    ]);
+          },
+          orderBy: { archivedAt: 'desc' },
+          skip: parseInt(offset),
+          take: parseInt(limit)
+        }),
+        prisma.application.count({ where })
+      ]);
+    } catch (listErr) {
+      if (!isLegacyApplicationSchemaError(listErr)) throw listErr;
+      const rawList = await listApplicationsRaw(req.user.id, { archived: true, deleted: false });
+      const q = String(search || '').trim().toLowerCase();
+      const filtered = q
+        ? rawList.filter((r) => String(r.position || '').toLowerCase().includes(q))
+        : rawList;
+      total = filtered.length;
+      applications = filtered.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    }
 
     res.json({
       success: true,
@@ -297,18 +407,24 @@ const deleteArchivedApplication = async (req, res, next) => {
 
 const getTrash = async (req, res, next) => {
   try {
-    const items = await prisma.application.findMany({
-      where: {
-        userId: req.user.id,
-        deletedAt: { not: null }
-      },
-      include: {
-        company: true,
-        platform: true,
-        _count: { select: { interviews: true, followUps: true, calls: true } }
-      },
-      orderBy: { deletedAt: 'desc' }
-    });
+    let items;
+    try {
+      items = await prisma.application.findMany({
+        where: {
+          userId: req.user.id,
+          deletedAt: { not: null }
+        },
+        include: {
+          company: true,
+          platform: true,
+          _count: { select: { interviews: true, followUps: true, calls: true } }
+        },
+        orderBy: { deletedAt: 'desc' }
+      });
+    } catch (listErr) {
+      if (!isLegacyApplicationSchemaError(listErr)) throw listErr;
+      items = await listApplicationsRaw(req.user.id, { deleted: true });
+    }
 
     res.json({ success: true, items, total: items.length });
   } catch (error) {

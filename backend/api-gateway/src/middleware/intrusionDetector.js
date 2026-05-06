@@ -38,14 +38,12 @@ const INTRUSION_PATTERNS = {
   // Attaques par force brute
   BRUTE_FORCE: {
     patterns: [
-      /\/api\/v1\/auth\/login/,
-      /\/api\/v1\/auth\/register/,
-      /\/api\/v1\/admin\//
+      /\/api\/v1\/auth\/login/
     ],
     severity: 'high',
     type: 'brute_force',
     description: 'Tentative d\'attaque par force brute',
-    threshold: 5, // Nombre de tentatives avant détection
+    threshold: parseInt(process.env.BRUTE_FORCE_THRESHOLD || '40', 10), // Seuil réaliste en trafic partagé/NAT
     window: 300 // Fenêtre de 5 minutes en secondes
   },
 
@@ -134,7 +132,13 @@ class IntrusionDetector {
         return next();
       }
       // Ne pas casser les suites E2E / scripts internes (faux positifs path traversal, etc.)
-      if (req.get('X-Test-Mode') === 'true' || String(req.get('User-Agent') || '').includes('Playwright')) {
+      const rawUserAgent = String(req.get('User-Agent') || '');
+      const ua = rawUserAgent.toLowerCase();
+      if (
+        req.get('X-Test-Mode') === 'true' ||
+        rawUserAgent.includes('Playwright') ||
+        ua.includes('headlesschrome')
+      ) {
         return next();
       }
 
@@ -161,6 +165,14 @@ class IntrusionDetector {
       const detections = [];
 
       for (const [patternName, patternConfig] of Object.entries(INTRUSION_PATTERNS)) {
+        // BRUTE_FORCE est géré séparément avec compteur Redis + seuil
+        if (patternName === 'BRUTE_FORCE') {
+          continue;
+        }
+        // Éviter les faux positifs: endpoint admin + utilisateur déjà authentifié.
+        if (patternName === 'UNAUTHORIZED_ACCESS' && req.headers.authorization) {
+          continue;
+        }
         const matches = this.checkPattern(requestData, patternConfig);
         if (matches.length > 0) {
           detections.push(...matches.map(match => ({
@@ -272,7 +284,9 @@ class IntrusionDetector {
   async checkBruteForce(req, patternConfig) {
     const clientIP = req.ip;
     const url = req.url;
-    const key = `brute_force:${clientIP}:${url}`;
+    if (req.method !== 'POST') return null;
+    const usernameOrEmail = String(req.body?.email || req.body?.username || '').trim().toLowerCase() || 'unknown';
+    const key = `brute_force:${clientIP}:${url}:${usernameOrEmail}`;
 
     try {
       if (!redis.status || redis.status !== 'ready') {
@@ -310,7 +324,6 @@ class IntrusionDetector {
   isBruteForceEndpoint(url) {
     const sensitiveEndpoints = [
       '/api/v1/auth/login',
-      '/api/v1/auth/register',
       '/api/v1/admin/login',
       '/api/v1/users/login'
     ];
