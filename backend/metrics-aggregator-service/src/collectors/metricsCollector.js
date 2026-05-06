@@ -214,20 +214,24 @@ class MetricsCollector {
           }
 
           // ✅ OPTIMISATION: Préparer les données pour batch insert au lieu de create individuel
+          const blockReadRaw = stats.block_read_bytes ?? stats.block_io_read_bytes ?? stats.block_read ?? null;
+          const blockWriteRaw = stats.block_write_bytes ?? stats.block_io_write_bytes ?? stats.block_write ?? null;
+
           return {
             timestamp,
             containerName: container.name,
             containerId: container.id,
             status: container.status,
-            cpuUsagePercent: stats.cpu_percent || null,
-            cpuUsageNano: stats.cpu_usage_nano ? BigInt(stats.cpu_usage_nano) : null,
-            memoryUsagePercent: stats.memory_percent || null,
-            memoryUsageBytes: stats.memory_usage_bytes ? BigInt(stats.memory_usage_bytes) : null,
-            memoryLimitBytes: stats.memory_limit_bytes ? BigInt(stats.memory_limit_bytes) : null,
-            networkRxBytes: stats.network_rx_bytes ? BigInt(stats.network_rx_bytes) : null,
-            networkTxBytes: stats.network_tx_bytes ? BigInt(stats.network_tx_bytes) : null,
-            blockReadBytes: stats.block_read_bytes ? BigInt(stats.block_read_bytes) : null,
-            blockWriteBytes: stats.block_write_bytes ? BigInt(stats.block_write_bytes) : null,
+            cpuUsagePercent: stats.cpu_percent != null ? Number(stats.cpu_percent) : null,
+            cpuUsageNano: stats.cpu_usage_nano != null ? BigInt(stats.cpu_usage_nano) : null,
+            memoryUsagePercent: stats.memory_percent != null ? Number(stats.memory_percent) : null,
+            memoryUsageBytes: stats.memory_usage_bytes != null ? BigInt(stats.memory_usage_bytes) : null,
+            memoryLimitBytes: stats.memory_limit_bytes != null ? BigInt(stats.memory_limit_bytes) : null,
+            networkRxBytes: stats.network_rx_bytes != null ? BigInt(stats.network_rx_bytes) : null,
+            networkTxBytes: stats.network_tx_bytes != null ? BigInt(stats.network_tx_bytes) : null,
+            // Important: 0 est une valeur valide (pas "null")
+            blockReadBytes: blockReadRaw != null ? BigInt(blockReadRaw) : null,
+            blockWriteBytes: blockWriteRaw != null ? BigInt(blockWriteRaw) : null,
             image: container.image || null,
             labels: container.labels || null
           };

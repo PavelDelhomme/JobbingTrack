@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Performance",
+  "userType": "user",
+  "command": "PERF_LIGHT=1 node tests/performance/test-performance.js",
+  "timestamp": "2026-05-06T11:12:53+02:00",
+  "duration": 3,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0
+  },
+  "output": "🧪 Lancement des tests de performance...\n\n📊 Génération du rapport de performance...\n\n⚡ Test des performances API (endpoints réels)...\n   Gateway Health: ✅ 14ms \n   Auth Health (gateway): ✅ 5ms \n   Applications (list): ✅ 7ms (auth requise, OK)\n   Companies (list): ✅ 4ms (auth requise, OK)\n   Contacts (list): ✅ 3ms (auth requise, OK)\n   Interviews (list): ✅ 5ms (auth requise, OK)\n   Calls (list): ✅ 4ms (auth requise, OK)\n   Followups (list): ✅ 5ms (auth requise, OK)\n   Events (list): ✅ 5ms (auth requise, OK)\n   Notifications (list): ✅ 4ms (auth requise, OK)\n   Métriques système: ✅ 3ms \n   Docker services: ✅ 2373ms \n🔥 Test de charge...\n   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)\n📊 Charge: Gateway Health (5 requêtes parallèles)\n   ✅ 5/5 succès - moy: 4ms, max: 4ms\n📊 Charge: Auth Health (gateway) (4 requêtes parallèles)\n   ✅ 4/4 succès - moy: 9ms, max: 13ms\n📊 Charge: Companies API (4 requêtes parallèles)\n   ✅ 4/4 succès - moy: 8ms, max: 13ms\n📊 Charge globale: 13/13 succès, moy: 7ms\n🧠 Collecte des métriques système (metrics-aggregator)...\n   ✅ CPU: 36.5% (16 coeurs)\n   ✅ Mémoire: 46.4/46.9 GB (98.9%)\n📊 Test traitement de données (stress mémoire)...\n   ✅ Traitement 1000 éléments: 11ms\n   ✅ Traitement 5000 éléments: 41ms\n   ✅ Traitement 10000 éléments: 53ms\n   ✅ Augmentation heap: 24.3 MB\n\n✅ Rapport sauvegardé: tests/reports/performance-report.json\n\n📊 ANALYSE DES PERFORMANCES:\n=====================================\n🧪 Tests: 15/15 réussis\n⏱️ Temps moyen: 203ms\n📊 Requêtes charge: 13/13 (100.0%)\n\n🎯 Score: 95/100\n✅ Performances excellentes\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

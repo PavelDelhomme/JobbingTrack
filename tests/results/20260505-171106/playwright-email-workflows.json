@@ -1,0 +1,20 @@
+{
+  "testName": "Playwright Email Workflows",
+  "userType": "user",
+  "command": "timeout 120 bash \"/home/pactivisme/Documents/Dev/Perso/JobbingTrack/scripts/playwright-tests-dir.sh\" test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1",
+  "timestamp": "2026-05-05T17:13:32+02:00",
+  "duration": 7,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "output": "\nup to date in 571ms\n\nRunning 5 tests using 4 workers\n\n(node:360844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360845) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360845) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:360851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n  ✓  3 [chromium] › e2e/specs/email-workflows.spec.ts:227:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (24ms)\n  -  1 [chromium] › e2e/specs/email-workflows.spec.ts:109:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (test@delhomme.ovh)\n  ✓  5 [chromium] › e2e/specs/email-workflows.spec.ts:185:9 › Workflows Email Complets › Inscription avec vérification email › sans vérification email, le login est refusé (401) (260ms)\n  ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:284:11 › Workflows Email Complets › Envoi email vers adresse réelle › envoi email de test vers TEST_REAL_EMAIL (2.7s)\n  ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:271:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (3.6s)\n\n  1 skipped\n  4 passed (4.4s)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

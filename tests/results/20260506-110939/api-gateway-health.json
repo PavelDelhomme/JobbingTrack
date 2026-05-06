@@ -1,0 +1,20 @@
+{
+  "testName": "Tests API Gateway Health",
+  "userType": "system",
+  "command": "curl -sf --max-time 15 \"http://127.0.0.1:5002/health\"",
+  "timestamp": "2026-05-06T11:13:05+02:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"timestamp\":\"2026-05-06T09:13:05.150Z\",\"environment\":\"development\",\"version\":\"1.0.0\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

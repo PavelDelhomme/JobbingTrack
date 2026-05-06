@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Intégration Système",
+  "userType": "user",
+  "command": "bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && node integration/test-full-system.js'",
+  "timestamp": "2026-05-06T11:12:57+02:00",
+  "duration": 3,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "output": "\nup to date in 569ms\n🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES\n=====================================\n\n📡 Test API Health:\n✅ Health OK: online - uptime: 69157s\n\n📡 Test API v1 Health:\n✅ API v1 Health OK - RSS: 273MB\n\n📊 Test Métriques système (/api/v1/metrics):\n✅ CPU: 36.5% 16 coeurs\n✅ Mémoire: 98.9% (46.4/46.9 GB)\n✅ Conteneurs monitorés: 22\n\n🐳 Test Services Docker (/api/v1/docker/services/all):\n✅ Services Docker: 22/22 en cours\n\n📋 Test Liste des services (/api/v1/services):\n✅ Services détectés: 23\n\n💾 Test Persistance métriques (/api/v1/persistence/stats):\n✅ Persistance OK - données historiques disponibles\n\n🎉 TEST TERMINÉ\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}
