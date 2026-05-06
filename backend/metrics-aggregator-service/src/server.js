@@ -496,6 +496,15 @@ async function collectContainerMetrics() {
         
         // ✅ Récupérer les statistiques réseau
         const networkStats = await getContainerNetworkStats(pid)
+        const blkioEntries = Array.isArray(stats.blkio_stats?.io_service_bytes_recursive)
+          ? stats.blkio_stats.io_service_bytes_recursive
+          : []
+        const blockReadBytes = blkioEntries
+          .filter(entry => String(entry?.op || '').toLowerCase() === 'read')
+          .reduce((sum, entry) => sum + Number(entry?.value || 0), 0)
+        const blockWriteBytes = blkioEntries
+          .filter(entry => String(entry?.op || '').toLowerCase() === 'write')
+          .reduce((sum, entry) => sum + Number(entry?.value || 0), 0)
         
         const metrics = {
           cpu: {
@@ -509,6 +518,10 @@ async function collectContainerMetrics() {
             percentage: parseFloat(Math.min(100, Math.max(0, Number(memoryPercent))).toFixed(4))
           },
           network: networkStats,
+          blockIO: {
+            read: Math.round(blockReadBytes),
+            write: Math.round(blockWriteBytes)
+          },
           status: inspect.State.Status || 'running',
           pid: pid
         }
@@ -1050,9 +1063,32 @@ async function collectAllMetrics() {
         const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
         logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         toSave.forEach(container => {
+          const asNum = (...vals) => {
+            for (const v of vals) {
+              const n = Number(v)
+              if (Number.isFinite(n)) return n
+            }
+            return 0
+          }
           const containerName = container.name || 'unknown'
           const memMb = Number(container.memory_mb) || 0
           const limitMb = Number(container.memory_limit_mb) || 0
+          const blockReadBytes = asNum(
+            container.block_read_bytes,
+            container.block_io_read_bytes,
+            container.blkio_read_bytes,
+            container.io_read_bytes,
+            container.block_read,
+            container.blkio_read
+          )
+          const blockWriteBytes = asNum(
+            container.block_write_bytes,
+            container.block_io_write_bytes,
+            container.blkio_write_bytes,
+            container.io_write_bytes,
+            container.block_write,
+            container.blkio_write
+          )
           containersForDb[containerName] = {
             cpu: {
               percentage: container.cpu_percent || 0,
@@ -1067,6 +1103,10 @@ async function collectAllMetrics() {
               rx: Math.round(Number(container.network_rx_bytes) || 0),
               tx: Math.round(Number(container.network_tx_bytes) || 0)
             },
+            blockIO: {
+              read: Math.round(blockReadBytes),
+              write: Math.round(blockWriteBytes)
+            },
             status: container.http_status === 200 ? 'running' : 'unknown'
           }
         })
@@ -1074,7 +1114,29 @@ async function collectAllMetrics() {
       
       // Fusionner avec les métriques collectées classiquement (si disponibles), uniquement JobbingTrack
       Object.keys(containerMetrics).forEach(name => {
-        if (isJobbingTrackContainer(name)) containersForDb[name] = containerMetrics[name]
+        if (!isJobbingTrackContainer(name)) return
+        const incoming = containerMetrics[name] || {}
+        const existing = containersForDb[name] || {}
+        containersForDb[name] = {
+          ...existing,
+          ...incoming,
+          cpu: {
+            ...(existing.cpu || {}),
+            ...(incoming.cpu || {})
+          },
+          memory: {
+            ...(existing.memory || {}),
+            ...(incoming.memory || {})
+          },
+          network: {
+            ...(existing.network || {}),
+            ...(incoming.network || {})
+          },
+          blockIO: {
+            ...(existing.blockIO || {}),
+            ...(incoming.blockIO || {})
+          }
+        }
       })
       
       logIfVerbose(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)

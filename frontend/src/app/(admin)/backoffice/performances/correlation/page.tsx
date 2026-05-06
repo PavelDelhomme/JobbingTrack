@@ -23,7 +23,7 @@ const PERF_MODE_STORAGE_KEY = 'jobbingtrack-perf-correlation-mode'
 const FETCH_CONCURRENCY = 6
 const MERGE_SYSTEM_MAX_DELTA_MS = 180_000
 const MERGE_AVAILABILITY_MAX_DELTA_MS = 120_000
-const INCIDENT_ALIGNMENT_MAX_DELTA_MS = 15 * 60 * 1000
+const INCIDENT_ALIGNMENT_MAX_DELTA_MS = 45 * 60 * 1000
 
 function readStoredPerfMode(): PerfMode {
   if (typeof window === 'undefined') return 'light'
@@ -280,6 +280,24 @@ function mergeAggLogMetadata(row: AggLogRow): Record<string, unknown> | null {
   return o
 }
 
+function parseJsonObjectFromLogMessage(message: string): Record<string, unknown> | null {
+  const trimmed = String(message || '').trim()
+  if (!trimmed) return null
+  const firstBrace = trimmed.indexOf('{')
+  const lastBrace = trimmed.lastIndexOf('}')
+  if (firstBrace < 0 || lastBrace <= firstBrace) return null
+  const candidate = trimmed.slice(firstBrace, lastBrace + 1)
+  try {
+    const parsed = JSON.parse(candidate)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 function parseIncidentContext(row: AggLogRow): {
   requestId: string | null
   endpoint: string | null
@@ -290,34 +308,43 @@ function parseIncidentContext(row: AggLogRow): {
 } {
   const metadata = mergeAggLogMetadata(row)
   const message = String(row.message || '')
+  const messageJson = parseJsonObjectFromLogMessage(message)
+  const ctx: Record<string, unknown> = {
+    ...(metadata || {}),
+    ...(messageJson || {}),
+  }
   const requestIdFromMessage =
-    message.match(/\b(?:request[_ -]?id|correlation[_ -]?id)\s*[:=]\s*([a-zA-Z0-9-]{6,})/i)?.[1] ?? null
+    message.match(/\b(?:request[_ -]?id|correlation[_ -]?id)\s*[:=]\s*([a-zA-Z0-9-]{6,})/i)?.[1] ??
+    message.match(/"(?:requestId|correlationId)"\s*:\s*"([a-zA-Z0-9-]{6,})"/i)?.[1] ??
+    null
   const requestId =
     (typeof row.requestId === 'string' && row.requestId) ||
-    (metadata && typeof metadata.requestId === 'string' && metadata.requestId) ||
-    (metadata && typeof metadata.correlationId === 'string' && metadata.correlationId) ||
+    (typeof ctx.requestId === 'string' && ctx.requestId) ||
+    (typeof ctx.correlationId === 'string' && ctx.correlationId) ||
     requestIdFromMessage ||
     null
   const endpoint =
-    (metadata && typeof metadata.endpoint === 'string' && metadata.endpoint) ||
-    (metadata && typeof metadata.path === 'string' && metadata.path) ||
+    (typeof ctx.endpoint === 'string' && ctx.endpoint) ||
+    (typeof ctx.path === 'string' && ctx.path) ||
+    (typeof ctx.url === 'string' && ctx.url) ||
     (message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i)?.[2] ?? null)
   const ip =
-    (metadata && typeof metadata.ip === 'string' && metadata.ip) ||
-    (metadata && typeof metadata.clientIp === 'string' && metadata.clientIp) ||
+    (typeof ctx.ip === 'string' && ctx.ip) ||
+    (typeof ctx.clientIp === 'string' && ctx.clientIp) ||
     (message.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0] ?? null)
   const protocol =
-    (metadata && typeof metadata.protocol === 'string' && metadata.protocol) ||
+    (typeof ctx.protocol === 'string' && ctx.protocol) ||
     (message.match(/\b(https?|grpc|ws|wss)\b/i)?.[1] ?? null)
   const portRaw =
-    (metadata && (typeof metadata.port === 'number' || typeof metadata.port === 'string')
-      ? String(metadata.port)
+    ((typeof ctx.port === 'number' || typeof ctx.port === 'string')
+      ? String(ctx.port)
       : null) ||
+    (message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1] ?? null) ||
     (message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1] ?? null)
   let httpFromMeta: string | null = null
-  if (metadata) {
+  if (ctx) {
     for (const k of ['httpStatus', 'statusCode', 'upstreamHttpStatus'] as const) {
-      const v = metadata[k]
+      const v = ctx[k]
       if (typeof v === 'number' && Number.isFinite(v)) {
         httpFromMeta = String(Math.trunc(v))
         break
@@ -329,7 +356,10 @@ function parseIncidentContext(row: AggLogRow): {
     }
   }
   const httpStatus =
-    httpFromMeta ?? message.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1] ?? null
+    httpFromMeta ??
+    message.match(/"(?:httpStatus|statusCode|upstreamHttpStatus)"\s*:\s*(\d{3})/i)?.[1] ??
+    message.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1] ??
+    null
   return { requestId, endpoint, ip, protocol, port: portRaw, httpStatus }
 }
 
@@ -1467,6 +1497,20 @@ export default function PerformancesCorrelationPage() {
       if (bestD > INCIDENT_ALIGNMENT_MAX_DELTA_MS) return null
       return { point: best, deltaSec: Math.round(bestD / 1000) }
     }
+    const findNearestSystem = (timeMs: number) => {
+      if (systemRows.length === 0) return null
+      let best = systemRows[0]
+      let bestD = Math.abs(systemRows[0].timeMs - timeMs)
+      for (let i = 1; i < systemRows.length; i++) {
+        const d = Math.abs(systemRows[i].timeMs - timeMs)
+        if (d < bestD) {
+          best = systemRows[i]
+          bestD = d
+        }
+      }
+      if (bestD > INCIDENT_ALIGNMENT_MAX_DELTA_MS) return null
+      return best
+    }
     const findNearestResponseTime = (timeMs: number): number | null => {
       if (availability.length === 0) return null
       let best = availability[0]
@@ -1487,6 +1531,7 @@ export default function PerformancesCorrelationPage() {
         if (!Number.isFinite(ts)) return null
         const ctx = parseIncidentContext(row)
         const near = findNearest(ts)
+        const nearSystem = findNearestSystem(ts)
         return {
           timestamp: new Date(ts).toISOString(),
           level: String(row.level || 'INFO').toUpperCase(),
@@ -1497,8 +1542,8 @@ export default function PerformancesCorrelationPage() {
           port: ctx.port,
           httpStatus: ctx.httpStatus,
           message: String(row.message || ''),
-          nearestCpu: near?.point.cpu ?? near?.point.system_cpu ?? null,
-          nearestMemory: near?.point.memory ?? null,
+          nearestCpu: near?.point.cpu ?? near?.point.system_cpu ?? nearSystem?.system_cpu ?? null,
+          nearestMemory: near?.point.memory ?? near?.point.system_memory ?? nearSystem?.system_memory ?? null,
           nearestRtMs: near?.point.responseTimeMs ?? findNearestResponseTime(ts),
           deltaSec: near?.deltaSec ?? null,
         } satisfies FocusIncidentAlignedRow
@@ -1506,7 +1551,7 @@ export default function PerformancesCorrelationPage() {
       .filter((x): x is FocusIncidentAlignedRow => x != null)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 30)
-  }, [focusLogs, focusName, mergedByContainer, availabilityByService])
+  }, [focusLogs, focusName, mergedByContainer, availabilityByService, systemRows])
 
   const filteredSortedIncidentRows = useMemo(() => {
     let rows = focusIncidentAlignedRows
