@@ -1,6 +1,6 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : 24 avril 2026
+**Dernière mise à jour** : 6 mai 2026
 
 ---
 
@@ -86,6 +86,55 @@
 
 ### Reste (produit / A1)
 - **Liste des processus** (ex. `docker top`) : pas implémentée — à cadrer si besoin enquête / support.
+
+---
+
+## 6 mai 2026 — Corrélation incidents: chargement tableau clarifié
+
+### Problème
+- Pendant le chargement des incidents corrélés, le tableau pouvait paraître vide/ambigu pour l'utilisateur.
+
+### Correctif
+1. `frontend/src/app/(admin)/backoffice/performances/correlation/page.tsx`:
+   - ajout d'un état de chargement animé (skeleton lignes) dans le tableau "Corrélation fine incidents ↔ points métriques",
+   - message explicite "Chargement de la correlation incidents..." sous le tableau.
+
+### Résultat attendu
+- Plus de confusion visuelle pendant le fetch incidents: l'utilisateur voit immédiatement qu'un chargement est en cours.
+
+---
+
+## 6 mai 2026 — Metrics-aggregator: réduction des cycles coûteux
+
+### Problème
+- Des pics CPU ponctuels apparaissaient sur `jobbingtrack-metrics-aggregator`, notamment lors de cycles où la collecte fallback Docker et les health checks étaient exécutés trop fréquemment.
+
+### Correctif
+1. `backend/metrics-aggregator-service/src/server.js`:
+   - ajout d'un throttle du fallback Docker (`DOCKER_FALLBACK_INTERVAL_MS`, défaut 60s),
+   - ajout d'un throttle des health checks services (`SERVICE_HEALTH_CHECK_INTERVAL_MS`, défaut 30s),
+   - réutilisation du dernier état de santé quand le refresh n'est pas nécessaire.
+
+### Effet attendu
+- Baisse des pics CPU liés aux itérations de collecte les plus coûteuses.
+- Réduction de la pression réseau/HTTP interne sur les checks de santé.
+
+---
+
+## 6 mai 2026 — Frontend monitoring: réduction massive CPU/RAM en dev
+
+### Problème
+- `jobbingtrack-frontend` consommait fortement CPU/RAM (pics >300% CPU et ~4 GiB RAM) sur le mode dev.
+
+### Correctifs
+1. `docker-compose.yml` (service `frontend`):
+   - `WATCHPACK_POLLING` désactivé par défaut (polling coûteux),
+   - ajout de `NODE_OPTIONS` avec limite mémoire (`--max-old-space-size=2048` par défaut),
+   - healthcheck simplifié (`curl` unique) pour éviter la double requête `HEAD`+`GET`.
+
+### Résultat mesuré
+- CPU `frontend` tombé autour de 1-2% sur les échantillons post-correctif.
+- RAM `frontend` tombée autour de 220-232 MiB.
 
 ---
 

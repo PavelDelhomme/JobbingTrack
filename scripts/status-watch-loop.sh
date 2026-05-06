@@ -9,6 +9,8 @@
 
 set -euo pipefail
 
+set_term_title() { printf '\033]0;%s\007' "$1" 2>/dev/null || true; }
+
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 INTERVAL="${INTERVAL:-5}"
 ALTSCREEN="${ALTSCREEN:-1}"
@@ -16,12 +18,15 @@ CLEAR="${CLEAR:-0}"
 STATUS_FOLD="${STATUS_FOLD:-1}"
 
 cleanup() {
+  set_term_title ""
   if [[ "$ALTSCREEN" == "1" ]]; then
     printf '\033[?1049l\033[0m' 2>/dev/null || true
   fi
   stty sane 2>/dev/null || true
 }
 trap cleanup INT TERM EXIT
+
+set_term_title "Status"
 
 if [[ "$ALTSCREEN" == "1" ]]; then
   printf '\033[?1049h\033[2J\033[H'

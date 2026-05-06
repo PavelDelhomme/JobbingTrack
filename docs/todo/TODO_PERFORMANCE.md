@@ -147,3 +147,18 @@ make analyze-metrics-aggregator   # Analyser metrics-aggregator
 - Les conteneurs ont été arrêtés pour permettre les tests
 - Relancer avec `make up-full` après les optimisations
 - Surveiller les métriques avec `make status` et `docker stats`
+
+---
+
+## 🚨 Priorité critique 6 mai 2026 (nouvelle passe)
+
+- [ ] Lancer une campagne de mesures "collecte métriques uniquement" (avant/après) sur CPU/RAM/IO pour:
+  - `jobbingtrack-metrics-aggregator`
+  - `jobbingtrack-monitoring-c`
+  - `jobbingtrack-log-collector-c`
+  - `jobbingtrack-redis`
+  - `jobbingtrack-frontend` (pages monitoring/corrélation)
+- [ ] Identifier et réduire les hotspots de `metrics-aggregator` dans `collectAllMetrics` (collecte, health checks, persistance, export).
+- [ ] Réduire l'overhead de `monitoring-c` (fork/exec répétés) avec collecte plus native.
+- [ ] Corriger la robustesse de `log-collector-c` (rotation logs, nouveaux conteneurs, lecture non bloquante).
+- [ ] Fixer un budget de ressources cible "quasi imperceptible" et valider par p95 (CPU, RAM, IO) sur 30-60 min.

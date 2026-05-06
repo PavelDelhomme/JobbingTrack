@@ -389,3 +389,24 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 ### Verification
 - `scripts/test-api-specific.sh` : 51/51 passes apres correctifs.
 - Sur logs recents gateway, plus de spam intrusion sur parcours API legitime de verification.
+
+---
+
+## Priorités critiques perf/monitoring (6 mai 2026)
+
+### Symptômes
+- `metrics-aggregator` peut monter régulièrement très haut en CPU.
+- `frontend` peut afficher des pics CPU importants sur les écrans monitoring.
+- perception d'une empreinte mémoire/IO trop forte (incluant `redis` et collecteurs logs/metriques).
+
+### Causes probables en audit code (a valider par profiling runtime)
+- `monitoring-c`: usage d'appels externes répétés (`popen` + `docker stats` / `docker inspect` / `curl`) dans la boucle de collecte.
+- `monitoring-c`: health checks HTTP séquentiels, potentiellement coûteux quand le nombre de services augmente.
+- `log-collector-c`: surveillance `inotify` sans stratégie complète de rotation + découverte dynamique continue.
+- `metrics-aggregator`: boucle de collecte riche (monitoring-c + fallback Docker + health + persistance + export), sensible à la taille de la stack.
+
+### Actions correctives prioritaires
+- Remplacer les forks de collecte les plus coûteux par des lectures directes (Docker socket/cgroups) et checks asynchrones.
+- Réduire le coût de la boucle d'agrégation (profiling puis simplification ciblée).
+- Vérifier et plafonner la pression mémoire redis + monitoring.
+- Mettre en place une campagne de mesures avant/après dédiée à la chaîne métriques.

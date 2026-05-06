@@ -206,6 +206,24 @@ Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (align�
 
 ---
 
+## Priorisation critique ajoutee (6 mai 2026)
+
+Ces actions passent avant les optimisations secondaires:
+
+1. Corrélation incidents: fiabiliser la remontée `requestId`/`endpoint`/`IP`/`HTTP`/`proto`/`port` et clarifier les "source absente".
+2. Réduction charge monitoring: baisser fortement l'empreinte CPU/RAM/IO de `metrics-aggregator`, `monitoring-c`, `log-collector-c`, `redis`, et du rendu front monitoring.
+3. Validation perf dédiée: tester uniquement la chaîne de récupération des métriques (impact réel CPU/RAM/IO) avec comparaison avant/après.
+
+### Sous-chantiers critiques dérivés de l'audit technique
+
+- `monitoring-c`: sortir de la stratégie fork/exec répétée (`docker stats` / `docker inspect` / `curl`) vers appels Docker socket/cgroups + checks parallélisés.
+- health checks: basculer en mode asynchrone (batch/multi) pour éviter les latences séquentielles coûteuses.
+- `log-collector-c`: gérer rotation + découverte périodique des conteneurs + traitement non bloquant.
+- persistance PostgreSQL collecteurs C: réduire coût des insertions répétées (préparation/reconnexion robuste).
+- retention métriques: maintenir la purge active et vérifiée (pas de croissance non bornée).
+
+---
+
 ## Analyse CVE & dépendances (suivi transversal)
 
 - **Document dédié** : **`STATS.md`** — inventaire **par service Node**, **frontend**, **mobile**, **images Docker** et **binaires C** ; commandes types (`npm audit`, **Docker Scout**, `flutter pub outdated`) ; tableau **à compléter** après chaque passe d’audit (dates + severités).

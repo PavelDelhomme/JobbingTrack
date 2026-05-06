@@ -4,6 +4,8 @@
 
 Guide complet pour déployer et gérer JobbingTrack via l'interface graphique Portainer.
 
+**Chaîne VPS complète (NPM, OVH, mobile)** : voir aussi **[`VPS_PORTAINER_NPM_OVH.md`](../VPS_PORTAINER_NPM_OVH.md)**.
+
 ## 🎯 Vue d'ensemble
 
 Portainer est une interface web de gestion Docker qui simplifie le déploiement, la surveillance et l'administration de conteneurs Docker.

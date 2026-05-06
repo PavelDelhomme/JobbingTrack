@@ -2194,7 +2194,41 @@ export default function PerformancesCorrelationPage() {
                               className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             />
                           </div>
-                          {filteredSortedIncidentRows.length === 0 ? (
+                          {focusIncidentsLoading ? (
+                            <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
+                              <table className="w-full min-w-[1040px] text-left text-xs">
+                                <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                  <tr>
+                                    <th className="px-2 py-2">Horodatage</th>
+                                    <th className="px-2 py-2">Niveau</th>
+                                    <th className="px-2 py-2">requestId</th>
+                                    <th className="px-2 py-2">Endpoint</th>
+                                    <th className="px-2 py-2">IP</th>
+                                    <th className="px-2 py-2 text-right">HTTP</th>
+                                    <th className="px-2 py-2">Proto</th>
+                                    <th className="px-2 py-2">Port</th>
+                                    <th className="px-2 py-2 text-right">CPU % proche</th>
+                                    <th className="px-2 py-2 text-right">Memoire % proche</th>
+                                    <th className="px-2 py-2 text-right">TR ms proche</th>
+                                    <th className="px-2 py-2 text-right">Ecart (s)</th>
+                                    <th className="px-2 py-2">Message</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                  {Array.from({ length: 6 }).map((_, idx) => (
+                                    <tr key={`incident-loading-row-${idx}`} className="animate-pulse">
+                                      <td className="px-2 py-2" colSpan={13}>
+                                        <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              <div className="border-t border-gray-200 px-3 py-2 text-[11px] text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                                Chargement de la correlation incidents...
+                              </div>
+                            </div>
+                          ) : filteredSortedIncidentRows.length === 0 ? (
                             <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
                               <p>Aucun log persisté WARN/ERROR sur cette période pour ce conteneur (ou agrégateur indisponible).</p>
                               <p className="text-[11px] leading-snug">

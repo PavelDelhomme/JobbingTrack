@@ -565,6 +565,11 @@ async function collectContainerMetrics() {
 // Throttle: ne loguer l'indisponibilité de monitoring-c qu'au plus toutes les 5 min
 let lastMonitoringCUnavailableLog = 0
 const MONITORING_C_LOG_INTERVAL_MS = 5 * 60 * 1000
+// Throttle: éviter des fallbacks Docker coûteux à chaque cycle quand monitoring-c est disponible
+const DOCKER_FALLBACK_INTERVAL_MS = Number(process.env.DOCKER_FALLBACK_INTERVAL_MS || 60000)
+let lastDockerFallbackCollectionAt = 0
+// Throttle: limiter les health checks HTTP séquentiels trop fréquents
+const SERVICE_HEALTH_CHECK_INTERVAL_MS = Number(process.env.SERVICE_HEALTH_CHECK_INTERVAL_MS || 30000)
 
 // ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
 async function collectMetricsFromMonitoringC() {
@@ -650,10 +655,15 @@ async function collectAllMetrics() {
         })
       }
       
-      // ✅ Fallback: si on a utilisé monitoring C, compléter avec la collecte Docker pour les noms "jobbingtrack-*" (éviter 0 conteneurs)
-      const dockerCollected = await collectContainerMetrics()
-      if (dockerCollected && typeof dockerCollected === 'object') {
-        Object.assign(containerMetrics, dockerCollected)
+      // ✅ Fallback coûteux: ne pas le faire à chaque cycle si monitoring-c est déjà disponible
+      const now = Date.now()
+      const shouldRunDockerFallback = (now - lastDockerFallbackCollectionAt) >= DOCKER_FALLBACK_INTERVAL_MS
+      if (shouldRunDockerFallback) {
+        const dockerCollected = await collectContainerMetrics()
+        if (dockerCollected && typeof dockerCollected === 'object') {
+          Object.assign(containerMetrics, dockerCollected)
+        }
+        lastDockerFallbackCollectionAt = now
       }
       
       // Enrichir systemMetrics avec les données de monitoring C
@@ -709,9 +719,19 @@ async function collectAllMetrics() {
       }
     }
 
-    // Tester la santé de chaque service
+    // Tester la santé de chaque service (throttlé pour réduire la charge CPU/réseau)
+    const now = Date.now()
     for (const [serviceName, serviceConfig] of Object.entries(discoveredServices)) {
-      const health = await testServiceHealth(serviceName, serviceConfig)
+      const prevService = servicesMetrics[serviceName]
+      const prevHealth = prevService?.health
+      const prevCheckMs = prevService?.lastCheck ? Date.parse(prevService.lastCheck) : 0
+      const needsFreshHealthCheck =
+        !prevHealth ||
+        !Number.isFinite(prevCheckMs) ||
+        (now - prevCheckMs) >= SERVICE_HEALTH_CHECK_INTERVAL_MS
+      const health = needsFreshHealthCheck
+        ? await testServiceHealth(serviceName, serviceConfig)
+        : prevHealth
 
       servicesMetrics[serviceName] = {
         ...serviceConfig,
@@ -721,7 +741,7 @@ async function collectAllMetrics() {
         health,
         status: health.status, // ✅ Ajouter le statut au niveau racine
         responseTimeMs: health.responseTimeMs, // ✅ Exposer le temps de réponse
-        lastCheck: new Date().toISOString(),
+        lastCheck: needsFreshHealthCheck ? new Date().toISOString() : (prevService?.lastCheck || new Date().toISOString()),
         metrics: containerMetrics[serviceName] || {}
       }
     }
@@ -1285,8 +1305,11 @@ console.log('[SERVER] Source prioritaire: monitoring-c →', process.env.MONITOR
 collectAllMetrics()
 collectDockerLogs()
 
-// Collecte des métriques toutes les 10 secondes
-cron.schedule('*/10 * * * * *', collectAllMetrics)
+// Collecte des métriques (configurable): défaut 15 secondes pour limiter la charge continue
+const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLLECTION_INTERVAL_SECONDS || '15'))
+const metricsCollectionCron = `*/${metricsCollectionIntervalSec} * * * * *`
+cron.schedule(metricsCollectionCron, collectAllMetrics)
+console.log(`[SERVER] ✅ Collecte métriques planifiée: toutes les ${metricsCollectionIntervalSec}s`)
 
 // Collecte des logs toutes les 2 minutes
 cron.schedule('*/2 * * * *', collectDockerLogs)

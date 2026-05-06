@@ -2,6 +2,18 @@
 
 **Dernière mise à jour : 7 mai 2026** — **07/05** : analyse run `make tests` **`tests/results/20260505-113157`** (21 KO / 720), correctifs **`logs-watch`** (141 vs 130), filtre console axios **aborted**, fusion **`metadata.metadata`** incidents corrélation, script **`npm run browserslist:update`**. **Synthèse `/backoffice`** : tableau **CPU % / mémoire % / RAM MB** par conteneur **`jobbingtrack-*`** + cartes renommées ; **Performance** : raccourcis **Synthèse / Latence / Conteneurs / Disque / Réseau** + lien **Services & logs** corrigé. **Statistiques — Sécurité** : **persistance seule** (synthèse agrégée, score, **par jour**, extrait) — pas les mêmes blocs que **`/backoffice/security`**. **A1** : lazy Recharts **`/backoffice/performances/containers`** ; **hub `/backoffice/analytics`** métier uniquement ; **H1** : **`scripts/README.md`**. **Statistiques** : **`/backoffice/statistics`** + redirects ; **vue d’ensemble** : **`rechartsTooltipProps`** sur tous les **`<Tooltip>`** (**07/04**). **Suite & suivi** ci-dessous. **Mobile** : **`jobbing/`** + smoke ; **`flutter-mobile-app`**. **Lot H**.
 
+## Priorité immédiate 6 mai 2026 — perf ressources + corrélation
+
+- [x] Corrélation UI: afficher un chargement animé dans le tableau incidents pendant le fetch (au lieu de laisser des cellules ambiguës).
+- [ ] Corrélation UI: ajouter un loader colonne par colonne (requestId/endpoint/IP/HTTP/proto/port) quand la source est en cours de résolution.
+- [ ] Corrélation data: tableau "champ par champ" (source technique, raison du vide, correctif restant) pour requestId/endpoint/IP/HTTP/proto/port.
+- [ ] Metrics-aggregator: profiler précisément les coûts de `collectAllMetrics` (monitoring-c + fallback Docker + health checks + persistance + export JSON).
+- [x] Frontend: diagnostiquer le pic CPU (>300%) sous charge et réduire le coût des rafraîchissements/perf pages monitoring. (06/05: WATCHPACK polling off + cap mémoire Node + healthcheck simplifié)
+- [ ] Redis: mesurer la pression mémoire réelle (dataset, buffers, fragmentation), fixer budget et actions de réduction.
+- [ ] Log collector C: corriger rotation logs + découverte dynamique conteneurs + lecture non bloquante.
+- [ ] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles.
+- [ ] Validation dédiée "coût collecte métriques": benchmark comparatif avant/après sur CPU, RAM, IO pour chaque composant de monitoring.
+
 Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.
 
 ## Lire ce fichier (validation vs inventaire)
@@ -359,7 +371,7 @@ Ne pas confondre avec le chantier ci-dessus ; ce sont les **P0** globaux du proj
 
 - [ ] Mobile utilisable quotidien (parcours inscription → CRUD → relances).
 - [ ] Suivi intérim côté **mobile** (toggle utilisateur) + polish backoffice.
-- [ ] Déploiement VPS simple (P1).
+- [ ] Déploiement VPS simple (P1) — guide **Portainer + Nginx Proxy Manager + OVH** : **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`** (complète **`docs/deployment/portainer/README.md`**).
 
 ---
 
