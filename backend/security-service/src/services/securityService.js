@@ -540,7 +540,8 @@ class SecurityService {
         alertId: alert.id,
         level,
         category,
-        source
+        source,
+        ...(metadata && typeof metadata === 'object' ? metadata : {})
       });
 
       return alert;
