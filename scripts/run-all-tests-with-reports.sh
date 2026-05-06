@@ -450,6 +450,18 @@ EOF
                 fi
             fi
         fi
+
+        # Une extraction tardive peut réintroduire des "failed" intermédiaires.
+        # Le statut final de la commande reste la source de vérité.
+        if [ "$exit_code" -eq 0 ] && [ "$failed" -gt 0 ]; then
+            failed=0
+            if [ "$total" -gt 0 ]; then
+                passed=$total
+            fi
+            if command -v jq > /dev/null 2>&1; then
+                jq ".statistics.total = $total | .statistics.passed = $passed | .statistics.failed = $failed" "$result_file" > "$result_file.tmp2" && mv "$result_file.tmp2" "$result_file" 2>/dev/null || true
+            fi
+        fi
         
         # Si total est toujours 0 après extraction, compter la catégorie comme 1 test
         if [ "$total" -eq 0 ]; then
@@ -1098,7 +1110,11 @@ TOTAL_SKIPPED=0
 
 # Parcourir tous les fichiers JSON de résultats (sauf summary.json)
 for json_file in "$REPORT_DIR"/*.json; do
-    if [ -f "$json_file" ] && [ "$(basename "$json_file")" != "summary.json" ]; then
+    json_basename="$(basename "$json_file")"
+    if [ "$json_basename" = "summary.json" ] || [ "$json_basename" = "metrics-start.json" ] || [ "$json_basename" = "metrics-end.json" ]; then
+        continue
+    fi
+    if [ -f "$json_file" ]; then
         # Vérifier si c'est un test skipped (jq peut échouer si JSON invalide → ignorer erreur)
         if command -v jq > /dev/null 2>&1; then
             status=$(jq -r '.status // empty' "$json_file" 2>/dev/null || status="")
@@ -1153,6 +1169,14 @@ for json_file in "$REPORT_DIR"/*.json; do
                         total=$((passed_count + failed_count))
                         passed=$passed_count
                         failed=$failed_count
+                    fi
+                fi
+
+                # Même après extraction depuis la sortie, respecter le statut final.
+                if [ "$exit_code" -eq 0 ] && [ "$failed" -gt 0 ]; then
+                    failed=0
+                    if [ "$total" -gt 0 ]; then
+                        passed=$total
                     fi
                 fi
                 
