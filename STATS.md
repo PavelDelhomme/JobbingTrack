@@ -4,7 +4,7 @@
 
 **Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14** infra compose, lot **A** observabilité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`ERRORS.md`**, **`STATUS.md`**.
 
-**Dernière mise à jour** : 6 mai 2026 — lien lot **B14** / durcissement runtime ; gabarit CVE inchangé (22 avril 2026).
+**Dernière mise à jour** : 7 mai 2026 — ajout du scan automatisé **`scripts/security/cve-scan.py`** et de la cible **`make test-cve-scan`**.
 
 ---
 
@@ -18,6 +18,28 @@
 | **Binaires C** (monitoring-c, log-collector-c) | Rebuild avec chaîne à jour ; suivi **CVE** des libs statiques si SBOM disponible ; sinon revue manuelle + bons tags d’image | Trimestriel ou à défaut critique |
 
 **Ne pas** confondre : **`npm audit`** signale des advisories npm (souvent avec correctif semver) ; une **CVE** réelle en prod dépend aussi de **code mort**, **bundles**, **images** et **configuration**.
+
+### Commande projet
+
+Le dépôt fournit maintenant un point d’entrée unique :
+
+```bash
+make test-cve-scan
+```
+
+Ce scan génère un rapport sous **`tests/results/security/cve-<timestamp>/summary.md`** et couvre :
+
+- les dossiers avec **`package-lock.json`** via `npm audit --json --omit=dev` ;
+- le workspace Rust **`monitoring/rust`** via `cargo audit --json` si `cargo-audit` est installé ;
+- les images Docker des conteneurs en cours si lancé avec **`CVE_SCAN_DOCKER=1`** et **Trivy** installé.
+
+Mode bloquant CI possible :
+
+```bash
+CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high make test-cve-scan
+```
+
+Variables utiles : `CVE_SCAN_INCLUDE_DEV=1` pour inclure les dépendances dev, `CVE_SCAN_DOCKER=1` pour scanner les images des conteneurs en cours, `CVE_SCAN_DOCKER_ALL_IMAGES=1` pour scanner toutes les images locales filtrées JobbingTrack/Postgres/Redis/MailHog, `--docker-image <image>` pour cibler une image précise, `CVE_SCAN_TIMEOUT_SEC=180` pour augmenter les timeouts.
 
 ---
 
@@ -81,25 +103,13 @@ Colonne **Dernière analyse** : date du dernier `npm audit` (ou équivalent) ex�
 
 ## 3. Exemple de collecte rapide (copier-coller)
 
-Depuis la racine du dépôt (adapter si vous utilisez `pnpm` / `yarn`) :
+Depuis la racine du dépôt :
 
 ```bash
-# Audit racine
-npm audit --omit=dev 2>/dev/null | tail -5
-
-# Boucle microservices (shell)
-for d in backend/api-gateway backend/auth-service backend/application-service backend/company-service \
-  backend/contact-service backend/interview-service backend/call-service backend/followup-service \
-  backend/event-service backend/notification-service backend/profile-service backend/dashboard-service \
-  backend/workflow-service backend/deployment-service backend/security-service backend/metrics-aggregator-service; do
-  echo "=== $d ==="
-  (cd "$d" && npm audit --omit=dev 2>/dev/null | tail -3) || echo "(pas de package-lock ou erreur)"
-done
-
-(cd frontend && npm audit --omit=dev 2>/dev/null | tail -5) || true
+make test-cve-scan
 ```
 
-Transcrire les totaux **critical** / **high** (ou « 0 vulnerabilities ») dans le tableau § 2.1.
+Transcrire les totaux **critical** / **high** (ou « 0 vulnerabilities ») depuis le fichier `summary.md` généré dans le tableau § 2.1 si un suivi manuel est nécessaire.
 
 ---
 

@@ -181,6 +181,9 @@ make test-performance
 
 # Tests de sécurité
 make test-security
+
+# Scan CVE / dépendances (Node, Rust si cargo-audit, Docker si CVE_SCAN_DOCKER=1)
+make test-cve-scan
 ```
 
 #### Tests Spécialisés (Réorganisés)

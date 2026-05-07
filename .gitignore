@@ -81,6 +81,7 @@ Thumbs.db
 coverage/
 .nyc_output/
 **/tests/e2e/.auth/
+tests/results/security/cve-*/
 
 # Uploads (le volume Docker gère cela)
 uploads/

@@ -435,10 +435,15 @@ export default function SecurityOverviewPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Pondération du score sécurité</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Le score part de 100 puis retire des points selon les menaces détectées, le volume de logs sécurité
+            au-delà du bruit normal, les IPs bloquées et l&apos;état du WAF. Les métriques CPU, mémoire, disque,
+            services et conteneurs ne sont pas utilisées ici : elles relèvent de la performance, pas du risque sécurité.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <label>Menaces ({weights.threats})<input type="range" min={1} max={5} value={weights.threats} onChange={(e) => updateWeight('threats', Number(e.target.value))} className="w-full" /></label>
-            <label>Bruit logs ({weights.logsNoise})<input type="range" min={1} max={3} value={weights.logsNoise} onChange={(e) => updateWeight('logsNoise', Number(e.target.value))} className="w-full" /></label>
-            <label>WAF off ({weights.wafDisabled})<input type="range" min={5} max={25} value={weights.wafDisabled} onChange={(e) => updateWeight('wafDisabled', Number(e.target.value))} className="w-full" /></label>
+            <label>Menaces ({weights.threats})<input aria-label="Poids des menaces dans le score sécurité" type="range" min={1} max={5} value={weights.threats} onChange={(e) => updateWeight('threats', Number(e.target.value))} className="w-full" /><span className="text-xs text-gray-500 dark:text-gray-400">Points retirés par menace, plafonnés à 40.</span></label>
+            <label>Bruit logs ({weights.logsNoise})<input aria-label="Poids du bruit des logs dans le score sécurité" type="range" min={1} max={3} value={weights.logsNoise} onChange={(e) => updateWeight('logsNoise', Number(e.target.value))} className="w-full" /><span className="text-xs text-gray-500 dark:text-gray-400">Points retirés par log au-delà de 20, plafonnés à 30.</span></label>
+            <label>WAF off ({weights.wafDisabled})<input aria-label="Pénalité WAF désactivé dans le score sécurité" type="range" min={5} max={25} value={weights.wafDisabled} onChange={(e) => updateWeight('wafDisabled', Number(e.target.value))} className="w-full" /><span className="text-xs text-gray-500 dark:text-gray-400">Pénalité fixe quand le WAF est désactivé.</span></label>
           </div>
         </div>
 

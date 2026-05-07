@@ -167,12 +167,12 @@ Tests des vulnérabilités et vérifications sécurité.
 - CSRF (Cross-Site Request Forgery)
 - Authentification/Autorisation
 - Variables d'environnement sécurisées
-- Dépendances vulnérables
+- Dépendances vulnérables / CVE supply-chain (Node, Rust, Docker si scanner local disponible)
 
 **Outils**:
 - OWASP ZAP
-- npm audit
-- Snyk
+- `make test-cve-scan` (`scripts/security/cve-scan.py`) : `npm audit`, `cargo audit` si installé, Trivy Docker si `CVE_SCAN_DOCKER=1` (conteneurs en cours)
+- Snyk / Trivy / Grype en complément CI ou poste sécurité
 - Tests manuels
 
 **Exemple**:
@@ -222,7 +222,8 @@ describe('Security - SQL Injection', () => {
 |-------|-------|---------|
 | OWASP ZAP | Scan vulnérabilités | latest |
 | npm audit | Audit dépendances | built-in |
-| Snyk | Scan sécurité | latest |
+| `make test-cve-scan` | Rapport CVE projet (`tests/results/security/cve-*`) | script dépôt |
+| Snyk / Trivy / Grype | Scan sécurité complémentaire | latest |
 
 ## 📊 Coverage et Rapports
 
@@ -273,6 +274,7 @@ make test-frontend       # Tests frontend (Jest)
 make test-e2e            # Tests E2E Playwright (frontend)
 make test-performance    # Tests performance
 make test-security       # Tests sécurité
+make test-cve-scan       # Scan CVE dépendances/images
 ```
 
 ### Nettoyage
@@ -395,7 +397,7 @@ open tests/coverage/index.html
 - [ ] Tests E2E passent (`make test-e2e`)
 - [ ] Tests performance acceptables
 - [ ] Tests sécurité OK
-- [ ] Pas de dépendances vulnérables (`npm audit`)
+- [ ] Pas de CVE non acceptée (`make test-cve-scan`, idéalement `CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high`)
 - [ ] Documentation à jour
 - [ ] Changelog mis à jour
 
