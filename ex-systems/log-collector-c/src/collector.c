@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <errno.h>
+#include <poll.h>
 #include "collector.h"
 #include "parser.h"
 #include "storage.h"
@@ -22,6 +24,8 @@
 #define MAX_WATCHES 100
 #define BUFFER_SIZE 8192
 #define LOG_DIR "/var/lib/docker/containers"
+#define DISCOVERY_INTERVAL_SEC 10
+#define INOTIFY_POLL_TIMEOUT_MS 1000
 
 /** Préfixe datetime ISO pour les logs (ex: 2026-02-20T16:30:00Z) */
 static const char* log_ts(void) {
@@ -39,11 +43,70 @@ static int inotify_fd;
 static int watch_count = 0;
 static WatchInfo watches[MAX_WATCHES];
 
+static int should_read_existing_logs(void) {
+    const char *v = getenv("LOG_COLLECTOR_READ_EXISTING");
+    return v && (strcmp(v, "1") == 0 || strcmp(v, "true") == 0);
+}
+
+static int find_watch_by_path(const char *log_path) {
+    for (int i = 0; i < watch_count; i++) {
+        if (strcmp(watches[i].log_path, log_path) == 0) return i;
+    }
+    return -1;
+}
+
+static int find_watch_by_wd(int wd) {
+    for (int i = 0; i < watch_count; i++) {
+        if (watches[i].watch_descriptor == wd) return i;
+    }
+    return -1;
+}
+
+static void remove_watch_at(int idx) {
+    if (idx < 0 || idx >= watch_count) return;
+    if (watches[idx].watch_descriptor >= 0) {
+        inotify_rm_watch(inotify_fd, watches[idx].watch_descriptor);
+    }
+    if (idx != watch_count - 1) {
+        watches[idx] = watches[watch_count - 1];
+    }
+    watch_count--;
+}
+
+static int add_container_watch(const char *container_id, const char *log_path, const struct stat *st) {
+    if (find_watch_by_path(log_path) >= 0) return 0;
+    if (watch_count >= MAX_WATCHES) {
+        fprintf(stderr, "[%s] ⚠️  Limite de watches atteinte (%d), ignore %s\n", log_ts(), MAX_WATCHES, container_id);
+        return -1;
+    }
+
+    int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY | IN_ATTRIB | IN_MOVE_SELF | IN_DELETE_SELF);
+    if (wd < 0) {
+        fprintf(stderr, "[%s] ⚠️  Watch impossible pour %s: %s\n", log_ts(), log_path, strerror(errno));
+        return -1;
+    }
+
+    size_t id_len = strlen(container_id);
+    size_t path_len = strlen(log_path);
+    if (id_len >= sizeof(watches[watch_count].container_id) || path_len >= sizeof(watches[watch_count].log_path)) {
+        inotify_rm_watch(inotify_fd, wd);
+        return -1;
+    }
+
+    memcpy(watches[watch_count].container_id, container_id, id_len + 1);
+    memcpy(watches[watch_count].log_path, log_path, path_len + 1);
+    watches[watch_count].watch_descriptor = wd;
+    watches[watch_count].last_position = should_read_existing_logs() ? 0 : (long)st->st_size;
+    watches[watch_count].last_seen = time(NULL);
+    watch_count++;
+    return 1;
+}
+
 /**
  * Initialise le système de collecte
  */
 int init_log_collector(void) {
-    inotify_fd = inotify_init();
+    inotify_fd = inotify_init1(IN_NONBLOCK);
     if (inotify_fd < 0) {
         perror("inotify_init");
         return -1;
@@ -59,75 +122,32 @@ int init_log_collector(void) {
  * Découvre les conteneurs Docker à surveiller
  */
 void discover_containers(void) {
-    // Lister les conteneurs via Docker API (utiliser curl avec socket Unix)
-    FILE *fp = popen("curl -s --unix-socket /var/run/docker.sock http://localhost/containers/json 2>/dev/null | grep -o '\"Id\":\"[^\"]*\"' | cut -d'\"' -f4", "r");
-    if (!fp) {
-        // Fallback : lister directement les répertoires dans /var/lib/docker/containers
-        DIR *dir = opendir(LOG_DIR);
-        if (!dir) return;
-        
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != NULL && watch_count < MAX_WATCHES) {
-            if (entry->d_name[0] == '.') continue;
-            
-            char container_id[64];
-            strncpy(container_id, entry->d_name, sizeof(container_id) - 1);
-            container_id[sizeof(container_id) - 1] = '\0';
-            
-            char log_path[512];
-            snprintf(log_path, sizeof(log_path), "%s/%s/%s-json.log", 
-                     LOG_DIR, container_id, container_id);
-            
-            struct stat st;
-            if (stat(log_path, &st) == 0) {
-                int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY);
-                if (wd >= 0) {
-                    size_t id_len = strlen(container_id);
-                    size_t path_len = strlen(log_path);
-                    if (id_len < sizeof(watches[watch_count].container_id) && 
-                        path_len < sizeof(watches[watch_count].log_path)) {
-                        memcpy(watches[watch_count].container_id, container_id, id_len + 1);
-                        memcpy(watches[watch_count].log_path, log_path, path_len + 1);
-                        watches[watch_count].watch_descriptor = wd;
-                        watch_count++;
-                    }
-                }
-            }
-        }
-        closedir(dir);
-        return;
-    }
-    
-    char container_id[64];
-    while (fgets(container_id, sizeof(container_id), fp) && watch_count < MAX_WATCHES) {
-        // Nettoyer le ID
-        container_id[strcspn(container_id, "\n")] = 0;
-        
-        // Chemin du fichier de log
+    DIR *dir = opendir(LOG_DIR);
+    if (!dir) return;
+
+    struct dirent *entry;
+    int added = 0;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_name[0] == '.') continue;
+
+        char container_id[64];
+        strncpy(container_id, entry->d_name, sizeof(container_id) - 1);
+        container_id[sizeof(container_id) - 1] = '\0';
+
         char log_path[512];
-        snprintf(log_path, sizeof(log_path), "%s/%s/%s-json.log", 
-                 LOG_DIR, container_id, container_id);
-        
-        // Vérifier si le fichier existe
+        snprintf(log_path, sizeof(log_path), "%s/%s/%s-json.log", LOG_DIR, container_id, container_id);
+
         struct stat st;
-        if (stat(log_path, &st) == 0) {
-            // Ajouter un watch
-            int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY);
-            if (wd >= 0) {
-                size_t id_len = strlen(container_id);
-                size_t path_len = strlen(log_path);
-                if (id_len < sizeof(watches[watch_count].container_id) && 
-                    path_len < sizeof(watches[watch_count].log_path)) {
-                    memcpy(watches[watch_count].container_id, container_id, id_len + 1);
-                    memcpy(watches[watch_count].log_path, log_path, path_len + 1);
-                    watches[watch_count].watch_descriptor = wd;
-                    watch_count++;
-                }
-            }
+        if (stat(log_path, &st) == 0 && S_ISREG(st.st_mode)) {
+            int r = add_container_watch(container_id, log_path, &st);
+            if (r > 0) added++;
         }
     }
-    
-    pclose(fp);
+    closedir(dir);
+
+    if (added > 0) {
+        printf("[%s] 🔎 Découverte logs: %d nouveau(x) conteneur(s), %d watch(es) actif(s)\n", log_ts(), added, watch_count);
+    }
 }
 
 /**
@@ -135,19 +155,33 @@ void discover_containers(void) {
  */
 void process_log_event(const struct inotify_event *event) {
     // Trouver le watch correspondant
-    for (int i = 0; i < watch_count; i++) {
-        if (watches[i].watch_descriptor == event->wd) {
-            // Lire les nouvelles lignes
-            read_new_log_lines(&watches[i]);
-            break;
-        }
+    int idx = find_watch_by_wd(event->wd);
+    if (idx < 0) return;
+
+    if (event->mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_IGNORED)) {
+        printf("[%s] 🔄 Rotation/suppression détectée pour %s, watch retiré\n", log_ts(), watches[idx].container_id);
+        remove_watch_at(idx);
+        return;
     }
+
+    // Lire les nouvelles lignes. Les événements fichier ont souvent len=0 : ne pas filtrer dessus.
+    read_new_log_lines(&watches[idx]);
 }
 
 /**
  * Lit les nouvelles lignes d'un fichier de log
  */
 void read_new_log_lines(WatchInfo *watch) {
+    struct stat st;
+    if (stat(watch->log_path, &st) != 0) {
+        return;
+    }
+
+    if ((long)st.st_size < watch->last_position) {
+        printf("[%s] 🔄 Log tronqué/rotaté pour %s, reprise au début\n", log_ts(), watch->container_id);
+        watch->last_position = 0;
+    }
+
     FILE *fp = fopen(watch->log_path, "r");
     if (!fp) {
         // Debug: afficher si le fichier n'existe pas
@@ -163,9 +197,7 @@ void read_new_log_lines(WatchInfo *watch) {
     }
     
     char line[BUFFER_SIZE];
-    int lines_read = 0;
     while (fgets(line, sizeof(line), fp)) {
-        lines_read++;
         // Parser la ligne JSON Docker
         LogEntry entry;
         if (parse_docker_log_line(line, &entry) == 0) {
@@ -181,12 +213,8 @@ void read_new_log_lines(WatchInfo *watch) {
     long new_position = ftell(fp);
     if (new_position >= 0) {
         watch->last_position = new_position;
+        watch->last_seen = time(NULL);
     }
-    
-    // Debug: afficher si des lignes ont été lues
-    // if (lines_read > 0) {
-    //     printf("[DEBUG] %d lignes lues depuis %s\n", lines_read, watch->container_id);
-    // }
     
     fclose(fp);
 }
@@ -244,11 +272,32 @@ int main(int argc, char *argv[]) {
         printf("💡 Vérifiez que /var/lib/docker/containers est accessible\n");
     }
     
-    // Boucle principale
+    // Boucle principale non bloquante : inotify + redécouverte périodique des nouveaux conteneurs.
     char buffer[BUFFER_SIZE];
+    time_t last_discovery = time(NULL);
     while (1) {
-        ssize_t length = read(inotify_fd, buffer, BUFFER_SIZE);
+        struct pollfd pfd = { .fd = inotify_fd, .events = POLLIN };
+        int ready = poll(&pfd, 1, INOTIFY_POLL_TIMEOUT_MS);
+        if (ready < 0) {
+            if (errno == EINTR) continue;
+            perror("poll");
+            sleep(1);
+            continue;
+        }
+
+        time_t now = time(NULL);
+        if (now - last_discovery >= DISCOVERY_INTERVAL_SEC) {
+            discover_containers();
+            last_discovery = now;
+        }
+
+        if (ready == 0) continue;
+
+        ssize_t length = read(inotify_fd, buffer, sizeof(buffer));
         if (length < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+                continue;
+            }
             perror("read");
             // Réessayer après une courte pause
             sleep(1);
@@ -264,9 +313,7 @@ int main(int argc, char *argv[]) {
         int i = 0;
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *)&buffer[i];
-            if (event->len > 0) {
-                process_log_event(event);
-            }
+            process_log_event(event);
             i += sizeof(struct inotify_event) + event->len;
         }
     }

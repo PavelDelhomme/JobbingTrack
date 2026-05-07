@@ -10,6 +10,7 @@ typedef struct {
     char log_path[512];
     int watch_descriptor;
     long last_position;
+    time_t last_seen;
 } WatchInfo;
 
 // Structure pour une entrée de log

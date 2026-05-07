@@ -18,6 +18,7 @@
 #include <sys/sysinfo.h>
 #include <stdbool.h>
 #include <strings.h>
+#include <curl/curl.h>
 #include "collector.h"
 #include "proc_reader.h"
 #include "storage.h"
@@ -43,6 +44,82 @@ MetricsData global_metrics = {0};
 // ✅ NOUVEAU : Métriques précédentes pour calculer les variations
 static MetricsData previous_metrics = {0};
 static bool has_previous_metrics = false;
+
+static size_t discard_curl_body(void *ptr, size_t size, size_t nmemb, void *userdata) {
+    (void)ptr;
+    (void)userdata;
+    return size * nmemb;
+}
+
+static int build_known_health_url(const char *container_name, char *url, size_t url_size) {
+    struct HealthTarget {
+        const char *needle;
+        int port;
+        const char *path;
+    };
+    static const struct HealthTarget targets[] = {
+        {"api-gateway", 3000, "/api/v1/health"},
+        {"auth-service", 3001, "/api/v1/auth/health"},
+        {"application-service", 3002, "/api/v1/applications/health"},
+        {"company-service", 3003, "/api/v1/companies/health"},
+        {"contact-service", 3004, "/api/v1/contacts/health"},
+        {"interview-service", 3005, "/api/v1/interviews/health"},
+        {"call-service", 3008, "/api/v1/calls/health"},
+        {"event-service", 3011, "/api/v1/events/health"},
+        {"followup-service", 3012, "/api/v1/followups/health"},
+        {"profile-service", 3009, "/health"},
+        {"notification-service", 3008, "/health"},
+        {"dashboard-service", 3000, "/health"},
+        {"workflow-service", 3013, "/health"},
+        {"security-service", 3017, "/health"},
+        {"deployment-service", 3016, "/health"},
+        {"metrics-aggregator", 3014, "/api/v1/health"},
+        {"monitoring-c", 8015, "/health"},
+        {"log-collector-c", 3019, "/health"},
+        {"frontend", 3000, "/health"},
+    };
+
+    for (size_t i = 0; i < sizeof(targets) / sizeof(targets[0]); i++) {
+        if (strstr(container_name, targets[i].needle) != NULL) {
+            snprintf(url, url_size, "http://%s:%d%s", container_name, targets[i].port, targets[i].path);
+            return 1;
+        }
+    }
+
+    snprintf(url, url_size, "http://%s/health", container_name);
+    return 1;
+}
+
+static int perform_health_check(const char *url, double *response_time_ms, int *http_status) {
+    CURL *curl = curl_easy_init();
+    if (!curl) return -1;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_curl_body);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 0L);
+
+    CURLcode res = curl_easy_perform(curl);
+    long code = 0;
+    double total_time = 0.0;
+    if (res == CURLE_OK) {
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+        curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+    }
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK || code <= 0) {
+        *response_time_ms = 0.0;
+        *http_status = 0;
+        return -1;
+    }
+
+    *response_time_ms = total_time * 1000.0;
+    *http_status = (int)code;
+    return 0;
+}
 
 /**
  * Collecte des métriques système
@@ -165,7 +242,6 @@ int collect_container_metrics(void) {
     
     // Variables déclarées au début pour être accessibles partout
     int container_idx = 0;
-    int name_count = 0;
     unsigned long total_rx = 0, total_tx = 0;
     
 #if MONITORING_DEBUG
@@ -188,10 +264,8 @@ int collect_container_metrics(void) {
     FILE *stats_fp = popen("docker stats --no-stream --format '{{json .}}' $(docker ps --filter 'name=jobbingtrack-' --format '{{.Names}}' 2>/dev/null | tr '\\n' ' ') 2>/dev/null", "r");
     if (stats_fp) {
         char line[4096];
-        int line_count = 0;
         
         while (fgets(line, sizeof(line), stats_fp) && container_idx < 100) {
-            line_count++;
             // Nettoyer la ligne (enlever \n en fin)
             size_t line_len = strlen(line);
             if (line_len > 0 && line[line_len - 1] == '\n') {
@@ -391,7 +465,6 @@ int collect_container_metrics(void) {
             }
             
             container_idx++;
-            name_count++;
         }
         pclose(stats_fp);
     }
@@ -448,7 +521,7 @@ int collect_container_metrics(void) {
     printf("[PROJECT] CPU Projet: total=%.2f%%, count=%d, avg=%.2f%%, Memory: %lu MB\n",
            project_cpu_total, project_container_count, global_metrics.project_cpu_avg, global_metrics.project_memory_mb);
 #endif
-    // Mesurer les temps de réponse HTTP pour les services JobbingTrack
+    // Mesurer les temps de réponse HTTP sans fork `docker inspect` / `curl`.
     for (int i = 0; i < container_idx && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
             /* Ne pas faire de health check HTTP sur postgres/redis (protocole non-HTTP) */
@@ -458,142 +531,17 @@ int collect_container_metrics(void) {
                 global_metrics.containers[i].http_status = 0;
                 continue;
             }
-            // Obtenir l'IP du conteneur via docker inspect
-            char inspect_cmd[512];
-            snprintf(inspect_cmd, sizeof(inspect_cmd),
-                "docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' %s 2>/dev/null",
-                global_metrics.containers[i].name);
-            
-            FILE *inspect_fp = popen(inspect_cmd, "r");
-            char container_ip[64] = {0};
-            if (inspect_fp) {
-                if (fgets(container_ip, sizeof(container_ip), inspect_fp)) {
-                    container_ip[strcspn(container_ip, "\n")] = '\0';
-                }
-                pclose(inspect_fp);
-            }
-            
-            // Obtenir le port INTERNE du conteneur (pour requêtes depuis le réseau Docker)
-            // docker inspect donne "3001/tcp" ; on prend le premier port exposé
-            char port_cmd[512];
-            snprintf(port_cmd, sizeof(port_cmd),
-                "docker inspect --format '{{range $p,$c := .NetworkSettings.Ports}}{{$p}}{{end}}' %s 2>/dev/null | head -1",
-                global_metrics.containers[i].name);
-            FILE *port_fp = popen(port_cmd, "r");
-            char container_port_raw[32] = {0};
-            char container_port[16] = {0};
-            if (port_fp && fgets(container_port_raw, sizeof(container_port_raw), port_fp)) {
-                container_port_raw[strcspn(container_port_raw, "\n")] = '\0';
-                // Format "3001/tcp" -> extraire "3001"
-                char *slash = strchr(container_port_raw, '/');
-                if (slash) {
-                    size_t len = (size_t)(slash - container_port_raw);
-                    if (len >= sizeof(container_port)) len = sizeof(container_port) - 1;
-                    strncpy(container_port, container_port_raw, len);
-                    container_port[len] = '\0';
-                } else {
-                    strncpy(container_port, container_port_raw, sizeof(container_port) - 1);
-                    container_port[sizeof(container_port) - 1] = '\0';
-                }
-                pclose(port_fp);
-                port_fp = NULL;
-            }
-            if (port_fp) pclose(port_fp);
-            /* Fallback: port hôte (docker port) si pas de port interne trouvé */
-            if (strlen(container_port) == 0) {
-                snprintf(port_cmd, sizeof(port_cmd),
-                    "docker port %s 2>/dev/null | head -1 | cut -d: -f2",
-                    global_metrics.containers[i].name);
-                port_fp = popen(port_cmd, "r");
-                if (port_fp && fgets(container_port, sizeof(container_port), port_fp)) {
-                    container_port[strcspn(container_port, "\n")] = '\0';
-                    pclose(port_fp);
-                } else if (port_fp) pclose(port_fp);
-            }
-            
-            // Construire l'URL de health check (IP réseau Docker + port interne, ou nom:port)
+
+            // Construire l'URL de health check via nom conteneur + port/path connus.
             char health_url[512];
-            if (strlen(container_ip) > 0 && strlen(container_port) > 0) {
-                snprintf(health_url, sizeof(health_url), "http://%s:%s/health", container_ip, container_port);
-            } else if (strlen(container_port) > 0) {
-                snprintf(health_url, sizeof(health_url), "http://localhost:%s/health", container_port);
-            } else {
-                /* Nom du conteneur seul = port 80 par défaut ; tenter nom:port connu pour JobbingTrack */
-                snprintf(health_url, sizeof(health_url), "http://%s/health", global_metrics.containers[i].name);
-            }
-            
-            // ✅ CORRECTION : Mesurer le temps de réponse avec curl (amélioré)
-            char curl_cmd[1024];
-            snprintf(curl_cmd, sizeof(curl_cmd),
-                "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 3 --connect-timeout 2 %s 2>&1",
-                health_url);
-            
-            FILE *curl_fp = popen(curl_cmd, "r");
-            if (curl_fp) {
-                char response[128];
-                if (fgets(response, sizeof(response), curl_fp)) {
-                    // ✅ CORRECTION : Nettoyer la réponse (supprimer les retours à la ligne)
-                    char *newline = strchr(response, '\n');
-                    if (newline) *newline = '\0';
-                    
-                    double time_total = 0.0;
-                    int http_code = 0;
-                    // ✅ CORRECTION : Parser la réponse (format: "time_total,http_code" ou erreur)
-                    if (sscanf(response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
-                        global_metrics.containers[i].response_time_ms = time_total * 1000.0;
-                        global_metrics.containers[i].http_status = http_code;
-#if MONITORING_DEBUG
-                        printf("[DEBUG] Health check %s: %.2f ms (HTTP %d)\n",
-                               global_metrics.containers[i].name,
-                               global_metrics.containers[i].response_time_ms,
-                               http_code);
-#endif
-                    } else {
-                        // ✅ CORRECTION : Si curl a échoué, essayer avec le nom du service directement
-                        // (dans Docker network, le nom du service fonctionne)
-                        char fallback_url[512];
-                        snprintf(fallback_url, sizeof(fallback_url), "http://%s/health", global_metrics.containers[i].name);
-                        char fallback_cmd[1024];
-                        snprintf(fallback_cmd, sizeof(fallback_cmd),
-                            "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 3 --connect-timeout 2 %s 2>&1",
-                            fallback_url);
-                        
-                        FILE *fallback_fp = popen(fallback_cmd, "r");
-                        if (fallback_fp) {
-                            char fallback_response[128];
-                            if (fgets(fallback_response, sizeof(fallback_response), fallback_fp)) {
-                                char *newline2 = strchr(fallback_response, '\n');
-                                if (newline2) *newline2 = '\0';
-                                
-                                if (sscanf(fallback_response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
-                                    global_metrics.containers[i].response_time_ms = time_total * 1000.0;
-                                    global_metrics.containers[i].http_status = http_code;
-#if MONITORING_DEBUG
-                                    printf("[DEBUG] Health check fallback %s: %.2f ms (HTTP %d)\n",
-                                           global_metrics.containers[i].name,
-                                           global_metrics.containers[i].response_time_ms,
-                                           http_code);
-#endif
-                                } else {
-                                    global_metrics.containers[i].response_time_ms = 0.0;
-                                    global_metrics.containers[i].http_status = 0;
-                                }
-                            } else {
-                                global_metrics.containers[i].response_time_ms = 0.0;
-                                global_metrics.containers[i].http_status = 0;
-                            }
-                            pclose(fallback_fp);
-                        } else {
-                            global_metrics.containers[i].response_time_ms = 0.0;
-                            global_metrics.containers[i].http_status = 0;
-                        }
-                    }
-                } else {
-                    global_metrics.containers[i].response_time_ms = 0.0;
-                    global_metrics.containers[i].http_status = 0;
-                }
-                pclose(curl_fp);
-            } else {
+            build_known_health_url(global_metrics.containers[i].name, health_url, sizeof(health_url));
+            snprintf(global_metrics.containers[i].health_url, sizeof(global_metrics.containers[i].health_url), "%s", health_url);
+
+            if (perform_health_check(
+                    health_url,
+                    &global_metrics.containers[i].response_time_ms,
+                    &global_metrics.containers[i].http_status
+                ) != 0) {
                 global_metrics.containers[i].response_time_ms = 0.0;
                 global_metrics.containers[i].http_status = 0;
             }
@@ -748,6 +696,10 @@ int main(int argc, char *argv[]) {
     }
     
     printf("[%s] 🚀 Collecteur de métriques démarré (intervalle: %ds)\n", log_ts(), interval);
+    if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
+        fprintf(stderr, "[%s] ⚠️  Initialisation libcurl échouée (health checks indisponibles)\n", log_ts());
+        fflush(stderr);
+    }
     
     // ✅ NOUVEAU : Initialiser le stockage PostgreSQL au démarrage
     printf("[%s] 💾 Initialisation du stockage PostgreSQL...\n", log_ts());
