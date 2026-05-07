@@ -22,7 +22,7 @@ RUN make clean && make
 
 # Runtime minimal
 FROM alpine:latest
-RUN apk add --no-cache libpq curl docker-cli
+RUN apk add --no-cache libpq libcurl
 WORKDIR /app
 COPY --from=0 /app/bin/monitoring-c ./
 

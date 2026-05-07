@@ -1821,8 +1821,8 @@ export default function PerformancesCorrelationPage() {
       if (bestD > INCIDENT_ALIGNMENT_MAX_DELTA_MS) return null
       return best.responseTimeMs
     }
-    return focusLogs
-      .map((row) => {
+    const rows: FocusIncidentAlignedRow[] = focusLogs
+      .map((row): FocusIncidentAlignedRow | null => {
         const ts = new Date(String(row.timestamp || '')).getTime()
         if (!Number.isFinite(ts)) return null
         const ctx = parseIncidentContext(row)
@@ -1844,15 +1844,14 @@ export default function PerformancesCorrelationPage() {
           deltaSec: near?.deltaSec ?? null,
           emptyReason: null,
           rawLog: row,
-        } satisfies FocusIncidentAlignedRow
+        }
       })
       .filter((x): x is FocusIncidentAlignedRow => x != null)
-      .map((row) => ({
+      .map((row): FocusIncidentAlignedRow => ({
         ...row,
         emptyReason: buildIncidentEmptyReason(row),
       }))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 30)
+    return rows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 30)
   }, [focusLogs, focusName, mergedByContainer, availabilityByService, systemRows])
 
   const filteredSortedIncidentRows = useMemo(() => {

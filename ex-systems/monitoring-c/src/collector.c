@@ -16,10 +16,14 @@
 #include <time.h>
 #include <sys/statvfs.h>
 #include <sys/sysinfo.h>
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <strings.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <curl/curl.h>
 #include "collector.h"
+#include "docker.h"
 #include "proc_reader.h"
 #include "storage.h"
 #include "http_server.h"
@@ -92,6 +96,226 @@ static int build_known_health_url(const char *container_name, char *url, size_t 
 
 static bool is_jobbingtrack_container_name(const char *name) {
     return name && strstr(name, "jobbingtrack-") != NULL;
+}
+
+typedef struct {
+    char id[65];
+    unsigned long long usage_usec;
+    long long time_ms;
+} ContainerCpuSample;
+
+static ContainerCpuSample previous_container_cpu[MAX_CONTAINERS];
+
+static long long monotonic_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ((long long)ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL);
+}
+
+static const char *get_sysfs_path(void) {
+    const char *env = getenv("SYSFS_PATH");
+    if (env && env[0] != '\0') return env;
+    if (access("/host/sys/fs/cgroup", R_OK) == 0) return "/host/sys";
+    return "/sys";
+}
+
+static int read_ull_file(const char *path, unsigned long long *value) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+    int ok = fscanf(fp, "%llu", value) == 1 ? 0 : -1;
+    fclose(fp);
+    return ok;
+}
+
+static int read_cgroup_usage_usec(const char *cgroup_dir, unsigned long long *usage_usec) {
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/cpu.stat", cgroup_dir);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+
+    char key[64];
+    unsigned long long value = 0;
+    int found = -1;
+    while (fscanf(fp, "%63s %llu", key, &value) == 2) {
+        if (strcmp(key, "usage_usec") == 0) {
+            *usage_usec = value;
+            found = 0;
+            break;
+        }
+    }
+    fclose(fp);
+    return found;
+}
+
+static void copy_container_id(char *dest, size_t dest_size, const char *src) {
+    if (dest_size == 0) return;
+    size_t i = 0;
+    for (; i + 1 < dest_size && src[i] != '\0'; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+}
+
+static int resolve_cgroup_dir(const char *container_id, char *dir, size_t dir_size) {
+    const char *sysfs = get_sysfs_path();
+    const char *patterns[] = {
+        "%s/fs/cgroup/system.slice/docker-%s.scope",
+        "%s/fs/cgroup/docker/%s",
+        "%s/fs/cgroup/docker-%s.scope",
+        "%s/fs/cgroup/system.slice/containerd.service/docker-%s.scope",
+    };
+
+    for (size_t i = 0; i < sizeof(patterns) / sizeof(patterns[0]); i++) {
+        snprintf(dir, dir_size, patterns[i], sysfs, container_id);
+        struct stat st;
+        if (stat(dir, &st) == 0 && S_ISDIR(st.st_mode)) return 0;
+    }
+    return -1;
+}
+
+static double compute_container_cpu_percent(const char *container_id, unsigned long long usage_usec) {
+    long long now_ms = monotonic_ms();
+    int slot = -1;
+    for (int i = 0; i < MAX_CONTAINERS; i++) {
+        if (previous_container_cpu[i].id[0] == '\0' || strcmp(previous_container_cpu[i].id, container_id) == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot < 0) return 0.0;
+
+    double percent = 0.0;
+    if (previous_container_cpu[slot].id[0] != '\0' && previous_container_cpu[slot].time_ms > 0) {
+        unsigned long long usage_delta = usage_usec >= previous_container_cpu[slot].usage_usec
+            ? usage_usec - previous_container_cpu[slot].usage_usec
+            : 0;
+        long long elapsed_ms = now_ms - previous_container_cpu[slot].time_ms;
+        if (elapsed_ms > 0) {
+            percent = ((double)usage_delta / 1000.0) / (double)elapsed_ms * 100.0;
+        }
+    }
+
+    copy_container_id(previous_container_cpu[slot].id, sizeof(previous_container_cpu[slot].id), container_id);
+    previous_container_cpu[slot].usage_usec = usage_usec;
+    previous_container_cpu[slot].time_ms = now_ms;
+    return percent;
+}
+
+static void build_container_pid_map(const ContainerInfo *containers, int container_count, int *pids) {
+    for (int i = 0; i < container_count; i++) {
+        pids[i] = -1;
+    }
+
+    const char *procfs = get_procfs_path();
+    DIR *dir = opendir(procfs);
+    if (!dir) return;
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (!isdigit((unsigned char)entry->d_name[0])) continue;
+
+        char cgroup_path[512];
+        snprintf(cgroup_path, sizeof(cgroup_path), "%s/%s/cgroup", procfs, entry->d_name);
+        FILE *fp = fopen(cgroup_path, "r");
+        if (!fp) continue;
+
+        char line[512];
+        while (fgets(line, sizeof(line), fp)) {
+            for (int i = 0; i < container_count; i++) {
+                if (pids[i] > 0) continue;
+                if (strstr(line, containers[i].id) != NULL) {
+                    pids[i] = atoi(entry->d_name);
+                }
+            }
+
+            bool all_found = true;
+            for (int i = 0; i < container_count; i++) {
+                if (is_jobbingtrack_container_name(containers[i].name) && pids[i] <= 0) {
+                    all_found = false;
+                    break;
+                }
+            }
+            if (all_found) {
+                break;
+            }
+        }
+        fclose(fp);
+    }
+
+    closedir(dir);
+}
+
+static int read_container_network_bytes(int pid, unsigned long *rx, unsigned long *tx) {
+    const char *procfs = get_procfs_path();
+    char path[256];
+    snprintf(path, sizeof(path), "%s/%d/net/dev", procfs, pid);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+
+    char line[512];
+    int line_no = 0;
+    *rx = 0;
+    *tx = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        line_no++;
+        if (line_no <= 2) continue;
+
+        char iface[64] = {0};
+        unsigned long rbytes = 0, tbytes = 0;
+        char *colon = strchr(line, ':');
+        if (!colon) continue;
+        *colon = '\0';
+        sscanf(line, " %63s", iface);
+        if (strcmp(iface, "lo") == 0) continue;
+
+        if (sscanf(colon + 1, " %lu %*u %*u %*u %*u %*u %*u %*u %lu", &rbytes, &tbytes) == 2) {
+            *rx += rbytes;
+            *tx += tbytes;
+        }
+    }
+    fclose(fp);
+    return 0;
+}
+
+static int collect_cgroup_container_metrics(const ContainerInfo *info, int pid, ContainerMetrics *metrics) {
+    char cgroup_dir[512];
+    if (resolve_cgroup_dir(info->id, cgroup_dir, sizeof(cgroup_dir)) != 0) return -1;
+
+    unsigned long long usage_usec = 0;
+    if (read_cgroup_usage_usec(cgroup_dir, &usage_usec) == 0) {
+        metrics->cpu_percent = compute_container_cpu_percent(info->id, usage_usec);
+    }
+
+    char memory_path[1024];
+    unsigned long long memory_current = 0;
+    snprintf(memory_path, sizeof(memory_path), "%s/memory.current", cgroup_dir);
+    if (read_ull_file(memory_path, &memory_current) == 0) {
+        metrics->memory_mb = (unsigned long)((double)memory_current / (1024.0 * 1024.0) + 0.5);
+    }
+
+    snprintf(memory_path, sizeof(memory_path), "%s/memory.max", cgroup_dir);
+    FILE *max_fp = fopen(memory_path, "r");
+    unsigned long long memory_max = 0;
+    if (max_fp) {
+        char value[64] = {0};
+        if (fgets(value, sizeof(value), max_fp) && strncmp(value, "max", 3) != 0) {
+            memory_max = strtoull(value, NULL, 10);
+        }
+        fclose(max_fp);
+    }
+    if (memory_max == 0 && global_metrics.memory.total_mb > 0) {
+        memory_max = (unsigned long long)global_metrics.memory.total_mb * 1024ULL * 1024ULL;
+    }
+    if (memory_max > 0) {
+        metrics->memory_limit_mb = (unsigned long)(memory_max / (1024ULL * 1024ULL));
+        metrics->memory_percent = memory_current > 0 ? (double)memory_current * 100.0 / (double)memory_max : 0.0;
+    }
+
+    if (pid > 0) {
+        read_container_network_bytes(pid, &metrics->network_rx_bytes, &metrics->network_tx_bytes);
+    }
+
+    return 0;
 }
 
 typedef struct {
@@ -309,217 +533,23 @@ int collect_container_metrics(void) {
 #if MONITORING_DEBUG
     printf("[DEBUG] Début collecte conteneurs (container_idx=%d)\n", container_idx);
 #endif
-    // Une seule invocation Docker CLI : filtrage JobbingTrack côté C (évite `docker ps` + substitution shell).
-    FILE *stats_fp = popen("docker stats --no-stream --format '{{json .}}' 2>/dev/null", "r");
-    if (stats_fp) {
-        char line[4096];
-        
-        while (fgets(line, sizeof(line), stats_fp) && container_idx < 100) {
-            // Nettoyer la ligne (enlever \n en fin)
-            size_t line_len = strlen(line);
-            if (line_len > 0 && line[line_len - 1] == '\n') {
-                line[line_len - 1] = '\0';
-            }
-            
-            // Ignorer les lignes vides
-            if (line_len <= 1) continue;
-            // ✅ DEBUG : Afficher la ligne brute pour debug
-            // printf("[DEBUG] Ligne reçue: %.200s\n", line);
-            
-            // Extraire le nom du conteneur d'abord
-            char *name_start = strstr(line, "\"Name\":\"");
-            if (!name_start) {
-                // Essayer avec "Container" si "Name" n'est pas trouvé
-                name_start = strstr(line, "\"Container\":\"");
-                if (name_start) {
-                    name_start += 12; // Skip "Container":"
-                } else {
-                    continue; // Pas de nom trouvé, passer à la ligne suivante
-                }
-            } else {
-                name_start += 8; // Skip "Name":"
-            }
-            
-            char *name_end = strstr(name_start, "\"");
-            if (!name_end || container_idx >= 100) continue;
-            
-            size_t name_len = name_end - name_start;
-            if (name_len >= sizeof(global_metrics.containers[container_idx].name)) continue;
-            
-            char container_name[256] = {0};
-            strncpy(container_name, name_start, name_len);
-            container_name[name_len] = '\0';
-            if (!is_jobbingtrack_container_name(container_name)) continue;
+    ContainerInfo containers[MAX_CONTAINERS];
+    int docker_count = docker_list_containers(containers, MAX_CONTAINERS);
+    if (docker_count > 0) {
+        int container_pids[MAX_CONTAINERS];
+        build_container_pid_map(containers, docker_count, container_pids);
 
-            snprintf(global_metrics.containers[container_idx].name, sizeof(global_metrics.containers[container_idx].name), "%s", container_name);
-            
-            // ✅ CORRECTION : Parser CPU (format: "0.00%" ou "40.24%")
-            // Ne pas modifier la ligne originale, utiliser une copie temporaire
-            char *cpu_start = strstr(line, "\"CPUPerc\":\"");
-            if (cpu_start) {
-                cpu_start += 10; // Skip "CPUPerc":"
-                // ✅ CORRECTION : Sauter le " qui ouvre la valeur si présent
-                if (*cpu_start == '"') {
-                    cpu_start++;
-                }
-                // Chercher le " qui ferme la valeur
-                char *cpu_end = strstr(cpu_start, "\"");
-                if (cpu_end && cpu_end > cpu_start) {
-                    size_t cpu_len = cpu_end - cpu_start;
-                    if (cpu_len > 0 && cpu_len < 64) {
-                        char cpu_str[64] = {0};
-                        strncpy(cpu_str, cpu_start, cpu_len);
-                        cpu_str[cpu_len] = '\0'; // Assurer null termination
-                        double cpu_val = 0.0;
-                        // Parser "40.24%" ou "0.01%" - essayer avec et sans %
-                        int parsed = sscanf(cpu_str, "%lf%%", &cpu_val);
-                        if (parsed == 1) {
-                            global_metrics.containers[container_idx].cpu_percent = cpu_val;
-                        } else {
-                            // Réessayer sans le %
-                            parsed = sscanf(cpu_str, "%lf", &cpu_val);
-                            if (parsed == 1) {
-                                global_metrics.containers[container_idx].cpu_percent = cpu_val;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // ✅ CORRECTION : Utiliser MemPerc directement (plus fiable)
-            char *memperc_start = strstr(line, "\"MemPerc\":\"");
-            if (memperc_start) {
-                memperc_start += 10; // Skip "MemPerc":"
-                // ✅ CORRECTION : Sauter le " qui ouvre la valeur si présent
-                if (*memperc_start == '"') {
-                    memperc_start++;
-                }
-                // Chercher le " qui ferme la valeur
-                char *memperc_end = strstr(memperc_start, "\"");
-                if (memperc_end && memperc_end > memperc_start) {
-                    size_t memperc_len = memperc_end - memperc_start;
-                    if (memperc_len > 0 && memperc_len < 64) {
-                        char memperc_str[64] = {0};
-                        strncpy(memperc_str, memperc_start, memperc_len);
-                        memperc_str[memperc_len] = '\0'; // Assurer null termination
-                        double mem_perc_val = 0.0;
-                        int parsed = sscanf(memperc_str, "%lf%%", &mem_perc_val);
-                        if (parsed == 1) {
-                            global_metrics.containers[container_idx].memory_percent = mem_perc_val;
-                        } else {
-                            parsed = sscanf(memperc_str, "%lf", &mem_perc_val);
-                            if (parsed == 1) {
-                                global_metrics.containers[container_idx].memory_percent = mem_perc_val;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // ✅ CORRECTION : Parser MemUsage (format: "1.04GiB / 46.93GiB" ou "1001MiB / 46.93GiB")
-            char *mem_start = strstr(line, "\"MemUsage\":\"");
-            if (mem_start) {
-                mem_start += 11; // Skip "MemUsage":"
-                // ✅ CORRECTION : Sauter le " qui ouvre la valeur si présent
-                if (*mem_start == '"') {
-                    mem_start++;
-                }
-                // Chercher le " qui ferme la valeur
-                char *mem_end = strstr(mem_start, "\"");
-                if (mem_end && mem_end > mem_start) {
-                    size_t mem_len = mem_end - mem_start;
-                    if (mem_len > 0 && mem_len < 128) {
-                        char mem_str[128] = {0};
-                        strncpy(mem_str, mem_start, mem_len);
-                        mem_str[mem_len] = '\0'; // Assurer null termination
-                        
-                        char *mem_slash = strstr(mem_str, " / ");
-                        if (mem_slash) {
-                            *mem_slash = '\0';
-                            
-                            // Parser mémoire utilisée
-                            double mem_used_val = 0.0;
-                            char mem_used_unit[8] = {0};
-                            if (sscanf(mem_str, "%lf%s", &mem_used_val, mem_used_unit) == 2) {
-                                unsigned long mem_used_bytes = 0;
-                                // Gérer toutes les unités possibles
-                                if (strcmp(mem_used_unit, "GiB") == 0 || strcmp(mem_used_unit, "GB") == 0) {
-                                    mem_used_bytes = (unsigned long)(mem_used_val * 1024 * 1024 * 1024);
-                                } else if (strcmp(mem_used_unit, "MiB") == 0 || strcmp(mem_used_unit, "MB") == 0) {
-                                    mem_used_bytes = (unsigned long)(mem_used_val * 1024 * 1024);
-                                } else if (strcmp(mem_used_unit, "KiB") == 0 || strcmp(mem_used_unit, "KB") == 0) {
-                                    mem_used_bytes = (unsigned long)(mem_used_val * 1024);
-                                } else if (strcmp(mem_used_unit, "B") == 0) {
-                                    mem_used_bytes = (unsigned long)mem_used_val;
-                                }
-                                // ✅ CORRECTION : Utiliser division flottante pour éviter perte de précision (ex: 532KiB = 0.507 MB)
-                                global_metrics.containers[container_idx].memory_mb = (unsigned long)((double)mem_used_bytes / (1024.0 * 1024.0) + 0.5); // Arrondir
-                                
-                                // Parser limite mémoire
-                                double mem_limit_val = 0.0;
-                                char mem_limit_unit[8] = {0};
-                                if (sscanf(mem_slash + 3, "%lf%s", &mem_limit_val, mem_limit_unit) == 2) {
-                                    unsigned long mem_limit_bytes = 0;
-                                    if (strcmp(mem_limit_unit, "GiB") == 0 || strcmp(mem_limit_unit, "GB") == 0) {
-                                        mem_limit_bytes = (unsigned long)(mem_limit_val * 1024 * 1024 * 1024);
-                                    } else if (strcmp(mem_limit_unit, "MiB") == 0 || strcmp(mem_limit_unit, "MB") == 0) {
-                                        mem_limit_bytes = (unsigned long)(mem_limit_val * 1024 * 1024);
-                                    } else if (strcmp(mem_limit_unit, "KiB") == 0 || strcmp(mem_limit_unit, "KB") == 0) {
-                                        mem_limit_bytes = (unsigned long)(mem_limit_val * 1024);
-                                    } else if (strcmp(mem_limit_unit, "B") == 0) {
-                                        mem_limit_bytes = (unsigned long)mem_limit_val;
-                                    }
-                                    global_metrics.containers[container_idx].memory_limit_mb = mem_limit_bytes / (1024 * 1024);
-                                    
-                                    // Si MemPerc n'a pas été trouvé, le calculer
-                                    if (global_metrics.containers[container_idx].memory_percent == 0.0 && mem_limit_bytes > 0) {
-                                        global_metrics.containers[container_idx].memory_percent = 
-                                            (double)mem_used_bytes * 100.0 / (double)mem_limit_bytes;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Parser NetIO (format: "1.2MB / 3.4MB")
-            char *netio_start = strstr(line, "\"NetIO\":\"");
-            if (netio_start) {
-                netio_start += 9;
-                char *netio_end = strstr(netio_start, "\"");
-                if (netio_end) {
-                    *netio_end = '\0';
-                    char *slash = strstr(netio_start, " / ");
-                    if (slash) {
-                        *slash = '\0';
-                        double rx_val = 0.0;
-                        char rx_unit[4] = {0};
-                        if (sscanf(netio_start, "%lf%s", &rx_val, rx_unit) == 2) {
-                            unsigned long rx_bytes = (unsigned long)(rx_val * 1024 * 1024);
-                            if (strcmp(rx_unit, "GB") == 0) rx_bytes *= 1024;
-                            else if (strcmp(rx_unit, "KB") == 0) rx_bytes /= 1024;
-                            
-                            double tx_val = 0.0;
-                            char tx_unit[4] = {0};
-                            if (sscanf(slash + 3, "%lf%s", &tx_val, tx_unit) == 2) {
-                                unsigned long tx_bytes = (unsigned long)(tx_val * 1024 * 1024);
-                                if (strcmp(tx_unit, "GB") == 0) tx_bytes *= 1024;
-                                else if (strcmp(tx_unit, "KB") == 0) tx_bytes /= 1024;
-                                
-                                global_metrics.containers[container_idx].network_rx_bytes = rx_bytes;
-                                global_metrics.containers[container_idx].network_tx_bytes = tx_bytes;
-                                total_rx += rx_bytes;
-                                total_tx += tx_bytes;
-                            }
-                        }
-                    }
-                }
-            }
-            
+        for (int i = 0; i < docker_count && container_idx < MAX_CONTAINERS; i++) {
+            if (!is_jobbingtrack_container_name(containers[i].name)) continue;
+
+            ContainerMetrics *metrics = &global_metrics.containers[container_idx];
+            snprintf(metrics->name, sizeof(metrics->name), "%s", containers[i].name);
+
+            collect_cgroup_container_metrics(&containers[i], container_pids[i], metrics);
+            total_rx += metrics->network_rx_bytes;
+            total_tx += metrics->network_tx_bytes;
             container_idx++;
         }
-        pclose(stats_fp);
     }
     
     // ✅ CORRECTION : Stocker les totaux réseau dans global_metrics
