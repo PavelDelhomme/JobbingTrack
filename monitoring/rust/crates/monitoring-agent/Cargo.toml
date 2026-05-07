@@ -1,0 +1,14 @@
+[package]
+name = "jobbingtrack-monitoring-agent"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "monitoring-agent"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1.0.149"

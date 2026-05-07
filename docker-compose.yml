@@ -165,7 +165,7 @@ services:
   # Sur l’hôte : MONITORING_C_PORT (défaut 5098) → 8015 ; pas d’exposition Internet implicite (localhost sauf config réseau).
   monitoring-c:
     build:
-      context: ./monitoring-c
+      context: ./monitoring/monitoring-c
       dockerfile: Dockerfile
     image: jobbingtrack-monitoring-c
     container_name: jobbingtrack-monitoring-c
