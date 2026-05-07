@@ -66,16 +66,22 @@ class DockerService {
    */
   async getAllContainersStats() {
     try {
-      const containers = await this.listContainers();
-      const statsPromises = containers.map(container => 
-        this.getContainerStats(container.Names).catch(err => {
-          console.error(`[Docker] Erreur stats pour ${container.Names}:`, err.message);
-          return null;
-        })
-      );
-      
-      const stats = await Promise.all(statsPromises);
-      return stats.filter(stat => stat !== null);
+      const { stdout } = await execAsync('docker stats --no-stream --format "{{json .}}"');
+      return stdout.trim().split('\n')
+        .filter(line => line.length > 0)
+        .map(line => JSON.parse(line))
+        .map(stats => ({
+          name: stats.Name || stats.Container,
+          cpu_percent: parseFloat(String(stats.CPUPerc || '0').replace('%', '')),
+          memory_usage: this.parseMemory(String(stats.MemUsage || '0B / 0B').split('/')[0].trim()),
+          memory_limit: this.parseMemory(String(stats.MemUsage || '0B / 0B').split('/')[1]?.trim() || '0B'),
+          memory_percent: parseFloat(String(stats.MemPerc || '0').replace('%', '')),
+          network_rx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[0].trim()),
+          network_tx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+          block_read: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[0].trim()),
+          block_write: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+          pids: parseInt(stats.PIDs || '0', 10)
+        }));
     } catch (error) {
       console.error('[Docker] Erreur getAllContainersStats:', error.message);
       return [];

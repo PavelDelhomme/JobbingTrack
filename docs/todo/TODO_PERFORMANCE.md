@@ -152,7 +152,7 @@ make analyze-metrics-aggregator   # Analyser metrics-aggregator
 
 ## 🚨 Priorité critique 6 mai 2026 (nouvelle passe)
 
-- [ ] Lancer une campagne de mesures "collecte métriques uniquement" (avant/après) sur CPU/RAM/IO pour:
+- [ ] Lancer une campagne de mesures "collecte métriques uniquement" (avant/après) sur CPU/RAM/IO p95 pendant 40-60 min via **`make resource-budget-sample`**. **Baseline 07/05 40 min** (`tests/results/resource-budget/20260507-123612/summary.md`) : `metrics-aggregator` **CPU p95 93.04% / max 121.75% / RAM p95 588.4 MB**, `frontend` **CPU p95 19.61% / max 79.68% / RAM p95 868.4 MB**, `monitoring-c` **CPU p95 1.22% / RAM p95 2.7 MB**, `log-collector-c` **CPU p95 0% / RAM p95 5.1 MB**, Redis **CPU p95 2.48% / RAM p95 29.7 MB**. Budget cible p95 : aggregator < **5% CPU / 250 MB**, frontend dev < **8% CPU / 700 MB** (prod cible < **3% / 300 MB**), collecteurs C < **2% CPU / 20 MB**, Redis < **2% CPU / 64 MB**.
   - `jobbingtrack-metrics-aggregator`
   - `jobbingtrack-monitoring-c`
   - `jobbingtrack-log-collector-c`

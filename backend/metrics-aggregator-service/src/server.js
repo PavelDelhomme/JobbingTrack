@@ -565,11 +565,15 @@ async function collectContainerMetrics() {
 // Throttle: ne loguer l'indisponibilité de monitoring-c qu'au plus toutes les 5 min
 let lastMonitoringCUnavailableLog = 0
 const MONITORING_C_LOG_INTERVAL_MS = 5 * 60 * 1000
-// Throttle: éviter des fallbacks Docker coûteux à chaque cycle quand monitoring-c est disponible
-const DOCKER_FALLBACK_INTERVAL_MS = Number(process.env.DOCKER_FALLBACK_INTERVAL_MS || 60000)
+// Fallback Docker coûteux: désactivé par défaut quand monitoring-c est disponible.
+// Mettre DOCKER_FALLBACK_INTERVAL_MS > 0 pour réactiver un enrichissement périodique.
+const DOCKER_FALLBACK_INTERVAL_MS = Number(process.env.DOCKER_FALLBACK_INTERVAL_MS || 0)
 let lastDockerFallbackCollectionAt = 0
 // Throttle: limiter les health checks HTTP séquentiels trop fréquents
 const SERVICE_HEALTH_CHECK_INTERVAL_MS = Number(process.env.SERVICE_HEALTH_CHECK_INTERVAL_MS || 30000)
+const SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS = Number(process.env.SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS || 60000)
+const ENABLE_DOCKER_LOGS_COLLECTION = process.env.ENABLE_DOCKER_LOGS_COLLECTION === 'true'
+const lastServiceAvailabilityPersistAt = new Map()
 
 /** Profilage durée par phase dans `collectAllMetrics` (logs JSON une ligne). Activer : METRICS_AGGREGATOR_PROFILE_COLLECT=1 */
 function createCollectProfiler(enabled) {
@@ -703,7 +707,9 @@ async function collectAllMetrics() {
 
       // ✅ Fallback coûteux: ne pas le faire à chaque cycle si monitoring-c est déjà disponible
       const now = Date.now()
-      const shouldRunDockerFallback = (now - lastDockerFallbackCollectionAt) >= DOCKER_FALLBACK_INTERVAL_MS
+      const shouldRunDockerFallback =
+        DOCKER_FALLBACK_INTERVAL_MS > 0 &&
+        (now - lastDockerFallbackCollectionAt) >= DOCKER_FALLBACK_INTERVAL_MS
       if (shouldRunDockerFallback) {
         dockerFallbackRan = true
         const dockerCollected = await collectContainerMetrics()
@@ -1215,7 +1221,12 @@ async function collectAllMetrics() {
       await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
       // Sauvegarder la disponibilité des services (silencieux si table absente)
+      const persistAvailabilityNow = Date.now()
       for (const [serviceName, serviceData] of Object.entries(servicesMetrics)) {
+        const lastPersistAt = lastServiceAvailabilityPersistAt.get(serviceName) || 0
+        if (persistAvailabilityNow - lastPersistAt < SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS) {
+          continue
+        }
         await persistenceService.saveServiceAvailability(serviceName, {
           isAvailable: serviceData.health?.status === 'healthy',
           responseTimeMs: serviceData.health?.responseTime || null,
@@ -1227,6 +1238,7 @@ async function collectAllMetrics() {
             console.error(`[PERSISTENCE] Échec disponibilité ${serviceName}:`, msg);
           }
         });
+        lastServiceAvailabilityPersistAt.set(serviceName, persistAvailabilityNow)
       }
       
       logIfVerbose('[PERSISTENCE] ✅ Métriques persistées avec succès')
@@ -1368,7 +1380,9 @@ console.log('[SERVER] Source prioritaire: monitoring-c →', process.env.MONITOR
 
 // Collecte immédiate au démarrage
 collectAllMetrics()
-collectDockerLogs()
+if (ENABLE_DOCKER_LOGS_COLLECTION) {
+  collectDockerLogs()
+}
 
 // Collecte des métriques (configurable): défaut 15 secondes pour limiter la charge continue
 const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLLECTION_INTERVAL_SECONDS || '15'))
@@ -1382,8 +1396,10 @@ if (
   console.log('[SERVER] Profilage collecte: METRICS_AGGREGATOR_PROFILE_COLLECT → ligne JSON [PROFILE_COLLECT] à chaque cycle')
 }
 
-// Collecte des logs toutes les 2 minutes
-cron.schedule('*/2 * * * *', collectDockerLogs)
+// Collecte Docker logs désactivée par défaut: log-collector-c est la source dédiée.
+if (ENABLE_DOCKER_LOGS_COLLECTION) {
+  cron.schedule('*/2 * * * *', collectDockerLogs)
+}
 
 // Nettoyage des anciennes données tous les jours à 3h du matin
 cron.schedule('0 3 * * *', async () => {
@@ -1400,7 +1416,7 @@ const PORT = process.env.PORT || 3014
 server.listen(PORT, () => {
   console.log(`[SERVER] ✅ Service démarré sur le port ${PORT}`)
   console.log(`[SERVER] ✅ WebSocket activé pour les clients`)
-  console.log(`[SERVER] ✅ Collecte métriques: toutes les 10 secondes`)
-  console.log(`[SERVER] ✅ Collecte logs: toutes les 2 minutes`)
+  console.log(`[SERVER] ✅ Collecte métriques: toutes les ${metricsCollectionIntervalSec} secondes`)
+  console.log(`[SERVER] ✅ Collecte logs Docker aggregator: ${ENABLE_DOCKER_LOGS_COLLECTION ? 'activée toutes les 2 minutes' : 'désactivée (log-collector-c)'}`)
   console.log(`[SERVER] ✅ Nettoyage automatique: tous les jours à 3h`)
 })

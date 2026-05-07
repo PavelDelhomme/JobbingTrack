@@ -105,8 +105,8 @@ export default function BackofficePage() {
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
-  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000) // Valeur par défaut, sera remplacée par les préférences
-  const [servicesRefreshInterval, setServicesRefreshInterval] = useState(20000) // Valeur par défaut
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000) // Valeur par défaut, sera remplacée par les préférences
+  const [servicesRefreshInterval, setServicesRefreshInterval] = useState(60000) // Valeur par défaut
 
   const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
@@ -519,7 +519,7 @@ export default function BackofficePage() {
         try {
           const metricsInterval = await preferencesService.getRefreshInterval('metrics')
           const dashboardInterval = await preferencesService.getRefreshInterval('dashboard')
-          setMetricsRefreshInterval(metricsInterval)
+          setMetricsRefreshInterval(Math.max(30000, metricsInterval))
           setServicesRefreshInterval(dashboardInterval)
         } catch (error) {
           console.error('Erreur chargement préférences:', error)
@@ -819,7 +819,7 @@ export default function BackofficePage() {
     const loadRefreshIntervals = async () => {
       try {
         const servicesInterval = await preferencesService.getRefreshInterval('services')
-        setServicesRefreshInterval(servicesInterval)
+        setServicesRefreshInterval(Math.max(60000, servicesInterval))
       } catch (error) {
         console.error('Erreur chargement préférences:', error)
       }

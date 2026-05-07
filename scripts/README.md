@@ -109,6 +109,16 @@ make redis-memory-report
 
 Variables utiles : `REDIS_MEMORY_BUDGET_MB` (défaut 128), `REDIS_MEMORY_WARN_RATIO` (70), `REDIS_MEMORY_CRITICAL_RATIO` (85), `REDIS_FRAGMENTATION_MIN_USED_MB` (10), `REDISCLI_AUTH` si Redis est protégé.
 
+### resource-budget-sample.py
+Mesure CPU/RAM/réseau/Block I/O des conteneurs critiques et produit un CSV brut + résumé p95.
+
+**Utilisation** :
+```bash
+RESOURCE_BUDGET_DURATION_MIN=45 RESOURCE_BUDGET_INTERVAL_SEC=15 make resource-budget-sample
+```
+
+Variables utiles : `RESOURCE_BUDGET_DURATION_MIN` (défaut 45), `RESOURCE_BUDGET_INTERVAL_SEC` (15), `RESOURCE_BUDGET_TARGETS` (liste CSV de conteneurs), `RESOURCE_BUDGET_OUTPUT_DIR` (`tests/results/resource-budget`).
+
 ## 🧪 Testing
 
 ### run-complete-tests.sh
