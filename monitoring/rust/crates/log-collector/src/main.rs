@@ -15,7 +15,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 const DEFAULT_PORT: u16 = 3019;
 const DEFAULT_LOG_DIR: &str = "/var/lib/docker/containers";
 const DEFAULT_DISCOVERY_INTERVAL_SEC: u64 = 10;
-const DEFAULT_POLL_INTERVAL_MS: u64 = 1000;
+const DEFAULT_POLL_INTERVAL_MS: u64 = 2000;
+const JOBBINGTRACK_PREFIX: &str = "jobbingtrack-";
+const HTTP_OK: u16 = 200;
+const HTTP_NOT_FOUND: u16 = 404;
+const HTTP_INTERNAL_ERROR: u16 = 500;
+const HTTP_NOT_IMPLEMENTED: u16 = 501;
 
 #[derive(Clone)]
 struct Config {
@@ -246,6 +251,9 @@ fn discover_logs(config: &Config, watched: &mut HashMap<PathBuf, WatchedLog>) {
         };
         let container_name =
             read_container_name(&entry.path()).unwrap_or_else(|| container_id.clone());
+        if !is_jobbingtrack_container_name(&container_name) {
+            continue;
+        }
 
         watched.insert(
             log_path.clone(),
@@ -268,10 +276,17 @@ fn read_container_name(container_dir: &Path) -> Option<String> {
         .map(|name| name.trim_start_matches('/').to_string())
 }
 
+fn is_jobbingtrack_container_name(name: &str) -> bool {
+    name.contains(JOBBINGTRACK_PREFIX)
+}
+
 fn read_new_lines(watch: &mut WatchedLog, client: Option<&mut Client>) -> std::io::Result<()> {
     let metadata = fs::metadata(&watch.path)?;
     if metadata.len() < watch.position {
         watch.position = 0;
+    }
+    if metadata.len() == watch.position {
+        return Ok(());
     }
 
     let mut file = File::open(&watch.path)?;
@@ -289,12 +304,11 @@ fn read_new_lines(watch: &mut WatchedLog, client: Option<&mut Client>) -> std::i
         }
         current_position += bytes_read as u64;
 
-        if let Some(entry) = parse_docker_log_line(&line, watch) {
-            if let Some(db) = client.as_deref_mut() {
-                if let Err(error) = store_log_entry(db, &entry) {
-                    eprintln!("log-collector insert error: {error}");
-                }
-            }
+        if let Some(entry) = parse_docker_log_line(&line, watch)
+            && let Some(db) = client.as_deref_mut()
+            && let Err(error) = store_log_entry(db, &entry)
+        {
+            eprintln!("log-collector insert error: {error}");
         }
     }
 
@@ -393,7 +407,7 @@ fn store_log_entry(client: &mut Client, entry: &LogEntry) -> Result<u64, postgre
         "INSERT INTO log_collector_logs (
             timestamp, container_id, container_name, level, message, source,
             response_time_ms, http_status, is_error
-        ) VALUES ($1::timestamp, $2, $3, $4, $5, $6, $7, $8, $9)",
+        ) VALUES ($1::text::timestamp, $2, $3, $4, $5, $6, $7, $8, $9)",
         &[
             &entry.timestamp,
             &entry.container_id,
@@ -416,23 +430,23 @@ fn handle_request(stream: &mut TcpStream, config: &Config) -> std::io::Result<()
     if request.starts_with("GET /health ") || request.starts_with("GET /api/v1/health ") {
         return write_json(
             stream,
-            200,
+            HTTP_OK,
             r#"{"status":"ok","service":"jobbingtrack-log-collector","runtime":"rust"}"#,
         );
     }
 
     if request.starts_with("GET /api/v1/logs") {
         return match query_logs(config, &request) {
-            Ok(body) => write_json(stream, 200, &body),
+            Ok(body) => write_json(stream, HTTP_OK, &body),
             Err(error) => write_json(
                 stream,
-                500,
+                HTTP_INTERNAL_ERROR,
                 &json!({"success": false, "error": error.to_string()}).to_string(),
             ),
         };
     }
 
-    write_json(stream, 404, r#"{"error":"Not found"}"#)
+    write_json(stream, HTTP_NOT_FOUND, r#"{"error":"Not found"}"#)
 }
 
 fn query_logs(config: &Config, request: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -513,14 +527,15 @@ fn row_to_json(row: &Row) -> serde_json::Value {
 
 fn write_json(stream: &mut TcpStream, status: u16, body: &str) -> std::io::Result<()> {
     let reason = match status {
-        200 => "OK",
-        404 => "Not Found",
-        501 => "Not Implemented",
+        HTTP_OK => "OK",
+        HTTP_NOT_FOUND => "Not Found",
+        HTTP_INTERNAL_ERROR => "Internal Server Error",
+        HTTP_NOT_IMPLEMENTED => "Not Implemented",
         _ => "OK",
     };
     write!(
         stream,
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
         body.len()
     )
 }
