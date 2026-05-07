@@ -217,6 +217,7 @@ services:
       start_period: 40s
     environment:
       # Même convention que le service **postgres** pour interpréter `system_metrics.timestamp` (naïf + NOW()).
+      - AGGREGATOR_PERSIST_INTERVAL_MS=${AGGREGATOR_PERSIST_INTERVAL_MS:-60000}
       - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - DOCKER_FALLBACK_INTERVAL_MS=${DOCKER_FALLBACK_INTERVAL_MS:-0}

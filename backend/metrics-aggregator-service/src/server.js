@@ -572,8 +572,10 @@ let lastDockerFallbackCollectionAt = 0
 // Throttle: limiter les health checks HTTP séquentiels trop fréquents
 const SERVICE_HEALTH_CHECK_INTERVAL_MS = Number(process.env.SERVICE_HEALTH_CHECK_INTERVAL_MS || 30000)
 const SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS = Number(process.env.SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS || 60000)
+const AGGREGATOR_PERSIST_INTERVAL_MS = Number(process.env.AGGREGATOR_PERSIST_INTERVAL_MS || 60000)
 const ENABLE_DOCKER_LOGS_COLLECTION = process.env.ENABLE_DOCKER_LOGS_COLLECTION === 'true'
 const lastServiceAvailabilityPersistAt = new Map()
+let lastAggregatorPersistAt = 0
 
 /** Profilage durée par phase dans `collectAllMetrics` (logs JSON une ligne). Activer : METRICS_AGGREGATOR_PROFILE_COLLECT=1 */
 function createCollectProfiler(enabled) {
@@ -1056,15 +1058,16 @@ async function collectAllMetrics() {
     try {
       const fs = require('fs').promises
       const exportPath = '/tmp/metrics/latest.json'
-      await fs.writeFile(exportPath, JSON.stringify(metricsData, null, 2), 'utf8')
+      await fs.writeFile(exportPath, JSON.stringify(metricsData), 'utf8')
       console.log(`[EXPORT] Métriques exportées vers ${exportPath}`)
     } catch (err) {
       console.error('[EXPORT] Erreur export /tmp/metrics:', err.message)
     }
     prof.step('export_json_latest')
 
-    // ✅ PERSISTANCE : Sauvegarder dans la base de données
-    try {
+    // ✅ PERSISTANCE : monitoring-c persiste déjà les snapshots fins ; l'agrégateur garde une cadence plus basse.
+    const shouldPersistAggregator = (Date.now() - lastAggregatorPersistAt) >= AGGREGATOR_PERSIST_INTERVAL_MS
+    if (shouldPersistAggregator) try {
       // ✅ PRIORITÉ : Utiliser les données de monitoring C si disponibles
       const cpuPercent = monitoringCData?.avg_cpu_percent || 
                         systemMetrics.monitoringC?.avg_cpu_percent ||
@@ -1242,6 +1245,7 @@ async function collectAllMetrics() {
       }
       
       logIfVerbose('[PERSISTENCE] ✅ Métriques persistées avec succès')
+      lastAggregatorPersistAt = Date.now()
     } catch (error) {
       console.error('[PERSISTENCE] ❌ Erreur persistance:', error.message)
     }
