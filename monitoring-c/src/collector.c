@@ -3,7 +3,7 @@
  * Collecteur principal ultra-léger pour remplacer Node.js
  *
  * Réduction des logs : [DEBUG] et [CPU] désactivés par défaut (MONITORING_DEBUG=0).
- * Voir ex-systems/monitoring-c/src/http_server.c pour réactiver.
+ * Voir monitoring-c/src/http_server.c pour réactiver.
  */
 #ifndef MONITORING_DEBUG
 #define MONITORING_DEBUG 0

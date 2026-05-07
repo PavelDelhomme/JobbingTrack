@@ -46,7 +46,7 @@
 
 ## 4. Monitoring et métriques
 
-- [ ] monitoring-c (ou ex-systems/monitoring-c) : conteneur démarré, endpoint `/api/v1/metrics`
+- [ ] monitoring-c : conteneur démarré, endpoint `/api/v1/metrics`
 - [ ] metrics-aggregator-service : démarré, DATABASE_URL définie
 - [ ] Persistance : écriture dans PostgreSQL (snapshots ou system_metrics)
 - [ ] API historique : GET `/api/v1/persistence/system/metrics` avec limit, startDate, endDate
@@ -92,7 +92,7 @@
 ## 8. Docker et déploiement
 
 - [ ] `docker compose up` (ou make up-full) démarre les services essentiels
-- [ ] Build monitoring-c : `context: ./ex-systems/monitoring-c` si applicable
+- [ ] Build monitoring-c : `context: ./monitoring-c` si applicable
 - [ ] Volumes et réseaux corrects
 - [ ] Healthchecks Docker définis pour les services critiques
 - [ ] make db-push-all exécutable sans erreur (DATABASE_URL chargée pour metrics-aggregator)

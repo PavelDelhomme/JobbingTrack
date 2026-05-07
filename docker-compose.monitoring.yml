@@ -11,7 +11,7 @@ services:
   # Nouveau système de monitoring en C (ultra-léger)
   monitoring-c:
     build:
-      context: ./ex-systems/monitoring-c
+      context: ./monitoring-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-monitoring-c
     user: "0:0"
@@ -47,7 +47,7 @@ services:
   # Nouveau système de collecte de logs en C (remplace Loki)
   log-collector-c:
     build:
-      context: ./ex-systems/log-collector-c
+      context: ./log-collector-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
