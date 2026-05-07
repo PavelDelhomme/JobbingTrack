@@ -302,7 +302,6 @@ export default function BackofficePage() {
       })
       .filter((r) => r.cpu != null || r.memPct != null || r.memMb != null)
       .sort((a, b) => (b.cpu ?? 0) - (a.cpu ?? 0))
-      .slice(0, 20)
   }, [containerMetrics])
 
   useEffect(() => {
@@ -1034,7 +1033,7 @@ export default function BackofficePage() {
                 </table>
                 <p className="border-t border-indigo-100 px-3 py-2 text-[10px] text-gray-500 dark:border-indigo-800 dark:text-gray-400">
                   Uniquement les clés Docker préfixées <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">jobbingtrack-</code>
-                  · tri par CPU décroissant · max 20 lignes
+                  · tri par CPU décroissant · toutes les lignes détectées
                 </p>
               </div>
             )}
