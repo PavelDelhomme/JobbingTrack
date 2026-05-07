@@ -206,7 +206,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "🔨 REBUILD (depuis la racine):"
 	@echo "  make rebuild-metrics-aggregator   - Reconstruire l'agrégateur de métriques"
-	@echo "  make rebuild-monitoring-c        - Reconstruire le collecteur C (ex-systems)"
+	@echo "  make rebuild-monitoring-c        - Reconstruire le collecteur C"
 	@echo "  make rebuild-service SERVICE=nom - Reconstruire un service (ex: auth-service)"
 	@echo ""
 	@echo "💡 EXEMPLES:"
@@ -268,7 +268,7 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 
 # Démarrer uniquement la stack monitoring (Postgres + monitoring-c + metrics-aggregator)
 up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-c, metrics-aggregator)
-	@echo "📊 Démarrage de la stack monitoring (ex-systems)..."
+	@echo "📊 Démarrage de la stack monitoring..."
 	$(call ensure_docker_network)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres)
 	@echo "⏳ Attente PostgreSQL (10s)..."
@@ -521,7 +521,7 @@ _up-full-internal:
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:5003"
 	@echo "  - API Gateway:        http://localhost:5002"
-	@echo "  - Monitoring C:       http://localhost:5098 (collecteur ex-systems)"
+	@echo "  - Monitoring C:       http://localhost:5098 (collecteur C)"
 	@echo "  - Metrics Aggregator: http://localhost:5004 (API backoffice)"
 	@echo "  - Log Collector C:    http://localhost:5099 (optionnel)"
 	@echo ""

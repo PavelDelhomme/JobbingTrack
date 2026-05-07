@@ -160,12 +160,12 @@ services:
       retries: 3
       start_period: 90s
   
-  # Collecteur de métriques en C (ex-systems) – CPU, mémoire, réseau, health checks.
+  # Collecteur de métriques en C – CPU, mémoire, réseau, health checks.
   # Port interne fixe 8015 (serveur HTTP du binaire C), différent du schéma 301x des services Node.
   # Sur l’hôte : MONITORING_C_PORT (défaut 5098) → 8015 ; pas d’exposition Internet implicite (localhost sauf config réseau).
   monitoring-c:
     build:
-      context: ./ex-systems/monitoring-c
+      context: ./monitoring-c
       dockerfile: Dockerfile
     image: jobbingtrack-monitoring-c
     container_name: jobbingtrack-monitoring-c

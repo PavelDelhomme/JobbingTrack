@@ -164,7 +164,7 @@
 
 ### log-collector-c — port d’écoute **3019** dans le conteneur (hôte **5099** inchangé)
 - **Problème** : mappage **5099:5099** prêtait à confusion avec la convention **50xx hôte → 30xx interne** des services Node.
-- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`ex-systems/log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/verify-system.sh`** ; **`scripts/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
+- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/verify-system.sh`** ; **`scripts/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
 
 ---
 
