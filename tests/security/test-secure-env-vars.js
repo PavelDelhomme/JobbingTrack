@@ -17,8 +17,8 @@ async function testSecureEnvironmentVariables() {
         console.log('🔍 Test 1: Scripts d\'aide sécurisés...');
 
         const scriptsToCheck = [
-            './scripts/utils/make-up.sh',
-            './scripts/core/start.sh',
+            './scripts/health/check-env.sh',
+            './scripts/core/check.sh',
             './scripts/db/seed.sh',
             './makefiles/Makefile'
         ];

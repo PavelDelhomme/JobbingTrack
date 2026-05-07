@@ -61,7 +61,7 @@
 ## 5. Scripts (scripts/)
 
 - **Utilisés par le Makefile / la CI** : `run-all-tests-with-reports.sh`, `test-api-specific.sh`, `compress-old-reports.sh`, `timed-make.sh`, scripts dans `scripts/db/`, etc.
-- **Aucune suppression effectuée** dans `scripts/` pour éviter de casser des cibles Make ou des usages externes. Les scripts potentiellement peu utilisés (ex. `translate-french-to-english.sh`, `git-interactive-checkout.sh`, `diagnostic-prisma.sh`) restent présents ; un audit ciblé peut être fait plus tard si besoin.
+- **Mise à jour 07/05/2026** : les README `scripts/` ont été réalignés avec l'arborescence réelle, les points d'entrée Make manquants ont été restaurés sous forme de wrappers (`scripts/core/check.sh`, `scripts/db/seed.sh`, `scripts/db/backup.sh`, `scripts/utils/diagnostic.sh`) et les scripts ponctuels non référencés `scripts/fix-db-push-all.sh` / `scripts/fix-db-push-makefile.sh` ont été supprimés.
 
 ---
 
