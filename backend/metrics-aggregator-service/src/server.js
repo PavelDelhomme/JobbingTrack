@@ -571,6 +571,40 @@ let lastDockerFallbackCollectionAt = 0
 // Throttle: limiter les health checks HTTP séquentiels trop fréquents
 const SERVICE_HEALTH_CHECK_INTERVAL_MS = Number(process.env.SERVICE_HEALTH_CHECK_INTERVAL_MS || 30000)
 
+/** Profilage durée par phase dans `collectAllMetrics` (logs JSON une ligne). Activer : METRICS_AGGREGATOR_PROFILE_COLLECT=1 */
+function createCollectProfiler(enabled) {
+  if (!enabled) {
+    return {
+      step() {},
+      finish() {},
+    }
+  }
+  const steps = []
+  let last = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+  return {
+    step(name) {
+      const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+      steps.push([name, Math.round((now - last) * 100) / 100])
+      last = now
+    },
+    finish(meta = {}) {
+      const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+      const tail = Math.round((now - last) * 100) / 100
+      const ms = Object.fromEntries(steps)
+      const accounted = steps.reduce((s, [, v]) => s + v, 0)
+      console.log(
+        '[PROFILE_COLLECT]',
+        JSON.stringify({
+          ...meta,
+          phaseMs: ms,
+          accountedMs: Math.round(accounted * 100) / 100,
+          tailAfterLastStepMs: tail,
+        })
+      )
+    },
+  }
+}
+
 // ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
 async function collectMetricsFromMonitoringC() {
   const monitoringCUrl = process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
@@ -596,28 +630,39 @@ async function collectMetricsFromMonitoringC() {
 
 // Fonction principale de collecte des métriques
 async function collectAllMetrics() {
+  const profileCollect =
+    process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === '1' ||
+    process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === 'true'
+  const prof = createCollectProfiler(profileCollect)
+  let monitoringCData = null
+  let dockerFallbackRan = false
+  let collectFatal = null
+
   logIfVerbose('[COLLECTOR] === DÉBUT COLLECTE ===')
   try {
     logIfVerbose('[COLLECTOR] Démarrage de la collecte des métriques...')
 
     // ✅ NOUVEAU : Essayer d'abord de récupérer depuis monitoring C
-    let monitoringCData = null
     try {
       monitoringCData = await collectMetricsFromMonitoringC()
     } catch (error) {
       console.warn('[COLLECTOR] ⚠️ Monitoring C non disponible, utilisation de la collecte classique')
     }
+    prof.step('monitoring_c_http')
 
     // Découvrir les services
     const discoveredServices = await discoverServices()
+    prof.step('discover_services')
 
     // Collecter métriques système et conteneurs (fallback si monitoring C non disponible)
     if (!monitoringCData) {
       await collectSystemMetrics()
+      prof.step('collect_system_metrics_si')
       const collected = await collectContainerMetrics()
       if (collected && typeof collected === 'object') {
         Object.assign(containerMetrics, collected)
       }
+      prof.step('collect_container_metrics_si')
     } else {
       logIfVerbose('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
@@ -654,17 +699,20 @@ async function collectAllMetrics() {
           }
         })
       }
-      
+      prof.step('merge_monitoring_c_container_rows')
+
       // ✅ Fallback coûteux: ne pas le faire à chaque cycle si monitoring-c est déjà disponible
       const now = Date.now()
       const shouldRunDockerFallback = (now - lastDockerFallbackCollectionAt) >= DOCKER_FALLBACK_INTERVAL_MS
       if (shouldRunDockerFallback) {
+        dockerFallbackRan = true
         const dockerCollected = await collectContainerMetrics()
         if (dockerCollected && typeof dockerCollected === 'object') {
           Object.assign(containerMetrics, dockerCollected)
         }
         lastDockerFallbackCollectionAt = now
       }
+      prof.step(dockerFallbackRan ? 'docker_fallback_collect_containers' : 'docker_fallback_skipped')
       
       // Enrichir systemMetrics avec les données de monitoring C
       if (!systemMetrics) {
@@ -717,6 +765,7 @@ async function collectAllMetrics() {
           usage: monitoringCData.disk.usage_percent
         }]
       }
+      prof.step('merge_monitoring_c_system_fields')
     }
 
     // Tester la santé de chaque service (throttlé pour réduire la charge CPU/réseau)
@@ -745,6 +794,7 @@ async function collectAllMetrics() {
         metrics: containerMetrics[serviceName] || {}
       }
     }
+    prof.step('service_health_checks')
 
     // Calculer les métriques système agrégées depuis TOUS les conteneurs
     const allContainers = Object.entries(containerMetrics)
@@ -992,7 +1042,8 @@ async function collectAllMetrics() {
       servicesList: Object.values(servicesMetrics),
       timestamp: new Date().toISOString()
     }
-    
+    prof.step('aggregate_build_metrics_payload')
+
     lastMetricsData = metricsData
 
     // Exporter vers /tmp/metrics/latest.json (partage avec l'hôte)
@@ -1004,6 +1055,7 @@ async function collectAllMetrics() {
     } catch (err) {
       console.error('[EXPORT] Erreur export /tmp/metrics:', err.message)
     }
+    prof.step('export_json_latest')
 
     // ✅ PERSISTANCE : Sauvegarder dans la base de données
     try {
@@ -1181,7 +1233,8 @@ async function collectAllMetrics() {
     } catch (error) {
       console.error('[PERSISTENCE] ❌ Erreur persistance:', error.message)
     }
-    
+    prof.step('persistence_db')
+
     logIfVerbose('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket
@@ -1191,10 +1244,22 @@ async function collectAllMetrics() {
       containers: containerMetrics,
       timestamp: new Date().toISOString()
     })
-
+    prof.step('websocket_emit')
   } catch (error) {
+    collectFatal = error
     console.error('[COLLECTOR] Erreur lors de la collecte:', error)
     logIfVerbose('[COLLECTOR] === ERREUR COLLECTE ===')
+  } finally {
+    const svcN = servicesMetrics && typeof servicesMetrics === 'object' ? Object.keys(servicesMetrics).length : 0
+    const ctrN = containerMetrics && typeof containerMetrics === 'object' ? Object.keys(containerMetrics).length : 0
+    prof.finish({
+      ok: !collectFatal,
+      error: collectFatal ? String(collectFatal.message || collectFatal) : null,
+      monitoringC: Boolean(monitoringCData),
+      dockerFallbackRan,
+      servicesCount: svcN,
+      containersCount: ctrN,
+    })
   }
 }
 
@@ -1310,6 +1375,12 @@ const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLL
 const metricsCollectionCron = `*/${metricsCollectionIntervalSec} * * * * *`
 cron.schedule(metricsCollectionCron, collectAllMetrics)
 console.log(`[SERVER] ✅ Collecte métriques planifiée: toutes les ${metricsCollectionIntervalSec}s`)
+if (
+  process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === '1' ||
+  process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === 'true'
+) {
+  console.log('[SERVER] Profilage collecte: METRICS_AGGREGATOR_PROFILE_COLLECT → ligne JSON [PROFILE_COLLECT] à chaque cycle')
+}
 
 // Collecte des logs toutes les 2 minutes
 cron.schedule('*/2 * * * *', collectDockerLogs)

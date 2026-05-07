@@ -5,9 +5,9 @@
 ## Priorité immédiate 6 mai 2026 — perf ressources + corrélation
 
 - [x] Corrélation UI: afficher un chargement animé dans le tableau incidents pendant le fetch (au lieu de laisser des cellules ambiguës).
-- [ ] Corrélation UI: ajouter un loader colonne par colonne (requestId/endpoint/IP/HTTP/proto/port) quand la source est en cours de résolution.
-- [ ] Corrélation data: tableau "champ par champ" (source technique, raison du vide, correctif restant) pour requestId/endpoint/IP/HTTP/proto/port.
-- [ ] Metrics-aggregator: profiler précisément les coûts de `collectAllMetrics` (monitoring-c + fallback Docker + health checks + persistance + export JSON).
+- [x] Corrélation UI: loader colonne par colonne (skeleton par `<td>` au chargement des logs) + colonnes métriques (CPU / mémoire / TR / écart) en attente tant que le conteneur focal n’est pas dans `loadedOrder` ; KPI logs vs score sécurité chargés séparément (`correlation/page.tsx`).
+- [x] Corrélation data: tableau diagnostic par champ (source technique, détail si absent, correctif) pour requestId / endpoint / IP / HTTP / proto / port — sélection d’une ligne incidents sur **`/backoffice/performances/correlation`** (`parseIncidentContextFull` + panneau sous le tableau).
+- [x] Metrics-aggregator: profiler `collectAllMetrics` — **`METRICS_AGGREGATOR_PROFILE_COLLECT=1`** (`server.js` : `createCollectProfiler`, phases chronométrées + meta `monitoringC` / `dockerFallbackRan` / compteurs).
 - [x] Frontend: diagnostiquer le pic CPU (>300%) sous charge et réduire le coût des rafraîchissements/perf pages monitoring. (06/05: WATCHPACK polling off + cap mémoire Node + healthcheck simplifié)
 - [ ] Redis: mesurer la pression mémoire réelle (dataset, buffers, fragmentation), fixer budget et actions de réduction.
 - [ ] Log collector C: corriger rotation logs + découverte dynamique conteneurs + lecture non bloquante.
