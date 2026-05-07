@@ -1,22 +1,22 @@
 use crate::config::Config;
 use crate::constants::{
-    CPU_WEIGHT, HEALTHY_AVAILABILITY_PERCENT, MEMORY_WEIGHT, ONE_HUNDRED_PERCENT,
-    RESPONSE_TIME_WEIGHT, SERVICE_DEGRADED_RESPONSE_MS, ZERO_FLOAT,
+    CPU_WEIGHT, HEALTHY_AVAILABILITY_PERCENT, MEMORY_WEIGHT, MICROSECONDS_PER_SECOND,
+    ONE_HUNDRED_PERCENT, RESPONSE_TIME_WEIGHT, SERVICE_DEGRADED_RESPONSE_MS, ZERO_FLOAT,
 };
 use crate::docker::list_containers;
 use crate::health::check_containers_health;
-use crate::procfs::{bytes_to_mib, compute_cpu_percent, read_cpu_metrics, read_cpu_snapshot};
+use crate::procfs::{bytes_to_mib, read_cpu_metrics, read_cpu_snapshot};
 use crate::procfs::{read_disk_metrics, read_memory_metrics};
 use crate::storage::{HistoryQuery, Storage};
 use crate::types::{
-    CollectorState, ContainerMetrics, DiskMetrics, DockerContainer, MetricVariations,
-    MetricsResponse, NetworkSummary, ServiceSummary, SystemSummary, U64,
+    CollectorState, ContainerCpuSnapshot, ContainerMetrics, DiskMetrics, DockerContainer,
+    MetricVariations, MetricsResponse, NetworkSummary, ServiceSummary, SystemSummary, U64,
 };
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 pub struct MetricsCollector {
     config: Config,
@@ -267,14 +267,32 @@ fn read_container_cpu(
     let Some(usage_usec) = read_usage_usec(&dir.join("cpu.stat")) else {
         return ZERO_FLOAT;
     };
-    let current = crate::types::CpuSnapshot {
-        idle: 0,
-        total: usage_usec,
+    let current = ContainerCpuSnapshot {
+        usage_usec,
+        sampled_at: Instant::now(),
     };
     let previous = state
         .container_cpu
         .insert(container_id.to_string(), current);
-    previous.map_or(ZERO_FLOAT, |old| compute_cpu_percent(old, current))
+    previous.map_or(ZERO_FLOAT, |old| {
+        compute_container_cpu_percent(old, current)
+    })
+}
+
+fn compute_container_cpu_percent(
+    previous: ContainerCpuSnapshot,
+    current: ContainerCpuSnapshot,
+) -> f64 {
+    let elapsed_usec = current
+        .sampled_at
+        .duration_since(previous.sampled_at)
+        .as_secs_f64()
+        * MICROSECONDS_PER_SECOND;
+    if elapsed_usec <= ZERO_FLOAT || current.usage_usec < previous.usage_usec {
+        return ZERO_FLOAT;
+    }
+    let usage_delta = current.usage_usec - previous.usage_usec;
+    usage_delta as f64 * ONE_HUNDRED_PERCENT / elapsed_usec
 }
 
 fn read_container_memory(cgroup_dir: &Option<PathBuf>, config: &Config) -> ContainerMemory {

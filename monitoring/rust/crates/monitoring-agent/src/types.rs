@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub type U64 = u64;
 
@@ -7,6 +8,12 @@ pub type U64 = u64;
 pub struct CpuSnapshot {
     pub idle: U64,
     pub total: U64,
+}
+
+#[derive(Clone, Copy)]
+pub struct ContainerCpuSnapshot {
+    pub usage_usec: U64,
+    pub sampled_at: Instant,
 }
 
 #[derive(Clone, Copy, Default, Serialize)]
@@ -110,5 +117,5 @@ pub struct DockerContainer {
 #[derive(Default)]
 pub struct CollectorState {
     pub system_cpu: Option<CpuSnapshot>,
-    pub container_cpu: HashMap<String, CpuSnapshot>,
+    pub container_cpu: HashMap<String, ContainerCpuSnapshot>,
 }

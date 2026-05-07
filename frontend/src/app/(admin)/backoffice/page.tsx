@@ -26,6 +26,23 @@ const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A')
   return fallback;
 }
 
+const formatMemoryMb = (valueMb: unknown): string => {
+  const value = Number(valueMb)
+  if (!Number.isFinite(value)) return 'N/A'
+  if (Math.abs(value) >= 1024) return `${safeToFixed(value / 1024, 1)} GB`
+  return `${safeToFixed(value, 0)} MB`
+}
+
+const formatCompactDecimal = (value: number, decimals = 1): string => {
+  return value.toFixed(decimals).replace(/\.0$/, '')
+}
+
+const formatDiskGb = (valueGb: unknown): string => {
+  const value = Number(valueGb)
+  if (!Number.isFinite(value)) return 'N/A'
+  return `${formatCompactDecimal(value, 1)} GB`
+}
+
 /** Même priorité que l’affichage principal « CPU Système » (cohérence chiffre + pastille). */
 function getSystemCpuPercentForDisplay(systemMetrics: any): number | undefined {
   if (!systemMetrics) return undefined
@@ -922,7 +939,7 @@ export default function BackofficePage() {
                 ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%`
                 : '...'}
               subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
-                ? `Total ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% (somme CPUs cont.) · ${systemMetrics.jobbingtrack.containers.count || 0} cont. — peut varier si la détection change`
+                ? `Total ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% (somme CPUs cont.)`
                 : systemMetrics?.jobbingtrack?.containers?.count !== undefined
                 ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
                 : '...'}
@@ -946,9 +963,9 @@ export default function BackofficePage() {
                 ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
                 : '...'}
               subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
-                ? `% RAM hôte · ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB · ${systemMetrics.jobbingtrack.containers.count || 0} cont.`
+                ? `% RAM hôte · ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
                 : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite cgroup`
+                ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
                 : '...'}
               icon={<MemoryStick className="h-6 w-6" />}
               color={
@@ -1133,7 +1150,7 @@ export default function BackofficePage() {
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {systemMetrics?.disk?.[0]?.used != null && systemMetrics?.disk?.[0]?.total != null
-                    ? `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total} GB`
+                    ? `${formatDiskGb(systemMetrics.disk[0].used)} / ${formatDiskGb(systemMetrics.disk[0].total)}`
                     : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
                     ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
                     : loadingSystemMetrics ? '...' : 'N/A'}
@@ -1195,7 +1212,7 @@ export default function BackofficePage() {
                 <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet (moy. conteneurs)</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
-                    ? `Total somme CPUs ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% · ${systemMetrics.jobbingtrack.containers.count ?? 0} cont.`
+                    ? `Total somme CPUs ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%`
                     : systemMetrics?.jobbingtrack?.containers?.count !== undefined
                     ? `${systemMetrics.jobbingtrack.containers.count} conteneur(s) JobbingTrack`
                     : '—'}
@@ -1239,7 +1256,7 @@ export default function BackofficePage() {
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.memory?.used_mb != null && systemMetrics?.memory?.total_mb != null
-                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
+                  ? `${formatMemoryMb(systemMetrics.memory.used_mb)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
                   : systemMetrics?.memory?.used && systemMetrics?.memory?.total
                   ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}`
                   : loadingSystemMetrics ? '...' : '—'}
@@ -1265,9 +1282,9 @@ export default function BackofficePage() {
                 <div className="text-xs text-gray-500 dark:text-gray-500">Mémoire Projet (% RAM hôte)</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
-                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB RAM hôte · ${systemMetrics.jobbingtrack.containers.count ?? 0} cont.`
+                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)} RAM hôte`
                     : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
-                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite cgroup`
+                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
                     : '—'}
                 </div>
               </div>
