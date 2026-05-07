@@ -11,7 +11,7 @@ services:
   # Nouveau système de monitoring en C (ultra-léger)
   monitoring-c:
     build:
-      context: ./monitoring-c
+      context: ./monitoring/monitoring-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-monitoring-c
     user: "0:0"
@@ -47,7 +47,7 @@ services:
   # Nouveau système de collecte de logs en C (remplace Loki)
   log-collector-c:
     build:
-      context: ./log-collector-c
+      context: ./monitoring/log-collector-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
@@ -80,4 +80,67 @@ services:
     profiles:
       - monitoring-c
       - full
+
+  # Migration Rust optionnelle du collecteur de logs.
+  # Ne remplace pas log-collector-c tant que le contrat n'est pas validé en charge.
+  log-collector-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/log-collector/Dockerfile
+    container_name: jobbingtrack-log-collector-rs
+    user: "0:0"
+    ports:
+      - "${LOG_COLLECTOR_RS_PORT:-5109}:3019"
+    command: ["./log-collector", "3019"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - LOG_COLLECTOR_READ_EXISTING=${LOG_COLLECTOR_READ_EXISTING:-0}
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3019/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - monitoring-rust
+
+  # Migration Rust optionnelle du collecteur de métriques.
+  # Ne remplace pas monitoring-c tant que les métriques conteneurs/persistance ne sont pas à parité.
+  monitoring-agent-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/monitoring-agent/Dockerfile
+    container_name: jobbingtrack-monitoring-agent-rs
+    user: "0:0"
+    ports:
+      - "${MONITORING_RS_PORT:-5118}:8015"
+    environment:
+      - PORT=8015
+      - PROCFS_PATH=/host/proc
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8015/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - monitoring-rust
 

@@ -906,7 +906,7 @@
 - `prisma db push --accept-data-loss` depuis auth-service a supprime ces tables (creees par monitoring-c en C, pas par Prisma).
 
 ### Solution
-- Tables recreees manuellement via SQL avec le schema exact de `monitoring-c/src/storage.c`.
+- Tables recreees manuellement via SQL avec le schema exact de `monitoring/monitoring-c/src/storage.c`.
 - `container_metrics` inclut `system_metrics_id` (FK), `memory_mb`, `response_time_ms`, `http_status`.
 - Index recrees : `idx_system_metrics_timestamp`, `idx_container_metrics_*`.
 

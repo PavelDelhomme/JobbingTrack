@@ -33,6 +33,7 @@ reports/env-audit/*
 # Production build
 dist/
 build/
+target/
 
 # Database
 *.sqlite

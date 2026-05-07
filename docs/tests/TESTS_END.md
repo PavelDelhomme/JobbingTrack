@@ -92,7 +92,7 @@
 ## 8. Docker et déploiement
 
 - [ ] `docker compose up` (ou make up-full) démarre les services essentiels
-- [ ] Build monitoring-c : `context: ./monitoring-c` si applicable
+- [ ] Build monitoring-c : `context: ./monitoring/monitoring-c` si applicable
 - [ ] Volumes et réseaux corrects
 - [ ] Healthchecks Docker définis pour les services critiques
 - [ ] make db-push-all exécutable sans erreur (DATABASE_URL chargée pour metrics-aggregator)
