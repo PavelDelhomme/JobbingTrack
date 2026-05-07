@@ -158,7 +158,7 @@ make analyze-metrics-aggregator   # Analyser metrics-aggregator
   - `jobbingtrack-log-collector-c`
   - `jobbingtrack-redis`
   - `jobbingtrack-frontend` (pages monitoring/corrélation)
-- [ ] Identifier et réduire les hotspots de `metrics-aggregator` dans `collectAllMetrics` (collecte, health checks, persistance, export).
+- [x] Identifier les hotspots de `collectAllMetrics` : **`METRICS_AGGREGATOR_PROFILE_COLLECT=1`** → log JSON **`[PROFILE_COLLECT]`** par cycle (`phaseMs` : monitoring_c_http, discover_services, branche SI vs monitoring-c + fallback Docker, service_health_checks, aggregate_build_metrics_payload, export_json_latest, persistence_db, websocket_emit). Réduction charge = tâches séparées (TODO ci-dessus monitoring-c / health).
 - [ ] Réduire l'overhead de `monitoring-c` (fork/exec répétés) avec collecte plus native.
 - [ ] Corriger la robustesse de `log-collector-c` (rotation logs, nouveaux conteneurs, lecture non bloquante).
 - [ ] Fixer un budget de ressources cible "quasi imperceptible" et valider par p95 (CPU, RAM, IO) sur 30-60 min.

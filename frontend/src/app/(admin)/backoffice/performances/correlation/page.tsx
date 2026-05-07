@@ -214,6 +214,20 @@ type FocusIncidentSummary = {
   securitySignals: number
 }
 
+type IncidentContextFieldKey = 'requestId' | 'endpoint' | 'ip' | 'httpStatus' | 'protocol' | 'port'
+
+type IncidentContextFieldDiagnostic = {
+  field: IncidentContextFieldKey
+  label: string
+  value: string | null
+  /** Où la valeur a été lue (ou pourquoi elle est absente). */
+  sourceTechnical: string
+  /** Détail si valeur vide. */
+  emptyDetail: string | null
+  /** Action côté services / logs pour combler le trou. */
+  fixHint: string | null
+}
+
 type FocusIncidentAlignedRow = {
   timestamp: string
   level: string
@@ -230,6 +244,8 @@ type FocusIncidentAlignedRow = {
   nearestRtMs: number | null
   deltaSec: number | null
   emptyReason: string | null
+  /** Log brut agrégateur (diagnostic champ par champ). */
+  rawLog: AggLogRow
 }
 
 type SortDirection = 'asc' | 'desc' | null
@@ -299,6 +315,208 @@ function parseJsonObjectFromLogMessage(message: string): Record<string, unknown>
   return null
 }
 
+type ParsedIncidentContext = {
+  requestId: string | null
+  endpoint: string | null
+  ip: string | null
+  protocol: string | null
+  port: string | null
+  httpStatus: string | null
+  /** Provenance par champ (libellé technique, même si valeur vide). */
+  sources: Record<IncidentContextFieldKey, string>
+}
+
+function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
+  const metadata = mergeAggLogMetadata(row)
+  const message = String(row.message || '')
+  const messageJson = parseJsonObjectFromLogMessage(message)
+  const ctx: Record<string, unknown> = {
+    ...(metadata || {}),
+    ...(messageJson || {}),
+  }
+  const hasMetadata = Boolean(metadata && Object.keys(metadata).length > 0)
+  const hasMessageJson = Boolean(messageJson)
+
+  const requestIdFromMessage =
+    message.match(/\b(?:request[_ -]?id|correlation[_ -]?id)\s*[:=]\s*([a-zA-Z0-9-]{6,})/i)?.[1] ??
+    message.match(/"(?:requestId|correlationId)"\s*:\s*"([a-zA-Z0-9-]{6,})"/i)?.[1] ??
+    null
+
+  let requestId: string | null = null
+  let requestIdSrc = ''
+  if (typeof row.requestId === 'string' && row.requestId.trim()) {
+    requestId = row.requestId.trim()
+    requestIdSrc = 'colonne API requestId (aggregated_logs)'
+  } else if (typeof ctx.requestId === 'string' && ctx.requestId.trim()) {
+    requestId = ctx.requestId.trim()
+    requestIdSrc = 'metadata.requestId (fusion metadata + JSON dans message)'
+  } else if (typeof ctx.correlationId === 'string' && ctx.correlationId.trim()) {
+    requestId = ctx.correlationId.trim()
+    requestIdSrc = 'metadata.correlationId (fusion metadata + JSON dans message)'
+  } else if (requestIdFromMessage) {
+    requestId = requestIdFromMessage
+    requestIdSrc = 'heuristique texte message (motif requestId / correlationId)'
+  } else {
+    requestIdSrc = hasMetadata || hasMessageJson
+      ? 'aucune valeur (colonnes metadata.requestId / correlationId et motifs message vides)'
+      : 'aucune valeur (pas de metadata exploitable ni JSON parseable dans le message)'
+  }
+
+  let endpoint: string | null = null
+  let endpointSrc = ''
+  const epCandidates: [string, string][] = [
+    ['endpoint', 'metadata.endpoint'],
+    ['originalUrl', 'metadata.originalUrl'],
+    ['requestPath', 'metadata.requestPath'],
+    ['route', 'metadata.route'],
+    ['path', 'metadata.path'],
+    ['url', 'metadata.url'],
+  ]
+  for (const [k, label] of epCandidates) {
+    const v = ctx[k]
+    if (typeof v === 'string' && v.trim()) {
+      endpoint = v.trim()
+      endpointSrc = `${label} (fusion metadata + JSON message)`
+      break
+    }
+  }
+  if (!endpoint) {
+    const m = message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i)
+    if (m?.[2]) {
+      endpoint = m[2]
+      endpointSrc = 'heuristique message (MÉTHODE + chemin)'
+    } else {
+      endpointSrc = hasMetadata || hasMessageJson
+        ? 'aucune valeur (champs endpoint / originalUrl / path / url absents du contexte fusionné)'
+        : 'aucune valeur (pas de metadata ni JSON message pour endpoint)'
+    }
+  }
+
+  let ip: string | null = null
+  let ipSrc = ''
+  const ipCandidates: [unknown, string][] = [
+    [ctx.ip, 'metadata.ip'],
+    [ctx.clientIp, 'metadata.clientIp'],
+    [ctx.forwardedFor, 'metadata.forwardedFor (1re valeur)'],
+    [ctx.xForwardedFor, 'metadata.xForwardedFor (1re valeur)'],
+    [ctx.remoteAddress, 'metadata.remoteAddress'],
+  ]
+  for (const [v, label] of ipCandidates) {
+    if (typeof v === 'string' && v.trim()) {
+      const first = label.includes('forwarded') ? v.split(',')[0]?.trim() : v.trim()
+      if (first) {
+        ip = first
+        ipSrc = `${label} (fusion metadata + JSON message)`
+        break
+      }
+    }
+  }
+  if (!ip) {
+    const m = message.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)
+    if (m?.[0]) {
+      ip = m[0]
+      ipSrc = 'heuristique message (adresse IPv4)'
+    } else {
+      ipSrc = hasMetadata || hasMessageJson
+        ? 'aucune valeur (ip / clientIp / X-Forwarded-For / remoteAddress absents)'
+        : 'aucune valeur (pas de metadata ni motif IPv4 dans le message)'
+    }
+  }
+
+  let protocol: string | null = null
+  let protocolSrc = ''
+  for (const [k, label] of [
+    ['protocol', 'metadata.protocol'],
+    ['proto', 'metadata.proto'],
+    ['scheme', 'metadata.scheme'],
+  ] as const) {
+    const v = ctx[k]
+    if (typeof v === 'string' && v.trim()) {
+      protocol = v.trim()
+      protocolSrc = `${label} (fusion metadata + JSON message)`
+      break
+    }
+  }
+  if (!protocol) {
+    const m = message.match(/\b(https?|grpc|ws|wss)\b/i)
+    if (m?.[1]) {
+      protocol = m[1].toLowerCase()
+      protocolSrc = 'heuristique message (mot-clé http/https/grpc/ws)'
+    } else {
+      protocolSrc = hasMetadata || hasMessageJson
+        ? 'aucune valeur (protocol / proto / scheme absents du contexte)'
+        : 'aucune valeur (pas de metadata ni motif protocole dans le message)'
+    }
+  }
+
+  let port: string | null = null
+  let portSrc = ''
+  const portFromCtx =
+    (typeof ctx.port === 'number' || typeof ctx.port === 'string' ? String(ctx.port).trim() : '') ||
+    (typeof ctx.localPort === 'number' || typeof ctx.localPort === 'string' ? String(ctx.localPort).trim() : '') ||
+    (typeof ctx.serverPort === 'number' || typeof ctx.serverPort === 'string' ? String(ctx.serverPort).trim() : '')
+  if (portFromCtx) {
+    port = portFromCtx
+    portSrc = 'metadata.port | localPort | serverPort (fusion)'
+  } else {
+    const m1 = message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1]
+    const m2 = message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1]
+    if (m1 || m2) {
+      port = m1 || m2 || null
+      portSrc = 'heuristique message (clé port dans JSON ou texte)'
+    } else {
+      portSrc = hasMetadata || hasMessageJson
+        ? 'aucune valeur (port / localPort / serverPort absents du contexte)'
+        : 'aucune valeur (pas de metadata ni motif port dans le message)'
+    }
+  }
+
+  let httpStatus: string | null = null
+  let httpSrc = ''
+  for (const k of ['httpStatus', 'statusCode', 'upstreamHttpStatus'] as const) {
+    const v = ctx[k]
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      httpStatus = String(Math.trunc(v))
+      httpSrc = `metadata.${k} (nombre)`
+      break
+    }
+    if (typeof v === 'string' && /^\d{1,3}$/.test(v.trim())) {
+      httpStatus = v.trim()
+      httpSrc = `metadata.${k} (chaîne numérique)`
+      break
+    }
+  }
+  if (!httpStatus) {
+    const m1 = message.match(/"(?:httpStatus|statusCode|upstreamHttpStatus)"\s*:\s*(\d{3})/i)?.[1]
+    const m2 = message.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1]
+    if (m1 || m2) {
+      httpStatus = m1 || m2 || null
+      httpSrc = 'heuristique message (JSON ou motif HTTP nnn)'
+    } else {
+      httpSrc = hasMetadata || hasMessageJson
+        ? 'aucune valeur (httpStatus / statusCode / upstreamHttpStatus absents ou non numériques)'
+        : 'aucune valeur (pas de metadata ni code HTTP dans le message)'
+    }
+  }
+
+  return {
+    requestId,
+    endpoint,
+    ip,
+    protocol,
+    port,
+    httpStatus,
+    sources: {
+      requestId: requestIdSrc,
+      endpoint: endpointSrc,
+      ip: ipSrc,
+      protocol: protocolSrc,
+      port: portSrc,
+      httpStatus: httpSrc,
+    },
+  }
+}
+
 function parseIncidentContext(row: AggLogRow): {
   requestId: string | null
   endpoint: string | null
@@ -307,75 +525,61 @@ function parseIncidentContext(row: AggLogRow): {
   port: string | null
   httpStatus: string | null
 } {
-  const metadata = mergeAggLogMetadata(row)
-  const message = String(row.message || '')
-  const messageJson = parseJsonObjectFromLogMessage(message)
-  const ctx: Record<string, unknown> = {
-    ...(metadata || {}),
-    ...(messageJson || {}),
+  const p = parseIncidentContextFull(row)
+  return {
+    requestId: p.requestId,
+    endpoint: p.endpoint,
+    ip: p.ip,
+    protocol: p.protocol,
+    port: p.port,
+    httpStatus: p.httpStatus,
   }
-  const requestIdFromMessage =
-    message.match(/\b(?:request[_ -]?id|correlation[_ -]?id)\s*[:=]\s*([a-zA-Z0-9-]{6,})/i)?.[1] ??
-    message.match(/"(?:requestId|correlationId)"\s*:\s*"([a-zA-Z0-9-]{6,})"/i)?.[1] ??
-    null
-  const requestId =
-    (typeof row.requestId === 'string' && row.requestId) ||
-    (typeof ctx.requestId === 'string' && ctx.requestId) ||
-    (typeof ctx.correlationId === 'string' && ctx.correlationId) ||
-    requestIdFromMessage ||
-    null
-  const endpoint =
-    (typeof ctx.endpoint === 'string' && ctx.endpoint) ||
-    (typeof ctx.originalUrl === 'string' && ctx.originalUrl) ||
-    (typeof ctx.requestPath === 'string' && ctx.requestPath) ||
-    (typeof ctx.route === 'string' && ctx.route) ||
-    (typeof ctx.path === 'string' && ctx.path) ||
-    (typeof ctx.url === 'string' && ctx.url) ||
-    (message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i)?.[2] ?? null)
-  const ip =
-    (typeof ctx.ip === 'string' && ctx.ip) ||
-    (typeof ctx.clientIp === 'string' && ctx.clientIp) ||
-    (typeof ctx.forwardedFor === 'string' && ctx.forwardedFor.split(',')[0]?.trim()) ||
-    (typeof ctx.xForwardedFor === 'string' && ctx.xForwardedFor.split(',')[0]?.trim()) ||
-    (typeof ctx.remoteAddress === 'string' && ctx.remoteAddress) ||
-    (message.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0] ?? null)
-  const protocol =
-    (typeof ctx.protocol === 'string' && ctx.protocol) ||
-    (typeof ctx.proto === 'string' && ctx.proto) ||
-    (typeof ctx.scheme === 'string' && ctx.scheme) ||
-    (message.match(/\b(https?|grpc|ws|wss)\b/i)?.[1] ?? null)
-  const portRaw =
-    ((typeof ctx.port === 'number' || typeof ctx.port === 'string')
-      ? String(ctx.port)
-      : null) ||
-    ((typeof ctx.localPort === 'number' || typeof ctx.localPort === 'string')
-      ? String(ctx.localPort)
-      : null) ||
-    ((typeof ctx.serverPort === 'number' || typeof ctx.serverPort === 'string')
-      ? String(ctx.serverPort)
-      : null) ||
-    (message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1] ?? null) ||
-    (message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1] ?? null)
-  let httpFromMeta: string | null = null
-  if (ctx) {
-    for (const k of ['httpStatus', 'statusCode', 'upstreamHttpStatus'] as const) {
-      const v = ctx[k]
-      if (typeof v === 'number' && Number.isFinite(v)) {
-        httpFromMeta = String(Math.trunc(v))
-        break
-      }
-      if (typeof v === 'string' && /^\d{1,3}$/.test(v.trim())) {
-        httpFromMeta = v.trim()
-        break
-      }
+}
+
+const INCIDENT_FIELD_LABELS: Record<IncidentContextFieldKey, string> = {
+  requestId: 'requestId / correlationId',
+  endpoint: 'Endpoint (chemin / URL)',
+  ip: 'IP client',
+  httpStatus: 'Code HTTP',
+  protocol: 'Protocole',
+  port: 'Port',
+}
+
+const INCIDENT_FIELD_FIX: Record<IncidentContextFieldKey, string> = {
+  requestId:
+    'Propager requestId/correlationId dans le middleware (gateway + services) et les inclure dans metadata du central logger sur WARN/ERROR.',
+  endpoint:
+    'Enrichir metadata (originalUrl, path ou route) depuis la requête Express/Fastify au moment du log.',
+  ip:
+    'Journaliser IP réelle (req.ip / X-Forwarded-For tronqué) dans metadata pour les routes exposées derrière proxy.',
+  httpStatus:
+    'Persister statusCode ou upstreamHttpStatus (proxy) dans metadata sur erreurs et réponses.',
+  protocol:
+    'Ajouter scheme ou protocol (TLS) dans metadata si pertinent pour le diagnostic.',
+  port:
+    'Exposer serverPort / connect.port dans metadata uniquement si utile au forensics (sinon laisser vide).',
+}
+
+function buildIncidentContextFieldDiagnostics(row: AggLogRow): IncidentContextFieldDiagnostic[] {
+  const p = parseIncidentContextFull(row)
+  const keys: IncidentContextFieldKey[] = ['requestId', 'endpoint', 'ip', 'httpStatus', 'protocol', 'port']
+  return keys.map((field) => {
+    const value = p[field]
+    const filled = typeof value === 'string' && value.trim().length > 0
+    return {
+      field,
+      label: INCIDENT_FIELD_LABELS[field],
+      value: filled ? value : null,
+      sourceTechnical: p.sources[field],
+      emptyDetail: filled ? null : 'Absent après priorité parseur (voir source technique).',
+      fixHint: filled ? null : INCIDENT_FIELD_FIX[field],
     }
-  }
-  const httpStatus =
-    httpFromMeta ??
-    message.match(/"(?:httpStatus|statusCode|upstreamHttpStatus)"\s*:\s*(\d{3})/i)?.[1] ??
-    message.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1] ??
-    null
-  return { requestId, endpoint, ip, protocol, port: portRaw, httpStatus }
+  })
+}
+
+function stableIncidentRowKey(r: FocusIncidentAlignedRow): string {
+  const rawTs = String(r.rawLog.timestamp ?? '')
+  return `${r.timestamp}\u001f${rawTs}\u001f${r.message.slice(0, 200)}`
 }
 
 function nextSortDirection(curr: SortDirection): SortDirection {
@@ -1076,7 +1280,10 @@ export default function PerformancesCorrelationPage() {
   const [liveFallbackByService, setLiveFallbackByService] = useState<Record<string, LiveContainerFallback>>({})
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
   const [focusIncidents, setFocusIncidents] = useState<FocusIncidentSummary | null>(null)
-  const [focusIncidentsLoading, setFocusIncidentsLoading] = useState(false)
+  /** Logs persistés (table incidents + 3 premières cartes KPI). */
+  const [focusPersistenceLogsLoading, setFocusPersistenceLogsLoading] = useState(false)
+  /** Résumé score sécurité fenêtre (4e carte). */
+  const [focusSecuritySummaryLoading, setFocusSecuritySummaryLoading] = useState(false)
   const [securityWindowScore, setSecurityWindowScore] = useState<number | null>(null)
   const [focusLogs, setFocusLogs] = useState<AggLogRow[]>([])
   const [summarySort, setSummarySort] = useState<{ key: SummarySortKey; direction: SortDirection }>({
@@ -1090,6 +1297,8 @@ export default function PerformancesCorrelationPage() {
   const [incidentLevelFilter, setIncidentLevelFilter] = useState<'all' | 'ERROR' | 'WARN' | 'INFO'>('all')
   const [incidentNeedRequestId, setIncidentNeedRequestId] = useState(false)
   const [incidentSearch, setIncidentSearch] = useState('')
+  /** Ligne incidents sélectionnée pour le tableau diagnostic contexte (clé stable). */
+  const [incidentContextDiagKey, setIncidentContextDiagKey] = useState<string | null>(null)
 
   const [windowMode, setWindowMode] = useState<WindowMode>('preset')
   const [presetHours, setPresetHours] = useState(24)
@@ -1462,44 +1671,66 @@ export default function PerformancesCorrelationPage() {
       setFocusIncidents(null)
       setSecurityWindowScore(null)
       setFocusLogs([])
+      setFocusPersistenceLogsLoading(false)
+      setFocusSecuritySummaryLoading(false)
       return
     }
     ;(async () => {
-      setFocusIncidentsLoading(true)
-      try {
-        const bounds = computeQueryBounds({ windowMode, presetHours, appliedCustom })
-        const [logs, secSummary] = await Promise.all([
-          analyticsService.getPersistenceLogs({
+      setFocusPersistenceLogsLoading(true)
+      setFocusSecuritySummaryLoading(true)
+      const bounds = computeQueryBounds({ windowMode, presetHours, appliedCustom })
+      const hours = hoursFromBounds(bounds.start, bounds.end)
+
+      const loadLogs = async () => {
+        try {
+          const logs = await analyticsService.getPersistenceLogs({
             serviceNames: persistenceServiceAliases(focusName),
             startDate: bounds.start.toISOString(),
             endDate: bounds.end.toISOString(),
             limit: 1200,
             signal: controller.signal,
-          }),
-          analyticsService.getSecurityPersistenceSummary(hoursFromBounds(bounds.start, bounds.end), controller.signal),
-        ])
-        if (cancelled) return
-        const rows = (Array.isArray(logs) ? logs : []) as AggLogRow[]
-        setFocusLogs(rows)
-        const errorCount = rows.filter((r) => String(r.level || '').toUpperCase() === 'ERROR').length
-        const warnCount = rows.filter((r) => String(r.level || '').toUpperCase() === 'WARN').length
-        setFocusIncidents({
-          total: rows.length,
-          errorCount,
-          warnCount,
-          securitySignals: countSecuritySignalsInLogs(rows),
-        })
-        const avg = secSummary && typeof secSummary === 'object' ? readNumericField(secSummary, ['avgSecurityScore']) : null
-        setSecurityWindowScore(avg)
-      } finally {
-        if (!cancelled) setFocusIncidentsLoading(false)
+          })
+          if (cancelled) return
+          const rows = (Array.isArray(logs) ? logs : []) as AggLogRow[]
+          setFocusLogs(rows)
+          const errorCount = rows.filter((r) => String(r.level || '').toUpperCase() === 'ERROR').length
+          const warnCount = rows.filter((r) => String(r.level || '').toUpperCase() === 'WARN').length
+          setFocusIncidents({
+            total: rows.length,
+            errorCount,
+            warnCount,
+            securitySignals: countSecuritySignalsInLogs(rows),
+          })
+        } finally {
+          if (!cancelled) setFocusPersistenceLogsLoading(false)
+        }
       }
+
+      const loadSecuritySummary = async () => {
+        try {
+          const secSummary = await analyticsService.getSecurityPersistenceSummary(hours, controller.signal)
+          if (cancelled) return
+          const avg =
+            secSummary && typeof secSummary === 'object' ? readNumericField(secSummary, ['avgSecurityScore']) : null
+          setSecurityWindowScore(avg)
+        } finally {
+          if (!cancelled) setFocusSecuritySummaryLoading(false)
+        }
+      }
+
+      await Promise.all([loadLogs(), loadSecuritySummary()])
     })()
     return () => {
       cancelled = true
       controller.abort()
+      setFocusPersistenceLogsLoading(false)
+      setFocusSecuritySummaryLoading(false)
     }
   }, [focusName, windowMode, presetHours, appliedCustom])
+
+  useEffect(() => {
+    setIncidentContextDiagKey(null)
+  }, [focusName, focusLogs])
 
   const mergedByContainer = useMemo(() => {
     const map: Record<string, MergedServicePoint[]> = {}
@@ -1612,6 +1843,7 @@ export default function PerformancesCorrelationPage() {
           nearestRtMs: near?.point.responseTimeMs ?? findNearestResponseTime(ts),
           deltaSec: near?.deltaSec ?? null,
           emptyReason: null,
+          rawLog: row,
         } satisfies FocusIncidentAlignedRow
       })
       .filter((x): x is FocusIncidentAlignedRow => x != null)
@@ -1676,6 +1908,18 @@ export default function PerformancesCorrelationPage() {
     })
     return arr
   }, [focusIncidentAlignedRows, incidentLevelFilter, incidentNeedRequestId, incidentSearch, incidentSort])
+
+  const incidentContextDiagnostics = useMemo(() => {
+    const row = filteredSortedIncidentRows.find((r) => stableIncidentRowKey(r) === incidentContextDiagKey)
+    if (!row) return null
+    return buildIncidentContextFieldDiagnostics(row.rawLog)
+  }, [filteredSortedIncidentRows, incidentContextDiagKey])
+
+  /** Métriques conteneur + fusion dispo pour le service en focus (colonnes CPU / mémoire / TR / écart). */
+  const focusMetricsReady = useMemo(
+    () => Boolean(focusName && loadedOrder.includes(focusName)),
+    [focusName, loadedOrder]
+  )
 
   const onToggleSummarySort = useCallback((key: SummarySortKey) => {
     setSummarySort((prev) => {
@@ -2129,36 +2373,48 @@ export default function PerformancesCorrelationPage() {
                           Corrélation incidents (logs + sécurité)
                         </h4>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{activeBoundsLabel}</p>
-                        {focusIncidentsLoading ? (
-                          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Chargement incidents…</p>
-                        ) : (
-                          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">Logs service</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">Logs service</p>
+                            {focusPersistenceLogsLoading ? (
+                              <div className="mt-1 h-7 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                            ) : (
                               <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                                 {focusIncidents?.total ?? 0}
                               </p>
-                            </div>
-                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">ERROR / WARN</p>
+                            )}
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">ERROR / WARN</p>
+                            {focusPersistenceLogsLoading ? (
+                              <div className="mt-1 h-7 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                            ) : (
                               <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                                 {focusIncidents?.errorCount ?? 0} / {focusIncidents?.warnCount ?? 0}
                               </p>
-                            </div>
-                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">Signaux sécurité (logs)</p>
+                            )}
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">Signaux sécurité (logs)</p>
+                            {focusPersistenceLogsLoading ? (
+                              <div className="mt-1 h-7 w-12 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                            ) : (
                               <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                                 {focusIncidents?.securitySignals ?? 0}
                               </p>
-                            </div>
-                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">Score sécurité moyen</p>
+                            )}
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40">
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">Score sécurité moyen</p>
+                            {focusSecuritySummaryLoading ? (
+                              <div className="mt-1 h-7 w-14 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                            ) : (
                               <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                                 {fmt1(securityWindowScore)}
                               </p>
-                            </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                         <p className="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
                           Signaux sécurité logs = détection par mots-clés (`threat`, `waf`, `xss`, `sql injection`,
                           `blocked ip`, `suspicious`) pour contextualiser un pic perf.
@@ -2194,7 +2450,7 @@ export default function PerformancesCorrelationPage() {
                               className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             />
                           </div>
-                          {focusIncidentsLoading ? (
+                          {focusPersistenceLogsLoading ? (
                             <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
                               <table className="w-full min-w-[1040px] text-left text-xs">
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
@@ -2217,15 +2473,17 @@ export default function PerformancesCorrelationPage() {
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                   {Array.from({ length: 6 }).map((_, idx) => (
                                     <tr key={`incident-loading-row-${idx}`} className="animate-pulse">
-                                      <td className="px-2 py-2" colSpan={13}>
-                                        <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-700" />
-                                      </td>
+                                      {Array.from({ length: 13 }).map((__, c) => (
+                                        <td key={`incident-loading-cell-${idx}-${c}`} className="px-2 py-2">
+                                          <div className="h-3 rounded bg-gray-200 dark:bg-gray-700" />
+                                        </td>
+                                      ))}
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
                               <div className="border-t border-gray-200 px-3 py-2 text-[11px] text-gray-500 dark:border-gray-600 dark:text-gray-400">
-                                Chargement de la correlation incidents...
+                                Chargement des logs incidents…
                               </div>
                             </div>
                           ) : filteredSortedIncidentRows.length === 0 ? (
@@ -2240,7 +2498,12 @@ export default function PerformancesCorrelationPage() {
                               </p>
                             </div>
                           ) : (
-                            <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
+                            <div className="mt-2 space-y-2">
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                Cliquez une ligne pour afficher le diagnostic contexte (source technique, raison si vide,
+                                correctif suggéré) pour requestId, endpoint, IP, HTTP, proto et port.
+                              </p>
+                              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
                               <table className="w-full min-w-[1040px] text-left text-xs">
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                   <tr>
@@ -2310,8 +2573,29 @@ export default function PerformancesCorrelationPage() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                  {filteredSortedIncidentRows.map((r) => (
-                                    <tr key={`${r.timestamp}-${r.requestId ?? ''}-${r.message.slice(0, 24)}`}>
+                                  {filteredSortedIncidentRows.map((r) => {
+                                    const rowKey = stableIncidentRowKey(r)
+                                    const selected = incidentContextDiagKey === rowKey
+                                    return (
+                                    <tr
+                                      key={rowKey}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() =>
+                                        setIncidentContextDiagKey((k) => (k === rowKey ? null : rowKey))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault()
+                                          setIncidentContextDiagKey((k) => (k === rowKey ? null : rowKey))
+                                        }
+                                      }}
+                                      className={`cursor-pointer transition-colors ${
+                                        selected
+                                          ? 'bg-indigo-50 dark:bg-indigo-950/40'
+                                          : 'hover:bg-gray-50 dark:hover:bg-gray-800/60'
+                                      }`}
+                                    >
                                       <td className="px-2 py-1.5 tabular-nums text-gray-700 dark:text-gray-300">
                                         {new Date(r.timestamp).toLocaleString('fr-FR')}
                                       </td>
@@ -2329,24 +2613,93 @@ export default function PerformancesCorrelationPage() {
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{withMissingReason(r.protocol, r.emptyReason)}</td>
                                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{withMissingReason(r.port, r.emptyReason)}</td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.nearestCpu == null ? withMissingReason(null, r.emptyReason) : fmt1(r.nearestCpu)}
+                                        {!focusMetricsReady ? (
+                                          <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                                        ) : r.nearestCpu == null ? (
+                                          withMissingReason(null, r.emptyReason)
+                                        ) : (
+                                          fmt1(r.nearestCpu)
+                                        )}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.nearestMemory == null ? withMissingReason(null, r.emptyReason) : fmt1(r.nearestMemory)}
+                                        {!focusMetricsReady ? (
+                                          <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                                        ) : r.nearestMemory == null ? (
+                                          withMissingReason(null, r.emptyReason)
+                                        ) : (
+                                          fmt1(r.nearestMemory)
+                                        )}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.nearestRtMs == null ? withMissingReason(null, r.emptyReason) : fmt0(r.nearestRtMs)}
+                                        {!focusMetricsReady ? (
+                                          <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                                        ) : r.nearestRtMs == null ? (
+                                          withMissingReason(null, r.emptyReason)
+                                        ) : (
+                                          fmt0(r.nearestRtMs)
+                                        )}
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                        {r.deltaSec == null ? withMissingReason(null, r.emptyReason) : r.deltaSec}
+                                        {!focusMetricsReady ? (
+                                          <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                                        ) : r.deltaSec == null ? (
+                                          withMissingReason(null, r.emptyReason)
+                                        ) : (
+                                          r.deltaSec
+                                        )}
                                       </td>
                                       <td className="max-w-[24rem] truncate px-2 py-1.5 text-gray-700 dark:text-gray-300">
                                         {r.message || '—'}
                                       </td>
                                     </tr>
-                                  ))}
+                                    )
+                                  })}
                                 </tbody>
                               </table>
+                              </div>
+                              {incidentContextDiagnostics ? (
+                                <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 dark:border-indigo-800 dark:bg-indigo-950/30">
+                                  <h6 className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
+                                    Diagnostic contexte (ligne sélectionnée)
+                                  </h6>
+                                  <p className="mt-1 text-[11px] text-indigo-800/90 dark:text-indigo-200/90">
+                                    Sources = fusion <code className="rounded bg-white/80 px-0.5 dark:bg-gray-900/80">metadata</code> (dont{' '}
+                                    <code className="rounded bg-white/80 px-0.5 dark:bg-gray-900/80">metadata.metadata</code>) + objet JSON extrait du message si présent.
+                                  </p>
+                                  <div className="mt-2 overflow-x-auto">
+                                    <table className="w-full min-w-[720px] text-left text-[11px]">
+                                      <thead className="border-b border-indigo-200 text-indigo-900 dark:border-indigo-700 dark:text-indigo-100">
+                                        <tr>
+                                          <th className="py-1.5 pr-2 font-medium">Champ</th>
+                                          <th className="py-1.5 pr-2 font-medium">Valeur</th>
+                                          <th className="py-1.5 pr-2 font-medium">Source technique</th>
+                                          <th className="py-1.5 pr-2 font-medium">Si absent</th>
+                                          <th className="py-1.5 font-medium">Correctif / suite</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-indigo-100 text-gray-800 dark:divide-indigo-900/50 dark:text-gray-200">
+                                        {incidentContextDiagnostics.map((d) => (
+                                          <tr key={d.field}>
+                                            <td className="py-1.5 pr-2 font-medium text-gray-900 dark:text-gray-100">{d.label}</td>
+                                            <td className="max-w-[10rem] truncate py-1.5 pr-2 font-mono tabular-nums">
+                                              {d.value ?? '—'}
+                                            </td>
+                                            <td className="max-w-[18rem] py-1.5 pr-2 leading-snug text-gray-700 dark:text-gray-300">
+                                              {d.sourceTechnical}
+                                            </td>
+                                            <td className="max-w-[16rem] py-1.5 pr-2 leading-snug text-gray-600 dark:text-gray-400">
+                                              {d.emptyDetail ?? '—'}
+                                            </td>
+                                            <td className="max-w-[20rem] py-1.5 leading-snug text-gray-700 dark:text-gray-300">
+                                              {d.fixHint ?? '—'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              ) : null}
                             </div>
                           )}
                         </div>
