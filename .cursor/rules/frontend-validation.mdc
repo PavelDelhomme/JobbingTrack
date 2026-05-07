@@ -1,0 +1,17 @@
+---
+description: Validate frontend impact after project changes
+alwaysApply: true
+---
+
+# Frontend Validation
+
+When a change can affect the UI, shared contracts, scripts, tests, docs used by developers, Docker/compose wiring, or API responses consumed by the frontend, validate the frontend before finishing.
+
+Default validation:
+
+- Run `npm run type-check` from `frontend/`.
+- Run `npm run lint` from `frontend/` and report whether failures are new or pre-existing broad warnings.
+- For frontend file edits, also run the most targeted Jest command available, or explain why it was not run.
+- If UI behavior changed and a browser is available, verify the relevant page manually or with Playwright.
+
+Do not silently ignore frontend validation failures. Summarize the exact command result and whether the current change introduced the issue.

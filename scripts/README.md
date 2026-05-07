@@ -1,250 +1,106 @@
-# 📁 Scripts - Organisation
+# Scripts JobbingTrack
 
-Ce dossier contient tous les scripts utilitaires du projet JobbingTrack, organisés par catégorie.
+Ce dossier contient les scripts d'exploitation, de diagnostic, de tests et de maintenance du dépôt.
 
-## 🗂️ Structure des Dossiers
+Règle simple : les nouveaux scripts doivent aller dans un sous-dossier métier. La racine reste réservée aux points d'entrée historiques appelés par `make`, la CI ou les rapports de tests.
 
-```
+## Arborescence
+
+```text
 scripts/
-├── db/                     # 🗄️  Base de données
-│   └── run-prisma-migrations.sh
-│
-├── docker/                 # 🐳 Docker
-│   ├── cleanup-docker-volumes.sh
-│   └── verify-docker-setup.sh
-│
-├── health/                 # 💊 Santé des services
-│   ├── check-env.sh
-│   └── check-services.sh
-│
-├── monitoring/             # 📊 Monitoring & Métriques
-│   ├── check_integration.sh
-│   ├── clean-monitoring.sh
-│   ├── monitoring.sh
-│   ├── redis-memory-report.sh
-│   ├── restart-metrics.sh  ⬅️ DÉPLACÉ ICI
-│   ├── start-metrics.sh
-│   └── test-metrics.sh
-│
-├── testing/                # 🧪 Tests
-│   ├── cleanup.sh          ⬅️ DÉPLACÉ ICI
-│   ├── run-complete-tests.sh  ⬅️ DÉPLACÉ ICI
-│   ├── test-containers-access.sh
-│   ├── test-reset-password.sh
-│   └── verify-all-metrics.sh  ⬅️ DÉPLACÉ ICI
-│
-├── utils/                  # 🔧 Utilitaires
-│   ├── cleanup-old-files.sh
-│   └── rebuild-all.sh
-│
-└── verify-user-journey.sh  # 🎯 Test User Journey (racine)
+├── core/          # Points d'entrée généraux et compatibilité Make
+├── database/      # Scripts Node de migration/seed historiques
+├── db/            # Scripts shell PostgreSQL / Prisma / métriques DB
+├── docker/        # Vérifications et nettoyage Docker
+├── fixes/         # Correctifs ponctuels encore utiles
+├── health/        # Vérifications .env et services
+├── monitoring/    # Monitoring, métriques, budget ressources
+├── security/      # Firewall, WAF, CVE, menaces de test
+├── setup/         # Installation machine/outillage
+├── testing/       # Helpers de tests
+└── utils/         # Utilitaires transverses
 ```
 
-## 🎯 Scripts Principaux
+## Points d'entrée principaux
 
-### verify-user-journey.sh
-**Emplacement** : `scripts/verify-user-journey.sh`
+| Script | Usage |
+|--------|-------|
+| `scripts/core/check.sh` | Santé globale, utilisé par `make health`. |
+| `scripts/db/db-push-all.sh` | Synchronisation Prisma multi-services, utilisé par `make db-push-all`. |
+| `scripts/db/seed.sh` | Wrapper stable vers `make seed-auth`, utilisé par `make db-seed`. |
+| `scripts/db/backup.sh` | Backup PostgreSQL vers `backups/database/`, utilisé par `make db-backup`. |
+| `scripts/health/check-env.sh` | Validation `.env`. |
+| `scripts/health/check-services.sh` | Inspection des conteneurs JobbingTrack. |
+| `scripts/utils/diagnostic.sh` | Diagnostic général et sous-modes Docker/CORS/réseau. |
+| `scripts/security/cve-scan.py` | Scan CVE Node/Rust/Docker, utilisé par `make test-cve-scan`. |
+| `scripts/security/test-firewall.sh` | Tests sécurité firewall/WAF. |
+| `scripts/monitoring/resource-budget-sample.py` | Mesure CPU/RAM/I/O p95 des conteneurs ciblés. |
+| `scripts/monitoring/redis-memory-report.sh` | Rapport mémoire Redis. |
+| `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
+| `scripts/verify-user-journey.sh` | Parcours API utilisateur. |
+| `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
+| `scripts/test-enums.js` | Validation des enums Prisma. |
+| `scripts/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
 
-Test complet du parcours utilisateur via API :
-- Authentification (Register/Login)
-- Companies (List/Create)
-- Applications (List/Create)
-- Contacts, Interviews, Calls, Followups
-- Génération de token permanent (100 ans)
+## Catégories
 
-**Utilisation** :
+### Base de données
+
+- `scripts/db/` : scripts shell appelables par Make.
+- `scripts/database/` : scripts Node historiques liés aux migrations de données.
+
+Commandes utiles :
+
 ```bash
-bash scripts/verify-user-journey.sh
-# OU
-make tests-user-journey
+make db-push-all
+make seed-auth
+make db-seed
+make db-backup
 ```
 
-## 🗄️ Base de Données
+### Monitoring
 
-### run-prisma-migrations.sh
-Exécute les migrations Prisma sur tous les services.
+`scripts/monitoring/` regroupe les scripts de diagnostic métriques, comparaison d'agents, Redis et budget ressources.
 
-## 🐳 Docker
+Commandes utiles :
 
-### cleanup-docker-volumes.sh
-Nettoie les volumes Docker inutilisés.
-
-### verify-docker-setup.sh
-Vérifie que Docker est bien configuré.
-
-## 💊 Santé des Services
-
-### check-env.sh
-Vérifie que toutes les variables d'environnement sont définies.
-
-### check-services.sh
-Vérifie que tous les services sont opérationnels.
-
-## 📊 Monitoring & Métriques
-
-### restart-metrics.sh
-Redémarre le service de métriques.
-
-### start-metrics.sh
-Démarre le monitoring des métriques.
-
-### test-metrics.sh
-Teste la collecte des métriques.
-
-### check_integration.sh
-Vérifie l'intégration du monitoring.
-
-### clean-monitoring.sh
-Nettoie les données de monitoring.
-
-### redis-memory-report.sh
-Mesure la pression mémoire Redis (dataset, RSS, fragmentation, keyspace, clients) et compare au budget local.
-
-**Utilisation** :
 ```bash
-bash scripts/monitoring/redis-memory-report.sh
-# OU
+make diagnostic-metrics
 make redis-memory-report
+make resource-budget-sample
 ```
 
-Variables utiles : `REDIS_MEMORY_BUDGET_MB` (défaut 128), `REDIS_MEMORY_WARN_RATIO` (70), `REDIS_MEMORY_CRITICAL_RATIO` (85), `REDIS_FRAGMENTATION_MIN_USED_MB` (10), `REDISCLI_AUTH` si Redis est protégé.
+### Sécurité
 
-### resource-budget-sample.py
-Mesure CPU/RAM/réseau/Block I/O des conteneurs critiques et produit un CSV brut + résumé p95.
+`scripts/security/` contient les tests firewall/WAF, la génération de menaces de test, le live check sécurité et le scan CVE.
 
-**Utilisation** :
+Commandes utiles :
+
 ```bash
-RESOURCE_BUDGET_DURATION_MIN=45 RESOURCE_BUDGET_INTERVAL_SEC=15 make resource-budget-sample
+make test-firewall
+make security-live-check
+make test-cve-scan
 ```
 
-Variables utiles : `RESOURCE_BUDGET_DURATION_MIN` (défaut 45), `RESOURCE_BUDGET_INTERVAL_SEC` (15), `RESOURCE_BUDGET_TARGETS` (liste CSV de conteneurs), `RESOURCE_BUDGET_OUTPUT_DIR` (`tests/results/resource-budget`).
+### Tests
 
-## 🧪 Testing
+Les gros orchestrateurs restent à la racine quand ils sont appelés par plusieurs Makefiles ou rapports historiques. Les helpers secondaires sont dans `scripts/testing/`.
 
-### run-complete-tests.sh
-Lance la suite complète de tests (API, E2E, intégration).
-
-**Utilisation** :
-```bash
-bash scripts/testing/run-complete-tests.sh
-# OU
-make tests-complete
-```
-
-### verify-all-metrics.sh
-Vérifie que toutes les métriques sont collectées correctement.
-
-**Utilisation** :
-```bash
-bash scripts/testing/verify-all-metrics.sh
-# OU
-make tests-metrics
-```
-
-### cleanup.sh
-Nettoie les fichiers temporaires de tests.
-
-**Utilisation** :
-```bash
-bash scripts/testing/cleanup.sh
-# OU
-make tests-cleanup
-```
-
-### test-containers-access.sh
-Teste l'accès aux containers Docker.
-
-### test-reset-password.sh
-Teste la fonctionnalité de reset de mot de passe.
-
-## 🔧 Utilitaires
-
-### cleanup-old-files.sh
-Nettoie les anciens fichiers du projet.
-
-### rebuild-all.sh
-Rebuild tous les services Docker.
-
-## 🎮 Commandes Make Simplifiées
-
-**4 commandes essentielles pour tester** :
+Commandes utiles :
 
 ```bash
-make tests-help              # Guide complet d'utilisation
-make tests-reset             # Reset complet (BDD + services)
-make tests-user-journey      # Test automatique via API
-make tests-interface-web     # Interface web de test
-```
-
-### 📖 Processus Complet
-
-**1. Première fois ou après `make down`** :
-```bash
-make tests-reset
-# ↓ Fait TOUT automatiquement :
-# - Arrête les services
-# - Redémarre pour tests
-# - Crée les tables
-# - Crée l'admin
-```
-
-**2. Tester via API (rapide)** :
-```bash
+make test
+make test-all
 make tests-user-journey
-# ↓ Teste automatiquement tout le parcours
 ```
 
-**3. Tester via navigateur (visuel)** :
-```bash
-make tests-interface-web
-# ↓ Ouvre http://localhost:8080/backoffice/user-journey
-```
+## Scripts supprimés
 
-### 🔍 Différence user-journey vs interface-web
+Les anciens scripts `scripts/fix-db-push-all.sh` et `scripts/fix-db-push-makefile.sh` ont été supprimés : ils modifiaient le Makefile de manière ponctuelle et ne sont plus référencés. La logique supportée vit maintenant directement dans `makefiles/database/Makefile` et `scripts/db/db-push-all.sh`.
 
-**tests-user-journey** :
-- ✓ Automatique, rapide
-- ✓ Via API
-- ✓ Résultats dans le terminal
-- ✓ Parfait pour vérifier que tout fonctionne
+## Conventions
 
-**tests-interface-web** :
-- ✓ Manuel, visuel
-- ✓ Via navigateur
-- ✓ Interface graphique
-- ✓ Parfait pour débugger
-
-## 📝 Conventions
-
-1. **Noms de fichiers** : `kebab-case.sh`
-2. **Shebang** : Toujours `#!/bin/bash`
-3. **Documentation** : Commentaires en début de fichier
-4. **Messages** : Emojis pour clarté visuelle
-5. **Erreurs** : Exit codes appropriés (0 = succès, 1 = erreur)
-
-## Makefile et documentation (lot H1 — point d’entrée)
-
-La plupart des scripts sont invoqués via **`make`** (racine du dépôt inclut `makefiles/**/*.mk`). Ce tableau résume les liens **script → cible Make / doc** les plus utiles ; le détail des cibles reste dans **`make help`** et les fichiers sous **`makefiles/`**.
-
-| Script (chemin relatif) | Cible ou usage Makefile / doc |
-|-------------------------|-------------------------------|
-| `scripts/verify-user-journey.sh` | `make tests-user-journey` (`makefiles/tests/Makefile`) |
-| `scripts/start-tests.sh` | `make tests-interface-web` (`makefiles/tests/Makefile`) |
-| `scripts/run-all-tests-with-reports.sh` | `make test-all` / `make tests` (`makefiles/tests/Makefile`) |
-| `scripts/status-watch-loop.sh` | `make status-watch`, `make status-live` (`makefiles/services/Makefile`) |
-| `scripts/color-logs.sh` | Pipes `docker compose logs` (cibles logs dans `makefiles/services/Makefile`) |
-| `scripts/db/db-push-all.sh` | `make db-push-all` (`makefiles/database/Makefile`) |
-| `scripts/db/seed.sh` | Cibles seed BDD (`makefiles/database/Makefile`) |
-| `scripts/monitoring/monitoring.sh` | `make mon`, variantes quick / log fichier (`makefiles/utils/Makefile`, `makefiles/backend/Makefile`) |
-| `scripts/benchmark-all-backoffice.sh` | `make benchmark-backoffice-before` / `after` (`Makefile` racine) |
-| `scripts/compare-all-backoffice.sh` | `make benchmark-backoffice-compare` |
-| `scripts/setup-playwright.sh` | `make test-mobile-install` (`makefiles/tests/Makefile.mobile-tests`) |
-| `scripts/core/check.sh`, `scripts/utils/diagnostic.sh` | Diagnostics (`makefiles/diagnostic/Makefile`) |
-| `scripts/make-menu.sh` | `make help` (`makefiles/help/Makefile`) |
-
-## 🔗 Liens Utiles
-
-- [Documentation Tests](../docs/tests/)
-- [STATUS.md](../STATUS.md) - État du projet
-- [Makefile](../Makefile) - Commandes disponibles
-
+1. Placer les nouveaux scripts dans le sous-dossier métier approprié.
+2. Garder un wrapper à l'ancien chemin uniquement si un Makefile, la CI ou un test le référence.
+3. Ne pas committer de rapports générés, backups, dumps SQL ou résultats de scan.
+4. Documenter chaque nouveau point d'entrée dans ce README et dans le Makefile associé.
