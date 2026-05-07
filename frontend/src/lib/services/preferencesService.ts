@@ -193,9 +193,9 @@ class PreferencesService {
       refreshInterval: {
         logs: 30000,        // 30 secondes (logs de sécurité)
         analytics: 30000,   // 30 secondes (analytics)
-        metrics: 15000,     // 15 secondes (métriques système/projet)
+        metrics: 30000,     // 30 secondes (métriques système/projet)
         dashboard: 30000,   // 30 secondes (dashboard principal)
-        services: 20000,    // 20 secondes (liste des services)
+        services: 60000,    // 60 secondes (liste des services)
         notifications: 60000 // 60 secondes (notifications)
       },
       display: {

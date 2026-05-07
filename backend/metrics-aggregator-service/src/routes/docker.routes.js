@@ -29,6 +29,8 @@ const SERVICE_HEALTH_CONFIG = {
 };
 
 const FIVE_MINUTES_IN_MINUTES = 5;
+const SERVICES_ALL_CACHE_TTL_MS = Number(process.env.DOCKER_SERVICES_ALL_CACHE_TTL_MS || 60000);
+let servicesAllCache = null;
 
 /** `docker ps --format "{{json .}}"` : le champ Names peut être `/jobbingtrack-foo` ; la persistance et Prisma utilisent `jobbingtrack-foo`. */
 function normalizeDockerPsName(namesField) {
@@ -56,6 +58,10 @@ function normaliseServiceKey(containerName = '') {
   }
 
   return null;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
 /**
@@ -598,13 +604,27 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
  */
 router.get('/services/all', async (req, res) => {
   try {
-    console.log('[DOCKER ROUTES] 📋 Récupération de tous les services...');
-    
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     const includeOptional = String(req.query.includeOptional ?? 'true').toLowerCase() !== 'false';
     const includeMailhog = String(req.query.includeMailhog ?? 'true').toLowerCase() !== 'false';
+    const cacheKey = JSON.stringify({ includeOptional, includeMailhog });
+
+    if (
+      SERVICES_ALL_CACHE_TTL_MS > 0 &&
+      servicesAllCache &&
+      servicesAllCache.key === cacheKey &&
+      servicesAllCache.expiresAt > Date.now()
+    ) {
+      return res.json({
+        ...servicesAllCache.payload,
+        cached: true,
+        cacheTtlMs: servicesAllCache.expiresAt - Date.now()
+      });
+    }
+
+    console.log('[DOCKER ROUTES] 📋 Récupération de tous les services...');
     
     // Lister TOUS les conteneurs (même arrêtés)
     const { stdout } = await execAsync('docker ps -a --filter "name=jobbingtrack" --format "{{json .}}"');
@@ -649,15 +669,32 @@ router.get('/services/all', async (req, res) => {
       if (canon && canon !== raw) statsMap[canon] = stat;
     });
     
-    // Récupérer le health status et l'état réel pour tous les conteneurs
+    // Récupérer le health status et l'état réel pour tous les conteneurs en une seule commande.
     const healthStatusMap = {};
     const containerStateMap = {}; // Map pour stocker l'état réel des conteneurs
-    for (const container of allContainers) {
+    const namesToInspect = allContainers
+      .map(container => container.canonicalName || normalizeDockerPsName(container.Names))
+      .filter(Boolean);
+    const inspectStates = new Map();
+    if (namesToInspect.length > 0) {
       try {
-        const containerName = container.canonicalName || normalizeDockerPsName(container.Names);
-        const { stdout: inspectOut } = await execAsync(`docker inspect --format='{{json .State}}' ${containerName}`);
-        const state = JSON.parse(inspectOut);
-        
+        const { stdout: inspectOut } = await execAsync(
+          `docker inspect --format='{{json .State}}' ${namesToInspect.map(shellQuote).join(' ')}`
+        );
+        inspectOut.trim().split('\n').filter(Boolean).forEach((line, idx) => {
+          inspectStates.set(namesToInspect[idx], JSON.parse(line));
+        });
+      } catch (err) {
+        console.error('[DOCKER ROUTES] Erreur inspection groupée:', err.message);
+      }
+    }
+
+    for (const container of allContainers) {
+      const containerName = container.canonicalName || normalizeDockerPsName(container.Names);
+      try {
+        const state = inspectStates.get(containerName);
+        if (!state) throw new Error('state unavailable');
+
         // Déterminer le health status
         let healthStatus = 'none'; // Pas de healthcheck configuré
         if (state.Health) {
@@ -680,16 +717,14 @@ router.get('/services/all', async (req, res) => {
           state: state
         };
       } catch (err) {
-        const cn = container.canonicalName || normalizeDockerPsName(container.Names);
-        console.error(`[DOCKER ROUTES] Erreur inspection ${cn}:`, err.message);
         // Fallback : utiliser container.State mais c'est moins fiable
         const isRunning = container.State === 'running';
-        healthStatusMap[cn] = {
+        healthStatusMap[containerName] = {
           health: 'unknown',
           running: isRunning,
           status: container.State
         };
-        containerStateMap[cn] = {
+        containerStateMap[containerName] = {
           isRunning: isRunning,
           status: container.State,
           state: null
@@ -797,14 +832,24 @@ router.get('/services/all', async (req, res) => {
     const running = services.filter(s => s.is_running);
     const stopped = services.filter(s => !s.is_running);
     
-    res.json({
+    const payload = {
       success: true,
       timestamp: new Date().toISOString(),
       total: services.length,
       running: running.length,
       stopped: stopped.length,
       services: services
-    });
+    };
+
+    if (SERVICES_ALL_CACHE_TTL_MS > 0) {
+      servicesAllCache = {
+        key: cacheKey,
+        expiresAt: Date.now() + SERVICES_ALL_CACHE_TTL_MS,
+        payload
+      };
+    }
+
+    res.json(payload);
     
   } catch (error) {
     console.error('[DOCKER ROUTES] ❌ Erreur:', error);

@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report status-port help-diagnostic env-check env-append-missing env-reorder
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder
 
 # ============================================================================
 # AIDE
@@ -26,6 +26,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "  make diagnostic-docker     - Diagnostic Docker uniquement"
 	@echo "  make diagnostic-metrics    - Comparer Docker Desktop vs métriques agrégées"
 	@echo "  make redis-memory-report   - Pression mémoire Redis (dataset, RSS, fragmentation)"
+	@echo "  make resource-budget-sample - Mesurer CPU/RAM/IO p95 monitoring/frontend"
 	@echo "  make diagnostic-cors       - Diagnostic CORS"
 	@echo "  make diagnostic-network    - Diagnostic réseau"
 	@echo "  make diag-services         - Diagnostic services backend"
@@ -267,6 +268,9 @@ diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 
 redis-memory-report: ## Mesurer la pression mémoire Redis (budget: REDIS_MEMORY_BUDGET_MB, défaut 128)
 	@./scripts/monitoring/redis-memory-report.sh
+
+resource-budget-sample: ## Mesurer CPU/RAM/IO p95 (RESOURCE_BUDGET_DURATION_MIN=45 par défaut)
+	@./scripts/monitoring/resource-budget-sample.py
 
 # ============================================================================
 # AFFICHAGE DES PORTS

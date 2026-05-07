@@ -219,6 +219,9 @@ services:
       # Même convention que le service **postgres** pour interpréter `system_metrics.timestamp` (naïf + NOW()).
       - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DOCKER_FALLBACK_INTERVAL_MS=${DOCKER_FALLBACK_INTERVAL_MS:-0}
+      - DOCKER_SERVICES_ALL_CACHE_TTL_MS=${DOCKER_SERVICES_ALL_CACHE_TTL_MS:-60000}
+      - ENABLE_DOCKER_LOGS_COLLECTION=${ENABLE_DOCKER_LOGS_COLLECTION:-false}
       - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
@@ -229,6 +232,7 @@ services:
       - NODE_ENV=development
       - PORT=3014
       - POSTGRES_SYSTEM_METRICS_TZ=${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+      - SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS=${SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS:-60000}
       - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
       # Runtime Node (logs, Date) : UTC conseillé ; l’affichage utilisateur = fuseau navigateur côté front.
       - TZ=UTC
