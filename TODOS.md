@@ -9,7 +9,7 @@
 - [x] Corrélation data: tableau diagnostic par champ (source technique, détail si absent, correctif) pour requestId / endpoint / IP / HTTP / proto / port — sélection d’une ligne incidents sur **`/backoffice/performances/correlation`** (`parseIncidentContextFull` + panneau sous le tableau).
 - [x] Metrics-aggregator: profiler `collectAllMetrics` — **`METRICS_AGGREGATOR_PROFILE_COLLECT=1`** (`server.js` : `createCollectProfiler`, phases chronométrées + meta `monitoringC` / `dockerFallbackRan` / compteurs).
 - [x] Frontend: diagnostiquer le pic CPU (>300%) sous charge et réduire le coût des rafraîchissements/perf pages monitoring. (06/05: WATCHPACK polling off + cap mémoire Node + healthcheck simplifié)
-- [ ] Redis: mesurer la pression mémoire réelle (dataset, buffers, fragmentation), fixer budget et actions de réduction.
+- [x] Redis: mesurer la pression mémoire réelle (dataset, RSS/buffers, fragmentation) + budget/actions — **`make redis-memory-report`** (`scripts/monitoring/redis-memory-report.sh`) ; budget local **128 MB**, warn **70%**, critical **85%**, fragmentation ignorée sous **10 MB** utilisés, actions affichées si `maxmemory=0`, fragmentation haute ou clients bloqués.
 - [ ] Log collector C: corriger rotation logs + découverte dynamique conteneurs + lecture non bloquante.
 - [ ] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles.
 - [ ] Validation dédiée "coût collecte métriques": benchmark comparatif avant/après sur CPU, RAM, IO pour chaque composant de monitoring.

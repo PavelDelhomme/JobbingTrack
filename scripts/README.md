@@ -21,6 +21,7 @@ scripts/
 │   ├── check_integration.sh
 │   ├── clean-monitoring.sh
 │   ├── monitoring.sh
+│   ├── redis-memory-report.sh
 │   ├── restart-metrics.sh  ⬅️ DÉPLACÉ ICI
 │   ├── start-metrics.sh
 │   └── test-metrics.sh
@@ -95,6 +96,18 @@ Vérifie l'intégration du monitoring.
 
 ### clean-monitoring.sh
 Nettoie les données de monitoring.
+
+### redis-memory-report.sh
+Mesure la pression mémoire Redis (dataset, RSS, fragmentation, keyspace, clients) et compare au budget local.
+
+**Utilisation** :
+```bash
+bash scripts/monitoring/redis-memory-report.sh
+# OU
+make redis-memory-report
+```
+
+Variables utiles : `REDIS_MEMORY_BUDGET_MB` (défaut 128), `REDIS_MEMORY_WARN_RATIO` (70), `REDIS_MEMORY_CRITICAL_RATIO` (85), `REDIS_FRAGMENTATION_MIN_USED_MB` (10), `REDISCLI_AUTH` si Redis est protégé.
 
 ## 🧪 Testing
 
