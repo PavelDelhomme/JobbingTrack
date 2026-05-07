@@ -9,48 +9,131 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <errno.h>
 
 #define DOCKER_SOCKET "/var/run/docker.sock"
-#define BUFFER_SIZE 8192
+#define INITIAL_RESPONSE_CAPACITY 16384
+
+static int docker_http_get(const char *path, char **body_out) {
+    *body_out = NULL;
+
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) return -1;
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", DOCKER_SOCKET);
+
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+        close(fd);
+        return -1;
+    }
+
+    char request[512];
+    snprintf(request, sizeof(request),
+             "GET %s HTTP/1.1\r\nHost: docker\r\nConnection: close\r\n\r\n",
+             path);
+    size_t request_len = strlen(request);
+    if (write(fd, request, request_len) != (ssize_t)request_len) {
+        close(fd);
+        return -1;
+    }
+
+    size_t cap = INITIAL_RESPONSE_CAPACITY;
+    size_t len = 0;
+    char *response = malloc(cap);
+    if (!response) {
+        close(fd);
+        return -1;
+    }
+
+    while (1) {
+        if (len + 4096 + 1 > cap) {
+            cap *= 2;
+            char *next = realloc(response, cap);
+            if (!next) {
+                free(response);
+                close(fd);
+                return -1;
+            }
+            response = next;
+        }
+        ssize_t n = read(fd, response + len, cap - len - 1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            free(response);
+            close(fd);
+            return -1;
+        }
+        if (n == 0) break;
+        len += (size_t)n;
+    }
+    close(fd);
+    response[len] = '\0';
+
+    char *body = strstr(response, "\r\n\r\n");
+    if (!body) {
+        free(response);
+        return -1;
+    }
+    body += 4;
+
+    char *copy = strdup(body);
+    free(response);
+    if (!copy) return -1;
+
+    *body_out = copy;
+    return 0;
+}
+
+static int copy_json_string_value(const char *start, char *dest, size_t dest_size) {
+    const char *end = strchr(start, '"');
+    if (!end) return -1;
+    size_t len = (size_t)(end - start);
+    if (len >= dest_size) len = dest_size - 1;
+    memcpy(dest, start, len);
+    dest[len] = '\0';
+    return 0;
+}
 
 /**
  * Liste les conteneurs Docker
  */
 int docker_list_containers(ContainerInfo *containers, int max_count) {
-    // Utiliser curl ou libcurl pour accéder à l'API Docker
-    // Pour simplifier, on utilise curl via système
-    FILE *fp = popen("curl -s --unix-socket /var/run/docker.sock http://localhost/containers/json", "r");
-    if (!fp) return -1;
-    
-    char buffer[BUFFER_SIZE];
-    int count = 0;
-    
-    // Parser JSON (simplifié - utiliser jansson ou cJSON en production)
-    while (fgets(buffer, sizeof(buffer), fp) && count < max_count) {
-        // Parser les conteneurs depuis JSON
-        // TODO: Implémenter parser JSON complet
-    }
-    
-    pclose(fp);
-    return count;
-}
+    char *body = NULL;
+    if (docker_http_get("/containers/json", &body) != 0) return -1;
 
-/**
- * Récupère les stats d'un conteneur
- */
-int docker_get_container_stats(const ContainerInfo *container, ContainerMetrics *metrics) {
-    char command[512];
-    snprintf(command, sizeof(command),
-        "curl -s --unix-socket /var/run/docker.sock http://localhost/containers/%s/stats?stream=false",
-        container->id);
-    
-    FILE *fp = popen(command, "r");
-    if (!fp) return -1;
-    
-    // Parser les stats depuis JSON
-    // TODO: Implémenter parser JSON complet
-    
-    pclose(fp);
-    return 0;
+    int count = 0;
+    char *p = body;
+    while (count < max_count && (p = strstr(p, "\"Id\":\"")) != NULL) {
+        p += 6;
+        memset(&containers[count], 0, sizeof(ContainerInfo));
+        if (copy_json_string_value(p, containers[count].id, sizeof(containers[count].id)) != 0) break;
+
+        char *names = strstr(p, "\"Names\":[\"");
+        if (!names) {
+            p++;
+            continue;
+        }
+        names += 10;
+        if (*names == '/') names++;
+        if (copy_json_string_value(names, containers[count].name, sizeof(containers[count].name)) != 0) {
+            p++;
+            continue;
+        }
+
+        char *state = strstr(p, "\"State\":\"");
+        if (state) {
+            state += 9;
+            copy_json_string_value(state, containers[count].status, sizeof(containers[count].status));
+        }
+
+        count++;
+        p = names;
+    }
+
+    free(body);
+    return count;
 }
 

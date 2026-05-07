@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Le système de monitoring en C (`monitoring-c`) collecte des métriques système et des conteneurs Docker, les expose via une API HTTP, et devrait les persister en base de données (non implémenté actuellement).
+Le système de monitoring en C (`monitoring-c`) collecte des métriques système et des conteneurs Docker, les expose via une API HTTP, et les persiste en base de données.
 
 ## Pourquoi le CPU Projet peut être à 0% ou très faible ?
 
@@ -15,13 +15,13 @@ Le système de monitoring en C (`monitoring-c`) collecte des métriques système
 
 ### Causes problématiques
 
-1. **Erreur de parsing** : Si `docker stats` retourne un format JSON inattendu, le parsing peut échouer
+1. **Compteurs cgroups indisponibles** : Si `/host/sys/fs/cgroup` ou `/host/proc` n'est pas monté, CPU/mémoire/réseau conteneur peuvent rester à 0
 2. **Conteneurs non démarrés** : Si les conteneurs ne sont pas actifs, ils ne seront pas dans les métriques
 3. **Problème de filtre** : Si le filtre `jobbingtrack-` ne fonctionne pas, les conteneurs ne seront pas comptés
 
 ### Health checks
 
-Depuis le correctif perf du 07/05, les health checks ne lancent plus `docker inspect`, `docker port` ni `curl` via `popen`. Le collecteur construit l’URL depuis les ports/paths connus des services JobbingTrack et mesure les réponses en parallèle avec libcurl multi. Le comptage `docker ps` séparé et la substitution `docker ps` dans `docker stats` ont aussi été retirés ; le coût restant côté `monitoring-c` vient surtout du dernier `docker stats`, encore traité par shell dans cette étape.
+Depuis le correctif perf du 07/05, `monitoring-c` ne lance plus `docker stats`, `docker inspect`, `docker port` ni `curl` via `popen`. Le collecteur liste les conteneurs avec le Docker socket Unix, lit CPU/mémoire/réseau via cgroups/proc, et mesure les réponses HTTP en parallèle avec libcurl multi.
 
 ### Diagnostic
 
@@ -31,10 +31,10 @@ Pour diagnostiquer pourquoi le CPU projet est à 0% :
 # 1. Vérifier que les conteneurs sont actifs
 docker ps --filter 'name=jobbingtrack-'
 
-# 2. Vérifier les valeurs CPU directement
-docker stats --no-stream --format "{{.Name}}: {{.CPUPerc}}"
+# 2. Vérifier la réponse native de monitoring-c
+curl http://localhost:5098/api/v1/metrics | jq '.container_count, .project_cpu_avg, .project_memory_mb'
 
-# 3. Tester l'endpoint monitoring-c
+# 3. Inspecter les détails par conteneur
 curl http://localhost:5098/api/v1/metrics | jq '.project_cpu_avg, .containers[] | {name, cpu_percent}'
 
 # 4. Vérifier les logs de monitoring-c
@@ -168,15 +168,13 @@ docker logs jobbingtrack-log-collector-c | grep -i "watch\|container"
 ### Le CPU projet est toujours à 0%
 
 1. Vérifier que les conteneurs sont actifs : `docker ps`
-2. Vérifier les valeurs CPU directement : `docker stats --no-stream`
+2. Vérifier que `/host/sys/fs/cgroup` et `/host/proc` sont montés dans `jobbingtrack-monitoring-c`
 3. Vérifier les logs de monitoring-c : `docker logs jobbingtrack-monitoring-c | grep DEBUG`
-4. Vérifier que le parsing JSON fonctionne (voir logs avec `[DEBUG]`)
+4. Vérifier que l'inventaire Docker socket fonctionne (voir logs avec `[DEBUG]`)
 
 ### Les métriques ne sont pas persistées
 
-C'est normal ! La persistance n'est pas encore implémentée. Les métriques sont uniquement :
-- Exposées via l'API HTTP
-- Affichées dans les logs (via `save_metrics_to_db()`)
+Vérifier la connexion PostgreSQL dans les logs `jobbingtrack-monitoring-c`. Les métriques restent exposées via l'API HTTP même si la persistance échoue temporairement.
 
 ### Le serveur HTTP ne répond pas
 

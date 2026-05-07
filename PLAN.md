@@ -217,7 +217,7 @@ Ces actions passent avant les optimisations secondaires:
 
 ### Sous-chantiers critiques dérivés de l'audit technique
 
-- `monitoring-c`: sortir de la stratégie fork/exec répétée (`docker stats` / `docker inspect` / `curl`) vers appels Docker socket/cgroups + checks parallélisés. **07/05 partiel** : health checks sans forks `inspect`/`port`/`curl` (ports/paths connus + libcurl multi parallèle) + suppression du `docker ps` séparé/substitution ; reste un dernier `docker stats` shell à remplacer par API Docker/cgroups.
+- `monitoring-c`: sortir de la stratégie fork/exec répétée (`docker stats` / `docker inspect` / `curl`) vers appels Docker socket/cgroups + checks parallélisés. **Traité 07/05** : inventaire conteneurs via Docker socket Unix sans shell, métriques CPU/mémoire/réseau via cgroups/proc, health checks libcurl multi parallèle ; plus aucun `popen` dans `ex-systems/monitoring-c`.
 - health checks: basculer en mode asynchrone (batch/multi) pour éviter les latences séquentielles coûteuses.
 - `log-collector-c`: rotation + découverte périodique + traitement non bloquant — **traité 07/05** (`inotify_init1(IN_NONBLOCK)`, `poll`, rescan 10s, événements fichier `len=0`, watches retirés sur rotation/suppression ; reste QA conteneur réel).
 - persistance PostgreSQL collecteurs C: réduire coût des insertions répétées (préparation/reconnexion robuste).
