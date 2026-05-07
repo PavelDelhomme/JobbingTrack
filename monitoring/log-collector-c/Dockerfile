@@ -29,5 +29,5 @@ COPY --from=0 /app/bin/log-collector-c ./
 # Volume pour accéder aux logs Docker
 VOLUME ["/var/lib/docker/containers", "/var/run/docker.sock"]
 
-CMD ["./monitoring/log-collector-c", "3019"]
+CMD ["./log-collector-c", "3019"]
 

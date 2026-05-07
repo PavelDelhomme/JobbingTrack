@@ -354,6 +354,8 @@ version = "0.1.0"
 name = "jobbingtrack-monitoring-agent"
 version = "0.1.0"
 dependencies = [
+ "postgres",
+ "serde",
  "serde_json",
 ]
 

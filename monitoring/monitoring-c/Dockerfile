@@ -29,5 +29,5 @@ COPY --from=0 /app/bin/monitoring-c ./
 # Volume pour accéder à Docker socket
 VOLUME ["/var/run/docker.sock"]
 
-CMD ["./monitoring/monitoring-c", "15"]
+CMD ["./monitoring-c", "15"]
 

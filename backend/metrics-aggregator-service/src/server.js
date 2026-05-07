@@ -146,7 +146,7 @@ let servicesMetrics = {}
 let systemMetrics = {}
 let containerMetrics = {}
 
-// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source Docker / monitoring-c)
+// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source bas niveau)
 function isJobbingTrackContainer(name) {
   if (!name || typeof name !== 'string') return false
   const n = name.toLowerCase().trim()
@@ -156,7 +156,7 @@ function isJobbingTrackContainer(name) {
   if (KNOWN_SERVICES[withPrefix]) return true
   return false
 }
-// Payload complet pour le backoffice (une seule source : monitoring-c → aggregator → frontend)
+// Payload complet pour le backoffice (source bas niveau → aggregator → frontend)
 let lastMetricsData = null
 
 // Fonction pour découvrir automatiquement les conteneurs
@@ -562,10 +562,10 @@ async function collectContainerMetrics() {
   }
 }
 
-// Throttle: ne loguer l'indisponibilité de monitoring-c qu'au plus toutes les 5 min
+// Throttle: ne loguer l'indisponibilité de la source bas niveau qu'au plus toutes les 5 min
 let lastMonitoringCUnavailableLog = 0
 const MONITORING_C_LOG_INTERVAL_MS = 5 * 60 * 1000
-// Fallback Docker coûteux: désactivé par défaut quand monitoring-c est disponible.
+// Fallback Docker coûteux: désactivé par défaut quand une source bas niveau est disponible.
 // Mettre DOCKER_FALLBACK_INTERVAL_MS > 0 pour réactiver un enrichissement périodique.
 const DOCKER_FALLBACK_INTERVAL_MS = Number(process.env.DOCKER_FALLBACK_INTERVAL_MS || 0)
 let lastDockerFallbackCollectionAt = 0
@@ -611,27 +611,55 @@ function createCollectProfiler(enabled) {
   }
 }
 
-// ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
-async function collectMetricsFromMonitoringC() {
-  const monitoringCUrl = process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
+function monitoringSourceUrls() {
+  return [
+    process.env.MONITORING_AGENT_URL,
+    process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
+  ].filter(Boolean)
+}
+
+function monitoringSourceName(url) {
+  return url.includes('monitoring-agent-rs') ? 'monitoring-agent-rs' : 'monitoring-c'
+}
+
+async function collectMetricsFromMonitoringSource() {
+  const urls = monitoringSourceUrls()
+  let lastError = null
+
+  for (const url of urls) {
+    const sourceName = monitoringSourceName(url)
+    const data = await fetchMonitoringSource(url, sourceName)
+    if (data) return data
+    lastError = sourceName
+  }
+
+  if (lastError) logMonitoringSourceUnavailable(lastError)
+  return null
+}
+
+async function fetchMonitoringSource(url, sourceName) {
   try {
-    const response = await axios.get(`${monitoringCUrl}/api/v1/metrics`, {
+    const response = await axios.get(`${url}/api/v1/metrics`, {
       timeout: 5000
     })
     if (response.data) {
       const containerCount = response.data.containers?.length || 0
-      logIfVerbose(`[MONITORING-C] ✅ Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
+      response.data.source = sourceName
+      logIfVerbose(`[${sourceName}] Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
       return response.data
     }
     return null
   } catch (error) {
-    const now = Date.now()
-    if (now - lastMonitoringCUnavailableLog >= MONITORING_C_LOG_INTERVAL_MS) {
-      lastMonitoringCUnavailableLog = now
-      console.warn('[MONITORING-C] ⚠️ Non disponible (fallback Node actif):', error.message)
-    }
+    logIfVerbose(`[${sourceName}] Non disponible: ${error.message}`)
     return null
   }
+}
+
+function logMonitoringSourceUnavailable(sourceName) {
+  const now = Date.now()
+  if (now - lastMonitoringCUnavailableLog < MONITORING_C_LOG_INTERVAL_MS) return
+  lastMonitoringCUnavailableLog = now
+  console.warn(`[${sourceName}] Non disponible (fallback Node actif)`)
 }
 
 // Fonction principale de collecte des métriques
@@ -648,19 +676,19 @@ async function collectAllMetrics() {
   try {
     logIfVerbose('[COLLECTOR] Démarrage de la collecte des métriques...')
 
-    // ✅ NOUVEAU : Essayer d'abord de récupérer depuis monitoring C
+    // Essayer d'abord la source bas niveau configurée (Rust optionnel, C fallback).
     try {
-      monitoringCData = await collectMetricsFromMonitoringC()
+      monitoringCData = await collectMetricsFromMonitoringSource()
     } catch (error) {
-      console.warn('[COLLECTOR] ⚠️ Monitoring C non disponible, utilisation de la collecte classique')
+      console.warn('[COLLECTOR] Source monitoring bas niveau indisponible, utilisation de la collecte classique')
     }
-    prof.step('monitoring_c_http')
+    prof.step('monitoring_agent_http')
 
     // Découvrir les services
     const discoveredServices = await discoverServices()
     prof.step('discover_services')
 
-    // Collecter métriques système et conteneurs (fallback si monitoring C non disponible)
+    // Collecter métriques système et conteneurs (fallback si la source bas niveau est indisponible)
     if (!monitoringCData) {
       await collectSystemMetrics()
       prof.step('collect_system_metrics_si')
@@ -670,10 +698,10 @@ async function collectAllMetrics() {
       }
       prof.step('collect_container_metrics_si')
     } else {
-      logIfVerbose('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
+      logIfVerbose(`[COLLECTOR] Utilisation des données ${monitoringCData.source || 'monitoring'} pour enrichir les métriques`)
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const filtered = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        logIfVerbose(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis monitoring C (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis ${monitoringCData.source || 'monitoring'} (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         filtered.forEach(container => {
           const rawName = container.name || 'unknown'
           const containerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`
@@ -707,7 +735,7 @@ async function collectAllMetrics() {
       }
       prof.step('merge_monitoring_c_container_rows')
 
-      // ✅ Fallback coûteux: ne pas le faire à chaque cycle si monitoring-c est déjà disponible
+      // Fallback coûteux: ne pas le faire à chaque cycle si une source bas niveau est déjà disponible.
       const now = Date.now()
       const shouldRunDockerFallback =
         DOCKER_FALLBACK_INTERVAL_MS > 0 &&
@@ -722,7 +750,7 @@ async function collectAllMetrics() {
       }
       prof.step(dockerFallbackRan ? 'docker_fallback_collect_containers' : 'docker_fallback_skipped')
       
-      // Enrichir systemMetrics avec les données de monitoring C
+      // Enrichir systemMetrics avec les données de la source bas niveau.
       if (!systemMetrics) {
         systemMetrics = {}
       }
@@ -734,7 +762,7 @@ async function collectAllMetrics() {
         container_count: monitoringCData.container_count || 0,
         load_score: monitoringCData.load_score || 0,
         availability_percent: monitoringCData.availability_percent || 0,
-        // ✅ CORRECTION : Ajouter les métriques réseau depuis monitoring C
+        // Ajouter les métriques réseau depuis la source bas niveau.
         network: monitoringCData.network || {
           total_rx_mb: 0,
           total_tx_mb: 0,
@@ -742,7 +770,7 @@ async function collectAllMetrics() {
         }
       }
       
-      // Enrichir avec les métriques CPU, mémoire, disque depuis monitoring C
+      // Enrichir avec les métriques CPU, mémoire, disque depuis la source bas niveau.
       if (monitoringCData.cpu) {
         systemMetrics.cpu = {
           ...systemMetrics.cpu,
@@ -1039,7 +1067,7 @@ async function collectAllMetrics() {
         total_last_5m: 0,
         rate_per_min: 0
       },
-      // ✅ CORRECTION : Ajouter le réseau depuis monitoring C en priorité, puis containersAggregate
+      // Ajouter le réseau depuis la source bas niveau en priorité, puis containersAggregate.
       network: monitoringCData?.network || 
                systemMetrics.containersAggregate?.network || {
         total_rx_mb: 0,
@@ -1065,10 +1093,10 @@ async function collectAllMetrics() {
     }
     prof.step('export_json_latest')
 
-    // ✅ PERSISTANCE : monitoring-c persiste déjà les snapshots fins ; l'agrégateur garde une cadence plus basse.
+    // La source bas niveau persiste déjà les snapshots fins ; l'agrégateur garde une cadence plus basse.
     const shouldPersistAggregator = (Date.now() - lastAggregatorPersistAt) >= AGGREGATOR_PERSIST_INTERVAL_MS
     if (shouldPersistAggregator) try {
-      // ✅ PRIORITÉ : Utiliser les données de monitoring C si disponibles
+      // Priorité aux données de la source bas niveau si disponibles.
       const cpuPercent = monitoringCData?.avg_cpu_percent || 
                         systemMetrics.monitoringC?.avg_cpu_percent ||
                         systemMetrics.host?.cpu?.usagePercent || 
@@ -1135,14 +1163,14 @@ async function collectAllMetrics() {
         responseTimeAvg: responseTimeAvg
       })
       
-      // ✅ Sauvegarder les métriques des conteneurs (depuis monitoring C ou collecte classique)
-      // Convertir les métriques de monitoring C au format attendu par persistenceService
+      // Sauvegarder les métriques des conteneurs (source bas niveau ou collecte classique).
+      // Convertir les métriques bas niveau au format attendu par persistenceService.
       const containersForDb = {}
       
-      // Si on a des données de monitoring C, les utiliser en priorité
+      // Si on a des données bas niveau, les utiliser en priorité.
       if (monitoringCData && monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis ${monitoringCData.source || 'monitoring'} pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         toSave.forEach(container => {
           const asNum = (...vals) => {
             for (const v of vals) {
@@ -1380,7 +1408,10 @@ try {
   const procMounted = fs.existsSync('/host/proc/self')
   console.log('[SERVER] /host/proc monté:', procMounted ? 'oui (métriques par conteneur depuis /proc)' : 'non (fallback Docker stats)')
 } catch (e) { console.log('[SERVER] /host/proc: non disponible') }
-console.log('[SERVER] Source prioritaire: monitoring-c →', process.env.MONITORING_C_URL || 'http://monitoring-c:8015')
+console.log(
+  '[SERVER] Source monitoring prioritaire:',
+  process.env.MONITORING_AGENT_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
+)
 
 // Collecte immédiate au démarrage
 collectAllMetrics()

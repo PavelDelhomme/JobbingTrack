@@ -160,9 +160,48 @@ services:
       retries: 3
       start_period: 90s
   
-  # Collecteur de métriques en C – CPU, mémoire, réseau, health checks.
-  # Port interne fixe 8015 (serveur HTTP du binaire C), différent du schéma 301x des services Node.
-  # Sur l’hôte : MONITORING_C_PORT (défaut 5098) → 8015 ; pas d’exposition Internet implicite (localhost sauf config réseau).
+  # Collecteur de métriques Rust – source bas niveau par défaut.
+  # Port interne fixe 8015 ; sur l'hôte : MONITORING_RS_PORT (défaut 5118) → 8015.
+  monitoring-agent-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/monitoring-agent/Dockerfile
+    image: jobbingtrack-monitoring-agent-rs
+    container_name: jobbingtrack-monitoring-agent-rs
+    user: "0:0"
+    ports:
+      - "${MONITORING_RS_PORT:-5118}:8015"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - PORT=8015
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - PROCFS_PATH=/host/proc
+      - SYSFS_PATH=/host/sys
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8015/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - full
+      - monitoring
+
+  # Collecteur de métriques C – fallback legacy pendant la fenêtre de migration Rust.
+  # Port interne fixe 8015 ; sur l’hôte : MONITORING_C_PORT (défaut 5098) → 8015.
   monitoring-c:
     build:
       context: ./monitoring/monitoring-c
@@ -197,9 +236,45 @@ services:
       retries: 3
     restart: unless-stopped
     profiles:
+      - monitoring-c
+
+  # Collecteur de logs Rust – source logs Docker/PostgreSQL par défaut.
+  log-collector-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/log-collector/Dockerfile
+    image: jobbingtrack-log-collector-rs
+    container_name: jobbingtrack-log-collector-rs
+    user: "0:0"
+    ports:
+      - "${LOG_COLLECTOR_RS_PORT:-5099}:3019"
+    command: ["./log-collector", "3019"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - LOG_COLLECTOR_READ_EXISTING=${LOG_COLLECTOR_READ_EXISTING:-0}
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3019/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - full
       - monitoring
 
-  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-c ou fallback Node)
+  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-agent-rs, fallback C puis Node)
   jobbingtrack-metrics-aggregator:
     image: jobbingtrack-metrics-aggregator
     build:
@@ -229,7 +304,8 @@ services:
       - METRICS_AGGREGATOR_PROFILE_COLLECT=${METRICS_AGGREGATOR_PROFILE_COLLECT:-}
       - METRICS_API_KEY=${METRICS_API_KEY:-jobbingtrack-metrics-secret-key}
       - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
-      - MONITORING_C_URL=http://monitoring-c:8015
+      - MONITORING_AGENT_URL=${MONITORING_AGENT_URL:-http://monitoring-agent-rs:8015}
+      - MONITORING_C_URL=${MONITORING_C_URL:-http://monitoring-c:8015}
       - NODE_ENV=development
       - PORT=3014
       - POSTGRES_SYSTEM_METRICS_TZ=${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
@@ -246,7 +322,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      monitoring-c:
+      monitoring-agent-rs:
         condition: service_started
     restart: unless-stopped
     profiles:

@@ -3,8 +3,8 @@
 Sample Docker resource usage for the monitoring hot path and emit p95 budgets.
 
 Default target containers:
-  jobbingtrack-metrics-aggregator, jobbingtrack-monitoring-c,
-  jobbingtrack-log-collector-c, jobbingtrack-redis, jobbingtrack-frontend
+  jobbingtrack-metrics-aggregator, jobbingtrack-monitoring-agent-rs,
+  jobbingtrack-log-collector-rs, jobbingtrack-redis, jobbingtrack-frontend
 """
 
 from __future__ import annotations
@@ -24,8 +24,8 @@ from typing import Any
 
 DEFAULT_TARGETS = [
     "jobbingtrack-metrics-aggregator",
-    "jobbingtrack-monitoring-c",
-    "jobbingtrack-log-collector-c",
+    "jobbingtrack-monitoring-agent-rs",
+    "jobbingtrack-log-collector-rs",
     "jobbingtrack-redis",
     "jobbingtrack-frontend",
 ]
