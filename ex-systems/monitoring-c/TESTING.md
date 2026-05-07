@@ -21,7 +21,7 @@ Le système de monitoring en C (`monitoring-c`) collecte des métriques système
 
 ### Health checks
 
-Depuis le correctif perf du 07/05, les health checks ne lancent plus `docker inspect`, `docker port` ni `curl` via `popen`. Le collecteur construit l’URL depuis les ports/paths connus des services JobbingTrack et mesure la réponse avec libcurl. Le coût restant côté `monitoring-c` vient surtout de `docker stats` / `docker ps`, encore traités par shell dans cette étape.
+Depuis le correctif perf du 07/05, les health checks ne lancent plus `docker inspect`, `docker port` ni `curl` via `popen`. Le collecteur construit l’URL depuis les ports/paths connus des services JobbingTrack et mesure les réponses en parallèle avec libcurl multi. Le comptage `docker ps` séparé et la substitution `docker ps` dans `docker stats` ont aussi été retirés ; le coût restant côté `monitoring-c` vient surtout du dernier `docker stats`, encore traité par shell dans cette étape.
 
 ### Diagnostic
 

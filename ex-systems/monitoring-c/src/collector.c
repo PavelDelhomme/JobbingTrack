@@ -90,35 +90,97 @@ static int build_known_health_url(const char *container_name, char *url, size_t 
     return 1;
 }
 
-static int perform_health_check(const char *url, double *response_time_ms, int *http_status) {
-    CURL *curl = curl_easy_init();
-    if (!curl) return -1;
+static bool is_jobbingtrack_container_name(const char *name) {
+    return name && strstr(name, "jobbingtrack-") != NULL;
+}
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_curl_body);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 0L);
+typedef struct {
+    int container_index;
+} HealthRequest;
 
-    CURLcode res = curl_easy_perform(curl);
-    long code = 0;
-    double total_time = 0.0;
-    if (res == CURLE_OK) {
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+static void run_health_checks_parallel(int container_idx) {
+    CURLM *multi = curl_multi_init();
+    if (!multi) return;
+
+    HealthRequest requests[MAX_CONTAINERS];
+    CURL *handles[MAX_CONTAINERS];
+    int request_count = 0;
+
+    for (int i = 0; i < container_idx && i < MAX_CONTAINERS; i++) {
+        if (global_metrics.containers[i].name[0] == '\0') continue;
+
+        /* Ne pas faire de health check HTTP sur postgres/redis (protocole non-HTTP). */
+        if (strstr(global_metrics.containers[i].name, "postgres") != NULL ||
+            strstr(global_metrics.containers[i].name, "redis") != NULL) {
+            global_metrics.containers[i].response_time_ms = 0.0;
+            global_metrics.containers[i].http_status = 0;
+            continue;
+        }
+
+        char health_url[512];
+        build_known_health_url(global_metrics.containers[i].name, health_url, sizeof(health_url));
+        snprintf(global_metrics.containers[i].health_url, sizeof(global_metrics.containers[i].health_url), "%s", health_url);
+
+        CURL *curl = curl_easy_init();
+        if (!curl) {
+            global_metrics.containers[i].response_time_ms = 0.0;
+            global_metrics.containers[i].http_status = 0;
+            continue;
+        }
+
+        requests[request_count].container_index = i;
+        handles[request_count] = curl;
+        curl_easy_setopt(curl, CURLOPT_URL, global_metrics.containers[i].health_url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_curl_body);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(curl, CURLOPT_FAILONERROR, 0L);
+        curl_easy_setopt(curl, CURLOPT_PRIVATE, &requests[request_count]);
+        curl_multi_add_handle(multi, curl);
+        request_count++;
     }
-    curl_easy_cleanup(curl);
 
-    if (res != CURLE_OK || code <= 0) {
-        *response_time_ms = 0.0;
-        *http_status = 0;
-        return -1;
+    int running = 0;
+    curl_multi_perform(multi, &running);
+    while (running > 0) {
+        int numfds = 0;
+        CURLMcode wait_code = curl_multi_wait(multi, NULL, 0, 3000, &numfds);
+        if (wait_code != CURLM_OK) break;
+        curl_multi_perform(multi, &running);
     }
 
-    *response_time_ms = total_time * 1000.0;
-    *http_status = (int)code;
-    return 0;
+    int messages_left = 0;
+    CURLMsg *msg = NULL;
+    while ((msg = curl_multi_info_read(multi, &messages_left)) != NULL) {
+        if (msg->msg != CURLMSG_DONE) continue;
+
+        HealthRequest *req = NULL;
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &req);
+        if (!req) continue;
+
+        int idx = req->container_index;
+        long code = 0;
+        double total_time = 0.0;
+        if (msg->data.result == CURLE_OK) {
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &code);
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_TOTAL_TIME, &total_time);
+        }
+
+        if (msg->data.result == CURLE_OK && code > 0) {
+            global_metrics.containers[idx].response_time_ms = total_time * 1000.0;
+            global_metrics.containers[idx].http_status = (int)code;
+        } else {
+            global_metrics.containers[idx].response_time_ms = 0.0;
+            global_metrics.containers[idx].http_status = 0;
+        }
+    }
+
+    for (int i = 0; i < request_count; i++) {
+        curl_multi_remove_handle(multi, handles[i]);
+        curl_easy_cleanup(handles[i]);
+    }
+    curl_multi_cleanup(multi);
 }
 
 /**
@@ -247,21 +309,8 @@ int collect_container_metrics(void) {
 #if MONITORING_DEBUG
     printf("[DEBUG] Début collecte conteneurs (container_idx=%d)\n", container_idx);
 #endif
-    // Compter les conteneurs Docker actifs (pour info)
-    FILE *fp = popen("docker ps -q 2>/dev/null | wc -l", "r");
-    if (fp) {
-        int count = 0;
-        if (fscanf(fp, "%d", &count) == 1) {
-            // Ne pas écraser si on trouve des conteneurs JobbingTrack
-            if (container_idx == 0) {
-                global_metrics.container_count = count;
-            }
-        }
-        pclose(fp);
-    }
-    
-    // Collecter les stats détaillées des conteneurs JobbingTrack
-    FILE *stats_fp = popen("docker stats --no-stream --format '{{json .}}' $(docker ps --filter 'name=jobbingtrack-' --format '{{.Names}}' 2>/dev/null | tr '\\n' ' ') 2>/dev/null", "r");
+    // Une seule invocation Docker CLI : filtrage JobbingTrack côté C (évite `docker ps` + substitution shell).
+    FILE *stats_fp = popen("docker stats --no-stream --format '{{json .}}' 2>/dev/null", "r");
     if (stats_fp) {
         char line[4096];
         
@@ -297,8 +346,12 @@ int collect_container_metrics(void) {
             size_t name_len = name_end - name_start;
             if (name_len >= sizeof(global_metrics.containers[container_idx].name)) continue;
             
-            strncpy(global_metrics.containers[container_idx].name, name_start, name_len);
-            global_metrics.containers[container_idx].name[name_len] = '\0';
+            char container_name[256] = {0};
+            strncpy(container_name, name_start, name_len);
+            container_name[name_len] = '\0';
+            if (!is_jobbingtrack_container_name(container_name)) continue;
+
+            snprintf(global_metrics.containers[container_idx].name, sizeof(global_metrics.containers[container_idx].name), "%s", container_name);
             
             // ✅ CORRECTION : Parser CPU (format: "0.00%" ou "40.24%")
             // Ne pas modifier la ligne originale, utiliser une copie temporaire
@@ -483,8 +536,7 @@ int collect_container_metrics(void) {
                total_tx / (1024.0 * 1024.0));
 #endif
     } else {
-        // Si aucun conteneur JobbingTrack trouvé, utiliser le compte total
-        // (déjà fait plus haut si container_idx == 0)
+        global_metrics.container_count = 0;
     }
     
     // Calculer les statistiques globales avant les health checks
@@ -521,32 +573,8 @@ int collect_container_metrics(void) {
     printf("[PROJECT] CPU Projet: total=%.2f%%, count=%d, avg=%.2f%%, Memory: %lu MB\n",
            project_cpu_total, project_container_count, global_metrics.project_cpu_avg, global_metrics.project_memory_mb);
 #endif
-    // Mesurer les temps de réponse HTTP sans fork `docker inspect` / `curl`.
-    for (int i = 0; i < container_idx && i < 100; i++) {
-        if (global_metrics.containers[i].name[0] != '\0') {
-            /* Ne pas faire de health check HTTP sur postgres/redis (protocole non-HTTP) */
-            if (strstr(global_metrics.containers[i].name, "postgres") != NULL ||
-                strstr(global_metrics.containers[i].name, "redis") != NULL) {
-                global_metrics.containers[i].response_time_ms = 0.0;
-                global_metrics.containers[i].http_status = 0;
-                continue;
-            }
-
-            // Construire l'URL de health check via nom conteneur + port/path connus.
-            char health_url[512];
-            build_known_health_url(global_metrics.containers[i].name, health_url, sizeof(health_url));
-            snprintf(global_metrics.containers[i].health_url, sizeof(global_metrics.containers[i].health_url), "%s", health_url);
-
-            if (perform_health_check(
-                    health_url,
-                    &global_metrics.containers[i].response_time_ms,
-                    &global_metrics.containers[i].http_status
-                ) != 0) {
-                global_metrics.containers[i].response_time_ms = 0.0;
-                global_metrics.containers[i].http_status = 0;
-            }
-        }
-    }
+    // Mesurer les temps de réponse HTTP en parallèle (libcurl multi, sans forks).
+    run_health_checks_parallel(container_idx);
     
     // Calculer le temps de réponse moyen, le score de charge et le taux d'erreur
     double total_response_time = 0.0;
