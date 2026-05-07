@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic env-check env-append-missing env-reorder
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report status-port help-diagnostic env-check env-append-missing env-reorder
 
 # ============================================================================
 # AIDE
@@ -25,6 +25,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "  make diagnostic            - Diagnostic complet système"
 	@echo "  make diagnostic-docker     - Diagnostic Docker uniquement"
 	@echo "  make diagnostic-metrics    - Comparer Docker Desktop vs métriques agrégées"
+	@echo "  make redis-memory-report   - Pression mémoire Redis (dataset, RSS, fragmentation)"
 	@echo "  make diagnostic-cors       - Diagnostic CORS"
 	@echo "  make diagnostic-network    - Diagnostic réseau"
 	@echo "  make diag-services         - Diagnostic services backend"
@@ -263,6 +264,9 @@ verify-admin-routes: ## Vérifier les routes admin sur la gateway (port 5002 ou 
 diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 	@echo "📈 Diagnostic des métriques Docker & hôte..."
 	@./scripts/monitoring/diagnostic-metrics.sh
+
+redis-memory-report: ## Mesurer la pression mémoire Redis (budget: REDIS_MEMORY_BUDGET_MB, défaut 128)
+	@./scripts/monitoring/redis-memory-report.sh
 
 # ============================================================================
 # AFFICHAGE DES PORTS
