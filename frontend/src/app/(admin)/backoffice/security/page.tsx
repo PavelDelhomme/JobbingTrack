@@ -76,15 +76,10 @@ type SecurityWeights = {
   threats: number
   logsNoise: number
   wafDisabled: number
-  cpu: number
-  memory: number
-  load: number
-  disk: number
-  responseTime: number
-  serviceHealth: number
 }
 
 const LOGS_WINDOW_DAYS = 30
+const SECURITY_LOGS_FETCH_LIMIT = 2000
 
 const defaultOverview: SecurityOverview = {
   logsCount: 0,
@@ -120,12 +115,6 @@ export default function SecurityOverviewPage() {
     threats: 2,
     logsNoise: 1,
     wafDisabled: 15,
-    cpu: 8,
-    memory: 8,
-    load: 6,
-    disk: 6,
-    responseTime: 6,
-    serviceHealth: 8,
   })
   const [incidentsPage, setIncidentsPage] = useState(1)
   const [testIpBusy, setTestIpBusy] = useState(false)
@@ -167,7 +156,7 @@ export default function SecurityOverviewPage() {
       setServiceError(null)
       const logSince = encodeURIComponent(new Date(Date.now() - LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString())
       const [logs, threats, blockedIps, wafConfig, firewallRules, metrics, crashes] = await Promise.all([
-          fetchJson(`/api/v1/security/logs?limit=500&startDate=${logSince}`),
+          fetchJson(`/api/v1/security/logs?limit=${SECURITY_LOGS_FETCH_LIMIT}&startDate=${logSince}`),
           fetchJson('/api/v1/security/firewall/threats?limit=200'),
           fetchJson('/api/v1/security/firewall/blocked-ips'),
           fetchJson('/api/v1/security/waf/config'),
@@ -317,13 +306,6 @@ export default function SecurityOverviewPage() {
       - Math.min(30, Math.max(0, overview.logsCount - 20) * weights.logsNoise)
       - Math.min(20, overview.blockedIpsCount > 0 ? 10 : 0)
       - (overview.wafEnabled === false ? weights.wafDisabled : 0)
-      - (overview.systemCpuPercent !== null && overview.systemCpuPercent > 85 ? weights.cpu : 0)
-      - (overview.projectCpuPercent !== null && overview.projectCpuPercent > 85 ? weights.cpu : 0)
-      - (overview.projectMemoryPercent !== null && overview.projectMemoryPercent > 25 ? weights.memory : 0)
-      - (overview.systemLoadPerCore !== null && overview.systemLoadPerCore > 1.5 ? weights.load : 0)
-      - (overview.diskUsagePercent !== null && overview.diskUsagePercent > 90 ? weights.disk : 0)
-      - (overview.responseTimeMs !== null && overview.responseTimeMs > 1200 ? weights.responseTime : 0)
-      - (overview.totalServices > 0 && overview.healthyServices < overview.totalServices ? weights.serviceHealth : 0)
     return Math.max(0, Math.min(100, Math.round(score)))
   }, [overview, weights])
 
@@ -339,7 +321,7 @@ export default function SecurityOverviewPage() {
     {
       title: 'Logs sécurité',
       value: overview.logsCount,
-      subtitle: `Entrées (fenêtre ${overview.logsPeriodDays} j., max 500)`,
+      subtitle: `Entrées chargées sur ${overview.logsPeriodDays} j. (limite UI ${SECURITY_LOGS_FETCH_LIMIT})`,
       href: '/backoffice/security/logs',
     },
     { title: 'Menaces', value: overview.threatsCount, subtitle: 'Détections réseau', href: '/backoffice/security/threats' },
@@ -423,14 +405,14 @@ export default function SecurityOverviewPage() {
             </div>
           )}
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-gray-600 dark:text-gray-400">
-            <div>CPU système: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.systemCpuPercent === null ? 'N/A' : `${overview.systemCpuPercent.toFixed(1)}%`}</span></div>
-            <div>CPU projet: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.projectCpuPercent === null ? 'N/A' : `${overview.projectCpuPercent.toFixed(1)}%`}</span></div>
-            <div>Mémoire projet: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.projectMemoryPercent === null ? 'N/A' : `${overview.projectMemoryPercent.toFixed(1)}%`}</span></div>
-            <div>Services: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.totalServices > 0 ? `${overview.healthyServices}/${overview.totalServices}` : 'N/A'}</span></div>
-            <div>Conteneurs actifs: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.activeContainers}</span></div>
-            <div>Disque: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.diskUsagePercent === null ? 'N/A' : `${overview.diskUsagePercent.toFixed(1)}%`}</span></div>
-            <div>Charge/core: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.systemLoadPerCore === null ? 'N/A' : overview.systemLoadPerCore.toFixed(2)}</span></div>
-            <div>Temps réponse: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.responseTimeMs === null ? 'N/A' : `${overview.responseTimeMs.toFixed(0)} ms`}</span></div>
+            <div>Menaces: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.threatsCount}</span></div>
+            <div>Logs analysés: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.logsCount}</span></div>
+            <div>IPs bloquées: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.blockedIpsCount}</span></div>
+            <div>WAF: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.wafEnabled === null ? 'N/A' : overview.wafEnabled ? 'Activé' : 'Désactivé'}</span></div>
+            <div>Détections: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.detectionsCount}</span></div>
+            <div>Blocages auto: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.automaticBlocksCount}</span></div>
+            <div>Blocages manuels: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.manualBlocksCount}</span></div>
+            <div>Crashes mobile: <span className="font-semibold text-gray-900 dark:text-gray-100">{overview.mobileCrashesCount}</span></div>
           </div>
           <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-900 dark:text-amber-200">
             <div className="font-semibold">Mode test blocage IP sûr</div>

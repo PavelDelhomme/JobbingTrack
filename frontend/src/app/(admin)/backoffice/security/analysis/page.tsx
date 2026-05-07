@@ -16,6 +16,7 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 const ANALYSIS_LOGS_WINDOW_DAYS = 30;
+const ANALYSIS_LOGS_FETCH_LIMIT = 2000;
 
 export default function SecurityAnalysisPage() {
   const [summary, setSummary] = useState<any>(null);
@@ -34,7 +35,7 @@ export default function SecurityAnalysisPage() {
       const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.all([
         axios.get(`${API_URL}/api/v1/security/stats?days=1`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers, timeout: 7000 }),
-        axios.get(`${API_URL}/api/v1/security/logs?limit=500&startDate=${logSince}`, { headers, timeout: 7000 }),
+        axios.get(`${API_URL}/api/v1/security/logs?limit=${ANALYSIS_LOGS_FETCH_LIMIT}&startDate=${logSince}`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/threats?limit=200`, { headers, timeout: 7000 }),
       ]);
 
@@ -152,8 +153,8 @@ export default function SecurityAnalysisPage() {
             Évaluation complète de la sécurité de votre application
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Logs sécurité : fenêtre glissante de {ANALYSIS_LOGS_WINDOW_DAYS} jours (max 500 entrées). Menaces : jusqu’à
-            200 entrées récentes. Les dates et heures sont affichées en <strong>heure locale</strong> du navigateur
+            Logs sécurité : fenêtre glissante de {ANALYSIS_LOGS_WINDOW_DAYS} jours (limite UI {ANALYSIS_LOGS_FETCH_LIMIT} entrées). Menaces :
+            jusqu’à 200 entrées récentes. Les dates et heures sont affichées en <strong>heure locale</strong> du navigateur
             (les API renvoient des timestamps ISO, en pratique UTC ou stockage serveur).
           </p>
         </div>
