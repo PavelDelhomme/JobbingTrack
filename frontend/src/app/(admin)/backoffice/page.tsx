@@ -881,9 +881,9 @@ export default function BackofficePage() {
   return (
     <AdminLayout>
       <div className="space-y-6 md:space-y-8">
-        {/* Ligne 1 : pilotage produit / dispo — Ligne 2 : ressources conteneurs (évite 6 cartes serrées sur une seule rangée) */}
+        {/* Cartes synthèse : 1 colonne mobile, 2 colonnes tablette, 3 colonnes desktop. */}
         <div className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 md:gap-6">
             <MetricCard
               title="Sessions actives"
               value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
@@ -900,8 +900,6 @@ export default function BackofficePage() {
               color="red"
               href="/backoffice/security"
             />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
             <MetricCard
               title="Santé système"
               value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
@@ -916,8 +914,6 @@ export default function BackofficePage() {
               icon={<Clock className="h-6 w-6" />}
               color="purple"
             />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 xl:max-w-3xl gap-4 md:gap-6">
             <MetricCard
               title="CPU conteneurs JobbingTrack"
               value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined

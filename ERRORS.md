@@ -411,7 +411,7 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 ### Causes probables en audit code (a valider par profiling runtime)
 - `monitoring-c`: usage d'appels externes répétés (`popen` + `docker stats` / `docker inspect` / `curl`) dans la boucle de collecte.
 - `monitoring-c`: health checks HTTP séquentiels, potentiellement coûteux quand le nombre de services augmente.
-- `log-collector-c`: surveillance `inotify` sans stratégie complète de rotation + découverte dynamique continue.
+- `log-collector-c`: surveillance `inotify` sans stratégie complète de rotation + découverte dynamique continue (**corrigé dépôt 07/05** : non bloquant + rescan périodique + rotation/suppression ; reste smoke conteneur).
 - `metrics-aggregator`: boucle de collecte riche (monitoring-c + fallback Docker + health + persistance + export), sensible à la taille de la stack.
 
 ### Actions correctives prioritaires

@@ -57,6 +57,7 @@ services:
     command: ["./log-collector-c", "${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - LOG_COLLECTOR_READ_EXISTING=${LOG_COLLECTOR_READ_EXISTING:-0}
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
       - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}

@@ -10,8 +10,8 @@
 - [x] Metrics-aggregator: profiler `collectAllMetrics` — **`METRICS_AGGREGATOR_PROFILE_COLLECT=1`** (`server.js` : `createCollectProfiler`, phases chronométrées + meta `monitoringC` / `dockerFallbackRan` / compteurs).
 - [x] Frontend: diagnostiquer le pic CPU (>300%) sous charge et réduire le coût des rafraîchissements/perf pages monitoring. (06/05: WATCHPACK polling off + cap mémoire Node + healthcheck simplifié)
 - [x] Redis: mesurer la pression mémoire réelle (dataset, RSS/buffers, fragmentation) + budget/actions — **`make redis-memory-report`** (`scripts/monitoring/redis-memory-report.sh`) ; budget local **128 MB**, warn **70%**, critical **85%**, fragmentation ignorée sous **10 MB** utilisés, actions affichées si `maxmemory=0`, fragmentation haute ou clients bloqués.
-- [ ] Log collector C: corriger rotation logs + découverte dynamique conteneurs + lecture non bloquante.
-- [ ] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles.
+- [x] Log collector C: rotation/troncature + découverte dynamique + lecture non bloquante — **`collector.c`** passe à `inotify_init1(IN_NONBLOCK)` + `poll`, traite les événements fichier même avec `len=0`, rescane `/var/lib/docker/containers` toutes les 10s, évite les watches en double, retire les watches sur `IN_MOVE_SELF`/`IN_DELETE_SELF`, option **`LOG_COLLECTOR_READ_EXISTING=0`** pour éviter d’ingérer tout l’historique au démarrage ; compilation C OK.
+- [ ] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles. **07/05 partiel** : health checks sans `docker inspect`/`docker port`/`curl` shell (ports/paths connus + libcurl dans `collector.c`) ; reste `docker stats`/`docker ps` + parallélisation / API Docker-cgroups.
 - [ ] Validation dédiée "coût collecte métriques": benchmark comparatif avant/après sur CPU, RAM, IO pour chaque composant de monitoring.
 
 Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.

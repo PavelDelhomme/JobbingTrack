@@ -19,6 +19,10 @@ Le système de monitoring en C (`monitoring-c`) collecte des métriques système
 2. **Conteneurs non démarrés** : Si les conteneurs ne sont pas actifs, ils ne seront pas dans les métriques
 3. **Problème de filtre** : Si le filtre `jobbingtrack-` ne fonctionne pas, les conteneurs ne seront pas comptés
 
+### Health checks
+
+Depuis le correctif perf du 07/05, les health checks ne lancent plus `docker inspect`, `docker port` ni `curl` via `popen`. Le collecteur construit l’URL depuis les ports/paths connus des services JobbingTrack et mesure la réponse avec libcurl. Le coût restant côté `monitoring-c` vient surtout de `docker stats` / `docker ps`, encore traités par shell dans cette étape.
+
 ### Diagnostic
 
 Pour diagnostiquer pourquoi le CPU projet est à 0% :
@@ -94,7 +98,7 @@ Pour implémenter la persistance, il faudra :
 
 ### Fonctionnement
 
-Le `log-collector-c` utilise `inotify` pour surveiller les fichiers de logs Docker (`/var/lib/docker/containers/*/*-json.log`) et les collecte en temps réel.
+Le `log-collector-c` utilise `inotify` non bloquant pour surveiller les fichiers de logs Docker (`/var/lib/docker/containers/*/*-json.log`) et les collecte en temps réel. Il rescane les conteneurs périodiquement (nouveaux fichiers), gère les suppressions/rotations de fichiers et repart au début si un log est tronqué. Par défaut, `LOG_COLLECTOR_READ_EXISTING=0` évite d’ingérer tout l’historique au démarrage ; mettre `1` seulement pour une reprise volontaire.
 
 ### Tests
 
