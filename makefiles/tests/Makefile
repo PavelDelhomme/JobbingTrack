@@ -15,7 +15,7 @@ endif
         test-email-logs test-email-logs-all test-email-logs-stats test-all test-full \
         test-full-quick test-full-cached test-full-timed up-full-timed \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
-        test-performance test-security test-integration test-docker test-monitoring \
+        test-performance test-security test-cve-scan test-integration test-docker test-monitoring \
         test-unit test-services test-infrastructure test-cache test-analytics \
         test-suite-quick test-suite-quick-nocontroller test-suite-full
 
@@ -65,6 +65,7 @@ tests-help:
 	@echo "  make test-e2e                 Tests E2E Playwright"
 	@echo "  make test-performance         Tests de performance"
 	@echo "  make test-security            Tests de sécurité"
+	@echo "  make test-cve-scan            Scan CVE dépendances Node/Rust (+ Docker si CVE_SCAN_DOCKER=1)"
 	@echo "  make test-integration         Tests d'intégration"
 	@echo "  make test-docker              Tests Docker"
 	@echo "  make test-monitoring          Tests monitoring"
@@ -871,5 +872,14 @@ test-security: ## Tests de sécurité API gateway (XSS, SQLi, rate limit, header
 	else \
 		echo "⚠️  tests/security/test-security.js non trouvé"; exit 1; \
 	fi
+	@$(MAKE) test-cve-scan
 	@echo ""
 	@echo "✅ Tests sécurité terminés"
+
+test-cve-scan: ## Scan CVE supply-chain : Node package-lock, Rust cargo-audit si disponible, Docker via CVE_SCAN_DOCKER=1. Strict: CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high
+	$(call check_help_read,test-cve-scan)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🧬 SCAN CVE / SUPPLY CHAIN - JobbingTrack      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" python3 scripts/security/cve-scan.py
