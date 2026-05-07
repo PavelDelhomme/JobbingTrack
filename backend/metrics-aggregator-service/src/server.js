@@ -622,6 +622,13 @@ function monitoringSourceName(url) {
   return url.includes('monitoring-agent-rs') ? 'monitoring-agent-rs' : 'monitoring-c'
 }
 
+function roundMetric(value, decimals = 1) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  const factor = 10 ** decimals
+  return Math.round(number * factor) / factor
+}
+
 async function collectMetricsFromMonitoringSource() {
   const urls = monitoringSourceUrls()
   let lastError = null
@@ -687,6 +694,8 @@ async function collectAllMetrics() {
     // Découvrir les services
     const discoveredServices = await discoverServices()
     prof.step('discover_services')
+
+    containerMetrics = {}
 
     // Collecter métriques système et conteneurs (fallback si la source bas niveau est indisponible)
     if (!monitoringCData) {
@@ -795,10 +804,11 @@ async function collectAllMetrics() {
       if (monitoringCData.disk) {
         systemMetrics.disk = [{
           name: 'root',
-          total: monitoringCData.disk.total_gb,
-          used: monitoringCData.disk.used_gb,
-          free: monitoringCData.disk.free_gb,
-          usage: monitoringCData.disk.usage_percent
+          total: roundMetric(monitoringCData.disk.total_gb, 1),
+          used: roundMetric(monitoringCData.disk.used_gb, 1),
+          free: roundMetric(monitoringCData.disk.free_gb, 1),
+          usage: roundMetric(monitoringCData.disk.usage_percent, 1),
+          usage_percent: roundMetric(monitoringCData.disk.usage_percent, 1)
         }]
       }
       prof.step('merge_monitoring_c_system_fields')

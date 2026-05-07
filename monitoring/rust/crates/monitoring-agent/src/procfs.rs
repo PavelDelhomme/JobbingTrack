@@ -1,6 +1,7 @@
 use crate::config::Config;
-use crate::constants::{BYTES_PER_MIB, ONE_HUNDRED_PERCENT};
+use crate::constants::{BYTES_PER_GIB, BYTES_PER_MIB, DISK_METRICS_PATH, ONE_HUNDRED_PERCENT};
 use crate::types::{CpuMetrics, CpuSnapshot, DiskMetrics, MemoryMetrics, U64};
+use std::ffi::CString;
 use std::fs;
 use std::path::Path;
 
@@ -35,12 +36,7 @@ pub fn read_memory_metrics(config: &Config) -> MemoryMetrics {
 }
 
 pub fn read_disk_metrics() -> DiskMetrics {
-    DiskMetrics {
-        total_gb: 0.0,
-        used_gb: 0.0,
-        free_gb: 0.0,
-        usage_percent: 0.0,
-    }
+    read_statvfs_disk(DISK_METRICS_PATH).unwrap_or_default()
 }
 
 pub fn compute_cpu_percent(old: CpuSnapshot, current: CpuSnapshot) -> f64 {
@@ -106,4 +102,33 @@ fn parse_cpu_values(line: &str) -> Vec<U64> {
 
 fn parse_meminfo_kb(value: &str) -> Option<U64> {
     value.split_whitespace().next()?.parse::<U64>().ok()
+}
+
+fn read_statvfs_disk(path: &str) -> Option<DiskMetrics> {
+    let c_path = CString::new(path).ok()?;
+    let mut stat = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    let result = unsafe { libc::statvfs(c_path.as_ptr(), stat.as_mut_ptr()) };
+    if result != 0 {
+        return None;
+    }
+
+    let stat = unsafe { stat.assume_init() };
+    let block_size = if stat.f_frsize > 0 {
+        stat.f_frsize
+    } else {
+        stat.f_bsize
+    };
+    let total_bytes = stat.f_blocks.saturating_mul(block_size);
+    if total_bytes == 0 {
+        return None;
+    }
+    let free_bytes = stat.f_bavail.saturating_mul(block_size);
+    let used_bytes = total_bytes.saturating_sub(free_bytes);
+
+    Some(DiskMetrics {
+        total_gb: total_bytes as f64 / BYTES_PER_GIB,
+        used_gb: used_bytes as f64 / BYTES_PER_GIB,
+        free_gb: free_bytes as f64 / BYTES_PER_GIB,
+        usage_percent: used_bytes as f64 * ONE_HUNDRED_PERCENT / total_bytes as f64,
+    })
 }
