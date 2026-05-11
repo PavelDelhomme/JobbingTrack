@@ -1,19 +1,16 @@
-# 📋 TODO et Corrections
+# TODO et suivi historique
 
-> Dossier centralisé pour tous les fichiers TODO et corrections en cours.
+Le suivi opérationnel principal est **[`../TODOS.md`](../TODOS.md)**. Ce dossier ne doit contenir que des notes historiques ou spécialisées qui ne remplacent pas la checklist principale.
 
 ## 📄 Fichiers
 
-- **[TODO_CORRECTIONS.md](TODO_CORRECTIONS.md)** - Liste des corrections et améliorations à effectuer
-- **[CORRECTIONS_EN_COURS.md](CORRECTIONS_EN_COURS.md)** - Corrections actuellement en cours d'application
+- **[TODO_PERFORMANCE.md](TODO_PERFORMANCE.md)** - Historique et suivi spécialisé des optimisations performance.
 
 ---
 
-## 🎯 Priorités
+## Règle
 
-1. **Corrections Critiques** - Problèmes bloquants
-2. **Améliorations** - Fonctionnalités à améliorer
-3. **Optimisations** - Performance et UX
+Les nouvelles tâches doivent aller dans **[`../TODOS.md`](../TODOS.md)** ou **[`../BACKLOG.md`](../BACKLOG.md)**. Ne pas recréer de fichiers `TODO_CORRECTIONS.md` / `CORRECTIONS_EN_COURS.md` sans décision de restructuration.
 
 ---
 
