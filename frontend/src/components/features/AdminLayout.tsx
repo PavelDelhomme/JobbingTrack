@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState, useEffect } from 'react'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/auth'
@@ -67,6 +67,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     dev: true,
     cleanup: false,
   })
+
+  const prefetchInternalRoute = useCallback((href?: string, external?: boolean) => {
+    if (!href || external || !href.startsWith('/')) return
+    router.prefetch(href)
+  }, [router])
 
   // Charger l'état des sections (et items dépliables) depuis localStorage, en fusionnant avec les défauts
   useEffect(() => {
@@ -365,16 +370,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen">
       <style jsx>{`
-        /* Animation personnalisée pour les éléments actifs */
-        @keyframes activePulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-
-        .nav-item-active {
-          animation: activePulse 2s ease-in-out infinite;
-        }
-
         /* Effet de survol amélioré */
         .nav-item-hover {
           transition: all 0.2s ease;
@@ -418,7 +413,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         `}>
           {/* Logo avec bouton de fermeture sur mobile */}
           <div className="flex h-16 items-center justify-between px-4 bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-            <Link href="/backoffice" className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+            <Link
+              href="/backoffice"
+              prefetch={false}
+              onMouseEnter={() => prefetchInternalRoute('/backoffice')}
+              onFocus={() => prefetchInternalRoute('/backoffice')}
+              className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white"
+            >
               🎯 JobbingTrack
             </Link>
             {/* Bouton fermer visible uniquement sur mobile */}
@@ -456,7 +457,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   `}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`text-base transition-all ${isSectionActive(section) ? 'animate-pulse' : ''}`}>
+                    <span className="text-base transition-all">
                       {section.icon}
                     </span>
                     <span className={`transition-all ${isSectionActive(section) ? 'font-bold' : ''}`}>
@@ -490,8 +491,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           {/* Indicateur visuel pour l'élément actif */}
                           {(isActive || isSubItemActive) && (
                             <>
-                              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-blue-500 dark:bg-blue-400 rounded-r-full animate-pulse"></div>
-                              <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-600 dark:bg-blue-300 rounded-full animate-ping opacity-75"></div>
+                              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-blue-500 dark:bg-blue-400 rounded-r-full"></div>
+                              <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-600 dark:bg-blue-300 rounded-full opacity-75"></div>
                             </>
                           )}
 
@@ -500,7 +501,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-blue-500 dark:bg-blue-400 rounded-r-full opacity-50"></div>
                           )}
 
-                          <span className={`mr-3 text-base transition-all ${isActive ? 'animate-bounce' : 'group-hover:scale-110'}`}>
+                          <span className={`mr-3 text-base transition-all ${isActive ? '' : 'group-hover:scale-110'}`}>
                             {item.icon}
                           </span>
                           <span className={`truncate transition-all ${isActive || isSubItemActive ? 'font-bold' : ''}`}>
@@ -511,7 +512,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           {/* Badge pour l'élément actif */}
                           {(isActive || isSubItemActive) && (
                             <div className="ml-auto">
-                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                              <div className="w-2 h-2 bg-white rounded-full"></div>
                             </div>
                           )}
                         </>
@@ -537,6 +538,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               <div className="flex items-center">
                                 <Link
                                   href={item.href}
+                                  prefetch={false}
+                                  onMouseEnter={() => prefetchInternalRoute(item.href, item.external)}
+                                  onFocus={() => prefetchInternalRoute(item.href, item.external)}
                                   className={`
                                     flex-1 flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
                                     ${isActive || isSubItemActive
@@ -593,12 +597,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         <Link
                                           key={subItem.name}
                                           href={subItem.href}
+                                          prefetch={false}
+                                          onMouseEnter={() => prefetchInternalRoute(subItem.href, subItem.external)}
+                                          onFocus={() => prefetchInternalRoute(subItem.href, subItem.external)}
                                           className={linkClass}
                                         >
                                           <span className="mr-2 text-sm">{subItem.icon}</span>
                                           <span>{subItem.name}</span>
                                           {isSubActive && (
-                                            <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                            <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full"></div>
                                           )}
                                         </Link>
                                       )
@@ -623,6 +630,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
+                  onMouseEnter={() => user?.id && prefetchInternalRoute(`/backoffice/users/${user.id}`)}
+                  onFocus={() => user?.id && prefetchInternalRoute(`/backoffice/users/${user.id}`)}
                   onClick={() => {
                     if (user?.id) {
                       router.push(`/backoffice/users/${user.id}`)
@@ -758,6 +767,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     />
                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
                       <button
+                        onMouseEnter={() => prefetchInternalRoute('/backoffice/analytics')}
+                        onFocus={() => prefetchInternalRoute('/backoffice/analytics')}
                         onClick={() => {
                           router.push('/backoffice/analytics')
                           setIsQuickActionsDropdownOpen(false)
@@ -768,6 +779,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <span>Analytics</span>
                       </button>
                       <button
+                        onMouseEnter={() => prefetchInternalRoute('/backoffice/statistics')}
+                        onFocus={() => prefetchInternalRoute('/backoffice/statistics')}
                         onClick={() => {
                           router.push('/backoffice/statistics')
                           setIsQuickActionsDropdownOpen(false)
@@ -778,6 +791,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <span>Statistiques</span>
                       </button>
                       <button
+                        onMouseEnter={() => prefetchInternalRoute('/search')}
+                        onFocus={() => prefetchInternalRoute('/search')}
                         onClick={() => {
                           router.push('/search')
                           setIsQuickActionsDropdownOpen(false)
@@ -788,6 +803,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <span>Recherche</span>
                       </button>
                       <button
+                        onMouseEnter={() => prefetchInternalRoute('/backoffice/services')}
+                        onFocus={() => prefetchInternalRoute('/backoffice/services')}
                         onClick={() => {
                           router.push('/backoffice/services')
                           setIsQuickActionsDropdownOpen(false)

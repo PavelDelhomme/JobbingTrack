@@ -26,6 +26,23 @@ Objectif : cadrer les tests de sécurité à réaliser sur JobbingTrack, côté 
 - **`jwt_tool` sur l’auth JWT** : tester `alg:none`, confusion d’algorithme, expiration, issuer/audience, rotation secrets et rejet des tokens modifiés.
 - **OWASP ZAP en active scan sur l’API locale** : cible privilégiée pour API REST, à lancer sur environnement autorisé, borné et via la gateway pour couvrir WAF/rate limit/auth/corrélation.
 
+### Commandes P0 restantes
+
+Ces commandes ne doivent viser que `localhost`, un environnement de test ou une préprod explicitement autorisée.
+
+```bash
+# Ports exposés : nécessite une cible autorisée, idéalement l'IP/FQDN préprod vu depuis l'extérieur.
+SECURITY_NMAP_TARGET=preprod-api.example.test make security-scan-ports
+
+# JWT : utiliser uniquement un token de lab court-vivant, jamais un token réel utilisateur/prod.
+JWT_AUDIT_TOKEN="eyJ..." make security-scan-jwt
+
+# ZAP actif : scan potentiellement agressif, uniquement gateway locale/préprod contrôlée.
+SECURITY_ACTIVE_SCAN=1 ZAP_TARGET=http://localhost:5002 ZAP_MAX_MINUTES=10 make security-zap-active
+```
+
+Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé pour l’audit JWT, Docker/ZAP disponible pour `security-zap-active`. Si l’outil manque, noter `skipped` dans le rapport plutôt que simuler un succès.
+
 ## Matrice attaque, outils et protections
 
 | Menace | Outils de test | Protection attendue | Preuve attendue |
