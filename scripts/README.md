@@ -31,6 +31,7 @@ scripts/
 | `scripts/db/backup.sh` | Backup PostgreSQL vers `backups/database/`, utilisé par `make db-backup`. |
 | `scripts/health/check-env.sh` | Validation `.env`. |
 | `scripts/health/check-services.sh` | Inspection des conteneurs JobbingTrack. |
+| `scripts/docker/diagnose-network.sh` | Diagnostic réseau Docker local (`veth`, `bridge`, `overlay`) quand les conteneurs ne peuvent plus se connecter. |
 | `scripts/utils/diagnostic.sh` | Diagnostic général et sous-modes Docker/CORS/réseau. |
 | `scripts/security/cve-scan.py` | Scan CVE Node/Rust/Docker, utilisé par `make test-cve-scan`. |
 | `scripts/security/test-firewall.sh` | Tests sécurité firewall/WAF. |
@@ -81,6 +82,23 @@ make test-firewall
 make security-live-check
 make test-cve-scan
 ```
+
+### Docker
+
+Si `make up-full` échoue sur `failed to add the host <=> sandbox pair interfaces`, le problème est côté réseau Docker/kernel, pas côté application. Lance :
+
+```bash
+make docker-network-diagnose
+```
+
+Réparation courante sous Linux/Arch :
+
+```bash
+sudo modprobe veth bridge br_netfilter overlay
+sudo systemctl restart docker
+```
+
+Si `modprobe veth` échoue après une mise à jour kernel, redémarrer sur le kernel installé ou réinstaller les modules (`sudo pacman -Syu linux linux-headers`, puis `reboot`).
 
 ### Tests
 

@@ -848,7 +848,11 @@ export default function BackofficePage() {
         loadServicesWithMetrics()
       }
     }, servicesRefreshInterval)
-    return () => clearInterval(interval)
+    return () => {
+      mounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      clearInterval(interval)
+    }
   }, [servicesRefreshInterval])
 
   // Charger les maintenances au démarrage

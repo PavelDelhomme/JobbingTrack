@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder
+.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder
 
 # ============================================================================
 # AIDE
@@ -19,6 +19,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "  make health                - Vérifier santé de tous les services"
 	@echo "  make check-deps            - Vérifier dépendances (Docker, etc.)"
 	@echo "  make show-docker-info      - Afficher infos Docker"
+	@echo "  make docker-network-diagnose - Diagnostiquer veth/bridge/overlay Docker"
 	@echo "  make status-port           - Afficher tous les ports exposés Docker"
 	@echo ""
 	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
@@ -135,6 +136,9 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 	else \
 		echo "❌ docker compose: Non disponible"; \
 	fi
+
+docker-network-diagnose: ## Diagnostiquer le réseau Docker local (veth, bridge, overlay, réseaux JobbingTrack)
+	@bash "$(ROOT_DIR)/scripts/docker/diagnose-network.sh"
 
 # Nettoyer cache Docker Compose
 clean-docker-cache: ## Nettoie le cache Docker Compose et force une redétection
