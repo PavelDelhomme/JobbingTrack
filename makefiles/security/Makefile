@@ -16,10 +16,10 @@ security-audit: ## Audit sécurité passif : secrets + CVE + ports compose prod 
 security-scan-secrets: ## Scan secrets Git via gitleaks/truffleHog si installés (historique complet)
 	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" ./scripts/security/secrets-scan.sh
 
-security-scan-images: ## Scan CVE images Docker locales via Trivy (CVE_SCAN_DOCKER=1)
-	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" CVE_SCAN_DOCKER=1 CVE_SCAN_DOCKER_ALL_IMAGES=1 python3 scripts/security/cve-scan.py
+security-scan-images: ## Scan CVE images Docker prod compose via Trivy (profiles full par défaut)
+	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" CVE_SCAN_DOCKER=1 CVE_SCAN_DOCKER_COMPOSE=1 python3 scripts/security/cve-scan.py
 
-security-scan-ports: ## Analyse exposition docker-compose.prod.yml + nmap si SECURITY_NMAP_TARGET est défini
+security-scan-ports: ## Analyse exposition compose prod fusionné (profiles full) + nmap si SECURITY_NMAP_TARGET est défini
 	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" ./scripts/security/ports-scan.sh
 
 security-scan-jwt: ## Audit JWT statique + jwt_tool si JWT_AUDIT_TOKEN est défini

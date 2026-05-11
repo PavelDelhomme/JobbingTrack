@@ -6,6 +6,8 @@
 
 **Release / préprod / conformité (11/05)** : nouveau cadrage **lot H** dans **`PLAN.md`** et **`operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**. La validation longue **coût collecte métriques** reste obligatoire avant prod, mais elle est reportée au gate tests complets/préprod plutôt que répétée à chaque itération. À prévoir : branche tests complets depuis `dev`, branche/environnement préprod, bêta mobile, scans sécurité P0, licences, RGPD, retours utilisateurs/crash reports, déploiements automatisés et décision mono-repo vs multi-repo.
 
+**Scan prod scannable (11/05)** : `make security-scan-ports` utilise maintenant la stack fusionnée `docker-compose.yml + docker-compose.prod.yml` avec profile `full` par défaut, et le scan images Trivy peut récupérer les images de cette même cible compose. Corrections appliquées : volume Postgres prod aligné sur `jobbingtrack_postgres_data`, `deploy.replicas` ramené à `1` tant que les services héritent de `container_name`. Résultat local : `docker compose config` OK ; finding à traiter ensuite, trop de ports internes restent publiés sur `0.0.0.0`.
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.
