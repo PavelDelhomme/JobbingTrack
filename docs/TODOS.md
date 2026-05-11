@@ -435,6 +435,28 @@ Remplir **`security/STATS.md`** après chaque passe d'outils ; cocher ici quand 
 
 ---
 
+## Tests sécurité offensifs contrôlés (PLAN B15)
+
+Source de cadrage : **`docs/security/SECURITY_TESTING_MATRIX.md`**. À exécuter uniquement sur local/test/préprod autorisée, avec comptes et jeux de données dédiés.
+
+- [ ] **Énumération URL/endpoints** : ajouter une commande projet (`make security-scan-api` ou équivalent) pour `ffuf` / `gobuster` / `nikto` / ZAP contre la gateway ; produire un rapport endpoints trouvés, statut attendu, authz OK/KO.
+- [ ] **Fuzzing paramètres et mass assignment** : couvrir `arjun` / `wfuzz` / Burp ; vérifier whitelist DTO, rejet champs sensibles (`role`, `isAdmin`, `userId`, `tenantId`, etc.) et absence de modification non autorisée.
+- [ ] **Injections entrées** : scénarios SQL/NoSQL (`sqlmap` + tests API), XSS (`dalfox`/ZAP), command injection (`commix`) ; rapporter protection ORM, validation, CSP/sanitisation, absence de shell non maîtrisé.
+- [ ] **Auth/JWT/IDOR/privilege escalation** : tester brute force borné (`hydra`/`medusa` en lab), `jwt_tool`, matrix rôle → route → statut, accès ressources d’autres utilisateurs, session fixation/hijack.
+- [ ] **API REST** : vérifier rate limiting, CORS, endpoints debug/health, erreurs non verbeuses, payload volumineux, limites body et corrélation logs.
+- [ ] **Docker/réseau** : `nmap` local/préprod, `trivy` images, Docker Scout si disponible, audit `docker.sock`, ports Redis/Postgres non publics, compose prod sans secrets fallback.
+- [ ] **Secrets/TLS/logs sensibles** : `gitleaks` / `truffleHog`, `sslscan` / `testssl.sh` en préprod/prod autorisée, redaction logs tokens/passwords/email.
+- [ ] **Contrôles prioritaires demandés** : `gitleaks` sur historique Git complet, `trivy` sur images Docker de prod, `nmap` sur l’exposition effective de `docker-compose.prod.yml`, `jwt_tool` sur les JWT, OWASP ZAP active scan sur API locale via gateway.
+- [ ] **DoS contrôlé et scans massifs** : tests bornés (`slowloris`, load testing) avec limites gateway/Nginx, timeouts, 429, circuit breaker et métriques ressources.
+- [ ] **Spoofing IP/headers** : vérifier `TRUST_PROXY_HOPS`, `X-Forwarded-For`, extraction IP fiable, séparation trafic interne/externe WAF.
+- [ ] **Performance / trafic interne** : ne pas analyser tout le trafic inter-conteneurs ; limiter la détection runtime au trafic entrant gateway/public, avec événements asynchrones vers `security-service`.
+- [ ] **Architecture par couches** : runtime léger dans `api-gateway`, audits CI/CD hors chemin critique, forensics/alerting dans `security-service`, métriques sécurité agrégées pour backoffice/Grafana.
+- [ ] **Mobile plus tard** : audit reverse engineering (MobSF, jadx/apktool), absence de secrets dans l’app, pinning TLS à évaluer, signaux root/jailbreak non utilisés comme unique preuve.
+- [ ] **Backoffice sécurité** : prévoir une page de tests non destructifs (WAF, rate limit, CORS, authz endpoints, santé sécurité) avec historique, statut et lien vers rapports.
+- [ ] **Rapports** : normaliser les sorties sous `reports/security/` ou `tests/results/security/` avec date, environnement, commit, outil, statut et actions restantes.
+
+---
+
 ## Fichiers « dot » à la racine & déploiement (à garder en tête)
 
 | Fichier | Rôle | Git / CI / prod |
