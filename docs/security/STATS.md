@@ -2,7 +2,7 @@
 
 **Rôle** : centraliser **où** et **comment** analyser les vulnérabilités connues (**CVE**) et les dépendances pour **chaque service Node**, **le frontend**, **les outils**, **les images Docker** et **l’application mobile**. Ce fichier est une **feuille de suivi** : les chiffres et dates se remplissent après exécution des outils **sur votre machine** ou en **CI** — ce n’est pas un rapport CVE généré automatiquement par le dépôt.
 
-**Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14** infra compose, lot **A** observabilité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`ERRORS.md`**, **`STATUS.md`**.
+**Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14/B15** infra compose et tests offensifs, lot **A** observabilité, lot **H** release/préprod/conformité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**, **`ERRORS.md`**, **`STATUS.md`**.
 
 **Dernière mise à jour** : 7 mai 2026 — ajout du scan automatisé **`scripts/security/cve-scan.py`** et de la cible **`make test-cve-scan`**.
 

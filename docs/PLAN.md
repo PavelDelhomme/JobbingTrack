@@ -4,6 +4,8 @@
 
 **Documents liés** : `STATUS.md` (état courant et priorités produit), `TODOS.md` (cases à cocher opérationnelles — **dernière section** = méta-chantiers : validation porteur, audit BDD avant tests massifs, refonte doc racine + `docs/`, trafic sécurité gateway), **`security/STATS.md`** (CVE / dépendances — tableaux à compléter après audits), **`operations/PREPROD_PRODUCTION_CHECKLIST.md`** (NTP, secrets, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway **en conteneur**, vérifs **manuelles** avant prod), **`security/COMPOSE_RUNTIME_HARDENING.md`** (durcissement **docker-compose** / **`docker.sock`** / Redis / non-root — lot **B14**), `BACKLOG.md` (backlog large et tâches « plus tard »), **`project/CHANTIER_SECURITE_DATA_DOCS.md`** (index du chantier dans `docs/`) ; **lot G** (sauvegardes / continuité) : **`PLAN.md`** § G, **`project/FONCTIONNALITES.md`** § 4.4.
 
+**Release / préprod / prod** : voir **`operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`** pour la séquence branche tests complets → préprod → bêta mobile → production, incluant licences, RGPD, retours utilisateurs, déploiements et décision mono-repo vs multi-repo.
+
 **Plan Cursor (IDE)** : le fichier `.cursor/plans/chantier_securite_data_docs_2c0a63b7.plan.md` peut encore nommer les lots dans l’**ancien** ordre ; **source de vérité** : ce **`PLAN.md`** (lots **A** = monitoring, **B** = sécurité, **G** = backup / continuité, avril 2026).
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.
@@ -166,6 +168,23 @@
 
 ---
 
+## Lot H — Release, préprod, conformité et distribution multi-plateformes
+
+**Synthèse (indicatif)** — Technique **~5 %** · **Validé porteur** : **0/8** — cadrage initial documenté, implémentation à faire avant passage `dev` → prod.
+
+| # | Tâche | État | Validé (porteur) | Fichiers / notes |
+|---|--------|------|------------------|------------------|
+| H1 | **Branche tests complets** : définir une branche dédiée depuis `dev` pour campagne backend, frontend, API, mobile, services, BDD, sécurité, performances, Playwright, qualité, erreurs et délivrables avant toute branche prod | À faire | Non | `operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`, `TODOS.md`, CI |
+| H2 | **Préprod serveur** : mettre en place un environnement préprod séparé (domaines, secrets, base, stockage, monitoring, alertes) pour tester avant prod réelle | À faire | Non | `deployment/VPS_PORTAINER_NPM_OVH.md`, `operations/PREPROD_PRODUCTION_CHECKLIST.md` |
+| H3 | **Bêta mobile** : préparer builds Android/iOS pointant vers préprod, canaux beta, versioning, signature, retours testeurs | À faire | Non | `mobile/`, `flutter-mobile-app/`, stores à choisir |
+| H4 | **Licences et conformité dépendances** : inventorier packages/outils/API/images, obligations de notice, compatibilité de licence projet par sous-partie | À faire | Non | Futur rapport licences ; `security/STATS.md` pour surfaces |
+| H5 | **RGPD / confidentialité / retours utilisateurs** : cadrer collecte, consentement, minimisation, export/suppression, rétention, rapports erreurs/crash/feedback exploitables | À faire | Non | `mobile/analytics/PRIVACY.md`, futur runbook conformité |
+| H6 | **Déploiements et mises à jour automatisés** : définir branches, gates, build images, registry, migrations, rollback, publication web/mobile, release notes | À faire | Non | `.github/workflows/*`, `docs/deployment/*` |
+| H7 | **Structure GitHub** : décider mono-repo vs multi-repo backend/frontend/mobile/infra selon cadence release, droits, CI, contrats API et rollback | À décider | Non | Cadrage dans `operations/RELEASE_PREPROD_PRODUCTION_PLAN.md` |
+| H8 | **Gate final prod** : tests complets + préprod validée + scans sécurité + licences + RGPD + sauvegarde/restauration + monitoring/alerting + rollback | À faire | Non | Doit être validé avant merge vers branche prod |
+
+---
+
 ## Avancement ponctuel déjà réalisé (vue d’ensemble `/backoffice`)
 
 Ces points **ne remplacent pas** les lots ci-dessus ; ils clarifient le tableau de bord admin :
@@ -205,6 +224,7 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 5. **E** en continu par **petites livraisons documentées** (sans PR tant que non demandé) ; éviter un gros « dump » doc en fin de chantier uniquement.
 6. **F** en gate avant de considérer le chantier « clos ».
 7. **G** (sauvegardes / continuité) : **après** stabilisation des lots **A/B** et clarification des contraintes hébergeur ; ne pas ralentir le socle monitoring/sécurité sans cadrage **G1**.
+8. **H** (release / préprod / conformité) : préparer en parallèle par documentation et CI, mais exécuter réellement avant toute bascule `dev` → prod.
 
 Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (aligné sur ce plan et sur **`ERRORS.md`** / **`project/FONCTIONNALITES.md`**).
 
