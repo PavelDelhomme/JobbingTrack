@@ -1,6 +1,6 @@
 # Chantier sécurité, data backoffice et documentation
 
-**Dernière mise à jour** : 6 mai 2026 — **Lot B14** : durcissement **docker-compose** / runtime (**`docs/security/COMPOSE_RUNTIME_HARDENING.md`**) ; rappel **22 avril 2026** — **B6** corrélation (gateway + front, suite microservices) ; **B10** refonte UX pages **`/backoffice/security/**`** ; **B6–B9** forensics dans **`PLAN.md`** / **`TODOS.md`**. **7 avril 2026** — **lot G** (sauvegardes, PCA/PRI). Rappel : **A/B** avant **G**.
+**Dernière mise à jour** : 11 mai 2026 — **B11** alertes email critiques backend, **B15** matrice/outillage tests sécurité offensifs contrôlés, réorganisation `docs/` et règle performance : analyse runtime limitée à la gateway/public, pas au trafic inter-conteneurs. Historique conservé : **B14** durcissement Compose/runtime, **B6–B10** forensics/UX sécurité, **A/B** avant **G**.
 
 Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Cursor `chantier_securite_data_docs_*.plan.md`). La **source de vérité versionnée** dans le dépôt est :
 
@@ -9,6 +9,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 | **[PLAN.md](../PLAN.md)** | Lots A–**G**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité ) |
 | **[TODOS.md](../TODOS.md)** | Cases à cocher opérationnelles ; **dernière section** = méta (validation porteur, audit BDD avant tests, logs gateway sécurité, refonte doc racine + `docs/`) |
 | **[STATS.md](../security/STATS.md)** | Suivi **CVE** / dépendances (npm, Docker, Flutter) — tableaux à compléter après audits |
+| **[SECURITY_TESTING_MATRIX.md](../security/SECURITY_TESTING_MATRIX.md)** | Tests sécurité offensifs contrôlés, outils (`gitleaks`, `trivy`, `nmap`, `jwt_tool`, ZAP, etc.), protections attendues et contraintes performance |
 | **[docs/operations/PREPROD_PRODUCTION_CHECKLIST.md](../operations/PREPROD_PRODUCTION_CHECKLIST.md)** | NTP, secrets, intrusion gateway, vérifs **B6** avant mise en prod |
 | **[docs/security/COMPOSE_RUNTIME_HARDENING.md](../security/COMPOSE_RUNTIME_HARDENING.md)** | Lot **B14** : secrets, **`docker.sock`**, Redis, non-root, WAF gateway, fichiers backup, limites ressources — tableau **BX1–BX14** |
 | **[STATUS.md](../STATUS.md)** | État projet + **tableau de suivi des lots** + priorités P0–P2 |
@@ -19,7 +20,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 ## Lots (rappel)
 
 - **A** — Monitoring détaillé, logs multi-sources, corrélation, pipeline, **A5** métriques persistées / pages liées (voir **`../PLAN.md`**).
-- **B** — Sécurité visible + **forensics** (**B6–B9**) + **B10** UX outils sécurité backoffice + **B14** durcissement **docker-compose** / runtime — **`PLAN.md`** § lot B ; **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Table de périmètre** (firewall, politiques, menaces temps réel, mots de passe, déploiement, logs) : **`TODOS.md`** § **Lot B — Vision d’ensemble**. **B5** stable ; **B1** fait — voir **`RESOLUTIONS.md`**.
+- **B** — Sécurité visible + **forensics** (**B6–B9**) + **B10** UX outils sécurité backoffice + **B11** alertes email + **B14** durcissement **docker-compose** / runtime + **B15** tests sécurité offensifs contrôlés — **`PLAN.md`** § lot B ; **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** ; **`docs/security/SECURITY_TESTING_MATRIX.md`**. **Table de périmètre** : **`TODOS.md`** § **Lot B — Vision d’ensemble** et § **Tests sécurité offensifs contrôlés**.
 - **C** — Suivi-intérim et données test / bases.
 - **D** — Crash mobile et observabilité.
 - **E** — Documentation exhaustive (PROCESSUS, revue `docs/`, etc.).

@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 6 mai 2026 — **dette sécurité Compose / runtime** : suivi **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** **B14** (secrets, **`docker.sock`**, Redis, non-root, etc.). **7 mai 2026** — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`security/STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 11 mai 2026 — **sécurité B11/B15** : alertes email critiques backend branchées mais dépendantes de la config SMTP/interne ; tests sécurité offensifs cadrés et partiellement outillés ; `docker-compose.prod.yml` incomplet pour scan ports/images prod si utilisé seul. Historique actif : **6–7 mai** dette sécurité Compose/runtime (**B14**), analyse run `make tests` `tests/results/20260505-113157`, corrélation/logs/console ; **24 avril** `/health` frontend ; **7 avril** `type-check` / journal `tsc` ; **22 avril** `security/STATS.md`.
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
