@@ -13,6 +13,10 @@ Ce fichier reste un brouillon de travail. Il contient d’abord la structure act
 - Les archives doivent être explicites sous `docs/archive/` avec une raison de conservation.
 - Avant suppression : vérifier si un fichier est référencé depuis `README.md`, `docs/PLAN.md`, `docs/STATUS.md`, `docs/TODOS.md`, scripts ou Makefiles.
 
+## Audit documentaire en cours
+
+Le plan d'audit opérationnel est maintenant suivi dans **[`docs/operations/DOCUMENTATION_AUDIT_PLAN.md`](../operations/DOCUMENTATION_AUDIT_PLAN.md)**. Il couvre les dossiers demandés (`docs/core/architecture`, `docs/database`, `docs/deployment`, `docs/emails`, `docs/features`, `docs/frontend`, `docs/getting-started`, `docs/mobile`, `docs/monitoring`, `docs/operations`, `docs/performance`, `docs/project`, `docs/scripts`, `docs/security`, `docs/tests`, `docs/todo`, `docs/troubleshooting`, `docs/user-journey`, fichiers racine `docs/*` et `monitoring/MIGRATION_RUST.md`) avec l'ordre de tri et les validations avant déplacement.
+
 ## Structure actuelle complète
 
 Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette section sert de base de tri : elle doit rester factuelle.

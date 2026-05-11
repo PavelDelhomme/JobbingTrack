@@ -60,6 +60,7 @@ docs/
 │   └── configuration/                  # Configuration
 │       └── CONFIGURATION_PORTS.md     # Configuration des ports
 ├── 🧭 operations/                      # Runbooks et gates opérationnels
+│   ├── DOCUMENTATION_AUDIT_PLAN.md     # Audit/restructuration docs par domaine
 │   ├── PREPROD_PRODUCTION_CHECKLIST.md # Checklist préprod / production
 │   └── RELEASE_PREPROD_PRODUCTION_PLAN.md # Release, licences, RGPD, déploiements
 ├── 💻 development/                     # Guides développement

@@ -16,6 +16,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Scans P0 bruts (11/05)** : `gitleaks` a trouvé **717 occurrences** dans l’historique (majoritairement JWT/headers/clefs génériques dans artefacts de tests) et Trivy/CVE remonte de nombreux `critical/high` sur dépendances Node et images Docker. À ce stade, ce sont des **findings non triés** : ne pas les ignorer, mais ne pas les présenter comme failles exploitables avant classification secret réel/faux positif/dev-only/prod-exposé.
 
+**Fluidité backoffice (11/05)** : il ne faut pas assimiler “page affichée finalement” à “navigation fluide”. Les pages admin lourdes (monitoring, sécurité, tests, rapports, analytics) doivent avoir un rendu immédiat, des fetchs/polling bornés, des charts lazy-loadés et des loaders honnêtes. Tout changement touchant `/backoffice/**` doit être validé côté frontend.
+
 ---
 
 ## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)
