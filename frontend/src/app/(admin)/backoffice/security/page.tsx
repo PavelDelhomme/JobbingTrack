@@ -142,7 +142,7 @@ export default function SecurityOverviewPage() {
   }
 
   const load = useCallback(async () => {
-    let mounted = true
+    const mounted = true
     const token = localStorage.getItem('token')
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
 

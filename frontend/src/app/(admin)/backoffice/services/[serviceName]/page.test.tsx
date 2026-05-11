@@ -19,7 +19,7 @@ jest.mock('next/dynamic', () => ({
   default: () => {
     const {
       MonitoringServiceHistoryCharts,
-    } = require('@/components/monitoring/MonitoringServiceHistoryCharts')
+    } = jest.requireActual('@/components/monitoring/MonitoringServiceHistoryCharts')
     return MonitoringServiceHistoryCharts
   },
 }))
