@@ -12,6 +12,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Tests sécurité offensifs (11/05)** : l’absence actuelle de rapport `sqlmap` / ZAP / `ffuf` / `gitleaks` / `trivy` / TLS / IDOR ne prouve pas l’absence de faille. Le périmètre est cadré dans **`docs/security/SECURITY_TESTING_MATRIX.md`** et **`PLAN.md` B15** ; exécuter uniquement sur environnement autorisé, avec limites anti-DoS et rapports horodatés.
 
+**Audit ports prod (11/05)** : `make security-scan-ports` signale que `docker-compose.prod.yml` ne se résout pas seul si `auth-service` n’a ni `image` ni `build` dans la configuration fusionnée. Tant que ce point n’est pas corrigé ou documenté avec la bonne commande de merge compose, le scan d’exposition prod et le scan Trivy des images prod peuvent être incomplets.
+
 ---
 
 ## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)
