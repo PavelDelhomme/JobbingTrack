@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDateTime } from '@/lib/utils/date';
@@ -30,18 +30,19 @@ interface NetworkThreat {
 
 export default function ThreatsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [threats, setThreats] = useState<NetworkThreat[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [severityFilter, setSeverityFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
-  const [sourceIpFilter, setSourceIpFilter] = useState<string>('');
-  const [destIpFilter, setDestIpFilter] = useState<string>('');
-  const [blockedFilter, setBlockedFilter] = useState<string>('');
-  const [destPortFilter, setDestPortFilter] = useState<string>('');
-  const [startDateFilter, setStartDateFilter] = useState<string>('');
-  const [endDateFilter, setEndDateFilter] = useState<string>('');
+  const [severityFilter, setSeverityFilter] = useState<string>(() => searchParams.get('severity') || '');
+  const [typeFilter, setTypeFilter] = useState<string>(() => searchParams.get('threatType') || '');
+  const [sourceIpFilter, setSourceIpFilter] = useState<string>(() => searchParams.get('sourceIp') || '');
+  const [destIpFilter, setDestIpFilter] = useState<string>(() => searchParams.get('destIp') || '');
+  const [blockedFilter, setBlockedFilter] = useState<string>(() => searchParams.get('blocked') || '');
+  const [destPortFilter, setDestPortFilter] = useState<string>(() => searchParams.get('destPort') || '');
+  const [startDateFilter, setStartDateFilter] = useState<string>(() => searchParams.get('startDate') || '');
+  const [endDateFilter, setEndDateFilter] = useState<string>(() => searchParams.get('endDate') || '');
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);

@@ -11,6 +11,9 @@ const mockPrisma = {
   },
   dDoSAttack: {
     findMany: jest.fn()
+  },
+  networkConnection: {
+    findMany: jest.fn()
   }
 };
 
@@ -142,6 +145,7 @@ describe('Firewall threats - détails forensics', () => {
     mockPrisma.securityLog.findMany.mockResolvedValue(logs);
     mockPrisma.intrusionAttempt.findMany.mockResolvedValue([]);
     mockPrisma.dDoSAttack.findMany.mockResolvedValue(ddosAttacks);
+    mockPrisma.networkConnection.findMany.mockResolvedValue([]);
 
     const res = mockResponse();
     await firewallController.getThreatDetails({ params: { id: threat.id } }, res);
@@ -214,6 +218,7 @@ describe('Firewall threats - détails forensics', () => {
       }
     ]);
     mockPrisma.dDoSAttack.findMany.mockResolvedValue([]);
+    mockPrisma.networkConnection.findMany.mockResolvedValue([]);
 
     const res = mockResponse();
     await firewallController.getThreatDetails({ params: { id: `threat-${threatType}` } }, res);
@@ -233,6 +238,123 @@ describe('Firewall threats - détails forensics', () => {
         'Aucun détail de connexion réseau brut conservé',
         'Aucun log sécurité corrélé à cette IP ou menace'
       ])
+    );
+  });
+
+  test('récupère destination, ports, services et logs depuis NetworkConnection et metadata.sourceIp quand la menace est pauvre', async () => {
+    const threat = {
+      id: 'cmotuhb1v049sk7em4rwv6vlk',
+      threatType: 'DDOS',
+      sourceIp: '10.0.0.102',
+      destIp: null,
+      destPort: null,
+      severity: 'CRITICAL',
+      detectedAt: new Date('2026-05-11T10:20:00.000Z'),
+      blocked: false,
+      metadata: {
+        test: true,
+        packetsPerSec: 25000
+      }
+    };
+    const logs = [
+      {
+        id: 'log-metadata-source',
+        timestamp: new Date('2026-05-11T10:20:03.000Z'),
+        level: 'critical',
+        category: 'network',
+        eventType: 'network_threat_detected',
+        message: 'Menace test DDoS',
+        sourceIP: '127.0.0.1',
+        userId: 'candidate-42',
+        endpoint: '/api/v1/jobs/search',
+        method: 'GET',
+        statusCode: 429,
+        responseTime: 31,
+        riskScore: 92,
+        isBlocked: false,
+        metadata: {
+          sourceIp: '10.0.0.102',
+          threatId: 'cmotuhb1v049sk7em4rwv6vlk',
+          serviceName: 'job-service'
+        }
+      }
+    ];
+    const networkConnections = [
+      {
+        sourceIp: '10.0.0.102',
+        sourcePort: 55122,
+        destIp: '172.20.0.14',
+        destPort: 3001,
+        protocol: 'TCP',
+        state: 'ESTABLISHED',
+        containerName: 'jobbingtrack-auth-service',
+        containerId: 'auth-1'
+      },
+      {
+        sourceIp: '10.0.0.102',
+        sourcePort: 55123,
+        destIp: '172.20.0.15',
+        destPort: 3004,
+        protocol: 'TCP',
+        state: 'SYN_RECV',
+        containerName: 'jobbingtrack-contact-service',
+        containerId: 'contact-1'
+      }
+    ];
+
+    mockPrisma.networkThreat.findUnique.mockResolvedValue(threat);
+    mockPrisma.securityLog.findMany.mockResolvedValue(logs);
+    mockPrisma.intrusionAttempt.findMany.mockResolvedValue([]);
+    mockPrisma.dDoSAttack.findMany.mockResolvedValue([]);
+    mockPrisma.networkConnection.findMany.mockResolvedValue(networkConnections);
+
+    const res = mockResponse();
+    await firewallController.getThreatDetails({ params: { id: threat.id } }, res);
+
+    const body = getJsonPayload(res);
+    expect(body.data.destIp).toBe('172.20.0.14');
+    expect(body.data.destPort).toBeNull();
+    expect(body.data.investigation.attacker).toEqual(
+      expect.objectContaining({
+        ip: '10.0.0.102',
+        isPrivateIp: true
+      })
+    );
+    expect(body.data.investigation.target).toEqual(
+      expect.objectContaining({
+        ip: '172.20.0.14',
+        port: null,
+        ports: [3001, 3004],
+        protocols: ['TCP']
+      })
+    );
+    expect(body.data.investigation.target.impactedServices).toEqual(
+      expect.arrayContaining(['job-service', 'jobbingtrack-auth-service', 'jobbingtrack-contact-service'])
+    );
+    expect(body.data.investigation.network).toEqual(
+      expect.objectContaining({
+        totalConnections: 2,
+        states: ['ESTABLISHED', 'SYN_RECV']
+      })
+    );
+    expect(body.data.investigation.network.connectionDetails).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          localIp: '172.20.0.14',
+          localPort: 3001,
+          remotePort: 55122,
+          state: 'ESTABLISHED',
+          containerName: 'jobbingtrack-auth-service'
+        })
+      ])
+    );
+    expect(body.data.investigation.application.logs).toEqual(
+      expect.objectContaining({
+        total: 1,
+        maxRiskScore: 92,
+        endpoints: ['/api/v1/jobs/search'],
+        impactedUsers: ['candidate-42']
+      })
     );
   });
 

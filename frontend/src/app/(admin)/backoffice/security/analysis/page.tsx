@@ -11,7 +11,7 @@ import {
   isXssThreat,
 } from '@/lib/security/threatSignals';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Shield, AlertTriangle, Lock, Eye, TrendingUp, Activity } from '@/lib/icons';
+import { Shield, AlertTriangle, Lock, Eye, Activity } from '@/lib/icons';
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
@@ -182,7 +182,10 @@ export default function SecurityAnalysisPage() {
 
         {/* Métriques clés */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <Link
+            href="/backoffice/security/threats?threatType=BRUTE_FORCE"
+            className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 transition-colors"
+          >
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">Tentatives Échouées</p>
               <Lock className="h-6 w-6 text-red-600" />
@@ -190,10 +193,13 @@ export default function SecurityAnalysisPage() {
             <p className="text-3xl font-bold text-red-600 dark:text-red-400">
               {summary?.totalFailedLogins || 0}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Dernières 24h</p>
-          </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Voir les menaces brute force</p>
+          </Link>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <Link
+            href="/backoffice/security/threats?blocked=false"
+            className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-600 transition-colors"
+          >
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">Activités Suspectes</p>
               <Eye className="h-6 w-6 text-orange-600" />
@@ -201,10 +207,13 @@ export default function SecurityAnalysisPage() {
             <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
               {summary?.totalSuspiciousActivities || 0}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Détectées</p>
-          </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Voir les menaces ouvertes</p>
+          </Link>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <Link
+            href="/backoffice/security/firewall#liste-ips-bloquees"
+            className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
+          >
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">IPs Bloquées</p>
               <AlertTriangle className="h-6 w-6 text-purple-600" />
@@ -212,19 +221,22 @@ export default function SecurityAnalysisPage() {
             <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
               {summary?.uniqueBlockedIPs || 0}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Actives</p>
-          </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Voir la liste consolidée</p>
+          </Link>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <Link
+            href="/backoffice/security/threats?threatType=SQL_INJECTION"
+            className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
+          >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Tentatives d'Injection</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tentatives d&apos;Injection</p>
               <Activity className="h-6 w-6 text-blue-600" />
             </div>
             <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {(summary?.totalSqlInjections || 0) + (summary?.totalXssAttempts || 0)}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">SQL + XSS</p>
-          </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Voir les injections SQL</p>
+          </Link>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
@@ -276,7 +288,7 @@ export default function SecurityAnalysisPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-red-600" />
-            Tentatives d'Injection Détectées
+            Tentatives d&apos;Injection Détectées
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
@@ -402,7 +414,7 @@ export default function SecurityAnalysisPage() {
                   <span className="text-orange-600 dark:text-orange-400 text-xl">⚠</span>
                   <div>
                     <p className="font-medium text-orange-800 dark:text-orange-200">Augmenter la Surveillance</p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">Activez l'authentification à deux facteurs pour tous les utilisateurs</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">Activez l&apos;authentification à deux facteurs pour tous les utilisateurs</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">

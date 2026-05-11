@@ -4,6 +4,12 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+### 11 mai 2026 — sécurité menaces : forensics terrain et navigation
+
+- **Constat porteur** : certaines menaces de test/réseau (ex. DDoS avec métadonnées minimales `{ test, packetsPerSec }`) affichaient encore `IP Destination`, services, ports/protocoles, logs corrélés, comptes impactés et localisation comme vides. Cause : la fiche menace lisait surtout `network_threats.destIp` / `metadata.connectionDetails`, alors que les informations peuvent être dans `network_connections` ou `security_logs.metadata`.
+- **Correctifs en cours** : détails menace enrichis par fallback `network_connections` (destination, ports, protocoles, conteneurs/services, états réseau) et corrélation logs via `sourceIP`, message, `metadata.sourceIp`, `metadata.blockedIp`, `metadata.threatId`. Les cartes d’analyse sécurité deviennent des entrées cliquables vers les vues filtrées (menaces ouvertes, brute force, injections, IPs bloquées).
+- **Limites assumées** : VPN/proxy/Tor/ASN et route complète nécessitent un provider threat-intel/GeoIP ASN ; en attendant l’UI doit l’indiquer comme télémétrie manquante. Les vrais emails critiques (menaces/CVE/services down) restent à brancher sur le système mail avec réauth/audit.
+
 ### Mise à jour rapide (29 avril 2026)
 
 - **Erreur JS bloquante front corrigée** : le chargement infini avec `layout.js` (`literal not terminated`) était causé par un cache/bundle Next invalide dans `frontend/.next` possédé par `root`.

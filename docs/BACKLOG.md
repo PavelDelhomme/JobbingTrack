@@ -81,6 +81,8 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité basse – Sécurité
 
+- [ ] **Forensics menaces réseau — qualité données terrain** : ne pas dépendre uniquement de `network_threats.metadata`. Si une menace de test ou de détection réelle ne contient que peu de métadonnées (`test`, `packetsPerSec`, etc.), corréler avec `network_connections`, `security_logs.metadata.sourceIp`, `metadata.threatId`, `DDoSAttack`, `IntrusionAttempt`, puis afficher clairement ce qui manque. À compléter : provider threat-intel (ASN/VPN/proxy/Tor), payload/request samples, comptes impactés fiables, IPs “à surveiller” cliquables et détaillables.
+- [ ] **Alertes email sécurité + disponibilité** : brancher le système mail sur les vrais problèmes : menace `CRITICAL`, CVE `critical`, blocage firewall automatique majeur, et service/conteneur critique `down` détecté par monitoring Rust / metrics-aggregator. Prévoir adresse admin configurable, réauthentification, audit trail, tests MailHog, et mode digest pour `high`.
 - [ ] **B14 — Durcissement Docker Compose & runtime** : secrets sans fallback en prod, proxy **`docker.sock`**, Redis **`requirepass`**, non-root collecteurs, **`read_only`** / limites — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14**.
 - [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.
 - [ ] **WAF** : remplacer la config mock par une vraie en production.
