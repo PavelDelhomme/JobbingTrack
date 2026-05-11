@@ -1,0 +1,135 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  13/04/2026 13:51:04
+================================================================
+
+RESUME
+------
+  Categories  : 31
+  Total tests : 632
+  Reussis     : 615
+  Echoues     : 17
+  Ignores     : 1
+  Taux        : 97.3%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (4s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [OK]   [U] Tests API Complets (Jest) (19s)
+  [FAIL] [U] Tests Backend Services (Jest) (3s)
+  [FAIL] [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (14s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (unit + pages analytics) (6s)
+  [OK]   [U] Tests Performance (3s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [FAIL] [S] Tests Sécurité Firewall & WAF (API) (0s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+       ✗ FAIL - Status: 404 (attendu: 200)
+       Réponse: {"success":false,"error":"Route non trouvée","message":"Route GET /api/v1/events/cmnx4864m001zl12p8irw1j8b non trouvée dans le service d'événements"}
+       ✗ FAIL - Status: 500 (attendu: 200)
+       Réponse: {"success":false,"error":"
+    [73] Test: Analytics Errors
+
+  --- Tests Backend Services (Jest) ---
+    FAIL backend/test-security-service.test.js
+            ✕ devrait créer une règle firewall (6 ms)
+            ✕ devrait retourner les IPs bloquées (6 ms)
+            ✕ devrait bloquer une IP (5 ms)
+            ✕ devrait retourner la configuration WAF (4 ms)
+            ✕ devrait retourner les statistiques WAF (4 ms)
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+    Test Suites: 1 failed, 1 total
+    Tests:       5 failed, 7 passed, 12 total
+    FAIL backend/test-security-service.test.js
+            ✕ devrait créer une règle firewall (5 ms)
+            ✕ devrait retourner les IPs bloquées (4 ms)
+            ✕ devrait bloquer une IP (4 ms)
+            ✕ devrait retourner la configuration WAF (5 ms)
+            ✕ devrait retourner les statistiques WAF (4 ms)
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+        AxiosError: Request failed with status code 403
+    Test Suites: 1 failed, 1 total
+    Tests:       5 failed, 7 passed, 12 total
+    FAIL backend/test-security-service.test.js
+            ✕ devrait créer une règle firewall (5 ms)
+            ✕ devrait retourner les IPs bloquées (4 ms)
+            ✕ devrait bloquer une IP (4 ms)
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 46 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/error-context.md
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 46 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/error-context.md
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          70 |       errorVisual.isVisible({ timeout: 15000 }).catch(() => false),
+        > 72 |     expect(hasError).toBe(true);
+        test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth/error-context.md
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          70 |       errorVisual.isVisible({ timeout: 15000 }).catch(() => false),
+        > 72 |     expect(hasError).toBe(true);
+        test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth-retry1/error-context.md
+        Error: expect(locator).toHaveAttribute(expected) failed
+        Expected: "text"
+        Received: "password"
+          - Expect "toHaveAttribute" with timeout 5000ms
+              - unexpected value "password"
+          89 |     await expect(toggleButton).toBeVisible();
+
+  --- Tests Sécurité Firewall & WAF (API) ---
+      Test: GET /api/v1/security/firewall/rules... ❌ FAIL (HTTP 401, attendu 200)
+         Réponse: {"success":false,"error":"Token d'authentification requis"}
+
+================================================================
+  Rapports : tests/results/20260413-133415/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

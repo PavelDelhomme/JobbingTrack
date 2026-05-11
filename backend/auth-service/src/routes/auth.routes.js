@@ -17,7 +17,8 @@ router.get('/health', (req, res) => {
 
 // Routes publiques
 router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
+  // IMPORTANT: ne pas supprimer le +alias sur Gmail (sinon collisions en tests)
+  body('email').isEmail().normalizeEmail({ gmail_remove_subaddress: false }),
   body('password').isLength({ min: 6 }),
   body('firstName').notEmpty(),
   body('lastName').notEmpty(),
@@ -25,7 +26,7 @@ router.post('/register', [
 ], authController.register);
 
 router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().normalizeEmail({ gmail_remove_subaddress: false }),
   body('password').notEmpty()
 ], authController.login);
 
@@ -35,12 +36,12 @@ router.post('/logout', authController.logout);
 // Routes publiques - Vérification d'email
 router.get('/verify-email/:token', authController.verifyEmail);
 router.post('/resend-verification', [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail().normalizeEmail({ gmail_remove_subaddress: false })
 ], authController.resendVerificationEmail);
 
 // Routes publiques - Réinitialisation de mot de passe
 router.post('/forgot-password', [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail().normalizeEmail({ gmail_remove_subaddress: false })
 ], authController.forgotPassword);
 
 router.get('/reset-password/:token', authController.verifyResetToken);

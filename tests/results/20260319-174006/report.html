@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Tests - JobbingTrack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 30px; }
+        .summary { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats { display: flex; gap: 20px; margin-top: 15px; }
+        .stat { flex: 1; padding: 15px; border-radius: 6px; text-align: center; }
+        .stat.total { background: #e3f2fd; color: #1976d2; }
+        .stat.passed { background: #e8f5e9; color: #388e3c; }
+        .stat.failed { background: #ffebee; color: #d32f2f; }
+        .stat h3 { font-size: 2em; margin-bottom: 5px; }
+        .test-result { background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result h2 { margin-bottom: 10px; }
+        .test-result.success { border-left: 4px solid #4caf50; }
+        .test-result.failed { border-left: 4px solid #f44336; }
+        .test-result.skipped { border-left: 4px solid #ff9800; }
+        .status-success { color: #4caf50; font-weight: bold; }
+        .status-failed { color: #f44336; font-weight: bold; }
+        .status-skipped { color: #ff9800; font-weight: bold; }
+        .meta { color: #666; font-size: 0.9em; margin-top: 10px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Rapport de Tests - JobbingTrack</h1>
+        <div class="summary">
+            <h2>Résumé</h2>
+            <div class="stats">
+                <div class="stat total" style="background: #e3f2fd; color: #1976d2;">
+                    <h3>32</h3>
+                    <p>Catégories</p>
+                </div>
+                <div class="stat total">
+                    <h3>412</h3>
+                    <p>Total Tests</p>
+                </div>
+                <div class="stat passed">
+                    <h3>403</h3>
+                    <p>Réussis</p>
+                </div>
+                <div class="stat failed">
+                    <h3>9</h3>
+                    <p>Échoués</p>
+                </div>
+            </div>
+            <p class="meta">Généré le 19/03/2026 à 17:56:34</p>
+            <p class="meta">Répertoire : tests/results/20260319-174006</p>
+        </div>
+        
+        <h2 style="margin-top: 30px; margin-bottom: 15px;">Détails des Tests</h2>
+    <div class="test-result success">
+        <h2>Tests API Backend (script - tous services) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 46 | Réussis: <span style="color: #4caf50;">46</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (148 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Tests API Spécifiques - JobbingTrack              ║
+╚════════════════════════════════════════════════════════╝
+
+
+═══ Health Checks ═══
+[1] Test: API Gateway Health
+   ✓ PASS - Status: 200
+[2] Test: API Gateway /api/health
+   ✓ PASS - Status: 200
+[3] Test: API Gateway Metrics
+   ✓ PASS - Status: 200
+
+═══ Services Backend ═══
+[4] Test: Auth Service
+   ✓ PASS - Status: 200
+[5] Test: Company Service
+   ✓ PASS - Status: 401
+[6] Test: Application Service
+   ✓ PASS - Status: 401
+[7] Test: Contact Service
+   ✓ PASS - Status: 401
+[8] Test: Interview Service
+   ✓ PASS - Status: 401
+[9] Test: Call Service
+   ✓ PASS - Status: 401
+[10] Test: Event Service
+   ✓ PASS - Status: 401
+[11] Test: FollowUp Service
+   ✓ PASS - Status: 401
+[12] Test: Profile Service
+   ✓ PASS - Status: 401
+[13] Test: Notification Service
+   ✓ PASS - Status: 401
+
+═══ Authentification ═══
+Authentification (utilisateur classique)...
+   ✓ Token utilisateur seedé obtenu (rôle USER, email vérifié)
+[14] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ Utilisateurs ═══
+[15] Test: List Users
+   ✓ PASS - Status: 200
+[16] Test: Get User Profile
+   ✓ PASS - Status: 200
+
+═══ Entreprises ═══
+[17] Test: List Companies
+   ✓ PASS - Status: 200
+[18] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ Candidatures ═══
+[19] Test: List Applications
+   ✓ PASS - Status: 200
+[20] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ Contacts ═══
+[21] Test: List Contacts
+   ✓ PASS - Status: 200
+[22] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ Entretiens ═══
+[23] Test: List Interviews
+   ✓ PASS - Status: 200
+[24] Test: Create Interview
+   ✓ PASS - Status: 201
+
+═══ Appels ═══
+[25] Test: List Calls
+   ✓ PASS - Status: 200
+[26] Test: Create Call
+   ✓ PASS - Status: 201
+
+═══ Événements ═══
+[27] Test: List Events
+   ✓ PASS - Status: 200
+[28] Test: Create Event
+   ✓ PASS - Status: 201
+
+═══ Relances ═══
+[29] Test: List Followups
+   ✓ PASS - Status: 200
+[30] Test: Create Followup
+   ✓ PASS - Status: 201
+
+═══ Profils ═══
+[31] Test: Get Profile
+   ✓ PASS - Status: 200
+[32] Test: Update Profile
+   ✓ PASS - Status: 200
+
+═══ Notifications ═══
+[33] Test: List Notifications
+   ✓ PASS - Status: 200
+
+═══ Métriques / Metrics-Aggregator ═══
+[34] Test: Get Metrics (metrics-aggregator via gateway)
+   ✓ PASS - Status: 200
+[35] Test: Get Dashboard Statistics
+   ✓ PASS - Status: 200
+
+═══ Dashboard &amp; Analytics ═══
+[36] Test: Dashboard Statistics
+   ✓ PASS - Status: 200
+[37] Test: Analytics Events
+   ✓ PASS - Status: 200
+[38] Test: Analytics Errors
+   ✓ PASS - Status: 200
+[39] Test: Analytics Stats
+   ✓ PASS - Status: 200
+
+═══ Emails (logs, stats) ═══
+[40] Test: Emails Logs
+   ✓ PASS - Status: 200
+[41] Test: Emails Stats
+   ✓ PASS - Status: 200
+
+═══ Workflow Service ═══
+[42] Test: List Workflows
+   ✓ PASS - Status: 503
+
+═══ Security Service ═══
+[43] Test: Security Firewall Rules
+   ✓ PASS - Status: 200
+[44] Test: Security Blocked IPs
+   ✓ PASS - Status: 200
+[45] Test: Security WAF Config
+   ✓ PASS - Status: 200
+[46] Test: Security Logs
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 46
+Tests réussis     : 46
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+
+Total de tests    : 46
+Tests réussis     : 46
+Tests échoués     : 0</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests API Gateway Health <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (21 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:28.467Z&quot;,&quot;environment&quot;:&quot;development&quot;,&quot;version&quot;:&quot;1.0.0&quot;}# HELP api_gateway_requests_total Total number of requests
+# TYPE api_gateway_requests_total counter
+api_gateway_requests_total 206
+
+# HELP api_gateway_response_time_seconds Response time in seconds
+# TYPE api_gateway_response_time_seconds histogram
+api_gateway_response_time_seconds_bucket{le=&quot;0.1&quot;} 53
+api_gateway_response_time_seconds_bucket{le=&quot;0.5&quot;} 139
+api_gateway_response_time_seconds_bucket{le=&quot;1.0&quot;} 84
+api_gateway_response_time_seconds_bucket{le=&quot;2.5&quot;} 106
+api_gateway_response_time_seconds_bucket{le=&quot;5.0&quot;} 304
+api_gateway_response_time_seconds_bucket{le=&quot;10.0&quot;} 463
+api_gateway_response_time_seconds_bucket{le=&quot;+Inf&quot;} 467
+
+# HELP api_gateway_up API Gateway is up
+# TYPE api_gateway_up gauge
+api_gateway_up 1
+
+# HELP api_gateway_info Information about API Gateway
+# TYPE api_gateway_info gauge
+api_gateway_info{version=&quot;1.0.0&quot;,environment=&quot;development&quot;} 1</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests API Complets (Jest) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 8s</p>
+        <p><strong>Statistiques:</strong> Total: 96 | Réussis: <span style="color: #4caf50;">96</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (204 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+&gt; jobbingtrack-tests@1.0.0 test
+&gt; jest api/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS api/analytics-endpoint.test.js
+  Analytics Endpoint
+    ✓ devrait retourner 200 même en cas d'erreur (109 ms)
+    ✓ devrait retourner un tableau vide en cas d'erreur (4 ms)
+
+  console.warn
+    ⚠️ Monitoring-c non disponible, test ignoré
+
+      29 |         // Si monitoring-c n'est pas démarré, skip le test
+      30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+    &gt; 31 |           console.warn('⚠️ Monitoring-c non disponible, test ignoré');
+         |                   ^
+      32 |           return;
+      33 |         }
+      34 |         throw error;
+
+      at Object.warn (api/test-monitoring-c-endpoints.test.js:31:19)
+
+PASS api/test-monitoring-c-endpoints.test.js
+  Monitoring C Endpoints
+    GET /api/v1/metrics
+      ✓ devrait retourner les métriques système (162 ms)
+      ✓ devrait inclure les métriques de conteneurs (9 ms)
+      ✓ devrait inclure les métriques globales (2 ms)
+
+PASS api/test-crash-reporting.test.js
+  Crash Reporting API (Gateway /api/v1/crashes)
+    ✓ POST /api/v1/crashes - devrait enregistrer un crash report complet (sans auth) (13 ms)
+    ✓ POST /api/v1/crashes - devrait rejeter sans crashType (3 ms)
+    ✓ POST /api/v1/crashes - devrait rejeter sans message (3 ms)
+    ✓ POST /api/v1/crashes - devrait accepter sans authentification (4 ms)
+    ✓ POST /api/v1/crashes - devrait accepter un rapport minimal (3 ms)
+    ✓ POST /api/v1/crashes - devrait gerer un message tres long (3 ms)
+    ✓ POST /api/v1/crashes - devrait accepter avec token (optionnel) (4 ms)
+    ✓ POST /api/v1/crashes - plusieurs types de crash (15 ms)
+
+PASS api/test-event-interim-color.test.js
+  Couleurs calendrier (intérim vs classique)
+    ✓ retourne la couleur ambre (#F59E0B) pour un événement lié à une candidature avec agence (intérim) (65 ms)
+    ✓ retourne la couleur bleu (#3B82F6) pour un événement lié à une candidature sans agence (classique) (50 ms)
+
+  console.warn
+    503 thank-you-sent: make db-push-all (colonne thankYouEmailSentAt) et vérifier application-service
+
+      312 |       );
+      313 |       if (res.status === 503) {
+    &gt; 314 |         console.warn('503 thank-you-sent: make db-push-all (colonne thankYouEmailSentAt) et vérifier application-service');
+          |                 ^
+      315 |         return; // skip sans faire échouer la suite
+      316 |       }
+      317 |       expect(res.status).toBe(200);
+
+      at Object.warn (api/test-status-engine.test.js:314:17)
+
+  console.log
+    ℹ️ Time-travel desactive (ENABLE_TIME_TRAVEL=true requis dans .env)
+
+      at Object.log (api/test-status-engine.test.js:407:17)
+
+PASS api/test-status-cascade.test.js
+  Cascade Statuts &amp; Auto-événements (utilisateur classique)
+    Création entretien → statut INTERVIEW_PENDING
+      ✓ créer un entretien devrait passer la candidature en INTERVIEW_PENDING (74 ms)
+    Entretien COMPLETED → statut INTERVIEW_DONE
+      ✓ passer un entretien à COMPLETED devrait passer la candidature en INTERVIEW_DONE (34 ms)
+    Résultat entretien positif → OFFER_RECEIVED
+      ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (478 ms)
+    Résultat entretien négatif → REJECTED
+      ✓ mettre un résultat NEGATIVE devrait passer la candidature en REJECTED (48 ms)
+    Historique des changements de statut
+      ✓ devrait avoir un historique des changements de statut (26 ms)
+    Changement de statut manuel avec historique
+      ✓ PUT /status devrait changer le statut et créer une entrée historique (25 ms)
+    Auto-création événement calendrier
+      ✓ créer un entretien devrait créer un événement calendrier (159 ms)
+      ✓ créer une relance devrait créer un événement calendrier (31 ms)
+      ✓ créer un appel devrait créer un événement calendrier (32 ms)
+    Filtrage isArchived dans les listes
+      ✓ GET /interviews ne devrait pas retourner les entretiens archivés (37 ms)
+      ✓ GET /calls ne devrait pas retourner les appels archivés (30 ms)
+      ✓ GET /followups ne devrait pas retourner les relances archivées (31 ms)
+
+PASS api/test-status-engine.test.js
+  Moteur de statut intelligent (utilisateur classique)
+    Preferences moteur de statut
+      ✓ les preferences par defaut doivent inclure statusEngine (324 ms)
+      ✓ mettre a jour statusEngine.autoStatusEnabled devrait persister (34 ms)
+    Mode manuel (autoStatusEnabled = false)
+      ✓ desactiver auto-statut devrait empecher la cascade entretien → INTERVIEW_PENDING (253 ms)
+      ✓ changement de statut manuel reste possible meme en mode manuel (52 ms)
+    Mode auto (autoStatusEnabled = true)
+      ✓ reactiver auto-statut devrait restaurer la cascade (59 ms)
+      ✓ cascade COMPLETED → INTERVIEW_DONE fonctionne en mode auto (47 ms)
+    Historique des changements de statut
+      ✓ historique doit contenir les changements avec commentaires (13 ms)
+    Suggestion « Considérer rejetée » et email remerciement
+      ✓ GET /applications/:id/suggestion-reject retourne suggestConsiderReject et raison (11 ms)
+      ✓ POST /applications/:id/thank-you-sent enregistre la date (68 ms)
+    Configuration parametres du moteur
+      ✓ les parametres de configuration doivent etre personnalisables (52 ms)
+    Transitions temporelles (structure)
+      ✓ candidature sans action devrait rester en CANDIDATE_PENDING initialement (34 ms)
+      ✓ endpoint time-travel devrait exister ou etre planifie (9 ms)
+    Relances multiples et detection
+      ✓ creer plusieurs relances devrait etre possible pour la meme candidature (167 ms)
+    Rejet direct (email de rejet recu)
+      ✓ passage direct a REJECTED devrait fonctionner quel que soit le statut actuel (38 ms)
+    Ordre des actions (relance puis entretien)
+      ✓ creer une relance puis un entretien doit appliquer la cascade (INTERVIEW_PENDING) (157 ms)
+    Option par candidature (statusEngineOptOut)
+      ✓ quand statusEngineOptOut=true, creer un entretien ne doit pas changer le statut (103 ms)
+
+PASS api/test-archive-trash.test.js
+  Archivage &amp; Corbeille (utilisateur classique)
+    Archivage Entretien
+      ✓ POST /:id/archive devrait archiver un entretien (25 ms)
+      ✓ GET /archived devrait lister les entretiens archivés (11 ms)
+      ✓ GET / ne devrait PAS retourner un entretien archivé (13 ms)
+      ✓ POST /:id/unarchive devrait désarchiver un entretien (11 ms)
+    Archivage Appel
+      ✓ devrait archiver puis désarchiver un appel (43 ms)
+    Archivage Relance
+      ✓ devrait archiver puis désarchiver une relance (41 ms)
+    Archivage Entreprise
+      ✓ devrait archiver puis désarchiver une entreprise (48 ms)
+    Archivage Contact
+      ✓ devrait archiver puis désarchiver un contact (45 ms)
+    Corbeille (soft delete)
+      ✓ DELETE devrait soft-delete un entretien (14 ms)
+      ✓ GET /trash devrait lister les entretiens supprimés (22 ms)
+      ✓ POST /:id/restore devrait restaurer un entretien (13 ms)
+      ✓ GET / devrait retourner l'entretien restauré (10 ms)
+    Corbeille Candidature avec cascade
+      ✓ DELETE candidature devrait soft-delete la candidature et ses éléments liés (16 ms)
+      ✓ les entretiens/relances/appels liés ne devraient plus apparaître dans les listes (35 ms)
+      ✓ la candidature devrait apparaître dans la corbeille (85 ms)
+      ✓ POST /restore devrait restaurer la candidature (61 ms)
+    Cascade archivage candidature (isArchived)
+      ✓ archiver une candidature devrait archiver les éléments liés (120 ms)
+      ✓ désarchiver une candidature devrait désarchiver les éléments liés (825 ms)
+    Cas limites
+      ✓ archiver un ID inexistant devrait retourner 404 (6 ms)
+      ✓ désarchiver un élément non archivé devrait retourner 404 (14 ms)
+      ✓ restaurer un élément non supprimé devrait retourner 404 (7 ms)
+
+PASS api/test-bdd-relations.test.js
+  Relations BDD &amp; Intégrité (utilisateur classique)
+    Chaîne de création Application → Entretien → Relance → Appel
+      ✓ créer une entreprise (21 ms)
+      ✓ créer un contact lié à l'entreprise (10 ms)
+      ✓ créer une candidature liée à l'entreprise (23 ms)
+      ✓ créer un entretien lié à la candidature (32 ms)
+      ✓ créer une relance liée à la candidature (32 ms)
+      ✓ créer un appel lié à la candidature (16 ms)
+    Relations dans les détails
+      ✓ le détail de la candidature devrait inclure entretiens et relances (10 ms)
+      ✓ le détail de l'entretien devrait inclure la candidature (11 ms)
+    Cohérence soft delete
+      ✓ supprimer l'entretien ne devrait pas supprimer la candidature (37 ms)
+      ✓ supprimer la candidature devrait soft-delete les éléments liés (1272 ms)
+    Cohérence archivage cascade
+      ✓ archiver la candidature devrait archiver les éléments liés (25 ms)
+      ✓ après désarchivage, les éléments liés devraient être visibles (1211 ms)
+    Événements automatiquement créés
+      ✓ les événements liés à la candidature/entretien devraient exister (7 ms)
+    Contraintes d'intégrité
+      ✓ créer un entretien avec un applicationId invalide devrait échouer (6 ms)
+      ✓ créer une relance avec un applicationId invalide devrait échouer (6 ms)
+      ✓ créer une candidature sans entreprise devrait échouer (6 ms)
+    Statuts personnalisables
+      ✓ les statuts de candidature devraient être des tables BDD (9 ms)
+
+PASS api/test-email-endpoints.test.js (6.929 s)
+  Email Endpoints (admin)
+    GET /api/v1/emails/logs
+      ✓ devrait retourner les logs emails avec pagination (67 ms)
+      ✓ devrait gérer les erreurs P2021 gracieusement (22 ms)
+    POST /api/v1/emails/test
+      ✓ devrait envoyer un email de test (2313 ms)
+      ✓ devrait gérer les erreurs de timeout SMTP (2228 ms)
+    GET /api/v1/emails/test-smtp
+      ✓ devrait tester la connexion SMTP (953 ms)
+    GET /api/v1/emails/stats
+      ✓ devrait retourner les statistiques emails (59 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       87 passed, 87 total
+Snapshots:   0 total
+Time:        7.148 s
+Ran all test suites matching /api\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Backend Services (Jest) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 13 | Réussis: <span style="color: #4caf50;">13</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (40 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+&gt; jobbingtrack-tests@1.0.0 test
+&gt; jest backend/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS backend/test-security-service.test.js
+  Security Service
+    GET /api/v1/security/logs
+      ✓ devrait retourner les logs de sécurité (46 ms)
+    GET /api/v1/security/policies
+      ✓ devrait retourner les politiques de sécurité (5 ms)
+    GET /api/v1/security/analysis
+      ✓ devrait retourner l'analyse de sécurité (52 ms)
+    Firewall API
+      GET /api/v1/security/firewall/rules
+        ✓ devrait retourner les règles firewall (20 ms)
+      POST /api/v1/security/firewall/rules
+        ✓ devrait créer une règle firewall (14 ms)
+      PUT /api/v1/security/firewall/rules/:id
+        ✓ devrait mettre à jour une règle firewall (17 ms)
+      DELETE /api/v1/security/firewall/rules/:id
+        ✓ devrait supprimer une règle firewall (13 ms)
+      GET /api/v1/security/firewall/blocked-ips
+        ✓ devrait retourner les IPs bloquées (6 ms)
+      POST /api/v1/security/firewall/block-ip
+        ✓ devrait bloquer une IP (17 ms)
+      GET /api/v1/security/firewall/threats
+        ✓ devrait retourner les menaces réseau (17 ms)
+    WAF API
+      GET /api/v1/security/waf/config
+        ✓ devrait retourner la configuration WAF (5 ms)
+      GET /api/v1/security/waf/stats
+        ✓ devrait retourner les statistiques WAF (4 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        0.452 s, estimated 1 s
+Ran all test suites matching /backend\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Call Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;success&quot;:true,&quot;service&quot;:&quot;call-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:22.773Z&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Company Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;company-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:20.841Z&quot;,&quot;environment&quot;:&quot;development&quot;,&quot;version&quot;:&quot;1.0.0&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Contact Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;contact-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:21.484Z&quot;,&quot;environment&quot;:&quot;development&quot;,&quot;version&quot;:&quot;1.0.1&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Dashboard Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;dashboard-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:25.342Z&quot;,&quot;version&quot;:&quot;1.0.0&quot;,&quot;port&quot;:&quot;3000&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Deployment Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;deployment-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:27.899Z&quot;,&quot;uptime&quot;:13765.268211103,&quot;version&quot;:&quot;1.0.1&quot;,&quot;environment&quot;:&quot;development&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Email Logs <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 10 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">7</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (13 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">            id             |                       to                       |                    subject                     |     type     | status  | sentAt |        createdAt        
+---------------------------+------------------------------------------------+------------------------------------------------+--------------+---------+--------+-------------------------
+ cmmxn89y1001y10p8kdj5ixu2 | e2e-admin-crud-1773935216937@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-19 15:47:02.618
+ cmmxn8631001x10p8d2frdk7v | e2e-admin-crud-1773935216937@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-19 15:46:57.613
+ cmmxn862y001v10p8eptpxf09 | e2e-admin-crud-1773935216937@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-03-19 15:46:57.61
+ cmmxn7vxk001s10p8hfe5xsjh | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-19 15:46:44.457
+ cmmxn7vpr001r10p85v7xyvjr | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-19 15:46:44.175
+ cmmxn7vom001q10p8gzxxztyx | redacted@example.invalid          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-03-19 15:46:44.134
+ cmmxn7s2l001p10p8at2uml3j | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-19 15:46:39.453
+ cmmxn7s2j001n10p8v91hauxb | redacted@example.invalid       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-03-19 15:46:39.452
+ cmmxn7rur001k10p893lik0my | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-03-19 15:46:39.172
+ cmmxn7ruq001i10p8p6iryk0l | redacted@example.invalid       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-03-19 15:46:39.17
+(10 rows)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Enums <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (88 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Validation des Enums
+
+ℹ️  Test 1: Vérification définition enum UserRole
+ℹ️  Test 2: Vérification utilisation enum UserRole dans la base
+ℹ️  Test 3: Vérification valeurs enum UserRole
+
+📋 Résultats pour UserRole
+
+✅ Définition dans schéma: Enum UserRole correctement défini avec 4 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (3 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 4 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ContractType
+ℹ️  Test 2: Vérification utilisation enum ContractType dans la base
+ℹ️  Test 3: Vérification valeurs enum ContractType
+
+📋 Résultats pour ContractType
+
+✅ Définition dans schéma: Enum ContractType correctement défini avec 7 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (4 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 7 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum WorkMode
+ℹ️  Test 2: Vérification utilisation enum WorkMode dans la base
+ℹ️  Test 3: Vérification valeurs enum WorkMode
+
+📋 Résultats pour WorkMode
+
+✅ Définition dans schéma: Enum WorkMode correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ApplicationType
+ℹ️  Test 2: Vérification utilisation enum ApplicationType dans la base
+ℹ️  Test 3: Vérification valeurs enum ApplicationType
+
+📋 Résultats pour ApplicationType
+
+✅ Définition dans schéma: Enum ApplicationType correctement défini avec 2 valeurs
+✅ Valeurs complètes: Toutes les 2 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum CompanySize
+ℹ️  Test 2: Vérification utilisation enum CompanySize dans la base
+ℹ️  Test 3: Vérification valeurs enum CompanySize
+
+📋 Résultats pour CompanySize
+
+✅ Définition dans schéma: Enum CompanySize correctement défini avec 5 valeurs
+✅ Valeurs complètes: Toutes les 5 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum NotificationType
+ℹ️  Test 2: Vérification utilisation enum NotificationType dans la base
+ℹ️  Test 3: Vérification valeurs enum NotificationType
+
+📋 Résultats pour NotificationType
+
+✅ Définition dans schéma: Enum NotificationType correctement défini avec 9 valeurs
+✅ Valeurs complètes: Toutes les 9 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum SyncAction
+ℹ️  Test 2: Vérification utilisation enum SyncAction dans la base
+ℹ️  Test 3: Vérification valeurs enum SyncAction
+
+📋 Résultats pour SyncAction
+
+✅ Définition dans schéma: Enum SyncAction correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Event Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;success&quot;:true,&quot;service&quot;:&quot;event-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:24.039Z&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests FollowUp Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;success&quot;:true,&quot;service&quot;:&quot;followup-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:23.405Z&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Frontend Jest (Unitaires) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 3s</p>
+        <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (17 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 854ms
+
+&gt; jobbingtrack-frontend@1.0.1 test:unit
+&gt; npx jest unit --passWithNoTests
+
+PASS src/__tests__/unit/sample.test.ts
+  Unit sample
+    ✓ calcule 1 + 1 (2 ms)
+    ✓ concatène des chaînes (1 ms)
+    ✓ vérifie un tableau (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        0.594 s, estimated 1 s
+Ran all test suites matching /unit/i.</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Intégration Système <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 8 | Réussis: <span style="color: #4caf50;">8</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (26 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 608ms
+🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES
+=====================================
+
+📡 Test API Health:
+✅ Health OK: online - uptime: 13725s
+
+📡 Test API v1 Health:
+✅ API v1 Health OK - RSS: 129MB
+
+📊 Test Métriques système (/api/v1/metrics):
+✅ CPU: 44.9% 16 coeurs
+✅ Mémoire: 96.1% (45.1/46.9 GB)
+✅ Conteneurs monitorés: 22
+
+🐳 Test Services Docker (/api/v1/docker/services/all):
+✅ Services Docker: 15/15 en cours
+
+📋 Test Liste des services (/api/v1/services):
+✅ Services détectés: 23
+
+💾 Test Persistance métriques (/api/v1/persistence/stats):
+✅ Persistance OK - données historiques disponibles
+
+🎉 TEST TERMINÉ</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Interview Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;success&quot;:true,&quot;service&quot;:&quot;interview-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:22.133Z&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Notification Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;notification-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:24.661Z&quot;,&quot;version&quot;:&quot;1.0.0&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Performance Avancés (CPU & endpoints) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 24 | Réussis: <span style="color: #4caf50;">24</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (45 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement des tests de performance...
+
+📊 Génération du rapport de performance...
+
+⚡ Test des performances API (endpoints réels)...
+   Gateway Health: ✅ 29ms 
+   Auth Health: ✅ 4ms 
+   Applications (list): ✅ 7ms (auth requise, OK)
+   Companies (list): ✅ 5ms (auth requise, OK)
+   Contacts (list): ✅ 4ms (auth requise, OK)
+   Interviews (list): ✅ 4ms (auth requise, OK)
+   Calls (list): ✅ 5ms (auth requise, OK)
+   Followups (list): ✅ 5ms (auth requise, OK)
+   Events (list): ✅ 5ms (auth requise, OK)
+   Notifications (list): ✅ 4ms (auth requise, OK)
+   Métriques système: ✅ 3ms 
+   Docker services: ✅ 2113ms 
+🔥 Test de charge...
+   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)
+📊 Charge: Gateway Health (5 requêtes parallèles)
+   ✅ 5/5 succès - moy: 3ms, max: 3ms
+📊 Charge: Auth Health (4 requêtes parallèles)
+   ✅ 4/4 succès - moy: 3ms, max: 4ms
+📊 Charge: Companies API (4 requêtes parallèles)
+   ✅ 4/4 succès - moy: 5ms, max: 6ms
+📊 Charge globale: 13/13 succès, moy: 4ms
+🧠 Collecte des métriques système (metrics-aggregator)...
+   ✅ CPU: 41.2% (16 coeurs)
+   ✅ Mémoire: 44.7/46.9 GB (95.2%)
+📊 Test traitement de données (stress mémoire)...
+   ✅ Traitement 1000 éléments: 10ms
+   ✅ Traitement 5000 éléments: 49ms
+   ✅ Traitement 10000 éléments: 57ms
+   ✅ Augmentation heap: 28.8 MB
+
+✅ Rapport sauvegardé: tests/reports/performance-report.json
+
+📊 ANALYSE DES PERFORMANCES:
+=====================================
+🧪 Tests: 15/15 réussis
+⏱️ Temps moyen: 182ms
+📊 Requêtes charge: 13/13 (100.0%)
+
+🎯 Score: 100/100
+✅ Performances excellentes</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Performance <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 24 | Réussis: <span style="color: #4caf50;">24</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (45 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement des tests de performance...
+
+📊 Génération du rapport de performance...
+
+⚡ Test des performances API (endpoints réels)...
+   Gateway Health: ✅ 23ms 
+   Auth Health: ✅ 5ms 
+   Applications (list): ✅ 6ms (auth requise, OK)
+   Companies (list): ✅ 4ms (auth requise, OK)
+   Contacts (list): ✅ 6ms (auth requise, OK)
+   Interviews (list): ✅ 3ms (auth requise, OK)
+   Calls (list): ✅ 5ms (auth requise, OK)
+   Followups (list): ✅ 4ms (auth requise, OK)
+   Events (list): ✅ 5ms (auth requise, OK)
+   Notifications (list): ✅ 5ms (auth requise, OK)
+   Métriques système: ✅ 3ms 
+   Docker services: ✅ 2559ms 
+🔥 Test de charge...
+   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)
+📊 Charge: Gateway Health (5 requêtes parallèles)
+   ✅ 5/5 succès - moy: 3ms, max: 3ms
+📊 Charge: Auth Health (4 requêtes parallèles)
+   ✅ 4/4 succès - moy: 3ms, max: 4ms
+📊 Charge: Companies API (4 requêtes parallèles)
+   ✅ 4/4 succès - moy: 5ms, max: 6ms
+📊 Charge globale: 13/13 succès, moy: 4ms
+🧠 Collecte des métriques système (metrics-aggregator)...
+   ✅ CPU: 44.9% (16 coeurs)
+   ✅ Mémoire: 45.1/46.9 GB (96.1%)
+📊 Test traitement de données (stress mémoire)...
+   ✅ Traitement 1000 éléments: 10ms
+   ✅ Traitement 5000 éléments: 52ms
+   ✅ Traitement 10000 éléments: 56ms
+   ✅ Augmentation heap: 29.1 MB
+
+✅ Rapport sauvegardé: tests/reports/performance-report.json
+
+📊 ANALYSE DES PERFORMANCES:
+=====================================
+🧪 Tests: 15/15 réussis
+⏱️ Temps moyen: 219ms
+📊 Requêtes charge: 13/13 (100.0%)
+
+🎯 Score: 95/100
+✅ Performances excellentes</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright CRUD Données (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 18 | Réussis: <span style="color: #4caf50;">18</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (25 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 804ms
+
+Running 18 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/specs/admin-data-crud.spec.ts:37:7 › CRUD Données Complet (admin) › créer une entreprise (28ms)
+  ✓   2 [chromium] › e2e/specs/admin-data-crud.spec.ts:48:7 › CRUD Données Complet (admin) › modifier une entreprise (17ms)
+  ✓   3 [chromium] › e2e/specs/admin-data-crud.spec.ts:57:7 › CRUD Données Complet (admin) › lire une entreprise (13ms)
+  ✓   4 [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact (32ms)
+  ✓   5 [chromium] › e2e/specs/admin-data-crud.spec.ts:85:7 › CRUD Données Complet (admin) › modifier un contact (15ms)
+  ✓   6 [chromium] › e2e/specs/admin-data-crud.spec.ts:95:7 › CRUD Données Complet (admin) › créer une candidature (44ms)
+  ✓   7 [chromium] › e2e/specs/admin-data-crud.spec.ts:107:7 › CRUD Données Complet (admin) › modifier une candidature (16ms)
+  ✓   8 [chromium] › e2e/specs/admin-data-crud.spec.ts:116:7 › CRUD Données Complet (admin) › lire une candidature avec relations (16ms)
+  ✓   9 [chromium] › e2e/specs/admin-data-crud.spec.ts:126:7 › CRUD Données Complet (admin) › créer un entretien (42ms)
+  ✓  10 [chromium] › e2e/specs/admin-data-crud.spec.ts:142:7 › CRUD Données Complet (admin) › modifier un entretien (14ms)
+  ✓  11 [chromium] › e2e/specs/admin-data-crud.spec.ts:152:7 › CRUD Données Complet (admin) › créer une relance (32ms)
+  ✓  12 [chromium] › e2e/specs/admin-data-crud.spec.ts:169:7 › CRUD Données Complet (admin) › créer un appel (33ms)
+  ✓  13 [chromium] › e2e/specs/admin-data-crud.spec.ts:187:7 › CRUD Données Complet (admin) › créer un événement (14ms)
+  ✓  14 [chromium] › e2e/specs/admin-data-crud.spec.ts:204:7 › CRUD Données Complet (admin) › archiver une candidature (8ms)
+  ✓  15 [chromium] › e2e/specs/admin-data-crud.spec.ts:213:7 › CRUD Données Complet (admin) › candidature archivée absente de la liste normale (815ms)
+  ✓  16 [chromium] › e2e/specs/admin-data-crud.spec.ts:225:7 › CRUD Données Complet (admin) › désarchiver la candidature (5ms)
+  ✓  17 [chromium] › e2e/specs/admin-data-crud.spec.ts:235:7 › CRUD Données Complet (admin) › supprimer (soft) la candidature (32ms)
+  ✓  18 [chromium] › e2e/specs/admin-data-crud.spec.ts:243:7 › CRUD Données Complet (admin) › restaurer la candidature depuis la corbeille (6ms)
+
+  18 passed (2.1s)</pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright E2E Frontend <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 901s</p>
+        <p><strong>Statistiques:</strong> Total: 75 | Réussis: <span style="color: #4caf50;">75</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (111 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 1s
+🚀 Configuration globale des tests e2e...
+✅ Configuration globale terminée
+
+Running 276 tests using 2 workers
+
+  ✓    2 [no-auth] › tests/e2e/accessibility.spec.ts:7:7 › ♿ Tests d'accessibilité › ✅ Analyse axe-core - Page de connexion (10.6s)
+  ✘    1 [setup] › tests/e2e/auth.setup.ts:10:6 › authenticate as admin (30.2s)
+  ✘    3 [no-auth] › tests/e2e/accessibility.spec.ts:23:7 › ♿ Tests d'accessibilité › ✅ Formulaire de connexion accessible (30.5s)
+  ✓    4 [setup] › tests/e2e/auth.setup.ts:10:6 › authenticate as admin (retry #1) (24.7s)
+  ✓    5 [no-auth] › tests/e2e/accessibility.spec.ts:23:7 › ♿ Tests d'accessibilité › ✅ Formulaire de connexion accessible (retry #1) (14.3s)
+  ✓    7 [no-auth] › tests/e2e/accessibility.spec.ts:53:7 › ♿ Tests d'accessibilité › ✅ Images avec texte alternatif (5.9s)
+  ✓    6 [no-auth] › tests/e2e/accessibility.spec.ts:36:7 › ♿ Tests d'accessibilité › ✅ Tableaux accessibles (5.9s)
+  ✓    9 [no-auth] › tests/e2e/accessibility.spec.ts:93:7 › ♿ Tests d'accessibilité › ✅ Navigation mobile accessible (8.3s)
+  ✓    8 [no-auth] › tests/e2e/accessibility.spec.ts:72:7 › ♿ Tests d'accessibilité › ✅ Boutons et liens accessibles (8.5s)
+  ✓   11 [no-auth] › tests/e2e/accessibility.spec.ts:118:7 › ♿ Tests d'accessibilité › ✅ Langue de la page (9.1s)
+  ✓   10 [no-auth] › tests/e2e/accessibility.spec.ts:102:7 › ♿ Tests d'accessibilité › ✅ Messages d'état accessibles (9.2s)
+  ✓   12 [no-auth] › tests/e2e/login.spec.ts:9:7 › 🔐 Authentification - Page de connexion › devrait afficher correctement la page de connexion (10.6s)
+  ✓   13 [no-auth] › tests/e2e/login.spec.ts:18:7 › 🔐 Authentification - Page de connexion › devrait permettre de basculer entre mode sombre et clair (10.9s)
+  ✓   14 [no-auth] › tests/e2e/login.spec.ts:29:7 › 🔐 Authentification - Page de connexion › devrait afficher la section des informations de compte de test (23.1s)
+  ✘   15 [no-auth] › tests/e2e/login.spec.ts:35:7 › 🔐 Authentification - Page de connexion › devrait permettre la connexion avec des identifiants valides (30.2s)
+  ✓   16 [no-auth] › tests/e2e/login.spec.ts:44:7 › 🔐 Authentification - Page de connexion › devrait afficher une erreur pour des identifiants invalides (14.1s)
+  ✓   18 [no-auth] › tests/e2e/login.spec.ts:52:7 › 🔐 Authentification - Page de connexion › devrait être responsive sur mobile (14.6s)
+  ✓   17 [no-auth] › tests/e2e/login.spec.ts:35:7 › 🔐 Authentification - Page de connexion › devrait permettre la connexion avec des identifiants valides (retry #1) (21.0s)
+  ✓   19 [no-auth] › tests/e2e/login.spec.ts:61:7 › 🔐 Authentification - Page de connexion › devrait afficher/masquer le mot de passe (8.9s)
+  ✓   20 [chromium] › tests/e2e/api-e2e.spec.ts:183:7 › 🔍 API – Recherche › GET /api/v1/search?q=test retourne des résultats (19ms)
+  ✓   22 [chromium] › tests/e2e/api-e2e.spec.ts:193:7 › 📊 API – Dashboard &amp; Analytics › GET /api/v1/dashboard retourne les données du tableau de bord (19ms)
+  ✓   21 [chromium] › tests/e2e/api-e2e.spec.ts:67:7 › 🩺 API – Health &amp; Status › health check API Gateway répond 200 (14ms)
+  ✓   24 [chromium] › tests/e2e/api-e2e.spec.ts:72:7 › 🩺 API – Health &amp; Status › endpoint racine /api/v1 est accessible (10ms)
+  ✓   25 [chromium] › tests/e2e/api-e2e.spec.ts:82:7 › 🔑 API – Authentification › login avec identifiants valides retourne un token (3ms)
+  ✓   26 [chromium] › tests/e2e/api-e2e.spec.ts:92:7 › 🔑 API – Authentification › login avec identifiants invalides retourne 401 (29ms)
+  ✓   23 [chromium] › tests/e2e/api-e2e.spec.ts:198:7 › 📊 API – Dashboard &amp; Analytics › GET /api/v1/dashboard/statistics retourne les stats (120ms)
+  ✓   27 [chromium] › tests/e2e/api-e2e.spec.ts:100:7 › 🔑 API – Authentification › profil utilisateur accessible avec token (33ms)
+  ✓   28 [chromium] › tests/e2e/api-e2e.spec.ts:208:7 › 🔔 API – Notifications › GET /api/v1/notifications retourne la liste (24ms)
+  ✓   29 [chromium] › tests/e2e/api-e2e.spec.ts:113:7 › 🏢 API – CRUD Entreprises › GET /api/v1/companies retourne une liste (26ms)
+  ✓   31 [chromium] › tests/e2e/api-e2e.spec.ts:119:7 › 🏢 API – CRUD Entreprises › POST /api/v1/companies crée une entreprise (17ms)
+  ✓   32 [chromium] › tests/e2e/api-e2e.spec.ts:131:7 › 🏢 API – CRUD Entreprises › DELETE /api/v1/companies/:id supprime l'entreprise (29ms)
+  ✓   33 [chromium] › tests/e2e/api-e2e.spec.ts:149:7 › 👤 API – Contacts › GET /api/v1/contacts retourne une liste (21ms)
+  ✓   34 [chromium] › tests/e2e/api-e2e.spec.ts:154:7 › 👤 API – Contacts › POST /api/v1/contacts crée un contact (27ms)
+  ✓   35 [chromium] › tests/e2e/api-e2e.spec.ts:173:7 › 📝 API – Candidatures › GET /api/v1/applications retourne des candidatures (20ms)
+  ✓   36 [chromium] › tests/e2e/archive-interactions.spec.ts:68:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : archiver et désarchiver un entretien (52ms)
+  ✓   37 [chromium] › tests/e2e/archive-interactions.spec.ts:84:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : soft-delete et restaurer un entretien (90ms)
+  ✓   38 [chromium] › tests/e2e/archive-interactions.spec.ts:105:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés (153ms)
+  ✓   39 [chromium] › tests/e2e/archive-interactions.spec.ts:146:7 › 🗄️ Archivage &amp; Corbeille (admin) › archiver candidature met en archive les entretiens liés (suite) (64ms)
+  ✓   30 [chromium] › tests/e2e/api-e2e.spec.ts:218:7 › ⚙️ API – Admin › GET /api/v1/admin/services retourne la liste des services (10.0s)
+  ✓   41 [chromium] › tests/e2e/api-e2e.spec.ts:223:7 › ⚙️ API – Admin › GET /api/v1/admin/monitoring/system retourne les infos système (11ms)
+  ✓   42 [chromium] › tests/e2e/api-e2e.spec.ts:233:7 › 📬 API – Emails › GET /api/v1/emails retourne les emails ou 404 (12ms)
+  ✓   43 [chromium] › tests/e2e/api-e2e.spec.ts:238:7 › 📬 API – Emails › GET /api/v1/emails/templates retourne les templates (25ms)
+  ✓   44 [chromium] › tests/e2e/api-e2e.spec.ts:248:7 › 🛡️ API – Maintenance &amp; WAF › GET /api/v1/maintenance retourne le statut (19ms)
+  ✓   45 [chromium] › tests/e2e/api-e2e.spec.ts:253:7 › 🛡️ API – Maintenance &amp; WAF › GET /api/v1/waf/stats retourne les stats WAF (18ms)
+  ✘   40 [chromium] › tests/e2e/archive-interactions.spec.ts:161:7 › 🗄️ Archivage &amp; Corbeille (admin) › la page Archives du backoffice charge sans erreur (44.0s)
+  -   47 [chromium] › tests/e2e/archive-interactions.spec.ts:168:7 › 🗄️ Archivage &amp; Corbeille (admin) › la page Corbeille du backoffice charge sans erreur
+  ✓   48 [chromium] › tests/e2e/archive-interactions.spec.ts:68:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : archiver et désarchiver un entretien (retry #1) (210ms)
+  ✓   49 [chromium] › tests/e2e/archive-interactions.spec.ts:84:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : soft-delete et restaurer un entretien (retry #1) (196ms)
+  ✓   50 [chromium] › tests/e2e/archive-interactions.spec.ts:105:7 › 🗄️ Archivage &amp; Corbeille (admin) › API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés (retry #1) (274ms)
+  ✓   51 [chromium] › tests/e2e/archive-interactions.spec.ts:146:7 › 🗄️ Archivage &amp; Corbeille (admin) › archiver candidature met en archive les entretiens liés (suite) (retry #1) (105ms)
+  ✘   46 [chromium] › tests/e2e/archive-interactions.spec.ts:423:7 › 🖥️ Pages Backoffice Archive/Corbeille › la page Archives charge correctement avec les onglets (44.5s)
+  ✘   52 [chromium] › tests/e2e/archive-interactions.spec.ts:161:7 › 🗄️ Archivage &amp; Corbeille (admin) › la page Archives du backoffice charge sans erreur (retry #1) (36.2s)
+  -   54 [chromium] › tests/e2e/archive-interactions.spec.ts:168:7 › 🗄️ Archivage &amp; Corbeille (admin) › la page Corbeille du backoffice charge sans erreur (retry #1)
+  ✘   53 [chromium] › tests/e2e/archive-interactions.spec.ts:423:7 › 🖥️ Pages Backoffice Archive/Corbeille › la page Archives charge correctement avec les onglets (retry #1) (30.5s)
+  ✓   55 [chromium] › tests/e2e/archive-interactions.spec.ts:436:7 › 🖥️ Pages Backoffice Archive/Corbeille › la page Corbeille charge correctement (35.7s)
+  ✘   56 [chromium] › tests/e2e/archive-interactions.spec.ts:446:7 › 🖥️ Pages Backoffice Archive/Corbeille › la page Données affiche les onglets entités (34.5s)
+  ✓   57 [chromium] › tests/e2e/archive-interactions.spec.ts:460:7 › 📋 CRUD Candidatures UI › la page candidatures charge et affiche une liste (23.0s)
+  ✓   58 [chromium] › tests/e2e/archive-interactions.spec.ts:446:7 › 🖥️ Pages Backoffice Archive/Corbeille › la page Données affiche les onglets entités (retry #1) (22.1s)
+  ✓   59 [chromium] › tests/e2e/archive-interactions.spec.ts:466:7 › 📋 CRUD Candidatures UI › le formulaire de création candidature s'ouvre (12.1s)
+  ✓   60 [chromium] › tests/e2e/archive-interactions.spec.ts:478:7 › 📋 CRUD Candidatures UI › la page entretiens charge correctement (25.4s)
+  ✓   61 [chromium] › tests/e2e/archive-interactions.spec.ts:484:7 › 📋 CRUD Candidatures UI › la page relances charge correctement (24.2s)
+  ✓   62 [chromium] › tests/e2e/archive-interactions.spec.ts:490:7 › 📋 CRUD Candidatures UI › la page appels charge correctement (23.1s)
+  ✓   64 [chromium] › tests/e2e/archive-interactions.spec.ts:507:7 › 🧹 Nettoyage données de test › nettoyer les données de test E2E (144ms)
+  ✓   65 [chromium] › tests/e2e/archive-interactions.spec.ts:226:7 › 📊 Cascade de statuts › créer un entretien passe la candidature en INTERVIEW_PENDING (82ms)
+  ✓   66 [chromium] › tests/e2e/archive-interactions.spec.ts:257:7 › 📊 Cascade de statuts › historique de statut candidature accessible (12ms)
+  ✓   67 [chromium] › tests/e2e/archive-interactions.spec.ts:314:7 › 📅 Auto-création événements › créer un entretien crée un événement calendrier automatiquement (91ms)
+  ✓   68 [chromium] › tests/e2e/archive-interactions.spec.ts:355:7 › 📅 Auto-création événements › créer une relance crée un événement calendrier automatiquement (44ms)
+  ✓   69 [chromium] › tests/e2e/archive-interactions.spec.ts:386:7 › 📅 Auto-création événements › créer un appel crée un événement calendrier automatiquement (45ms)
+  ✓   70 [chromium] › tests/e2e/backoffice-extended.spec.ts:14:7 › 📋 Données individuelles – interactions › page Entretiens : table et éléments interactifs (4.7s)
+  ✓   63 [chromium] › tests/e2e/archive-interactions.spec.ts:496:7 › 📋 CRUD Candidatures UI › la page événements charge correctement (18.6s)
+  ✓   71 [chromium] › tests/e2e/backoffice-extended.spec.ts:22:7 › 📋 Données individuelles – interactions › page Appels : table et boutons (11.0s)
+  ✓   72 [chromium] › tests/e2e/backoffice-extended.spec.ts:29:7 › 📋 Données individuelles – interactions › page Relances : table et boutons (10.5s)
+  ✓   74 [chromium] › tests/e2e/backoffice-extended.spec.ts:43:7 › 📋 Données individuelles – interactions › page Notifications : liste et actions (18.8s)
+  ✓   73 [chromium] › tests/e2e/backoffice-extended.spec.ts:36:7 › 📋 Données individuelles – interactions › page Événements : liste et boutons (18.9s)
+  ✘   76 [chromium] › tests/e2e/backoffice-extended.spec.ts:62:7 › 📈 Analytics – interactions avancées › page Performances applicatives affiche des données (43.8s)
+  ✘   75 [chromium] › tests/e2e/backoffice-extended.spec.ts:55:7 › 📈 Analytics – interactions avancées › page Performances réseau affiche métriques et boutons (43.8s)
+  ✓   78 [chromium] › tests/e2e/backoffice-extended.spec.ts:62:7 › 📈 Analytics – interactions avancées › page Performances applicatives affiche des données (retry #1) (27.4s)
+  ✓   77 [chromium] › tests/e2e/backoffice-extended.spec.ts:55:7 › 📈 Analytics – interactions avancées › page Performances réseau affiche métriques et boutons (retry #1) (27.8s)
+  ✘   79 [chromium] › tests/e2e/backoffice-extended.spec.ts:67:7 › 📈 Analytics – interactions avancées › page Analytics conteneurs affiche des conteneurs (36.7s)
+  ✘   80 [chromium] › tests/e2e/backoffice-extended.spec.ts:74:7 › 📈 Analytics – interactions avancées › page Analytics CPU/système avec boutons interactifs (42.7s)
+  ✘   81 [chromium] › tests/e2e/backoffice-extended.spec.ts:67:7 › 📈 Analytics – interactions avancées › page Analytics conteneurs affiche des conteneurs (retry #1) (31.6s)
+  ✘   82 [chromium] › tests/e2e/backoffice-extended.spec.ts:74:7 › 📈 Analytics – interactions avancées › page Analytics CPU/système avec boutons interactifs (retry #1) (32.4s)
+  ✘   83 [chromium] › tests/e2e/backoffice-extended.spec.ts:86:7 › 🔒 Sécurité – interactions avancées › page Analyse de sécurité affiche des résultats (43.9s)
+  ✘   84 [chromium] › tests/e2e/backoffice-extended.spec.ts:93:7 › 🔒 Sécurité – interactions avancées › page Réseau (sécurité) affiche des données réseau (43.6s)
+  ✘   85 [chromium] › tests/e2e/backoffice-extended.spec.ts:86:7 › 🔒 Sécurité – interactions avancées › page Analyse de sécurité affiche des résultats (retry #1) (30.9s)
+  ✘   86 [chromium] › tests/e2e/backoffice-extended.spec.ts:93:7 › 🔒 Sécurité – interactions avancées › page Réseau (sécurité) affiche des données réseau (retry #1) (30.5s)
+  ✘   87 [chromium] › tests/e2e/backoffice-extended.spec.ts:98:7 › 🔒 Sécurité – interactions avancées › page Menaces affiche la liste des menaces (43.2s)
+  ✘   88 [chromium] › tests/e2e/backoffice-extended.spec.ts:110:7 › 📧 Emails – pages complémentaires › page Email Monitor affiche le suivi détaillé (43.1s)
+  ✓   89 [chromium] › tests/e2e/backoffice-extended.spec.ts:98:7 › 🔒 Sécurité – interactions avancées › page Menaces affiche la liste des menaces (retry #1) (25.3s)
+  ✓   90 [chromium] › tests/e2e/backoffice-extended.spec.ts:110:7 › 📧 Emails – pages complémentaires › page Email Monitor affiche le suivi détaillé (retry #1) (29.1s)
+  ✘   91 [chromium] › tests/e2e/backoffice-extended.spec.ts:117:7 › 📧 Emails – pages complémentaires › page Configuration SMTP affiche les paramètres (40.4s)
+  ✘   92 [chromium] › tests/e2e/backoffice-extended.spec.ts:124:7 › 📧 Emails – pages complémentaires › page Délivrabilité affiche les métriques (34.0s)
+  ✓   93 [chromium] › tests/e2e/backoffice-extended.spec.ts:117:7 › 📧 Emails – pages complémentaires › page Configuration SMTP affiche les paramètres (retry #1) (8.4s)
+  ✓   94 [chromium] › tests/e2e/backoffice-extended.spec.ts:124:7 › 📧 Emails – pages complémentaires › page Délivrabilité affiche les métriques (retry #1) (4.8s)
+  ✘   95 [chromium] › tests/e2e/backoffice-extended.spec.ts:131:7 › 📧 Emails – pages complémentaires › page Historique Emails affiche les logs (30.3s)
+  ✘   96 [chromium] › tests/e2e/backoffice-extended.spec.ts:141:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests API affiche les endpoints et résultats (30.3s)
+  ✓   97 [chromium] › tests/e2e/backoffice-extended.spec.ts:131:7 › 📧 Emails – pages complémentaires › page Historique Emails affiche les logs (retry #1) (7.8s)
+  ✓   98 [chromium] › tests/e2e/backoffice-extended.spec.ts:141:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests API affiche les endpoints et résultats (retry #1) (7.9s)
+  ✘   99 [chromium] › tests/e2e/backoffice-extended.spec.ts:148:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Backend avec boutons de lancement (40.0s)
+  ✘  100 [chromium] › tests/e2e/backoffice-extended.spec.ts:153:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Frontend avec résultats (43.2s)
+  ✘  101 [chromium] › tests/e2e/backoffice-extended.spec.ts:148:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Backend avec boutons de lancement (retry #1) (30.4s)
+  ✘  102 [chromium] › tests/e2e/backoffice-extended.spec.ts:153:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Frontend avec résultats (retry #1) (31.3s)
+  ✘  103 [chromium] › tests/e2e/backoffice-extended.spec.ts:158:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Backoffice avec interface (33.1s)
+  ✓  104 [chromium] › tests/e2e/backoffice-extended.spec.ts:163:7 › 🧪 Tests &amp; Outils – interactions avancées › page Tests Emails avec vérifications (29.0s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright Email Workflows <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 15s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (12 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 669ms
+
+Running 4 tests using 3 workers
+
+  ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:225:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (130ms)
+  -  1 [chromium] › e2e/specs/email-workflows.spec.ts:107:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (mailhog)
+  ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:183:9 › Workflows Email Complets › Inscription avec vérification email › sans vérification email, le login est refusé (401) (294ms)
+  ✓  3 [chromium] › e2e/specs/email-workflows.spec.ts:269:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (12.5s)
+
+  1 skipped
+  3 passed (13.5s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright Emails MailHog <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 13s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (10 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 631ms
+
+Running 3 tests using 3 workers
+
+  -  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:100:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail
+  -  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API
+  -  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:124:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page
+
+  3 skipped</pre>
+        </details>
+    </div>
+    <div class="test-result skipped">
+        <h2>Playwright Mobile <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-skipped">skipped</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Aucune sortie disponible pour ce test.</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright Sécurité Backoffice (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 14 | Réussis: <span style="color: #4caf50;">14</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (21 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 625ms
+
+Running 14 tests using 7 workers
+
+  ✓   1 [chromium] › e2e/specs/admin-security-complete.spec.ts:34:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › lister les règles firewall (18ms)
+  ✓   8 [chromium] › e2e/specs/admin-security-complete.spec.ts:43:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › créer une règle firewall (21ms)
+  ✓   3 [chromium] › e2e/specs/admin-security-complete.spec.ts:60:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › modifier une règle firewall (6ms)
+  ✓   2 [chromium] › e2e/specs/admin-security-complete.spec.ts:81:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › lister les IPs bloquées (19ms)
+  ✓   5 [chromium] › e2e/specs/admin-security-complete.spec.ts:104:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › lister les menaces (23ms)
+  ✓   9 [chromium] › e2e/specs/admin-security-complete.spec.ts:69:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › supprimer une règle firewall (5ms)
+  ✓  11 [chromium] › e2e/specs/admin-security-complete.spec.ts:111:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › créer une menace de test (25ms)
+  ✓  10 [chromium] › e2e/specs/admin-security-complete.spec.ts:88:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › bloquer puis débloquer une IP (36ms)
+  ✓   7 [chromium] › e2e/specs/admin-security-complete.spec.ts:140:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › statistiques WAF (19ms)
+  ✓   4 [chromium] › e2e/specs/admin-security-complete.spec.ts:124:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › statistiques réseau (101ms)
+  ✓  12 [chromium] › e2e/specs/admin-security-complete.spec.ts:147:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › activer/désactiver WAF (70ms)
+  ✓   6 [chromium] › e2e/specs/admin-security-complete.spec.ts:157:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les logs de sécurité (101ms)
+  ✓  13 [chromium] › e2e/specs/admin-security-complete.spec.ts:133:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › configuration WAF (12ms)
+  ✓  14 [chromium] › e2e/specs/admin-security-complete.spec.ts:164:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les alertes (18ms)
+
+  14 passed (1.5s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright CRUD Utilisateurs (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 6 | Réussis: <span style="color: #4caf50;">6</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (13 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 775ms
+
+Running 6 tests using 6 workers
+
+  ✓  4 [chromium] › e2e/specs/admin-users-crud.spec.ts:70:7 › Gestion Utilisateurs (admin CRUD) › modifier le rôle d'un utilisateur (si endpoint existe) (6ms)
+  ✓  5 [chromium] › e2e/specs/admin-users-crud.spec.ts:79:7 › Gestion Utilisateurs (admin CRUD) › désactiver un utilisateur (si endpoint existe) (8ms)
+  ✓  6 [chromium] › e2e/specs/admin-users-crud.spec.ts:57:7 › Gestion Utilisateurs (admin CRUD) › vérifier que le nouvel utilisateur peut se connecter (6ms)
+  ✓  3 [chromium] › e2e/specs/admin-users-crud.spec.ts:88:7 › Gestion Utilisateurs (admin CRUD) › profil admin accessible (296ms)
+  ✓  2 [chromium] › e2e/specs/admin-users-crud.spec.ts:42:7 › Gestion Utilisateurs (admin CRUD) › créer un utilisateur (580ms)
+  ✓  1 [chromium] › e2e/specs/admin-users-crud.spec.ts:31:7 › Gestion Utilisateurs (admin CRUD) › lister les utilisateurs (437ms)
+
+  6 passed (1.5s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Profile Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;profile-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:25.961Z&quot;,&quot;version&quot;:&quot;1.0.0&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Relations BDD <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (65 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Tests des Relations Many-to-Many
+
+ℹ️  Test 1: Vérification existence table ContactCompany
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Company
+
+✅ Table existe: Table ContactCompany existe (51 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table ContactApplication
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Application
+
+✅ Table existe: Table ContactApplication existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table FollowUpContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour FollowUp ↔ Contact
+
+✅ Table existe: Table FollowUpContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table InterviewContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Interview ↔ Contact
+
+✅ Table existe: Table InterviewContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité Firewall & WAF (API) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 19 | Réussis: <span style="color: #4caf50;">18</span> | Échoués: <span style="color: #f44336;">1</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (61 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🔥 Test du Firewall et WAF
+==========================
+
+📋 Test 1: Récupération des règles firewall
+  Test: GET /api/v1/security/firewall/rules... ✅ PASS (HTTP 200)
+
+📋 Test 2: Création d'une règle firewall de test
+✅ PASS (HTTP 201)
+
+  ✅ Règle créée avec ID: cmmxppksj009e13hyu5h1vxsf
+
+📋 Test 3: Mise à jour de la règle firewall
+  Test: PUT /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 4: Suppression de la règle firewall
+  Test: DELETE /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 5: Récupération des IPs bloquées
+  Test: GET /api/v1/security/firewall/blocked-ips... ✅ PASS (HTTP 200)
+
+📋 Test 6: Blocage d'une IP de test
+  Test: POST /api/v1/security/firewall/block-ip... ✅ PASS (HTTP 200)
+
+📋 Test 7: Déblocage de l'IP de test
+  Test: POST /api/v1/security/firewall/unblock-ip... ✅ PASS (HTTP 200)
+
+📋 Test 8: Récupération des menaces réseau
+  Test: GET /api/v1/security/firewall/threats... ✅ PASS (HTTP 200)
+
+📋 Test 9: Création d'une menace de test
+  Test: POST /api/v1/security/firewall/threats... ✅ PASS (HTTP 201)
+
+📋 Test 10: Récupération des statistiques réseau
+  Test: GET /api/v1/security/firewall/network/stats... ✅ PASS (HTTP 200)
+
+📋 Test 11: Configuration WAF
+  Test: GET /api/v1/security/waf/config... ✅ PASS (HTTP 200)
+
+📋 Test 12: Statistiques WAF
+  Test: GET /api/v1/security/waf/stats... ✅ PASS (HTTP 200)
+
+📋 Test 13: Activation/désactivation WAF
+  Test: PUT /api/v1/security/waf/toggle... ✅ PASS (HTTP 200)
+
+📋 Test 14: Activation/désactivation règle WAF
+  Test: PUT /api/v1/security/waf/rules/:ruleName... ✅ PASS (HTTP 200)
+
+📋 Test 15: Vérification des logs de sécurité
+  Test: GET /api/v1/security/logs... ✅ PASS (HTTP 200)
+
+==========================
+📊 RÉSUMÉ DES TESTS
+==========================
+✅ Tests réussis: 15
+   Tests échoués: 0
+
+✅ Tous les tests sont passés !
+
+💡 Note: Si certains tests ont été ignorés (SKIP), c'est normal si:
+   - La table FirewallRule n'existe pas (exécutez: make db-push-all)
+   - iptables n'est pas disponible dans le conteneur (normal en développement)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 16 | Réussis: <span style="color: #4caf50;">16</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (40 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement de tous les tests de sécurité...
+
+🛡️ Test XSS (Cross-Site Scripting)...
+💉 Test injection SQL...
+🔄 Test CSRF (Cross-Site Request Forgery)...
+🔐 Test contournement authentification...
+⏱️ Test rate limiting...
+📋 Test des en-têtes de sécurité...
+🔍 Test exposition des données...
+✅ Test validation des entrées...
+📋 En-têtes de sécurité:
+✅ x-content-type-options: nosniff
+⚠️ x-frame-options: Manquant ou incorrect
+⚠️ x-xss-protection: Manquant ou incorrect
+⚠️ strict-transport-security: Manquant ou incorrect
+✅ content-security-policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+✅ Protection CSRF active
+✅ Validation OK: Données vides
+✅ Auth protégée: /api/v1/auth/profile
+✅ Validation OK: Données null
+✅ Auth protégée: /api/v1/applications
+✅ Validation OK: Données undefined
+✅ Auth protégée: /api/v1/companies
+✅ Validation OK: Objet profondément nested
+✅ Auth protégée: /api/v1/followups
+✅ Validation OK: Tableau très long
+✅ Validation OK: String très long
+⚠️ Aucun rate limiting détecté
+
+📊 RAPPORT DE SÉCURITÉ:
+🚨 CRITIQUES: 0
+🔴 HAUTES: 0
+🟡 MOYENNES: 1
+🟢 BASSES: 0
+✅ SÉCURISÉES: 64
+
+✅ Niveau de sécurité acceptable.
+Surveillance continue recommandée.
+
+📋 Rapport sauvegardé: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/results/security-report.json</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Security Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{&quot;status&quot;:&quot;OK&quot;,&quot;service&quot;:&quot;security-service&quot;,&quot;timestamp&quot;:&quot;2026-03-19T16:56:26.588Z&quot;,&quot;uptime&quot;:13763.684194299,&quot;version&quot;:&quot;1.0.1&quot;,&quot;environment&quot;:&quot;development&quot;}</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>User Journey (API) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 14 | Réussis: <span style="color: #4caf50;">14</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (71 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Vérification User Journey - JobbingTrack          ║
+╚════════════════════════════════════════════════════════╝
+
+✨ Ce script utilise un token permanent qui n'expire jamais !
+
+═══ 1. Health Checks ═══
+[1] Test: API Health
+   ✓ PASS - Status: 200
+
+═══ 2. Authentification ═══
+   ✓ Token utilisateur seedé obtenu (rôle USER, email vérifié).
+[2] Test: Login admin
+   ✓ PASS - Status: 200
+   ✓ Token admin obtenu (rôle SUPER_ADMIN): eyJhbGciOiJIUzI1NiIs...
+
+═══ Génération Token Permanent ═══
+Génération d'un token de test permanent (100 ans)...
+   ⚠ Génération du token permanent échouée (status 403)
+   ⚠ Utilisation du token normal (expire dans 7 jours)
+[3] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ 3. Companies ═══
+[4] Test: List Companies
+   ✓ PASS - Status: 200
+[5] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ 4. Applications ═══
+[6] Test: List Applications
+   ✓ PASS - Status: 200
+[7] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ 5. Contacts ═══
+[8] Test: List Contacts
+   ✓ PASS - Status: 200
+[9] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ 6. Interviews ═══
+[10] Test: List Interviews
+   ✓ PASS - Status: 200
+
+═══ 7. Events ═══
+[11] Test: List Events
+   ✓ PASS - Status: 200
+
+═══ 8. Followups ═══
+[12] Test: List Followups
+   ✓ PASS - Status: 200
+
+═══ 9. Calls ═══
+[13] Test: List Calls
+   ✓ PASS - Status: 200
+
+═══ 10. Dashboard &amp; Statistics ═══
+[14] Test: Get Statistics
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 14
+Tests réussis     : 14
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+Le système est opérationnel à 100%</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Workflow Service (Health Check) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Service non accessible (optionnel)</pre>
+        </details>
+    </div>
+    </div>
+</body>
+</html>

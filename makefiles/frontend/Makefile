@@ -4,7 +4,7 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend type-check-frontend-log clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete test-audit-jest-scope-frontend
 
 FRONTEND_DIR := frontend
 
@@ -54,12 +54,14 @@ help-frontend: ## Afficher l'aide frontend
 	@echo ""
 	@echo "🔍 QUALITÉ DU CODE:"
 	@echo "  make lint-frontend         - Vérifier avec ESLint"
-	@echo "  make type-check-frontend   - Vérifier types TypeScript"
+	@echo "  make type-check-frontend      - Vérifier types TypeScript (tsc)"
+	@echo "  make type-check-frontend-log - tsc + journal frontend/logs/tsc-*.log (hôte, sortie complète)"
 	@echo "  make format-frontend       - Formater avec Prettier"
 	@echo "  make format-check-frontend - Vérifier formatage"
 	@echo ""
 	@echo "🧪 TESTS:"
-	@echo "  make test-unit-frontend    - Tests unitaires Jest"
+	@echo "  make test-unit-frontend    - Jest : unit + analytics + date-metrics-display (npm run test:unit-and-analytics)"
+	@echo "  make test-audit-jest-scope-frontend - Audit : suites Jest hors gate (npm run test:audit-jest-scope)"
 	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
 	@echo "  make test-all-frontend     - Tous les tests"
 	@echo "  make test-analytics        - Tests de la page Analytics"
@@ -113,14 +115,32 @@ lint-frontend: ## ESLint (dans conteneur Docker)
 		cd $(FRONTEND_DIR) && npm run lint || true; \
 	fi
 
-type-check-frontend: ## TypeScript check (dans conteneur Docker)
+type-check-frontend: ## TypeScript check (dans conteneur Docker si up, sinon hôte)
 	@echo "🔍 TypeScript check..."
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
-		docker exec -w /app jobbingtrack-frontend npm run type-check || true; \
+		docker exec -w /app jobbingtrack-frontend npm run type-check; \
 	else \
-		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
-		cd $(FRONTEND_DIR) && npm run type-check || true; \
+		echo "⚠️  Conteneur jobbingtrack-frontend absent — exécution sur l'hôte ($(FRONTEND_DIR))."; \
+		cd $(FRONTEND_DIR) && npm run type-check; \
 	fi
+
+# Journal complet : le terminal tronque souvent l'historique ; le fichier garde toutes les lignes d'erreur.
+# Exécution sur l'hôte (répertoire courant = racine du dépôt en général). En conteneur : docker exec -w /app jobbingtrack-frontend sh -c 'npm run type-check 2>&1 | tee /tmp/tsc.log'
+type-check-frontend-log: ## tsc --noEmit (hôte) : tee → frontend/logs/tsc-<timestamp>.log + comptage « error TS » + fin du log
+	@echo "🔍 TypeScript check (journal complet, hôte)…"
+	@mkdir -p $(FRONTEND_DIR)/logs
+	@bash -c 'set -o pipefail; FR="$(abspath $(FRONTEND_DIR))"; \
+	  if [ ! -x "$$FR/node_modules/.bin/tsc" ]; then echo "❌ Installez les deps : cd $(FRONTEND_DIR) && npm install"; exit 1; fi; \
+	  OUT="$$FR/logs/tsc-$$(date +%Y%m%d-%H%M%S).log"; \
+	  echo "📝 Journal : $$OUT"; \
+	  ( cd "$$FR" && ./node_modules/.bin/tsc --noEmit 2>&1 | tee "$$OUT" ); \
+	  EXIT=$${PIPESTATUS[0]}; \
+	  echo ""; echo "──────── Résumé ────────"; \
+	  C=$$(grep -c "error TS" "$$OUT" 2>/dev/null || true); \
+	  echo "Lignes contenant « error TS » : $$C"; \
+	  echo "── Dernières 40 lignes ──"; \
+	  tail -n 40 "$$OUT"; \
+	  exit $$EXIT'
 
 format-frontend: ## Prettier format (dans conteneur Docker)
 	@echo "💅 Formatage Prettier..."
@@ -144,17 +164,17 @@ format-check-frontend: ## Vérifier formatage (dans conteneur Docker)
 # TESTS
 # ============================================================================
 
-test-unit-frontend: ## Tests unitaires Jest (dans conteneur Docker ou local)
-	@echo "🧪 Tests unitaires frontend..."
+test-unit-frontend: ## Jest : unit + analytics + date-metrics-display (smoke /backoffice/analytics)
+	@echo "🧪 Frontend Jest — npm run test:unit-and-analytics (incl. **date-metrics-display** ; rapport texte ; avec make test-all → tests/results/.../frontend-jest.json)"
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
-		docker exec -w /app jobbingtrack-frontend npm run test:unit || true; \
+		docker exec -w /app jobbingtrack-frontend npm run test:unit-and-analytics; \
 	else \
-		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		echo "⚠️  Conteneur jobbingtrack-frontend absent — exécution locale."; \
 		if [ ! -f "$(FRONTEND_DIR)/node_modules/.bin/jest" ]; then \
 			echo "💡 Installez les dépendances : cd $(FRONTEND_DIR) && npm install"; \
-			(cd $(FRONTEND_DIR) && npm install --no-audit --no-fund 2>/dev/null) || true; \
+			(cd $(FRONTEND_DIR) && npm install --no-audit --no-fund) || exit 1; \
 		fi; \
-		cd $(FRONTEND_DIR) && npm run test:unit 2>/dev/null || (echo "⚠️  Jest non disponible en local. Lancez avec Docker : make up-full puis make test-unit-frontend"; exit 0); \
+		cd $(FRONTEND_DIR) && npm run test:unit-and-analytics; \
 	fi
 
 test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)
@@ -165,6 +185,18 @@ test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)
 		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
 		cd $(FRONTEND_DIR) && npm run test:e2e || true; \
 	fi
+
+# Tests E2E émulateur mobile + inscription / vérification email (contre backoffice + API)
+PLAYWRIGHT_BASE_URL ?= http://localhost:5003
+API_URL_E2E ?= http://localhost:5002
+test-e2e-mobile-email: ## Tests E2E : mobile-emulator + email-verification-monitor
+	@echo "🎭 Tests E2E (émulateur mobile + inscription / Email Monitor)..."
+	@echo "   Base URL: $(PLAYWRIGHT_BASE_URL) | API: $(API_URL_E2E)"
+	@cd $(FRONTEND_DIR) && PLAYWRIGHT_BASE_URL="$(PLAYWRIGHT_BASE_URL)" API_URL="$(API_URL_E2E)" npx playwright test tests/e2e/mobile-emulator.spec.ts tests/e2e/email-verification-monitor.spec.ts --project=chromium
+
+test-audit-jest-scope-frontend: ## Liste les suites Jest hors test:unit-and-analytics (audit périmètre)
+	@echo "📋 Audit Jest (fichiers hors gate unit+analytics)..."
+	@cd $(FRONTEND_DIR) && npm run test:audit-jest-scope
 
 test-all-frontend: ## Tous les tests (dans conteneur Docker)
 	@echo "🧪 Tous les tests frontend..."
@@ -277,7 +309,7 @@ frontend-help: ## Aide frontend
 	@echo "  make format-frontend       - Prettier"
 	@echo ""
 	@echo "🧪 TESTS:"
-	@echo "  make test-unit-frontend    - Tests unitaires"
+	@echo "  make test-unit-frontend    - Jest unit + analytics + date-metrics-display"
 	@echo "  make test-e2e-frontend     - Tests E2E"
 	@echo "  make test-analytics        - Tests Analytics"
 	@echo "  make test-analytics-validate - Validation Analytics"

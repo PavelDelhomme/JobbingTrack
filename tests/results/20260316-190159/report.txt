@@ -1,0 +1,126 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  16/03/2026 19:16:06
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 787
+  Reussis     : 775
+  Echoues     : 12
+  Ignores     : 1
+  Taux        : 98.5%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [FAIL] [U] Tests API Complets (Jest) (21s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (741s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (4s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (4s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (3s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (4s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Call Service (Health Check) (0s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (1s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [OK]   [S] Tests Deployment Service (Health Check) (1s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (0s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (39 ms)
+    FAIL api/test-archive-trash.test.js
+          ✕ désarchiver une candidature devrait désarchiver les éléments liés (327 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 415 |         expect(found).toBeDefined();
+      console.error
+        > 197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:197:48)
+      console.error
+        > 201 |         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:201:47)
+      console.error
+        > 205 |         if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:205:49)
+      console.error
+        > 234 |         console.error(`[BDD] Interview ${interviewId} non trouvé après désarchivage. IDs: ${interviews.map(i => i.id).join(', ').substring(0, 200)}`);
+          236 |       expect(found).toBeDefined();
+          at Object.error (api/test-bdd-relations.test.js:234:17)
+    FAIL api/test-bdd-relations.test.js
+          ✕ après désarchivage, les éléments liés devraient être visibles (1210 ms)
+          ✕ les événements liés à la candidature/entretien devraient exister (9 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+          234 |         console.error(`[BDD] Interview ${interviewId} non trouvé après désarchivage. IDs: ${interviews.map(i => i.id).join(', ').substring(0, 200)}`);
+        > 236 |       expect(found).toBeDefined();
+        expect(received).toBeDefined()
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 79 |     expect(unarchived).toBe(true);
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 79 |     expect(unarchived).toBe(true);
+        Error: browserContext.close: Target page, context or browser has been closed
+        Error: locator.textContent: Test timeout of 30000ms exceeded.
+          547 |     expect(body.length).toBeGreaterThan(100);
+        Error: locator.textContent: Test timeout of 30000ms exceeded.
+          3 | async function expectPageLoaded(page: Page, minContentLength = 100) {
+          6 |   expect(len).toBeGreaterThan(minContentLength);
+            at expectPageLoaded (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/backoffice.spec.ts:5:42)
+        Error: locator.textContent: Test timeout of 30000ms exceeded.
+          3 | async function expectPageLoaded(page: Page, minContentLength = 100) {
+          6 |   expect(len).toBeGreaterThan(minContentLength);
+            at expectPageLoaded (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/backoffice.spec.ts:5:42)
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: element(s) not found
+          - Expect "toBeVisible" with timeout 10000ms
+        > 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+          59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
+          60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+        test-results/email-verification-monitor-c6de1-fication-dans-Email-Monitor-chromium/test-failed-1.png
+        Error Context: test-results/email-verification-monitor-c6de1-fication-dans-Email-Monitor-chromium/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+
+================================================================
+  Rapports : tests/results/20260316-190159/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

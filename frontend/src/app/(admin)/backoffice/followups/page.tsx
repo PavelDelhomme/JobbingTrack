@@ -7,6 +7,7 @@ import { AdminLayout } from '@/components/features';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Clock, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, AlertCircle, Mail } from '@/lib/icons';
 import { followUpService, applicationService } from '@/lib/api';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 
@@ -60,7 +61,7 @@ export default function FollowupsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setFollowups(cached)
+        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         followUpService.getAll({ limit: 100 }).then(response => {
@@ -211,9 +212,9 @@ export default function FollowupsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        {followup.sentAt 
-                          ? new Date(followup.sentAt).toLocaleDateString()
-                          : new Date(followup.createdAt).toLocaleDateString()}
+{followup.sentAt
+                          ? formatLocalDateTime(followup.sentAt)
+                          : formatLocalDateTime(followup.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

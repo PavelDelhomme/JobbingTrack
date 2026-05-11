@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import Link from 'next/link'
+import { formatLocalDateTime } from '@/lib/utils/date'
 
 interface Call {
   id: string
@@ -208,16 +209,7 @@ export default function CallsPage() {
     return `${minutes}m ${secs}s`
   }
 
-  const formatDate = (date?: string) => {
-    if (!date) return 'Non défini'
-    return new Date(date).toLocaleString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (date?: string) => (date ? formatLocalDateTime(date) : 'Non défini')
 
   return (
     <AdminLayout>

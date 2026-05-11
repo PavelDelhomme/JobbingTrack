@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Email Workflows",
+  "userType": "user",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"http://localhost:8025\" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-27T15:56:16+01:00",
+  "duration": 6,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "output": "\nup to date in 587ms\n\nRunning 4 tests using 4 workers\n\n  ✘  2 [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter (253ms)\n  ✓  3 [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (17ms)\n  ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:140:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (1.3s)\n  ✓  1 [chromium] › e2e/specs/email-workflows.spec.ts:35:9 › Workflows Email Complets › Inscription avec vérification email › inscription crée un compte et envoie un email de vérification (3.4s)\n\n\n  1) [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter \n\n    Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: 200\n    Received: 401\n\n      71 |       });\n      72 |\n    > 73 |       expect(loginRes.status()).toBe(200);\n         |                                 ^\n      74 |       const body = await loginRes.json();\n      75 |       expect(body.token || body.accessToken).toBeTruthy();\n      76 |     });\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:73:33\n\n  1 failed\n    [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter \n  3 passed (4.1s)\n"
+}

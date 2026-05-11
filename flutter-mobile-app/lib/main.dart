@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jobbingtrack_flutter/screens/login_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/applications/applications_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/auth/login_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/companies/companies_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/contacts/contacts_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/dashboard/home_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/interviews/interviews_screen.dart';
+import 'package:jobbingtrack_flutter/screens/jobbing/users/profile_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +31,15 @@ class JobbingTrackApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const LoginScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/applications': (context) => const ApplicationsScreen(),
+        '/companies': (context) => const CompaniesScreen(),
+        '/contacts': (context) => const ContactsScreen(),
+        '/interviews': (context) => const InterviewsScreen(),
+        '/profile': (context) => const ProfileScreen(),
+      },
     );
   }
 }

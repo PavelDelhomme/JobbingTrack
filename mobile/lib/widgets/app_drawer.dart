@@ -128,9 +128,14 @@ class AppDrawer extends StatelessWidget {
                   route: '/logs',
                 ),
                 _DrawerItem(
-                  icon: Icons.search,
-                  title: 'Recherche',
-                  route: '/search',
+                  icon: Icons.archive_outlined,
+                  title: 'Archives',
+                  route: '/trash',
+                ),
+                _DrawerItem(
+                  icon: Icons.delete_outline,
+                  title: 'Corbeille',
+                  route: '/trash',
                 ),
               ],
             ),
@@ -190,9 +195,15 @@ class AppDrawer extends StatelessWidget {
               );
 
               if (confirm == true && context.mounted) {
-                await authProvider.logout();
+                Navigator.of(context).pop(); // Fermer le drawer d'abord
                 if (context.mounted) {
-                  Navigator.of(context).pushReplacementNamed('/login');
+                  await authProvider.logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                      (Route<dynamic> route) => false,
+                    );
+                  }
                 }
               }
             },

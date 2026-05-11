@@ -1,0 +1,3 @@
+# Évite d’injecter des fichiers de backup ou artefacts locaux dans le contexte de build backend / gateway
+**/*.backup.*
+**/server.js.backup*

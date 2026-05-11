@@ -1,7 +1,6 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
-// Map des services vers leurs URLs
 const SERVICE_URLS = {
   application: process.env.APPLICATION_SERVICE_URL || 'http://application-service:3002',
   contact: process.env.CONTACT_SERVICE_URL || 'http://contact-service:3004',
@@ -12,6 +11,32 @@ const SERVICE_URLS = {
   event: process.env.EVENT_SERVICE_URL || 'http://event-service:3011',
   user: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
 };
+
+const TYPE_TO_PLURAL = {
+  application: 'applications',
+  contact: 'contacts',
+  company: 'companies',
+  interview: 'interviews',
+  followup: 'followups',
+  call: 'calls',
+  event: 'events',
+  user: 'users'
+};
+
+function buildArchiveTitle(item, type) {
+  if (item.title) return item.title;
+  switch (type) {
+    case 'Application': return item.position || item.id || 'Candidature';
+    case 'Contact': return [item.firstName, item.lastName].filter(Boolean).join(' ') || item.email || item.id || 'Contact';
+    case 'Company': return item.name || item.id || 'Entreprise';
+    case 'Interview': return item.id || 'Entretien';
+    case 'FollowUp': return item.id || 'Relance';
+    case 'Call': return item.subject || item.id || 'Appel';
+    case 'Event': return item.title || item.name || item.id || 'Événement';
+    case 'User': return item.email || item.id || 'Utilisateur';
+    default: return item.id || 'Élément';
+  }
+}
 
 /**
  * Récupère tous les éléments archivés de tous les services
@@ -35,21 +60,21 @@ const getAllArchivedItems = async (req, res) => {
 
     // Si un type spécifique est demandé
     if (type && type !== 'all') {
-      const serviceUrl = SERVICE_URLS[type.toLowerCase()];
-      if (serviceUrl) {
+      const typeKey = type.toLowerCase();
+      const serviceUrl = SERVICE_URLS[typeKey];
+      const pathSegment = TYPE_TO_PLURAL[typeKey];
+      if (serviceUrl && pathSegment && typeKey !== 'user') {
         try {
           const response = await axios.get(
-            `${serviceUrl}/api/v1/${type.toLowerCase()}s/archived`,
-            {
-              headers: { Authorization: authHeader },
-              timeout: 5000
-            }
+            `${serviceUrl}/api/v1/${pathSegment}/archived`,
+            { headers: { Authorization: authHeader }, timeout: 5000 }
           );
-          
           if (response.data.success && response.data.items) {
+            const displayType = type.charAt(0).toUpperCase() + type.slice(1);
             items.push(...response.data.items.map(item => ({
               ...item,
-              type: type
+              type: displayType,
+              title: buildArchiveTitle(item, displayType)
             })));
           }
         } catch (error) {
@@ -57,34 +82,33 @@ const getAllArchivedItems = async (req, res) => {
         }
       }
     } else {
-      // Récupérer de tous les services
-      const promises = Object.entries(SERVICE_URLS).map(async ([serviceName, serviceUrl]) => {
+      const serviceNames = Object.keys(SERVICE_URLS).filter(name => name !== 'user');
+      const promises = serviceNames.map(async (serviceName) => {
+        const pathSegment = TYPE_TO_PLURAL[serviceName];
+        if (!pathSegment) return [];
         try {
-          const entityName = serviceName === 'user' ? 'auth' : serviceName;
+          const serviceUrl = SERVICE_URLS[serviceName];
           const response = await axios.get(
-            `${serviceUrl}/api/v1/${entityName}${serviceName !== 'auth' ? 's' : ''}/archived`,
-            {
-              headers: { Authorization: authHeader },
-              timeout: 5000
-            }
+            `${serviceUrl}/api/v1/${pathSegment}/archived`,
+            { headers: { Authorization: authHeader }, timeout: 5000 }
           );
-          
           if (response.data.success && response.data.items) {
+            const displayType = serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
             return response.data.items.map(item => ({
               ...item,
-              type: serviceName.charAt(0).toUpperCase() + serviceName.slice(1)
+              type: displayType,
+              title: buildArchiveTitle(item, displayType)
             }));
           }
         } catch (error) {
           logger.warn(`Service ${serviceName} ne supporte pas les archives:`, error.message);
           return [];
         }
+        return [];
       });
 
       const results = await Promise.all(promises);
-      results.forEach(serviceItems => {
-        if (serviceItems) items.push(...serviceItems);
-      });
+      results.forEach(serviceItems => { if (serviceItems) items.push(...serviceItems); });
     }
 
     // Trier par date d'archivage (plus récent en premier)
@@ -124,18 +148,16 @@ const archiveItem = async (req, res) => {
     }
 
     const serviceUrl = SERVICE_URLS[type.toLowerCase()];
-    if (!serviceUrl) {
-      return res.status(400).json({
-        success: false,
-        error: 'Type d\'entité invalide'
-      });
+    const pathSegment = TYPE_TO_PLURAL[type.toLowerCase()];
+    if (!serviceUrl || !pathSegment || type.toLowerCase() === 'user') {
+      return res.status(400).json({ success: false, error: 'Type d\'entité invalide ou archivage non supporté' });
     }
 
     logger.info(`📦 Admin ${req.user.email} archive ${type} ${id}`);
 
     const authHeader = req.headers.authorization;
     const response = await axios.post(
-      `${serviceUrl}/api/v1/${type.toLowerCase()}s/${id}/archive`,
+      `${serviceUrl}/api/v1/${pathSegment}/${id}/archive`,
       {},
       {
         headers: { Authorization: authHeader },
@@ -170,18 +192,16 @@ const unarchiveItem = async (req, res) => {
     }
 
     const serviceUrl = SERVICE_URLS[type.toLowerCase()];
-    if (!serviceUrl) {
-      return res.status(400).json({
-        success: false,
-        error: 'Type d\'entité invalide'
-      });
+    const pathSegment = TYPE_TO_PLURAL[type.toLowerCase()];
+    if (!serviceUrl || !pathSegment || type.toLowerCase() === 'user') {
+      return res.status(400).json({ success: false, error: 'Type d\'entité invalide ou désarchivage non supporté' });
     }
 
     logger.info(`📤 Admin ${req.user.email} désarchive ${type} ${id}`);
 
     const authHeader = req.headers.authorization;
     const response = await axios.post(
-      `${serviceUrl}/api/v1/${type.toLowerCase()}s/${id}/unarchive`,
+      `${serviceUrl}/api/v1/${pathSegment}/${id}/unarchive`,
       {},
       {
         headers: { Authorization: authHeader },

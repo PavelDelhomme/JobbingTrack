@@ -21,7 +21,7 @@ class SecurityScheduler {
     // Planifier la collecte de métriques de sécurité toutes les 5 minutes
     this.scheduleMetricsCollection();
 
-    // Planifier l'analyse de vulnérabilités toutes les heures
+    // Planifier l'analyse CVE avec cadence légère pour éviter une charge permanente
     this.scheduleVulnerabilityAnalysis();
 
     // Planifier l'analyse des patterns d'attaque toutes les 15 minutes
@@ -81,7 +81,12 @@ class SecurityScheduler {
 
         // Enregistrer les métriques dans la base de données (si la table existe)
         try {
-          await securityService.prisma.securityMetric.create({
+          const metricModel = securityService.prisma.securityMetricTable || securityService.prisma.securityMetric;
+          if (!metricModel || typeof metricModel.create !== 'function') {
+            if (process.env.NODE_ENV === 'development') return;
+            throw new Error('Modèle SecurityMetric indisponible');
+          }
+          await metricModel.create({
             data: {
               metricType: 'security_score',
               value: metrics.overview.securityScore,
@@ -130,7 +135,8 @@ class SecurityScheduler {
 
   // Planifier l'analyse de vulnérabilités
   scheduleVulnerabilityAnalysis() {
-    const job = cron.schedule('0 * * * *', async () => {
+    const cronExpression = process.env.CVE_SCAN_CRON || '17 */6 * * *';
+    const job = cron.schedule(cronExpression, async () => {
       try {
         logger.debug('Analyse de vulnérabilités en cours...');
 
@@ -153,7 +159,7 @@ class SecurityScheduler {
 
     this.jobs.set('vulnerability-analysis', job);
     job.start();
-    logger.info('Job d\'analyse de vulnérabilités planifié (toutes les heures)');
+    logger.info(`Job d'analyse CVE planifié (${cronExpression})`);
   }
 
   // Planifier l'analyse des patterns d'attaque
@@ -322,7 +328,12 @@ class SecurityScheduler {
       const systemMetrics = await securityService.getSystemMetrics();
 
       // Enregistrer les métriques dans la base de données
-      await securityService.prisma.securityMetric.create({
+      const metricModel = securityService.prisma.securityMetricTable || securityService.prisma.securityMetric;
+      if (!metricModel || typeof metricModel.create !== 'function') {
+        if (process.env.NODE_ENV === 'development') return;
+        throw new Error('Modèle SecurityMetric indisponible');
+      }
+      await metricModel.create({
         data: {
           metricType: 'system_activity',
           value: systemMetrics.totalLogs,
@@ -370,7 +381,7 @@ class SecurityScheduler {
       logger.info('Analyse de sécurité manuelle déclenchée');
 
       // Analyser les vulnérabilités
-      await securityService.analyzeVulnerabilities();
+      const cveAnalysis = await securityService.analyzeVulnerabilities();
 
       // Récupérer les métriques actuelles
       const metrics = await securityService.getSecurityMetrics({ days: 1 });
@@ -384,6 +395,7 @@ class SecurityScheduler {
         intrusionAttempts: metrics.overview.intrusionAttempts,
         ddosAttacks: metrics.overview.ddosAttacks,
         vulnerabilities: metrics.overview.vulnerabilities,
+        cveAnalysis,
         topThreats: metrics.topThreats.slice(0, 5)
       };
 

@@ -1,0 +1,125 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  17/03/2026 11:20:43
+================================================================
+
+RESUME
+------
+  Categories  : 32
+  Total tests : 759
+  Reussis     : 749
+  Echoues     : 10
+  Ignores     : 1
+  Taux        : 98.7%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (0s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [U] Tests API Complets (Jest) (23s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (638s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [OK]   [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (5s)
+  [OK]   [U] Tests Sécurité (0s)
+  [OK]   [U] Tests Intégration Système (4s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (0s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (25 ms)
+      console.error
+        > 197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:197:48)
+      console.error
+        > 201 |         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:201:47)
+      console.error
+        > 205 |         if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:205:49)
+    FAIL api/test-bdd-relations.test.js
+          ✕ les événements liés à la candidature/entretien devraient exister (14 ms)
+        Expect takes at most one argument.
+        > 253 |         expect(appEvent || interviewEvent, 'Au moins un événement lié à la candidature ou entretien (vérifier event-service createAutoEvent)').toBeDefined();
+          at expect (node_modules/expect/build/index.js:101:11)
+          at Object.expect (api/test-bdd-relations.test.js:253:9)
+    Test Suites: 1 failed, 8 passed, 9 total
+    Tests:       1 failed, 84 passed, 85 total
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (23 ms)
+      console.error
+        > 197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+          at Object.error (api/test-bdd-relations.test.js:197:48)
+      console.error
+        > 201 |         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+
+  --- Playwright E2E Frontend ---
+        Error: Désarchiver candidature: 404 {"success":false,"error":"Candidature non trouvée ou pas archivée"}
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 80 |     expect(unarchiveRes.ok, `Désarchiver candidature: ${unarchiveRes.status} ${JSON.stringify(unarchiveRes.body)}`).toBe(true);
+        Error: Désarchiver candidature: 404 {"success":false,"error":"Candidature non trouvée ou pas archivée"}
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        > 80 |     expect(unarchiveRes.ok, `Désarchiver candidature: ${unarchiveRes.status} ${JSON.stringify(unarchiveRes.body)}`).toBe(true);
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: strict mode violation: locator('nav') resolved to 2 elements:
+          - Expect "toBeVisible" with timeout 25000ms
+          3 | async function expectPageLoaded(page: Page, minContentLength = 100) {
+        > 5 |   await expect(page.locator('nav')).toBeVisible({ timeout: 25000 });
+          7 |   expect(len).toBeGreaterThan(minContentLength);
+            at expectPageLoaded (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/backoffice.spec.ts:5:37)
+        test-results/backoffice-⚡-Performances--164f5--page-Analytics-utilisateur-chromium/test-failed-1.png
+        Error Context: test-results/backoffice-⚡-Performances--164f5--page-Analytics-utilisateur-chromium/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: strict mode violation: locator('nav') resolved to 2 elements:
+          - Expect "toBeVisible" with timeout 25000ms
+          3 | async function expectPageLoaded(page: Page, minContentLength = 100) {
+        > 5 |   await expect(page.locator('nav')).toBeVisible({ timeout: 25000 });
+          7 |   expect(len).toBeGreaterThan(minContentLength);
+            at expectPageLoaded (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/backoffice.spec.ts:5:37)
+        test-results/backoffice-⚡-Performances--164f5--page-Analytics-utilisateur-chromium-retry1/test-failed-1.png
+        Error Context: test-results/backoffice-⚡-Performances--164f5--page-Analytics-utilisateur-chromium-retry1/error-context.md
+
+================================================================
+  Rapports : tests/results/20260317-110819/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

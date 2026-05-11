@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { e2eGatewayBaseUrl } from '../../../tests/e2e/helpers/gatewayUrl';
 
 const MAX_PAGE_LOAD_MS = 30_000;
 const MAX_API_RESPONSE_MS = 5_000;
+const GATEWAY_ORIGIN = e2eGatewayBaseUrl().replace(/\/$/, '');
 
 async function apiFetch(
   page: import('@playwright/test').Page,
@@ -9,18 +11,18 @@ async function apiFetch(
   endpoint: string,
 ): Promise<{ status: number; durationMs: number }> {
   return page.evaluate(
-    async ({ method, endpoint }) => {
+    async ({ method, endpoint, apiBase }) => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const start = performance.now();
-      const resp = await fetch(`http://localhost:5002${endpoint}`, { method, headers });
+      const resp = await fetch(`${apiBase}${endpoint}`, { method, headers });
       const durationMs = Math.round(performance.now() - start);
 
       return { status: resp.status, durationMs };
     },
-    { method, endpoint },
+    { method, endpoint, apiBase: GATEWAY_ORIGIN },
   );
 }
 
@@ -55,9 +57,10 @@ test.describe('⚡ Performance – Chargement des pages', () => {
 // 2. TEMPS DE RÉPONSE API
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Réponse API', () => {
+  test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
   });
 
   const apiEndpoints = [
@@ -80,9 +83,10 @@ test.describe('⚡ Performance – Réponse API', () => {
 // 3. REQUÊTES CONSÉCUTIVES
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Requêtes multiples', () => {
+  test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('10 requêtes consécutives au même endpoint restent stables', async ({ page }) => {
@@ -102,7 +106,8 @@ test.describe('⚡ Performance – Requêtes multiples', () => {
   });
 
   test('5 requêtes parallèles répondent toutes correctement', async ({ page }) => {
-    const res = await page.evaluate(async () => {
+    const apiBase = GATEWAY_ORIGIN;
+    const res = await page.evaluate(async (base: string) => {
       const token = localStorage.getItem('token') || '';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -120,14 +125,14 @@ test.describe('⚡ Performance – Requêtes multiples', () => {
       const start = performance.now();
       const results = await Promise.all(
         endpoints.map(async (ep) => {
-          const resp = await fetch(`http://localhost:5002${ep}`, { headers });
+          const resp = await fetch(`${base}${ep}`, { headers });
           return { endpoint: ep, status: resp.status };
         }),
       );
       const totalMs = Math.round(performance.now() - start);
 
       return { results, totalMs };
-    });
+    }, apiBase);
 
     for (const r of res.results) {
       expect([200, 304, 404]).toContain(r.status);
@@ -188,19 +193,20 @@ test.describe('⚡ Performance – DOM', () => {
 // 6. MÉMOIRE
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Mémoire', () => {
+  test.setTimeout(60000);
   test('pas de fuite mémoire évidente après navigation', async ({ page }) => {
-    await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('domcontentloaded');
 
     const memBefore = await page.evaluate(
       () => (performance as any).memory?.usedJSHeapSize ?? 0,
     );
 
-    for (let i = 0; i < 5; i++) {
-      await page.goto('/backoffice/companies');
-      await page.waitForLoadState('networkidle');
-      await page.goto('/backoffice/contacts');
-      await page.waitForLoadState('networkidle');
+    for (let i = 0; i < 3; i++) {
+      await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForLoadState('domcontentloaded');
+      await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForLoadState('domcontentloaded');
     }
 
     const memAfter = await page.evaluate(

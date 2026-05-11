@@ -19,6 +19,7 @@
     "test:ci": "jest --config jest.config.js --ci --coverage --watchAll=false",
     "test:playwright": "playwright test --headed",
     "test:playwright:ui": "playwright test --ui",
+    "test:inscription-gmail": "node run-inscription-gmail-email-check.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

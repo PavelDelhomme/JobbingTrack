@@ -26,7 +26,7 @@ test.describe('📱 Mobile - Authentification', () => {
     
     // Vérifier que le formulaire est visible et adapté mobile
     await expect(page.locator('input[type="email"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]').first()).toBeVisible();
     
     // Vérifier que les champs sont accessibles au touch
     const emailInput = page.locator('input[type="email"]');
@@ -42,8 +42,8 @@ test.describe('📱 Mobile - Authentification', () => {
     await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
     
-    // Vérifier la redirection
-    await page.waitForURL('**/dashboard**', { timeout: 10000 });
+    // Vérifier la redirection (legacy /dashboard ou backoffice actuel)
+    await page.waitForURL(/\/(backoffice|dashboard)(\/|$)/, { timeout: 15000 });
   });
 
   test('Déconnexion - Mobile', async ({ page }) => {
@@ -52,7 +52,7 @@ test.describe('📱 Mobile - Authentification', () => {
     await page.fill('input[type="email"]', testCredentials?.email || 'admin@jobbingtrack.test');
     await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard**');
+    await page.waitForURL(/\/(backoffice|dashboard)(\/|$)/, { timeout: 15000 });
     
     // Trouver le bouton de déconnexion
     const logoutButton = page.locator('button:has-text("Déconnexion"), button:has-text("Logout"), [data-testid="logout"]').first();

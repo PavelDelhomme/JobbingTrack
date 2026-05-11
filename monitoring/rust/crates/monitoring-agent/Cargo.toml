@@ -1,0 +1,17 @@
+[package]
+name = "jobbingtrack-monitoring-agent"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "monitoring-agent"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2.186"
+postgres = "0.19.13"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"

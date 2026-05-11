@@ -1,9 +1,27 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { FRONTEND_URLS } from '@/config/ports.config';
 import { cacheManager } from '@/lib/cache/cacheManager';
 import { isCriticalService, isOptionalService, getServiceErrorMessage, shouldLogServiceError } from './services/serviceStatus';
 
 const API_BASE_URL = FRONTEND_URLS.api;
+
+/** Corrélation B6 : id par requête HTTP côté navigateur (complété / relayé par la gateway). */
+function attachClientRequestCorrelation(config: InternalAxiosRequestConfig) {
+    if (typeof window === 'undefined') return config;
+    const headers = (config.headers ?? {}) as Record<string, string>;
+    if (!headers['X-Request-Id'] && !headers['x-request-id']) {
+        const id =
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                ? crypto.randomUUID()
+                : `fe-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        headers['X-Request-Id'] = id;
+    }
+    if (!headers['X-Correlation-Id'] && !headers['x-correlation-id']) {
+        headers['X-Correlation-Id'] = headers['X-Request-Id'] || headers['x-request-id'] || '';
+    }
+    config.headers = headers as typeof config.headers;
+    return config;
+}
 
 // Cache simple pour éviter les requêtes dupliquées en cours
 const requestCache = new Map<string, Promise<any>>();
@@ -60,6 +78,7 @@ export const criticalApiClient = axios.create({
 
 // Intercepteur pour ajouter le token JWT automatiquement
 apiClient.interceptors.request.use((config) => {
+    attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
@@ -82,6 +101,7 @@ apiClient.interceptors.request.use((config) => {
 
 // Intercepteur pour criticalApiClient (même logique)
 criticalApiClient.interceptors.request.use((config) => {
+    attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         if (token) {
@@ -121,6 +141,7 @@ apiClient.interceptors.response.use((response) => response, (error) => {
                                 error.config?.url?.includes('/notifications') ? 'notification-service' :
                                 error.config?.url?.includes('/workflow') ? 'workflow-service' :
                                 error.config?.url?.includes('/dashboard') ? 'dashboard-service' :
+                                error.config?.url?.includes('/security') ? 'security-service' :
                                 'unknown-service';
         
         if (shouldLogServiceError(fullServiceName)) {
@@ -234,7 +255,7 @@ export const authService = {
 };
 
 export const applicationService = {
-    getAll: () => apiClient.get('/applications'),
+    getAll: (params?: { limit?: number; agencyId?: string }) => apiClient.get('/applications', { params }),
     getById: (id: string) => apiClient.get(`/applications/${id}`),
     create: (data: any) => apiClient.post('/applications', data),
     update: (id: string, data: any) => apiClient.put(`/applications/${id}`, data),
@@ -247,13 +268,19 @@ export const applicationService = {
     getStatusHistory: (id: string) =>
         apiClient.get(`/applications/${id}/status-history`),
 
+    // 3.2b Moteur de statut : suggestion « Considérer comme rejetée » + email remerciement
+    getSuggestionReject: (id: string) =>
+        apiClient.get(`/applications/${id}/suggestion-reject`),
+    markThankYouSent: (id: string) =>
+        apiClient.post(`/applications/${id}/thank-you-sent`, {}),
+
     // NOUVELLES MÉTHODES - Contacts liés
     getContacts: (id: string) =>
         apiClient.get(`/applications/${id}/contacts`),
 };
 
 export const companyService = {
-    getAll: () => apiClient.get('/companies'),
+    getAll: (params?: { limit?: number; companyType?: 'EMPLOYER' | 'TEMP_AGENCY' }) => apiClient.get('/companies', { params }),
     getById: (id: string) => apiClient.get(`/companies/${id}`),
     create: (data: any) => apiClient.post('/companies', data),
     update: (id: string, data: any) => apiClient.put(`/companies/${id}`, data),
@@ -261,7 +288,7 @@ export const companyService = {
 };
 
 export const contactService = {
-    getAll: () => apiClient.get('/contacts'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/contacts', { params }),
     getById: (id: string) => apiClient.get(`/contacts/${id}`),
     create: (data: any) => apiClient.post('/contacts', data),
     update: (id: string, data: any) => apiClient.put(`/contacts/${id}`, data),
@@ -279,7 +306,7 @@ export const contactService = {
 };
 
 export const interviewService = {
-    getAll: () => apiClient.get('/interviews'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/interviews', { params }),
     getById: (id: string) => apiClient.get(`/interviews/${id}`),
     create: (data: any) => apiClient.post('/interviews', data),
     update: (id: string, data: any) => apiClient.put(`/interviews/${id}`, data),
@@ -296,7 +323,7 @@ export const followUpService = {
 };
 
 export const callService = {
-    getAll: () => apiClient.get('/calls'),
+    getAll: (params?: { limit?: number }) => apiClient.get('/calls', { params }),
     getById: (id: string) => apiClient.get(`/calls/${id}`),
     create: (data: any) => apiClient.post('/calls', data),
     update: (id: string, data: any) => apiClient.put(`/calls/${id}`, data),
@@ -413,8 +440,8 @@ export const adminService = {
     
     // Logs
     getAvailableServices: () => apiClient.get('/admin/logs/services'),
-    getServiceLogs: (serviceName: string, lines = 100) => 
-        apiClient.get(`/admin/logs/${serviceName}`, { params: { lines } }),
+    getServiceLogs: (serviceName: string, lines = 100, extra?: { since?: string; until?: string }) =>
+        apiClient.get(`/admin/logs/${serviceName}`, { params: { lines, ...extra } }),
     getAllLogs: (lines = 100) => 
         apiClient.get('/admin/logs/all', { params: { lines } }),
     streamServiceLogs: (serviceName: string) => 

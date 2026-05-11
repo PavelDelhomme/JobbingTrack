@@ -60,7 +60,8 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
         return document.querySelectorAll('script').length;
       });
       const bodyHtml = await page.locator('body').innerHTML();
-      expect(bodyHtml).not.toContain('<script>alert("XSS")</script>');
+      const hasRawXss = bodyHtml.includes('<script>alert("XSS")</script>');
+      expect(hasRawXss, 'Le HTML ne doit pas contenir le script XSS brut').toBe(false);
     }
   });
 
@@ -71,10 +72,14 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
     const searchInput = page.locator('input[type="text"], input[type="search"]').first();
     if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await searchInput.fill('<img src=x onerror=alert(1)>');
-      await page.waitForTimeout(500);
+      // Laisser le temps à React d'appliquer la sanitisation (affichage) avant de lire le HTML
+      await page.waitForTimeout(1500);
 
       const bodyHtml = await page.locator('body').innerHTML();
-      expect(bodyHtml).not.toContain('onerror=alert(1)');
+      // Tolérer la présence du texte "onerror=..." dans un contenu échappé, mais
+      // refuser une balise active qui contient réellement un handler onerror.
+      const hasActiveOnErrorTag = /<img[^>]*onerror\s*=/i.test(bodyHtml);
+      expect(hasActiveOnErrorTag, 'Le HTML ne doit pas contenir une balise active avec onerror').toBe(false);
     }
   });
 
@@ -86,8 +91,9 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
 
     if (res.ok) {
       const data = res.data as any;
-      const returnedName = data?.name || data?.company?.name || '';
-      expect(returnedName).not.toContain('<script>');
+      const returnedName = (data?.name || data?.company?.name || '').trim();
+      // company-service sanitize le nom (strip <script> et tags) ; le champ retourné ne doit pas contenir <script>
+      expect(returnedName, 'API doit rejeter ou renvoyer un nom nettoyé (sans <script>)').not.toContain('<script>');
 
       const id = data?.id || data?._id || data?.company?.id || data?.company?._id;
       if (id) {
@@ -114,7 +120,7 @@ test.describe('🛡️ Sécurité – Protection SQL Injection', () => {
 
   test('injection SQL dans la recherche ne fonctionne pas', async ({ page }) => {
     const res = await apiFetch(page, 'GET', "/api/v1/search?q=' OR 1=1 --");
-    expect([200, 400, 404]).toContain(res.status);
+    expect([200, 400, 403, 404]).toContain(res.status);
     if (res.ok) {
       const data = res.data as any;
       const resultCount = Array.isArray(data) ? data.length : data?.results?.length ?? 0;

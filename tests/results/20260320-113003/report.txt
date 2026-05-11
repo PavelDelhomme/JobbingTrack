@@ -1,0 +1,94 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  20/03/2026 11:38:25
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 297
+  Reussis     : 287
+  Echoues     : 10
+  Ignores     : 1
+  Taux        : 96.6%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [OK]   [U] Tests API Complets (Jest) (20s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (408s)
+  [OK]   [A] Playwright Emails MailHog (12s)
+  [OK]   [U] Playwright Email Workflows (4s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (3s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (0s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Playwright E2E Frontend ---
+        Error: page.waitForURL: Test timeout of 90000ms exceeded.
+        test-results/auth.setup.ts-authenticate-as-admin-setup/test-failed-1.png
+        Error Context: test-results/auth.setup.ts-authenticate-as-admin-setup/error-context.md
+        TimeoutError: page.waitForURL: Timeout 90000ms exceeded.
+        test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/test-failed-1.png
+        Error Context: test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/error-context.md
+        TimeoutError: page.waitForURL: Timeout 90000ms exceeded.
+          47 |     await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/error-context.md
+        TimeoutError: page.waitForURL: Timeout 90000ms exceeded.
+          47 |     await expect(page.locator('main').first()).toBeVisible({ timeout: 60_000 });
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: element(s) not found
+          - Expect "toBeVisible" with timeout 5000ms
+        > 75 |     await expect(page.locator('input[type="text"][value="test123"]')).toBeVisible();
+          78 |     await expect(page.locator('input[type="password"]')).toBeVisible();
+        test-results/login-🔐-Authentification--75c7e-her-masquer-le-mot-de-passe-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--75c7e-her-masquer-le-mot-de-passe-no-auth/error-context.md
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: element(s) not found
+          - Expect "toBeVisible" with timeout 5000ms
+        > 75 |     await expect(page.locator('input[type="text"][value="test123"]')).toBeVisible();
+          78 |     await expect(page.locator('input[type="password"]')).toBeVisible();
+        test-results/login-🔐-Authentification--75c7e-her-masquer-le-mot-de-passe-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--75c7e-her-masquer-le-mot-de-passe-no-auth-retry1/error-context.md
+
+================================================================
+  Rapports : tests/results/20260320-113003/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

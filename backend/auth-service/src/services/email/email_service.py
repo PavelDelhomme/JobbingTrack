@@ -39,7 +39,13 @@ class EmailService:
         self.password = os.getenv('SMTP_PASS', '')
         self.from_email = os.getenv('SMTP_FROM', 'JobbingTrack <noreply@jobbingtrack.test>')
         self.reply_to = os.getenv('SMTP_REPLY_TO', 'noreply@jobbingtrack.test')
-        self.frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+        # Pour les liens dans les emails : si FRONTEND_URL est localhost et HOST_IP est défini, utiliser l'IP machine
+        url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+        host_ip = os.getenv('HOST_IP', '').strip()
+        if host_ip and ('localhost' in url or '127.0.0.1' in url):
+            import re
+            url = re.sub(r'localhost|127\.0\.0\.1', host_ip, url)
+        self.frontend_url = url
         self.app_name = 'JobbingTrack'
     
     def test_smtp_connection(self) -> Dict[str, Any]:

@@ -28,9 +28,10 @@ const REPORT_DIRS = {
     ? '/app/frontend/playwright-report'
     : join(PROJECT_ROOT_VIEW, 'frontend', 'playwright-report'),
   'tests-results': process.env.TESTS_RESULTS_DIR || (IS_DOCKER ? '/app/tests/results' : join(PROJECT_ROOT_VIEW, 'tests', 'results')),
-  'user-journey': IS_DOCKER
+  'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || (IS_DOCKER ? '/tmp/journey-reports' : join(PROJECT_ROOT_VIEW, 'tests', 'user-journey-reports')),
+  'user-journey-legacy': IS_DOCKER
     ? '/app/tests/user-journey-reports'
-    : join(PROJECT_ROOT_VIEW, 'tests', 'user-journey-reports'),
+    : '',
   'analytics': IS_DOCKER
     ? '/app/tests/analytics-reports'
     : join(PROJECT_ROOT_VIEW, 'tests', 'analytics-reports'),
@@ -132,6 +133,16 @@ export async function GET(request: NextRequest) {
 
     // Lire le contenu
     let content = await readFile(fullPath, 'utf-8')
+
+    // Sanitizer le HTML pour l’iframe : éviter "Uncaught SyntaxError: string literal contains an unescaped line break"
+    // en échappant les retours à la ligne uniquement dans les chaînes (guillemets) des scripts
+    content = content.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, body) => {
+      const escapedBody = body.replace(
+        /("(?:[^"\\]|\\.|[\r\n])*"|'(?:[^'\\]|\\.|[\r\n])*')/g,
+        (strLiteral: string) => strLiteral.replace(/\r\n?|\n/g, '\\n').replace(/\r/g, '')
+      )
+      return match.slice(0, match.indexOf('>') + 1) + escapedBody + '</script>'
+    })
     
     // Si c'est un JSON (rapport performance), générer un HTML
     if (fullPath.endsWith('.json')) {

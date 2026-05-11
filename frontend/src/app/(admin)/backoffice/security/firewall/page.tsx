@@ -1,11 +1,100 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { formatLocalDateTime } from '@/lib/utils/date';
 import { Shield, Plus, Trash2, Edit, AlertTriangle, CheckCircle, XCircle, RefreshCw, Settings } from 'lucide-react';
 import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
+/** Bandeau : vérifie Gateway + proxy /api/v1/security/* (GET firewall/rules : moins sensible au WAF que /waf/stats). */
+function SecurityBackendStatusStrip() {
+  const [state, setState] = useState<'loading' | 'ok' | 'warn' | 'err'>('loading');
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    const probeSecurity = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      // Préférer une route « admin » volumineuse mais stable ; évite faux « service unavailable » si WAF touche /waf/stats
+      return axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/rules`, {
+        timeout: 12000,
+        headers,
+        validateStatus: () => true,
+      });
+    };
+
+    (async () => {
+      try {
+        const h = await axios.get(`${API_GATEWAY_URL}/health`, { timeout: 8000 });
+        if (!alive) return;
+        if (h.status !== 200) {
+          setState('err');
+          setMsg(`API Gateway ne répond pas correctement (HTTP ${h.status}).`);
+          return;
+        }
+        let w = await probeSecurity();
+        if (!alive) return;
+        // Redémarrage Docker : une 2e tentative après 1s évite ENOTFOUND / 503 transitoires
+        if (w.status === 503 || w.status === 502) {
+          await new Promise((r) => setTimeout(r, 1000));
+          if (!alive) return;
+          w = await probeSecurity();
+        }
+        if (!alive) return;
+        const dataOk =
+          w.status === 200 &&
+          (w.data?.success === true ||
+            w.data?.success === undefined ||
+            Array.isArray(w.data?.data) ||
+            Array.isArray(w.data?.rules));
+        if (dataOk) {
+          setState('ok');
+          setMsg(
+            'API Gateway et routes /api/v1/security/* répondent (proxy vers security-service). Le backoffice utilise le port API Gateway (ex. 5002), pas le port direct du security-service (5017).'
+          );
+        } else if (w.status === 403) {
+          setState('warn');
+          setMsg(
+            'API Gateway OK, mais une requête de contrôle a été bloquée par le WAF (403). Connectez-vous au backoffice ou ajustez les règles WAF.'
+          );
+        } else {
+          setState('warn');
+          setMsg(
+            `API Gateway OK, mais le proxy security a renvoyé HTTP ${w.status}. Vérifiez que le conteneur jobbingtrack-security-service est démarré (make status).`
+          );
+        }
+      } catch (e: unknown) {
+        if (!alive) return;
+        setState('err');
+        setMsg(e instanceof Error ? e.message : 'Réseau indisponible');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const box =
+    state === 'ok'
+      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 text-green-900 dark:text-green-100'
+      : state === 'warn'
+        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 text-amber-900 dark:text-amber-100'
+        : state === 'err'
+          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 text-red-900 dark:text-red-100'
+          : 'bg-gray-100 dark:bg-gray-800 border-gray-200 text-gray-700';
+
+  return (
+    <div className={`rounded-lg border p-4 text-sm ${box}`}>
+      <p className="font-semibold mb-1">Connexion sécurité (via API Gateway)</p>
+      {state === 'loading' && <p>Vérification en cours…</p>}
+      {state !== 'loading' && <p>{msg}</p>}
+    </div>
+  );
+}
 
 interface FirewallRule {
   id: string;
@@ -24,14 +113,33 @@ interface FirewallRule {
 interface BlockedIp {
   ip: string;
   reason?: string;
+  blockedAt?: string;
+  blockOrigin?: string;
+  threatId?: string;
+}
+
+function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
+  if (!byOrigin || typeof byOrigin !== 'object') return '';
+  const o = byOrigin as Record<string, number>;
+  const parts: string[] = [];
+  if (o.manual_rule) parts.push(`manuel ${o.manual_rule}`);
+  if (o.lab_simulation) parts.push(`lab ${o.lab_simulation}`);
+  if (o.automatic_threat) parts.push(`auto ${o.automatic_threat}`);
+  if (o.iptables) parts.push(`iptables ${o.iptables}`);
+  if (o.log_inferred) parts.push(`logs ${o.log_inferred}`);
+  return parts.join(' · ');
 }
 
 export default function FirewallPage() {
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);
+  const [blockedIpsMeta, setBlockedIpsMeta] = useState<{ byOrigin?: Record<string, number>; count?: number } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddRule, setShowAddRule] = useState(false);
+  const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
   const [showAddBlockedIp, setShowAddBlockedIp] = useState(false);
   const [newBlockedIp, setNewBlockedIp] = useState('');
   const [blockReason, setBlockReason] = useState('');
@@ -44,6 +152,7 @@ export default function FirewallPage() {
     action: 'DENY',
     priority: 100
   });
+  const SAFE_TEST_IP = '203.0.113.77';
 
   const loadRules = useCallback(async () => {
     try {
@@ -67,6 +176,7 @@ export default function FirewallPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.data.success) {
+        setBlockedIpsMeta(response.data.meta && typeof response.data.meta === 'object' ? response.data.meta : null);
         // Les IPs peuvent être des strings ou des objets avec ip et reason
         setBlockedIps(response.data.data?.map((item: string | BlockedIp) => {
           if (typeof item === 'string') {
@@ -128,9 +238,31 @@ export default function FirewallPage() {
     }
   };
 
-  const handleBlockIp = async (ip: string, reason?: string) => {
+  const handleUpdateRule = async () => {
+    if (!editingRule) return;
     try {
-      await axios.post(`${API_GATEWAY_URL}/api/v1/security/firewall/block-ip`, { ip, reason }, {
+      await axios.put(`${API_GATEWAY_URL}/api/v1/security/firewall/rules/${editingRule.id}`, {
+        name: editingRule.name,
+        description: editingRule.description,
+        sourceIp: editingRule.sourceIp || undefined,
+        destPort: editingRule.destPort || undefined,
+        protocol: editingRule.protocol,
+        action: editingRule.action,
+        priority: editingRule.priority,
+        enabled: editingRule.enabled
+      }, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setEditingRule(null);
+      loadRules();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur lors de la mise à jour de la règle');
+    }
+  };
+
+  const handleBlockIp = async (ip: string, reason?: string, mode?: string) => {
+    try {
+      await axios.post(`${API_GATEWAY_URL}/api/v1/security/firewall/block-ip`, { ip, reason, ...(mode ? { mode } : {}) }, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       loadBlockedIps();
@@ -153,7 +285,8 @@ export default function FirewallPage() {
       return;
     }
 
-    await handleBlockIp(newBlockedIp.trim(), blockReason.trim() || undefined);
+    const lab = newBlockedIp.trim() === SAFE_TEST_IP;
+    await handleBlockIp(newBlockedIp.trim(), blockReason.trim() || undefined, lab ? 'lab_simulation' : undefined);
     setNewBlockedIp('');
     setBlockReason('');
     setShowAddBlockedIp(false);
@@ -192,6 +325,8 @@ export default function FirewallPage() {
             Actualiser
           </button>
         </div>
+
+        <SecurityBackendStatusStrip />
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -365,6 +500,37 @@ export default function FirewallPage() {
             </div>
           )}
 
+          {editingRule && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold mb-4">Modifier la règle</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.name} onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })} placeholder="Nom" />
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.description || ''} onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })} placeholder="Description" />
+                <input className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.sourceIp || ''} onChange={(e) => setEditingRule({ ...editingRule, sourceIp: e.target.value })} placeholder="IP source" />
+                <input type="number" min="1" max="65535" className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.destPort || ''} onChange={(e) => setEditingRule({ ...editingRule, destPort: e.target.value ? parseInt(e.target.value, 10) : undefined })} placeholder="Port destination" />
+                <select className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.protocol} onChange={(e) => setEditingRule({ ...editingRule, protocol: e.target.value })}>
+                  <option value="TCP">TCP</option>
+                  <option value="UDP">UDP</option>
+                  <option value="ICMP">ICMP</option>
+                </select>
+                <select className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.action} onChange={(e) => setEditingRule({ ...editingRule, action: e.target.value })}>
+                  <option value="DENY">DENY</option>
+                  <option value="REJECT">REJECT</option>
+                  <option value="ALLOW">ALLOW</option>
+                </select>
+                <input type="number" min="1" max="1000" className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100" value={editingRule.priority} onChange={(e) => setEditingRule({ ...editingRule, priority: parseInt(e.target.value || '100', 10) })} placeholder="Priorité" />
+                <label className="inline-flex items-center gap-2">
+                  <input type="checkbox" checked={editingRule.enabled} onChange={(e) => setEditingRule({ ...editingRule, enabled: e.target.checked })} />
+                  <span>Règle active</span>
+                </label>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={handleUpdateRule} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Sauvegarder</button>
+                <button onClick={() => setEditingRule(null)} className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Annuler</button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-8">Chargement...</div>
           ) : rules.length === 0 ? (
@@ -409,12 +575,22 @@ export default function FirewallPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        <button
-                          onClick={() => handleDeleteRule(rule.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingRule(rule)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Modifier la règle"
+                          >
+                            <Edit className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRule(rule.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Supprimer la règle"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -425,19 +601,42 @@ export default function FirewallPage() {
         </div>
 
         {/* IPs Bloquées */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div id="liste-ips-bloquees" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               IPs Bloquées
             </h2>
-            <button
-              onClick={() => setShowAddBlockedIp(!showAddBlockedIp)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Bloquer une IP
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setNewBlockedIp(SAFE_TEST_IP);
+                  setBlockReason('Test sécurité contrôlé (IP de documentation RFC5737)');
+                  setShowAddBlockedIp(true);
+                }}
+                className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
+              >
+                Préparer test sûr
+              </button>
+              <button
+                onClick={() => setShowAddBlockedIp(!showAddBlockedIp)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Bloquer une IP
+              </button>
+            </div>
           </div>
+          {blockedIpsMeta && typeof blockedIpsMeta.count === 'number' && (
+            <p className="mb-2 text-xs text-gray-600 dark:text-gray-400">
+              Liste consolidée : <span className="font-semibold">{blockedIpsMeta.count}</span> entrée(s) unique(s)
+              {formatBlockedIpsOriginsSubtitle(blockedIpsMeta.byOrigin) ? (
+                <> — {formatBlockedIpsOriginsSubtitle(blockedIpsMeta.byOrigin)}</>
+              ) : null}
+            </p>
+          )}
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            Astuce : pour tester sans risque, utilise l&apos;IP de documentation <span className="font-mono">{SAFE_TEST_IP}</span> (RFC 5737). Le serveur refuse de bloquer la même IP que celle de ta requête (anti-verrouillage) ; le mode lab n&apos;accepte que cette IP de test.
+          </p>
 
           {showAddBlockedIp && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -489,22 +688,58 @@ export default function FirewallPage() {
             <div className="text-center py-8 text-gray-500">Aucune IP bloquée</div>
           ) : (
             <div className="space-y-2">
-              {blockedIps.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <div className="flex-1">
-                    <span className="font-mono text-lg">{item.ip}</span>
-                    {item.reason && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.reason}</p>
-                    )}
+              {blockedIps.map((item, index) => {
+                const o = String(item.blockOrigin || '');
+                const originLabel =
+                  o === 'lab_simulation'
+                    ? 'Test lab'
+                    : o === 'manual_rule'
+                      ? 'Manuel'
+                      : o === 'automatic_threat'
+                        ? 'Auto'
+                        : o === 'iptables'
+                          ? 'iptables'
+                          : o === 'log_inferred'
+                            ? 'Logs'
+                            : null;
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-lg">{item.ip}</span>
+                        {originLabel && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-100">
+                            {originLabel}
+                          </span>
+                        )}
+                        {item.threatId && (
+                          <Link
+                            href={`/backoffice/security/threats/${item.threatId}`}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                          >
+                            Fiche menace
+                          </Link>
+                        )}
+                      </div>
+                      {item.blockedAt && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {formatLocalDateTime(item.blockedAt)}
+                        </p>
+                      )}
+                      {item.reason && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.reason}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUnblockIp(item.ip)}
+                      className="px-3 py-1 shrink-0 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      Débloquer
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleUnblockIp(item.ip)}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Débloquer
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -531,6 +766,8 @@ function WAFConfigSection() {
   const [wafStats, setWafStats] = useState<any>(null);
   const [loadingWaf, setLoadingWaf] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wafActionLoading, setWafActionLoading] = useState(false);
+  const KNOWN_WAF_RULES = ['SQL_INJECTION', 'XSS', 'PATH_TRAVERSAL', 'COMMAND_INJECTION', 'LDAP_INJECTION', 'SUSPICIOUS_USER_AGENTS', 'MALICIOUS_PATTERNS', 'SUSPICIOUS_HEADERS'];
 
   const loadWAFConfig = useCallback(async () => {
     try {
@@ -584,6 +821,25 @@ function WAFConfigSection() {
       setError(err.response?.data?.error || `Erreur lors de l'activation/désactivation du WAF`);
     }
   }, []);
+
+  const handleSetAllWafRules = useCallback(async (enabled: boolean) => {
+    try {
+      setWafActionLoading(true);
+      setError(null);
+      await Promise.all(
+        KNOWN_WAF_RULES.map((ruleName) =>
+          axios.put(`${API_GATEWAY_URL}/api/v1/security/waf/rules/${ruleName}`, { enabled }, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).catch((err) => ({ error: err }))
+        )
+      );
+      await loadWAFConfig();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur lors de la mise à jour globale des règles WAF');
+    } finally {
+      setWafActionLoading(false);
+    }
+  }, [loadWAFConfig]);
 
   useEffect(() => {
     loadWAFConfig();
@@ -662,7 +918,25 @@ function WAFConfigSection() {
           {/* Règles WAF */}
           {wafEnabled && (
             <div>
-              <h3 className="text-lg font-semibold mb-3">Règles de Protection WAF</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Règles de Protection WAF</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSetAllWafRules(true)}
+                    disabled={wafActionLoading}
+                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
+                  >
+                    Activer tout
+                  </button>
+                  <button
+                    onClick={() => handleSetAllWafRules(false)}
+                    disabled={wafActionLoading}
+                    className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 text-sm"
+                  >
+                    Désactiver tout
+                  </button>
+                </div>
+              </div>
               {wafConfig.length === 0 ? (
                 <p className="text-gray-500">Aucune règle WAF configurée</p>
               ) : (

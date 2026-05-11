@@ -1,0 +1,40 @@
+{
+  "category": "Suite CLI",
+  "testName": "Suite complète (ligne de commande)",
+  "generatedAtISO": "2026-02-27T17:10:43Z",
+  "timestamp": "2026-02-27T18:10:43+01:00",
+  "reportDir": "tests/results/20260227-180742",
+  "summary": {
+    "totalCategories": 20,
+    "totalTests": 306,
+    "totalPassed": 257,
+    "totalFailed": 49,
+    "totalSkipped": 1,
+    "passed": 257,
+    "failed": 49,
+    "skipped": 1,
+    "successRate": 83.99
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "failed", "duration": 1:user},
+    {"name": "Relations BDD", "status": "success", "duration": 0:system},
+    {"name": "Enums", "status": "success", "duration": 1:system},
+    {"name": "Email Logs", "status": "success", "duration": 1:admin},
+    {"name": "Tests API Complets (Jest local)", "status": "failed", "duration": 3:system},
+    {"name": "Tests Backend Services (Jest local)", "status": "success", "duration": 1:system},
+    {"name": "Tests API Backend (script - tous services)", "status": "failed", "duration": 3:user},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 136:admin},
+    {"name": "Playwright Emails MailHog", "status": "failed", "duration": 5:admin},
+    {"name": "Playwright Email Workflows", "status": "failed", "duration": 6:user},
+    {"name": "Playwright CRUD Données (admin)", "status": "failed", "duration": 3:admin},
+    {"name": "Playwright CRUD Utilisateurs (admin)", "status": "failed", "duration": 2:admin},
+    {"name": "Playwright Sécurité Backoffice (admin)", "status": "failed", "duration": 3:admin},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "success", "duration": 3:system},
+    {"name": "Tests Performance", "status": "success", "duration": 3:user},
+    {"name": "Tests Sécurité", "status": "success", "duration": 1:user},
+    {"name": "Tests Intégration Système", "status": "success", "duration": 3:user},
+    {"name": "Tests Profile Service (Health Check)", "status": "success", "duration": 1:system},
+    {"name": "Tests API Gateway Health", "status": "success", "duration": 1:system},
+    {"name": "Tests Sécurité Firewall & WAF (API)", "status": "success", "duration": 0:system}
+  ]
+}

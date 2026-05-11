@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Met à jour .env avec les ports cohérents (5000-5019, 5098-5099)
+# Met à jour .env avec les ports cohérents (5000-5019, 5098-5099 hôte ; log-collector interne 3019)
 # Usage: ./scripts/setup-ports.sh
 # Depuis la racine: make setup-ports (si cible ajoutée au Makefile)
 
@@ -57,7 +57,10 @@ update_env_var "SECURITY_SERVICE_PORT" "5017"
 update_env_var "DEPLOYMENT_SERVICE_PORT" "5018"
 update_env_var "FLUTTER_MOBILE_PORT" "5019"
 update_env_var "MONITORING_C_PORT" "5098"
+update_env_var "LOG_COLLECTOR_C_LEGACY_PORT" "5109"
 update_env_var "LOG_COLLECTOR_C_PORT" "5099"
+update_env_var "LOG_COLLECTOR_C_INTERNAL_PORT" "3019"
+update_env_var "LOG_COLLECTOR_RS_PORT" "5099"
 
 # URLs Frontend (utilisent les ports externes)
 update_env_var "NEXT_PUBLIC_API_URL" "http://localhost:5002"

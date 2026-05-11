@@ -1,0 +1,15 @@
+{
+  "testName": "User Journey (API)",
+  "userType": "user",
+  "command": "bash scripts/verify-user-journey.sh",
+  "timestamp": "2026-02-27T13:33:51+01:00",
+  "duration": 2,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 16,
+    "passed": 16,
+    "failed": 0
+  },
+  "output": "╔════════════════════════════════════════════════════════╗\n║     Vérification User Journey - JobbingTrack          ║\n╚════════════════════════════════════════════════════════╝\n\n✨ Ce script utilise un token permanent qui n'expire jamais !\n\n═══ 1. Health Checks ═══\n[1] Test: API Health\n   ✓ PASS - Status: 200\n\n═══ 2. Authentification ═══\n[2] Test: Register\n   ✓ PASS - Status: 201\n   Token obtenu: eyJhbGciOiJIUzI1NiIs...\n[3] Test: Login utilisateur test\n   ✓ PASS - Status: 200\n   ✓ Token utilisateur test obtenu (rôle USER): eyJhbGciOiJIUzI1NiIs...\n[4] Test: Login admin\n   ✓ PASS - Status: 200\n   ✓ Token admin obtenu (rôle SUPER_ADMIN): eyJhbGciOiJIUzI1NiIs...\n\n═══ Génération Token Permanent ═══\nGénération d'un token de test permanent (100 ans)...\n   ⚠ Génération du token permanent échouée (status 403)\n   ⚠ Utilisation du token normal (expire dans 7 jours)\n[5] Test: Get Profile\n   ✓ PASS - Status: 200\n\n═══ 3. Companies ═══\n[6] Test: List Companies\n   ✓ PASS - Status: 200\n[7] Test: Create Company\n   ✓ PASS - Status: 201\n\n═══ 4. Applications ═══\n[8] Test: List Applications\n   ✓ PASS - Status: 200\n[9] Test: Create Application\n   ✓ PASS - Status: 201\n\n═══ 5. Contacts ═══\n[10] Test: List Contacts\n   ✓ PASS - Status: 200\n[11] Test: Create Contact\n   ✓ PASS - Status: 201\n\n═══ 6. Interviews ═══\n[12] Test: List Interviews\n   ✓ PASS - Status: 200\n\n═══ 7. Events ═══\n[13] Test: List Events\n   ✓ PASS - Status: 200\n\n═══ 8. Followups ═══\n[14] Test: List Followups\n   ✓ PASS - Status: 200\n\n═══ 9. Calls ═══\n[15] Test: List Calls\n   ✓ PASS - Status: 200\n\n═══ 10. Dashboard & Statistics ═══\n[16] Test: Get Statistics\n   ✓ PASS - Status: 200\n\n╔════════════════════════════════════════════════════════╗\n║                      RÉSUMÉ                            ║\n╚════════════════════════════════════════════════════════╝\n\nTotal de tests    : 16\nTests réussis     : 16\nTests échoués     : 0\n\n✓ TOUS LES TESTS SONT PASSÉS !\nLe système est opérationnel à 100%\n"
+}

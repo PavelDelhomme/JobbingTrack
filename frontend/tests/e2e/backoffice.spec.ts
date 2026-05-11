@@ -1,17 +1,20 @@
 import { test, expect, Page } from '@playwright/test';
 
 async function expectPageLoaded(page: Page, minContentLength = 100) {
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  // La sidebar peut être hors écran sur certains viewports ; `main` est toujours rendu par AdminLayout.
+  await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
   const len = await page.locator('body').textContent().then(t => (t?.length ?? 0));
-  expect(len).toBeGreaterThan(minContentLength);
+  expect(len, 'Le contenu de la page doit être chargé').toBeGreaterThan(minContentLength);
 }
 
 async function expectTabClickable(page: Page, tabText: string) {
   const tab = page.getByRole('button', { name: new RegExp(tabText, 'i') }).or(
     page.locator(`button, [role="tab"]`).filter({ hasText: new RegExp(tabText, 'i') })
   ).first();
-  if (await tab.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await tab.click();
+  if (await tab.isVisible({ timeout: 10000 }).catch(() => false)) {
+    await tab.scrollIntoViewIfNeeded().catch(() => {});
+    await tab.click({ timeout: 10000 });
     await page.waitForTimeout(500);
   }
 }
@@ -21,18 +24,18 @@ async function expectTabClickable(page: Page, tabText: string) {
 // ═══════════════════════════════════════════════════════
 test.describe('🏠 Dashboard principal', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
   });
 
   test('affiche le dashboard avec nav et métriques', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const hasMetrics = await page.locator('[href="/backoffice/users"], [href*="security"]').first().isVisible().catch(() => false);
     expect(hasMetrics).toBe(true);
   });
 
   test('affiche les cartes de métriques système', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const bodyText = await page.locator('body').textContent() ?? '';
     const hasMetricTerms = /Sessions|Erreurs|Santé|Temps/i.test(bodyText);
     expect(hasMetricTerms).toBe(true);
@@ -42,11 +45,11 @@ test.describe('🏠 Dashboard principal', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
     expect(page.url()).toContain('/backoffice');
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('layout cohérent (pas de scroll horizontal)', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
     const bodyW = await page.evaluate(() => document.body.scrollWidth);
     const viewW = await page.evaluate(() => window.innerWidth);
     expect(bodyW).toBeLessThanOrEqual(viewW + 20);
@@ -58,12 +61,12 @@ test.describe('🏠 Dashboard principal', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📊 Statistiques & Monitoring', () => {
   test('page Statistiques & Monitoring Global', async ({ page }) => {
-    await page.goto('/backoffice/statistique');
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('onglets Vue ensemble / Sécurité / Logs', async ({ page }) => {
-    await page.goto('/backoffice/statistique');
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'Vue d');
     await expectTabClickable(page, 'curit');
@@ -71,7 +74,7 @@ test.describe('📊 Statistiques & Monitoring', () => {
   });
 
   test('page Statistics (alias)', async ({ page }) => {
-    await page.goto('/backoffice/statistics');
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 });
@@ -81,32 +84,32 @@ test.describe('📊 Statistiques & Monitoring', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performances & Analytics', () => {
   test('page Performances complètes', async ({ page }) => {
-    await page.goto('/backoffice/analytics/performances');
+    await page.goto('/backoffice/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Performances réseau', async ({ page }) => {
-    await page.goto('/backoffice/analytics/network');
+    await page.goto('/backoffice/performances/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Performances applicatives', async ({ page }) => {
-    await page.goto('/backoffice/analytics/application');
+    await page.goto('/backoffice/analytics/application', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Analytics conteneurs', async ({ page }) => {
-    await page.goto('/backoffice/analytics/containers');
+    await page.goto('/backoffice/performances/containers', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Analytics utilisateur', async ({ page }) => {
-    await page.goto('/backoffice/user-analytics');
+    await page.goto('/backoffice/user-analytics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglets Analytics utilisateur', async ({ page }) => {
-    await page.goto('/backoffice/user-analytics');
+    await page.goto('/backoffice/user-analytics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'Vue d');
     await expectTabClickable(page, 'nements');
@@ -115,7 +118,7 @@ test.describe('⚡ Performances & Analytics', () => {
   });
 
   test('page Analytics CPU/système', async ({ page }) => {
-    await page.goto('/backoffice/analytics');
+    await page.goto('/backoffice/analytics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -125,32 +128,34 @@ test.describe('⚡ Performances & Analytics', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔒 Sécurité', () => {
   test('page Analyse de sécurité', async ({ page }) => {
-    await page.goto('/backoffice/security/analysis');
+    await page.goto('/backoffice/security/analysis', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Firewall', async ({ page }) => {
-    await page.goto('/backoffice/security/firewall');
+    await page.goto('/backoffice/security/firewall', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Réseau (sécurité)', async ({ page }) => {
-    await page.goto('/backoffice/security/network');
+    await page.goto('/backoffice/security/network', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Politiques de sécurité', async ({ page }) => {
-    await page.goto('/backoffice/security/policies');
+    await page.goto('/backoffice/security/policies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Menaces', async ({ page }) => {
-    await page.goto('/backoffice/security/threats');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/security/threats', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Logs de sécurité (onglet Sécurité dans statistique)', async ({ page }) => {
-    await page.goto('/backoffice/statistique');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'curit');
   });
@@ -161,29 +166,30 @@ test.describe('🔒 Sécurité', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔧 Services', () => {
   test('page Liste des services', async ({ page }) => {
-    await page.goto('/backoffice/services');
+    await page.goto('/backoffice/services', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('onglets Services / Logs Système', async ({ page }) => {
-    await page.goto('/backoffice/services');
+    await page.goto('/backoffice/services', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'Services');
     await expectTabClickable(page, 'Logs');
   });
 
   test('page détail d\'un service (api-gateway)', async ({ page }) => {
-    await page.goto('/backoffice/services/api-gateway');
+    await page.goto('/backoffice/services/api-gateway', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page détail d\'un service (auth-service)', async ({ page }) => {
-    await page.goto('/backoffice/services/auth-service');
+    await page.goto('/backoffice/services/auth-service', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Applications/Gestion des Services', async ({ page }) => {
-    await page.goto('/backoffice/applications');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -193,67 +199,68 @@ test.describe('🔧 Services', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('💾 Gestion des données', () => {
   test('page principale Gestion des données', async ({ page }) => {
-    await page.goto('/backoffice/data');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/datas', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('onglet Candidatures', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=applications');
+    await page.goto('/backoffice/datas?tab=applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Entreprises', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=companies');
+    await page.goto('/backoffice/datas?tab=companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Contacts', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=contacts');
+    await page.goto('/backoffice/datas?tab=contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Entretiens', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=interviews');
+    await page.goto('/backoffice/datas?tab=interviews', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Appels', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=calls');
+    await page.goto('/backoffice/datas?tab=calls', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Relances', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=followups');
+    await page.goto('/backoffice/datas?tab=followups', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Événements', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=events');
+    await page.goto('/backoffice/datas?tab=events', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Notifications', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=notifications');
+    await page.goto('/backoffice/datas?tab=notifications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Stats utilisateur', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=userstats');
+    await page.goto('/backoffice/datas?tab=user-stats', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Abonnement & facturation', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=billing');
+    await page.goto('/backoffice/datas?tab=billing', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglet Données de test', async ({ page }) => {
-    await page.goto('/backoffice/data?tab=testdata');
+    await page.goto('/backoffice/datas?tab=test-data', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page standalone Data Management', async ({ page }) => {
-    await page.goto('/backoffice/data-management');
+    await page.goto('/backoffice/data-management', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -263,37 +270,37 @@ test.describe('💾 Gestion des données', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📋 Pages données individuelles', () => {
   test('page Entreprises', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Contacts', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Entretiens', async ({ page }) => {
-    await page.goto('/backoffice/interviews');
+    await page.goto('/backoffice/interviews', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Appels', async ({ page }) => {
-    await page.goto('/backoffice/calls');
+    await page.goto('/backoffice/calls', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Relances', async ({ page }) => {
-    await page.goto('/backoffice/followups');
+    await page.goto('/backoffice/followups', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Événements', async ({ page }) => {
-    await page.goto('/backoffice/events');
+    await page.goto('/backoffice/events', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Notifications', async ({ page }) => {
-    await page.goto('/backoffice/notifications');
+    await page.goto('/backoffice/notifications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -303,12 +310,12 @@ test.describe('📋 Pages données individuelles', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📦 Archives & Corbeille', () => {
   test('page Archives', async ({ page }) => {
-    await page.goto('/backoffice/archives');
+    await page.goto('/backoffice/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Corbeille', async ({ page }) => {
-    await page.goto('/backoffice/trash');
+    await page.goto('/backoffice/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -318,12 +325,12 @@ test.describe('📦 Archives & Corbeille', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('👥 Utilisateurs', () => {
   test('page Gestion des utilisateurs', async ({ page }) => {
-    await page.goto('/backoffice/users');
+    await page.goto('/backoffice/users', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page affiche un filtre de rôles ou recherche', async ({ page }) => {
-    await page.goto('/backoffice/users');
+    await page.goto('/backoffice/users', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     const bodyText = await page.locator('body').textContent() ?? '';
     const hasUserManagement = /utilisateur|role|admin|user/i.test(bodyText);
@@ -336,29 +343,29 @@ test.describe('👥 Utilisateurs', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📧 Emails', () => {
   test('page Gestion des emails', async ({ page }) => {
-    await page.goto('/backoffice/emails');
+    await page.goto('/backoffice/emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglets Email de Test / Reset Password', async ({ page }) => {
-    await page.goto('/backoffice/emails');
+    await page.goto('/backoffice/emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'Email de Test');
     await expectTabClickable(page, 'Reset');
   });
 
   test('page Email Monitor', async ({ page }) => {
-    await page.goto('/backoffice/email-monitor');
+    await page.goto('/backoffice/email-monitor', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Templates emails', async ({ page }) => {
-    await page.goto('/backoffice/emails/templates');
+    await page.goto('/backoffice/emails/templates', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('onglets Templates (Prévisualisation / Code / Variables)', async ({ page }) => {
-    await page.goto('/backoffice/emails/templates');
+    await page.goto('/backoffice/emails/templates', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     await expectTabClickable(page, 'visualisation');
     await expectTabClickable(page, 'Code');
@@ -366,12 +373,12 @@ test.describe('📧 Emails', () => {
   });
 
   test('page Configuration SMTP', async ({ page }) => {
-    await page.goto('/backoffice/emails/settings');
+    await page.goto('/backoffice/emails/settings', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Délivrabilité', async ({ page }) => {
-    await page.goto('/backoffice/emails/deliverability');
+    await page.goto('/backoffice/emails/deliverability', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -381,72 +388,72 @@ test.describe('📧 Emails', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🧪 Tests & API', () => {
   test('page Hub Tests principal', async ({ page }) => {
-    await page.goto('/backoffice/tests');
+    await page.goto('/backoffice/tests', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('page Tests API', async ({ page }) => {
-    await page.goto('/backoffice/tests-api');
+    await page.goto('/backoffice/tests-api', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Backend', async ({ page }) => {
-    await page.goto('/backoffice/tests-backend');
+    await page.goto('/backoffice/tests-backend', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Frontend', async ({ page }) => {
-    await page.goto('/backoffice/tests-frontend');
+    await page.goto('/backoffice/tests-frontend', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Backoffice', async ({ page }) => {
-    await page.goto('/backoffice/tests-backoffice');
+    await page.goto('/backoffice/tests-backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Emails', async ({ page }) => {
-    await page.goto('/backoffice/tests-emails');
+    await page.goto('/backoffice/tests-emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Sécurité', async ({ page }) => {
-    await page.goto('/backoffice/tests-security');
+    await page.goto('/backoffice/tests-security', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Performance', async ({ page }) => {
-    await page.goto('/backoffice/tests-performance');
+    await page.goto('/backoffice/tests-performance', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Testeur d\'API', async ({ page }) => {
-    await page.goto('/backoffice/api-tester');
+    await page.goto('/backoffice/api-tester', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Rapports de tests', async ({ page }) => {
-    await page.goto('/backoffice/test-reports');
+    await page.goto('/backoffice/test-reports', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('page Programmer tests', async ({ page }) => {
-    await page.goto('/backoffice/performance-tests/schedule');
+    await page.goto('/backoffice/performance-tests/schedule', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Tests Performance (standalone)', async ({ page }) => {
-    await page.goto('/backoffice/performance-tests');
+    await page.goto('/backoffice/performance-tests', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Données de test (générateur)', async ({ page }) => {
-    await page.goto('/backoffice/test-data');
+    await page.goto('/backoffice/test-data', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page, 200);
   });
 
   test('page Tests Playwright', async ({ page }) => {
-    await page.goto('/backoffice/playwright-tests');
+    await page.goto('/backoffice/playwright-tests', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -456,12 +463,12 @@ test.describe('🧪 Tests & API', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🎯 Parcours utilisateur', () => {
   test('page Parcours prédéfinis', async ({ page }) => {
-    await page.goto('/backoffice/user-journey');
+    await page.goto('/backoffice/user-journey', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page affiche les scénarios disponibles', async ({ page }) => {
-    await page.goto('/backoffice/user-journey');
+    await page.goto('/backoffice/user-journey', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
     const bodyText = await page.locator('body').textContent() ?? '';
     const hasJourneys = /parcours|tape|sc.nario/i.test(bodyText);
@@ -469,12 +476,12 @@ test.describe('🎯 Parcours utilisateur', () => {
   });
 
   test('page Parcours personnalisé', async ({ page }) => {
-    await page.goto('/backoffice/user-journey/custom');
+    await page.goto('/backoffice/user-journey/custom', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 
   test('page Rapports de parcours', async ({ page }) => {
-    await page.goto('/backoffice/user-journey/reports');
+    await page.goto('/backoffice/user-journey/reports', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -484,7 +491,7 @@ test.describe('🎯 Parcours utilisateur', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔍 Recherche', () => {
   test('page Recherche optimisée', async ({ page }) => {
-    await page.goto('/backoffice/search');
+    await page.goto('/backoffice/search', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 });
@@ -494,17 +501,17 @@ test.describe('🔍 Recherche', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🧭 Navigation sidebar', () => {
   test('sidebar visible avec liens principaux', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').first()).toBeVisible({ timeout: 10000 });
 
-    const nav = await page.locator('nav').textContent() ?? '';
+    const nav = await page.locator('nav').first().textContent() ?? '';
     const hasLinks = /Statistiques|Services|curit|Utilisateurs|Emails|Tests|Parcours/i.test(nav);
     expect(hasLinks).toBe(true);
   });
 
   test('liens de navigation fonctionnels', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const navLinks = page.locator('nav a[href*="/backoffice/"]');

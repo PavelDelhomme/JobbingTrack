@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Tests - JobbingTrack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 30px; }
+        .summary { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats { display: flex; gap: 20px; margin-top: 15px; }
+        .stat { flex: 1; padding: 15px; border-radius: 6px; text-align: center; }
+        .stat.total { background: #e3f2fd; color: #1976d2; }
+        .stat.passed { background: #e8f5e9; color: #388e3c; }
+        .stat.failed { background: #ffebee; color: #d32f2f; }
+        .stat h3 { font-size: 2em; margin-bottom: 5px; }
+        .test-result { background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result h2 { margin-bottom: 10px; }
+        .test-result.success { border-left: 4px solid #4caf50; }
+        .test-result.failed { border-left: 4px solid #f44336; }
+        .test-result.skipped { border-left: 4px solid #ff9800; }
+        .status-success { color: #4caf50; font-weight: bold; }
+        .status-failed { color: #f44336; font-weight: bold; }
+        .status-skipped { color: #ff9800; font-weight: bold; }
+        .meta { color: #666; font-size: 0.9em; margin-top: 10px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Rapport de Tests - JobbingTrack</h1>
+        <div class="summary">
+            <h2>Résumé</h2>
+            <div class="stats">
+                <div class="stat total" style="background: #e3f2fd; color: #1976d2;">
+                    <h3>19</h3>
+                    <p>Catégories</p>
+                </div>
+                <div class="stat total">
+                    <h3>385</h3>
+                    <p>Total Tests</p>
+                </div>
+                <div class="stat passed">
+                    <h3>383</h3>
+                    <p>Réussis</p>
+                </div>
+                <div class="stat failed">
+                    <h3>2</h3>
+                    <p>Échoués</p>
+                </div>
+            </div>
+            <p class="meta">Généré le 27/02/2026 à 15:12:23</p>
+            <p class="meta">Répertoire : tests/results/20260227-151034</p>
+        </div>
+        
+        <h2 style="margin-top: 30px; margin-bottom: 15px;">Détails des Tests</h2>
+    <div class="test-result success">
+        <h2>Tests API Backend (script - tous services) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 47 | Réussis: <span style="color: #4caf50;">47</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (150 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Tests API Spécifiques - JobbingTrack              ║
+╚════════════════════════════════════════════════════════╝
+
+
+═══ Health Checks ═══
+[1] Test: API Gateway Health
+   ✓ PASS - Status: 200
+[2] Test: API Gateway /api/health
+   ✓ PASS - Status: 200
+[3] Test: API Gateway Metrics
+   ✓ PASS - Status: 200
+
+═══ Services Backend ═══
+[4] Test: Auth Service
+   ✓ PASS - Status: 200
+[5] Test: Company Service
+   ✓ PASS - Status: 401
+[6] Test: Application Service
+   ✓ PASS - Status: 401
+[7] Test: Contact Service
+   ✓ PASS - Status: 401
+[8] Test: Interview Service
+   ✓ PASS - Status: 401
+[9] Test: Call Service
+   ✓ PASS - Status: 401
+[10] Test: Event Service
+   ✓ PASS - Status: 401
+[11] Test: FollowUp Service
+   ✓ PASS - Status: 401
+[12] Test: Profile Service
+   ✓ PASS - Status: 401
+[13] Test: Notification Service
+   ✓ PASS - Status: 401
+
+═══ Authentification ═══
+Authentification (utilisateur classique)...
+[14] Test: Login utilisateur test
+   ✓ PASS - Status: 200
+   ✓ Token utilisateur test obtenu (rôle USER)
+[15] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ Utilisateurs ═══
+[16] Test: List Users
+   ✓ PASS - Status: 200
+[17] Test: Get User Profile
+   ✓ PASS - Status: 200
+
+═══ Entreprises ═══
+[18] Test: List Companies
+   ✓ PASS - Status: 200
+[19] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ Candidatures ═══
+[20] Test: List Applications
+   ✓ PASS - Status: 200
+[21] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ Contacts ═══
+[22] Test: List Contacts
+   ✓ PASS - Status: 200
+[23] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ Entretiens ═══
+[24] Test: List Interviews
+   ✓ PASS - Status: 200
+[25] Test: Create Interview
+   ✓ PASS - Status: 201
+
+═══ Appels ═══
+[26] Test: List Calls
+   ✓ PASS - Status: 200
+[27] Test: Create Call
+   ✓ PASS - Status: 201
+
+═══ Événements ═══
+[28] Test: List Events
+   ✓ PASS - Status: 200
+[29] Test: Create Event
+   ✓ PASS - Status: 201
+
+═══ Relances ═══
+[30] Test: List Followups
+   ✓ PASS - Status: 200
+[31] Test: Create Followup
+   ✓ PASS - Status: 201
+
+═══ Profils ═══
+[32] Test: Get Profile
+   ✓ PASS - Status: 200
+[33] Test: Update Profile
+   ✓ PASS - Status: 200
+
+═══ Notifications ═══
+[34] Test: List Notifications
+   ✓ PASS - Status: 200
+
+═══ Métriques / Metrics-Aggregator ═══
+[35] Test: Get Metrics (metrics-aggregator via gateway)
+   ✓ PASS - Status: 200
+[36] Test: Get Dashboard Statistics
+   ✓ PASS - Status: 200
+
+═══ Dashboard & Analytics ═══
+[37] Test: Dashboard Statistics
+   ✓ PASS - Status: 200
+[38] Test: Analytics Events
+   ✓ PASS - Status: 200
+[39] Test: Analytics Errors
+   ✓ PASS - Status: 200
+[40] Test: Analytics Stats
+   ✓ PASS - Status: 200
+
+═══ Emails (logs, stats) ═══
+[41] Test: Emails Logs
+   ✓ PASS - Status: 200
+[42] Test: Emails Stats
+   ✓ PASS - Status: 200
+
+═══ Workflow Service ═══
+[43] Test: List Workflows
+   ✓ PASS - Status: 200
+
+═══ Security Service ═══
+[44] Test: Security Firewall Rules
+   ✓ PASS - Status: 200
+[45] Test: Security Blocked IPs
+   ✓ PASS - Status: 200
+[46] Test: Security WAF Config
+   ✓ PASS - Status: 200
+[47] Test: Security Logs
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 47
+Tests réussis     : 47
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+
+Total de tests    : 47
+Tests réussis     : 47
+Tests échoués     : 0</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests API Gateway Health <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (21 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">{"status":"OK","timestamp":"2026-02-27T14:12:21.746Z","environment":"development","version":"1.0.0"}# HELP api_gateway_requests_total Total number of requests
+# TYPE api_gateway_requests_total counter
+api_gateway_requests_total 739
+
+# HELP api_gateway_response_time_seconds Response time in seconds
+# TYPE api_gateway_response_time_seconds histogram
+api_gateway_response_time_seconds_bucket{le="0.1"} 77
+api_gateway_response_time_seconds_bucket{le="0.5"} 84
+api_gateway_response_time_seconds_bucket{le="1.0"} 201
+api_gateway_response_time_seconds_bucket{le="2.5"} 244
+api_gateway_response_time_seconds_bucket{le="5.0"} 380
+api_gateway_response_time_seconds_bucket{le="10.0"} 509
+api_gateway_response_time_seconds_bucket{le="+Inf"} 273
+
+# HELP api_gateway_up API Gateway is up
+# TYPE api_gateway_up gauge
+api_gateway_up 1
+
+# HELP api_gateway_info Information about API Gateway
+# TYPE api_gateway_info gauge
+api_gateway_info{version="1.0.0",environment="development"} 1</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests API Complets (Jest) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 15s</p>
+        <p><strong>Statistiques:</strong> Total: 182 | Réussis: <span style="color: #4caf50;">181</span> | Échoués: <span style="color: #f44336;">1</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (460 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+> jobbingtrack-tests@1.0.0 test
+> jest api/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS api/analytics-endpoint.test.js
+  Analytics Endpoint
+    ✓ devrait retourner 200 même en cas d'erreur (109 ms)
+    ✓ devrait retourner un tableau vide en cas d'erreur (3 ms)
+
+  console.warn
+    ⚠️ Monitoring-c non disponible, test ignoré
+
+      29 |         // Si monitoring-c n'est pas démarré, skip le test
+      30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+    > 31 |           console.warn('⚠️ Monitoring-c non disponible, test ignoré');
+         |                   ^
+      32 |           return;
+      33 |         }
+      34 |         throw error;
+
+      at Object.warn (api/test-monitoring-c-endpoints.test.js:31:19)
+
+PASS api/test-monitoring-c-endpoints.test.js
+  Monitoring C Endpoints
+    GET /api/v1/metrics
+      ✓ devrait retourner les métriques système (142 ms)
+      ✓ devrait inclure les métriques de conteneurs (4 ms)
+      ✓ devrait inclure les métriques globales (3 ms)
+
+PASS api/test-crash-reporting.test.js
+  Crash Reporting API
+    ✓ POST /crashes - devrait enregistrer un crash report complet (115 ms)
+    ✓ POST /crashes - devrait rejeter sans crashType (11 ms)
+    ✓ POST /crashes - devrait rejeter sans message (9 ms)
+    ✓ POST /crashes - devrait rejeter sans authentification (7 ms)
+    ✓ POST /crashes - devrait accepter un rapport minimal (45 ms)
+    ✓ POST /crashes - devrait gerer un message tres long (troncature) (26 ms)
+    ✓ GET /crashes - devrait retourner la liste des crash reports (38 ms)
+    ✓ GET /crashes - devrait supporter la pagination (12 ms)
+    ✓ GET /crashes - devrait rejeter sans authentification (10 ms)
+    ✓ POST /crashes - devrait envoyer avec plusieurs types de crash (148 ms)
+    ✓ POST /crashes - le rapport devrait etre anonymise (verification via GET) (29 ms)
+
+  console.error
+    [BDD] Interview cmm4yzdka001fbw7bswq11k5p non trouvé dans trash. Items:
+
+      185 |         const found = trashItems.some(i => i.id === interviewId);
+      186 |         if (!found) {
+    > 187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+          |                   ^
+      188 |         }
+      189 |         expect(found).toBe(true);
+      190 |       }
+
+      at Object.error (api/test-bdd-relations.test.js:187:19)
+
+PASS api/test-status-cascade.test.js
+  Cascade Statuts & Auto-événements (utilisateur classique)
+    Création entretien → statut INTERVIEW_PENDING
+      ✓ créer un entretien devrait passer la candidature en INTERVIEW_PENDING (186 ms)
+    Entretien COMPLETED → statut INTERVIEW_DONE
+      ✓ passer un entretien à COMPLETED devrait passer la candidature en INTERVIEW_DONE (96 ms)
+    Résultat entretien positif → OFFER_RECEIVED
+      ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (76 ms)
+    Résultat entretien négatif → REJECTED
+      ✓ mettre un résultat NEGATIVE devrait passer la candidature en REJECTED (57 ms)
+    Historique des changements de statut
+      ✓ devrait avoir un historique des changements de statut (15 ms)
+    Changement de statut manuel avec historique
+      ✓ PUT /status devrait changer le statut et créer une entrée historique (45 ms)
+    Auto-création événement calendrier
+      ✓ créer un entretien devrait créer un événement calendrier (210 ms)
+      ✓ créer une relance devrait créer un événement calendrier (59 ms)
+      ✓ créer un appel devrait créer un événement calendrier (60 ms)
+    Filtrage isArchived dans les listes
+      ✓ GET /interviews ne devrait pas retourner les entretiens archivés (63 ms)
+      ✓ GET /calls ne devrait pas retourner les appels archivés (47 ms)
+      ✓ GET /followups ne devrait pas retourner les relances archivées (42 ms)
+
+  console.log
+    ℹ️ Time-travel desactive (ENABLE_TIME_TRAVEL=true requis dans .env)
+
+      at Object.log (api/test-status-engine.test.js:377:17)
+
+FAIL api/test-bdd-relations.test.js (5.194 s)
+  Relations BDD & Intégrité (utilisateur classique)
+    Chaîne de création Application → Entretien → Relance → Appel
+      ✓ créer une entreprise (29 ms)
+      ✓ créer un contact lié à l'entreprise (21 ms)
+      ✓ créer une candidature liée à l'entreprise (55 ms)
+      ✓ créer un entretien lié à la candidature (84 ms)
+      ✓ créer une relance liée à la candidature (51 ms)
+      ✓ créer un appel lié à la candidature (152 ms)
+    Relations dans les détails
+      ✓ le détail de la candidature devrait inclure entretiens et relances (21 ms)
+      ✓ le détail de l'entretien devrait inclure la candidature (19 ms)
+    Cohérence soft delete
+      ✓ supprimer l'entretien ne devrait pas supprimer la candidature (82 ms)
+      ✕ supprimer la candidature devrait soft-delete les éléments liés (701 ms)
+    Cohérence archivage cascade
+      ✓ archiver la candidature devrait archiver les éléments liés (199 ms)
+      ✓ après désarchivage, les éléments liés devraient être visibles (314 ms)
+    Événements automatiquement créés
+      ✕ les événements liés à la candidature/entretien devraient exister (9 ms)
+    Contraintes d'intégrité
+      ✓ créer un entretien avec un applicationId invalide devrait échouer (9 ms)
+      ✓ créer une relance avec un applicationId invalide devrait échouer (7 ms)
+      ✓ créer une candidature sans entreprise devrait échouer (5 ms)
+    Statuts personnalisables
+      ✓ les statuts de candidature devraient être des tables BDD (11 ms)
+
+  ● Relations BDD & Intégrité (utilisateur classique) › Cohérence soft delete › supprimer la candidature devrait soft-delete les éléments liés
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+      188 |         }
+    > 189 |         expect(found).toBe(true);
+          |                       ^
+      190 |       }
+      191 |
+      192 |       // Restauration en séquentiel pour garantir l'ordre
+
+      at Object.toBe (api/test-bdd-relations.test.js:189:23)
+
+  ● Relations BDD & Intégrité (utilisateur classique) › Événements automatiquement créés › les événements liés à la candidature/entretien devraient exister
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      250 |       if (!appEvent) {
+      251 |         const interviewEvent = events.find(e => e.interviewId === interviewId);
+    > 252 |         expect(interviewEvent || appEvent).toBeDefined();
+          |                                            ^
+      253 |       } else {
+      254 |         expect(appEvent).toBeDefined();
+      255 |       }
+
+      at Object.toBeDefined (api/test-bdd-relations.test.js:252:44)
+
+PASS api/test-archive-trash.test.js (5.2 s)
+  Archivage & Corbeille (utilisateur classique)
+    Archivage Entretien
+      ✓ POST /:id/archive devrait archiver un entretien (27 ms)
+      ✓ GET /archived devrait lister les entretiens archivés (15 ms)
+      ✓ GET / ne devrait PAS retourner un entretien archivé (14 ms)
+      ✓ POST /:id/unarchive devrait désarchiver un entretien (21 ms)
+    Archivage Appel
+      ✓ devrait archiver puis désarchiver un appel (75 ms)
+    Archivage Relance
+      ✓ devrait archiver puis désarchiver une relance (74 ms)
+    Archivage Entreprise
+      ✓ devrait archiver puis désarchiver une entreprise (134 ms)
+    Archivage Contact
+      ✓ devrait archiver puis désarchiver un contact (104 ms)
+    Corbeille (soft delete)
+      ✓ DELETE devrait soft-delete un entretien (33 ms)
+      ✓ GET /trash devrait lister les entretiens supprimés (14 ms)
+      ✓ POST /:id/restore devrait restaurer un entretien (42 ms)
+      ✓ GET / devrait retourner l'entretien restauré (10 ms)
+    Corbeille Candidature avec cascade
+      ✓ DELETE candidature devrait soft-delete la candidature et ses éléments liés (37 ms)
+      ✓ les entretiens/relances/appels liés ne devraient plus apparaître dans les listes (9 ms)
+      ✓ la candidature devrait apparaître dans la corbeille (10 ms)
+      ✓ POST /restore devrait restaurer la candidature (39 ms)
+    Cascade archivage candidature (isArchived)
+      ✓ archiver une candidature devrait archiver les éléments liés (117 ms)
+      ✓ désarchiver une candidature devrait désarchiver les éléments liés (80 ms)
+    Cas limites
+      ✓ archiver un ID inexistant devrait retourner 404 (9 ms)
+      ✓ désarchiver un élément non archivé devrait retourner 404 (7 ms)
+      ✓ restaurer un élément non supprimé devrait retourner 404 (10 ms)
+
+PASS api/test-status-engine.test.js (5.427 s)
+  Moteur de statut intelligent (utilisateur classique)
+    Preferences moteur de statut
+      ✓ les preferences par defaut doivent inclure statusEngine (54 ms)
+      ✓ mettre a jour statusEngine.autoStatusEnabled devrait persister (39 ms)
+    Mode manuel (autoStatusEnabled = false)
+      ✓ desactiver auto-statut devrait empecher la cascade entretien → INTERVIEW_PENDING (378 ms)
+      ✓ changement de statut manuel reste possible meme en mode manuel (128 ms)
+    Mode auto (autoStatusEnabled = true)
+      ✓ reactiver auto-statut devrait restaurer la cascade (126 ms)
+      ✓ cascade COMPLETED → INTERVIEW_DONE fonctionne en mode auto (64 ms)
+    Historique des changements de statut
+      ✓ historique doit contenir les changements avec commentaires (11 ms)
+    Configuration parametres du moteur
+      ✓ les parametres de configuration doivent etre personnalisables (43 ms)
+    Transitions temporelles (structure)
+      ✓ candidature sans action devrait rester en CANDIDATE_PENDING initialement (26 ms)
+      ✓ endpoint time-travel devrait exister ou etre planifie (37 ms)
+    Relances multiples et detection
+      ✓ creer plusieurs relances devrait etre possible pour la meme candidature (358 ms)
+    Rejet direct (email de rejet recu)
+      ✓ passage direct a REJECTED devrait fonctionner quel que soit le statut actuel (48 ms)
+
+PASS api/test-email-endpoints.test.js (6.212 s)
+  Email Endpoints (admin)
+    GET /api/v1/emails/logs
+      ✓ devrait retourner les logs emails avec pagination (703 ms)
+      ✓ devrait gérer les erreurs P2021 gracieusement (703 ms)
+    POST /api/v1/emails/test
+      ✓ devrait envoyer un email de test (2544 ms)
+      ✓ devrait gérer les erreurs de timeout SMTP (1124 ms)
+    GET /api/v1/emails/test-smtp
+      ✓ devrait tester la connexion SMTP (7 ms)
+    GET /api/v1/emails/stats
+      ✓ devrait retourner les statistiques emails (33 ms)
+
+Test Suites: 1 failed, 7 passed, 8 total
+Tests:       2 failed, 82 passed, 84 total
+Snapshots:   0 total
+Time:        6.418 s
+Ran all test suites matching /api\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+
+> jobbingtrack-tests@1.0.0 test
+> jest api/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS api/analytics-endpoint.test.js
+  Analytics Endpoint
+    ✓ devrait retourner 200 même en cas d'erreur (150 ms)
+    ✓ devrait retourner un tableau vide en cas d'erreur (6 ms)
+
+  console.warn
+    ⚠️ Monitoring-c non disponible, test ignoré
+
+      29 |         // Si monitoring-c n'est pas démarré, skip le test
+      30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+    > 31 |           console.warn('⚠️ Monitoring-c non disponible, test ignoré');
+         |                   ^
+      32 |           return;
+      33 |         }
+      34 |         throw error;
+
+      at Object.warn (api/test-monitoring-c-endpoints.test.js:31:19)
+
+PASS api/test-monitoring-c-endpoints.test.js
+  Monitoring C Endpoints
+    GET /api/v1/metrics
+      ✓ devrait retourner les métriques système (206 ms)
+      ✓ devrait inclure les métriques de conteneurs (3 ms)
+      ✓ devrait inclure les métriques globales (3 ms)
+
+PASS api/test-crash-reporting.test.js
+  Crash Reporting API
+    ✓ POST /crashes - devrait enregistrer un crash report complet (19 ms)
+    ✓ POST /crashes - devrait rejeter sans crashType (4 ms)
+    ✓ POST /crashes - devrait rejeter sans message (4 ms)
+    ✓ POST /crashes - devrait rejeter sans authentification (3 ms)
+    ✓ POST /crashes - devrait accepter un rapport minimal (14 ms)
+    ✓ POST /crashes - devrait gerer un message tres long (troncature) (15 ms)
+    ✓ GET /crashes - devrait retourner la liste des crash reports (7 ms)
+    ✓ GET /crashes - devrait supporter la pagination (7 ms)
+    ✓ GET /crashes - devrait rejeter sans authentification (4 ms)
+    ✓ POST /crashes - devrait envoyer avec plusieurs types de crash (59 ms)
+    ✓ POST /crashes - le rapport devrait etre anonymise (verification via GET) (18 ms)
+
+  console.error
+    [BDD] Restore application: 400
+
+      192 |       // Restauration en séquentiel pour garantir l'ordre
+      193 |       const appRestore = await api('post', `applications/${applicationId}/restore`);
+    > 194 |       if (appRestore.status !== 200) console.error(`[BDD] Restore application: ${appRestore.status}`);
+          |                                              ^
+      195 |       if (interviewId) {
+      196 |         const intRestore = await api('post', `interviews/${interviewId}/restore`);
+      197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+
+      at Object.error (api/test-bdd-relations.test.js:194:46)
+
+  console.error
+    [BDD] Restore interview: 400
+
+      195 |       if (interviewId) {
+      196 |         const intRestore = await api('post', `interviews/${interviewId}/restore`);
+    > 197 |         if (intRestore.status !== 200) console.error(`[BDD] Restore interview: ${intRestore.status}`);
+          |                                                ^
+      198 |       }
+      199 |       if (followUpId) {
+      200 |         const fuRestore = await api('post', `followups/${followUpId}/restore`);
+
+      at Object.error (api/test-bdd-relations.test.js:197:48)
+
+  console.error
+    [BDD] Restore followup: 400
+
+      199 |       if (followUpId) {
+      200 |         const fuRestore = await api('post', `followups/${followUpId}/restore`);
+    > 201 |         if (fuRestore.status !== 200) console.error(`[BDD] Restore followup: ${fuRestore.status}`);
+          |                                               ^
+      202 |       }
+      203 |       if (callId) {
+      204 |         const callRestore = await api('post', `calls/${callId}/restore`);
+
+      at Object.error (api/test-bdd-relations.test.js:201:47)
+
+  console.error
+    [BDD] Restore call: 400
+
+      203 |       if (callId) {
+      204 |         const callRestore = await api('post', `calls/${callId}/restore`);
+    > 205 |         if (callRestore.status !== 200) console.error(`[BDD] Restore call: ${callRestore.status}`);
+          |                                                 ^
+      206 |       }
+      207 |     });
+      208 |   });
+
+      at Object.error (api/test-bdd-relations.test.js:205:49)
+
+  console.log
+    ℹ️ Time-travel desactive (ENABLE_TIME_TRAVEL=true requis dans .env)
+
+      at Object.log (api/test-status-engine.test.js:377:17)
+
+PASS api/test-archive-trash.test.js
+  Archivage & Corbeille (utilisateur classique)
+    Archivage Entretien
+      ✓ POST /:id/archive devrait archiver un entretien (24 ms)
+      ✓ GET /archived devrait lister les entretiens archivés (8 ms)
+      ✓ GET / ne devrait PAS retourner un entretien archivé (6 ms)
+      ✓ POST /:id/unarchive devrait désarchiver un entretien (23 ms)
+    Archivage Appel
+      ✓ devrait archiver puis désarchiver un appel (44 ms)
+    Archivage Relance
+      ✓ devrait archiver puis désarchiver une relance (59 ms)
+    Archivage Entreprise
+      ✓ devrait archiver puis désarchiver une entreprise (66 ms)
+    Archivage Contact
+      ✓ devrait archiver puis désarchiver un contact (50 ms)
+    Corbeille (soft delete)
+      ✓ DELETE devrait soft-delete un entretien (38 ms)
+      ✓ GET /trash devrait lister les entretiens supprimés (15 ms)
+      ✓ POST /:id/restore devrait restaurer un entretien (43 ms)
+      ✓ GET / devrait retourner l'entretien restauré (13 ms)
+    Corbeille Candidature avec cascade
+      ✓ DELETE candidature devrait soft-delete la candidature et ses éléments liés (71 ms)
+      ✓ les entretiens/relances/appels liés ne devraient plus apparaître dans les listes (25 ms)
+      ✓ la candidature devrait apparaître dans la corbeille (15 ms)
+      ✓ POST /restore devrait restaurer la candidature (61 ms)
+    Cascade archivage candidature (isArchived)
+      ✓ archiver une candidature devrait archiver les éléments liés (131 ms)
+      ✓ désarchiver une candidature devrait désarchiver les éléments liés (60 ms)
+    Cas limites
+      ✓ archiver un ID inexistant devrait retourner 404 (9 ms)
+      ✓ désarchiver un élément non archivé devrait retourner 404 (10 ms)
+      ✓ restaurer un élément non supprimé devrait retourner 404 (19 ms)
+
+PASS api/test-status-cascade.test.js
+  Cascade Statuts & Auto-événements (utilisateur classique)
+    Création entretien → statut INTERVIEW_PENDING
+      ✓ créer un entretien devrait passer la candidature en INTERVIEW_PENDING (82 ms)
+    Entretien COMPLETED → statut INTERVIEW_DONE
+      ✓ passer un entretien à COMPLETED devrait passer la candidature en INTERVIEW_DONE (73 ms)
+    Résultat entretien positif → OFFER_RECEIVED
+      ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (89 ms)
+    Résultat entretien négatif → REJECTED
+      ✓ mettre un résultat NEGATIVE devrait passer la candidature en REJECTED (88 ms)
+    Historique des changements de statut
+      ✓ devrait avoir un historique des changements de statut (12 ms)
+    Changement de statut manuel avec historique
+      ✓ PUT /status devrait changer le statut et créer une entrée historique (52 ms)
+    Auto-création événement calendrier
+      ✓ créer un entretien devrait créer un événement calendrier (231 ms)
+      ✓ créer une relance devrait créer un événement calendrier (53 ms)
+      ✓ créer un appel devrait créer un événement calendrier (52 ms)
+    Filtrage isArchived dans les listes
+      ✓ GET /interviews ne devrait pas retourner les entretiens archivés (84 ms)
+      ✓ GET /calls ne devrait pas retourner les appels archivés (58 ms)
+      ✓ GET /followups ne devrait pas retourner les relances archivées (52 ms)
+
+PASS api/test-status-engine.test.js
+  Moteur de statut intelligent (utilisateur classique)
+    Preferences moteur de statut
+      ✓ les preferences par defaut doivent inclure statusEngine (68 ms)
+      ✓ mettre a jour statusEngine.autoStatusEnabled devrait persister (28 ms)
+    Mode manuel (autoStatusEnabled = false)
+      ✓ desactiver auto-statut devrait empecher la cascade entretien → INTERVIEW_PENDING (378 ms)
+      ✓ changement de statut manuel reste possible meme en mode manuel (84 ms)
+    Mode auto (autoStatusEnabled = true)
+      ✓ reactiver auto-statut devrait restaurer la cascade (190 ms)
+      ✓ cascade COMPLETED → INTERVIEW_DONE fonctionne en mode auto (99 ms)
+    Historique des changements de statut
+      ✓ historique doit contenir les changements avec commentaires (9 ms)
+    Configuration parametres du moteur
+      ✓ les parametres de configuration doivent etre personnalisables (49 ms)
+    Transitions temporelles (structure)
+      ✓ candidature sans action devrait rester en CANDIDATE_PENDING initialement (62 ms)
+      ✓ endpoint time-travel devrait exister ou etre planifie (59 ms)
+    Relances multiples et detection
+      ✓ creer plusieurs relances devrait etre possible pour la meme candidature (242 ms)
+    Rejet direct (email de rejet recu)
+      ✓ passage direct a REJECTED devrait fonctionner quel que soit le statut actuel (37 ms)
+
+PASS api/test-bdd-relations.test.js
+  Relations BDD & Intégrité (utilisateur classique)
+    Chaîne de création Application → Entretien → Relance → Appel
+      ✓ créer une entreprise (27 ms)
+      ✓ créer un contact lié à l'entreprise (19 ms)
+      ✓ créer une candidature liée à l'entreprise (42 ms)
+      ✓ créer un entretien lié à la candidature (83 ms)
+      ✓ créer une relance liée à la candidature (39 ms)
+      ✓ créer un appel lié à la candidature (36 ms)
+    Relations dans les détails
+      ✓ le détail de la candidature devrait inclure entretiens et relances (10 ms)
+      ✓ le détail de l'entretien devrait inclure la candidature (10 ms)
+    Cohérence soft delete
+      ✓ supprimer l'entretien ne devrait pas supprimer la candidature (56 ms)
+      ✓ supprimer la candidature devrait soft-delete les éléments liés (625 ms)
+    Cohérence archivage cascade
+      ✓ archiver la candidature devrait archiver les éléments liés (62 ms)
+      ✓ après désarchivage, les éléments liés devraient être visibles (308 ms)
+    Événements automatiquement créés
+      ✓ les événements liés à la candidature/entretien devraient exister (6 ms)
+    Contraintes d'intégrité
+      ✓ créer un entretien avec un applicationId invalide devrait échouer (7 ms)
+      ✓ créer une relance avec un applicationId invalide devrait échouer (4 ms)
+      ✓ créer une candidature sans entreprise devrait échouer (6 ms)
+    Statuts personnalisables
+      ✓ les statuts de candidature devraient être des tables BDD (7 ms)
+
+PASS api/test-email-endpoints.test.js (5.56 s)
+  Email Endpoints (admin)
+    GET /api/v1/emails/logs
+      ✓ devrait retourner les logs emails avec pagination (840 ms)
+      ✓ devrait gérer les erreurs P2021 gracieusement (550 ms)
+    POST /api/v1/emails/test
+      ✓ devrait envoyer un email de test (1146 ms)
+      ✓ devrait gérer les erreurs de timeout SMTP (1192 ms)
+    GET /api/v1/emails/test-smtp
+      ✓ devrait tester la connexion SMTP (11 ms)
+    GET /api/v1/emails/stats
+      ✓ devrait retourner les statistiques emails (17 ms)
+
+Test Suites: 8 passed, 8 total
+Tests:       84 passed, 84 total
+Snapshots:   0 total
+Time:        5.837 s, estimated 7 s
+Ran all test suites matching /api\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Backend Services (Jest local) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 13 | Réussis: <span style="color: #4caf50;">13</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (40 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+> jobbingtrack-tests@1.0.0 test
+> jest backend/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS backend/test-security-service.test.js
+  Security Service
+    GET /api/v1/security/logs
+      ✓ devrait retourner les logs de sécurité (44 ms)
+    GET /api/v1/security/policies
+      ✓ devrait retourner les politiques de sécurité (5 ms)
+    GET /api/v1/security/analysis
+      ✓ devrait retourner l'analyse de sécurité (50 ms)
+    Firewall API
+      GET /api/v1/security/firewall/rules
+        ✓ devrait retourner les règles firewall (16 ms)
+      POST /api/v1/security/firewall/rules
+        ✓ devrait créer une règle firewall (30 ms)
+      PUT /api/v1/security/firewall/rules/:id
+        ✓ devrait mettre à jour une règle firewall (25 ms)
+      DELETE /api/v1/security/firewall/rules/:id
+        ✓ devrait supprimer une règle firewall (20 ms)
+      GET /api/v1/security/firewall/blocked-ips
+        ✓ devrait retourner les IPs bloquées (11 ms)
+      POST /api/v1/security/firewall/block-ip
+        ✓ devrait bloquer une IP (27 ms)
+      GET /api/v1/security/firewall/threats
+        ✓ devrait retourner les menaces réseau (15 ms)
+    WAF API
+      GET /api/v1/security/waf/config
+        ✓ devrait retourner la configuration WAF (3 ms)
+      GET /api/v1/security/waf/stats
+        ✓ devrait retourner les statistiques WAF (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        0.487 s, estimated 1 s
+Ran all test suites matching /backend\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Email Logs <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (13 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">            id             |                       to                       |                    subject                     |     type     | status  |         sentAt          |        createdAt        
+---------------------------+------------------------------------------------+------------------------------------------------+--------------+---------+-------------------------+-------------------------
+ cmm4yz6n40004xvnpofca4zox | redacted@example.invalid                     | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-27 14:10:34.798 | 2026-02-27 14:10:34.721
+ cmm4yz6mn0002xvnpxr7gcbhr | redacted@example.invalid                     | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | PENDING |                         | 2026-02-27 14:10:34.703
+ cmm4x5leb0050cwjsvid3240f | e2e-admin-crud-1772198368883@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-02-27 13:19:41.624 | 2026-02-27 13:19:34.548
+ cmm4x5hjc004zcwjsb4fvooeu | e2e-admin-crud-1772198368883@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-27 13:19:29.59  | 2026-02-27 13:19:29.545
+ cmm4x5hja004xcwjsdjgs8d0l | e2e-admin-crud-1772198368883@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | SENT    | 2026-02-27 13:19:41.627 | 2026-02-27 13:19:29.542
+ cmm4x5e5k004ucwjsvri52obg | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-02-27 13:19:35.324 | 2026-02-27 13:19:25.161
+ cmm4x5e4a004tcwjsxob3dfay | redacted@example.invalid          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-02-27 13:19:29.264 | 2026-02-27 13:19:25.114
+ cmm4x5aam004scwjsta3p14qd | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-27 13:19:20.203 | 2026-02-27 13:19:20.158
+ cmm4x5aak004qcwjsrodcq064 | redacted@example.invalid       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | SENT    | 2026-02-27 13:19:35.327 | 2026-02-27 13:19:20.156
+ cmm4x5a9c004ncwjsh9jztmvp | redacted@example.invalid          | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-27 13:19:20.196 | 2026-02-27 13:19:20.112
+(10 rows)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Enums <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (88 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Validation des Enums
+
+ℹ️  Test 1: Vérification définition enum UserRole
+ℹ️  Test 2: Vérification utilisation enum UserRole dans la base
+ℹ️  Test 3: Vérification valeurs enum UserRole
+
+📋 Résultats pour UserRole
+
+✅ Définition dans schéma: Enum UserRole correctement défini avec 4 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (2 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 4 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ContractType
+ℹ️  Test 2: Vérification utilisation enum ContractType dans la base
+ℹ️  Test 3: Vérification valeurs enum ContractType
+
+📋 Résultats pour ContractType
+
+✅ Définition dans schéma: Enum ContractType correctement défini avec 7 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (1 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 7 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum WorkMode
+ℹ️  Test 2: Vérification utilisation enum WorkMode dans la base
+ℹ️  Test 3: Vérification valeurs enum WorkMode
+
+📋 Résultats pour WorkMode
+
+✅ Définition dans schéma: Enum WorkMode correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ApplicationType
+ℹ️  Test 2: Vérification utilisation enum ApplicationType dans la base
+ℹ️  Test 3: Vérification valeurs enum ApplicationType
+
+📋 Résultats pour ApplicationType
+
+✅ Définition dans schéma: Enum ApplicationType correctement défini avec 2 valeurs
+✅ Valeurs complètes: Toutes les 2 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum CompanySize
+ℹ️  Test 2: Vérification utilisation enum CompanySize dans la base
+ℹ️  Test 3: Vérification valeurs enum CompanySize
+
+📋 Résultats pour CompanySize
+
+✅ Définition dans schéma: Enum CompanySize correctement défini avec 5 valeurs
+✅ Valeurs complètes: Toutes les 5 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum NotificationType
+ℹ️  Test 2: Vérification utilisation enum NotificationType dans la base
+ℹ️  Test 3: Vérification valeurs enum NotificationType
+
+📋 Résultats pour NotificationType
+
+✅ Définition dans schéma: Enum NotificationType correctement défini avec 9 valeurs
+✅ Valeurs complètes: Toutes les 9 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum SyncAction
+ℹ️  Test 2: Vérification utilisation enum SyncAction dans la base
+ℹ️  Test 3: Vérification valeurs enum SyncAction
+
+📋 Résultats pour SyncAction
+
+✅ Définition dans schéma: Enum SyncAction correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Frontend Jest (Unitaires) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 3s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (7 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 827ms
+
+> jobbingtrack-frontend@1.0.1 test:unit
+> npx jest unit --passWithNoTests
+
+No tests found, exiting with code 0</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Intégration Système <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 3s</p>
+        <p><strong>Statistiques:</strong> Total: 8 | Réussis: <span style="color: #4caf50;">8</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (26 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 541ms
+🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES
+=====================================
+
+📡 Test API Health:
+✅ Health OK: online - uptime: 146s
+
+📡 Test API v1 Health:
+✅ API v1 Health OK - RSS: 141MB
+
+📊 Test Métriques système (/api/v1/metrics):
+✅ CPU: 26.5% 16 coeurs
+✅ Mémoire: 98.9% (46.4/46.9 GB)
+✅ Conteneurs monitorés: 22
+
+🐳 Test Services Docker (/api/v1/docker/services/all):
+✅ Services Docker: 15/15 en cours
+
+📋 Test Liste des services (/api/v1/services):
+✅ Services détectés: 23
+
+💾 Test Persistance métriques (/api/v1/persistence/stats):
+✅ Persistance OK - données historiques disponibles
+
+🎉 TEST TERMINÉ</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Performance <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 24 | Réussis: <span style="color: #4caf50;">24</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (44 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement des tests de performance...
+
+📊 Génération du rapport de performance...
+
+⚡ Test des performances API (endpoints réels)...
+   Gateway Health: ✅ 18ms 
+   Auth Health: ✅ 4ms 
+   Applications (list): ✅ 5ms (auth requise, OK)
+   Companies (list): ✅ 4ms (auth requise, OK)
+   Contacts (list): ✅ 4ms (auth requise, OK)
+   Interviews (list): ✅ 4ms (auth requise, OK)
+   Calls (list): ✅ 4ms (auth requise, OK)
+   Followups (list): ✅ 4ms (auth requise, OK)
+   Events (list): ✅ 5ms (auth requise, OK)
+   Notifications (list): ✅ 3ms (auth requise, OK)
+   Métriques système: ✅ 3ms 
+   Docker services: ✅ 1899ms 
+🔥 Test de charge...
+📊 Charge: Gateway Health (30 requêtes parallèles)
+   ✅ 30/30 succès - moy: 11ms, max: 13ms
+📊 Charge: Auth Health (20 requêtes parallèles)
+   ✅ 20/20 succès - moy: 11ms, max: 15ms
+📊 Charge: Companies API (15 requêtes parallèles)
+   ✅ 15/15 succès - moy: 17ms, max: 20ms
+📊 Charge globale: 65/65 succès, moy: 13ms
+🧠 Collecte des métriques système (metrics-aggregator)...
+   ✅ CPU: 26.5% (16 coeurs)
+   ✅ Mémoire: 46.4/46.9 GB (98.9%)
+📊 Test traitement de données (stress mémoire)...
+   ✅ Traitement 1000 éléments: 10ms
+   ✅ Traitement 5000 éléments: 48ms
+   ✅ Traitement 10000 éléments: 50ms
+   ✅ Augmentation heap: 29.5 MB
+
+✅ Rapport sauvegardé: tests/reports/performance-report.json
+
+📊 ANALYSE DES PERFORMANCES:
+=====================================
+🧪 Tests: 15/15 réussis
+⏱️ Temps moyen: 163ms
+📊 Requêtes charge: 65/65 (100.0%)
+
+🎯 Score: 100/100
+✅ Performances excellentes</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright CRUD Données (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 18 | Réussis: <span style="color: #4caf50;">18</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (53 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 539ms
+
+Running 18 tests using 1 worker
+
+(node:946099) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:946099) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/specs/admin-data-crud.spec.ts:37:7 › CRUD Données Complet (admin) › créer une entreprise (22ms)
+  ✓   2 [chromium] › e2e/specs/admin-data-crud.spec.ts:48:7 › CRUD Données Complet (admin) › modifier une entreprise (21ms)
+  ✓   3 [chromium] › e2e/specs/admin-data-crud.spec.ts:57:7 › CRUD Données Complet (admin) › lire une entreprise (13ms)
+  ✘   4 [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact (27ms)
+(node:946111) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:946111) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact (retry #1) (36ms)
+  ✓   6 [chromium] › e2e/specs/admin-data-crud.spec.ts:84:7 › CRUD Données Complet (admin) › modifier un contact (19ms)
+  ✓   7 [chromium] › e2e/specs/admin-data-crud.spec.ts:94:7 › CRUD Données Complet (admin) › créer une candidature (3ms)
+  ✓   8 [chromium] › e2e/specs/admin-data-crud.spec.ts:106:7 › CRUD Données Complet (admin) › modifier une candidature (3ms)
+  ✓   9 [chromium] › e2e/specs/admin-data-crud.spec.ts:115:7 › CRUD Données Complet (admin) › lire une candidature avec relations (5ms)
+  ✓  10 [chromium] › e2e/specs/admin-data-crud.spec.ts:125:7 › CRUD Données Complet (admin) › créer un entretien (2ms)
+  ✓  11 [chromium] › e2e/specs/admin-data-crud.spec.ts:141:7 › CRUD Données Complet (admin) › modifier un entretien (3ms)
+  ✓  12 [chromium] › e2e/specs/admin-data-crud.spec.ts:151:7 › CRUD Données Complet (admin) › créer une relance (3ms)
+  ✓  13 [chromium] › e2e/specs/admin-data-crud.spec.ts:168:7 › CRUD Données Complet (admin) › créer un appel (3ms)
+  ✓  14 [chromium] › e2e/specs/admin-data-crud.spec.ts:186:7 › CRUD Données Complet (admin) › créer un événement (21ms)
+  ✓  15 [chromium] › e2e/specs/admin-data-crud.spec.ts:203:7 › CRUD Données Complet (admin) › archiver une candidature (4ms)
+  ✓  16 [chromium] › e2e/specs/admin-data-crud.spec.ts:211:7 › CRUD Données Complet (admin) › candidature archivée absente de la liste normale (3ms)
+  ✓  17 [chromium] › e2e/specs/admin-data-crud.spec.ts:221:7 › CRUD Données Complet (admin) › désarchiver la candidature (3ms)
+  ✓  18 [chromium] › e2e/specs/admin-data-crud.spec.ts:230:7 › CRUD Données Complet (admin) › supprimer (soft) la candidature (3ms)
+  ✓  19 [chromium] › e2e/specs/admin-data-crud.spec.ts:238:7 › CRUD Données Complet (admin) › restaurer la candidature depuis la corbeille (3ms)
+
+
+  1) [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 500
+    Received array: [200, 201]
+
+      76 |       },
+      77 |     });
+    > 78 |     expect([200, 201]).toContain(res.status());
+         |                        ^
+      79 |     const body = await res.json();
+      80 |     contactId = body.contact?.id || '';
+      81 |     expect(contactId).toBeTruthy();
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-data-crud.spec.ts:78:24
+
+  1 flaky
+    [chromium] › e2e/specs/admin-data-crud.spec.ts:66:7 › CRUD Données Complet (admin) › créer un contact 
+  17 passed (2.0s)</pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright E2E Frontend <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 10s</p>
+        <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (350 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 993ms
+🚀 Configuration globale des tests e2e...
+✅ Configuration globale terminée
+SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
+
+   at archive-interactions.spec.ts:123
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                     ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
+🧹 Nettoyage global après les tests e2e...
+✅ Nettoyage global terminé
+
+{
+  "config": {
+    "configFile": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/playwright.standalone.config.ts",
+    "rootDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+    "forbidOnly": true,
+    "fullyParallel": true,
+    "globalSetup": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-setup.ts",
+    "globalTeardown": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "no-auth",
+        "name": "no-auth",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/login\\.spec\\.ts/",
+          "/accessibility\\.spec\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/login\\.spec\\.ts/",
+          "/accessibility\\.spec\\.ts/",
+          "/complete-user-journey\\.spec\\.ts/",
+          "/mobile-app\\.spec\\.ts/",
+          "/user-experience\\.spec\\.ts/",
+          "/impersonation-tests\\.spec\\.ts/",
+          "/mobile\\//",
+          "/api-only-tests\\.spec\\.ts/",
+          "/api-critiques\\.spec\\.ts/",
+          "/admin-features\\.spec\\.ts/",
+          "/application-workflow\\.spec\\.ts/",
+          "/advanced-security\\.spec\\.ts/",
+          "/security-tests\\.spec\\.ts/",
+          "/load-tests\\.spec\\.ts/",
+          "/data-management\\.spec\\.ts/",
+          "/export-import-advanced\\.spec\\.ts/",
+          "/integration-tests\\.spec\\.ts/",
+          "/performance-tests\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 1,
+    "webServer": {
+      "command": "echo",
+      "url": "http://localhost:5003",
+      "reuseExistingServer": true,
+      "timeout": 15000
+    }
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+      "stack": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+      "location": {
+        "file": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts",
+        "line": 123,
+        "column": 21
+      },
+      "snippet": "   at archive-interactions.spec.ts:123
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                     ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-02-27T14:11:23.968Z",
+    "duration": 1544.8159999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
+🚀 Configuration globale des tests e2e...
+✅ Configuration globale terminée
+SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
+
+   at archive-interactions.spec.ts:123
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                     ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
+🧹 Nettoyage global après les tests e2e...
+✅ Nettoyage global terminé
+
+{
+  "config": {
+    "configFile": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/playwright.standalone.config.ts",
+    "rootDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+    "forbidOnly": true,
+    "fullyParallel": true,
+    "globalSetup": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-setup.ts",
+    "globalTeardown": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "no-auth",
+        "name": "no-auth",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/login\\.spec\\.ts/",
+          "/accessibility\\.spec\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/login\\.spec\\.ts/",
+          "/accessibility\\.spec\\.ts/",
+          "/complete-user-journey\\.spec\\.ts/",
+          "/mobile-app\\.spec\\.ts/",
+          "/user-experience\\.spec\\.ts/",
+          "/impersonation-tests\\.spec\\.ts/",
+          "/mobile\\//",
+          "/api-only-tests\\.spec\\.ts/",
+          "/api-critiques\\.spec\\.ts/",
+          "/admin-features\\.spec\\.ts/",
+          "/application-workflow\\.spec\\.ts/",
+          "/advanced-security\\.spec\\.ts/",
+          "/security-tests\\.spec\\.ts/",
+          "/load-tests\\.spec\\.ts/",
+          "/data-management\\.spec\\.ts/",
+          "/export-import-advanced\\.spec\\.ts/",
+          "/integration-tests\\.spec\\.ts/",
+          "/performance-tests\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 1,
+    "webServer": {
+      "command": "echo",
+      "url": "http://localhost:5003",
+      "reuseExistingServer": true,
+      "timeout": 15000
+    }
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+      "stack": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                      ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+      "location": {
+        "file": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts",
+        "line": 123,
+        "column": 21
+      },
+      "snippet": "   at archive-interactions.spec.ts:123
+
+  121 |   });
+  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');
+> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);
+      |                     ^
+  124 |     expect(archived).toBe(true);
+  125 |
+  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-02-27T14:11:26.353Z",
+    "duration": 1070.358,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}</pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright Email Workflows <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 10s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (88 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 558ms
+
+Running 4 tests using 1 worker
+
+(node:944822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:944822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/specs/email-workflows.spec.ts:35:9 › Workflows Email Complets › Inscription avec vérification email › inscription crée un compte et envoie un email de vérification (3.3s)
+  ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter (248ms)
+  ✘  3 [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (15ms)
+(node:945737) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:945737) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (retry #1) (24ms)
+(node:945749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:945749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (retry #2) (18ms)
+(node:945807) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:945807) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 [chromium] › e2e/specs/email-workflows.spec.ts:138:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (1.4s)
+
+
+  1) [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 500
+    Received array: [200, 201]
+
+      101 |       });
+      102 |
+    > 103 |       expect([200, 201]).toContain(forgotRes.status());
+          |                          ^
+      104 |
+      105 |       await new Promise((r) => setTimeout(r, 3000));
+      106 |
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:103:26
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 500
+    Received array: [200, 201]
+
+      101 |       });
+      102 |
+    > 103 |       expect([200, 201]).toContain(forgotRes.status());
+          |                          ^
+      104 |
+      105 |       await new Promise((r) => setTimeout(r, 3000));
+      106 |
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:103:26
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/email-workflows-Workflows--33ffd-un-email-avec-lien-de-reset-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/email-workflows-Workflows--33ffd-un-email-avec-lien-de-reset-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 500
+    Received array: [200, 201]
+
+      101 |       });
+      102 |
+    > 103 |       expect([200, 201]).toContain(forgotRes.status());
+          |                          ^
+      104 |
+      105 |       await new Promise((r) => setTimeout(r, 3000));
+      106 |
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:103:26
+
+  1 failed
+    [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset 
+  3 passed (8.2s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright Emails MailHog <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 21s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (15 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 808ms
+
+Running 3 tests using 1 worker
+
+(node:943343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:943343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API (3.3s)
+  ✓  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:90:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail (1.6s)
+Email de reset recu mais sans lien cliquable (template sans URL de reset)
+  ✓  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:111:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page (11.2s)
+
+  3 passed (17.2s)</pre>
+        </details>
+    </div>
+    <div class="test-result skipped">
+        <h2>Playwright Mobile <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-skipped">skipped</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Aucune sortie disponible pour ce test.</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright Sécurité Backoffice (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 4s</p>
+        <p><strong>Statistiques:</strong> Total: 14 | Réussis: <span style="color: #4caf50;">14</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (25 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 556ms
+
+Running 14 tests using 1 worker
+
+(node:946547) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:946547) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/specs/admin-security-complete.spec.ts:34:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › lister les règles firewall (13ms)
+  ✓   2 [chromium] › e2e/specs/admin-security-complete.spec.ts:43:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › créer une règle firewall (27ms)
+  ✓   3 [chromium] › e2e/specs/admin-security-complete.spec.ts:60:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › modifier une règle firewall (33ms)
+  ✓   4 [chromium] › e2e/specs/admin-security-complete.spec.ts:69:9 › Sécurité Backoffice Complet (admin) › Firewall — CRUD règles › supprimer une règle firewall (36ms)
+  ✓   5 [chromium] › e2e/specs/admin-security-complete.spec.ts:81:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › lister les IPs bloquées (13ms)
+  ✓   6 [chromium] › e2e/specs/admin-security-complete.spec.ts:88:9 › Sécurité Backoffice Complet (admin) › IPs bloquées › bloquer puis débloquer une IP (47ms)
+  ✓   7 [chromium] › e2e/specs/admin-security-complete.spec.ts:104:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › lister les menaces (8ms)
+  ✓   8 [chromium] › e2e/specs/admin-security-complete.spec.ts:111:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › créer une menace de test (40ms)
+  ✓   9 [chromium] › e2e/specs/admin-security-complete.spec.ts:124:9 › Sécurité Backoffice Complet (admin) › Menaces réseau › statistiques réseau (40ms)
+  ✓  10 [chromium] › e2e/specs/admin-security-complete.spec.ts:133:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › configuration WAF (7ms)
+  ✓  11 [chromium] › e2e/specs/admin-security-complete.spec.ts:140:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › statistiques WAF (6ms)
+  ✓  12 [chromium] › e2e/specs/admin-security-complete.spec.ts:147:9 › Sécurité Backoffice Complet (admin) › WAF (Web Application Firewall) › activer/désactiver WAF (19ms)
+  ✓  13 [chromium] › e2e/specs/admin-security-complete.spec.ts:157:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les logs de sécurité (8ms)
+  ✓  14 [chromium] › e2e/specs/admin-security-complete.spec.ts:164:9 › Sécurité Backoffice Complet (admin) › Logs de sécurité › récupérer les alertes (9ms)
+
+  14 passed (1.2s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Playwright CRUD Utilisateurs (admin) <span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 3s</p>
+        <p><strong>Statistiques:</strong> Total: 6 | Réussis: <span style="color: #4caf50;">6</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (17 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 557ms
+
+Running 6 tests using 1 worker
+
+(node:946304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:946304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/specs/admin-users-crud.spec.ts:31:7 › Gestion Utilisateurs (admin CRUD) › lister les utilisateurs (16ms)
+  ✓  2 [chromium] › e2e/specs/admin-users-crud.spec.ts:42:7 › Gestion Utilisateurs (admin CRUD) › créer un utilisateur (296ms)
+  ✓  3 [chromium] › e2e/specs/admin-users-crud.spec.ts:57:7 › Gestion Utilisateurs (admin CRUD) › vérifier que le nouvel utilisateur peut se connecter (297ms)
+  ✓  4 [chromium] › e2e/specs/admin-users-crud.spec.ts:70:7 › Gestion Utilisateurs (admin CRUD) › modifier le rôle d'un utilisateur (si endpoint existe) (64ms)
+  ✓  5 [chromium] › e2e/specs/admin-users-crud.spec.ts:79:7 › Gestion Utilisateurs (admin CRUD) › désactiver un utilisateur (si endpoint existe) (17ms)
+  ✓  6 [chromium] › e2e/specs/admin-users-crud.spec.ts:88:7 › Gestion Utilisateurs (admin CRUD) › profil admin accessible (14ms)
+
+  6 passed (1.5s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Relations BDD <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (65 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Tests des Relations Many-to-Many
+
+ℹ️  Test 1: Vérification existence table ContactCompany
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Company
+
+✅ Table existe: Table ContactCompany existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table ContactApplication
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Application
+
+✅ Table existe: Table ContactApplication existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table FollowUpContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour FollowUp ↔ Contact
+
+✅ Table existe: Table FollowUpContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table InterviewContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Interview ↔ Contact
+
+✅ Table existe: Table InterviewContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité Firewall & WAF (API) <span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 19 | Réussis: <span style="color: #4caf50;">18</span> | Échoués: <span style="color: #f44336;">1</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (61 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🔥 Test du Firewall et WAF
+==========================
+
+📋 Test 1: Récupération des règles firewall
+  Test: GET /api/v1/security/firewall/rules... ✅ PASS (HTTP 200)
+
+📋 Test 2: Création d'une règle firewall de test
+✅ PASS (HTTP 201)
+
+  ✅ Règle créée avec ID: cmm4z1hoa002yb9cxd0goghnw
+
+📋 Test 3: Mise à jour de la règle firewall
+  Test: PUT /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 4: Suppression de la règle firewall
+  Test: DELETE /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 5: Récupération des IPs bloquées
+  Test: GET /api/v1/security/firewall/blocked-ips... ✅ PASS (HTTP 200)
+
+📋 Test 6: Blocage d'une IP de test
+  Test: POST /api/v1/security/firewall/block-ip... ✅ PASS (HTTP 200)
+
+📋 Test 7: Déblocage de l'IP de test
+  Test: POST /api/v1/security/firewall/unblock-ip... ✅ PASS (HTTP 200)
+
+📋 Test 8: Récupération des menaces réseau
+  Test: GET /api/v1/security/firewall/threats... ✅ PASS (HTTP 200)
+
+📋 Test 9: Création d'une menace de test
+  Test: POST /api/v1/security/firewall/threats... ✅ PASS (HTTP 201)
+
+📋 Test 10: Récupération des statistiques réseau
+  Test: GET /api/v1/security/firewall/network/stats... ✅ PASS (HTTP 200)
+
+📋 Test 11: Configuration WAF
+  Test: GET /api/v1/security/waf/config... ✅ PASS (HTTP 200)
+
+📋 Test 12: Statistiques WAF
+  Test: GET /api/v1/security/waf/stats... ✅ PASS (HTTP 200)
+
+📋 Test 13: Activation/désactivation WAF
+  Test: PUT /api/v1/security/waf/toggle... ✅ PASS (HTTP 200)
+
+📋 Test 14: Activation/désactivation règle WAF
+  Test: PUT /api/v1/security/waf/rules/:ruleName... ✅ PASS (HTTP 200)
+
+📋 Test 15: Vérification des logs de sécurité
+  Test: GET /api/v1/security/logs... ✅ PASS (HTTP 200)
+
+==========================
+📊 RÉSUMÉ DES TESTS
+==========================
+✅ Tests réussis: 15
+   Tests échoués: 0
+
+✅ Tous les tests sont passés !
+
+💡 Note: Si certains tests ont été ignorés (SKIP), c'est normal si:
+   - La table FirewallRule n'existe pas (exécutez: make db-push-all)
+   - iptables n'est pas disponible dans le conteneur (normal en développement)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 16 | Réussis: <span style="color: #4caf50;">16</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (40 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement de tous les tests de sécurité...
+
+🛡️ Test XSS (Cross-Site Scripting)...
+💉 Test injection SQL...
+🔄 Test CSRF (Cross-Site Request Forgery)...
+🔐 Test contournement authentification...
+⏱️ Test rate limiting...
+📋 Test des en-têtes de sécurité...
+🔍 Test exposition des données...
+✅ Test validation des entrées...
+📋 En-têtes de sécurité:
+✅ x-content-type-options: nosniff
+⚠️ x-frame-options: Manquant ou incorrect
+⚠️ x-xss-protection: Manquant ou incorrect
+⚠️ strict-transport-security: Manquant ou incorrect
+✅ content-security-policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+✅ Protection CSRF active
+✅ Validation OK: Données vides
+✅ Auth protégée: /api/v1/auth/profile
+✅ Validation OK: Données null
+✅ Auth protégée: /api/v1/applications
+✅ Validation OK: Données undefined
+✅ Auth protégée: /api/v1/companies
+✅ Validation OK: Objet profondément nested
+✅ Auth protégée: /api/v1/followups
+✅ Validation OK: Tableau très long
+✅ Validation OK: String très long
+⚠️ Aucun rate limiting détecté
+
+📊 RAPPORT DE SÉCURITÉ:
+🚨 CRITIQUES: 0
+🔴 HAUTES: 0
+🟡 MOYENNES: 1
+🟢 BASSES: 0
+✅ SÉCURISÉES: 64
+
+✅ Niveau de sécurité acceptable.
+Surveillance continue recommandée.
+
+📋 Rapport sauvegardé: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/results/security-report.json</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>User Journey (API) <span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span></h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 16 | Réussis: <span style="color: #4caf50;">16</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (76 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Vérification User Journey - JobbingTrack          ║
+╚════════════════════════════════════════════════════════╝
+
+✨ Ce script utilise un token permanent qui n'expire jamais !
+
+═══ 1. Health Checks ═══
+[1] Test: API Health
+   ✓ PASS - Status: 200
+
+═══ 2. Authentification ═══
+[2] Test: Register
+   ✓ PASS - Status: 201
+   Token obtenu: eyJhbGciOiJIUzI1NiIs...
+[3] Test: Login utilisateur test
+   ✓ PASS - Status: 200
+   ✓ Token utilisateur test obtenu (rôle USER): eyJhbGciOiJIUzI1NiIs...
+[4] Test: Login admin
+   ✓ PASS - Status: 200
+   ✓ Token admin obtenu (rôle SUPER_ADMIN): eyJhbGciOiJIUzI1NiIs...
+
+═══ Génération Token Permanent ═══
+Génération d'un token de test permanent (100 ans)...
+   ⚠ Génération du token permanent échouée (status 403)
+   ⚠ Utilisation du token normal (expire dans 7 jours)
+[5] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ 3. Companies ═══
+[6] Test: List Companies
+   ✓ PASS - Status: 200
+[7] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ 4. Applications ═══
+[8] Test: List Applications
+   ✓ PASS - Status: 200
+[9] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ 5. Contacts ═══
+[10] Test: List Contacts
+   ✓ PASS - Status: 200
+[11] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ 6. Interviews ═══
+[12] Test: List Interviews
+   ✓ PASS - Status: 200
+
+═══ 7. Events ═══
+[13] Test: List Events
+   ✓ PASS - Status: 200
+
+═══ 8. Followups ═══
+[14] Test: List Followups
+   ✓ PASS - Status: 200
+
+═══ 9. Calls ═══
+[15] Test: List Calls
+   ✓ PASS - Status: 200
+
+═══ 10. Dashboard & Statistics ═══
+[16] Test: Get Statistics
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 16
+Tests réussis     : 16
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+Le système est opérationnel à 100%</pre>
+        </details>
+    </div>
+    </div>
+</body>
+</html>

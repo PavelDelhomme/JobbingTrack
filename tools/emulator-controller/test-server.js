@@ -33,6 +33,37 @@ function fetch(path) {
   });
 }
 
+function post(path, body) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(path, BASE);
+    const data = JSON.stringify(body);
+    const req = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 80,
+        path: url.pathname,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+      },
+      (res) => {
+        let buf = '';
+        res.on('data', (chunk) => { buf += chunk; });
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(buf) });
+          } catch (e) {
+            resolve({ status: res.statusCode, body: buf });
+          }
+        });
+      }
+    );
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
+    req.write(data);
+    req.end();
+  });
+}
+
 async function run() {
   console.log('📱 Test du contrôleur d\'émulateur:', BASE);
   let failed = 0;
@@ -77,6 +108,29 @@ async function run() {
       }
     } catch (e) {
       console.error(`❌ GET ${r.path}:`, e.message);
+      failed++;
+    }
+  }
+
+  // Routes POST indispensables pour les parcours (pas 404)
+  try {
+    const restart = await post('/force-restart-app', { deviceId: 'device-pour-test' });
+    if (restart.status === 404) {
+      console.error('❌ POST /force-restart-app: 404 (route absente). Redémarrez le contrôleur: make restart-emulator');
+      failed++;
+    } else if (restart.status === 200 && restart.body.success === false) {
+      console.log('✅ POST /force-restart-app: route présente (réponse attendue sans appareil réel)');
+    } else if (restart.status === 400) {
+      console.log('✅ POST /force-restart-app: route présente (400 = body invalide)');
+    } else {
+      console.log('✅ POST /force-restart-app:', restart.status);
+    }
+  } catch (e) {
+    if (e.message === 'Timeout') {
+      console.error('❌ POST /force-restart-app: timeout');
+      failed++;
+    } else {
+      console.error('❌ POST /force-restart-app:', e.message);
       failed++;
     }
   }

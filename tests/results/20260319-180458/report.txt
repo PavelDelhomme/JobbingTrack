@@ -1,0 +1,93 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  19/03/2026 18:21:19
+================================================================
+
+RESUME
+------
+  Categories  : 32
+  Total tests : 434
+  Reussis     : 425
+  Echoues     : 9
+  Ignores     : 1
+  Taux        : 97.9%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [OK]   [U] Tests API Complets (Jest) (8s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (11s)
+  [OK]   [A] Playwright CRUD Données (admin) (5s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (4s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (4s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Playwright E2E Frontend ---
+        Error: page.waitForURL: Test timeout of 30000ms exceeded.
+          24 |   await expect(page.locator('body')).toBeVisible();
+        test-results/auth.setup.ts-authenticate-as-admin-setup/test-failed-1.png
+        Error Context: test-results/auth.setup.ts-authenticate-as-admin-setup/error-context.md
+        Error: page.waitForURL: Test timeout of 30000ms exceeded.
+          24 |   await expect(page.locator('body')).toBeVisible();
+        test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/test-failed-1.png
+        Error Context: test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/error-context.md
+        Error: page.goto: Test timeout of 30000ms exceeded.
+          27 |     await expect(page.locator('input[type="email"]')).toBeVisible();
+        test-results/accessibility-♿-Tests-d-ac-1004c-ire-de-connexion-accessible-no-auth/test-failed-1.png
+        Error Context: test-results/accessibility-♿-Tests-d-ac-1004c-ire-de-connexion-accessible-no-auth/error-context.md
+      1 failed
+        "maxFailures": 0,
+                  "expectedStatus": "passed",
+                      "error": {
+                      "errors": [
+                          "message": "Error: page.waitForURL: Test timeout of 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/backoffice**\" until \"load\"\n============================================================\n\n  21 |   await page.locator('button[type=\"submit\"]').click();\n  22 |\n> 23 |   await page.waitForURL('**/backoffice**', { timeout: 30000 });\n     |              ^\n  24 |   await expect(page.locator('body')).toBeVisible();\n  25 |\n  26 |   await page.context().storageState({ path: AUTH_FILE });\n    at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts:23:14"
+                          "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup/test-failed-1.png"
+                          "name": "error-context",
+                          "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup/error-context.md"
+                      "error": {
+                      "errors": [
+                          "message": "Error: page.waitForURL: Test timeout of 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/backoffice**\" until \"load\"\n============================================================\n\n  21 |   await page.locator('button[type=\"submit\"]').click();\n  22 |\n> 23 |   await page.waitForURL('**/backoffice**', { timeout: 30000 });\n     |              ^\n  24 |   await expect(page.locator('body')).toBeVisible();\n  25 |\n  26 |   await page.context().storageState({ path: AUTH_FILE });\n    at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/auth.setup.ts:23:14"
+                          "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/test-failed-1.png"
+                          "name": "error-context",
+                          "path": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results/auth.setup.ts-authenticate-as-admin-setup-retry1/error-context.md"
+                  "status": "unexpected"
+                      "expectedStatus": "passed",
+                          "errors": [],
+
+================================================================
+  Rapports : tests/results/20260319-180458/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

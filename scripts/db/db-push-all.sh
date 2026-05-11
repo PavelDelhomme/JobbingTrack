@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Synchronise les schémas Prisma de tous les services (db push).
 # Utilisé par: make db-push-all
+# DB_PUSH_VERBOSE=1 : laisse passer tous les messages psql (NOTICE « already exists », etc.).
 # À exécuter depuis la racine du projet (ou avec ROOT_DIR défini).
 #
 # Ce que fait make db-push-all (tout en une commande, pas d'étape de vérification séparée) :
@@ -15,6 +16,15 @@
 set -e
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT_DIR"
+
+# Réduit le bruit « NOTICE: relation … already exists » (idempotent). DB_PUSH_VERBOSE=1 pour tout voir.
+psql_in_postgres() {
+  if [ "${DB_PUSH_VERBOSE:-0}" = "1" ]; then
+    docker exec -i jobbingtrack-postgres psql "$@"
+  else
+    docker exec -e "PGOPTIONS=-c client_min_messages=WARNING" -i jobbingtrack-postgres psql "$@"
+  fi
+}
 
 # Liste des services avec schéma Prisma PARTAGÉ (même schéma complet ou compatible).
 # Ne pas inclure security-service, deployment-service ni metrics-aggregator : leur schéma
@@ -97,6 +107,17 @@ else
 fi
 echo ""
 
+# Alignement colonne Company.isTestData (schéma auth maître vs clients company-service ; idempotent)
+if [ -f "${ROOT_DIR}/scripts/db/fix-company-isTestData.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Company.isTestData (schéma métier / auth maître)"
+  if psql_in_postgres -U "${POSTGRES_USER:-jobbingtrack}" -d "${POSTGRES_DB:-jobbingtrack}" -f - < "${ROOT_DIR}/scripts/db/fix-company-isTestData.sql"; then
+    echo "  ✅ Company.isTestData présente (ou déjà OK)"
+  else
+    echo "  ⚠️  fix-company-isTestData ignoré (vérifiez Postgres)"
+  fi
+  echo ""
+fi
+
 # Les autres services ne font PAS de push — ils utilisent leur schema local
 # uniquement pour générer le client Prisma (fait au docker build).
 for service in "${SERVICES[@]}"; do
@@ -126,12 +147,19 @@ if [ -f "${ROOT_DIR}/scripts/db/fix-application-isarchived.sql" ]; then
   echo ""
 fi
 
+# Fix colonne Application.thankYouEmailSentAt (moteur de statut / email remerciement)
+if [ -f "${ROOT_DIR}/scripts/db/fix-application-thankyou-sent.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Application.thankYouEmailSentAt (si absente)"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/fix-application-thankyou-sent.sql" 2>&1 | grep -E "NOTICE|ERROR" || true
+  echo ""
+fi
+
 # Partie 2/3 : system_metrics, container_metrics, service_availability_history
 if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
   echo "━━━ Partie 2/3 – Tables monitoring (init-system-metrics.sql) ━━━"
   echo "  system_metrics, container_metrics, service_availability_history"
-  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" && echo "  ✅ Tables system_metrics / service_availability_history OK" || echo "  ⚠️  init-system-metrics.sql a échoué (on continue ; ensure-metrics-aggregator créera les tables si besoin)"
+  psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" && echo "  ✅ Tables system_metrics / service_availability_history OK" || echo "  ⚠️  init-system-metrics.sql a échoué (on continue ; ensure-metrics-aggregator créera les tables si besoin)"
   echo ""
 fi
 
@@ -142,7 +170,7 @@ if [ -f "${ROOT_DIR}/scripts/db/init-key-tables.sql" ]; then
   echo "  security_logs, network_*, EmailLog, EmailTemplate, security_alerts, etc."
   PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
   PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
-  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql"; then
+  if psql_in_postgres -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql"; then
     echo "  ✅ Tables security_logs / EmailLog / EmailTemplate / network_* OK"
   else
     echo "  ❌ Erreur init-key-tables (vérifiez les logs ci-dessus)"
@@ -156,7 +184,7 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
   echo "[DB-PUSH-ALL] Seed templates email (EmailTemplate)"
   PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
   PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
-  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/seed-email-templates.sql"; then
+  if psql_in_postgres -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/seed-email-templates.sql"; then
     echo "  ✅ Templates email insérés (ou déjà présents)"
   else
     echo "  ⚠️  Seed templates email ignoré (tables peut-être absentes : relancer init-key-tables)"
@@ -167,13 +195,44 @@ fi
 # Garantir les tables metrics-aggregator (évite « unhealthy » si init-system-metrics / init-key-tables ont échoué partiellement)
 if [ -f "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Ensure – Tables metrics-aggregator (system_metrics_snapshots, container_metrics_snapshots, service_availability_history)"
-  if docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql"; then
+  if psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql"; then
     echo "  ✅ Tables metrics-aggregator OK"
   else
     echo "  ⚠️  ensure-metrics-aggregator-tables a échoué (vérifiez Postgres)"
   fi
   echo ""
 fi
+
+# Vérification stricte des tables critiques (évite les faux "db-push-all OK")
+echo "[DB-PUSH-ALL] Vérification stricte tables critiques"
+MISSING_TABLES="$(
+docker exec -i jobbingtrack-postgres psql -U "${POSTGRES_USER:-jobbingtrack}" -d "${POSTGRES_DB:-jobbingtrack}" -t -A <<'SQL'
+WITH required(name) AS (
+  VALUES
+    ('security_logs'),
+    ('firewall_rules'),
+    ('network_threats'),
+    ('network_connections'),
+    ('security_alerts'),
+    ('security_metrics'),
+    ('system_metrics_snapshots'),
+    ('container_metrics_snapshots'),
+    ('service_availability_history')
+)
+SELECT r.name
+FROM required r
+WHERE to_regclass('public.' || r.name) IS NULL;
+SQL
+)"
+if [ -n "${MISSING_TABLES}" ]; then
+  echo "  ❌ Tables manquantes détectées:"
+  printf "%s\n" "${MISSING_TABLES}" | sed 's/^/     - /'
+  echo "  ❌ db-push-all incomplet (corrigez les scripts SQL ou permissions DB)"
+  exit 1
+else
+  echo "  ✅ Tables critiques présentes (security + firewall + metrics)"
+fi
+echo ""
 
 echo "[DB-PUSH-ALL] Fin — $(date '+%Y-%m-%dT%H:%M:%S%z')"
 echo "✅ db-push-all terminé"

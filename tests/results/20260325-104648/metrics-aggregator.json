@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Metrics Aggregator Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5004/health || echo 'Service non accessible'",
+  "timestamp": "2026-03-25T11:03:45+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"online\",\"service\":\"jobbingtrack-metrics-aggregator\",\"version\":\"1.0.0\",\"timestamp\":\"2026-03-25T10:03:45.077Z\",\"responseTime\":0,\"uptime\":7271.865459233,\"memoryUsage\":{\"rss\":198983680,\"heapTotal\":70762496,\"heapUsed\":38771464,\"external\":23327267,\"arrayBuffers\":3255637}}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

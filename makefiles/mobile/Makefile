@@ -9,42 +9,66 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop help-emulator test-emulator-controller
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller
 
-# Démarrer le contrôleur d'émulateur (foreground - garder le terminal ouvert)
-emulator-controller: ## Démarrer le contrôleur d'émulateur Android (port 5055). Démarre aussi automatiquement avec make up-full ; utilisez cette cible pour le lancer manuellement ou en 2e terminal
-	@echo "📱 Contrôleur d'émulateur - JobbingTrack"
-	@echo "   Connexion backoffice : http://localhost:5055 (ou host.docker.internal:5055 si backoffice en Docker)"
-	@echo "   Page : Backoffice → Émulateur mobile"
+# Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
+emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
+	@echo "📱 Contrôleur d'émulateur - JobbingTrack (lanceur + contrôleur)"
+	@echo "   Contrôleur : http://localhost:5055  |  Lanceur (start/stop) : http://localhost:5056"
+	@echo "   Page : Backoffice → Émulateur mobile (boutons Démarrer / Arrêter le contrôleur)"
 	@echo ""
-	@if [ ! -f "$(EMULATOR_CONTROLLER_DIR)/server.js" ]; then \
-		echo "❌ Fichier introuvable : $(EMULATOR_CONTROLLER_DIR)/server.js"; exit 1; \
+	@if [ ! -f "$(EMULATOR_CONTROLLER_DIR)/launcher.js" ]; then \
+		echo "❌ Fichier introuvable : $(EMULATOR_CONTROLLER_DIR)/launcher.js"; exit 1; \
 	fi
 	@$(MAKE) -s emulator-controller-stop 2>/dev/null || true
 	@sleep 1
-	@echo "   Démarrage sur le port 5055 (v2: /flutter-devices, /build-apk avec gradle cache)..."
-	@echo "   Si 404 ou 500 dans le backoffice, c'est qu'une ancienne instance tourne encore : make emulator-controller-stop puis relancer."
-	@cd "$(EMULATOR_CONTROLLER_DIR)" && node server.js
+	@echo "   Lanceur sur 5056, contrôleur sur 5055. Depuis l'interface : Démarrer / Arrêter le contrôleur."
+	@cd "$(EMULATOR_CONTROLLER_DIR)" && node launcher.js
 
-# Démarrer le contrôleur en arrière-plan (nohup)
-emulator-controller-bg: ## Démarrer le contrôleur d'émulateur en arrière-plan (port 5055)
-	@echo "📱 Démarrage du contrôleur d'émulateur en arrière-plan..."
-	@cd "$(EMULATOR_CONTROLLER_DIR)" && nohup node server.js > /tmp/emulator-controller.log 2>&1 &
-	@echo "   PID: $$(pgrep -f 'node server.js' | head -1)"
+# Démarrer le lanceur en arrière-plan (lanceur 5056 + contrôleur 5055)
+emulator-controller-bg: ## Démarrer le lanceur + contrôleur en arrière-plan
+	@echo "📱 Démarrage du lanceur + contrôleur d'émulateur en arrière-plan..."
+	@cd "$(EMULATOR_CONTROLLER_DIR)" && nohup node launcher.js > /tmp/emulator-controller.log 2>&1 &
+	@echo "   Lanceur: 5056  |  Contrôleur: 5055"
 	@echo "   Logs: tail -f /tmp/emulator-controller.log"
 	@echo "   Arrêt: make emulator-controller-stop"
 
-# Arrêter le contrôleur (libère le port 5055 en tuant tout processus qui l'utilise)
-emulator-controller-stop: ## Arrêter le contrôleur d'émulateur (libère le port 5055)
-	@if command -v lsof >/dev/null 2>&1; then \
-		for p in $$(lsof -ti :5055 2>/dev/null); do kill -9 $$p 2>/dev/null || true; done; \
-		if lsof -ti :5055 >/dev/null 2>&1; then echo "⚠️  Port 5055 encore utilisé."; else echo "✅ Port 5055 libéré."; fi; \
-		sleep 2; \
-	elif command -v fuser >/dev/null 2>&1; then \
-		fuser -k 5055/tcp 2>/dev/null; sleep 2; echo "✅ Port 5055 libéré."; \
+# Arrêter le lanceur (5056) et le contrôleur (5055)
+emulator-controller-stop: ## Arrêter le lanceur et le contrôleur (libère 5055 et 5056)
+	@for port in 5056 5055; do \
+		if command -v lsof >/dev/null 2>&1; then \
+			pids=$$(lsof -i :$$port -sTCP:LISTEN -t 2>/dev/null); \
+			if [ -z "$$pids" ]; then pids=$$(lsof -i :$$port 2>/dev/null | grep LISTEN | awk '{print $$2}' | sort -u); fi; \
+			for p in $$pids; do kill -9 $$p 2>/dev/null || true; done; \
+		fi; \
+	done; \
+	sleep 1; \
+	if command -v lsof >/dev/null 2>&1; then \
+		still=$$(lsof -i :5055 -sTCP:LISTEN -t 2>/dev/null; lsof -i :5056 -sTCP:LISTEN -t 2>/dev/null); \
+		if [ -z "$$still" ]; then echo "✅ Ports 5055 et 5056 libérés."; else echo "⚠️  Vérifiez : lsof -i :5055 -i :5056"; fi; \
 	else \
-		pkill -f "node server.js" 2>/dev/null; sleep 2; echo "ℹ️  Si EADDRINUSE persiste : lsof -i :5055 puis kill -9 <PID>"; \
+		pkill -f "emulator-controller.*launcher.js\|emulator-controller.*server.js" 2>/dev/null; echo "ℹ️  Processus contrôleur/lanceur arrêtés."; \
 	fi
+
+# Arrêter l'ancien processus puis relancer le contrôleur en arrière-plan (une seule commande)
+restart-emulator: ## Arrêter le contrôleur sur 5055 puis le relancer (pour prendre en compte les changements de server.js)
+	@echo "🔄 Redémarrage du contrôleur d'émulateur (port 5055)..."
+	@$(MAKE) -s emulator-controller-stop
+	@sleep 2
+	@$(MAKE) -s emulator-controller-bg
+	@echo "✅ Contrôleur redémarré. Logs: tail -f /tmp/emulator-controller.log"
+
+# Vérifier que tout est prêt pour les parcours mobile-emulator (contrôleur + routes force-restart, ui-dump)
+verify-mobile-emulator: ## Vérifier contrôleur (health, avds, devices, force-restart-app) — à lancer avant les parcours
+	@echo "📋 Vérification des prérequis pour Backoffice → Émulateur mobile..."
+	@$(MAKE) -s test-emulator-controller
+	@echo ""
+	@echo "💡 Si tout est vert : ouvrez http://localhost:5003/backoffice/mobile-emulator"
+	@echo "   Connectez-vous en admin, sélectionnez un appareil ADB, puis lancez un parcours."
+
+# Vérifier que tous les scénarios mobiles référencent des étapes implémentées (sans appareil)
+verify-mobile-scenarios: ## Vérifier cohérence parcours mobiles (adb-scenarios vs adb-steps)
+	@node "$(ROOT_DIR)/tools/emulator-controller/validate-mobile-scenarios.js"
 
 # Tester le contrôleur (doit être démarré sur le port 5055)
 test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, /avds, /devices, /flutter-devices). Lancez make emulator-controller avant.

@@ -8,6 +8,8 @@ const preferencesRoutes = require('./routes/preferences.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
+const logger = require('./utils/logger');
+const { requestContextMiddleware } = require('./utils/requestContext');
 
 const PORT = process.env.PORT || 3007;
 
@@ -27,15 +29,33 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestContextMiddleware);
 
 // Logs des requêtes
 app.use((req, res, next) => {
-  console.log(`📡 REQUEST: ${req.method} ${req.url} de ${req.ip}`);
+  logger.info(`REQUEST ${req.method} ${req.url}`, {
+    requestId: req.requestId,
+    correlationId: req.correlationId,
+    endpoint: req.originalUrl,
+    method: req.method,
+    clientIp: req.ip,
+  });
   next();
 });
 
 // Health check
 app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'dashboard-service',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    port: PORT
+  });
+});
+
+// Alias pour les appels API Gateway / monitoring
+app.get('/api/v1/dashboard/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'dashboard-service',

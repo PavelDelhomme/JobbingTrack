@@ -470,8 +470,8 @@ function AnalyticsContent() {
           errorRate: 'N/A',
           successRate: 'N/A',
           uptime: 'N/A',
-          memoryUsage: typeof systemMetrics.memory?.usage === 'number' ? systemMetrics.memory.usage : 'N/A',
-          cpuUsage: typeof systemMetrics.cpu?.usage === 'number' ? systemMetrics.cpu.usage : 'N/A'
+          memoryUsage: typeof systemMetrics?.memory?.usage === 'number' ? systemMetrics?.memory?.usage : 'N/A',
+          cpuUsage: typeof systemMetrics?.cpu?.usage === 'number' ? systemMetrics?.cpu?.usage : 'N/A'
         }))
       }
     }

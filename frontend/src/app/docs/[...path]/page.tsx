@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,13 +134,13 @@ export default function DocsPage() {
                 <ReactMarkdown
                   remarkPlugins={remarkGfm ? [remarkGfm] : []}
                   components={{
-                    h1: ({ node, ...props }) => (
+                    h1: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h1'>) => (
                       <h1 className="text-4xl font-bold mb-4 mt-8 border-b-2 border-blue-500 pb-2" {...props} />
                     ),
-                    h2: ({ node, ...props }) => (
+                    h2: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h2'>) => (
                       <h2 className="text-3xl font-semibold mb-3 mt-6 border-b border-gray-300 dark:border-gray-700 pb-2" {...props} />
                     ),
-                    h3: ({ node, ...props }) => (
+                    h3: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h3'>) => (
                       <h3 className="text-2xl font-semibold mb-2 mt-4" {...props} />
                     ),
                     code: ({ node, className, children, ...props }: any) => {
@@ -155,21 +155,21 @@ export default function DocsPage() {
                         </code>
                       );
                     },
-                    pre: ({ node, ...props }) => (
+                    pre: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'pre'>) => (
                       <pre className="bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4" {...props} />
                     ),
-                    a: ({ node, ...props }) => (
+                    a: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'a'>) => (
                       <a className="text-blue-600 dark:text-blue-400 hover:underline" {...props} />
                     ),
-                    table: ({ node, ...props }) => (
+                    table: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'table'>) => (
                       <div className="overflow-x-auto my-4">
                         <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-700" {...props} />
                       </div>
                     ),
-                    th: ({ node, ...props }) => (
+                    th: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'th'>) => (
                       <th className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold" {...props} />
                     ),
-                    td: ({ node, ...props }) => (
+                    td: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'td'>) => (
                       <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" {...props} />
                     ),
                   }}

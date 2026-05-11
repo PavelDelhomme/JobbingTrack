@@ -1,0 +1,15 @@
+{
+  "testName": "Relations BDD",
+  "userType": "system",
+  "command": "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js",
+  "timestamp": "2026-02-27T16:34:06+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "output": "\n📋 Tests des Relations Many-to-Many\n\nℹ️  Test 1: Vérification existence table ContactCompany\nℹ️  Test 2: Vérification contraintes d'unicité\nℹ️  Test 3: Vérification intégrité référentielle\nℹ️  Test 4: Vérification index\n\n📋 Résultats pour Contact ↔ Company\n\n✅ Table existe: Table ContactCompany existe (0 enregistrements)\n✅ Contraintes d'unicité: Aucun doublon détecté\n✅ Intégrité référentielle: Aucun enregistrement orphelin détecté\n✅ Index: Index sur les deux champs de relation présents\n\n4 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification existence table ContactApplication\nℹ️  Test 2: Vérification contraintes d'unicité\nℹ️  Test 3: Vérification intégrité référentielle\nℹ️  Test 4: Vérification index\n\n📋 Résultats pour Contact ↔ Application\n\n✅ Table existe: Table ContactApplication existe (0 enregistrements)\n✅ Contraintes d'unicité: Aucun doublon détecté\n✅ Intégrité référentielle: Aucun enregistrement orphelin détecté\n✅ Index: Index sur les deux champs de relation présents\n\n4 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification existence table FollowUpContact\nℹ️  Test 2: Vérification contraintes d'unicité\nℹ️  Test 3: Vérification intégrité référentielle\nℹ️  Test 4: Vérification index\n\n📋 Résultats pour FollowUp ↔ Contact\n\n✅ Table existe: Table FollowUpContact existe (0 enregistrements)\n✅ Contraintes d'unicité: Aucun doublon détecté\n✅ Intégrité référentielle: Aucun enregistrement orphelin détecté\n✅ Index: Index sur les deux champs de relation présents\n\n4 tests réussis, 0 tests échoués\n\nℹ️  Test 1: Vérification existence table InterviewContact\nℹ️  Test 2: Vérification contraintes d'unicité\nℹ️  Test 3: Vérification intégrité référentielle\nℹ️  Test 4: Vérification index\n\n📋 Résultats pour Interview ↔ Contact\n\n✅ Table existe: Table InterviewContact existe (0 enregistrements)\n✅ Contraintes d'unicité: Aucun doublon détecté\n✅ Intégrité référentielle: Aucun enregistrement orphelin détecté\n✅ Index: Index sur les deux champs de relation présents\n\n4 tests réussis, 0 tests échoués\n\n\n📋 Résumé Global\n\nTotal: 16 tests\n✅ 16 tests réussis\n✅ Tous les tests sont passés ! 🎉\n"
+}

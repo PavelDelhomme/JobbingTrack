@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "es6"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es6"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -10,6 +14,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "downlevelIteration": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
@@ -19,10 +24,18 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
-      "@/app/*": ["./src/app/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/app/*": [
+        "./src/app/*"
+      ]
     }
   },
   "include": [
@@ -30,12 +43,19 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/**/*"
+    "src/**/*",
+    ".next-local/types/**/*.ts",
+    "/tmp/.next-local/types/**/*.ts"
   ],
-  "types": ["jest", "@testing-library/jest-dom", "node"],
   "exclude": [
     "node_modules",
     ".next",
-    "dist"
+    "dist",
+    "playwright.config.ts",
+    "playwright.mobile.config.ts",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**"
   ]
 }

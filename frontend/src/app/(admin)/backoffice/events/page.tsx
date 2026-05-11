@@ -18,6 +18,7 @@ interface Event {
   endDate?: string;
   location?: string;
   type?: string;
+  color?: string;
   relatedEntityType?: string;
   relatedEntityId?: string;
   createdAt: string;
@@ -49,7 +50,7 @@ export default function EventsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setEvents(cached)
+        setEvents(Array.isArray(cached) ? (cached as Event[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         eventService.getAll({ limit: 100 }).then(response => {
@@ -201,6 +202,7 @@ export default function EventsPage() {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
+                    <th className="px-2 py-3 w-8" />
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Événement</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date/Heure</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lieu</th>
@@ -211,6 +213,13 @@ export default function EventsPage() {
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pagination.paginatedItems.map((event) => (
                     <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-2 py-4 w-8">
+                        <span
+                          className="inline-block w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || '#3B82F6' }}
+                          title={event.color === '#F59E0B' ? 'Intérim' : 'Classique'}
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
                         {event.description && (

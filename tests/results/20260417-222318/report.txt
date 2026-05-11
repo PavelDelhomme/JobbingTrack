@@ -1,0 +1,123 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  17/04/2026 22:52:01
+================================================================
+
+RESUME
+------
+  Categories  : 26
+  Total tests : 671
+  Reussis     : 590
+  Echoues     : 81
+  Ignores     : 1
+  Taux        : 87.9%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (0s)
+  [OK]   [A] Email Logs (0s)
+  [FAIL] [U] Tests API Complets (Jest) (55s)
+  [OK]   [U] Tests Backend Services (Jest) (1s)
+  [FAIL] [U] Tests API Backend (script - tous services) (296s)
+  [FAIL] [A] Playwright E2E Frontend (900s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (unit + pages analytics) (6s)
+  [OK]   [U] Tests Performance (72s)
+  [OK]   [U] Tests Sécurité (171s)
+  [OK]   [U] Tests Intégration Système (24s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [FAIL] [S] Tests API Gateway Health (4s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (2s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (70s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+
+  --- Tests API Gateway Health ---
+
+  --- Tests API Complets (Jest) ---
+          'errors',
+          163 |         expect(loadScore).toBeDefined();
+          164 |       } catch (error) {
+    FAIL api/test-monitoring-c-endpoints.test.js
+          ✕ devrait inclure les métriques globales (1432 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 163 |         expect(loadScore).toBeDefined();
+          164 |       } catch (error) {
+          165 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          317 |       expect(res.status).toBe(200);
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (441 ms)
+    Test Suites: 1 failed, 8 passed, 9 total
+    Tests:       1 failed, 86 passed, 87 total
+          'errors',
+          163 |         expect(loadScore).toBeDefined();
+          164 |       } catch (error) {
+    FAIL api/test-monitoring-c-endpoints.test.js
+          ✕ devrait inclure les métriques globales (1434 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 163 |         expect(loadScore).toBeDefined();
+          164 |       } catch (error) {
+          165 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          317 |       expect(res.status).toBe(200);
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (449 ms)
+    Test Suites: 1 failed, 8 passed, 9 total
+    Tests:       1 failed, 86 passed, 87 total
+
+  --- Playwright E2E Frontend ---
+
+================================================================
+  Rapports : tests/results/20260417-222318/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

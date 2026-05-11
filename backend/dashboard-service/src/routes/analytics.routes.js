@@ -15,8 +15,8 @@ const optionalAuth = async (req, res, next) => {
         const token = parts[1];
         const jwt = require('jsonwebtoken');
         
-        // Mode développement: Accepter les tokens mock
-        if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token')) {
+        const devBypassToken = process.env.DEV_AUTH_BYPASS_TOKEN;
+        if (process.env.NODE_ENV !== 'production' && devBypassToken && token === devBypassToken) {
           req.user = {
             id: 'dev_user_1',
             email: 'dev@jobbingtrack.test',

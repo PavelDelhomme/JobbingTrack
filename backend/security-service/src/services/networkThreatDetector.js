@@ -117,7 +117,9 @@ async function handleAnomaly(anomaly, metrics) {
     
     const ports = [...new Set(threatConnections.map(c => c.localPort))];
     const protocols = [...new Set(threatConnections.map(c => c.protocol))];
-    const states = [...new Set(threatConnections.map(c => c.state))];
+    const states = [...new Set(threatConnections.map(c => (
+      typeof c.state === 'string' ? c.state : getStateName(c.state)
+    )))];
     
     // Créer une nouvelle menace avec métadonnées enrichies
     const threat = await prisma.networkThreat.create({
@@ -141,7 +143,9 @@ async function handleAnomaly(anomaly, metrics) {
             localPort: c.localPort,
             remotePort: c.remotePort,
             protocol: c.protocol,
-            state: typeof c.state === 'string' ? c.state : 'UNKNOWN'
+            state: typeof c.state === 'string' ? c.state : getStateName(c.state),
+            containerName: c.containerName,
+            containerId: c.containerId
           })),
           containerInfo: threatConnections[0]?.containerName ? {
             containerName: threatConnections[0].containerName,

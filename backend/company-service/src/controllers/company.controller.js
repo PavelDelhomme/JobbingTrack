@@ -21,19 +21,37 @@ const createCompany = async (req, res, next) => {
       });
     }
 
-    const { name, website, industry, size, location, description } = req.body;
+    const { name, website, industry, size, location, description, companyType } = req.body;
+
+    // Sanitisation XSS : retirer balises <script> et tout tag HTML du nom
+    const rawName = name != null ? String(name) : '';
+    const sanitizedName = rawName
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    const finalName = sanitizedName || 'Sans nom';
+
+    const VALID_SIZES = ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'];
+    const sizeValue = size && VALID_SIZES.includes(String(size).toUpperCase())
+      ? String(size).toUpperCase()
+      : undefined;
+
+    const data = {
+      userId: req.user.id,
+      name: finalName,
+      companyType: companyType === 'TEMP_AGENCY' ? 'TEMP_AGENCY' : 'EMPLOYER',
+    };
+    if (website !== undefined && website !== null && website !== '') data.website = String(website);
+    if (industry !== undefined && industry !== null && industry !== '') data.industry = String(industry);
+    if (sizeValue) data.size = sizeValue;
+    if (location !== undefined && location !== null && location !== '') data.location = String(location);
+    if (description !== undefined && description !== null && description !== '') data.description = String(description);
 
     const company = await prisma.company.create({
-      data: {
-        userId: req.user.id,
-        name: name || 'Sans nom',
-        website: website || undefined,
-        industry: industry || undefined,
-        size: size || undefined,
-        location: location || undefined,
-        description: description || undefined
-      }
+      data,
     });
+    // Garantir que la réponse ne contient jamais de script (régression XSS)
+    company.name = finalName;
 
     res.status(201).json({
       success: true,
@@ -57,7 +75,14 @@ const createCompany = async (req, res, next) => {
         message: 'Une entreprise avec ce nom existe déjà pour cet utilisateur.'
       });
     }
-    next(error);
+    const message = error.meta?.message || error.message || 'Erreur lors de la création de l\'entreprise.';
+    const status = error.code ? 400 : 500;
+    return res.status(status).json({
+      success: false,
+      message,
+      code: error.code,
+      ...(process.env.NODE_ENV !== 'production' && { debug: String(error) })
+    });
   }
 };
 
@@ -66,10 +91,14 @@ const getCompanies = async (req, res, next) => {
     const { page = 1, limit = 10, search } = req.query;
     const offset = (page - 1) * limit;
     
+    const role = String(req.user?.role || '');
+    const isElevated = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    const interimListAll = isElevated && req.query.companyType === 'TEMP_AGENCY';
     const where = {
-      userId: req.user.id,
+      ...(interimListAll ? {} : { userId: req.user.id }),
       deletedAt: null,
       isArchived: false,
+      ...(req.query.companyType === 'TEMP_AGENCY' ? { companyType: 'TEMP_AGENCY' } : req.query.companyType === 'EMPLOYER' ? { companyType: 'EMPLOYER' } : {}),
       ...(search ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -164,16 +193,20 @@ const getCompanies = async (req, res, next) => {
 const getCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
 
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
         applications: {
-          where: { userId: req.user.id },
+          where: userId ? { userId } : undefined,
           orderBy: { createdAt: 'desc' }
         },
         contacts: {
-          where: { userId: req.user.id },
+          include: { contact: true },
+          ...(userId
+            ? { where: { contact: { userId } } }
+            : {}),
           orderBy: { createdAt: 'desc' }
         }
       }
@@ -230,9 +263,30 @@ const getCompanyByName = async (req, res, next) => {
 const updateCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const body = req.body;
 
-    // ✅ Récupérer l'entreprise avant mise à jour pour logging
+    // Champs autorisés (répercussion automatique via relations Prisma)
+    const allowed = [
+      'name', 'website', 'industry', 'size', 'companyType', 'location',
+      'address', 'city', 'postalCode', 'country', 'logoUrl', 'description'
+    ];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) updateData[key] = body[key];
+    }
+    if (updateData.name != null) {
+      const raw = String(updateData.name);
+      const sanitized = raw.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, '').trim();
+      if (sanitized) updateData.name = sanitized; else delete updateData.name;
+    }
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Aucun champ à mettre à jour'
+      });
+    }
+
+    // Récupérer l'entreprise avant mise à jour pour logging
     const oldCompany = await prisma.company.findUnique({
       where: { id },
       include: {
@@ -252,17 +306,14 @@ const updateCompany = async (req, res, next) => {
       });
     }
 
-    // ✅ Mettre à jour l'entreprise
     const company = await prisma.company.update({
       where: { id },
       data: updateData
     });
 
-    // ✅ Logger les changements importants (notamment le renommage)
     if (updateData.name && updateData.name !== oldCompany.name) {
       logger.info(`🏢 Entreprise renommée: "${oldCompany.name}" → "${updateData.name}"`);
       logger.info(`   ↳ Impact: ${oldCompany._count.applications} candidatures, ${oldCompany._count.contacts} contacts`);
-      logger.info(`   ℹ️  Les relations Prisma synchronisent automatiquement le nom via les JOINs`);
     }
 
     res.json({

@@ -16,6 +16,9 @@
     "build": "echo 'No build step required for Node.js service'",
     "clean": "rm -rf coverage/ .nyc_output/"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@prisma/client": "^5.5.0",
     "axios": "^1.6.0",

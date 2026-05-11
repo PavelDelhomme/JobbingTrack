@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Contact Service (Health Check)",
+  "userType": "system",
+  "command": "TMP=$(mktemp); CODE=$(curl -s -o \"$TMP\" -w '%{http_code}' \"http://localhost:${CONTACT_SERVICE_PORT:-5008}/health\"); BODY=$(cat \"$TMP\"); rm -f \"$TMP\"; if [ \"$CODE\" != '200' ] || echo \"$BODY\" | grep -qE '<!DOCTYPE|Cannot GET'; then echo \"$BODY\"; exit 1; fi; echo \"$BODY\"",
+  "timestamp": "2026-03-19T00:04:52+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"service\":\"contact-service\",\"timestamp\":\"2026-03-18T23:04:51.953Z\",\"environment\":\"development\",\"version\":\"1.0.1\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

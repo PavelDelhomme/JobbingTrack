@@ -242,10 +242,21 @@ const steps = [
 ];
 ```
 
+## 📱 Tests mobile (app native)
+
+Les tests de l’**interface mobile** (app Flutter sur émulateur / appareil) passent par le **système de scénarios** du backoffice :
+
+- **Backoffice** : [http://localhost:5003/backoffice/mobile-emulator](http://localhost:5003/backoffice/mobile-emulator) — sélection d’un parcours puis « Lancer le parcours » (interaction UI réelle via ADB).
+- **Cohérence scénarios / étapes** : `make verify-mobile-scenarios`
+- **E2E backoffice (Playwright)** : `make test-e2e-mobile-email` (page mobile-emulator + Email Monitor).
+
+Les étapes mobiles du journey-builder (`mob_scenario_*`, `mob_flow_*`) utilisent `tools/adb-lib` et le même contrôleur ; les scénarios affichés dans le backoffice viennent de `frontend/src/lib/adb/adb-scenarios.ts`.
+
 ## 🔗 Intégration
 
 Le système est intégré dans :
 - **Frontend** : `/backoffice/user-journey/custom`
+- **Backoffice mobile** : `/backoffice/mobile-emulator` (parcours scénarios ADB)
 - **API** : `/api/user-journey/custom`
 - **Scripts** : `tests/user-journey/test-custom-journey.js`
 

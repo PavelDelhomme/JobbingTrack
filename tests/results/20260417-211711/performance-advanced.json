@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Performance Avancés (CPU & endpoints)",
+  "userType": "user",
+  "command": "PERF_LIGHT=1 node tests/performance/test-performance.js",
+  "timestamp": "2026-04-17T21:47:41+02:00",
+  "duration": 71,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 11,
+    "passed": 9,
+    "failed": 2
+  },
+  "output": "🧪 Lancement des tests de performance...\n\n📊 Génération du rapport de performance...\n\n⚡ Test des performances API (endpoints réels)...\n   Gateway Health: ⚠️ 693ms \n   Auth Health: ⚠️ 3718ms \n   Applications (list): ⚠️ 3720ms \n   Companies (list): ⚠️ 3719ms \n   Contacts (list): ⚠️ 3665ms \n   Interviews (list): ⚠️ 3525ms \n   Calls (list): ⚠️ 3720ms \n   Followups (list): ⚠️ 3970ms \n   Events (list): ⚠️ 3721ms \n   Notifications (list): ⚠️ 3970ms \n   Métriques système: ⚠️ 3667ms \n   Docker services: ⚠️ 3522ms \n🔥 Test de charge...\n   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)\n📊 Charge: Gateway Health (5 requêtes parallèles)\n   ✅ 0/5 succès - moy: 6439ms, max: 10004ms\n📊 Charge: Auth Health (4 requêtes parallèles)\n   ✅ 0/4 succès - moy: 5352ms, max: 7089ms\n📊 Charge: Companies API (4 requêtes parallèles)\n   ✅ 0/4 succès - moy: 5547ms, max: 7422ms\n📊 Charge globale: 0/13 succès, moy: 5780ms\n🧠 Collecte des métriques système (metrics-aggregator)...\n   ⚠️ Metrics-aggregator non accessible: ENOTFOUND\n📊 Test traitement de données (stress mémoire)...\n   ✅ Traitement 1000 éléments: 13ms\n   ✅ Traitement 5000 éléments: 52ms\n   ✅ Traitement 10000 éléments: 67ms\n   ✅ Augmentation heap: 25.4 MB\n\n✅ Rapport sauvegardé: tests/reports/performance-report.json\n\n📊 ANALYSE DES PERFORMANCES:\n=====================================\n🧪 Tests: 0/15 réussis\n⏱️ Temps moyen: 0ms\n📊 Requêtes charge: 0/13 (0.0%)\n❌ 15 test(s) en échec\n❌ 13 requête(s) en échec\n\n🎯 Score: 50/100\n⚠️ Performances à améliorer\n"
+}

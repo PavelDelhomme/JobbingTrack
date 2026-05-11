@@ -2,10 +2,17 @@
 
 Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la racine contient l'état courant ; ce fichier contient le backlog complet.
 
+**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc) : pour ne pas dupliquer la granularité, suivre **`PLAN.md`** (lots A–F) et **`TODOS.md`** à la racine du dépôt. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
+
+**Méta (07/04/2026)** : refonte globale des **`.md` racine** + **`docs/**/*.md`**, revue **BDD** avant campagne de tests, et interprétation des **logs gateway sécurité** — voir la **dernière section** de **`TODOS.md`** (priorité porteur / historique) et **`STATUS.md`** § journalisation gateway.
+
 ---
 
 ## Terminé récemment
 
+- [x] **Forensics `api-gateway` (06/2026)** : corrélation **ALS**, logs structurés + **centralLogger**, **`TRUST_PROXY_HOPS`**, Jest **22/22** — **`STATUS.md`**, **`TODOS.md`**, **`PLAN.md`** A3/B6.
+- [x] **Backoffice + BDD (05/2026)** : colonne **`Company.isTestData`** alignée schéma maître auth + fix SQL `db-push-all` ; gateway **`/api/v1/services`** tolère metrics-aggregator indisponible (réponse fallback, pas 503) — voir **`STATUS.md`**, **`ERRORS.md`**, **`TODOS.md`**.
+- [x] **Fix runtime Next bloqué** : `next.config.js` passe sur un `distDir` utilisateur (`.next-local`) pour contourner les permissions root sur `frontend/.next` et les bundles `layout.js` invalides (29/04).
 - [x] **Fix `getApplication` 500** : relation `activities` (inexistante) → `statusHistory`. (26/02)
 - [x] **Fix routes `isUUID` → `isString`** : IDs Prisma sont des CUIDs, pas UUIDs. (26/02)
 - [x] **Fix `api-e2e.spec.ts`** : credentials desynchronises → `_testCreds` direct. (26/02)
@@ -46,16 +53,20 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 
 ## Priorité moyenne – API et fonctionnalités
 
+- [ ] **Stabilisation post-run `make tests` 05/05/2026 (`tests/results/20260505-113157`)** : backend candidatures **corrigé partiellement** (`application-service` create/get/update/delete + archive/trash avec fallback legacy ; création candidature repasse 201 sur scripts ciblés). Dashboard : **socle de fiabilisation appliqué** (`restart: unless-stopped` + précheck santé avant campagne). Sécurité : **itération 1 anti faux-positifs** appliquée sur intrusion detector. Restent : adaptation tests gateway Jest (CORS/logs auth), mise à jour `tab-components.test.tsx` (analytics hub), stabilisation Playwright `login.spec.ts` et `suivi-interim.spec.ts`, calibration sécurité terrain 24-48h.
+- [ ] **Backoffice – Email Monitor** : vérifier que tous les emails envoyés (vérification, reset password, etc.) s'affichent correctement dans la page email-monitor ; tester complètement la partie email-monitor (filtres par type, liste, rafraîchissement).
 - [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
 - [ ] **Documentation API** : Swagger/OpenAPI.
 - [ ] **Rapports par catégorie** : organiser `tests/results/` en sous-dossiers.
 - [ ] **Lancement tests depuis hub** : clic + vérification résultat.
+- [ ] **Backoffice – règles d'envoi email par action** : configurer dynamiquement quels emails envoyer pour quelle action (inscription, entretien créé, relance, etc.) — voir `docs/emails/MAIL.md` § Récap.
 
 ## Priorité basse – Mobile et émulateur
 
 - [ ] **App mobile Flutter** : auth, dashboard, CRUD, calendrier, notifications, sync offline.
 - [ ] **Émulateur mobile – Build APK** : corriger `flutter_local_notifications`.
 - [ ] **Logs Android (logcat)** : streamer dans l'UI.
+- [ ] **Playwright mobile dans `make tests`** : séparer une cible smoke (rapide, stable) de la campagne longue (actuellement timeout 600s / exit 124 dans l’agrégat).
 
 ## Priorité moyenne – CI/CD et déploiement
 
@@ -64,15 +75,35 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 - [ ] **CI/CD** : déploiement automatisé après tests passés.
 - [ ] **Déploiement** : voir `docs/deployment/DEPLOIEMENT_FINAL.md`.
 
+## Priorité basse – Infra hôte (Docker / noyau)
+
+- [ ] **Redis — `vm.overcommit_memory`** : sur la machine hôte, activer **`vm.overcommit_memory=1`** (sysctl + persistance) pour supprimer l’avertissement *Memory overcommit must be enabled* et limiter les risques BGSAVE / réplication — **`TODOS.md`** **HX5**, fin **`PLAN.md`**.
+
 ## Priorité basse – Sécurité
 
+- [ ] **Forensics menaces réseau — qualité données terrain** : ne pas dépendre uniquement de `network_threats.metadata`. Si une menace de test ou de détection réelle ne contient que peu de métadonnées (`test`, `packetsPerSec`, etc.), corréler avec `network_connections`, `security_logs.metadata.sourceIp`, `metadata.threatId`, `DDoSAttack`, `IntrusionAttempt`, puis afficher clairement ce qui manque. À compléter : provider threat-intel (ASN/VPN/proxy/Tor), payload/request samples, comptes impactés fiables, IPs “à surveiller” cliquables et détaillables.
+- [ ] **Alertes email sécurité + disponibilité** : brancher le système mail sur les vrais problèmes : menace `CRITICAL`, CVE `critical`, blocage firewall automatique majeur, et service/conteneur critique `down` détecté par monitoring Rust / metrics-aggregator. Prévoir adresse admin configurable, réauthentification, audit trail, tests MailHog, et mode digest pour `high`.
+- [ ] **WAF — filtrage externe uniquement** : éviter que le WAF inspecte ou bloque le trafic interne inter-services (réseaux Docker privés, healthchecks, appels service-to-service). Définir une règle d’architecture : WAF sur l’entrée gateway/public, allowlist/bypass explicite pour réseaux internes, logs séparés, tests `WAF_ENABLED=true/false` couvrant externe malveillant vs interne légitime. **11/05 partiel** : `WAF_INTERNAL_BYPASS_ENABLED` / `WAF_INTERNAL_BYPASS_CIDRS`; vérifier les CIDR réels du serveur/VPS et le `remoteAddress` après reverse proxy avant prod.
+- [ ] **B14 — Durcissement Docker Compose & runtime** : secrets sans fallback en prod, proxy **`docker.sock`**, Redis **`requirepass`**, non-root collecteurs, **`read_only`** / limites — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14**.
 - [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.
 - [ ] **WAF** : remplacer la config mock par une vraie en production.
 - [x] **Tests sécurité API** : XSS, SQLi, CSRF, payload overflow (tests/security, security-e2e.spec.ts).
+- [ ] **Alertes email sur incidents critiques** (sécurité très grave, firewall, **down** service / sous-système) — cadrage **`TODOS.md` B11** + **`PREPROD_PRODUCTION_CHECKLIST.md`** § SMTP.
+- [ ] **Analyse sécurité quasi temps réel** à faible coût CPU/RAM — **`TODOS.md` B12** (cadence, limites mémoire, pas de polling lourd).
+- [ ] **Forensics logs (investigation)** : imposer un contrat minimal de journalisation sur les services (au moins `requestId`/`correlationId`, `clientIp`, endpoint, méthode, statut HTTP, port/proto quand pertinent) pour que la corrélation backoffice (perf ↔ sécurité ↔ logs) ne dépende pas d’heuristiques.
+- [ ] **Forensics logs — déploiement progressif** : lot **05–06/2026** : microservices listés précédemment + **`api-gateway`** + **`workflow-service`** (**ALS** / contexte, Winston, **`centralLogger`**, **`TRUST_PROXY_HOPS`**) ; **reste** : QA porteur `/backoffice/performances/correlation`.
+- [ ] **Corrélation fine incidents (A3/B8)** : combler les colonnes encore vides en pratique (`requestId`, endpoint, IP, proto/port, HTTP, CPU/Mémoire/TR proches, écart sec) avec contrat de logs homogène + règles d’alignement plus strictes. Inclure la vérification I/O bloc : distinguer « trou de persistance » (`null`) vs « vraie mesure zéro » (`0/0` Docker hôte).
+- [ ] **Préparation post-quantique (PQC) — programme transverse** :
+  - gouvernance crypto-agile (inventaire, propriétaires, dépendances externes),
+  - stratégie de migration progressive pour chiffrement en transit/au repos/signatures,
+  - couverture tests et observabilité pendant transition,
+  - suivi conformité/réglementaire selon échéances applicables.
 
 ## Références
 
 - `STATUS.md` : état courant du projet.
+- `PLAN.md` : plan d’exécution lots A–F (backoffice, API, doc).
+- `TODOS.md` : cases à cocher alignées sur le plan.
 - `FONCTIONNALITES.md` : fonctionnalités complètes et roadmap.
 - `RESOLUTIONS.md` : erreurs résolues avec détail.
 - `ERRORS.md` : erreurs connues.

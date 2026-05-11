@@ -1,16 +1,44 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Date** : 2025-11-04  
-**Version** : 1.0
+**Dernière mise à jour** : avril 2026
 
 ---
 
-## 🎯 Par Où Commencer ?
+## 🗺️ Où trouver quoi (référence rapide)
 
-### Pour Démarrer Rapidement
-1. **[../COMMENCER_ICI.md](../COMMENCER_ICI.md)** ⭐⭐⭐ - **LIRE EN PREMIER**
-2. **[user-journey/RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** ⭐⭐ - Résumé complet des corrections
-3. **[user-journey/LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** ⭐ - Guide rapide
+| Thème | Emplacement |
+|-------|-------------|
+| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Racine : **[PLAN.md](../PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](../TODOS.md)**, **[STATS.md](../STATS.md)** (CVE / dépendances) ; index **[CHANTIER_SECURITE_DATA_DOCS.md](CHANTIER_SECURITE_DATA_DOCS.md)** |
+| **Préprod / production (checklist manuelle)** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — NTP, secrets, intrusion, B6, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway en conteneur |
+| **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
+| **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
+| **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
+| **Statistiques projet** | [monitoring/STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md) |
+| **Status structure BDD** | [database/STATUS_STRUCTURE_BDD.md](database/STATUS_STRUCTURE_BDD.md) |
+| **Parcours métier** | [user-journey/PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md) |
+| **Tracking utilisateur** | [mobile/analytics/TRACKING_UTILISATEUR.md](mobile/analytics/TRACKING_UTILISATEUR.md) |
+| **Accès réseau local** | [getting-started/ACCES_RESEAU_LOCAL.md](getting-started/ACCES_RESEAU_LOCAL.md) |
+| **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
+| **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
+
+Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[../PLAN.md](../PLAN.md)**, **[../TODOS.md](../TODOS.md)**, **[../STATS.md](../STATS.md)** (audits CVE à compléter).
+
+---
+
+## 🎯 Par où commencer
+
+### Ce qu’il reste à faire (priorité)
+- **[../STATUS.md](../STATUS.md)** — **À faire maintenant** : priorité mobile (vérification email manuelle, puis app Flutter). Détail des commandes et de l’état du projet.
+- **[../PLAN.md](../PLAN.md)** / **[../TODOS.md](../TODOS.md)** / **[../STATS.md](../STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
+- **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
+
+### Fichiers .md à la racine (à garder)
+`README.md` | `STATUS.md` | `ERRORS.md` | `FONCTIONNALITES.md` | `RESOLUTIONS.md` | **`PLAN.md`** | **`TODOS.md`** | **`STATS.md`**. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+
+### Démarrer le projet
+- **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage
+- **[getting-started/DEMARRAGE_RAPIDE.md](getting-started/DEMARRAGE_RAPIDE.md)** — Démarrage rapide
+- **[user-journey/README.md](user-journey/README.md)** — Tests et parcours utilisateur
 
 ---
 
@@ -20,11 +48,11 @@
 **Dossier** : [user-journey/](user-journey/) | [tests/](tests/)
 
 - **[README.md](user-journey/README.md)** - Index des tests user journey
-- **[RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** - Résumé complet avec toutes les corrections
-- **[LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** - Guide de démarrage rapide
-- **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé complet
-- **[TOKEN_TEST_PERMANENT.md](user-journey/TOKEN_TEST_PERMANENT.md)** - Système de token permanent pour les tests
-- **[TESTS_MANQUANTS.md](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests manquants à implémenter
+- **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
+- **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé
+- **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
+- **[QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md)** - Démarrage rapide tests E2E mobile (Playwright)
+- **[README.md](tests/README.md)** - Stratégie tests, commandes, structure make test
 
 **Scripts** :
 - `scripts/verify-user-journey.sh` - Vérification automatique des endpoints
@@ -33,36 +61,30 @@
 ---
 
 ### 🚀 Démarrage & Configuration
-**Dossier** : [getting-started/](getting-started/)
+**Dossier** : [getting-started/](getting-started/) | [configuration/](configuration/)
 
 - **[README.md](getting-started/README.md)** - Guide de démarrage
 - **[QUICK_START_GUIDE.md](getting-started/QUICK_START_GUIDE.md)** - Guide de démarrage rapide
 - **[DEMARRAGE_RAPIDE.md](getting-started/DEMARRAGE_RAPIDE.md)** - Démarrage rapide en français
 - **[REDEMARRAGE.md](getting-started/REDEMARRAGE.md)** - Guide de redémarrage des services
+- **[ACCES_RESEAU_LOCAL.md](getting-started/ACCES_RESEAU_LOCAL.md)** - Accès réseau local
+- **[configuration/README.md](configuration/README.md)** - Ports et variables (CONFIGURATION_PORTS, PORTS)
 
 ---
 
 ### 💻 Développement
 **Dossier** : [development/](development/)
 
-#### Diagnostic
-- **[diagnostic/RECAPITULATIF_COMPLET_DIAGNOSTIC.md](development/diagnostic/)** - Diagnostic technique complet
-- **[diagnostic/SOLUTION_FINALE_PARCOURS.md](development/diagnostic/)** - Solutions finales
-- **[diagnostic/DIAGNOSTIC_PARCOURS_UTILISATEUR.md](development/diagnostic/)** - Diagnostic des parcours
-
-#### Général
-- **[RESUME_NETTOYAGE.md](development/)** - Historique du nettoyage de documentation
-- **[GUIDE_TESTS_PARCOURS.md](development/)** - Guide des tests de parcours
-- **[FINAL_IMPLEMENTATION_SUMMARY.md](development/)** - Résumé d'implémentation
-- **[workflow/README.md](development/workflow/)** - Guide du workflow de développement
+- **[makefile/README.md](development/makefile/README.md)** - Guide Makefile et commandes
 
 ---
 
 ### 📡 API & Backend
 **Dossier** : [api/](api/)
 
-- **[BACKEND_FIXES_SUMMARY.md](api/)** - Résumé des corrections backend
-- **[endpoints/README.md](api/endpoints/)** - Documentation des endpoints
+- **[README.md](api/README.md)** - Index API
+- **[api-reference/README.md](api/api-reference/README.md)** - Référence API complète
+- **[endpoints/README.md](api/endpoints/README.md)** - Liste des endpoints
 
 **Services Principaux** :
 - Auth Service - `backend/auth-service/`
@@ -85,11 +107,24 @@
 **Dossier** : [monitoring/](monitoring/)
 
 - **[README.md](monitoring/)** - Guide de monitoring
+- **[metrics-flow.md](monitoring/metrics-flow.md)** - Flux des métriques (qui collecte quoi, ports)
+- **[STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md)** - Statistiques projet
 - **[QUICK-START-MONITORING.md](monitoring/)** - Démarrage rapide monitoring
 - **[MONITORING-GUIDE.md](monitoring/)** - Guide complet
 - **[GUIDE_MONITORING_SERVICES.md](monitoring/)** - Monitoring des services
 - **[GUIDE_TENDANCES_METRIQUES.md](monitoring/)** - Tendances métriques
 - **[SYSTEME_STATISTIQUES_APPLICATIVES.md](monitoring/)** - Statistiques applicatives
+
+---
+
+### ⚡ Performance et rapports
+**Dossier** : [performance/](performance/)
+
+- **[README.md](performance/README.md)** - Guide performance
+- **[FINAL_PERFORMANCE_REPORT.md](performance/FINAL_PERFORMANCE_REPORT.md)** - Rapport final performance
+- **[RAPPORT_PERFORMANCE.md](performance/RAPPORT_PERFORMANCE.md)** - Rapport performance
+- **[PERFORMANCE_OPTIMIZATIONS_SUMMARY.md](performance/PERFORMANCE_OPTIMIZATIONS_SUMMARY.md)** - Résumé optimisations
+- **[FIXES_AND_OPTIMIZATIONS.md](performance/FIXES_AND_OPTIMIZATIONS.md)** - Correctifs et optimisations
 
 ---
 
@@ -106,7 +141,8 @@
 **Dossier** : [frontend/](frontend/)
 
 - **[README.md](frontend/)** - Guide frontend
-- **[GUIDE_PAGE_DETAIL_SERVICE.md](frontend/)** - Page de détail des services
+- **[PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md)** - Optimisation performance (mémoire, bundles, lazy load) ; rapports : FRONTEND_REPORTS_SUMMARY.md, FRONTEND_REPORTS_FINAL_ANALYSIS.md dans ce dossier
+- **[GUIDE_PAGE_DETAIL_SERVICE.md](frontend/GUIDE_PAGE_DETAIL_SERVICE.md)** - Page de détail des services
 - **[GUIDE_ENREGISTREMENT_AUTOMATIQUE.md](frontend/)** - Enregistrement automatique
 - **[GUIDE_PREFERENCES_UTILISATEUR.md](frontend/)** - Préférences utilisateur
 
@@ -116,6 +152,8 @@
 **Dossier** : [database/](database/)
 
 - **[README.md](database/)** - Guide base de données
+- **[STATUS_STRUCTURE_BDD.md](database/STATUS_STRUCTURE_BDD.md)** - État / status structure BDD
+- **[MIGRATIONS_ET_BASES.md](database/MIGRATIONS_ET_BASES.md)** - Migrations Prisma, base principale vs test
 - **[architecture/database/README.md](database/architecture/database/)** - Architecture
 - **[decisions/README.md](database/decisions/)** - Décisions d'architecture
 - **[recap/README.md](database/recap/)** - Récapitulatif
@@ -136,7 +174,10 @@
 ### 📱 Mobile (Flutter)
 **Dossier** : [mobile/](mobile/)
 
+- **[PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — À faire : vérification email (manuel) puis app Flutter
+- **[APPLICATION_MOBILE_A_FAIRE.md](mobile/APPLICATION_MOBILE_A_FAIRE.md)** — Checklist écrans et fonctionnalités mobile
 - **[analytics/README.md](mobile/analytics/)** - Analytics mobile
+- **[analytics/TRACKING_UTILISATEUR.md](mobile/analytics/TRACKING_UTILISATEUR.md)** - Tracking utilisateur
 - **[analytics/INTEGRATION.md](mobile/analytics/)** - Intégration
 - **[analytics/PRIVACY.md](mobile/analytics/)** - Confidentialité
 - **[analytics/DASHBOARD.md](mobile/analytics/)** - Dashboard mobile
@@ -169,7 +210,6 @@
 
 ### "J'ai une erreur"
 1. [troubleshooting/README.md](troubleshooting/) - Dépannage
-2. [development/diagnostic/](development/diagnostic/) - Diagnostic
 3. `make logs` - Voir les logs
 
 ### "Je veux comprendre l'architecture"
@@ -218,7 +258,8 @@ make restart
 ```
 
 ### Documentation Essentielle
-- **[../COMMENCER_ICI.md](../COMMENCER_ICI.md)** - Guide ultra-rapide
+- **[../STATUS.md](../STATUS.md)** - À faire maintenant, état projet
+- **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** - Mobile : vérif email + Flutter
 - **[user-journey/README.md](user-journey/)** - Tests utilisateur
 - **[troubleshooting/README.md](troubleshooting/)** - Dépannage
 
@@ -228,24 +269,30 @@ make restart
 
 ```
 JobbingTrack/
-├── COMMENCER_ICI.md              ⭐ Commencer ici
-├── README.md                      Présentation projet
-├── START_TESTS.sh                 Script de démarrage rapide
+├── README.md                      Présentation, démarrage
+├── STATUS.md                      ⭐ À faire maintenant, état détaillé
+├── ERRORS.md                      Erreurs connues
+├── FONCTIONNALITES.md             Fonctionnalités complètes
+├── RESOLUTIONS.md                 Correctifs appliqués
 │
 ├── docs/
 │   ├── INDEX.md                   📚 Ce fichier (index complet)
 │   ├── INDEX_DOCUMENTATION.md     Index général
 │   │
-│   ├── user-journey/              🧪 Tests utilisateur
+│   ├── user-journey/              🧪 Tests utilisateur + parcours métier
 │   │   ├── README.md
+│   │   ├── PARCOURS_METIER.md
 │   │   ├── RESUME_FINAL.md
-│   │   ├── LIRE_MOI_URGENT.md
-│   │   ├── GUIDE_COMPLET.md
-│   │   └── TOKEN_TEST_PERMANENT.md
+│   │   └── ...
 │   │
-│   ├── getting-started/           🚀 Démarrage
-│   ├── development/               💻 Développement
-│   │   └── diagnostic/            🔍 Diagnostics
+│   ├── configuration/            🔌 Ports et variables
+│   │   ├── README.md
+│   │   ├── CONFIGURATION_PORTS.md
+│   │   └── PORTS.md
+│   ├── performance/               ⚡ Rapports performance, fixes & optimisations
+│   ├── getting-started/           🚀 Démarrage (+ ACCES_RESEAU_LOCAL)
+│   ├── development/               💻 Développement (makefile)
+│   │   └── makefile/
 │   ├── api/                       📡 API & Backend
 │   ├── security/                  🔐 Sécurité
 │   ├── monitoring/                📊 Monitoring
@@ -263,7 +310,7 @@ JobbingTrack/
 
 ---
 
-**Pour toute question, consultez d'abord** : [../COMMENCER_ICI.md](../COMMENCER_ICI.md)
+**Pour savoir quoi faire** : [../STATUS.md](../STATUS.md) (section « À faire maintenant »).
 
-**✨ Documentation mise à jour le 2025-11-04**
+**✨ Documentation mise à jour mars 2026**
 

@@ -10,13 +10,14 @@
  */
 
 const axios = require('axios');
+const { normalizeGatewayUrlForHost } = require('./dockerHostUrl');
 
-const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const API_URL = normalizeGatewayUrlForHost(process.env.API_GATEWAY_URL);
 
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 
-const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || `testuser-${Date.now()}@jobbingtrack.test`;
+const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'testuser@jobbingtrack.test';
 const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'TestPassword123!';
 const TEST_USER_FIRST_NAME = 'TestUser';
 const TEST_USER_LAST_NAME = 'Fonctionnel';
@@ -56,15 +57,35 @@ async function registerAndLogin(email, password, firstName, lastName) {
 
 /**
  * Retourne un utilisateur test classique (rôle USER).
- * Crée le compte si nécessaire, puis le met en cache pour la durée du processus.
+ * Utilise le compte pré-vérifié créé par le seed auth (testuser@jobbingtrack.test).
+ * Si le login échoue (401), exécutez : cd backend/auth-service && npx prisma db seed
  */
 async function getTestUser() {
   if (cachedUser) return cachedUser;
-  cachedUser = await registerAndLogin(
-    TEST_USER_EMAIL, TEST_USER_PASSWORD,
-    TEST_USER_FIRST_NAME, TEST_USER_LAST_NAME
+
+  const loginRes = await axios.post(`${API_URL}/api/v1/auth/login`, {
+    email: TEST_USER_EMAIL,
+    password: TEST_USER_PASSWORD
+  }, { validateStatus: () => true, timeout: 5000 });
+
+  if (loginRes.status === 200 && loginRes.data?.token) {
+    cachedUser = {
+      token: loginRes.data.token,
+      userId: loginRes.data.user?.id,
+      email: TEST_USER_EMAIL,
+      role: loginRes.data.user?.role || 'USER',
+      headers: {
+        'Authorization': `Bearer ${loginRes.data.token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+    return cachedUser;
+  }
+
+  throw new Error(
+    `Utilisateur test non connecté (${loginRes.status}). ` +
+    `Assurez-vous d'avoir exécuté le seed auth : cd backend/auth-service && npx prisma db seed`
   );
-  return cachedUser;
 }
 
 /**
@@ -100,4 +121,10 @@ function resetCache() {
   cachedAdmin = null;
 }
 
-module.exports = { getTestUser, getAdminUser, resetCache, API_URL };
+module.exports = {
+  getTestUser,
+  getAdminUser,
+  resetCache,
+  API_URL,
+  normalizeGatewayUrlForHost,
+};

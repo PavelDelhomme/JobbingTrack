@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Email Workflows",
+  "userType": "user",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL="http://localhost:8025" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-26T19:04:53+01:00",
+  "duration": 6,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "output": "\nup to date in 629ms\n\nRunning 4 tests using 4 workers\n\n  ✘  2 [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter (364ms)\n  ✘  1 [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (124ms)\n  ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:138:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (2.1s)\n  ✓  3 [chromium] › e2e/specs/email-workflows.spec.ts:35:9 › Workflows Email Complets › Inscription avec vérification email › inscription crée un compte et envoie un email de vérification (3.5s)\n\n\n  1) [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter \n\n    Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: 200\n    Received: 401\n\n      71 |       });\n      72 |\n    > 73 |       expect(loginRes.status()).toBe(200);\n         |                                 ^\n      74 |       const body = await loginRes.json();\n      75 |       expect(body.token || body.accessToken).toBeTruthy();\n      76 |     });\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:73:33\n\n  2) [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset \n\n    Error: expect(received).toContain(expected) // indexOf\n\n    Expected value: 500\n    Received array: [200, 201]\n\n      101 |       });\n      102 |\n    > 103 |       expect([200, 201]).toContain(forgotRes.status());\n          |                          ^\n      104 |\n      105 |       await new Promise((r) => setTimeout(r, 3000));\n      106 |\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:103:26\n\n  2 failed\n    [chromium] › e2e/specs/email-workflows.spec.ts:68:9 › Workflows Email Complets › Inscription avec vérification email › le nouvel utilisateur peut se connecter \n    [chromium] › e2e/specs/email-workflows.spec.ts:96:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset \n  2 passed (4.2s)\n"
+}

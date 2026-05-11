@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic
+.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder
 
 # ============================================================================
 # AIDE
@@ -19,12 +19,15 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "  make health                - Vérifier santé de tous les services"
 	@echo "  make check-deps            - Vérifier dépendances (Docker, etc.)"
 	@echo "  make show-docker-info      - Afficher infos Docker"
+	@echo "  make docker-network-diagnose - Diagnostiquer veth/bridge/overlay Docker"
 	@echo "  make status-port           - Afficher tous les ports exposés Docker"
 	@echo ""
 	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
 	@echo "  make diagnostic            - Diagnostic complet système"
 	@echo "  make diagnostic-docker     - Diagnostic Docker uniquement"
 	@echo "  make diagnostic-metrics    - Comparer Docker Desktop vs métriques agrégées"
+	@echo "  make redis-memory-report   - Pression mémoire Redis (dataset, RSS, fragmentation)"
+	@echo "  make resource-budget-sample - Mesurer CPU/RAM/IO p95 monitoring/frontend"
 	@echo "  make diagnostic-cors       - Diagnostic CORS"
 	@echo "  make diagnostic-network    - Diagnostic réseau"
 	@echo "  make diag-services         - Diagnostic services backend"
@@ -39,6 +42,11 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "💡 EXEMPLES:"
 	@echo "  make health && make diagnostic    # Santé + Diagnostic"
 	@echo "  make diagnostic-fix               # Correction auto"
+	@echo ""
+	@echo "📄 ENV (.env vs .env.example):"
+	@echo "  make env-check                    - Clés manquantes / orphelines (sans modifier .env)"
+	@echo "  make env-reorder                  - Réordonne .env comme .env.example (conserve tes valeurs)"
+	@echo "  make env-append-missing           - Fichier .env.append-from-example.txt (à fusionner à la main)"
 	@echo ""
 	@echo "📖 Documentation: docs/troubleshooting/guide.md"
 	@echo ""
@@ -128,6 +136,9 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 	else \
 		echo "❌ docker compose: Non disponible"; \
 	fi
+
+docker-network-diagnose: ## Diagnostiquer le réseau Docker local (veth, bridge, overlay, réseaux JobbingTrack)
+	@bash "$(ROOT_DIR)/scripts/docker/diagnose-network.sh"
 
 # Nettoyer cache Docker Compose
 clean-docker-cache: ## Nettoie le cache Docker Compose et force une redétection
@@ -235,11 +246,35 @@ diag-services: ## Diagnostic détaillé des services Docker en cours
 	@echo "  make diagnostic-fix          # Correction automatique"
 	@echo "  make logs                    # Logs en temps réel"
 	@echo "  make status                  # Statut des services"
+	@echo "  make verify-admin-routes     # Vérifier routes admin (generate-test-data, etc.)"
+
+# Vérifier que les routes admin de l'API Gateway répondent (generate-test-data, test-data/status)
+verify-admin-routes: ## Vérifier les routes admin sur la gateway (port 5002 ou API_GATEWAY_URL). Si 404 sur generate-test-data, redémarrer la gateway.
+	@echo "🔍 Vérification des routes admin..."
+	@GATEWAY_URL="$${API_GATEWAY_URL:-http://localhost:5002}"; \
+	if command -v curl >/dev/null 2>&1; then \
+		echo "   Gateway: $$GATEWAY_URL"; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 -H "Authorization: Bearer mock-jwt-token" "$$GATEWAY_URL/api/v1/admin/test"); \
+		if [ "$$code" = "200" ]; then echo "   ✅ GET /api/v1/admin/test → 200"; else echo "   ❌ GET /api/v1/admin/test → $$code"; fi; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST -H "Content-Type: application/json" -H "Authorization: Bearer mock-jwt-token" -d '{"preset":"minimal"}' "$$GATEWAY_URL/api/v1/admin/generate-test-data"); \
+		if [ "$$code" = "200" ]; then echo "   ✅ POST /api/v1/admin/generate-test-data → 200"; \
+		elif [ "$$code" = "404" ]; then echo "   ❌ POST /api/v1/admin/generate-test-data → 404 (redémarrez la gateway: make restart-service SERVICE=api-gateway)"; exit 1; \
+		else echo "   ⚠️ POST /api/v1/admin/generate-test-data → $$code (base peut être indisponible)"; fi; \
+	else \
+		node "$(ROOT_DIR)/tools/verify-admin-routes.js" "$${API_GATEWAY_URL:-http://localhost:5002}" || exit 1; \
+	fi
+	@echo "✅ Vérification terminée."
 
 # Diagnostic métriques vs hôte
 diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 	@echo "📈 Diagnostic des métriques Docker & hôte..."
 	@./scripts/monitoring/diagnostic-metrics.sh
+
+redis-memory-report: ## Mesurer la pression mémoire Redis (budget: REDIS_MEMORY_BUDGET_MB, défaut 128)
+	@./scripts/monitoring/redis-memory-report.sh
+
+resource-budget-sample: ## Mesurer CPU/RAM/IO p95 (RESOURCE_BUDGET_DURATION_MIN=45 par défaut)
+	@./scripts/monitoring/resource-budget-sample.py
 
 # ============================================================================
 # AFFICHAGE DES PORTS
@@ -248,3 +283,17 @@ diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 # Afficher tous les ports exposés Docker
 status-port: ## Afficher tous les ports externes Docker utilisés par JobbingTrack
 	@./scripts/utils/show-ports.sh
+
+# ---------------------------------------------------------------------------
+# .env ↔ .env.example (alignement des clés)
+# ---------------------------------------------------------------------------
+
+env-check: ## Compare .env et .env.example (variables manquantes ou uniquement dans .env)
+	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs"
+
+env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .env, valeurs copiées depuis l’exemple) — ne modifie pas .env
+	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
+	@echo "👉 Fusionnez manuellement le contenu dans .env puis supprimez le fichier si besoin."
+
+env-reorder: ## Réordonne .env comme .env.example en conservant tes valeurs (voir scripts/reorder-env-from-example.cjs)
+	@node "$(ROOT_DIR)/scripts/reorder-env-from-example.cjs" --write

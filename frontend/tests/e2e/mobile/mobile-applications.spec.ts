@@ -22,7 +22,7 @@ test.describe('📱 Mobile - Gestion Candidatures', () => {
     await page.fill('input[type="email"]', testCredentials?.email || 'admin@jobbingtrack.test');
     await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard**');
+    await page.waitForURL(/\/(backoffice|dashboard)(\/|$)/, { timeout: 30000 });
   });
 
   test('Liste des candidatures - Affichage mobile', async ({ page }) => {

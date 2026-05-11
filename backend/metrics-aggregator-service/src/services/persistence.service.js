@@ -16,6 +16,56 @@ try {
   console.error('[PERSISTENCE] ❌ Erreur initialisation Prisma:', error.message);
 }
 
+const METRICS_HISTORY_LIMIT_MAX = 60000;
+
+/**
+ * Colonne `public.system_metrics.timestamp` : TIMESTAMP **sans** fuseau, rempli par `NOW()` dans la session Postgres
+ * du conteneur **`postgres`** (`TZ` / `PGTZ` = **`POSTGRES_SYSTEM_METRICS_TZ`**, défaut **UTC**).
+ * La requête doit utiliser le **même** fuseau dans `AT TIME ZONE …` : sinon +2 h typiques si Postgres est en
+ * **Europe/Paris** et le SQL supposait à tort **UTC**.
+ */
+function systemMetricsTimestampAtTzSql() {
+  const raw = (process.env.POSTGRES_SYSTEM_METRICS_TZ || 'UTC').trim();
+  const z = /^[A-Za-z0-9_+\/.-]{1,64}$/.test(raw) ? raw : 'UTC';
+  const escaped = z.replace(/'/g, "''");
+  return `(timestamp AT TIME ZONE '${escaped}')`;
+}
+
+function clampMetricsHistoryLimit(raw, fallback = 100) {
+  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(Math.floor(n), METRICS_HISTORY_LIMIT_MAX);
+}
+
+/**
+ * Driver SQL / Prisma peut renvoyer Date ou chaîne sans fuseau. On expose toujours de l’ISO UTC
+ * pour le JSON afin que le front (fuseau navigateur) convertisse correctement.
+ */
+function toIsoUtcString(ts) {
+  if (ts == null || ts === '') return null;
+  if (ts instanceof Date) {
+    const ms = ts.getTime();
+    return Number.isNaN(ms) ? null : new Date(ms).toISOString();
+  }
+  const s = String(ts).trim();
+  if (!s) return null;
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    const d = new Date(`${s}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const pg = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d+)?$/.exec(s);
+  if (pg) {
+    const d = new Date(`${pg[1]}T${pg[2]}${pg[3] || ''}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 /**
  * Service de persistance des métriques et logs
  * Gère l'enregistrement de toutes les données de monitoring dans la base de données
@@ -482,11 +532,13 @@ class PersistenceService {
     }
     
     const {
-      limit = 100,
+      limit: rawLimit = 100,
       offset = 0,
       startDate = null,
       endDate = null,
     } = options;
+    const limit = clampMetricsHistoryLimit(rawLimit, 100);
+    const tsExpr = systemMetricsTimestampAtTzSql();
 
     const where = {};
     if (startDate || endDate) {
@@ -501,7 +553,7 @@ class PersistenceService {
       // au lieu de SystemMetricsSnapshot (Prisma) qui n'a pas ces champs
       let query = `
         SELECT 
-          timestamp,
+          ${tsExpr} AS "timestamp",
           cpu_load_1,
           cpu_load_5,
           cpu_load_15,
@@ -533,11 +585,11 @@ class PersistenceService {
       if (where.timestamp) {
         if (where.timestamp.gte) {
           const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
-          conditions.push(`timestamp >= '${gteDate}'`);
+          conditions.push(`${tsExpr} >= '${gteDate}'::timestamptz`);
         }
         if (where.timestamp.lte) {
           const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
-          conditions.push(`timestamp <= '${lteDate}'`);
+          conditions.push(`${tsExpr} <= '${lteDate}'::timestamptz`);
         }
       }
       
@@ -545,7 +597,7 @@ class PersistenceService {
         query += ' WHERE ' + conditions.join(' AND ');
       }
       
-      query += ` ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`;
+      query += ` ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${offset}`;
       
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
@@ -580,12 +632,16 @@ class PersistenceService {
       }
       
       // Convertir les résultats en format compatible avec SystemMetricsSnapshot
-      return rawResults.map((row) => {
-        // Convertir timestamp en Date si c'est une string
-        const timestamp = row.timestamp instanceof Date ? row.timestamp : new Date(row.timestamp);
+      return rawResults
+        .map((row) => {
+        const iso = toIsoUtcString(row.timestamp);
+        if (!iso) return null;
+        const timestamp = new Date(iso);
+        const timestampMs = timestamp.getTime();
         return {
         id: `system_${timestamp.getTime()}`,
-        timestamp: timestamp,
+        timestamp: iso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
         cpuUsagePercent: row.cpu_usage_percent || 0,
         cpuCores: row.cpu_cores || 0,
         cpuLoadAverage1m: row.cpu_load_1,
@@ -609,9 +665,10 @@ class PersistenceService {
         // ✅ NOUVEAU : Inclure project_cpu_avg et project_memory_mb depuis system_metrics
         project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
         project_memory_mb: row.project_memory_mb ? Number(row.project_memory_mb) : null,
-        createdAt: timestamp
+        createdAt: iso
       };
-      });
+      })
+        .filter(Boolean);
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('table')) {
@@ -633,7 +690,8 @@ class PersistenceService {
    */
   async getSystemMetricsHistoryFromSnapshot(options = {}) {
     if (!this.isDatabaseEnabled()) return [];
-    const { limit = 100, offset = 0, startDate = null, endDate = null } = options;
+    const { offset = 0, startDate = null, endDate = null } = options;
+    const limit = clampMetricsHistoryLimit(options.limit, 100);
     const where = {};
     if (startDate || endDate) {
       where.timestamp = {};
@@ -647,9 +705,15 @@ class PersistenceService {
         take: limit,
         skip: offset,
       });
-      return rows.map((row) => ({
+      return rows.map((row) => {
+        const tsIso =
+          toIsoUtcString(row.timestamp) ||
+          (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp));
+        const timestampMs = Date.parse(tsIso);
+        return {
         id: row.id,
-        timestamp: row.timestamp,
+        timestamp: tsIso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
         cpuUsagePercent: row.cpuUsagePercent ?? 0,
         cpu_percent: row.cpuUsagePercent ?? 0,
         cpuCores: row.cpuCores ?? 0,
@@ -665,8 +729,9 @@ class PersistenceService {
         availabilityPercent: row.availabilityPercent ?? null,
         loadScore: row.loadScore ?? null,
         responseTimeAvg: row.responseTimeAvg ?? null,
-        createdAt: row.timestamp,
-      }));
+        createdAt: tsIso,
+      };
+      });
     } catch (e) {
       console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
       return [];
@@ -680,15 +745,23 @@ class PersistenceService {
     if (!this.isDatabaseEnabled()) {
       return [];
     }
+
+    const canonicalName = String(containerName || '')
+      .replace(/^\//, '')
+      .trim();
+    if (!canonicalName) {
+      return [];
+    }
     
     const {
-      limit = 100,
+      limit: rawLimit = 100,
       offset = 0,
       startDate = null,
       endDate = null,
     } = options;
+    const limit = clampMetricsHistoryLimit(rawLimit, 100);
 
-    const where = { containerName };
+    const where = { containerName: canonicalName };
     if (startDate || endDate) {
       where.timestamp = {};
       if (startDate) where.timestamp.gte = new Date(startDate);
@@ -696,11 +769,22 @@ class PersistenceService {
     }
 
     try {
-      return await prisma.containerMetricsSnapshot.findMany({
+      const rows = await prisma.containerMetricsSnapshot.findMany({
         where,
         orderBy: { timestamp: 'desc' },
         take: limit,
         skip: offset,
+      });
+      return rows.map((row) => {
+        const tsIso =
+          toIsoUtcString(row.timestamp) ||
+          (row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp));
+        const timestampMs = Date.parse(tsIso);
+        return {
+          ...row,
+          timestamp: tsIso,
+          ...(Number.isFinite(timestampMs) ? { timestampMs } : {}),
+        };
       });
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
@@ -787,13 +871,22 @@ class PersistenceService {
         return null;
       }
       
+      let metaJson = metadata ?? null;
+      if (metaJson != null && typeof metaJson === 'object') {
+        try {
+          metaJson = JSON.parse(JSON.stringify(metaJson));
+        } catch {
+          metaJson = { _serializationError: true, raw: String(metadata) };
+        }
+      }
+
       const saved = await prisma.aggregatedLog.create({
         data: {
           timestamp: new Date(),
           serviceName: serviceName || 'unknown',
           level: level || 'INFO',
           message: message || '',
-          metadata: metadata || null,
+          metadata: metaJson,
           stackTrace: stackTrace || null,
           userId: userId || null,
           requestId: requestId || null,
@@ -852,6 +945,7 @@ class PersistenceService {
         limit = 100,
         offset = 0,
         serviceName = null,
+        serviceNames = null,
         level = null,
         startDate = null,
         endDate = null,
@@ -859,8 +953,15 @@ class PersistenceService {
       } = options;
 
       const where = {};
-      
-      if (serviceName) where.serviceName = serviceName;
+
+      const namesIn = Array.isArray(serviceNames)
+        ? serviceNames.filter((s) => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+        : null;
+      if (namesIn && namesIn.length > 0) {
+        where.serviceName = { in: namesIn.slice(0, 32) };
+      } else if (serviceName) {
+        where.serviceName = serviceName;
+      }
       if (level) where.level = level;
       
       if (startDate || endDate) {
@@ -956,6 +1057,47 @@ class PersistenceService {
       minResponseTime: responseTimes.length > 0 ? Math.min(...responseTimes) : 0,
       lastCheck: history[history.length - 1],
     };
+  }
+
+  /**
+   * Historique des checks health / temps de réponse par service (table `service_availability_history`).
+   */
+  async getServiceAvailabilityHistory(serviceName, options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    if (this._missingTables.has('service_availability_history')) {
+      return [];
+    }
+    const { startDate, endDate } = options;
+    const limit = clampMetricsHistoryLimit(
+      typeof options.limit === 'number' ? options.limit : parseInt(String(options.limit ?? ''), 10),
+      400
+    );
+    const where = { serviceName };
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = new Date(startDate);
+      if (endDate) where.timestamp.lte = new Date(endDate);
+    }
+    try {
+      const rows = await prisma.serviceAvailabilityHistory.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      });
+      const chronological = rows.slice().reverse();
+      return chronological.map((row) => ({
+        ...row,
+        timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
+      }));
+    } catch (error) {
+      if (this._isTableMissing(error, 'service_availability_history')) {
+        this._warnOnceMissing('service_availability_history', 'service_availability_history');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**

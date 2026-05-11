@@ -1,5 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
+  // Évite les crashs Jest worker « Converting circular structure to JSON » (Node 22 + sérialisation des résultats).
+  maxWorkers: 1,
   testMatch: [
     '**/tests/**/*.test.js',
     '**/tests/**/*.spec.js'

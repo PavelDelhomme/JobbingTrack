@@ -25,7 +25,7 @@ function ThemeScript() {
   useEffect(() => {
     try {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      const storedTheme = localStorage.getItem('theme') || 'system'
+      const storedTheme = localStorage.getItem('theme') || 'dark'
       const actualTheme = storedTheme === 'system' ? systemTheme : storedTheme
       document.documentElement.classList.add(actualTheme)
       document.body.classList.add(actualTheme)

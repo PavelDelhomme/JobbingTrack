@@ -1,0 +1,20 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-03-16T10:32:48+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 10,
+    "passed": 0,
+    "failed": 10
+  },
+  "output": "            id             |                    to                    |                   subject                   |     type     | status | sentAt |        createdAt        \n---------------------------+------------------------------------------+---------------------------------------------+--------------+--------+--------+-------------------------\n cmmsziyxb00at8k8iul61aft3 | redacted@example.invalid                   | E2E Interaction Test - 1773653545895        | TEST         | FAILED |        | 2026-03-16 09:32:26.063\n cmmszi8no00as8k8i90bgamzw | e2e-user-1773653506653@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:52.02\n cmmszi8cp00ar8k8ic66okyxd | e2e-user-1773653506198@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:51.626\n cmmszi79000aq8k8i493v6a3z | e2e-user-1773653503997@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:50.196\n cmmszi79000ap8k8imeyu7zhs | e2e-user-1773653503995@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:50.196\n cmmszi78m00ao8k8i3em9wl0i | e2e-user-1773653503936@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:50.183\n cmmszi6ry00an8k8iwpxd5un0 | e2e-user-1773653503771@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:49.582\n cmmszi68p00am8k8iz14ir2im | e2e-user-1773653502619@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:48.889\n cmmszi68n00al8k8itayt1h0q | e2e-user-1773653502603@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:48.887\n cmmszi68n00ak8k8i9vxtpnga | e2e-user-1773653502564@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED |        | 2026-03-16 09:31:48.887\n(10 rows)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

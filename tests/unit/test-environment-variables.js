@@ -85,9 +85,9 @@ async function testEnvironmentVariables() {
     // Test 4: Vérifier les scripts shell
     console.log('\n🔨 Test 4: Scripts shell...');
     const scriptsToCheck = [
-        './scripts/core/start.sh',
+        './scripts/core/check.sh',
         './scripts/db/seed.sh',
-        './scripts/utils/make-up.sh'
+        './scripts/health/check-env.sh'
     ];
 
     let scriptsTestsPassed = true;
@@ -139,9 +139,9 @@ async function testEnvironmentVariables() {
         './backend/docker-compose.yml',
         './backend/docker-compose.prod.yml',
         './Makefile',
-        './scripts/core/start.sh',
+        './scripts/core/check.sh',
         './scripts/db/seed.sh',
-        './scripts/utils/make-up.sh'
+        './scripts/health/check-env.sh'
     ];
 
     let hardcodeTestsPassed = true;

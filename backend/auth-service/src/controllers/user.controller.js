@@ -415,8 +415,10 @@ const verifyEmail = async (req, res) => {
 // Fonction interne pour envoyer l'email de vérification
 // URL compatible web + deep link mobile (universal links / app links)
 // Format: https://app.jobbingtrack.com/verify-email?token=xxx (web) ou jobbingtrack://verify-email?token=xxx (mobile)
+const { getPublicFrontendUrl } = require('../utils/frontendUrlForEmails');
+
 async function sendVerificationEmailInternal(userId, email, firstName, token) {
-  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:8080';
+  const baseUrl = getPublicFrontendUrl();
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
 
   const emailHtml = `

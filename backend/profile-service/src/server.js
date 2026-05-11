@@ -1,27 +1,38 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+const logger = require('./utils/logger');
+const { requestContextMiddleware } = require('./utils/requestContext');
 
 const app = express();
 const PORT = process.env.PORT || 3009;
+app.set('trust proxy', true);
 
-// Middleware
+app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:3000'],
-  credentials: true
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Correlation-Id', 'X-Requested-With'],
+  exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
 }));
+app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
+app.use(requestContextMiddleware);
 app.use(express.json());
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'profile-service',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
-// Middleware : exiger un token pour les routes protégées
 const requireAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !/^Bearer\s+.+/.test(authHeader)) {
@@ -30,7 +41,6 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// GET /api/v1/profile/me — profil de l'utilisateur connecté (protégé)
 app.get('/api/v1/profile/me', requireAuth, (req, res) => {
   res.json({
     success: true,
@@ -46,7 +56,6 @@ app.get('/api/v1/profile/me', requireAuth, (req, res) => {
   });
 });
 
-// PUT /api/v1/profile/me — mise à jour du profil (protégé)
 app.put('/api/v1/profile/me', requireAuth, (req, res) => {
   const { firstName, lastName } = req.body || {};
   res.json({
@@ -63,9 +72,7 @@ app.put('/api/v1/profile/me', requireAuth, (req, res) => {
   });
 });
 
-// API routes avec données mockées
 app.get('/api/v1/profile-service', (req, res) => {
-  // Données mockées pour l'interface d'administration
   const mockData = {
     contact: { contacts: [], total: 0 },
     interview: { interviews: [], total: 0 },
@@ -91,9 +98,13 @@ app.post('/api/v1/profile-service', (req, res) => {
   });
 });
 
-// Démarrage
+const notFound = require('./middlewares/notFound');
+const errorHandler = require('./middlewares/errorHandler');
+app.use(notFound);
+app.use(errorHandler);
+
 app.listen(PORT, () => {
-  console.log(`🚀 profile-service démarré sur le port ${PORT}`);
+  logger.info(`🚀 profile-service démarré sur le port ${PORT}`);
 });
 
 module.exports = app;

@@ -1,0 +1,84 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  27/02/2026 15:12:24
+================================================================
+
+RESUME
+------
+  Categories  : 19
+  Total tests : 385
+  Reussis     : 383
+  Echoues     : 2
+  Ignores     : 1
+  Taux        : 99.5%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [OK]   [U] Tests API Complets (Jest) (15s)
+  [OK]   [S] Tests Backend Services (Jest local) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (10s)
+  [OK]   [A] Playwright Emails MailHog (21s)
+  [FAIL] [U] Playwright Email Workflows (10s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (4s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+
+TESTS ECHOUES
+-------------
+
+  --- Playwright E2E Frontend ---
+    SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+      124 |     expect(archived).toBe(true);
+      124 |     expect(archived).toBe(true);
+        "maxFailures": 0,
+      "errors": [
+          "message": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                      ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+          "stack": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                      ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+          "snippet": "   at archive-interactions.spec.ts:123\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                     ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {"
+        "expected": 0,
+        "unexpected": 0,
+    SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)
+      124 |     expect(archived).toBe(true);
+      124 |     expect(archived).toBe(true);
+        "maxFailures": 0,
+      "errors": [
+          "message": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                      ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+          "stack": "SyntaxError: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/archive-interactions.spec.ts: Unexpected reserved word 'await'. (123:21)\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                      ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {",
+          "snippet": "   at archive-interactions.spec.ts:123\n\n  121 |   });\n  122 |     test.skip(!applicationId || !interviewId, 'Données manquantes');\n> 123 |     const archived = await apiArchive(request, token, 'applications', applicationId);\n      |                     ^\n  124 |     expect(archived).toBe(true);\n  125 |\n  126 |     const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {"
+        "expected": 0,
+        "unexpected": 0,
+
+  --- Playwright Email Workflows ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 103 |       expect([200, 201]).toContain(forgotRes.status());
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 103 |       expect([200, 201]).toContain(forgotRes.status());
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 103 |       expect([200, 201]).toContain(forgotRes.status());
+      1 failed
+
+================================================================
+  Rapports : tests/results/20260227-151034/
+  HTML     : report.html
+  Texte    : report.txt
+================================================================

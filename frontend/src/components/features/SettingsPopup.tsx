@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '@/lib/hooks/theme'
 import { useAuth } from '@/lib/hooks/auth'
@@ -17,6 +19,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history' | 'display'>('appearance')
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
+  const [interimMode, setInterimMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
@@ -36,6 +39,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
     }
     if (isOpen) {
       loadPreferences()
+      setInterimMode(typeof window !== 'undefined' && localStorage.getItem('backoffice_interim_mode') === 'true')
     }
   }, [isOpen])
 
@@ -449,6 +453,26 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       </label>
                     </div>
                   ))}
+
+                  <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">Mode intérim</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Mettre en avant Suivi intérim, filtres et couleurs calendrier (événements via agence)</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={interimMode}
+                        onChange={(e) => {
+                          const v = e.target.checked
+                          setInterimMode(v)
+                          if (typeof window !== 'undefined') localStorage.setItem('backoffice_interim_mode', String(v))
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}

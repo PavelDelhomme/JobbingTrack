@@ -1,0 +1,15 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-04-17T23:11:03+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 5,
+    "passed": 3,
+    "failed": 5
+  },
+  "output": "            id             |                       to                       |                    subject                     |     type     | status  |         sentAt          |        createdAt        \n---------------------------+------------------------------------------------+------------------------------------------------+--------------+---------+-------------------------+-------------------------\n cmo3dnkr8001mgj6sxr9djzgl | e2e-admin-crud-1776458714007@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |                         | 2026-04-17 20:45:19.701\n cmo3dngw9001lgj6s5obzq8oc | e2e-admin-crud-1776458714007@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |                         | 2026-04-17 20:45:14.697\n cmo3dngw6001jgj6s1d71zj5z | e2e-admin-crud-1776458714007@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |                         | 2026-04-17 20:45:14.695\n cmo3dn942001ggj6sbpzj14fz | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |                         | 2026-04-17 20:45:04.61\n cmo3dn8vx001fgj6st5hhqxho | test+e2e-1776458699060@example.invalid            | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-04-17 20:45:16.435 | 2026-04-17 20:45:04.317\n cmo3dn8ow001egj6s8ce4w2pt | redacted@example.invalid          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |                         | 2026-04-17 20:45:04.065\n cmo3dn590001dgj6spb1z3xs8 | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |                         | 2026-04-17 20:44:59.604\n cmo3dn58y001bgj6s12rbujih | redacted@example.invalid       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |                         | 2026-04-17 20:44:59.602\n cmo3dn50y0018gj6sy9bpqil8 | test+e2e-1776458699060@example.invalid            | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-04-17 20:45:00.328 | 2026-04-17 20:44:59.314\n cmo3dn50w0016gj6st34exqck | test+e2e-1776458699060@example.invalid            | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | SENT    | 2026-04-17 20:45:16.439 | 2026-04-17 20:44:59.312\n(10 rows)\n"
+}

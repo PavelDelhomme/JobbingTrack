@@ -4,6 +4,7 @@ const router = express.Router();
 const dockerService = require('../services/docker.service');
 const metricsHistory = require('../services/metricsHistory.service');
 const lokiService = require('../services/loki.service');
+const persistenceService = require('../services/persistence.service');
 
 const SERVICE_HEALTH_CONFIG = {
   'jobbingtrack-auth-service': { port: 8001, path: '/api/v1/auth/health' },
@@ -28,16 +29,26 @@ const SERVICE_HEALTH_CONFIG = {
 };
 
 const FIVE_MINUTES_IN_MINUTES = 5;
+const SERVICES_ALL_CACHE_TTL_MS = Number(process.env.DOCKER_SERVICES_ALL_CACHE_TTL_MS || 60000);
+let servicesAllCache = null;
+
+/** `docker ps --format "{{json .}}"` : le champ Names peut être `/jobbingtrack-foo` ; la persistance et Prisma utilisent `jobbingtrack-foo`. */
+function normalizeDockerPsName(namesField) {
+  if (namesField == null) return '';
+  const raw = Array.isArray(namesField) ? namesField[0] : String(namesField);
+  return raw.replace(/^\//, '').trim();
+}
 
 function normaliseServiceKey(containerName = '') {
-  if (!containerName) return null;
+  const stripped = normalizeDockerPsName(containerName);
+  if (!stripped) return null;
   const variants = new Set([
-    containerName,
-    containerName.replace(/-prod$/, ''),
-    containerName.replace(/-preview$/, ''),
-    containerName.replace(/-staging$/, ''),
-    containerName.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
-    containerName.replace(/_[0-9]+$/, '')
+    stripped,
+    stripped.replace(/-prod$/, ''),
+    stripped.replace(/-preview$/, ''),
+    stripped.replace(/-staging$/, ''),
+    stripped.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
+    stripped.replace(/_[0-9]+$/, '')
   ]);
 
   for (const variant of variants) {
@@ -47,6 +58,10 @@ function normaliseServiceKey(containerName = '') {
   }
 
   return null;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
 /**
@@ -66,7 +81,11 @@ async function probeServiceHealth(containerName, containerStats = null) {
   // Essayer le probe HTTP si la config existe
   if (key && SERVICE_HEALTH_CONFIG[key]) {
   const config = SERVICE_HEALTH_CONFIG[key];
-  const url = `http://localhost:${config.port}${config.path}`;
+  // Depuis le conteneur metrics-aggregator, localhost ≠ les autres services : utiliser le nom
+  // Docker (même clé que dans SERVICE_HEALTH_CONFIG), sauf override explicite pour un run hors réseau compose.
+  const probeHost =
+    process.env.METRICS_HTTP_PROBE_USE_LOCALHOST === 'true' ? 'localhost' : key;
+  const url = `http://${probeHost}:${config.port}${config.path}`;
 
   const startTime = Date.now();
   try {
@@ -379,6 +398,8 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       const memoryLimitMb = parseFloat((stat.memory_limit / (1024 * 1024)).toFixed(2));
       const networkRxMb = parseFloat((stat.network_rx / (1024 * 1024)).toFixed(2));
       const networkTxMb = parseFloat((stat.network_tx / (1024 * 1024)).toFixed(2));
+      const blockReadMb = parseFloat(((stat.block_read ?? 0) / (1024 * 1024)).toFixed(4));
+      const blockWriteMb = parseFloat(((stat.block_write ?? 0) / (1024 * 1024)).toFixed(4));
 
       return {
         name: stat.name,
@@ -389,6 +410,8 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
         memory_limit_mb: memoryLimitMb,
         network_rx_mb: networkRxMb,
         network_tx_mb: networkTxMb,
+        block_read_mb: blockReadMb,
+        block_write_mb: blockWriteMb,
         pids: stat.pids,
         health_status: healthInfo.status,
         response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
@@ -443,7 +466,9 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
         memory_usage_mb: service.memory_usage_mb,
         memory_limit_mb: service.memory_limit_mb,
         network_rx_mb: service.network_rx_mb,
-        network_tx_mb: service.network_tx_mb
+        network_tx_mb: service.network_tx_mb,
+        block_read_mb: service.block_read_mb,
+        block_write_mb: service.block_write_mb
       },
       response_time_ms: service.response_time_ms,
       error_rate_per_min: service.error_rate_per_min,
@@ -579,25 +604,43 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
  */
 router.get('/services/all', async (req, res) => {
   try {
-    console.log('[DOCKER ROUTES] 📋 Récupération de tous les services...');
-    
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
+    const includeOptional = String(req.query.includeOptional ?? 'true').toLowerCase() !== 'false';
+    const includeMailhog = String(req.query.includeMailhog ?? 'true').toLowerCase() !== 'false';
+    const cacheKey = JSON.stringify({ includeOptional, includeMailhog });
+
+    if (
+      SERVICES_ALL_CACHE_TTL_MS > 0 &&
+      servicesAllCache &&
+      servicesAllCache.key === cacheKey &&
+      servicesAllCache.expiresAt > Date.now()
+    ) {
+      return res.json({
+        ...servicesAllCache.payload,
+        cached: true,
+        cacheTtlMs: servicesAllCache.expiresAt - Date.now()
+      });
+    }
+
+    console.log('[DOCKER ROUTES] 📋 Récupération de tous les services...');
     
-    // Lister TOUS les conteneurs (même arrêtés), mais exclure MailHog et les services optionnels
+    // Lister TOUS les conteneurs (même arrêtés)
     const { stdout } = await execAsync('docker ps -a --filter "name=jobbingtrack" --format "{{json .}}"');
     const allContainers = stdout.trim().split('\n')
       .filter(line => line.length > 0)
       .map(line => JSON.parse(line))
-      // Exclure MailHog et les services optionnels
       .filter(container => {
-        const name = container.Names;
-        // Exclure MailHog (insensible à la casse)
-        if (name.toLowerCase().includes('mailhog')) {
+        const name = normalizeDockerPsName(container.Names);
+        container.canonicalName = name;
+
+        // Optionnel: exclure MailHog si demandé explicitement
+        if (!includeMailhog && name.toLowerCase().includes('mailhog')) {
           return false;
         }
-        // Exclure les services optionnels (chercher avec ou sans préfixe jobbingtrack-)
+
+        // Optionnel: exclure certains services si demandé explicitement
         const optionalServices = [
           'workflow-service',
           'notification-service',
@@ -606,28 +649,52 @@ router.get('/services/all', async (req, res) => {
           'event-service',
           'security-service'
         ];
-        // Vérifier si le nom du conteneur contient un des services optionnels
-        return !optionalServices.some(service => {
-          return name === `jobbingtrack-${service}` || name === service || name.includes(service);
-        });
+        if (!includeOptional) {
+          return !optionalServices.some(service => {
+            return name === `jobbingtrack-${service}` || name === service || name.includes(service);
+          });
+        }
+
+        return true;
       });
     
     // Récupérer les stats uniquement pour les conteneurs en cours d'exécution
     const runningStats = await dockerService.getAllContainersStats();
     const statsMap = {};
     runningStats.forEach(stat => {
-      statsMap[stat.name] = stat;
+      if (!stat || !stat.name) return;
+      const raw = String(stat.name);
+      const canon = normalizeDockerPsName(raw);
+      statsMap[raw] = stat;
+      if (canon && canon !== raw) statsMap[canon] = stat;
     });
     
-    // Récupérer le health status et l'état réel pour tous les conteneurs
+    // Récupérer le health status et l'état réel pour tous les conteneurs en une seule commande.
     const healthStatusMap = {};
     const containerStateMap = {}; // Map pour stocker l'état réel des conteneurs
-    for (const container of allContainers) {
+    const namesToInspect = allContainers
+      .map(container => container.canonicalName || normalizeDockerPsName(container.Names))
+      .filter(Boolean);
+    const inspectStates = new Map();
+    if (namesToInspect.length > 0) {
       try {
-        const containerName = container.Names;
-        const { stdout: inspectOut } = await execAsync(`docker inspect --format='{{json .State}}' ${containerName}`);
-        const state = JSON.parse(inspectOut);
-        
+        const { stdout: inspectOut } = await execAsync(
+          `docker inspect --format='{{json .State}}' ${namesToInspect.map(shellQuote).join(' ')}`
+        );
+        inspectOut.trim().split('\n').filter(Boolean).forEach((line, idx) => {
+          inspectStates.set(namesToInspect[idx], JSON.parse(line));
+        });
+      } catch (err) {
+        console.error('[DOCKER ROUTES] Erreur inspection groupée:', err.message);
+      }
+    }
+
+    for (const container of allContainers) {
+      const containerName = container.canonicalName || normalizeDockerPsName(container.Names);
+      try {
+        const state = inspectStates.get(containerName);
+        if (!state) throw new Error('state unavailable');
+
         // Déterminer le health status
         let healthStatus = 'none'; // Pas de healthcheck configuré
         if (state.Health) {
@@ -650,15 +717,14 @@ router.get('/services/all', async (req, res) => {
           state: state
         };
       } catch (err) {
-        console.error(`[DOCKER ROUTES] Erreur inspection ${container.Names}:`, err.message);
         // Fallback : utiliser container.State mais c'est moins fiable
         const isRunning = container.State === 'running';
-        healthStatusMap[container.Names] = {
+        healthStatusMap[containerName] = {
           health: 'unknown',
           running: isRunning,
           status: container.State
         };
-        containerStateMap[container.Names] = {
+        containerStateMap[containerName] = {
           isRunning: isRunning,
           status: container.State,
           state: null
@@ -669,7 +735,7 @@ router.get('/services/all', async (req, res) => {
     // ✅ Effectuer les HTTP health checks en PARALLÈLE pour tous les services
     const healthChecks = await Promise.allSettled(
       allContainers.map(async (container) => {
-        const name = container.Names;
+        const name = container.canonicalName || normalizeDockerPsName(container.Names);
         // Utiliser l'état réel du conteneur depuis containerStateMap
         const containerState = containerStateMap[name] || { isRunning: container.State === 'running' };
         const isRunning = containerState.isRunning;
@@ -698,7 +764,7 @@ router.get('/services/all', async (req, res) => {
     
     // Mapper tous les conteneurs avec leurs stats, health status Docker ET HTTP
     const services = allContainers.map(container => {
-      const name = container.Names;
+      const name = container.canonicalName || normalizeDockerPsName(container.Names);
       // Utiliser l'état réel du conteneur depuis containerStateMap
       const containerState = containerStateMap[name] || { isRunning: container.State === 'running', status: container.State };
       const isRunning = containerState.isRunning;
@@ -737,7 +803,7 @@ router.get('/services/all', async (req, res) => {
       ) && dockerHealthInfo.health !== 'unhealthy';
       
       return {
-        name: name,
+        name,
         status: actualStatus, // Utiliser le statut réel du conteneur
         health_status: dockerHealthInfo.health, // Statut Docker natif (none, healthy, unhealthy, starting)
         is_running: isRunning, // Utiliser l'état réel (state.Running)
@@ -766,14 +832,24 @@ router.get('/services/all', async (req, res) => {
     const running = services.filter(s => s.is_running);
     const stopped = services.filter(s => !s.is_running);
     
-    res.json({
+    const payload = {
       success: true,
       timestamp: new Date().toISOString(),
       total: services.length,
       running: running.length,
       stopped: stopped.length,
       services: services
-    });
+    };
+
+    if (SERVICES_ALL_CACHE_TTL_MS > 0) {
+      servicesAllCache = {
+        key: cacheKey,
+        expiresAt: Date.now() + SERVICES_ALL_CACHE_TTL_MS,
+        payload
+      };
+    }
+
+    res.json(payload);
     
   } catch (error) {
     console.error('[DOCKER ROUTES] ❌ Erreur:', error);
@@ -785,6 +861,19 @@ router.get('/services/all', async (req, res) => {
   }
 });
 
+/** Fenêtres relatives autorisées pour docker logs --since / --until (évite l'injection shell) */
+const DOCKER_LOGS_ALLOWED_RELATIVE = new Set([
+  '15m', '30m', '45m', '1h', '2h', '6h', '12h', '24h', '48h', '72h', '7d', '168h'
+]);
+
+function sanitizeDockerLogsSinceUntil(value) {
+  if (value == null || value === '') return null;
+  const v = String(value).trim();
+  if (DOCKER_LOGS_ALLOWED_RELATIVE.has(v)) return v;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/.test(v)) return v;
+  return null;
+}
+
 /**
  * Endpoint pour récupérer les logs Docker d'un service
  * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
@@ -792,7 +881,10 @@ router.get('/services/all', async (req, res) => {
 router.get('/service/:name/logs', async (req, res) => {
   try {
     const serviceName = req.params.name;
-    const lines = parseInt(req.query.lines) || 100;
+    let lines = parseInt(req.query.lines, 10) || 100;
+    lines = Math.min(5000, Math.max(10, lines));
+    const sinceArg = sanitizeDockerLogsSinceUntil(req.query.since);
+    const untilArg = sanitizeDockerLogsSinceUntil(req.query.until);
     
     if (process.env.REDUCE_METRICS_LOGS === '0') {
       console.log('[DOCKER ROUTES] 📜 Récupération logs pour:', serviceName, '- Lignes:', lines);
@@ -802,8 +894,13 @@ router.get('/service/:name/logs', async (req, res) => {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     
+    let dockerCmd = `docker logs ${serviceName} --tail ${lines} --timestamps`;
+    if (sinceArg) dockerCmd += ` --since ${sinceArg}`;
+    if (untilArg) dockerCmd += ` --until ${untilArg}`;
+    dockerCmd += ' 2>&1';
+
     // Récupérer les logs du conteneur Docker avec timestamps
-    const { stdout } = await execAsync(`docker logs ${serviceName} --tail ${lines} --timestamps 2>&1`);
+    const { stdout } = await execAsync(dockerCmd);
     
     // Traiter les logs (les timestamps sont au format: 2025-12-02T17:21:30.123456789Z message)
     const logLines = stdout.split('\n').filter(line => line.trim().length > 0);
@@ -830,7 +927,8 @@ router.get('/service/:name/logs', async (req, res) => {
       lines: logLines,
       errorLines: errorLines.slice(0, 10), // Limiter les erreurs affichées
       warningLines: warningLines.slice(0, 10), // Limiter les warnings affichés
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      query: { lines, since: sinceArg || null, until: untilArg || null }
     });
     
   } catch (error) {
@@ -843,30 +941,135 @@ router.get('/service/:name/logs', async (req, res) => {
   }
 });
 
+function metricsHistoryNum(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'bigint') return Number(v);
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Aligné sur les snapshots fichiers `saveServiceSnapshots` + `normalizeServerHistoryRows` (front).
+ */
+function containerMetricsDbRowToFlatHistoryPoint(row) {
+  const memUse = metricsHistoryNum(row.memoryUsageBytes);
+  const memLim = Math.max(metricsHistoryNum(row.memoryLimitBytes), 1);
+  let memPct = metricsHistoryNum(row.memoryUsagePercent);
+  if (!memPct && memUse) memPct = (memUse / memLim) * 100;
+  const rx = metricsHistoryNum(row.networkRxBytes);
+  const tx = metricsHistoryNum(row.networkTxBytes);
+  const br = metricsHistoryNum(row.blockReadBytes);
+  const bw = metricsHistoryNum(row.blockWriteBytes);
+  const ts = row.timestamp;
+  const tsIso =
+    typeof ts === 'string' && ts.trim()
+      ? ts.trim()
+      : ts instanceof Date && !Number.isNaN(ts.getTime())
+        ? ts.toISOString()
+        : null;
+  if (!tsIso) return null;
+  const tsMs = row.timestampMs ?? Date.parse(tsIso);
+  return {
+    timestamp: tsIso,
+    ...(Number.isFinite(tsMs) ? { unix_timestamp: tsMs } : {}),
+    cpu_percent: metricsHistoryNum(row.cpuUsagePercent),
+    memory_percent: memPct,
+    memory_usage_mb: memUse / (1024 * 1024),
+    network_rx_mb: rx / (1024 * 1024),
+    network_tx_mb: tx / (1024 * 1024),
+    block_read_mb: br / (1024 * 1024),
+    block_write_mb: bw / (1024 * 1024)
+  };
+}
+
+/**
+ * Fichiers `/tmp/.../services/<short>/` (rafraîchissement agrégateur) + Postgres `container_metrics_snapshots`
+ * (collecteur). Même fenêtre temporelle : la BDD l’emporte sur le doublon (persistance au rechargement).
+ */
+function mergeServiceHistoryFileAndDb(fileSnapshots, dbFlatPoints, numericLimit) {
+  const bucketMs = 2000;
+  const toMs = (p) => {
+    if (p.unix_timestamp != null) {
+      const u = Number(p.unix_timestamp);
+      if (Number.isFinite(u)) return u;
+    }
+    if (p.timestamp) {
+      const d = Date.parse(p.timestamp);
+      if (Number.isFinite(d)) return d;
+    }
+    return NaN;
+  };
+  const m = new Map();
+  const put = (p, prio) => {
+    if (!p || p.timestamp == null) return;
+    const ms = toMs(p);
+    if (!Number.isFinite(ms)) return;
+    const b = Math.floor(ms / bucketMs) * bucketMs;
+    const cur = m.get(b);
+    if (!cur || prio >= cur.prio) m.set(b, { p, prio });
+  };
+  for (const p of fileSnapshots) put(p, 1);
+  for (const p of dbFlatPoints) put(p, 2);
+  const sorted = Array.from(m.keys())
+    .sort((a, b) => a - b)
+    .map((k) => m.get(k).p);
+  const lim = Number.isFinite(numericLimit) && numericLimit > 0 ? Math.floor(numericLimit) : 100;
+  return sorted.slice(-lim);
+}
+
 /**
  * Endpoint pour récupérer l'historique d'un service spécifique
  * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
  */
 router.get('/service/:name/history', async (req, res) => {
   try {
-    const serviceName = req.params.name.replace('jobbingtrack-', '');
+    const rawName = (req.params.name || '').trim();
+    const serviceName = rawName.replace(/^jobbingtrack-/, '');
+    const fullContainerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`;
     const { 
       startTime = Date.now() - 3600000,
       endTime = Date.now(),
       limit = 100
     } = req.query;
-    
-    const history = await metricsHistory.getServiceHistory(serviceName, {
-      startTime: parseInt(startTime),
-      endTime: parseInt(endTime),
-      limit: parseInt(limit)
+    const st = parseInt(String(startTime), 10);
+    const et = parseInt(String(endTime), 10);
+    const safeLimit = Number.isFinite(parseInt(String(limit), 10)) && parseInt(String(limit), 10) > 0
+      ? parseInt(String(limit), 10)
+      : 100;
+
+    const historyFiles = await metricsHistory.getServiceHistory(serviceName, {
+      startTime: Number.isFinite(st) ? st : Date.now() - 3600000,
+      endTime: Number.isFinite(et) ? et : Date.now(),
+      limit: Math.min(500, safeLimit * 3)
     });
-    
+
+    let dbRows = [];
+    try {
+      const startDate = Number.isFinite(st) ? new Date(st).toISOString() : null;
+      const endDate = Number.isFinite(et) ? new Date(et).toISOString() : null;
+      dbRows = await persistenceService.getContainerMetricsHistory(fullContainerName, {
+        limit: Math.min(60000, Math.max(safeLimit * 5, 300)),
+        offset: 0,
+        startDate,
+        endDate
+      });
+    } catch (e) {
+      console.warn('[DOCKER ROUTES] Historique BDD conteneur (merge history):', e.message);
+    }
+
+    const dbFlat = dbRows.map(containerMetricsDbRowToFlatHistoryPoint).filter(Boolean);
+    const merged = mergeServiceHistoryFileAndDb(historyFiles, dbFlat, safeLimit);
+
     res.json({
       success: true,
       service: serviceName,
-      count: history.length,
-      data: history,
+      container: fullContainerName,
+      count: merged.length,
+      data: merged,
+      sources: {
+        fileSnapshots: historyFiles.length,
+        databaseRows: dbFlat.length
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -1088,17 +1291,25 @@ router.get('/service/:name', async (req, res) => {
       finalHealthStatus = 'starting';
     }
     
+    const cpuPrecise = parseFloat(Number(stats.cpu_percent).toFixed(4))
+    const memUsageMb = parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(4))
+    const memLimitMb = parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(4))
+    const rxMb = parseFloat((stats.network_rx / (1024 * 1024)).toFixed(4))
+    const txMb = parseFloat((stats.network_tx / (1024 * 1024)).toFixed(4))
+
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
       service: {
         name: serviceName,
-        cpu_percent: stats.cpu_percent,
-        memory_percent: stats.memory_percent,
-        memory_usage_mb: parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(2)),
-        memory_limit_mb: parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(2)),
-        network_rx_mb: parseFloat((stats.network_rx / (1024 * 1024)).toFixed(2)),
-        network_tx_mb: parseFloat((stats.network_tx / (1024 * 1024)).toFixed(2)),
+        cpu_percent: cpuPrecise,
+        memory_percent: parseFloat(Number(stats.memory_percent).toFixed(4)),
+        memory_usage_mb: memUsageMb,
+        memory_limit_mb: memLimitMb,
+        network_rx_mb: rxMb,
+        network_tx_mb: txMb,
+        block_read_mb: parseFloat(((stats.block_read ?? 0) / (1024 * 1024)).toFixed(4)),
+        block_write_mb: parseFloat(((stats.block_write ?? 0) / (1024 * 1024)).toFixed(4)),
         pids: stats.pids,
         health: finalHealthStatus,
         health_status_docker: dockerHealthStatus,

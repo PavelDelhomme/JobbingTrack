@@ -15,12 +15,35 @@ const createContact = async (req, res, next) => {
       });
     }
 
+    const { companyId, applicationId, ...contactData } = req.body || {};
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Utilisateur non identifié (userId manquant)'
+      });
+    }
+
     const contact = await prisma.contact.create({
       data: {
-        userId: req.user.id,
-        ...req.body
+        userId,
+        ...contactData
       }
     });
+
+    if (companyId) {
+      try {
+        await prisma.contactCompany.upsert({
+          where: {
+            contactId_companyId: { contactId: contact.id, companyId }
+          },
+          update: {},
+          create: { contactId: contact.id, companyId }
+        });
+      } catch (linkErr) {
+        logger.warn(`Contact créé mais liaison entreprise ignorée (companyId invalide?): ${linkErr.message}`);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -144,6 +167,7 @@ const getContact = async (req, res, next) => {
 const updateContact = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const body = req.body;
 
     const existingContact = await prisma.contact.findFirst({
       where: { id, userId: req.user.id }
@@ -156,9 +180,18 @@ const updateContact = async (req, res, next) => {
       });
     }
 
+    const allowed = ['firstName', 'lastName', 'position', 'email', 'phone', 'linkedinUrl', 'notes'];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) updateData[key] = body[key];
+    }
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, error: 'Aucun champ à mettre à jour' });
+    }
+
     const contact = await prisma.contact.update({
       where: { id },
-      data: req.body
+      data: updateData
     });
 
     res.json({

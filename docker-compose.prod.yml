@@ -7,8 +7,8 @@ services:
   # API Gateway - Configuration production
   api-gateway:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 2
       resources:
@@ -32,8 +32,8 @@ services:
   # Auth Service - Configuration production
   auth-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 2
       resources:
@@ -57,8 +57,8 @@ services:
   # Application Service - Configuration production
   application-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 2
       resources:
@@ -82,8 +82,8 @@ services:
   # Company Service - Configuration production
   company-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 1
       resources:
@@ -107,8 +107,8 @@ services:
   # Contact Service - Configuration production
   contact-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 1
       resources:
@@ -132,8 +132,8 @@ services:
   # Interview Service - Configuration production
   interview-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 1
       resources:
@@ -157,8 +157,8 @@ services:
   # Notification Service - Configuration production
   notification-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 1
       resources:
@@ -182,8 +182,8 @@ services:
   # Dashboard Service - Configuration production
   dashboard-service:
     environment:
-      - NODE_ENV=production
       - LOG_LEVEL=warn
+      - NODE_ENV=production
     deploy:
       replicas: 1
       resources:
@@ -208,8 +208,8 @@ services:
   postgres:
     environment:
       - POSTGRES_DB=jobbingtrack
-      - POSTGRES_USER=jobbingtrack
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=jobbingtrack
     deploy:
       resources:
         limits:

@@ -21,6 +21,32 @@ interface ServiceStatus {
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
+/** Conteneur Docker pour logs réels (metrics-aggregator) — aligné lot A2 */
+const METRICS_FOR_LOGS =
+  process.env.NEXT_PUBLIC_METRICS_URL ||
+  process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL ||
+  'http://localhost:5004'
+
+const SERVICE_TYPE_DOCKER: Record<string, string> = {
+  gateway: 'jobbingtrack-api-gateway',
+  auth: 'jobbingtrack-auth-service',
+  application: 'jobbingtrack-application-service',
+  company: 'jobbingtrack-company-service',
+  contact: 'jobbingtrack-contact-service',
+  interview: 'jobbingtrack-interview-service',
+  notification: 'jobbingtrack-notification-service',
+  dashboard: 'jobbingtrack-dashboard-service',
+  call: 'jobbingtrack-call-service',
+  event: 'jobbingtrack-event-service',
+  followup: 'jobbingtrack-followup-service',
+  profile: 'jobbingtrack-profile-service',
+  workflow: 'jobbingtrack-workflow-service',
+  metrics: 'jobbingtrack-metrics-aggregator',
+  frontend: 'jobbingtrack-frontend',
+  database: 'jobbingtrack-postgres',
+  cache: 'jobbingtrack-redis',
+}
+
 export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
@@ -360,54 +386,40 @@ export default function ServicesPage() {
     .filter(s => s.responseTime && typeof s.responseTime === 'number')
     .reduce((acc, s) => acc + (s.responseTime as number), 0) / (services.filter(s => s.responseTime && typeof s.responseTime === 'number').length || 1)
 
-  // Fonction pour récupérer les logs d'un service (utilise les métriques)
+  // Logs réels Docker via metrics-aggregator (même API que /backoffice/services/logs — lot A2)
   const fetchServiceLogs = async (service: ServiceStatus) => {
     try {
-      if (metrics && metrics.services) {
-        // Chercher le service dans les métriques
-        const serviceKey = Object.keys(metrics.services || {}).find((key: string) =>
-          key.includes(service.name.toLowerCase().replace(' ', '-')) ||
-          key === service.serviceType
-        )
-
-        if (serviceKey && metrics.services && metrics.services[serviceKey as string]) {
-          const serviceData = metrics.services[serviceKey as string]
-
-          // Générer des logs basés sur les métriques
-          const logs = []
-
-          if (serviceData.health?.status) {
-            logs.push(`[${new Date().toISOString()}] INFO: Service ${service.name} ${serviceData.health.status}`)
-          }
-
-          if (serviceData.lastCheck) {
-            logs.push(`[${serviceData.lastCheck}] INFO: Dernière vérification effectuée`)
-          }
-
-          if (serviceData.metrics?.memory) {
-            const mem = serviceData.metrics.memory
-            logs.push(`[${new Date().toISOString()}] INFO: Mémoire utilisée: ${mem.percentage}% (${typeof mem.usage === 'number' ? Math.round(mem.usage / 1024 / 1024) : 'N/A'}MB)`)
-          }
-
-          if (serviceData.metrics?.cpu) {
-            const cpu = serviceData.metrics.cpu
-            logs.push(`[${new Date().toISOString()}] INFO: CPU utilisé: ${cpu.percentage}%`)
-          }
-
-          if (logs.length === 0) {
-            logs.push(`[${new Date().toISOString()}] INFO: Service ${service.name} en cours de surveillance`)
-          }
-
-          setServiceLogs(logs)
-        } else {
-          setServiceLogs([`[${new Date().toISOString()}] INFO: Service ${service.name} - Métriques non disponibles`])
-        }
+      const dockerName = SERVICE_TYPE_DOCKER[service.serviceType || '']
+      if (!dockerName) {
+        setServiceLogs([
+          `[${new Date().toISOString()}] INFO: Aucun conteneur Docker mappé pour « ${service.name} » (ex. Prometheus hors stack).`,
+        ])
+        return
+      }
+      const res = await fetch(
+        `${METRICS_FOR_LOGS}/api/v1/docker/service/${encodeURIComponent(dockerName)}/logs?lines=100`,
+        { signal: AbortSignal.timeout(15000) }
+      )
+      if (!res.ok) {
+        setServiceLogs([
+          `[${new Date().toISOString()}] WARN: Logs indisponibles (HTTP ${res.status}) — vérifier la stack et NEXT_PUBLIC_METRICS_URL (${METRICS_FOR_LOGS}).`,
+        ])
+        return
+      }
+      const data = await res.json()
+      const raw = Array.isArray(data.lines) ? data.lines : []
+      if (raw.length === 0) {
+        setServiceLogs([
+          `[${new Date().toISOString()}] INFO: Aucune ligne récente pour ${dockerName} (conteneur vide ou démarrage).`,
+        ])
       } else {
-        setServiceLogs([`[${new Date().toISOString()}] INFO: Service ${service.name} - En attente de données`])
+        setServiceLogs(raw)
       }
     } catch (error) {
       console.error('Erreur récupération logs:', error)
-      setServiceLogs(['Erreur lors de la récupération des logs'])
+      setServiceLogs([
+        `[${new Date().toISOString()}] ERREUR: ${error instanceof Error ? error.message : 'récupération logs'}`,
+      ])
     }
   }
 

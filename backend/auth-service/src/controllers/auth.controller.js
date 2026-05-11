@@ -253,6 +253,25 @@ const login = async (req, res, next) => {
 
     // Vérifier l'utilisateur et le mot de passe
     if (!user) {
+      // En développement : accepter un utilisateur de secours si la base est vide (sans perte de données)
+      const fallbackEmail = (process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test').toLowerCase();
+      const fallbackPassword = process.env.ADMIN_PASSWORD || 'password123';
+      if (process.env.NODE_ENV !== 'production' && email.toLowerCase() === fallbackEmail && password === fallbackPassword) {
+        logger.info('✅ Connexion avec utilisateur de secours (base vide ou aucun utilisateur trouvé)');
+        user = {
+          id: 'dev_fallback_1',
+          email: fallbackEmail,
+          password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+          firstName: 'Admin',
+          lastName: 'Backoffice',
+          role: 'SUPER_ADMIN',
+          isActive: true,
+          emailVerified: true
+        };
+      }
+    }
+
+    if (!user) {
       logger.warn(`⚠️ Utilisateur non trouvé pour ${email}`);
       await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - utilisateur non trouvé', {
         sourceIP: clientIP,
@@ -272,8 +291,28 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Pour l'utilisateur mock, accepter directement le mot de passe "password123"
-    if (user.id === 'dev_user_1' && password === 'password123') {
+    // Refuser le login si l'email n'est pas encore vérifié (sauf mock/fallback)
+    if (user && user.id !== 'dev_user_1' && user.id !== 'dev_fallback_1' && user.emailVerified === false) {
+      logger.warn(`⚠️ Connexion refusée : email non vérifié pour ${email}`);
+      await sendSecurityLog('warning', 'authentication', 'login_email_not_verified', 'Tentative de connexion avec email non vérifié', {
+        sourceIP: clientIP,
+        endpoint: req.path,
+        method: req.method,
+        userAgent,
+        riskScore: 20,
+        metadata: { attemptedEmail: email }
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Veuillez vérifier votre email avant de vous connecter.',
+        code: 'EMAIL_NOT_VERIFIED'
+      });
+    }
+
+    // Pour l'utilisateur mock / fallback, mot de passe déjà vérifié
+    if (user.id === 'dev_fallback_1') {
+      logger.info('✅ Authentification réussie avec utilisateur de secours (dev_fallback_1)');
+    } else if (user.id === 'dev_user_1' && password === 'password123') {
       logger.info('✅ Authentification réussie avec utilisateur mock (dev_user_1)');
     } else {
       // Vérifier le mot de passe pour les utilisateurs réels
@@ -301,8 +340,8 @@ const login = async (req, res, next) => {
     }
 
     // ✅ Mettre à jour le lastLoginAt pour le tracking des sessions actives (si la table existe)
-    // Ne pas mettre à jour si c'est l'utilisateur mock
-    if (user.id !== 'dev_user_1' && prisma.user && typeof prisma.user.update === 'function') {
+    // Ne pas mettre à jour si c'est l'utilisateur mock ou de secours
+    if (user.id !== 'dev_user_1' && user.id !== 'dev_fallback_1' && prisma.user && typeof prisma.user.update === 'function') {
       try {
         await prisma.user.update({
           where: { id: user.id },
@@ -536,11 +575,14 @@ const getAllUsers = async (req, res, next) => {
     let users = [];
     
     try {
-      // Récupérer TOUS les utilisateurs (y compris l'utilisateur connecté)
+      // Récupérer les utilisateurs (filtre optionnel isTestData: true | false)
+      const isTestFilter = req.query.isTestData;
+      const where = { deletedAt: null };
+      if (isTestFilter === 'true') where.isTestData = true;
+      else if (isTestFilter === 'false') where.isTestData = false;
+
       users = await prisma.user.findMany({
-        where: {
-          deletedAt: null // Exclure seulement les utilisateurs supprimés
-        },
+        where,
         select: {
           id: true,
           email: true,
@@ -549,6 +591,7 @@ const getAllUsers = async (req, res, next) => {
           phone: true,
           role: true,
           isActive: true,
+          isTestData: true,
           createdAt: true,
           updatedAt: true,
           emailVerified: true,
@@ -779,6 +822,34 @@ const deleteUser = async (req, res, next) => {
       });
     }
     logger.error('Erreur suppression utilisateur:', error);
+    next(error);
+  }
+};
+
+/**
+ * Nettoyer les utilisateurs de test (isTestData === true ou email @jobbingtrack.test). ADMIN uniquement.
+ * Ne supprime pas l'utilisateur connecté.
+ */
+const cleanTestUsers = async (req, res, next) => {
+  try {
+    const currentUserId = req.user?.id || req.user?.userId;
+    const result = await prisma.user.deleteMany({
+      where: {
+        ...(currentUserId ? { id: { not: currentUserId } } : {}),
+        OR: [
+          { isTestData: true },
+          { email: { endsWith: '@jobbingtrack.test' } }
+        ]
+      }
+    });
+    logger.info(`[cleanTestUsers] ${result.count} utilisateur(s) de test supprimé(s)`);
+    res.json({
+      success: true,
+      message: `${result.count} utilisateur(s) de test supprimé(s)`,
+      deletedCount: result.count
+    });
+  } catch (error) {
+    logger.error('Erreur nettoyage utilisateurs de test:', error);
     next(error);
   }
 };
@@ -1138,51 +1209,55 @@ const getUserCustomization = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Rechercher les paramètres de personnalisation de l'utilisateur
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
-    });
-
-    if (!customization) {
-      // Créer des paramètres par défaut pour l'utilisateur
-      const defaultSettings = {
-        theme: 'auto',
-        language: 'fr',
-        dashboardLayout: 'grid',
-        primaryColor: '#3B82F6',
-        accentColor: '#10B981',
-        sidebarCollapsed: false,
-        compactMode: false,
-        showAnimations: true,
-        itemsPerPage: 20,
-        autoRefresh: true,
-        refreshInterval: 30,
-        notifications: {
-          enabled: true,
-          sound: true,
-          position: 'top-right',
-          duration: 5000
-        },
-        accessibility: {
-          highContrast: false,
-          largeText: false,
-          reduceMotion: false,
-          focusIndicators: true
-        },
-        dataRetention: {
-          cacheDuration: 7,
-          syncFrequency: 5,
-          offlineMode: true
-        }
-      };
-
-      // Créer les paramètres par défaut
-      customization = await prisma.userCustomization.create({
-        data: {
+    // Utiliser upsert pour éviter duplicate key si deux requêtes simultanées
+    let customization;
+    try {
+      customization = await prisma.userCustomization.upsert({
+        where: { userId },
+        update: {},
+        create: {
           userId,
-          settings: defaultSettings
+          settings: {
+            theme: 'auto',
+            language: 'fr',
+            dashboardLayout: 'grid',
+            primaryColor: '#3B82F6',
+            accentColor: '#10B981',
+            sidebarCollapsed: false,
+            compactMode: false,
+            showAnimations: true,
+            itemsPerPage: 20,
+            autoRefresh: true,
+            refreshInterval: 30,
+            notifications: {
+              enabled: true,
+              sound: true,
+              position: 'top-right',
+              duration: 5000
+            },
+            accessibility: {
+              highContrast: false,
+              largeText: false,
+              reduceMotion: false,
+              focusIndicators: true
+            },
+            dataRetention: {
+              cacheDuration: 7,
+              syncFrequency: 5,
+              offlineMode: true
+            }
+          }
         }
       });
+    } catch (upsertError) {
+      if (upsertError.code === 'P2002') {
+        customization = await prisma.userCustomization.findUnique({
+          where: { userId }
+        });
+        if (!customization) throw upsertError;
+      } else {
+        throw upsertError;
+      }
     }
 
     res.json({
@@ -1212,29 +1287,17 @@ const saveUserCustomization = async (req, res) => {
     const userId = req.user.id;
     const customizationData = req.body;
 
-    // Rechercher les paramètres existants
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
+    const customization = await prisma.userCustomization.upsert({
+      where: { userId },
+      update: {
+        settings: customizationData,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        settings: customizationData
+      }
     });
-
-    if (customization) {
-      // Mettre à jour les paramètres existants
-      customization = await prisma.userCustomization.update({
-        where: { userId },
-        data: {
-          settings: customizationData,
-          updatedAt: new Date()
-        }
-      });
-    } else {
-      // Créer de nouveaux paramètres
-      customization = await prisma.userCustomization.create({
-        data: {
-          userId,
-          settings: customizationData
-        }
-      });
-    }
 
     res.json({
       success: true,
@@ -1728,6 +1791,7 @@ module.exports = {
   refreshToken,
   logout,
   getAllUsers,
+  cleanTestUsers,
   updateUserRole,
   toggleUserStatus,
   deleteUser,

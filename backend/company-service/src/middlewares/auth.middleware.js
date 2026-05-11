@@ -21,9 +21,9 @@ const authenticate = async (req, res, next) => {
 
     const token = parts[1];
 
-    // ✅ Mode développement: Accepter les tokens mock
-    if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token')) {
-      logger.info('🔐 Mode développement: Token mock accepté');
+    const devBypassToken = process.env.DEV_AUTH_BYPASS_TOKEN;
+    if (process.env.NODE_ENV !== 'production' && devBypassToken && token === devBypassToken) {
+      logger.info('🔐 Mode développement: token de bypass env accepté');
       req.user = {
         id: 'dev_user_1',
         email: 'dev@jobbingtrack.test',
@@ -35,15 +35,17 @@ const authenticate = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // ✅ Pas besoin de vérifier l'utilisateur en base - le JWT est la source de vérité
+      const uid = decoded.userId ?? decoded.id ?? decoded.sub;
+      if (!uid) {
+        logger.warn('JWT sans userId/id/sub');
+        return res.status(403).json({ error: 'Token invalide (userId manquant)' });
+      }
       req.user = {
-        id: decoded.userId,
+        id: String(uid),
         email: decoded.email,
-        role: decoded.role // ✅ Extraire le rôle du JWT
+        role: decoded.role
       };
       req.token = token;
-      
       next();
     } catch (err) {
       logger.warn(`Tentative d'accès avec token invalide: ${err.message}`);

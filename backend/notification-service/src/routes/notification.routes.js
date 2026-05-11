@@ -24,9 +24,6 @@ router.use(authenticate);
 router.post('/', createValidation, controller.createNotification);
 router.get('/', controller.getNotifications);
 router.get('/stats', controller.getStats);
-router.get('/:id', param('id').isString(), controller.getNotification);
-router.delete('/:id', param('id').isString(), controller.deleteNotification);
-router.put('/:id/mark-read', param('id').isString(), controller.markAsRead);
 router.put('/mark-all-read', controller.markAllAsRead);
 
 // Routes emails
@@ -46,5 +43,10 @@ router.post('/reminders/automated', [
 ], controller.createAutomatedReminder);
 router.put('/reminders/automated/:id', param('id').isString(), controller.updateAutomatedReminder);
 router.delete('/reminders/automated/:id', param('id').isString(), controller.deleteAutomatedReminder);
+
+// Routes avec parametres dynamiques (en dernier)
+router.get('/:id', param('id').isString(), controller.getNotification);
+router.delete('/:id', param('id').isString(), controller.deleteNotification);
+router.put('/:id/mark-read', param('id').isString(), controller.markAsRead);
 
 module.exports = router;

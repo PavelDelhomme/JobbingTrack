@@ -5,7 +5,7 @@
 # ================================================================
 
 # make test / test-all : lancement direct (pas de message d'aide ni attente 3 s)
-ifneq (,$(filter test test-all,$(MAKECMDGOALS)))
+ifneq (,$(filter test test-all tests,$(MAKECMDGOALS)))
   export TEST_NOPROMPT := 1
 endif
 
@@ -13,8 +13,9 @@ endif
         tests-clean test-clean test tests test-relations test-enums test-email-python \
         test-email-python-reset test-email-python-verification test-email-diagnostic \
         test-email-logs test-email-logs-all test-email-logs-stats test-all test-full \
+        test-full-quick test-full-cached test-full-timed up-full-timed \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
-        test-performance test-security test-integration test-docker test-monitoring \
+        test-performance test-security test-cve-scan test-integration test-docker test-monitoring \
         test-unit test-services test-infrastructure test-cache test-analytics \
         test-suite-quick test-suite-quick-nocontroller test-suite-full
 
@@ -59,11 +60,12 @@ tests-help:
 	@echo "  make test-database            Tests base de données"
 	@echo "  make test-api                 Tests API complets"
 	@echo "  make test-backend             Tests services backend"
-	@echo "  make test-frontend            Tests frontend (Jest)"
+	@echo "  make test-frontend            Tests frontend (Jest : unit + analytics + date-metrics-display / fuseaux)"
 	@echo "  make test-mobile              Tests mobile Playwright"
 	@echo "  make test-e2e                 Tests E2E Playwright"
 	@echo "  make test-performance         Tests de performance"
 	@echo "  make test-security            Tests de sécurité"
+	@echo "  make test-cve-scan            Scan CVE dépendances Node/Rust (+ Docker si CVE_SCAN_DOCKER=1)"
 	@echo "  make test-integration         Tests d'intégration"
 	@echo "  make test-docker              Tests Docker"
 	@echo "  make test-monitoring          Tests monitoring"
@@ -77,8 +79,13 @@ tests-help:
 	@echo "  make test-suite-full          Suite complète : frontend + BDD + status + test-all (sans logs, sans attente)"
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
-	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
-	@echo "  make test-full                Stack (up-full) + npm install tests/frontend + test-all (tout-en-un)"
+	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets (dont Jest api-gateway **dans le conteneur** si jobbingtrack-api-gateway est up)"
+	@echo "  make test-full                Rebuild (--no-cache, lourd) + up + db + seed + test-all"
+	@echo "  make test-full-quick          ⚡ SANS rebuild : up-full + db + seed + test-all (léger)"
+	@echo "  make test-full-cached         Build avec cache + up + db + seed + test-all (compromis)"
+	@echo "  make test-full-timed          test-full avec mesure de durée (début/fin + time)"
+	@echo "  make up-full-timed            up-full avec mesure de durée"
+	@echo "  ./scripts/timed-make.sh TARGET [--verbose]  Mesure temps (+ mémoire si -v)"
 	@echo ""
 	@echo "💡 make logs-applicative suit les logs (ne termine jamais) → à lancer dans un autre terminal."
 	@echo ""
@@ -163,12 +170,15 @@ tests-reset:
 		 echo "Essayez: make rebuild && make tests-reset" && exit 1)
 	@echo "✅ Table User existe"
 	@echo ""
-	@echo "👤 5/5 - Création utilisateur admin..."
-	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
-		"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"createdAt\", \"updatedAt\") \
-		VALUES (gen_random_uuid(), 'admin@jobbingtrack.test', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
-		'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, NOW(), NOW()) \
-		ON CONFLICT (email) DO NOTHING;"
+	@echo "👤 5/5 - Création/mise à jour utilisateur admin (emailVerified=true)..."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "✅ Admin créé ou mis à jour (seed auth)." || \
+		(echo "⚠️  Seed auth non exécuté, fallback INSERT SQL..."; \
+		 docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
+			"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\") \
+			VALUES (gen_random_uuid(), 'admin@jobbingtrack.test', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
+			'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW()) \
+			ON CONFLICT (email) DO UPDATE SET \"emailVerified\"=true, \"emailVerifiedAt\"=NOW(), \"updatedAt\"=NOW();")
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║              ✅ SYSTÈME PRÊT POUR LES TESTS !          ║"
@@ -450,7 +460,7 @@ test-suite-full: ## Suite complète : test-frontend + test-database + status + t
 	@echo "║     🧪 SUITE COMPLÈTE - tests + test-all               ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo "💡 Logs en direct : dans un autre terminal : make logs-applicative"
-	@echo "📋 Ordre : test-frontend → test-database → status → test-all (tous les tests, dont Playwright E2E et MailHog)"
+	@echo "📋 Ordre : test-frontend → test-database → status → test-all (tous les tests, dont Playwright E2E et MailHog) ; test-frontend inclut **date-metrics-display** (affichage métriques / dates)"
 	@echo ""
 	@TEST_NOPROMPT=1 $(MAKE) -s test-frontend && \
 	 TEST_NOPROMPT=1 $(MAKE) -s test-database && \
@@ -487,7 +497,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo "   ✓ Tests Playwright E2E Frontend"
 	@echo "   ✓ Tests Playwright Emails (MailHog)"
 	@echo "   ✓ Tests Playwright Mobile"
-	@echo "   ✓ Tests Frontend Jest (Unitaires)"
+	@echo "   ✓ Tests Frontend Jest (unit + smoke /backoffice/analytics + **date-metrics-display** — npm run test:unit-and-analytics)"
 	@echo ""
 	@echo "⚡ PERFORMANCE & SÉCURITÉ :"
 	@echo "   ✓ Tests Performance"
@@ -508,7 +518,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "🚀 Exécution de tous les tests avec génération de rapports..."
 	@echo ""
-	@bash scripts/run-all-tests-with-reports.sh
+	@( cd "$(ROOT_DIR)" && bash scripts/run-all-tests-with-reports.sh )
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║           ✅ TOUS LES TESTS TERMINÉS !                  ║"
@@ -518,35 +528,107 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 
 # ================================================================
-# 🚀 TEST FULL - Stack complète + install deps + test-all (une seule commande)
+# 🚀 TEST FULL - Rebuild + stack + BDD + status + tous les tests (une commande)
 # ================================================================
-# Équivalent : make up-full && cd tests && npm install && cd .. && cd frontend && npm install && cd .. && TEST_NOPROMPT=1 make test-all
+# test-full       = rebuild (--no-cache, très lourd) + up + db + seed + tests
+# test-full-quick = PAS de rebuild : up-full + db + seed + tests (léger si images déjà présentes)
+# test-full-cached= build-full (avec cache) + up + db + seed + tests (compromis après changement de code)
+# test-full-timed = test-full avec mesure de durée (début/fin + time)
 # ================================================================
-test-full: ## Stack complète (up-full) + npm install tests + npm install frontend + test-all (commande tout-en-un)
-	@echo "╔════════════════════════════════════════════════════════╗"
-	@echo "║     🚀 TEST FULL - Stack + deps + tous les tests      ║"
-	@echo "╚════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo "1/4 Démarrage de la stack (make up-full)..."
+
+# Étapes communes 2→6 (sans rebuild) — utilisées par test-full-quick et test-full-cached
+define test_full_steps
+	@echo "2/5 Démarrage de la stack (make up-full)..."
 	@$(MAKE) up-full
 	@echo ""
-	@echo "2/4 Installation des deps tests (cd tests && npm install)..."
+	@echo "3/5 Synchronisation BDD (make db-push-all)..."
+	@$(MAKE) db-push-all
+	@echo ""
+	@echo "3b/5 Seed auth (admin emailVerified pour les tests)..."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "   ✅ Seed auth OK." || \
+		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+	@echo ""
+	@echo "4/5 Vérification des services (make status)..."
+	@$(MAKE) status
+	@echo ""
+	@echo "5/5 Installation deps + lancement de tous les tests (make test-all)..."
 	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
-	@echo ""
-	@echo "3/4 Installation des deps frontend (cd frontend && npm install)..."
 	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
-	@if [ ! -w frontend/node_modules 2>/dev/null ] && [ -d frontend/node_modules ]; then \
-		echo "   ⚠️  frontend/node_modules n'est pas writable (ex. créé par Docker en root)."; \
-		echo "   💡 Si Playwright/Jest échouent avec EACCES, exécutez: sudo chown -R $$(whoami) frontend/node_modules frontend/.next"; \
-	fi
-	@if [ -d frontend/.next ] && [ ! -w frontend/.next 2>/dev/null ]; then \
-		echo "   ⚠️  frontend/.next n'est pas writable (ex. créé par Docker en root)."; \
-		echo "   💡 Pour éviter EACCES sur .next/package.json, exécutez: sudo chown -R $$(whoami) frontend/.next"; \
-	fi
-	@echo ""
-	@echo "4/4 Lancement de tous les tests (TEST_NOPROMPT=1 make test-all)..."
-	@echo "   Chaque catégorie de test affichera son numéro d'étape ci-dessous (étape 1, 2, 3, …)."
 	@TEST_NOPROMPT=1 $(MAKE) test-all
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ✅ TESTS TERMINÉS – Consulter tests/results/      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+endef
+
+test-full: ## Rebuild (--no-cache, lourd) + up-full + db-push-all + seed + status + test-all
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🚀 TEST FULL - Rebuild, stack, BDD, tests         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "1/6 Rebuild des images (make rebuild — très lourd, 10–20 min)..."
+	@$(MAKE) rebuild
+	@echo ""
+	@echo "2/6 Démarrage de la stack (make up-full)..."
+	@$(MAKE) up-full
+	@echo ""
+	@echo "3/6 Synchronisation BDD (make db-push-all)..."
+	@$(MAKE) db-push-all
+	@echo ""
+	@echo "3b/6 Seed auth (admin emailVerified pour les tests)..."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "   ✅ Seed auth OK." || \
+		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+	@echo ""
+	@echo "4/6 Vérification des services (make status)..."
+	@$(MAKE) status
+	@echo ""
+	@echo "5/6 Installation des deps (tests + frontend)..."
+	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
+	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
+	@echo ""
+	@echo "6/6 Lancement de tous les tests avec rapports (make test-all)..."
+	@TEST_NOPROMPT=1 $(MAKE) test-all
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ✅ TEST FULL TERMINÉ – Consulter tests/results/   ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+
+test-full-quick: ## Pas de rebuild : up-full + db-push-all + seed + status + test-all (léger, images existantes)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ⚡ TEST FULL QUICK - Stack + BDD + tests (sans rebuild) ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "💡 Aucun rebuild : utilise les images déjà présentes. Si erreur, lancez make test-full-cached ou make test-full."
+	@echo ""
+	$(test_full_steps)
+
+test-full-cached: ## Build avec cache + up-full + db + seed + status + test-all (compromis rapide après changement de code)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🔨 TEST FULL CACHED - Build (cache) + stack + tests ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "1/5 Build des images avec cache (make build-full)..."
+	@$(MAKE) build-full
+	@echo ""
+	$(test_full_steps)
+
+test-full-timed: ## Mesure la durée de test-full (début, fin, time)
+	@echo "⏱️  Début: $$(date -Iseconds)"
+	@echo "📊 Mesure des ressources (time) pour: make test-full"
+	@echo ""
+	@bash -c 'time $(MAKE) test-full'
+	@echo ""
+	@echo "⏱️  Fin: $$(date -Iseconds)"
+
+up-full-timed: ## Mesure la durée de up-full (début, fin, time)
+	@echo "⏱️  Début: $$(date -Iseconds)"
+	@echo "📊 Mesure (time) pour: make up-full"
+	@echo ""
+	@bash -c 'time $(MAKE) up-full'
+	@echo ""
+	@echo "⏱️  Fin: $$(date -Iseconds)"
 
 # ================================================================
 # 💾 TEST CACHE - Test système de cache
@@ -744,19 +826,60 @@ test-e2e: ## Tests E2E Playwright (délègue à test-e2e-frontend)
 	$(call check_help_read,test-e2e)
 	@$(MAKE) test-e2e-frontend
 
+# Tests E2E emails (inscription + vérif email, mails réels possibles)
+test-e2e-email-workflows: ## Tests E2E workflows email (MailHog + emails réels via TEST_REAL_EMAILS)
+	$(call check_help_read,test-e2e-email-workflows)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║      ✉️  TESTS E2E WORKFLOWS EMAIL - JobbingTrack      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test couvre :"
+	@echo "   • Inscription + envoi email de vérification"
+	@echo "   • Vérification via EmailLog (token) puis login"
+	@echo "   • Mode MailHog (dev) + mode SMTP réel (OVH/Gmail/Proton) via TEST_REAL_EMAILS"
+	@echo ""
+	@echo "⚙️  Configuration :"
+	@echo "   • STACK démarrée (make up-full)"
+	@echo "   • Auth-service avec EmailLog synchronisé (make db-push-auth ou make db-push-all)"
+	@echo "   • Pour tester des boîtes réelles :"
+	@echo "       make test-e2e-email-workflows TEST_REAL_EMAILS=\"redacted@example.invalid,redacted@example.invalid,test@example.invalid\""
+	@echo ""
+	@cd tests && TEST_REAL_EMAILS="$(TEST_REAL_EMAILS)" npx playwright test e2e/specs/email-workflows.spec.ts --project=chromium
+	@echo ""
+	@echo "✅ Tests E2E email-workflows terminés"
+
+# Specs dédiés mobile : vérification email par fournisseur (Gmail, Proton, BlueMail)
+test-e2e-mobile-email-verification: ## Tests E2E mobile – inscription + vérif email (Gmail, Proton, BlueMail)
+	$(call check_help_read,test-e2e-mobile-email-verification)
+	@echo "📱 Specs mobile email (e2e/specs/mobile/) – Gmail, Proton, BlueMail"
+	@cd tests && TEST_REAL_EMAILS="$(TEST_REAL_EMAILS)" npx playwright test e2e/specs/mobile/ --project=chromium
+	@echo "✅ Tests E2E mobile email verification terminés"
+
 # ================================================================
 # 🔒 TEST SÉCURITÉ - Tests de sécurité (WAF, auth, injection, etc.)
 # ================================================================
-test-security: ## Tests de sécurité (scripts dans tests/security/)
+test-security: ## Tests de sécurité API gateway (XSS, SQLi, rate limit, headers…). API_GATEWAY_URL par défaut http://127.0.0.1:5002 — ne pas lancer depuis la même IP admin que le pare-feu en mode blocage strict (voir TODOS / docs sécurité lab).
 	$(call check_help_read,test-security)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║        🔒 TESTS SÉCURITÉ - JobbingTrack               ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
 	@if [ -f "tests/security/test-security.js" ]; then \
-		cd tests && node security/test-security.js 2>&1 || exit 1; \
+		cd "$(ROOT_DIR)" && \
+		API_GATEWAY_URL="$${API_GATEWAY_URL:-http://127.0.0.1:5002}" \
+		PROJECT_ROOT="$(ROOT_DIR)" \
+		node tests/security/test-security.js 2>&1 || exit 1; \
 	else \
 		echo "⚠️  tests/security/test-security.js non trouvé"; exit 1; \
 	fi
+	@$(MAKE) test-cve-scan
 	@echo ""
 	@echo "✅ Tests sécurité terminés"
+
+test-cve-scan: ## Scan CVE supply-chain : Node package-lock, Rust cargo-audit si disponible, Docker via CVE_SCAN_DOCKER=1. Strict: CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high
+	$(call check_help_read,test-cve-scan)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🧬 SCAN CVE / SUPPLY CHAIN - JobbingTrack      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" python3 scripts/security/cve-scan.py

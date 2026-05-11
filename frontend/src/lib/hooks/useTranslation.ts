@@ -137,6 +137,6 @@ export function useTranslation() {
   }
 }
 
-// Export type helper pour l'autocomplétion
-export type { Locale, Translation, TranslationPath }
+// Export type helper pour l'autocomplétion (TranslationPath déjà exporté ci-dessus)
+export type { Locale, Translation }
 

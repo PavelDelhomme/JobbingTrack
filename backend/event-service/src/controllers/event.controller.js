@@ -4,13 +4,19 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
-const mapEvent = (event) => ({
-  ...event,
-  startDate: event.startDate?.toISOString(),
-  endDate: event.endDate?.toISOString(),
-  createdAt: event.createdAt?.toISOString(),
-  updatedAt: event.updatedAt?.toISOString()
-});
+const mapEvent = (event) => {
+  const base = {
+    ...event,
+    startDate: event.startDate?.toISOString(),
+    endDate: event.endDate?.toISOString(),
+    createdAt: event.createdAt?.toISOString(),
+    updatedAt: event.updatedAt?.toISOString()
+  };
+  const application = event.application;
+  const isInterim = application?.agencyId != null;
+  const color = event.color ?? (isInterim ? '#F59E0B' : '#3B82F6');
+  return { ...base, color };
+};
 
 const ensureApplicationOwnership = async (userId, applicationId) => {
   if (!applicationId) return null;
@@ -50,7 +56,8 @@ const getTimeline = async (req, res, next) => {
 
     const events = await prisma.event.findMany({
       where,
-      orderBy: { startDate: 'desc' }
+      orderBy: { startDate: 'desc' },
+      include: { application: { select: { agencyId: true } } }
     });
 
     res.json({
@@ -79,7 +86,8 @@ const getAllEvents = async (req, res, next) => {
           where: { userId, deletedAt: null, isArchived: false },
           orderBy: { startDate: 'desc' },
           skip,
-          take: limitNum
+          take: limitNum,
+          include: { application: { select: { agencyId: true } } }
         }),
         prisma.event.count({ where: { userId, deletedAt: null, isArchived: false } })
       ]);
@@ -138,6 +146,8 @@ const createEvent = async (req, res, next) => {
     try {
       const application = await ensureApplicationOwnership(userId, applicationId);
       await ensureContactOwnership(userId, contactId);
+      const isInterim = application?.agencyId != null;
+      const eventColor = isInterim ? '#F59E0B' : '#3B82F6';
 
       const event = await prisma.event.create({
         data: {
@@ -149,13 +159,16 @@ const createEvent = async (req, res, next) => {
           allDay: Boolean(allDay),
           applicationId: applicationId || null,
           interviewId: interviewId || null,
-          followUpId: followUpId || null
+          followUpId: followUpId || null,
+          color: eventColor
         }
       });
 
       logger.info(`Événement ${event.id} créé pour l'utilisateur ${userId}`);
 
-      res.status(201).json({ success: true, event: mapEvent(event) });
+      // Retourner avec application pour que mapEvent calcule bien la couleur (intérim vs classique)
+      const eventWithApp = { ...event, application };
+      res.status(201).json({ success: true, event: mapEvent(eventWithApp) });
     } catch (ownershipError) {
       if (ownershipError.message === 'APPLICATION_NOT_FOUND') {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
@@ -183,8 +196,11 @@ const updateEvent = async (req, res, next) => {
     }
 
     try {
-      const application = await ensureApplicationOwnership(userId, req.body.applicationId);
-      await ensureContactOwnership(userId, req.body.contactId);
+      const application = req.body.applicationId ? await ensureApplicationOwnership(userId, req.body.applicationId) : null;
+      const existingApplication = existingEvent.applicationId ? await prisma.application.findFirst({
+        where: { id: existingEvent.applicationId, userId },
+        select: { agencyId: true }
+      }) : null;
 
       const event = await prisma.event.update({
         where: { id },
@@ -197,14 +213,26 @@ const updateEvent = async (req, res, next) => {
           applicationId: req.body.applicationId ?? existingEvent.applicationId,
           interviewId: req.body.interviewId ?? existingEvent.interviewId,
           followUpId: req.body.followUpId ?? existingEvent.followUpId,
-          contactId: req.body.contactId ?? existingEvent.contactId,
-          companyId: application?.companyId ?? existingEvent.companyId
+          callId: req.body.callId ?? existingEvent.callId,
+          reminderEnabled: req.body.reminderEnabled !== undefined ? Boolean(req.body.reminderEnabled) : existingEvent.reminderEnabled,
+          reminderMinutes: req.body.reminderMinutes !== undefined ? (req.body.reminderMinutes != null ? parseInt(req.body.reminderMinutes, 10) : null) : existingEvent.reminderMinutes,
+          eventTypeId: req.body.eventTypeId ?? existingEvent.eventTypeId,
+          color: (() => {
+            if (req.body.color !== undefined) return req.body.color;
+            const app = application || existingApplication;
+            const isInterim = app?.agencyId != null;
+            return isInterim ? '#F59E0B' : '#3B82F6';
+          })()
         }
       });
 
       logger.info(`Événement ${id} mis à jour par ${userId}`);
 
-      res.json({ success: true, event: mapEvent(event) });
+      const appForColor = application || (event.applicationId ? await prisma.application.findFirst({
+        where: { id: event.applicationId, userId },
+        select: { agencyId: true }
+      }) : null);
+      res.json({ success: true, event: mapEvent({ ...event, application: appForColor }) });
     } catch (ownershipError) {
       if (ownershipError.message === 'APPLICATION_NOT_FOUND') {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
@@ -257,7 +285,8 @@ const exportTimeline = async (req, res, next) => {
 
     const events = await prisma.event.findMany({
       where,
-      orderBy: { startDate: 'desc' }
+      orderBy: { startDate: 'desc' },
+      include: { application: { select: { agencyId: true } } }
     });
 
     if (format === 'csv') {

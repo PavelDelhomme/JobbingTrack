@@ -12,6 +12,68 @@ function generateApplicationId() {
   return 'c' + Date.now().toString(36) + crypto.randomBytes(8).toString('hex');
 }
 
+function errorText(error) {
+  const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
+  const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
+  return `${msg}${hint}`;
+}
+
+/**
+ * Schéma BDD parfois en retard vs client Prisma (ex: deletedAt / isArchived / statusEngineOptOut…).
+ * On détecte ces dérives pour activer les fallbacks SQL.
+ */
+function isLegacyApplicationSchemaError(error) {
+  const full = errorText(error);
+  const aboutApplication =
+    full.includes('prisma.application') || full.includes('"Application"') || full.includes('Application');
+  const schemaMismatchHints =
+    full.includes('P2021') ||
+    full.includes('P2022') ||
+    full.includes('does not exist') ||
+    full.includes('Unknown arg') ||
+    full.includes('Perhaps you meant') ||
+    full.includes('column');
+  return aboutApplication && schemaMismatchHints;
+}
+
+function mapRawApplicationRow(row) {
+  if (!row) return null;
+  const { archived, ...rest } = row;
+  return {
+    ...rest,
+    id: row.id ?? row.Id,
+    userId: row.userId ?? row.userid,
+    companyId: row.companyId ?? row.companyid,
+    agencyId: row.agencyId ?? row.agencyid ?? null,
+    platformId: row.platformId ?? row.platformid ?? null,
+    statusId: row.statusId ?? row.statusid ?? null,
+    isArchived: archived ?? false
+  };
+}
+
+async function findApplicationRawById(id, userId, options = {}) {
+  const { excludeDeleted = true } = options;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 ${excludeDeleted ? 'AND "deletedAt" IS NULL' : ''} LIMIT 1`,
+      id,
+      userId
+    );
+    return mapRawApplicationRow(rows?.[0]);
+  } catch (error) {
+    const full = errorText(error);
+    if (excludeDeleted && full.includes('deletedAt') && full.includes('does not exist')) {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
+        id,
+        userId
+      );
+      return mapRawApplicationRow(rows?.[0]);
+    }
+    throw error;
+  }
+}
+
 const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://event-service:3011';
 
 // CREATE - Créer une candidature
@@ -30,6 +92,7 @@ const createApplication = async (req, res, next) => {
       companyName,  // ✅ NOUVEAU - Ou on peut fournir juste le nom
       companyData,  // ✅ NOUVEAU - Données supplémentaires de l'entreprise
       platformId,   // ✅ NOUVEAU - Plateforme de candidature utilisée
+      agencyId,     // Boîte d'intérim (optionnel)
       position,
       description,
       location,
@@ -85,6 +148,7 @@ const createApplication = async (req, res, next) => {
         data: {
           userId: req.user.id,
           companyId: finalCompanyId,
+          agencyId: agencyId || null,
           platformId: platformId || null,
           position,
           description,
@@ -102,22 +166,20 @@ const createApplication = async (req, res, next) => {
         },
         include: {
           company: true,
+          agency: true,
           platform: true,
           status: true
         }
       });
     } catch (createErr) {
-      const msg = (createErr && createErr.message) || (createErr && createErr.cause && createErr.cause.message) || String(createErr);
-      const hint = (createErr && createErr.meta && typeof createErr.meta === 'object' && createErr.meta.message) || '';
-      const full = msg + hint;
-      const isArchivedColumnError = full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'));
-      if (!isArchivedColumnError) throw createErr;
+      if (!isLegacyApplicationSchemaError(createErr)) throw createErr;
 
       try {
         application = await prisma.application.create({
           data: {
             userId: req.user.id,
             companyId: finalCompanyId,
+            agencyId: agencyId || null,
             platformId: platformId || null,
             position,
             description,
@@ -134,51 +196,87 @@ const createApplication = async (req, res, next) => {
             notes
           }
         });
-        const [company, platform, status] = await Promise.all([
+        const [company, agency, platform, status] = await Promise.all([
           prisma.company.findUnique({ where: { id: application.companyId } }).catch(() => null),
+          application.agencyId ? prisma.company.findUnique({ where: { id: application.agencyId } }).catch(() => null) : null,
           application.platformId ? prisma.platform.findUnique({ where: { id: application.platformId } }).catch(() => null) : null,
           prisma.applicationStatus.findUnique({ where: { id: application.statusId } }).catch(() => null)
         ]);
-        application = { ...application, company, platform, status };
+        application = { ...application, company, agency, platform, status };
       } catch (secondErr) {
         // Second create() peut encore lever (RETURNING avec isArchived) → fallback INSERT raw
         const appId = generateApplicationId();
         const appDate = applicationDate ? new Date(applicationDate) : new Date();
-        const rows = await prisma.$queryRawUnsafe(
-          `INSERT INTO "Application" ("id", "userId", "companyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, false)
-           RETURNING *`,
-          appId,
-          req.user.id,
-          finalCompanyId,
-          platformId || null,
-          position || '',
-          description || null,
-          jobUrl || null,
-          location || null,
-          contractType || 'CDI',
-          workMode || null,
-          applicationType || 'OFFRE',
-          statusRow.id,
-          appDate,
-          salaryMin ?? null,
-          salaryMax ?? null,
-          salaryNegotiable === true,
-          notes || null
-        );
+        let rows;
+        try {
+          rows = await prisma.$queryRawUnsafe(
+            `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived", "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::"ContractType", $11::"WorkMode", $12::"ApplicationType", $13, $14, $15, $16, $17, $18, false, NOW(), NOW())
+             RETURNING *`,
+            appId,
+            req.user.id,
+            finalCompanyId,
+            agencyId || null,
+            platformId || null,
+            position || '',
+            description || null,
+            jobUrl || null,
+            location || null,
+            contractType || 'CDI',
+            workMode || null,
+            applicationType || 'OFFRE',
+            statusRow.id,
+            appDate,
+            salaryMin ?? null,
+            salaryMax ?? null,
+            salaryNegotiable === true,
+            notes || null
+          );
+        } catch (rawInsertErr) {
+          const full = errorText(rawInsertErr);
+          // Schéma plus ancien sans createdAt/updatedAt explicites : fallback sur insert minimal.
+          if (!(full.includes('createdAt') || full.includes('updatedAt')) || !full.includes('does not exist')) {
+            throw rawInsertErr;
+          }
+          rows = await prisma.$queryRawUnsafe(
+            `INSERT INTO "Application" ("id", "userId", "companyId", "agencyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::"ContractType", $11::"WorkMode", $12::"ApplicationType", $13, $14, $15, $16, $17, $18, false)
+             RETURNING *`,
+            appId,
+            req.user.id,
+            finalCompanyId,
+            agencyId || null,
+            platformId || null,
+            position || '',
+            description || null,
+            jobUrl || null,
+            location || null,
+            contractType || 'CDI',
+            workMode || null,
+            applicationType || 'OFFRE',
+            statusRow.id,
+            appDate,
+            salaryMin ?? null,
+            salaryMax ?? null,
+            salaryNegotiable === true,
+            notes || null
+          );
+        }
         const row = rows?.[0];
         if (!row) throw secondErr;
         const rid = row.id ?? row.Id;
         const cid = row.companyId ?? row.companyid;
+        const aid = row.agencyId ?? row.agencyid;
         const pid = row.platformId ?? row.platformid;
         const sid = row.statusId ?? row.statusid;
-        const [company, platform, status] = await Promise.all([
+        const [company, agency, platform, status] = await Promise.all([
           cid ? prisma.company.findUnique({ where: { id: cid } }).catch(() => null) : null,
+          aid ? prisma.company.findUnique({ where: { id: aid } }).catch(() => null) : null,
           pid ? prisma.platform.findUnique({ where: { id: pid } }).catch(() => null) : null,
           sid ? prisma.applicationStatus.findUnique({ where: { id: sid } }).catch(() => null) : null
         ]);
         const { archived, ...rest } = row;
-        application = { ...rest, id: rid, userId: row.userId ?? row.userid, companyId: cid, platformId: pid, statusId: sid, isArchived: archived ?? false, company, platform, status };
+        application = { ...rest, id: rid, userId: row.userId ?? row.userid, companyId: cid, agencyId: aid, platformId: pid, statusId: sid, isArchived: archived ?? false, company, agency, platform, status };
       }
     }
 
@@ -265,11 +363,50 @@ const getApplications = async (req, res, next) => {
     search,
     sortBy = 'createdAt',
     sortOrder = 'desc',
-    includeArchived = 'false' // Inclure les candidatures archivées
+    includeArchived = 'false', // Inclure les candidatures archivées
+    agencyId // Filtre par agence d'intérim (Suivi intérim)
   } = req.query;
 
     const offset = (page - 1) * limit;
     const userId = req.user.id;
+
+    // Si filtre agencyId demandé, utiliser Prisma pour inclure la relation agency
+    if (agencyId && typeof agencyId === 'string') {
+      const isElevated = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+      const where = {
+        ...(isElevated ? {} : { userId }),
+        agencyId,
+        ...(includeArchived !== 'true' && { isArchived: false }),
+        ...(status && { status: { code: status } }),
+        ...(search && { position: { contains: search, mode: 'insensitive' } })
+      };
+      try {
+        const [list, totalCount] = await Promise.all([
+          prisma.application.findMany({
+            where,
+            include: {
+              company: true,
+              agency: true,
+              platform: true,
+              status: true,
+              _count: { select: { interviews: true, followUps: true } }
+            },
+            orderBy: { [sortBy]: sortOrder },
+            skip: parseInt(offset, 10),
+            take: parseInt(limit, 10) || 100
+          }),
+          prisma.application.count({ where })
+        ]);
+        return res.json({
+          success: true,
+          applications: list,
+          pagination: { page: parseInt(page, 10), limit: parseInt(limit, 10) || 100, total: totalCount, pages: Math.ceil(totalCount / (parseInt(limit, 10) || 100 || 1)) }
+        });
+      } catch (err) {
+        if (process.env.NODE_ENV === 'development') logger.warn('List by agencyId failed:', err?.message);
+        return res.status(500).json({ success: false, error: 'Erreur lors du chargement des candidatures par agence' });
+      }
+    }
 
     // Liste : requête raw en premier pour éviter erreur colonne isArchived/archived en BDD
     let applications, total;
@@ -318,6 +455,7 @@ const getApplications = async (req, res, next) => {
           where,
           include: {
             company: true,
+            agency: true,
             platform: true,
             status: true,
             _count: { select: { interviews: true, followUps: true } }
@@ -423,6 +561,7 @@ const getApplication = async (req, res, next) => {
       where: { id, userId, deletedAt: null },
       include: {
         company: true,
+        agency: true,
         platform: true,
         status: true,
         interviews: { where: { deletedAt: null }, orderBy: { interviewDate: 'asc' } },
@@ -440,11 +579,7 @@ const getApplication = async (req, res, next) => {
 
     return res.json({ success: true, application });
   } catch (error) {
-    const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
-    const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
-    const full = msg + hint;
-    // Fallback si le client Prisma envoie isArchived alors que la BDD a "archived"
-    if (full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'))) {
+    if (isLegacyApplicationSchemaError(error)) {
       try {
         const rows = await prisma.$queryRawUnsafe(
           `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
@@ -455,8 +590,7 @@ const getApplication = async (req, res, next) => {
         if (!row) {
           return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
         }
-        const { archived, ...rest } = row;
-        const application = { ...rest, isArchived: archived ?? false };
+        const application = mapRawApplicationRow(row);
         return res.json({ success: true, application });
       } catch (rawErr) {
         logger.warn('Fallback getApplication (archived) failed:', rawErr.message);
@@ -471,11 +605,17 @@ const getApplication = async (req, res, next) => {
 const updateApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { companyName, companyData, ...updateData } = req.body;
+    const { companyName, companyData, ...body } = req.body;
 
-    const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id }
-    });
+    let existingApplication;
+    try {
+      existingApplication = await prisma.application.findFirst({
+        where: { id, userId: req.user.id }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      existingApplication = await findApplicationRawById(id, req.user.id, { excludeDeleted: false });
+    }
 
     if (!existingApplication) {
       return res.status(404).json({
@@ -484,24 +624,77 @@ const updateApplication = async (req, res, next) => {
       });
     }
 
-    // ✅ LOGIQUE INTELLIGENTE : Gérer automatiquement l'entreprise si nom fourni
     if (companyName && companyName !== '') {
       logger.info(`🏢 Mise à jour automatique entreprise: ${companyName}`);
-      
       const finalCompanyId = await companyService.getOrCreateCompany(
         companyName,
         companyData || {},
         req.token
       );
-
-      updateData.companyId = finalCompanyId;
-      logger.info(`✅ Entreprise traitée - ID: ${finalCompanyId}`);
+      body.companyId = finalCompanyId;
     }
 
-    const application = await prisma.application.update({
-      where: { id },
-      data: updateData
-    });
+    const allowed = [
+      'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
+      'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
+      'notes', 'platformId', 'companyId', 'agencyId', 'statusEngineOptOut', 'thankYouEmailSentAt'
+    ];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] === undefined) continue;
+      if (key === 'applicationDate') updateData[key] = new Date(body[key]);
+      else if (key === 'salaryMin' || key === 'salaryMax') updateData[key] = body[key] != null ? parseInt(body[key], 10) : null;
+      else if (key === 'salaryNegotiable' || key === 'statusEngineOptOut') updateData[key] = Boolean(body[key]);
+      else if (key === 'thankYouEmailSentAt') updateData[key] = body[key] === true || body[key] === 'true' ? new Date() : (body[key] || null);
+      else if (key === 'agencyId') updateData[key] = body[key] === '' || body[key] === null ? null : body[key];
+      else updateData[key] = body[key];
+    }
+    if (Object.keys(updateData).length === 0 && !(companyName && companyName !== '')) {
+      return res.status(400).json({ success: false, error: 'Aucun champ à mettre à jour' });
+    }
+
+    let application;
+    try {
+      application = await prisma.application.update({
+        where: { id },
+        data: updateData,
+        include: { company: true, agency: true, platform: true, status: true }
+      });
+    } catch (updateErr) {
+      if (!isLegacyApplicationSchemaError(updateErr)) throw updateErr;
+      const allowedRawCols = new Set([
+        'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
+        'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
+        'notes', 'platformId', 'companyId', 'agencyId', 'statusId', 'thankYouEmailSentAt'
+      ]);
+      const entries = Object.entries(updateData).filter(([k]) => allowedRawCols.has(k));
+      if (entries.length > 0) {
+        const setClauses = [];
+        const params = [];
+        for (let i = 0; i < entries.length; i++) {
+          const [key, value] = entries[i];
+          setClauses.push(`"${key}" = $${i + 1}`);
+          params.push(value);
+        }
+        const idParam = entries.length + 1;
+        const userParam = entries.length + 2;
+        const rows = await prisma.$queryRawUnsafe(
+          `UPDATE "Application" SET ${setClauses.join(', ')}, "updatedAt" = NOW() WHERE "id" = $${idParam} AND "userId" = $${userParam} RETURNING *`,
+          ...params,
+          id,
+          req.user.id
+        );
+        application = mapRawApplicationRow(rows?.[0]);
+      } else {
+        application = await findApplicationRawById(id, req.user.id, { excludeDeleted: false });
+      }
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          error: 'Candidature non trouvée'
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -521,9 +714,15 @@ const deleteApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id, deletedAt: null }
-    });
+    let existingApplication;
+    try {
+      existingApplication = await prisma.application.findFirst({
+        where: { id, userId: req.user.id, deletedAt: null }
+      });
+    } catch (findErr) {
+      if (!isLegacyApplicationSchemaError(findErr)) throw findErr;
+      existingApplication = await findApplicationRawById(id, req.user.id, { excludeDeleted: true });
+    }
 
     if (!existingApplication) {
       return res.status(404).json({
@@ -533,10 +732,16 @@ const deleteApplication = async (req, res, next) => {
     }
 
     const now = new Date();
-    await prisma.application.update({
-      where: { id },
-      data: { deletedAt: now }
-    });
+    try {
+      await prisma.application.update({
+        where: { id },
+        data: { deletedAt: now }
+      });
+    } catch (deleteErr) {
+      if (!isLegacyApplicationSchemaError(deleteErr)) throw deleteErr;
+      // Ancien schéma (ou client Prisma en décalage) : fallback hard delete pour ne pas bloquer les scripts API.
+      await prisma.$executeRawUnsafe(`DELETE FROM "Application" WHERE "id" = $1 AND "userId" = $2`, id, req.user.id);
+    }
 
     // Cascade: soft-delete les éléments liés
     try {
@@ -622,6 +827,25 @@ const updateApplicationStatus = async (req, res, next) => {
       }
     });
 
+    // Créer une notification (changement de statut) si le modèle existe
+    if (typeof prisma.notification?.create === 'function') {
+      try {
+        const prevCode = existingApplication.status?.code || '?';
+        await prisma.notification.create({
+          data: {
+            userId: existingApplication.userId,
+            title: 'Changement de statut',
+            message: `Candidature "${application.position}" : ${prevCode} → ${newStatusCode}`,
+            type: 'STATUS_CHANGE',
+            entityType: 'Application',
+            entityId: id
+          }
+        });
+      } catch (e) {
+        logger.warn('Création notification statut:', e.message);
+      }
+    }
+
     res.json({
       success: true,
       message: 'Statut de la candidature mis à jour',
@@ -668,6 +892,78 @@ const getApplicationStatusHistory = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Erreur récupération historique statuts:', error);
+    next(error);
+  }
+};
+
+// Marquer « Email remerciement envoyé » → reset compteur relance (suggestion « Considérer rejetée »)
+const markThankYouSent = async (req, res, next) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Non authentifié' });
+    }
+    const { id } = req.params;
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id }
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+    }
+    await prisma.application.update({
+      where: { id },
+      data: { thankYouEmailSentAt: new Date() }
+    });
+    res.json({ success: true, message: 'Email remerciement enregistré' });
+  } catch (error) {
+    const msg = error.message || '';
+    const isColumnMissing = error.code === 'P2010' || error.code === 'P2022' || /column.*does not exist|thankYouEmailSentAt/i.test(msg);
+    if (isColumnMissing) {
+      logger.warn('markThankYouSent: colonne manquante (exécuter make db-push-all depuis auth-service ou application-service)');
+      return res.status(503).json({
+        success: false,
+        error: 'Schéma BDD obsolète',
+        message: 'Colonne thankYouEmailSentAt manquante. Exécuter make db-push-all.'
+      });
+    }
+    logger.error('Erreur markThankYouSent:', error);
+    next(error);
+  }
+};
+
+// Suggestion « Considérer comme rejetée ? » après 3+ relances sans réponse
+const getSuggestionReject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id, deletedAt: null },
+      include: {
+        status: true,
+        followUps: { where: { deletedAt: null }, orderBy: { followUpDate: 'desc' } }
+      }
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+    }
+    if (application.status?.code === 'REJECTED') {
+      return res.json({ success: true, suggestConsiderReject: false, reason: 'Déjà rejetée' });
+    }
+    // Relances « sans réponse » : pas de response ou statut SENT/NO_RESPONSE/PENDING
+    const followUpsWithoutResponse = application.followUps.filter(
+      f => !f.response || (f.response && String(f.response).trim() === '')
+    );
+    const count = followUpsWithoutResponse.length;
+    const thankYouRecent = application.thankYouEmailSentAt
+      ? (Date.now() - new Date(application.thankYouEmailSentAt).getTime()) < 30 * 24 * 60 * 60 * 1000 // 30 jours
+      : false;
+    const suggestConsiderReject = count >= 3 && !thankYouRecent;
+    res.json({
+      success: true,
+      suggestConsiderReject,
+      followUpCountWithoutResponse: count,
+      reason: suggestConsiderReject ? `${count} relance(s) sans réponse` : (thankYouRecent ? 'Email remerciement récent' : 'Moins de 3 relances sans réponse')
+    });
+  } catch (error) {
+    logger.error('Erreur getSuggestionReject:', error);
     next(error);
   }
 };
@@ -723,6 +1019,59 @@ const getHealth = async (req, res) => {
   });
 };
 
+const timeTravelEntity = async (req, res, next) => {
+  try {
+    if (process.env.ENABLE_TIME_TRAVEL !== 'true') {
+      return res.status(403).json({
+        success: false,
+        error: 'Time-travel désactivé. Ajoutez ENABLE_TIME_TRAVEL=true dans .env'
+      });
+    }
+
+    const { entityType, entityId, daysBack } = req.body;
+    if (!entityType || !entityId || !daysBack) {
+      return res.status(400).json({
+        success: false,
+        error: 'entityType, entityId et daysBack requis'
+      });
+    }
+
+    const targetDate = new Date(Date.now() - daysBack * 86400000);
+    const modelMap = {
+      application: 'application',
+      interview: 'interview',
+      followup: 'followUp',
+      call: 'call',
+      event: 'event'
+    };
+
+    const model = modelMap[entityType];
+    if (!model || !prisma[model]) {
+      return res.status(400).json({
+        success: false,
+        error: `Type d'entité inconnu: ${entityType}`
+      });
+    }
+
+    const updated = await prisma[model].update({
+      where: { id: entityId },
+      data: { createdAt: targetDate }
+    });
+
+    logger.info(`Time-travel: ${entityType} ${entityId} → ${targetDate.toISOString()} (${daysBack}j en arrière)`);
+
+    res.json({
+      success: true,
+      message: `${entityType} backdaté de ${daysBack} jours`,
+      entity: updated,
+      newDate: targetDate.toISOString()
+    });
+  } catch (error) {
+    logger.error('Erreur time-travel:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   createApplication,
   getApplications,
@@ -732,5 +1081,8 @@ module.exports = {
   updateApplicationStatus,
   getApplicationStatusHistory,
   getApplicationContacts,
+  markThankYouSent,
+  getSuggestionReject,
+  timeTravelEntity,
   getHealth
 };

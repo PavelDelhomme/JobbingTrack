@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Emails MailHog",
+  "userType": "admin",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"http://localhost:8025\" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-27T18:10:15+01:00",
+  "duration": 5,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "output": "\nup to date in 693ms\n\nRunning 3 tests using 3 workers\n\n  ✘  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API (37ms)\n  ✘  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:111:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page (198ms)\n  ✓  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:90:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail (1.5s)\n\n\n  1) [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API \n\n    Error: Login admin requis pour envoyer un email de test (admin@jobbingtrack.test / password123)\n\n      48 |\n      49 |   test('envoi email de test puis vérification réception dans MailHog via API', async ({ request }) => {\n    > 50 |     if (!authToken) throw new Error('Login admin requis pour envoyer un email de test (admin@jobbingtrack.test / password123)');\n         |                           ^\n      51 |\n      52 |     const { total: countBefore } = await getMessages(1);\n      53 |\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-emails-mailhog.spec.ts:50:27\n\n  2) [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:111:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page \n\n    Error: Login admin requis\n\n      110 |\n      111 |   test('envoi email reset password puis extraction lien et ouverture page', async ({ request, page }) => {\n    > 112 |     if (!authToken) throw new Error('Login admin requis');\n          |                           ^\n      113 |\n      114 |     const { total: countBefore } = await getMessages(1);\n      115 |\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-emails-mailhog.spec.ts:112:27\n\n  2 failed\n    [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API \n    [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:111:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page \n  1 passed (2.4s)\n"
+}

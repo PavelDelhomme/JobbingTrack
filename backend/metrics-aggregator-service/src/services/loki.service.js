@@ -2,8 +2,14 @@ const axios = require('axios');
 
 const LOKI_URL = process.env.LOKI_URL || 'http://loki:3100';
 
+/** True si l'erreur indique que Loki est indisponible (non déployé ou injoignable). */
+function isLokiUnavailable(err) {
+  const code = err.code || err.response?.status;
+  return code === 'ENOTFOUND' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ECONNRESET';
+}
+
 /**
- * Service pour interagir avec Loki
+ * Service pour interagir avec Loki (dégradation propre si Loki non déployé).
  */
 class LokiService {
   /**
@@ -12,7 +18,7 @@ class LokiService {
    * @param {number} limit - Nombre maximum de lignes
    * @param {string} start - Timestamp de début (nanoseconds Unix)
    * @param {string} end - Timestamp de fin (nanoseconds Unix)
-   * @returns {Promise<Object>} Résultat de la requête
+   * @returns {Promise<Object>} Résultat de la requête ou structure vide si Loki indisponible
    */
   async queryLogs(query, limit = 100, start = null, end = null) {
     try {
@@ -32,15 +38,19 @@ class LokiService {
 
       return response.data;
     } catch (error) {
+      if (isLokiUnavailable(error)) {
+        console.warn('[Loki] Non disponible (ENOTFOUND/ECONNREFUSED/ETIMEDOUT), dégradation propre.');
+        return { data: { result: [] }, status: 'success' };
+      }
       console.error(`[Loki] Erreur query "${query}":`, error.message);
       throw new Error(`Loki query failed: ${error.message}`);
     }
   }
 
   /**
-   * Stream des logs en temps réel
+   * Stream des logs en temps réel (retourne null si Loki indisponible).
    * @param {string} query - Requête LogQL
-   * @returns {Promise<Stream>} Stream de logs
+   * @returns {Promise<Stream|null>} Stream de logs ou null
    */
   async streamLogs(query) {
     try {
@@ -52,6 +62,10 @@ class LokiService {
 
       return response.data;
     } catch (error) {
+      if (isLokiUnavailable(error)) {
+        console.warn('[Loki] Non disponible, stream ignoré.');
+        return null;
+      }
       console.error(`[Loki] Erreur stream "${query}":`, error.message);
       throw new Error(`Loki stream failed: ${error.message}`);
     }
@@ -69,19 +83,21 @@ class LokiService {
     try {
       const query = `{container="${containerName}"}`;
       const data = await this.queryLogs(query, limit, start, end);
+      const results = (data && data.data && data.data.result) ? data.data.result : [];
 
       return {
         success: true,
         container: containerName,
         timestamp: new Date().toISOString(),
         limit,
-        logs: data.data.result
+        logs: results
       };
     } catch (error) {
       return {
         success: false,
         container: containerName,
-        error: error.message
+        error: error.message,
+        logs: []
       };
     }
   }
@@ -98,18 +114,20 @@ class LokiService {
     try {
       const query = service ? `{service="${service}"}` : `{job="docker"}`;
       const data = await this.queryLogs(query, limit, start, end);
+      const results = (data && data.data && data.data.result) ? data.data.result : [];
 
       return {
         success: true,
         timestamp: new Date().toISOString(),
         limit,
         service: service || 'all',
-        logs: data.data.result
+        logs: results
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        logs: []
       };
     }
   }
@@ -125,20 +143,22 @@ class LokiService {
     try {
       const query = `{container="${containerName}"} |~ "${pattern}"`;
       const data = await this.queryLogs(query, limit);
+      const results = (data && data.data && data.data.result) ? data.data.result : [];
 
       return {
         success: true,
         container: containerName,
         pattern,
         timestamp: new Date().toISOString(),
-        logs: data.data.result
+        logs: results
       };
     } catch (error) {
       return {
         success: false,
         container: containerName,
         pattern,
-        error: error.message
+        error: error.message,
+        logs: []
       };
     }
   }
@@ -154,20 +174,22 @@ class LokiService {
     try {
       const query = `sum(count_over_time({container="${containerName}"} |~ "${pattern}" [${timeRange}]))`;
       const data = await this.queryLogs(query, 1);
+      const result = (data && data.data && data.data.result) ? data.data.result : [];
 
       return {
         success: true,
         container: containerName,
         pattern,
         timeRange,
-        count: data.data.result
+        count: result
       };
     } catch (error) {
       return {
         success: false,
         container: containerName,
         pattern,
-        error: error.message
+        error: error.message,
+        count: []
       };
     }
   }

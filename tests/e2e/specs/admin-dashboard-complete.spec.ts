@@ -37,7 +37,7 @@ test.describe('Dashboard Admin - Tests Complets', () => {
   test('Navigation vers toutes les pages du backoffice', async ({ page }) => {
     const pages = [
       { name: 'Analytics', path: '/backoffice/analytics' },
-      { name: 'Statistiques', path: '/backoffice/statistique' },
+      { name: 'Statistiques', path: '/backoffice/statistics' },
       { name: 'Applications', path: '/backoffice/applications' },
       { name: 'Entreprises', path: '/backoffice/companies' },
       { name: 'Contacts', path: '/backoffice/contacts' },

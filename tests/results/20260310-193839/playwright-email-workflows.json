@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Email Workflows",
+  "userType": "user",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"http://localhost:8025\" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-03-10T19:51:05+01:00",
+  "duration": 5,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "output": "\nup to date in 609ms\n\nRunning 4 tests using 3 workers\n\n  ✓  1 [chromium] › e2e/specs/email-workflows.spec.ts:221:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (18ms)\n  ✘  3 [chromium] › e2e/specs/email-workflows.spec.ts:107:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (mailhog) (578ms)\n  -  4 [chromium] › e2e/specs/email-workflows.spec.ts:179:9 › Workflows Email Complets › Inscription avec vérification email › sans vérification email, le login est refusé (401)\n  ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:265:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (2.0s)\n\n\n  1) [chromium] › e2e/specs/email-workflows.spec.ts:107:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (mailhog) \n\n    Error: Lien de vérification introuvable dans emailContent (template?)\n\n    expect(received).toBeTruthy()\n\n    Received: \"\"\n\n      160 |         const links = extractLinksFromHtml(html);\n      161 |         const verifyLink = links.find((u) => /verify-email|verify|confirm/i.test(u)) || '';\n    > 162 |         expect(verifyLink, 'Lien de vérification introuvable dans emailContent (template?)').toBeTruthy();\n          |                                                                                              ^\n      163 |         const token = extractVerificationTokenFromLink(verifyLink);\n      164 |         expect(token, 'Token de vérification introuvable dans le lien').toBeTruthy();\n      165 |\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:162:94\n\n  1 failed\n    [chromium] › e2e/specs/email-workflows.spec.ts:107:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (mailhog) \n  1 did not run\n  2 passed (2.6s)\n"
+}

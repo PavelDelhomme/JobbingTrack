@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Contact Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:3004/health || echo 'Service non accessible'",
+  "timestamp": "2026-03-11T00:17:01+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "Service non accessible\n"
+}

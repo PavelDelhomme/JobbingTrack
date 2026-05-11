@@ -1,0 +1,470 @@
+# TODOS — chantier backoffice / API / doc (JobbingTrack)
+
+**Dernière mise à jour : 6 mai 2026** — **B14** : audit **durcissement Compose / runtime** (Perplexity + suivi interne) — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, correctifs partiels **`docker-compose.yml`** / **`.env.example`** / suppression backups gateway — **07/05** : analyse run `make tests` **`tests/results/20260505-113157`** (21 KO / 720), correctifs **`logs-watch`** (141 vs 130), filtre console axios **aborted**, fusion **`metadata.metadata`** incidents corrélation, script **`npm run browserslist:update`**. **Synthèse `/backoffice`** : tableau **CPU % / mémoire % / RAM MB** par conteneur **`jobbingtrack-*`** + cartes renommées ; **Performance** : raccourcis **Synthèse / Latence / Conteneurs / Disque / Réseau** + lien **Services & logs** corrigé. **Statistiques — Sécurité** : **persistance seule** (synthèse agrégée, score, **par jour**, extrait) — pas les mêmes blocs que **`/backoffice/security`**. **A1** : lazy Recharts **`/backoffice/performances/containers`** ; **hub `/backoffice/analytics`** métier uniquement ; **H1** : **`scripts/README.md`**. **Statistiques** : **`/backoffice/statistics`** + redirects ; **vue d’ensemble** : **`rechartsTooltipProps`** sur tous les **`<Tooltip>`** (**07/04**). **Suite & suivi** ci-dessous. **Mobile** : **`jobbing/`** + smoke ; **`flutter-mobile-app`**. **Lot H**.
+
+## Priorité immédiate 6 mai 2026 — perf ressources + corrélation
+
+- [x] Corrélation UI: afficher un chargement animé dans le tableau incidents pendant le fetch (au lieu de laisser des cellules ambiguës).
+- [x] Corrélation UI: loader colonne par colonne (skeleton par `<td>` au chargement des logs) + colonnes métriques (CPU / mémoire / TR / écart) en attente tant que le conteneur focal n’est pas dans `loadedOrder` ; KPI logs vs score sécurité chargés séparément (`correlation/page.tsx`).
+- [x] Corrélation data: tableau diagnostic par champ (source technique, détail si absent, correctif) pour requestId / endpoint / IP / HTTP / proto / port — sélection d’une ligne incidents sur **`/backoffice/performances/correlation`** (`parseIncidentContextFull` + panneau sous le tableau).
+- [x] Metrics-aggregator: profiler `collectAllMetrics` — **`METRICS_AGGREGATOR_PROFILE_COLLECT=1`** (`server.js` : `createCollectProfiler`, phases chronométrées + meta `monitoringC` / `dockerFallbackRan` / compteurs).
+- [x] Frontend: diagnostiquer le pic CPU (>300%) sous charge et réduire le coût des rafraîchissements/perf pages monitoring. (06/05: WATCHPACK polling off + cap mémoire Node + healthcheck simplifié)
+- [x] Redis: mesurer la pression mémoire réelle (dataset, RSS/buffers, fragmentation) + budget/actions — **`make redis-memory-report`** (`scripts/monitoring/redis-memory-report.sh`) ; budget local **128 MB**, warn **70%**, critical **85%**, fragmentation ignorée sous **10 MB** utilisés, actions affichées si `maxmemory=0`, fragmentation haute ou clients bloqués.
+- [x] Log collector C: rotation/troncature + découverte dynamique + lecture non bloquante — **`collector.c`** passe à `inotify_init1(IN_NONBLOCK)` + `poll`, traite les événements fichier même avec `len=0`, rescane `/var/lib/docker/containers` toutes les 10s, évite les watches en double, retire les watches sur `IN_MOVE_SELF`/`IN_DELETE_SELF`, option **`LOG_COLLECTOR_READ_EXISTING=0`** pour éviter d’ingérer tout l’historique au démarrage ; compilation C OK.
+- [x] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles. **07/05** : inventaire conteneurs via Docker socket Unix sans shell, métriques CPU/mémoire/réseau via cgroups/proc, health checks via libcurl multi parallèle ; plus aucun `popen` dans `monitoring-c`.
+- [ ] Validation dédiée "coût collecte métriques": benchmark CPU/RAM/IO p95 sur 40-60 min via **`make resource-budget-sample`**. **Baseline 07/05 40 min** (`tests/results/resource-budget/20260507-123612/summary.md`) : `metrics-aggregator` **CPU p95 93.04% / max 121.75% / RAM p95 588.4 MB**, `frontend` **CPU p95 19.61% / max 79.68% / RAM p95 868.4 MB**, `monitoring-c` **CPU p95 1.22% / RAM p95 2.7 MB**, `log-collector-c` **CPU p95 0% / RAM p95 5.1 MB**, Redis **CPU p95 2.48% / RAM p95 29.7 MB**. **Contrôle post-correctifs 07/05** : 10 min `20260507-132438`, puis 5 min `20260507-133829`; hors première minute de redémarrage, `metrics-aggregator` ≈ **CPU p95 3.20% / RAM p95 138.2 MB**, `frontend` ≈ **CPU p95 2.88% / RAM p95 203.6 MB**. Budget cible p95 : aggregator < **5% CPU / 250 MB**, frontend dev < **8% CPU / 700 MB** (prod cible < **3% / 300 MB**), collecteurs C < **2% CPU / 20 MB**, Redis < **2% CPU / 64 MB**. Reste : refaire un contrôle long 40-60 min après une session utilisateur réelle.
+
+Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.
+
+## Lire ce fichier (validation vs inventaire)
+
+- **Inventaire / cases `[x]` ici** : le code ou la procédure **existe dans le dépôt** ; ce n’est **pas** automatiquement « validé par le porteur ». L’acceptation produit reste **`PLAN.md`** (colonne **Validé**) ou une mention datée dans **`STATUS.md`**.
+- **Où regarder dans le projet** : les tableaux du lot **A** (Recharts, métriques) indiquent d’abord le **chemin fichier** (`frontend/src/app/(admin)/backoffice/...`, composants sous `frontend/src/components/...`). L’URL navigateur (**`/backoffice/...`**) sert surtout à la QA manuelle une fois le fichier identifié.
+- **À ne pas confondre** : une mention du lot **A2** dans **`PLAN.md`** ou dans **« Fait récemment »** ne veut pas dire **A2** terminée : la case **A2** reste **`[ ]` partielle** tant que **gateway `admin/logs/*`** + **Loki** (ou décision explicite) ne sont pas réglés.
+- **Next.js (RSC) + baril `@/components/features`** : tout fichier exporté par ce baril et qui utilise des **hooks React** doit commencer par **`'use client'`**. Sinon, une page **serveur** qui importe seulement `AdminLayout` depuis le baril peut quand même faire analyser le graphe d’exports et **échouer à la compile** (ex. **`SettingsPopup.tsx`**, corrigé **07/04**). Vérification recommandée : **`./node_modules/.bin/next build`** dans **`frontend/`** (ou **`npm run dev`** sur les routes touchées).
+
+---
+
+## Suite & suivi explicite (post-livraisons, hors cœur des lots A–G)
+
+**Rôle de ce bloc** : noter ici ce qui a été **évoqué en fin de chantier** ou **« à faire ensuite »** sans mériter tout de suite une case dans **A1–H** détaillée. Ce n’est **pas** le backlog long terme (**`docs/BACKLOG.md`** reste la file « officielle » reportée). **Règle** : une ligne = une intention ; cocher quand c’est fait ; si le sujet grossit, **créer** une entrée dans le lot concerné (**A–H** ou **`PLAN.md`**) et **retirer** la ligne d’ici pour éviter le double compte.
+
+- [x] **Front — lot A1 (partiel)** : lazy + `rechartsTooltipProps` sur **`/backoffice/performances/containers`** (`AnalyticsContainersChartsBundle`) ; hub **`/backoffice/analytics`** recentré **application + utilisateurs** (plus de CPU système sur cette route, **07/04**). *Case = code en dépôt ; QA navigateur / build = à faire côté porteur (voir § RSC ci-dessus).*
+- [ ] **Front — lot A1 (suite)** : **`/backoffice/statistics`** — **fait** : **`rechartsTooltipProps`** sur la vue d’ensemble **`statistics/page.tsx`** (**07/04**) ; **reste** : **`next/dynamic`** sur les gros graphes si le bundle reste trop lourd (voir inventaire Recharts ci-dessous).
+- [ ] **UX unifiée (Statistics / Performances / Analytics)** : créer un gabarit commun (mêmes cartes KPI, même barre période, mêmes états vide/erreur/chargement, mêmes légendes axes et blocs “source de données”), puis appliquer page par page pour supprimer les différences visuelles actuelles.
+- [ ] **Graphes fenêtre “24h” intelligente** : quand la période demandée inclut majoritairement du vide (service récemment démarré), proposer un mode “auto-fit aux données disponibles” (zoom initial sur premier/dernier point) tout en gardant l’option d’afficher la fenêtre complète 24h.
+- [ ] **Graphe corrélation “pic” (Performances)** : sous-page dédiée (`/backoffice/performances/correlation`) — toggles machine + conteneurs, axes % / Mo, **mode Léger / Complet** (session), limites points + concurrence fetch + timeout liste conteneurs ; **fait (30/04 + 07/05, partiel)** : route historique disponibilité consolidée (`availability?history=1`) + parsing front robuste alias **réseau / I/O / TR** (évite séries vides selon variantes de champs) + bloc corrélation incidents du service focalisé (logs persistés `ERROR/WARN`, signaux sécurité heuristiques, score sécurité moyen fenêtre) + **tableau de corrélation fine** incidents (`requestId`/endpoint/IP/message) alignés au point métrique le plus proche (CPU/mémoire/TR + écart secondes, borne max d’alignement pour éviter les rapprochements hors plage) + **tri colonnes** sur la synthèse **et** sur le tableau incidents (asc/desc/reset) + filtres rapides incidents (niveau, requestId présent, recherche texte) + liste services triée (**chargés en mémoire d’abord**, puis alphabétique) + deltas **Réseau/I-O** robustes aux resets compteur (**et au cas 1 seul point**) + fallback TR via **stats service** si historique vide + **07/05** : fusion **`metadata.metadata`** pour colonnes incidents (Winston imbriqué) + annulation explicite des fetch corrélation (**`AbortController`**, moins de bruit reload) + **brush/zoom partagé** sur les graphes + **icône d’état de tri** visible sur en-têtes ; **console** : moins de spam **ECONNABORTED** au F5 ; reste : corrélation causalité “pic” plus stricte (règles métier/requestId bout-en-bout), enrichissement logs sécurité (IP/port/endpoint/requestId systématiques à la source) ; **07/05 suite** : mapping persistance conteneurs enrichi pour pousser `blockIO.read/write` même via source monitoring-C (plus de `null` systématiques) ; **QA** : vérifier **I/O bloc / cumul** affichés vs persistance réelle (agrégateur / champs `block_io`) et documenter si Docker retourne réellement `0/0` sur l’hôte.
+- [ ] **Corrélation fine — colonnes incomplètes en réel** : sur `/backoffice/performances/correlation`, traiter en priorité les lignes où `CPU % proche`, `Mémoire % proche`, `TR ms proche`, `Écart (s)`, `endpoint`, `IP`, `requestId`, `Proto`, `Port` restent vides malgré logs présents ; livrer une analyse par champ (absence source vs parsing vs fenêtre d’alignement) + correctifs ciblés. **07/05 (partiel)** : remplacement des `—` **dans les colonnes** par une raison explicite (`source absente`, `champ manquant (contexte)`, `champ manquant (métriques)`, `hors fenêtre`).
+- [ ] **Synthèse Performances — endpoints instantanés** : fiabiliser le bloc `Temps de réponse des endpoints (instantané)` pour afficher toutes les mesures attendues de façon stable (pas d’éléments manquants/intermittents), clarifier le tri/source et gérer proprement les états de données partielles. **Partiel** : affichage explicite des services sans mesure instantanée ajouté dans la synthèse.
+- [ ] **Pont Perf ↔ Sécurité ↔ Logs** : depuis la vue sécurité, afficher un graphe corrélé des séries perf/services/conteneurs + événements logs (IP, endpoint, code HTTP, menaces) pour expliquer “quel log a causé quel pic”.
+- [ ] **Sécurité — notifications critiques par mail** : toute menace `CRITICAL` (ou équivalent risque élevé confirmé) doit déclencher une notification mail vers une adresse configurable dans l’interface admin. La modification de cette adresse doit exiger une réauthentification récente et être journalisée.
+- [ ] **Sécurité — actions sensibles avec réauth** : blocages firewall critiques, changement WAF/politiques, purge/export massif de données, modification email d’alerte et paramètres super admin doivent demander une reconnexion ou confirmation forte avant exécution.
+- [ ] **Sécurité — confirmation email super admin / gestion données** : pour les actions destructrices ou très sensibles dans la gestion des données, envoyer un mail de confirmation avec jeton court et usage unique à l’adresse déclarée ; l’action ne doit s’exécuter qu’après validation explicite.
+- [ ] **Sécurité — logs sans plafond arbitraire** : remplacer les limites fixes UI par pagination/curseur exploitable (total réel, page suivante, filtres date/niveau/catégorie), afin que les vues sécurité ne donnent pas une fausse impression de “500 maximum”.
+- [ ] **Sécurité — détails forensics menaces avant CVE** : prioritaire sur la suite CVE. Pour chaque menace détectée (DDoS, WAF, intrusion, firewall), afficher IP source/destination, géolocalisation, VPN/proxy/ASN quand un provider threat-intel est branché, route/flux réseau, requêtes et payloads dangereux, logs applicatifs corrélés, services et comptes impactés. **11/05 partiel** : page menaces responsive + auto-refresh silencieux + fiche menace enrichie avec GeoIP, logs sécurité 24h, intrusions/DDoS liés, ports/protocoles/services et télémétrie manquante explicite. **11/05 suite** : fallback sur `network_connections` quand `network_threats.destIp` / `metadata.connectionDetails` sont vides ; corrélation logs via `metadata.sourceIp` / `metadata.threatId` en plus de `sourceIP`; cartes Analyse cliquables vers menaces filtrées. **Reste** : provider IP intelligence (ASN/VPN/proxy/Tor), conservation payloads dangereux/request samples, vue IP à surveiller détaillée, tests WAF on/off en dev/prod-like.
+- [ ] **Sécurité — WAF : ne pas filtrer le trafic interne inter-services** : prioritaire à cadrer après forensics/mail. Le WAF doit protéger le trafic externe entrant (gateway/public) sans inspecter/bruiter les appels internes de confiance entre conteneurs JobbingTrack. **11/05 partiel** : `WAF_INTERNAL_BYPASS_ENABLED` + `WAF_INTERNAL_BYPASS_CIDRS` (localhost + subnets privés Docker) et headers/logs `BYPASSED_INTERNAL`; tests externe bloqué / interne autorisé. **Reste** : vérifier les CIDR réels du serveur/VPS, remote host / reverse proxy, et affiner les logs séparés en production.
+- [ ] **Sécurité — supprimer les tokens mock runtime** : les bypass dev doivent être des valeurs exactes d’environnement (`DEV_AUTH_BYPASS_TOKEN`) ou de vrais JWT signés (`JWT_SECRET`), jamais des préfixes codés en dur type `mock-jwt-token*`. **11/05 partiel** : gateway test JWT signé, application/company/dashboard passent sur token env exact ; secret interne runtime sans fallback hardcodé.
+- [ ] **Sécurité — alertes mail incidents critiques et services down** : envoyer un email via le système mail existant quand une menace confirmée `CRITICAL`, une CVE `critical`, un blocage firewall majeur, ou un service/conteneur critique passe `down` selon le monitoring Rust/metrics-aggregator. Adresse configurable en admin avec réauth + audit ; tests MailHog + test SMTP réel optionnel.
+- [ ] **Sécurité — CVE supply-chain continue** : exécuter régulièrement **`make test-cve-scan`** (Node/Rust + images des conteneurs en cours avec `CVE_SCAN_DOCKER=1`) et traiter/justifier toute CVE `high`/`critical` avant release ; idéal CI : `CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high`.
+- [ ] **Sécurité — CVE en production + alertes mail** : brancher `security-service` sur le vrai scanner CVE avec verrou, cadence légère, déduplication par CVE/surface, alertes mail immédiates pour `critical`, digest `high`, configuration email protégée par réauthentification et confirmation.
+- [ ] **Sécurité — rétention/protection logs** : formaliser la rétention par classe de données (90 jours logs bruts, 12–24 mois agrégats, 1–3 ans actions critiques selon besoin légal), protéger export/purge/lecture payload brut par rôle dédié + réauth + audit trail.
+- [ ] **Contrat logs forensics (gateway + services)** : propager et persister systématiquement `requestId`/`correlationId`, IP client, endpoint, méthode, protocole/port, code HTTP sur les logs `WARN/ERROR` pour rendre la corrélation incidents réellement exploitable (anti-DDoS, brute force, usurpation, injection). **05–06/2026 partiel** : mêmes services qu’avant + **`api-gateway`** (cf. **`STATUS.md`** § 6 mai ; complément **HTTP** amont sur erreurs proxy + métadonnées central logger) + **`workflow-service`** (**`requestContext`**, Winston, **`centralLogger`**, CORS en-têtes corrélation, **`TRUST_PROXY_HOPS`**, cron → Winston) ; **reste** : **validation bout-en-bout** vue **`/backoffice/performances/correlation`** (QA porteur ; colonne **HTTP** + parsing métadonnées côté front).
+- [ ] **Observabilité qualité données corrélation** : afficher explicitement, par service, la couverture réelle des points **I/O** et la source **TR** (historique vs fallback stats) pour éviter de masquer les trous de collecte derrière des `--` ou des hypothèses. **30/04 partiel** : panneau “Qualité des données”, parsing alias mémoire/réseau/I/O, multi-chargement services, deltas robustes (cumuls / un seul point), fallback **live container stats**, résumé même sans historique persistant.
+- [ ] **Statistiques utilisateurs — clarification métier** : remplacer la logique actuelle `activeUsers ~= totalUsers` par une définition explicite et mesurée (ex. sessions actives récentes), puis harmoniser libellés “Total / Actifs / Nouveaux” dans les cartes et graphiques.
+- [ ] **Statistiques utilisateurs — lisibilité camemberts** : éviter le chevauchement des labels (labels externes/masqués + légende chiffrée), normaliser les noms de rôles (`ADMIN`, `USER`, etc.) et garder les valeurs absolues visibles.
+- [ ] **Performances Disque** : compléter la page `backoffice/performances/disk` avec snapshots historisés, usage %, volume utilisé/total, puis ajouter la suite Block I/O par service (corrélation avec détail service).
+- [x] **Doc perf** — **`docs/performance/RAPPORT_PERFORMANCE.md`** : titres de section alignés sur **`/backoffice/statistics`** (**24/04**).
+- [x] **`tools/README.md`** : index **`adb-lib`** + **`emulator-controller`** (**24/04**, lot H2).
+- [x] **`mobile/test/widget_test.dart`** : smoke **app → écran Connexion** (**24/04**).
+- [ ] **Mobile (`mobile/`)** : renommage optionnel `home_screen` → `dashboard_screen` ; barrel **`lib/screens/screens.dart`** si tu veux des imports courts.
+- [x] **`flutter-mobile-app/lib/screens/`** : même logique **`jobbing/*`** + **`routes`** nommées pour **`/applications`** etc. (**24/04** ; vérifier **Provider** si tu branches l’API sur cet exemple).
+- [x] **Scripts** — table *script → Makefile / doc* dans **`scripts/README.md`** (suite lot **H1**, **07/04**).
+- [ ] **Env sans défauts codés** : voir **HX1** en bas de fichier (audit `|| '…'` / ports magiques sur tout le monorepo).
+- [x] **Synthèse `/backoffice`** : stats **CPU & mémoire** explicites **conteneurs JobbingTrack** (cartes + tableau par `jobbingtrack-*`, lien **Performances → Conteneurs**) ; encart **Performance** enrichi (**07/04**).
+- [x] **Statistiques `/backoffice/statistics/security`** : **uniquement persistance** (résumé `…/security/summary` + tendance score + **agrégat par jour** + extrait lignes) — **sans** doublon des cartes live de **`/backoffice/security`** (**07/04**).
+
+---
+
+## Règles de travail (produit / Git / tests)
+
+- **Pull requests** : **pas de PR** tant que le porteur ne l’a **pas demandé explicitement** dans la conversation.
+- **Conventions de commit (obligatoire)** : utiliser un préfixe cohérent selon la nature du changement — `feat:`, `err:`, `test:`/`tests:`, `misc:` ; regrouper par lots logiques (pas de mélange front/back/docs/tests sans lien direct), puis vérifier `git status` avant commit.
+- **Tâches « terminées » côté code** : les cases `[x]` ci-dessous reflètent surtout l’**implémentation** ; l’**acceptation produit** suit **`PLAN.md`** (colonne **Validé (porteur)** = **Oui (date)** après **votre** vérification manuelle, ou mention équivalente dans **`STATUS.md`**).
+- **`make tests`** : alias de **`make test-all`** (suite **complète** + rapports dans **`tests/results/<horodatage>/`**). **Prérequis** : stack **`make up-full`**, **`make db-push-all`**, seed auth si besoin, MailHog si tests mail — sinon échecs massifs **normaux** (voir **`ERRORS.md`** et **`STATUS.md`** § 11/04/2026).
+- **`make test-suite-full`** : `test-frontend` → `test-database` → `status` → `test-all` (Makefile tests).
+
+---
+
+## Alignement `ERRORS.md` → suivi (actions hors environnement vide)
+
+À traiter dans le code / les lots concernés ; cocher ici seulement quand **corrigé et vérifiable** (et **Validé** dans **`PLAN.md`** si produit).
+
+- [ ] Table **`deployments`** manquante — deployment-service (`ERRORS.md`)
+- [ ] Table **`user_events`** manquante — User Analytics (`ERRORS.md`)
+- [ ] **API versioning** 404 — `GET .../analytics/stats/:userId/versions` (`ERRORS.md`)
+- [ ] **Sync mobile** — endpoints `POST /sync/push`, etc. (`ERRORS.md`)
+- [ ] (Optionnel) Build APK **`flutter_local_notifications`** (`ERRORS.md`)
+
+---
+
+## Fait récemment (à ne pas re-faire)
+
+- [x] **07/05 — Corrélation / observabilité dev** : **`logs-watch`** ne traite plus **141** comme arrêt utilisateur ; **`analytics.service.ts`** filtre les interruptions axios bénignes (**reload**) ; **`correlation/page.tsx`** — **`mergeAggLogMetadata`** pour incidents ; **`frontend/package.json`** — **`browserslist:update`** ; **`make logs`** aide mémo vers **`logs-watch`**.
+- [x] **29/04 — Front boot bloqué** : correction de `frontend/next.config.js` pour forcer un `distDir` utilisateur (`.next-local`) quand `frontend/.next` appartient à `root` (cas fréquent après exécution Docker). Effet : suppression de l’erreur navigateur `layout.js ... literal not terminated` liée à des assets `.next` corrompus/partiellement écrits.
+- [x] **06/05 — Forensics `workflow-service` (lot A3/B6)** : **`requestContext`**, Winston, **`centralLogger`** (off sous Jest), CORS **`X-Request-Id` / `X-Correlation-Id`**, **`TRUST_PROXY_HOPS`** ; cron / moteur via **`logger`** (plus de **`console.*`** sur les chemins principaux).
+- [x] **06/05 — Forensics `api-gateway` (lot A3/B6)** : middleware corrélation (**AsyncLocalStorage**, aligné microservices), logger Winston + contexte, **`CentralLoggerTransport`** (désactivé sous Jest), **`TRUST_PROXY_HOPS`** ; erreurs proxy enrichies (**`upstreamHttpStatus`**, **`httpStatus`**) ; Jest gateway **22/22** verts (fallbacks **`NODE_ENV=test`** auth/logs, CORS OPTIONS avec **Origin**, Bearer sur route logs).
+- [x] **05/05 — Forensics microservices (lot A3/B6)** : `interview`, `call`, `followup`, `event`, `profile`, `notification`, `deployment` — alignement sur auth/company (requestContext, centralLogger, logger Winston) ; **axios** ajouté à call/followup/event pour le flush HTTP.
+- [x] **04/05 — Vue d’ensemble `/backoffice`** : retrait des encarts texte (explication métriques, sous-titre carte Performance, note débit erreurs) — allègement UI ; suivi infra Redis **HX5** + séquence **`db-push-all` → `up-full`** en fin de fichier.
+- [x] **04/05 — Backoffice « Chargement… » + Postgres `Company.isTestData`** : alignement **schéma maître auth** (`Company.isTestData` + index, comme `backend/prisma`) pour que `make db-push-all` crée la colonne ; script **`scripts/db/fix-company-isTestData.sql`** dans **`db-push-all.sh`** (idempotent). **Gateway** : **`GET /api/v1/services`** ne renvoie plus **503** si metrics-aggregator est down — **200 + fallback** + logs **`warn`** pour erreurs transitoires (**`logMetricsAggregatorFailure`**).
+- [x] **30/04 — Corrélation Performances** : historique disponibilité service passé sur `.../persistence/services/:serviceName/availability?history=1` (plus de sous-route `/history`) ; front `correlation/page.tsx` renforcé pour lire plusieurs alias de champs (`network*`, `block*`, `responseTime*`) afin d’afficher correctement **Réseau / I/O / TR** malgré les différences de payload entre sources.
+- [x] Vue d’ensemble `/backoffice` : carte incidents sécurité, grille 2 lignes, légendes CPU total, état services (En ligne / ~ms), débit erreurs en `/min`, reset compteurs à 0 (`frontend/src/app/(admin)/backoffice/page.tsx`).
+- [x] Panneau **Performance** : ligne disponibilité %, légende des sources, lien vers `/services/backoffice`, texte d’aide bas de carte (avril 2026).
+- [x] Doc : **ERRORS.md** (pièges dashboard + pipeline synthèse), **FONCTIONNALITES.md** § 4.1, **RESOLUTIONS.md** (avril 2026), **STATUS.md** (structure + tableau lots), **docs/CHANTIER_…**, **docs/INDEX.md**.
+- [x] **21/04** — **STATUS** / **PLAN** / **ERRORS** / **TODOS** / **README** : **`make status-watch`** & **`status-live`** (= **`make status`**, **`CLEAR`**, résumé stack vide) ; section logs backoffice (metrics-aggregator) ; **mise à jour des textes `PLAN.md`** pour cadrer les lots **A2**, **C1**, **E1** (≠ livraison complète de ces lots) ; pièges **ERRORS** (`make status` DOWN, ancien **status-live**).
+- [x] **24/04** — **`make status` vs backoffice** : le statut Makefile reflète l’**état des conteneurs** (UP / healthy / ports), pas l’activité d’une page Next.js (ex. Statistiques) ni le volume de requêtes utilisateur. **`status-watch` / `status-live`** : script **`scripts/status-watch-loop.sh`** — **buffer terminal alternatif par défaut** (`ALTSCREEN=1`) pour réafficher le bloc courant **sans empiler** les cycles dans l’historique du terminal ; `ALTSCREEN=0` pour l’ancien défilement ; **`CLEAR=1`** + `ALTSCREEN=0` pour `clear` classique. **UI logs détail service** : grille date / message, couleurs (HTTP, firewall, erreurs), bouton masquer bruit firewall/WAF.
+- [x] **07/04 (complément)** — **`make status`** : légende longue des ports (**`STATUS_LEGEND=1`** pour l’afficher ; **désactivée par défaut**). **`status-watch-loop.sh`** : **`STATUS_FOLD=1`** (défaut) — sortie de **`make status`** passée dans **`fold -s -w $(tput cols)`** ; **`STATUS_FOLD=0`** pour désactiver. **Front** : **`GlobalSearch.tsx`** avec **`'use client'`** (build RSC + baril **`features`**), chevron drawer **Performances** ouvert si sous-route active, **Synthèse Performances** : scroll vers **`#latence`** une seule fois par navigation vers l’ancre (pas à chaque reload des graphes). Test **`GlobalSearch.client-boundary.test.ts`** ; **`ERRORS.md`** § baril RSC.
+- [x] **07/04** — **`SettingsPopup.tsx`** : **`'use client'`** en tête (hooks + réexport baril **`@/components/features`** ; pages RSC comme **`/backoffice/performances/containers`**).
+
+---
+
+## Lot A — Monitoring services + logs multi-sources (+ persistance)
+
+### Socle graphes / données partagés (cible lot A, élargie au backoffice)
+
+- **Vision** : le **socle** (fonctions pures de dérivation, hooks, composants Recharts réutilisables, tooltips / axes / légendes alignés) a démarré sur le **monitoring** (détail service), mais la **cible** est **toute page backoffice** qui affiche des **graphiques** ou des **vues tableau + séries** — dès qu’on standardise, sans casser l’existant.
+- **Règle porteur** : **ne pas supprimer** un graphe, une série ou un bloc de données **sans validation explicite**. Un refactor « socle » = **déplacement / factorisation** dans des modules dédiés, **pas** retrait fonctionnel tant que tu n’as pas validé écran par écran.
+- **Navigation (préambule lot A — avril 2026)** : drawer **Tableau de bord** — **Vue d’ensemble** ; **Performances** (`/backoffice/performances`, sous-entrées **Synthèse**, **Temps de réponse** → ancre `#latence` / route alias `/latency`, **Conteneurs** (graphes Docker), **Disque** stub, **Réseau (détail)** → **`/backoffice/performances/network`**) ; **Statistiques** : canon **`/backoffice/statistics`** (+ sous-routes **app-data**, **security**, **`log-stats`** — motif `logs/` **gitignoré**) ; l’URL **`/backoffice/statistique`** redirige vers la canonique ; **Analytics** (hub **application + utilisateurs** + sous-routes applicatives ; **pas** de conteneurs / CPU système ici — anciennes URLs **`/backoffice/analytics/containers`** et **`/backoffice/analytics/network`** → **redirect** vers Performances). **Annulation** : `git revert` / commit parent si besoin.
+
+### Inventaire — **Metrics système & conteneurs** : ce qui est déjà sur le nouveau socle
+
+- **Périmètre** : ici on parle du volet **métriques système & conteneurs** (charge, conteneurs Docker, séries agrégées), **pas** d’un cas isolé « un service au hasard ». Le **premier écran** déjà branché sur le socle (modèle + hook + composant) est le **détail d’un service** — parce que c’est là que vit l’**historique** exploitable (CPU, mémoire, réseau, Block I/O).
+- **Référence graphes** : le rendu **CPU / mémoire** (et le reste du bloc) dans **`MonitoringServiceHistoryCharts`** sur **`/backoffice/services/[nom]`** est **nettement plus abouti** que les graphes **CPU** (et voisins) des pages **performances / analytics** actuelles. **Objectif** : **réutiliser ce patron** (axes zoomés, tooltips, dérivés) sur les vues **metrics système & conteneurs** plus larges — **sans retirer** les graphes existants tant que tu n’as pas validé la bascule (règle porteur ci-dessus).
+
+| Zone (metrics système & conteneurs) | Fichiers / pièces *(chemins relatifs au dépôt)* | Validé par toi *(relecture visuelle / prod)* |
+|-------------------------------------|-----------------------------------------------|--------------------------------|
+| **Historique** détail conteneur / service : CPU, mémoire, réseau, Block I/O cumul, débit Block I/O | `frontend/src/lib/monitoring/serviceHistoryChartModel.ts`, `useServiceHistoryChartData.ts`, `serviceHistorySources.ts`, `frontend/src/components/monitoring/MonitoringServiceHistoryCharts.tsx`, `frontend/src/app/(admin)/backoffice/services/[serviceName]/page.tsx` — URL QA : **`/backoffice/services/<nom>`** | [ ] |
+| **Performances** — CPU & mémoire % (système) | `frontend/src/lib/charts/systemMetricsSeriesModel.ts`, `frontend/src/components/charts/SystemCpuMemoryAreaCharts.tsx`, `frontend/src/app/(admin)/backoffice/performances/page.tsx` — **`/backoffice/performances`** ; alias `analytics/performances` → canonique | [ ] |
+
+### Inventaire — pages backoffice avec Recharts **hors** socle unifié (A1c / A1d / A5)
+
+*(Composant **`recharts`**. **A1c** : lazy = **`next/dynamic`** + tooltips **`rechartsTooltipProps`** quand c’est fait.)*
+
+| URL (QA navigateur) | Fichier source principal | Lazy / tooltips *(état 24/04)* |
+|--------------------|---------------------------|--------------------------------|
+| **`/backoffice/analytics`** | `frontend/src/app/(admin)/backoffice/analytics/page.tsx` | Hub cartes (application, utilisateurs, lien Performances) — **sans** Recharts système |
+| **`/backoffice/performances`** | `frontend/src/app/(admin)/backoffice/performances/page.tsx` | **Partiel** : `SystemCpuMemoryAreaCharts` + `SystemCpuNetworkCorrelationChart` en `dynamic` ; graphes inline sur la page |
+| **`/backoffice/performances/network`** | `frontend/src/app/(admin)/backoffice/performances/network/page.tsx` | **Partiel** : corrélation en `dynamic` (ex-`/backoffice/analytics/network`) |
+| **`/backoffice/performances/containers`** | `.../performances/containers/page.tsx` + `components/charts/AnalyticsContainersChartsBundle.tsx` | **A1c** : `rechartsTooltipProps` + lazy bundle Recharts (**07/04**, déplacé depuis Analytics) |
+| **`/backoffice/analytics/application/*`** | `frontend/src/app/(admin)/backoffice/analytics/application/**/page.tsx` | À inventorier au fil des écrans (perf / activité / feedback) |
+| **`/backoffice/statistics`** (+ sous-pages) | `frontend/src/app/(admin)/backoffice/statistics/page.tsx`, `app-data/page.tsx`, `security/page.tsx`, `log-stats/page.tsx`, `StatisticsSubNav.tsx` | **Vue d’ensemble** : tooltips **`rechartsTooltipProps`** (**07/04**) ; **lazy** gros graphes = **reste A1e** |
+| **`/backoffice/statistique`** | `frontend/src/app/(admin)/backoffice/statistique/page.tsx` | **Redirection serveur** → **`/backoffice/statistics`** (plus de doublon de contenu) |
+| **`/backoffice/tests-performance`** | `frontend/src/app/(admin)/backoffice/tests-performance/page.tsx` | Graphes Recharts inline — **reste** alignement thème / lazy si besoin |
+| **`/backoffice/performance-tests`** | `frontend/src/app/(admin)/backoffice/performance-tests/page.tsx` | Pas Recharts sur la même logique ; option **Infrastructure** ajoutée **24/04** |
+
+| **`/statistics`** (hors `backoffice/`) | `frontend/src/app/(admin)/statistics/page.tsx` | **Redirect** → **`/backoffice/statistics`** (**24/04**) |
+
+### Feuille de route — réseau cumul vs activité, hub Analytics, application « métriques », sécurité
+
+- **Réseau (snapshots agrégateur)** : les compteurs **RX/TX** sont souvent des **cumuls** → courbe monotone peu parlante seule. **Fait (Performances)** : **débit Mo/min** (`buildSystemNetworkMbRateRows`) + **graphique combiné** CPU % vs RX/TX Mo/min (`SystemCpuNetworkCorrelationChart.tsx`, deux axes Y). **Suite** : **brush** / zoom aligné ; **fenêtre glissante** (moyenne) côté API ; corrélation **mémoire** optionnelle ; **graphiques supplémentaires** sur **`/backoffice/performances/network`** (histogrammes / répartition par conteneur si données disponibles).
+- **Hub `/backoffice/analytics` vs `/backoffice/performances`** : **Analytics** = entrée **métier** (application, utilisateurs, lien Statistiques) ; **Performances** = **historique infra** système (CPU, mémoire, **temps de réponse agrégé** `responseTimeAvg` quand la persistance le remplit, réseau cumul + débit, **conteneurs**). **Fait (07/04)** : retrait du test CPU et des cartes infra sur le hub Analytics.
+- **Sous-menu Performances** : **Fait (07/04)** — entrées drawer + **`PerformancesSubNav`** : synthèse unique (cartes), **conteneurs** (graphes sur **`/backoffice/performances/containers`**), **stub disque**, **réseau** sur **`/backoffice/performances/network`**. Anciennes routes sous **`/backoffice/analytics/containers|network`** = **redirect** Next vers Performances. **Suite** : routes dédiées CPU-only / mémoire-only seulement si le porteur impose le découpage (sinon ancrages internes).
+- **Application** (drawer **Analytics**) : **sous-routes** `/application/performance` (ex-page live), `/application/activity`, `/application/feedback` + **`ApplicationSubNav`** ; redirect `/application` → **performance**. Périmètre cible inchangé : **perf mobile**, **traces** (resets, etc.), **retours** (emails / signalements) — pages **activité** et **retours** = emplacements réservés (chantier données **user-analytics**, **event-service**, **mail**).
+- **Sécurité × observabilité** : exploiter **charge réseau**, **métriques**, **analytics** pour **surcharge**, **menaces**, **politiques** (lots **B** + **A**) — gros chantier : règles de corrélation, seuils, pas seulement réafficher des graphes dans la vue sécurité.
+
+### Souhaits graphes / données / tableaux (priorité porteur — compléter ici)
+
+*(Ajoute une puce `[ ]` par idée ; l’équipe ne devine pas les priorités métier.)*
+
+- [x] **CPU & mémoire (premier pas)** : **`/backoffice/performances`** — **`SystemCpuMemoryAreaCharts`** + **`systemMetricsSeriesModel`**. **Suite possible** : **`/backoffice/performances/containers`**, **`/backoffice/statistics`**, etc.
+- [x] **Réseau** : débit **Mo/min** sur **Performances** ; page détail **`/backoffice/performances/network`**.
+- [x] **Temps de réponse** : persistance + instantané par service sur **Performances**.
+- [x] **Statistiques** : sous-pages **App data** / **Sécurité** / **Logs (stats)** branchées.
+- [ ] **Liste services** : **vraie** sparkline / mini-série **historique** (API légère ou cache) — aujourd’hui **jauge CPU** instantanée + **`title`** ligne (voir **A1d**).
+- [ ] **Export** : CSV / JSON des séries affichées (performances, réseau, détail service) pour analyse externe.
+- [ ] **Brush / plage** : zoom synchronisé entre plusieurs graphes d’une même page (**A1e**).
+- [ ] **Seuils & alertes visuelles** : bandes ou lignes de référence (CPU %, latence ms) configurables.
+- [ ] **Tableaux** : colonnes triables + mémorisation préférences (localStorage) sur vues « lourdes » (logs agrégés, stats).
+- [ ] **Heatmap** : charge par service × tranche horaire (données agrégateur / BDD à dimensionner).
+- [ ] **Comparatif** : superposer deux périodes ou deux conteneurs sur un même graphe (hors simple multi-line actuel).
+- [ ] **PIDs historisés** : courbe ou tableau si **A1f** (contrat API) validé produit.
+
+---
+
+#### A1 — Que faire concrètement ? (vue détail service + socle graphes)
+
+**Périmètre** : page **`/backoffice/services/[nom]`** + modules **`frontend/src/lib/monitoring/*`**, **`MonitoringServiceHistoryCharts.tsx`**, API **`metrics-aggregator`** (**`docker.routes.js`** — **`/history`**, métriques live).
+
+| Statut | Signification |
+|--------|-----------------|
+| **Fait (code)** | Implémenté dans le dépôt ; **≠** « validé par toi » → colonne **Validé** dans **`PLAN.md`**. |
+| **Reste** | Pas fini ou volontairement basse prio ; tu peux cocher quand c’est livré ou reporter dans **Souhaits** ci-dessus. |
+
+**Déjà en place (ne pas refaire sans nouveau besoin)**  
+CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; **PIDs** dans les métriques live ; **disque hôte** (encart via **`GET /api/v1/metrics`**) ; fusion **fichiers + `container_metrics_snapshots` + session** via **`loadServerHistoryPoints`** ; graphes extraits dans **`MonitoringServiceHistoryCharts`** ; tests **`serviceHistorySources`**, **`serviceHistoryChartModel`**, **`page.test.tsx`** + mock **`/api/v1/metrics`** (`npm run test:service-detail-page`, `npm run test:service-history-model`).
+
+**À faire ensuite (ordre raisonnable)**  
+
+- [ ] **A1 — lot parent** : cocher la case principale **A1** seulement quand **A1d / A1e / A1g** auront avancé selon **ton** objectif produit (ou quand tu auras explicitement décidé de reporter le reste dans **`docs/BACKLOG.md`**).
+
+- [x] **A1c — partiel (étendu 07/04)** : **`next/dynamic`** pour **`MonitoringServiceHistoryCharts`** (détail service) ; **`SystemCpuMemoryAreaCharts`** + **`SystemCpuNetworkCorrelationChart`** (**Performances**) ; **`SystemCpuNetworkCorrelationChart`** (**Analytics réseau**). **Reste** : extraire / lazy les gros **`LineChart`** encore inline (**hub analytics**, **containers**, **statistiques**) si le bundle reste trop lourd.
+
+- [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`/backoffice/statistics`** (axes, gaps, légendes) ; liste **`/backoffice/services`** : **fait (partiel)** — **`title`** ligne + **jauge CPU** sous le nom (pas de Recharts) ; suite = sparkline **historique** si tu valides l’API.
+
+- [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **Performances**. **Partiel** : tooltips **`performances/containers`** (graph mémoire multi-conteneurs) alignés thème ; **`/backoffice/statistics`** vue d’ensemble (**`page.tsx`**, **07/04**).
+
+- [ ] **A1f** — Contrat API **PIDs** stable (ex. `docker top` ou champ agrégateur versionné) **si** tu en as besoin côté produit ; aujourd’hui **instantané** liste services via **`GET …/metrics`** / services.
+
+- [x] **A1g — partiel (07/04/2026)** : encart **sources d’historique** (session / fichiers agrégateur / Postgres) sur **`services/[serviceName]/page.tsx`**. **Reste A1g** : même logique de libellés sur **autres** pages monitoring (**A5** global).
+
+**Qualité / CI (hors « feature » mais bloque parfois)**  
+Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-frontend-log`**.
+- [x] **Type-check frontend (07/05)** : prédicats `ms != null` corrigés sur **`performances/latency/page.tsx`** et **`performances/page.tsx`** (tri sûr), typage serveur ajusté sur **`frontend/src/instrumentation.ts`** (`self` côté Node), puis **`tsc --noEmit`** repassé **vert**.
+
+**Roadmap sécurité** (liée mais hors A1) : **B11** / **B12** — **`PLAN.md`** / **`STATUS.md`**.
+
+- [ ] A2 — Logs tous services + filtres — **partiel (21–22/04)** : **`/backoffice/services/logs`** + **`centralMetricsService.getServiceLogs`** + agrégateur **`since`/`until`** ; filtres **niveau / type / texte** ; **`(development)/services/applications`** (onglet logs) + **`(development)/services/backoffice/[serviceName]`** → **`/api/v1/docker/service/…/logs`**. **Suite A2 (22/04)** : **`api-gateway`** — **`dockerLogsQuery.js`** + **`normalizeDockerLogsQuery`** (proxy + réponse **`query`**) ; **`admin/logs/*`** ; **Jest** `tests/dockerLogsQuery.test.js` (incl. construction query proxy — **complément** : smoke curl / **`make tests`** avec stack). **Infra** : **log-collector-c** écoute **3019** dans le conteneur (**5099** hôte) ; **`make rebuild-log-collector-c`** après pull. **Reste** : smoke / E2E admin ; **Loki** → **`docs/BACKLOG.md`** si hors sprint.
+  - [ ] **A2 suite persistance fichiers** : en plus de la **BDD** (`aggregatedLog` / persistance agrégateur), **archives compressées rotatives** (gzip) par service ou par jour, index minimal pour recherche rapide ; exposition ou doc **`make`** / UI **`/backoffice/statistics/log-stats`**.
+- [ ] A3 — Vues détail service : corrélation logs techniques × sécurité (**partiel** : encart liens sécurité + logs centralisés sur la page détail ; reste : vue unifiée / timeline / API si besoin).
+- [x] A4 — Synthèse pipeline dans `ERRORS.md` (§ Pièges + pipeline) ; **à réviser** après A2–A3.
+- [ ] A5 — **Historique enregistré** : UI qui distingue **temps réel Docker** / **snapshots fichiers** / **persistence BDD** ; brancher les séries déjà stockées sur détail service + pages monitoring liées (analytics, stats, liste services) ; **suite** (non pressé) : encore plus de panneaux sur détail service + pages « performances ». **Suite 07/04 (partiel)** : timeout historiques + clamp `limit` + **localStorage** période partagée performances/réseau/conteneurs ; **affichage heure** : `formatLocalDateTime` dernier point ; **`normalizeMetricRows`** (`analytics.service.ts`) = **`timestampMs`** dérivé de l’**ISO** quand parseable (corrige JSON incohérent) ; tests **`date-metrics-display.test.ts`** + **`analytics-metric-rows-normalize.test.ts`** ; **`timestampMs`** API + **`metricRowToTimeMs`** / **`timeMs`** sur graphes ; **`parseChartTimestamp`** `{ value }` ; **`injectMetricTimeGaps`** ; **`docker-compose.yml`** `postgres` **TZ/PGTZ** ; **SQL `system_metrics`** : **`AT TIME ZONE`** = **`POSTGRES_SYSTEM_METRICS_TZ`** (comme Postgres) + **`make restart-metrics-recreate`** / **`monitoring-clock-refresh`** si besoin — **à valider** sur ta machine (graph aligné horloge locale) ; étendre **user-analytics** / **application** si besoin.
+
+---
+
+## Lot B — Sécurité
+
+**Vision d’ensemble (tout le périmètre « sécurité » — où ça vit dans le repo)** :
+
+| Thème | Rôle / implémentation typique | Lots / doc |
+|--------|-------------------------------|--------------|
+| **Firewall, WAF, règles, iptables** | `security-service`, routes proxy **`/api/v1/security/*`** via **gateway** ; UI **`/backoffice/security/firewall`** ; vérif **`make security-live-check`** | **B5**, **B10** ; `scripts/security/` |
+| **Politiques (IPs, WAF)** | Données **security-service** + écrans **Politiques / Menaces** ; application : règles persistées puis **application** côté service (firewall controller) + trafic entrant filtré **gateway** / service selon archi | **B1–B3**, **B10** |
+| **Menaces & analyse temps réel** | Logs **`eventType`**, table menaces, **`networkThreatDetector`** ; pages **Analyse**, **Réseau**, vue d’ensemble | **B3**, **B4**, **B6**, **B10** |
+| **Logs techniques utiles enquête** | **`/backoffice/services/logs`** (metrics-aggregator) + **corrélation** avec sécurité | **A2**, **A3**, **B8** |
+| **Mot de passe (complexité, reset)** | **`auth-service`** (ex. `min: 6` aujourd’hui), emails reset ; durcissement = évolution produit + **B7** audit si besoin | Auth + **B7** ; **`.env.example`** |
+| **Déploiement / secrets / prod** | Compose, **`PREPROD_PRODUCTION_CHECKLIST.md`**, **`INTRUSION_DETECTION_ENABLED`**, secrets forts ; **B14** durcissement **`docker-compose`** / **`docker.sock`** / Redis / non-root | **B5**, **B6**, **B14** ; lot **G** ; **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** |
+| **Sauvegardes & continuité** | Pas encore le même code que le firewall — **lot G** | **G1–G7** |
+
+- [x] B1 — Cohérence : `blockOrigin` sur IPs bloquées + affichage firewall / analyse (affiner si besoin).
+- [x] B2 — Test IP lab + **refus blocage de sa propre IP** côté API ; messages UI test vue sécurité.
+- [ ] B3 — **Partiel (`PLAN.md`)** — Légende vue sécurité + panneaux Analyse (détections / manuels+lab / auto) ; **reste** : badges **origine** partout (firewall), distinction détection vs blocage **homogène** sur toutes les vues.
+- [ ] B4 — **Partiel (`PLAN.md`)** — Réseau : corrélation % + hint actionnable ; **reste** : cas **« unknown »** résiduels, messages API / empty states.
+- [x] B5 — `make security-live-check` : auth firewall/WAF côté security-service + secret interne scripts ; types menaces `generate-test-threats` alignés sur l’API (avril 2026).
+- [ ] **B6** — **Corrélation** : `X-Request-Id` / `X-Correlation-Id` — **partiel 22/04 + 06/05** : middleware gateway **`requestCorrelation.js`** (ALS + contexte requête dans les logs WARN/ERROR, central logging optionnel), proxy + CORS + **`frontend/src/lib/api.ts`** ; **intrusionDetector** enrichi si réactivé. **Reste** : morgan / middleware sur **chaque** microservice (hors déjà livrés) + recherche côté **security-service** + mobile + NTP prod.
+- [ ] **B7** — **Audit append-only** : actions sensibles (admin login, exports, IP unblock, test-data destructif, rôles) ; pas de secrets en clair ; lecture réservée rôle élevé.
+- [ ] **B8** — **Backoffice** : vue **investigation / post-incident** sous **Sécurité** (filtres acteur, période, type) ; croisement menaces + audit + logs ; export horodaté + **hash** pour chaîne interne ; doc **`docs/security/`** (procédure, rôles).
+- [ ] **B9** — **Mobile** : erreurs + **événements sécurité** (session révoquée, échecs auth, etc.) vers API **rate-limit** ; corrélation user/device/IP ; rappel limite appareil compromis — croiser **lot D1** / **D2**.
+- [ ] **B10** — **UX backoffice sécurité** : reprendre **`/backoffice/security/**`** (vue d’ensemble, firewall, analyse, réseau, etc.) — lisible, métriques **alignées API**, empty states, unités / fenêtres temporelles explicites ; préparer emplacements **investigation (B8)** ; politique mots de passe **côté UI** (texte d’aide + lien doc) une fois règles auth figées.
+- [ ] **B10 suite — incidents temps réel + score** : texte d’encart déjà posé (données BDD / démo / tests) ; **compléter** : lien vers **`ERRORS.md`** (faux positifs résiduels, **`ENOTFOUND`** si stack partielle) ; **exposer proprement la pondération du score** (aujourd’hui **`localStorage`** **`securityScoreWeights`** dans **`page.tsx`** vue sécurité) — idéalement UI « poids par famille » + persistance serveur ou doc admin si refus du localStorage seul.
+- [ ] **B11 (spec / backlog)** — **Emails de rapport sur incidents critiques** : configuration (**SMTP** déjà cadré préprod **`PREPROD_PRODUCTION_CHECKLIST.md`**, **`CRASH_REPORT_EMAIL`**, etc.) étendue aux **alertes métier** — failles / menaces **très graves**, événements **firewall** majeurs, **indisponibilité** d’un service ou d’une partie du projet ; destinataires, **seuil de gravité**, **rate-limit** / regroupement pour éviter le spam ; templates ; traçabilité **B7** / investigation **B8** ; pas d’exposition de secrets dans le corps du mail.
+- [ ] **B12 (spec / backlog)** — **Analyse sécurité en quasi temps réel** mais **très peu coûteuse** : boucles légères (intervalles **adaptatifs**, **backpressure**, limites mémoire sur tampons / fenêtres d’événements), éviter le **polling** agressif sur grosses tables ; option **SSE / WebSocket** **throttled** ; cohérence avec **B3–B4–B10** et charge côté **security-service** + gateway.
+- [ ] **B13 (spec / backlog)** — **Préparation sécurité post-quantique (PQC)** : lancer la crypto-agilité projet.
+  - [ ] **Inventaire crypto** : TLS (entrant/sortant), JWT/JWS, hash/signatures, secrets de service, sauvegardes chiffrées, mobile/API.
+  - [ ] **Classification des données** : prioriser les flux “longue confidentialité” (risque **harvest now, decrypt later**).
+  - [ ] **Plan de transition** : cibles algorithmiques hybrides/PQC (quand supportées), rotation certs/clés, compatibilité clients et rollback.
+  - [ ] **Tests dédiés** : non-régression fonctionnelle, perf/latence handshake, interop environnements, procédures incident.
+  - [ ] **Documentation ops** : runbook migration crypto + checklists préprod/prod.
+
+- [ ] **B14 — Durcissement Docker Compose & runtime** : feuille de route **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (priorisation **BX1–BX14**). **Ne pas** casser **`make up-full`** sans migration documentée (secrets, Redis, clients `REDIS_URL`, proxy socket). **Fait (6 mai 2026, partiel)** : WAF gateway piloté par **`${WAF_ENABLED:-true}`** + **`.env.example`** **`WAF_ENABLED=true`** (comportement type prod ; **`false`** seulement pour diagnostic local) ; **`METRICS_API_KEY`** via variable ; **`JWT_SECRET`** sur **profile-service** ; healthcheck **postgres** aligné **`POSTGRES_USER`** / **`POSTGRES_DB`** ; **frontend** fallback **`HOST_IP=localhost`** ; **security-service** **`no-new-privileges`** ; suppression **`server.js.backup.*`** + **gitignore** / **`backend/.dockerignore`**. **Reste** :
+  - [ ] **BX1** — Retirer les **fallbacks secrets** dangereux du chemin **prod** (fichier compose dédié ou variables **`${VAR:?message}`** après pipeline secrets) ; garder un chemin **dev** explicite documenté.
+  - [ ] **BX2** — Remplacer le montage direct **`/var/run/docker.sock`** par **socket proxy** (ou API limitée) pour les services qui n’en ont pas besoin au niveau root-hôte.
+  - [ ] **BX3** — **Non-root** pour **monitoring-c** / **metrics-aggregator** (images + permissions) ; **security-service** : documenter l’exception **iptables** ou alternative.
+  - [ ] **BX4** — (Suivi) WAF gateway : valider en **`make tests`** / E2E avec **`WAF_ENABLED=true`** et ajuster règles si besoin.
+  - [ ] **BX5** — **Redis** : **`requirepass`** / ACL + mise à jour de **tous** les **`REDIS_URL`** / clients ; tests de non-régression session / intrusion detector.
+  - [ ] **BX6** — (Suite) **`.dockerignore`** aux autres contextes de build si besoin ; interdire tout nouveau `*.backup.*` versionné.
+  - [ ] **BX7** — **ADMIN_*** bootstrap **auth-service** : réduire exposition (secret Docker / init one-shot / doc prod).
+  - [ ] **BX8** — (Suivi) Vérifier **tous** les services avec **`jwt.verify`** : même **`JWT_SECRET`** que l’émetteur ; pas de service « oublié » dans les profils compose.
+  - [ ] **BX9** — (Suivi) **`no-new-privileges`** sur **security-service** : valider **`make security-live-check`** + firewall réel après durcissement.
+  - [ ] **BX10** — (Suivi) **Frontend** : aucune IP privée « maison » en fallback dans les autres fichiers (grep périodique).
+  - [ ] **BX11** — **`read_only: true`** + **`tmpfs`** là où l’écriture disque n’est pas requise (service par service).
+  - [ ] **BX12** — Limites **CPU/RAM** (Swarm **`deploy.resources`**, Portainer, systemd, ou doc équivalente).
+  - [ ] **BX13** — (Fait partiel postgres) — vérifier les **autres** healthchecks avec identifiants hardcodés.
+  - [ ] **BX14** — Politique de **redémarrage** (backoff / max attempts) en orchestration prod ; documenter le risque **crash loop** avec **`unless-stopped`**.
+
+---
+
+## Lot C — Suivi-intérim & données test
+
+- [ ] C1 — `/backoffice/suivi-interim` : données utiles, flux agences ↔ candidatures — **21/04** : erreur API affichée + **Rafraîchir** + lien **test data** (`SuiviInterimContent.tsx`) ; **reste** données / filtres / validation porteur.
+- [ ] C2 — Procédure claire base principale vs base test (admin préservé) — **partiel** : **`make env-check`** / **`make env-append-missing`** ; doc **`docs/database/MIGRATIONS_ET_BASES.md`** à compléter.
+- [x] C3 — `generate-test-data` / clear / marquage : **partiel livré** — endpoints **`tag-likely`**, **`summary`**, clear **Document** + **EmailLog** ; UI **TestDataTab** + **`/backoffice/test-data`** (balanced) ; **`--balanced`** / **`_balanced`** ; validation **porteur** + éventuels compteurs « stats uniquement test » encore **à faire**.
+
+---
+
+## Lot D — Mobile & observabilité
+
+- [ ] D1 — Schéma d’événement crash / erreur normalisé (champs obligatoires) ; **aligner** champs avec **B9** (événements sécurité mobile si même pipeline).
+- [ ] D2 — Chaîne complète jusqu’aux vues analytics / logs admin.
+- [ ] D3 — Libellés et filtres compréhensibles dans stats / monitoring.
+- [ ] **D4 — Analytics utilisateur (événements) : périmètre & récupération** — **cadrage produit + technique** (voir **`PLAN.md`** lot **D**, note analytics) : (1) **qui** est tracké — **admins / navigateur backoffice** (parcours UI admin, pas confondre avec l’app mobile candidat) **vs** **utilisateurs finaux sur l’app mobile** ; (2) **quoi** — interactions **au-delà du seul binaire mobile** : parcours **email** (lien d’inscription, **code / token** de validation compte, **demande et confirmation de reset mot de passe**) = événements **côté serveur** (auth-service, logs mail, tables dédiées) exploitables pour stats / audit sans dépendre uniquement du SDK mobile ; (3) **où en UI** — **`/backoffice/user-analytics`** et pages **Statistiques & Monitoring** cohérentes avec ce périmètre (libellés « web admin » vs « app mobile » vs « parcours email / auth ») ; (4) **alignement** tables **`user_events`** / API (voir **`ERRORS.md`** si table ou route manquante) + croisement **B7** (audit actions sensibles admin). **Priorité** : stack **locale** (`make up-full`, Postgres OK au **`make status`**) — pas de livrable **prod** pour l’instant.
+- [ ] **D5 — Traces et signalements bout-en-bout** : instrumenter les parcours critiques mobile/web (activité utilisateur, retours, signalements), stocker les événements normalisés, puis exposer des vues actionnables en backoffice (analytics + sécurité + logs corrélés).
+
+---
+
+## Lot E — Documentation
+
+- [x] `STATUS.md` — structure de lecture + tableau lots A–F + liens (avril 2026).
+- [x] `ERRORS.md` — § Pièges dashboard + pipeline + lignes chantier A/B (avril 2026).
+- [x] `FONCTIONNALITES.md` — § 4.1 dashboard détaillé + date avril 2026.
+- [x] `RESOLUTIONS.md` — entrée avril 2026 (vue d’ensemble observabilité).
+- [x] **`STATS.md`** — gabarit **CVE / dépendances** (services, front, mobile, Docker) + script boucle `npm audit` — **22/04** ; remplir tableaux après audits.
+- [ ] `ERRORS.md` — relecture complète après lots A/C (échecs tests, nouvelles erreurs actives).
+- [ ] `RESOLUTIONS.md` — derniers correctifs sécurité (lot **B**) / monitoring & logs (lot **A**) / intérim.
+- [ ] `PROCESSUS_APPLICATION_MOBILE_ET_API.md` — synchro avec l’état API + mobile.
+- [ ] `FONCTIONNALITES.md` — ajuster ce qui est livré vs prévu (y compris § **4.4** lot **G** quand implémenté).
+- [ ] `docs/BACKLOG.md` — éviter doublons avec ce fichier ; renvoyer vers PLAN pour le chantier structuré.
+- [ ] Revue ciblée des sous-dossiers `docs/` (architecture, API, DB, sécurité, tests).
+
+---
+
+## Lot F — Validation
+
+- [ ] F1 — Rejouer **`make tests`** avec **`make up-full`** + **`.env`** (**`API_GATEWAY_URL=http://127.0.0.1:5002`** ou port réel) ; analyser **`tests/results/<ts>/report.html`**. **17/04** : doc **`ERRORS`/`STATUS`/`FONCTIONNALITES`/`RESOLUTIONS`** ; code **`dockerHostUrl.js`**, **`test-api-specific.sh`**, perf, gateway health — **à confirmer** sur ta machine.
+- [ ] **F1 bis — run 05/05/2026 (`20260505-113157`)** : corriger d’abord `application-service` (Prisma `application.create/findFirst`), puis rejouer `make tests` pour valider la disparition des 4 KO `api-backend-script` + KO `user-journey` + KO `playwright-data-crud`.
+- [x] **F1 bis — run 05/05/2026 (`20260505-113157`) (partie backend candidatures)** : fallback legacy `application-service` appliqué ; `Create Application` repasse sur les scripts ciblés. **Reste** : KO liés à `dashboard-service` indisponible (503/ENOTFOUND) et suites Playwright/Jest.
+- [ ] **F1 bis.1 — disponibilité dashboard en campagne tests** : fiabiliser `dashboard-service` pendant `make tests` (ordre de démarrage, health, DNS compose, dépendances) pour supprimer les 503 sur `Get Statistics`, `Dashboard Statistics`, `Analytics Events/Stats`.
+- [x] **F1 bis.1 — disponibilité dashboard en campagne tests (socle)** : `dashboard-service` en `restart: unless-stopped` + précheck `ensure_dashboard_service_ready` dans `run-all-tests-with-reports.sh` (auto-start + attente `/health`).
+- [x] **F1 bis.1.a — validation post-correctif dashboard** : run complet relancé (`tests/results/20260505-162341`) ; disparition confirmée des `ENOTFOUND dashboard-service` et des `503` dashboard/analytics sur les scripts API (`api-backend-script` 51/51, `user-journey` 14/14).
+- [ ] **F1 bis.1.b — remise à niveau BDD locale (`Application.isTestData`)** : synchroniser le schéma (`make db-push-all`) puis vérifier que les logs Postgres n’émettent plus `column Application.isTestData does not exist` durant create/delete candidature.
+- [ ] **F1 bis.1.c — validation archives/corbeille admin après fallback legacy** : rejouer les scénarios backoffice `/backoffice/archives` et `/backoffice/trash` (UI + API gateway) et confirmer disparition des `500` liés à `Application.isTestData` dans `archive.controller.js`.
+- [ ] **B12 bis — calibration anti faux-positifs intrusion** : mesurer le bruit sécurité réel après ajustements (seuil brute-force=20, exclusion headless, admin authentifié) ; définir seuils par endpoint (`login` vs `register`) + fenêtre temporelle adaptée trafic NAT.
+- [x] **F1 bis.1.b — remise à niveau BDD locale (`Application.isTestData`)** : `make db-push-all` + ajout explicite colonne/index `Application.isTestData` en Postgres ; plus d’erreur `isTestData` sur logs récents.
+- [x] **B12 bis — calibration anti faux-positifs intrusion (itération 1)** : brute-force limité à `/auth/login`, seuil défaut relevé (`BRUTE_FORCE_THRESHOLD=40`), exclusion headless/tests, skip unauthorized_access pour requêtes authentifiées.
+- [ ] **B12 ter — calibration anti faux-positifs intrusion (itération 2 terrain)** : observer 24-48h en charge réelle (NAT/proxy partagés), puis ajuster `BRUTE_FORCE_THRESHOLD` et éventuelle fenêtre `window` selon ratio faux positifs / vrais incidents.
+- [x] **F1 ter — API Gateway Jest** : assertions CORS/auth/logs alignées ; vérification locale **`backend/api-gateway`** = **22/22** verts (`/usr/bin/npm test -- --runInBand --watch=false`, 07/05).
+- [x] **F1 quater — Frontend Jest analytics** : `tab-components.test.tsx` aligné sur le hub actuel (`analytics/page.tsx`) ; vérification locale `npm run test:analytics-pages -- --runInBand` = 5 suites / 20 tests verts.
+- [x] **F1 quinquies — Playwright E2E login + suivi-intérim** : stabilisation `detectLoginOutcome` (tolérance recréation de contexte JS pendant navigation), sélecteurs menu suivi-intérim déjà robustifiés ; vérification locale `npx playwright test tests/e2e/login.spec.ts tests/e2e/suivi-interim.spec.ts` = **10 pass / 3 skip / 0 fail**.
+- [x] **F1 sexies — Mobile E2E** : mode **smoke** activé par défaut dans l’agrégat (`PLAYWRIGHT_MOBILE_MODE=smoke`, timeout 240s) + suite **full** conservée à la demande ; validation locale smoke: `scripts/playwright-mobile-e2e.sh` = **3 pass** (iPhone 13 Pro, auth mobile).
+- [x] **F1 septies — Frontend E2E smoke dans l’agrégat** : `scripts/playwright-frontend-e2e.sh` supporte `PLAYWRIGHT_FRONTEND_MODE=smoke|full` (smoke par défaut) + timeout agrégat réduit à 420s ; validation smoke locale = **31 pass / 3 skip / 0 fail** (`login + api-e2e + suivi-intérim`).
+- [x] F1b (partiel) — **`Status: 000`** script API : **`mktemp`** + normalisation URL ; perf : **`exit 1`** si échecs ; reste : **intégration / sécurité** tolérants **`ENOTFOUND`** (durcir plus tard).
+- [ ] F2 — Rédiger le récap : fait / reste / risques / prochaines priorités (peut aller en fin de `PLAN.md` ou `STATUS.md`).
+- [x] F2 — Rédiger le récap : fait / reste / risques / prochaines priorités (mise à jour **`STATUS.md`** avec run complet `tests/results/20260505-171106`, succès smoke frontend/mobile, et note d’écart de comptage agrégé).
+- [ ] F3 — **Couverture `tests/services/`** : pour chaque microservice encore sans script sous `tests/services/`, ajouter un smoke (health + 1–2 routes gateway typiques) ; mettre à jour `run-all-tests-with-reports.sh` si besoin ; préférer **`API_GATEWAY_URL`** (pas ports directs) sauf metrics-aggregator documenté — détail **`PLAN.md`** § F3.
+- [ ] F3b — **`tests/performance/test-load-advanced.js`** : le stress **auth** utilise déjà **`apiGateway` + `/api/v1/auth/health`** ; **refonte** des autres scénarios (**companies**, **applications**, clés **`localhost:300x`**) pour tout passer par la gateway (**`dockerHostUrl` / `API_GATEWAY_URL`**, chemins **`/api/v1/...`**) comme **`test-performance.js`** — principe « sécurité = requêtes métier via gateway » ; voir **`PLAN.md`** F1 / F3 et **`STATUS.md`** § Tests de performance.
+
+---
+
+## Lot H — Hygiène dépôt : `scripts/`, `tools/`, `services/`, mobile
+
+Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, usage réel, doc. Cocher au fil de l’eau.
+
+### H1 — Dossier **`scripts/`** (~90 fichiers à la racine du dossier + sous-dossiers `db/`, `monitoring/`, `testing/`, etc.)
+
+- [ ] **Cartographie** : pour chaque script référencé par **`Makefile`** / **`package.json`** / CI / doc, noter l’appelant dans un **`scripts/README.md`** (table *script → usage*).
+- [ ] **Sous-dossiers** : regrouper les scripts « one-shot » ou par domaine (**`scripts/legacy/`**, **`scripts/one-off/`**) sans casser les chemins **`Makefile`** ; grep des références avant déplacement.
+- [ ] **Morts ou doublons** : scripts jamais cités — archiver ou supprimer après confirmation (ne pas supprimer à l’aveugle).
+
+### H2 — Dossier **`tools/`** (`adb-lib`, `emulator-controller`, etc.)
+
+- [x] **Usage réel** : parcours mobile / ADB documentés dans **`STATUS.md`** et **`tests/user-journey/README.md`** ; **`make up-full`** peut lancer **`tools/emulator-controller`** (voir README du sous-dossier).
+- [x] **README racine `tools/`** : **`tools/README.md`** — index vers **`adb-lib`** et **`emulator-controller`** (**24/04**).
+
+### H3 — Dossier racine **`services/`** (microservices Python FastAPI)
+
+- [ ] **Rôle** : services Python **hors** dossier `backend/*-service` (ex. **`services/application-service`**, **`services/dashboard-service`**) — vérifier quels conteneurs **`docker-compose`** les montent encore ; croiser **`docs/core/services/README.md`**.
+- [ ] **Doc** : si un service n’est plus déployé, marquer **déprécié** + cible de retrait ou fusion vers équivalent Node.
+
+### H4 — **`mobile-native-app/`** (actuellement **un seul `Dockerfile`**)
+
+- [ ] **Décision** : emplacement réservé build natif / image slim ; si **non utilisé** dans la CI ni le compose principal — documenter **« placeholder »** ou supprimer après backup (voir aussi **`docs/getting-started/GUIDE_STRUCTURE.md`** § dossiers mobile).
+
+### H5 — Application Flutter **`mobile/lib/screens/`**
+
+- [x] **Structure dossiers (24/04)** : `screens/admin/admin_screen.dart` ; `screens/jobbing/auth/*` ; `screens/jobbing/dashboard/` (`home_screen`, `analytics_screen`, `statistics_screen`) ; `screens/jobbing/applications/*` ; `screens/jobbing/calendar/events_screen.dart` ; `screens/jobbing/users/` ; dossiers dédiés **companies**, **contacts**, **interviews**, **followups**, **calls**, **search**, **trash**, **logs**, **test_data** — **`main.dart`** et imports internes (candidatures / auth) mis à jour.
+- [ ] **Suite** : voir **« Suite & suivi explicite »** (renommages, barrel) ; smoke **`widget_test.dart`** y est suivi.
+
+### H6 — Vision produit **dashboard** (mobile)
+
+- **Utilisateur standard** : après connexion, **un** écran d’accueil type **dashboard** = **ses** statistiques, relances, entretiens à venir (données **scopées utilisateur**).
+- **Administrateur** : **même point d’entrée** (même navigation de base) mais données et actions **étendues** (vue « tous les utilisateurs » / équivalent **backoffice** côté API — rôles **`ADMIN`** / **`SUPER_ADMIN`**). À cadrer avec l’API auth et les écrans **`admin_*`** existants.
+
+---
+
+## Lot G — Sauvegardes sécurisées, API, délocalisation, continuité (PCA/PRI)
+
+Spec détaillée : **`PLAN.md`** § **G** ; fonctionnel : **`FONCTIONNALITES.md`** § **4.4** ; statut projet : **`STATUS.md`** § *Sauvegardes…*.
+
+- [ ] G1 — Cadrage sécurité : modèle de menaces, clés (vault/KMS/fichier), rotation, rôles (`SUPER_ADMIN` + service interne) ; doc `docs/operations/BACKUP_AND_DR.md` (ou équivalent).
+- [ ] G2 — API backup sous gateway : jobs, statut, historique, audit, rate limit, **non publique** sans contrôle réseau.
+- [ ] G3 — Pipeline **chiffrement** des dumps (pas de clair durable sur disque partagé) + vérification d’intégrité.
+- [ ] G4 — **Délocalisation** (S3-compatible, autre hôte) ; secrets uniquement serveur ; option lien téléchargement **TTL court**.
+- [ ] G5 — **UI backoffice admin** : déclenchement manuel, état des jobs, messages sans fuite ; restauration **sandbox** / runbook avant prod.
+- [ ] G6 — **RPO/RTO**, runbook de reprise, exercices de restauration documentés.
+- [ ] G7 — Durcissement Docker/réseau/logs sécurité pour le worker backup.
+
+---
+
+## Vue d’ensemble `/backoffice` — améliorations futures (optionnel)
+
+- [ ] Afficher un **horodatage** ou état « connecté au metrics-aggregator » sur la carte Performance.
+- [ ] Exposer un **taux d’erreurs HTTP %** si le backend fournit ce ratio (en complément du débit /min).
+- [ ] Clarifier encore **sessions vs utilisateurs actifs** selon le contrat exact de l’endpoint auth (libellé + tooltip ou doc API).
+
+## Makefile `status` / `status-watch` (implémenté 21/04 — à valider chez le porteur)
+
+- [x] **`make status-watch`** / **`make status-live`** : boucle = **`make status`** ; défaut **sans `clear`** ; **`CLEAR=1`** pour plein écran ; séparateur gris entre cycles si pas clear ; pied de cycle coloré ; résumé **0/0** explicite.
+- [ ] Relire sur ta machine : légende **5098 → 8015** (**monitoring-c**), couleurs terminal, **`INTERVAL=30`** si besoin.
+
+## Monitoring transversal (optionnel — aligné **PLAN A5**, non pressé)
+
+- [ ] Même **légende live / snapshots / BDD** que le détail service sur **analytics**, **statistiques**, **liste services**.
+- [ ] **Détail service** : panneaux supplémentaires (redémarrages, limites cgroup, comparaison à la moyenne stack) quand l’API le permet.
+- [ ] Pages **« performances »** : enrichissements UX + données (voir **PLAN.md** § Améliorations futures lot A).
+
+---
+
+## Rappels produit (hors lots mais prioritaires — voir STATUS.md)
+
+Ne pas confondre avec le chantier ci-dessus ; ce sont les **P0** globaux du projet :
+
+- [ ] Mobile utilisable quotidien (parcours inscription → CRUD → relances).
+- [ ] Suivi intérim côté **mobile** (toggle utilisateur) + polish backoffice.
+- [ ] Déploiement VPS simple (P1) — guide **Portainer + Nginx Proxy Manager + OVH** : **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`** (complète **`docs/deployment/portainer/README.md`**).
+
+---
+
+## Comment utiliser ce fichier
+
+1. Cocher `[x]` quand la tâche est **réellement** mergée et vérifiable ; la validation porteur reste **`PLAN.md`** / **`STATUS.md`** (voir **« Lire ce fichier »** en tête).
+2. Si une tâche devient du « plus tard », la **déplacer** vers **`docs/BACKLOG.md`** avec une courte justification.
+3. Critères détaillés des lots : **`PLAN.md`**.
+
+---
+
+## Actions **manuelles** (porteur / infra — l’IA ne peut pas les valider à votre place)
+
+Checklist détaillée et cohérente : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+
+- [ ] **NTP** (ou sync équivalente) sur les hôtes **avant** de s’appuyer sur les logs pour enquête (**B6**).
+- [ ] **Secrets** production : pas de défauts dev (`SECURITY_INTERNAL_SECRET`, JWT, etc.).
+- [ ] **Vérification terrain** : le **security-service** permet bien de **retrouver** une trace par `requestId` / métadonnées (selon votre stockage final).
+- [ ] **Mobile** : envoi d’un **identifiant de corrélation** sur les appels API (build réel, pas seulement émulateur).
+- [ ] **Intrusion gateway** : Redis disponible ; relever les **faux positifs** après activation ; `INTRUSION_DETECTION_ENABLED=false` uniquement en **dépannage** ciblé.
+- [ ] **SMTP prod** : **`SMTP_USER`** / **`SMTP_PASS`** réels ; **TLS** (port + `SMTP_SECURE` / `SMTP_USE_SSL`) selon le fournisseur — voir **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** § F.
+- [ ] **Crash reports** : **`CRASH_REPORT_EMAIL`** = boîte **dédiée** et exploitable (tri, alertes) ; parcours d’essai après bascule SMTP (**on verra** quand tu activeras l’envoi réel).
+
+---
+
+## Analyse CVE & supply chain (voir **`STATS.md`**)
+
+Remplir **`STATS.md`** après chaque passe d'outils ; cocher ici quand le **processus** ou la **CI** est en place (les chiffres CVE restent dans **STATS**).
+
+- [ ] **`npm audit --omit=dev`** (ou équivalent) sur **chaque** microservice listé dans **STATS.md** § 2.1 + **frontend** + racine — reporter date et severités dans **STATS.md**.
+- [ ] **Docker Scout** ou **Trivy** sur les images **jobbingtrack-*** et bases **postgres** / **redis** — résumer dans **STATS.md** § 2.5.
+- [ ] Mobile : **`flutter pub outdated`** (et audit pub si disponible) sur **`mobile/`** et **`flutter-mobile-app/`** — noter dans **STATS.md** § 2.4.
+- [ ] (Optionnel) Étape **audit** en CI (seuil **high** minimum) sans bloquer indéfiniment le dev local.
+
+---
+
+## Fichiers « dot » à la racine & déploiement (à garder en tête)
+
+| Fichier | Rôle | Git / CI / prod |
+|--------|------|------------------|
+| **`.jobbingtrack-stack-mode`** | Écrit par **`make up`**, **`make up-full`**, **`make up-dev`** : contient une ligne (`up-essential`, `up-full`, `up-dev`) pour que **`make restart`** affiche le **dernier mode** de stack. Supprimé par **`make down`** / **`down-clean`** / **`restart-clean`**. | **Ignoré** (`.gitignore`) — **ne pas déployer** comme config ; recréé localement par Make. |
+| **`.nettoyage_effectue`** | Ancien **marqueur manuel** (note nov. 2025 sur fusion de docs) ; **aucune** lecture par le Makefile actuel. | **Ignoré** (`.gitignore`) — supprimable sur ta machine ; **ne pas pousser**. |
+| **`.node-version`** | Version Node attendue (ex. **20.19.5**) pour **asdf / nodenv / certains hébergeurs** ; en parallèle de **`.nvmrc`** (souvent identique). | **Versionné** — utile en **CI** (actions `node-version` peuvent lire le fichier) et pour les contributeurs ; en **prod** Docker, la version réelle est l’**image** (`Dockerfile`), pas ce fichier. |
+| **`.nvmrc`** | Même intention que **`.node-version`** pour **`nvm use`**. | **Versionné** — idem ; aligner avec l’image Node des Dockerfiles si tu changes la majeure. |
+| **`.env`**, **`.env.*`** (hors exemple) | Secrets et URLs locales. | **Ignorés** — en déploiement : variables d’environnement **injectées** (fichier env du PaaS, secrets manager), **jamais** commit du `.env` prod. |
+
+**Déploiement (plus tard)** — pense-bête : ne pas copier les marqueurs dev (`.jobbingtrack-stack-mode`, `.nettoyage_effectue`) sur les serveurs ; documenter dans le runbook quelles variables d’environnement remplacent **`.env.example`** ; vérifier que **`.dockerignore`** n’exclut pas des fichiers nécessaires au **build** ; option : **`.deployignore`** ou équivalent si tu synchronises le dépôt par **rsync** (hors Git) pour exclure `node_modules/`, `.next/`, rapports de tests. **À trancher** avec **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** (lot **G** / procédure release).
+
+---
+
+## Dernière section du fichier — méta-chantiers (ne rien ajouter *après* sans déplacer ce bloc)
+
+**Règle** : toute nouvelle tâche « transverse » (doc globale, audit BDD, validation porteur) s’ajoute **dans cette section** ou juste **au-dessus du tiret `---` qui précède**, pour garder **en bas de fichier** l’historique des chantiers structurels. Les **petites suites** post-chantier vont plutôt dans **« Suite & suivi explicite »** (haut du fichier, après *Lire ce fichier*).
+
+- [ ] **Validation produit (porteur)** : pour chaque lot livré techniquement, **vous** cochez **`PLAN.md`** (**Validé (porteur)**) ou une mention datée dans **`STATUS.md`** ; tant que ce n’est pas fait, le livrable reste « en attente d’acceptation » même si le code est mergé.
+- [ ] **Revue base de données avant grosse passe de tests** : aligner schéma maître (**auth-service** / `db-push-all`), scripts **`scripts/db/*.sql`**, tables listées dans **`ERRORS.md`**, et attentes des services (déploiements, logs agrégés, etc.) — objectif : éviter les écarts « table absente » / doubles définitions lors de **`make tests`** ou **`make test-suite-full`**. Croiser **lot A2**, **A5**, **C** (données test) dans ce fichier.
+- [ ] **Trafic répété `GET /api/v1/security/*` via la gateway** : ce flux correspond en général à un **client** (UI backoffice sécurité / firewall en rafraîchissement, onglet ouvert) — **ce n’est pas** une erreur isolée « mystérieuse » ; si le volume pose problème (logs, charge), **diagnostiquer la source** (quel onglet, quel intervalle) puis réduire le polling ou mutualiser les requêtes — voir **`STATUS.md`** § journalisation / diagnostic et **`ERRORS.md`** § homonyme.
+- [ ] **Refonte documentation (racine + `docs/`)** : reprendre **tous** les **`.md` à la racine** et **tous les `.md` sous `docs/`** de façon **structurée** (rôles, doublons, liens, ordre de lecture, index unique ou fil d’Ariane clair) ; aligner **PLAN**, **STATUS**, **TODOS**, **ERRORS**, **RESOLUTIONS**, **STATS**, **FONCTIONNALITES**, **`docs/BACKLOG.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**. *À planifier explicitement avant grosses réécritures.*
+- [ ] **HX1 — Variables d’environnement sans « fallback magique »** : le porteur souhaite **ne pas** coder de valeurs par défaut du type **`process.env.X || '3000'`** dans le dépôt (risque : prod silencieusement mal configurée). **Périmètre** : audit **`next.config.js`**, **frontend**, **backend** (chaque service), **mobile** (`mobile/`, `flutter-mobile-app/`), scripts — remplacer par **variables obligatoires** documentées dans **`.env.example`** / runbooks, ou échec explicite au démarrage si critique.
+- [ ] **HX2 — Audit transverse « sécurité × doc × config »** : parcourir **toutes** les zones du dépôt (front, back, mobile, Docker, CI) pour repérer **URLs / secrets / schémas internes** dans la doc ou les commentaires **trop exposants** (faille d’ingénierie sociale ou fuite d’architecture) ; **niveau de détail** des guides : suffisant pour exploiter, pas de cookbook d’attaque. Croiser **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`docs/BACKLOG.md`**.
+- [ ] **HX3 — Environnements prod / préprod / tests conteneurs** : formaliser une **matrice** (compose profiles, fichiers env, noms d’images, jeux de données) pour éviter les dérives « même stack que le dev » ; une ligne dans **`STATUS.md`** ou doc **`docs/operations/`** une fois le modèle figé.
+- [ ] **HX4 — Session backoffice : reconnexion / expiration** : lorsqu’une **reconnexion** est demandée sans message clair (JWT expiré, middleware, refresh, WebSocket metrics), **instrumenter** (message UI + corrélation `requestId` / logs gateway) et documenter le comportement attendu dans **`ERRORS.md`** ou **`RESOLUTIONS.md`** — diagnostic reproductible pour le porteur.
+- [ ] **HX5 — Hôte Linux / Redis : `vm.overcommit_memory`** : le conteneur **`jobbingtrack-redis`** peut logger *« WARNING Memory overcommit must be enabled »* — à traiter sur **l’hôte** (pas dans l’image Redis) : `sudo sysctl vm.overcommit_memory=1` et persistance dans **`/etc/sysctl.conf`** (`vm.overcommit_memory = 1`) puis reboot ou rechargement sysctl ; voir [redis / jemalloc](https://github.com/jemalloc/jemalloc/issues/1328). Objectif : éviter échecs **BGSAVE** / réplication sous pression mémoire.
+- [ ] **Séquence post-`git pull` (stack locale)** : typiquement **`make db-push-all`** (schéma BDD + scripts SQL) puis **`make up-full`** (ou **`make up-dev`** si besoin seed + tests) — validé côté porteur **mai 2026** ; documenter tout écart machine (WSL, rootless Docker) dans **`ERRORS.md`** si besoin.
+
+### Suite chantier (rappel — après nettoyage UI vue d’ensemble **04/05**)
+
+- Poursuivre **contrat logs forensics** (**`workflow-service`** si pertinent, QA corrélation) et **corrélation perf** (brush, causalité, icônes tri) listés en haut de ce fichier (**§ Suite & suivi explicite**).
+

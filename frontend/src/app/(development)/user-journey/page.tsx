@@ -302,18 +302,35 @@ export default function UserJourneyPage() {
       }
 
       const duration = Date.now() - startTime;
-      
-      if (result?.ok || result?.status === 201) {
-        return { 
-          success: true, 
-          result: result?.data || await result?.json?.(), 
-          duration 
+
+      const resultIsResponse = result instanceof Response;
+      const resultOk = resultIsResponse ? result.ok : !!(result as { ok?: boolean } | undefined)?.ok;
+      const resultStatus = resultIsResponse ? result.status : (result as { status?: number } | undefined)?.status;
+
+      let normalizedResult: unknown;
+      if (result && !resultIsResponse && typeof result === 'object' && 'data' in result) {
+        normalizedResult = (result as { data: unknown }).data;
+      } else if (result instanceof Response) {
+        try {
+          normalizedResult = await result.json();
+        } catch {
+          normalizedResult = null;
+        }
+      } else {
+        normalizedResult = undefined;
+      }
+
+      if (resultOk || resultStatus === 201) {
+        return {
+          success: true,
+          result: normalizedResult,
+          duration
         };
       } else {
-        return { 
-          success: false, 
-          error: 'Erreur lors de l\'exécution', 
-          duration 
+        return {
+          success: false,
+          error: 'Erreur lors de l\'exécution',
+          duration
         };
       }
     } catch (error) {
@@ -680,7 +697,7 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-1">
-                  {analytics.failedSteps.map((stepName, idx) => (
+                  {analytics.failedSteps.map((stepName: string, idx: number) => (
                     <li key={idx} className="text-red-700">{stepName}</li>
                   ))}
                 </ul>

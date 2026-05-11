@@ -9,25 +9,58 @@ const { logger } = require('./utils/logger');
 
 const execAsync = promisify(exec);
 
+/** PATH minimal pour /usr/sbin/iptables (souvent absent du PATH du shell Node en conteneur). */
+const IPTABLES_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+
+let iptablesUsableCache = null;
+
+function invalidateIptablesCache() {
+  iptablesUsableCache = null;
+}
+
+/** Erreurs iptables attendues en conteneur (pas de binaire, pas de droits netfilter). */
+function isBenignIptablesFailure(error) {
+  const stderrRaw = error.stderr;
+  const stderr = Buffer.isBuffer(stderrRaw) ? stderrRaw.toString() : String(stderrRaw || '');
+  const msg = `${error.message || ''} ${stderr} ${error.cmd || ''}`;
+  return (
+    error.code === 127 ||
+    /iptables:\s*not\s*found|\/bin\/sh:\s*iptables:\s*not\s*found/i.test(msg) ||
+    (/not\s*found/i.test(msg) && /iptables/i.test(msg)) ||
+    /permission\s*denied|operation\s*not\s*permitted|xtables\.lock|can't\s*initialize/i.test(msg)
+  );
+}
+
+/**
+ * iptables réellement exécutable (évite which OK mais sh: iptables: not found).
+ */
+async function isIptablesUsable() {
+  if (iptablesUsableCache !== null) return iptablesUsableCache;
+  try {
+    await execAsync(`PATH="${IPTABLES_PATH}" iptables -V`, { timeout: 4000 });
+    iptablesUsableCache = true;
+  } catch {
+    iptablesUsableCache = false;
+  }
+  return iptablesUsableCache;
+}
+
 /**
  * Appliquer une règle de firewall avec iptables
  */
 async function applyFirewallRule(rule) {
   try {
-    // Vérifier si iptables est disponible
-    try {
-      await execAsync('which iptables');
-    } catch (checkError) {
-      // iptables n'est pas disponible (normal dans un conteneur Docker)
+    if (!(await isIptablesUsable())) {
       logger.debug('iptables non disponible, règle enregistrée en base uniquement');
       return { success: true, message: 'Règle enregistrée (iptables non disponible dans le conteneur)', iptablesApplied: false };
     }
     
-    let command = '';
+    const prefix = `PATH="${IPTABLES_PATH}" iptables`;
+    let command;
 
     // Construire la commande iptables selon la règle
     if (rule.action === 'DENY' || rule.action === 'REJECT') {
-      command = 'iptables -A INPUT';
+      command = `${prefix} -A INPUT`;
       
       if (rule.sourceIp) {
         command += ` -s ${rule.sourceIp}`;
@@ -50,7 +83,7 @@ async function applyFirewallRule(rule) {
       return { success: true, message: 'Règle appliquée avec succès', iptablesApplied: true };
     } else if (rule.action === 'ALLOW') {
       // Pour ALLOW, on peut créer une règle ACCEPT spécifique
-      command = 'iptables -A INPUT';
+      command = `${prefix} -A INPUT`;
       
       if (rule.sourceIp) {
         command += ` -s ${rule.sourceIp}`;
@@ -100,16 +133,12 @@ async function removeFirewallRule(rule) {
  */
 async function blockIp(ip, reason = 'Threat detected') {
   try {
-    // Vérifier si iptables est disponible
-    try {
-      await execAsync('which iptables');
-    } catch (checkError) {
-      // iptables n'est pas disponible (normal dans un conteneur Docker)
+    if (!(await isIptablesUsable())) {
       logger.debug(`IP ${ip} marquée comme bloquée (iptables non disponible dans le conteneur)`);
       return { success: true, message: `IP ${ip} marquée comme bloquée (iptables non disponible)`, iptablesApplied: false };
     }
-    
-    const command = `iptables -A INPUT -s ${ip} -j DROP`;
+
+    const command = `PATH="${IPTABLES_PATH}" iptables -A INPUT -s ${ip} -j DROP`;
     await execAsync(command);
     logger.info(`IP bloquée: ${ip} (raison: ${reason})`);
     return { success: true, message: `IP ${ip} bloquée avec succès`, iptablesApplied: true };
@@ -126,16 +155,50 @@ async function blockIp(ip, reason = 'Threat detected') {
 
 /**
  * Débloquer une IP
+ * Même logique que blockIp : si iptables n'existe pas (Docker), succès logique sans erreur.
  */
 async function unblockIp(ip) {
   try {
-    const command = `iptables -D INPUT -s ${ip} -j DROP`;
+    if (!(await isIptablesUsable())) {
+      logger.debug(`IP ${ip} débloquée (iptables non disponible dans le conteneur — état métier uniquement)`);
+      return {
+        success: true,
+        message: `IP ${ip} débloquée (iptables non disponible dans le conteneur)`,
+        iptablesRemoved: false
+      };
+    }
+
+    const command = `PATH="${IPTABLES_PATH}" iptables -D INPUT -s ${ip} -j DROP`;
     await execAsync(command);
     logger.info(`IP débloquée: ${ip}`);
-    return { success: true, message: `IP ${ip} débloquée avec succès` };
+    return { success: true, message: `IP ${ip} débloquée avec succès`, iptablesRemoved: true };
   } catch (error) {
+    const stderrRaw = error.stderr;
+    const stderr = Buffer.isBuffer(stderrRaw) ? stderrRaw.toString() : String(stderrRaw || '');
+    const msg = `${error.message || ''} ${stderr}`;
+
+    if (isBenignIptablesFailure(error)) {
+      invalidateIptablesCache();
+      logger.debug(`IP ${ip} débloquée (iptables indisponible ou sans droits netfilter — état métier uniquement)`);
+      return {
+        success: true,
+        message: `IP ${ip} débloquée (pare-feu OS non applicable dans ce conteneur)`,
+        iptablesRemoved: false
+      };
+    }
+
+    // Règle absente : considéré comme déjà débloqué côté pare-feu OS
+    if (/bad rule|does not exist|no chain/i.test(msg)) {
+      logger.debug(`Aucune règle iptables à supprimer pour ${ip}, déblocage métier OK`);
+      return {
+        success: true,
+        message: `IP ${ip} débloquée (aucune règle iptables correspondante)`,
+        iptablesRemoved: false
+      };
+    }
+
     logger.error('Erreur déblocage IP:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, iptablesRemoved: false };
   }
 }
 
@@ -144,16 +207,12 @@ async function unblockIp(ip) {
  */
 async function listFirewallRules() {
   try {
-    // Vérifier si iptables est disponible
-    try {
-      await execAsync('which iptables');
-    } catch (checkError) {
-      // iptables n'est pas disponible (normal dans un conteneur Docker)
+    if (!(await isIptablesUsable())) {
       logger.debug('iptables non disponible dans le conteneur (normal en développement)');
       return { success: true, rules: '', message: 'iptables non disponible dans le conteneur' };
     }
-    
-    const { stdout } = await execAsync('iptables -L INPUT -n -v --line-numbers');
+
+    const { stdout } = await execAsync(`PATH="${IPTABLES_PATH}" iptables -L INPUT -n -v --line-numbers`);
     return { success: true, rules: stdout };
   } catch (error) {
     // ✅ CORRECTION : Gérer gracieusement l'absence d'iptables sans logger d'erreur
@@ -180,6 +239,7 @@ module.exports = {
   removeFirewallRule,
   blockIp,
   unblockIp,
-  listFirewallRules
+  listFirewallRules,
+  invalidateIptablesCache
 };
 

@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const logger = require('./utils/logger');
+const { requestContextMiddleware } = require('./utils/requestContext');
 
 const applicationRoutes = require('./routes/application.routes');
 const errorHandler = require('./middlewares/errorHandler');
@@ -12,6 +13,7 @@ const notFound = require('./middlewares/notFound');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+app.set('trust proxy', true);
 
 // Configuration des middlewares
 app.use(helmet());
@@ -20,6 +22,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+app.use(requestContextMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

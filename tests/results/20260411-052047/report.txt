@@ -1,0 +1,188 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  11/04/2026 05:21:46
+================================================================
+
+RESUME
+------
+  Categories  : 20
+  Total tests : 171
+  Reussis     : 88
+  Echoues     : 83
+  Ignores     : 2
+  Taux        : 51.5%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [FAIL] [U] User Journey (API) (1s)
+  [FAIL] [S] Relations BDD (1s)
+  [FAIL] [S] Enums (0s)
+  [FAIL] [S] Tests API Complets (Jest local) (10s)
+  [FAIL] [S] Tests Backend Services (Jest local) (1s)
+  [FAIL] [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (4s)
+  [FAIL] [A] Playwright Emails MailHog (3s)
+  [FAIL] [U] Playwright Email Workflows (9s)
+  [FAIL] [A] Playwright CRUD Données (admin) (5s)
+  [FAIL] [A] Playwright CRUD Utilisateurs (admin) (4s)
+  [FAIL] [A] Playwright Sécurité Backoffice (admin) (5s)
+  [OK]   [S] Tests Frontend Jest (unit + pages analytics) (5s)
+  [OK]   [U] Tests Performance (1s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [FAIL] [S] Tests API Gateway Health (1s)
+  [FAIL] [S] Tests Sécurité Firewall & WAF (API) (0s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (2s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+
+  --- Tests API Gateway Health ---
+
+  --- Tests API Complets (Jest local) ---
+          104 |       } catch (error) {
+          105 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          109 |         if (error.response) {
+          151 |       } catch (error) {
+          152 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          156 |         if (error.response) {
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED
+          104 |       } catch (error) {
+          105 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          109 |         if (error.response) {
+    TypeError: Converting circular structure to JSON
+          151 |       } catch (error) {
+          152 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          156 |         if (error.response) {
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+          104 |       } catch (error) {
+          105 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          109 |         if (error.response) {
+          151 |       } catch (error) {
+          152 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          156 |         if (error.response) {
+    TypeError: Converting circular structure to JSON
+
+  --- Tests Backend Services (Jest local) ---
+    FAIL backend/test-security-service.test.js
+            ✕ devrait créer une règle firewall (5 ms)
+        AggregateError: Error
+          at Function.Object.<anonymous>.AxiosError.from (node_modules/axios/lib/core/AxiosError.js:96:14)
+          at RedirectableRequest.handleRequestError (node_modules/axios/lib/adapters/http.js:638:25)
+        AggregateError:
+    Test Suites: 1 failed, 1 total
+    Tests:       1 failed, 11 passed, 12 total
+
+  --- Enums ---
+    Error response from daemon: No such container: jobbingtrack-auth-service
+
+  --- Playwright CRUD Données (admin) ---
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+      1 failed
+
+  --- Playwright E2E Frontend ---
+    Error: Process from config.webServer exited early.
+        "maxFailures": 0,
+      "errors": [
+          "message": "Error: Process from config.webServer exited early.",
+          "stack": "Error: Process from config.webServer exited early."
+        "expected": 0,
+        "unexpected": 0,
+    Error: Process from config.webServer exited early.
+        "maxFailures": 0,
+      "errors": [
+          "message": "Error: Process from config.webServer exited early.",
+          "stack": "Error: Process from config.webServer exited early."
+        "expected": 0,
+        "unexpected": 0,
+
+  --- Playwright Email Workflows ---
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5003/forgot-password
+        Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5003/forgot-password
+        Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5003/forgot-password
+      2 failed
+
+  --- Playwright Emails MailHog ---
+        Error: MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)
+        > 32 |       throw new Error('MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)');
+        Error: MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)
+        > 32 |       throw new Error('MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)');
+        Error: MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)
+        > 32 |       throw new Error('MailHog non disponible : démarrer avec make up-full ou COMPOSE_PROFILES=mail (interface http://localhost:8025)');
+      1 failed
+
+  --- Playwright Sécurité Backoffice (admin) ---
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+      1 failed
+
+  --- Playwright CRUD Utilisateurs (admin) ---
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+        Error: apiRequestContext.post: connect ECONNREFUSED ::1:5002
+      1 failed
+
+  --- Relations BDD ---
+    Error response from daemon: No such container: jobbingtrack-auth-service
+
+  --- Tests Sécurité Firewall & WAF (API) ---
+
+  --- User Journey (API) ---
+       ✗ FAIL - Status: 000 (attendu: 200)
+
+================================================================
+  Rapports : tests/results/20260411-052047/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

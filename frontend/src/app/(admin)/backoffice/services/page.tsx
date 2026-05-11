@@ -18,6 +18,10 @@ const CRITICAL_SERVICES = [
   'metrics-aggregator' // Critique car nécessaire pour gérer les autres services
 ]
 
+/** A1d : même « promesse » que la page détail service (historique + sources), sans charger Recharts sur la liste. */
+const SERVICE_ROW_DETAIL_HINT =
+  'Ouvre le détail du service : graphes d’historique (CPU, mémoire, réseau, Block I/O), encart sources (session / fichiers / BDD), logs et raccourcis.'
+
 interface Service {
   name: string
   status: string
@@ -381,7 +385,7 @@ export default function ServicesPage() {
               Services & Logs
             </Link>
             <button
-              onClick={loadServices}
+              onClick={() => loadServices()}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
@@ -559,13 +563,32 @@ export default function ServicesPage() {
                   <tr 
                     key={service.name} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                    title={SERVICE_ROW_DETAIL_HINT}
                     onClick={() => router.push(`/backoffice/services/${service.name.replace('jobbingtrack-', '')}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <Server className="h-5 w-5 text-blue-500 mr-2" />
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {service.name.replace('jobbingtrack-', '')}
+                        <Server className="h-5 w-5 text-blue-500 mr-2 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {service.name.replace('jobbingtrack-', '')}
+                          </div>
+                          {service.metrics != null ? (
+                            <div
+                              className="mt-1 max-w-[9rem]"
+                              title="CPU instantané (agrégateur). Courbe complète et sources d’historique sur la page détail."
+                              aria-hidden
+                            >
+                              <div className="h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
+                                <div
+                                  className="h-full rounded-full bg-blue-500 transition-[width] duration-300"
+                                  style={{
+                                    width: `${Math.min(100, Math.max(0, service.metrics.cpu_percent))}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </td>

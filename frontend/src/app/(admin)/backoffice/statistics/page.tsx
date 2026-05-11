@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, memo, Suspense, lazy } from 'react'
 import { AdminLayout } from '@/components/features'
+import { StatisticsSubNav } from './StatisticsSubNav'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
@@ -9,6 +10,8 @@ import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { preferencesService } from '@/lib/services/preferencesService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
 import { cacheManager } from '@/lib/cache/cacheManager'
+import type { MetricsData } from '@/lib/interfaces'
+import { formatLocalChartAxisTick, metricTimestampToMs } from '@/lib/utils/date'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Settings, 
@@ -50,6 +53,7 @@ import {
   Cell,
   ComposedChart
 } from 'recharts'
+import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
 
 // Types
 interface MetricsHistory {
@@ -96,6 +100,7 @@ interface Statistics {
     total: number
     byRole: Record<string, number>
     activeUsers: number
+    activeSource?: string
     newThisMonth: number
     newThisWeek?: number
   }
@@ -208,6 +213,12 @@ const PIE_COLORS = [
   COLORS.indigo
 ]
 
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Admin',
+  SUPER_ADMIN: 'Super admin',
+  USER: 'Utilisateur',
+}
+
 export default function StatisticsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -218,7 +229,7 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
-  // ✅ SUPPRESSION : Onglet services retiré car déjà présent dans /backoffice/analytics
+  // ✅ SUPPRESSION : onglet services retiré — voir /backoffice/services et Services & Logs
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'logs'>('overview')
 
   // États pour la personnalisation
@@ -470,7 +481,7 @@ export default function StatisticsPage() {
 
       // 2. Récupérer les métriques en temps réel avec cache
       const cacheKey = `statistics_metrics_${customization.timeRange}`
-      let metrics = await cacheManager.get(cacheKey, { ttl: 10000 }) // Cache 10 secondes
+      let metrics: MetricsData | null = (await cacheManager.get(cacheKey, { ttl: 10000 })) as MetricsData | null
       
       if (!metrics) {
         metrics = await centralMetricsService.fetchMetrics()
@@ -492,26 +503,26 @@ export default function StatisticsPage() {
       // Calculer les statistiques système avec les nouvelles données
       const systemStats = {
         cpu: {
-          current: parseFloat(metrics?.system?.cpu?.usage || '0'),
-          average: parseFloat(metricsStats?.cpu?.avg || '0'),
-          max: parseFloat(metricsStats?.cpu?.max || '0'),
-          min: parseFloat(metricsStats?.cpu?.min || '0')
+          current: parseFloat(String(metrics?.system?.cpu?.usage || '0')),
+          average: parseFloat(String((metricsStats as any)?.cpu?.avg || '0')),
+          max: parseFloat(String((metricsStats as any)?.cpu?.max || '0')),
+          min: parseFloat(String((metricsStats as any)?.cpu?.min || '0'))
         },
         memory: {
-          current: parseFloat(metrics?.system?.memory?.usage || '0'),
-          average: parseFloat(metricsStats?.memory?.avg || '0'),
-          max: parseFloat(metricsStats?.memory?.max || '0'),
-          min: parseFloat(metricsStats?.memory?.min || '0')
+          current: parseFloat(String(metrics?.system?.memory?.usage || '0')),
+          average: parseFloat(String((metricsStats as any)?.memory?.avg || '0')),
+          max: parseFloat(String((metricsStats as any)?.memory?.max || '0')),
+          min: parseFloat(String((metricsStats as any)?.memory?.min || '0'))
         },
         network: {
-          totalRx: parseFloat(metrics?.system?.network?.total_rx_mb || '0'),
-          totalTx: parseFloat(metrics?.system?.network?.total_tx_mb || '0'),
-          avgRx: parseFloat(metricsStats?.network?.rx_mb_avg || '0'),
-          avgTx: parseFloat(metricsStats?.network?.tx_mb_avg || '0')
+          totalRx: parseFloat(String(metrics?.system?.network?.total_rx_mb || '0')),
+          totalTx: parseFloat(String(metrics?.system?.network?.total_tx_mb || '0')),
+          avgRx: parseFloat(String((metricsStats as any)?.network?.rx_mb_avg || '0')),
+          avgTx: parseFloat(String((metricsStats as any)?.network?.tx_mb_avg || '0'))
         },
-        availability: parseFloat(metrics?.health?.availability_percent || '100'),
-        totalRequests: parseInt(metricsStats?.requests?.total || '0'),
-        totalErrors: parseInt(metricsStats?.errors?.total || '0')
+        availability: parseFloat(String(metrics?.health?.availability_percent || '100')),
+        totalRequests: parseInt(String((metricsStats as any)?.requests?.total || '0')),
+        totalErrors: parseInt(String((metricsStats as any)?.errors?.total || '0'))
       }
 
       // Formater les services
@@ -554,7 +565,7 @@ export default function StatisticsPage() {
       const servicesWithResponseTime = servicesArray.filter(s => s.responseTime > 0)
       const averageResponseTime = servicesWithResponseTime.length > 0
         ? servicesWithResponseTime.reduce((sum, s) => sum + s.responseTime, 0) / servicesWithResponseTime.length
-        : parseFloat(metricsStats?.response_time?.avg || '0')
+        : parseFloat((metricsStats as any)?.response_time?.avg || '0')
 
       // Formater les données récupérées ou utiliser des valeurs par défaut
       const mockAppStats = {
@@ -570,6 +581,7 @@ export default function StatisticsPage() {
           total: appStats?.users?.total || 0,
           byRole: appStats?.users?.by_role || {},
           activeUsers: appStats?.users?.active || 0,
+          activeSource: appStats?.users?.active_source,
           newThisMonth: appStats?.users?.new_this_month || 0,
           newThisWeek: appStats?.users?.new_this_week ?? 0
         },
@@ -587,8 +599,8 @@ export default function StatisticsPage() {
         } : undefined,
         performance: {
           averageResponseTime: averageResponseTime,
-          successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
-          errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
+          successRate: 100 - parseFloat((metricsStats as any)?.errors?.rate || '0.0'),
+          errorRate: parseFloat((metricsStats as any)?.errors?.rate || '0.0')
         }
       }
 
@@ -614,19 +626,13 @@ export default function StatisticsPage() {
     }
   }
 
-  // Formater le timestamp pour les graphiques (heure locale de l'utilisateur)
+  // Formater le timestamp pour les graphiques (instant API → heure locale navigateur)
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
+    const ms = metricTimestampToMs(timestamp)
+    if (ms == null) return '—'
     const timeRange = customization.timeRange
-
-    // Utiliser l'heure locale de l'utilisateur
-    if (timeRange === '1h' || timeRange === '6h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    } else if (timeRange === '24h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    } else {
-      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
-    }
+    const withDate = !(timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+    return formatLocalChartAxisTick(ms, { withDate })
   }
 
   // Préparer les données pour les graphiques (memoizé pour performance)
@@ -634,8 +640,9 @@ export default function StatisticsPage() {
     if (!metricsHistory || metricsHistory.length === 0) return []
     
     // Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
-    const sortedHistory = [...metricsHistory].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    const sortedHistory = [...metricsHistory].sort(
+      (a, b) =>
+        (metricTimestampToMs(a.timestamp) ?? 0) - (metricTimestampToMs(b.timestamp) ?? 0)
     )
     
     // Sous-échantillonnage pour les grandes périodes (optimisation)
@@ -686,6 +693,7 @@ export default function StatisticsPage() {
   return (
     <AdminLayout>
       <div>
+        <StatisticsSubNav />
         {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex-1 min-w-0">
@@ -795,7 +803,7 @@ export default function StatisticsPage() {
           <nav className="flex space-x-4 overflow-x-auto">
             {[
               { id: 'overview', label: '📊 Vue d\'ensemble', icon: BarChart3 },
-              // ✅ SUPPRESSION : Onglet Services retiré car déjà présent dans /backoffice/analytics > Services & Logs
+              // ✅ SUPPRESSION : onglet Services — /backoffice/services et Services & Logs
               { id: 'security', label: '🔒 Sécurité', icon: Shield },
               { id: 'logs', label: '📊 Statistiques Logs', icon: FileText }
             ].map((tab) => (
@@ -825,7 +833,7 @@ export default function StatisticsPage() {
               router={router}
             />
           )}
-          {/* ✅ SUPPRESSION : Onglet Services retiré - Disponible dans /backoffice/analytics > Services & Logs */}
+          {/* ✅ SUPPRESSION : onglet Services — /backoffice/services, Services & Logs */}
           {activeTab === 'security' && (
             <SecurityTab 
               stats={stats}
@@ -859,6 +867,21 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
   const contactsTrend = previousStats
     ? (stats.contacts?.total || 0) - (previousStats.contacts?.total || 0)
     : 0
+
+  const usersByRoleData = useMemo(
+    () =>
+      Object.entries(stats.users.byRole || {}).map(([role, count]) => ({
+        name: ROLE_LABELS[role] || role,
+        value: Number(count) || 0,
+      })),
+    [stats.users.byRole]
+  )
+  const usersActiveLooksEstimated =
+    stats.users.activeSource !== 'sessions_last_30m' &&
+    typeof stats.users.total === 'number' &&
+    typeof stats.users.activeUsers === 'number' &&
+    stats.users.total > 0 &&
+    stats.users.activeUsers === stats.users.total
 
   return (
     <div className="space-y-6">
@@ -953,7 +976,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
           value={stats.users.total.toLocaleString()}
           trend={usersTrend}
           color="blue"
-          subtitle={`${stats.users.activeUsers || 0} actifs • ${stats.users.newThisMonth || 0} ce mois`}
+          subtitle={`${stats.users.activeUsers || 0} actifs (${usersActiveLooksEstimated ? 'estimation' : 'mesuré'}) • ${stats.users.newThisMonth || 0} ce mois`}
           trendType="positive-is-good"
         />
         <StatCard
@@ -1004,14 +1027,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F3F4F6'
-                }}
-              />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
               <Area 
                 type="monotone" 
@@ -1060,7 +1076,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
             </RechartsPieChart>
           </ResponsiveContainer>
@@ -1074,26 +1090,37 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
           <ResponsiveContainer width="100%" height={300}>
             <RechartsPieChart>
               <Pie
-                data={Object.entries(stats.users.byRole || {}).map(([role, count]) => ({
-                  name: role,
-                  value: count
-                }))}
+                data={usersByRoleData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={false}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
-                {Object.entries(stats.users.byRole || {}).map((entry, index) => (
+                {usersByRoleData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
               <Legend />
             </RechartsPieChart>
           </ResponsiveContainer>
+          <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+            {usersByRoleData.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                  />
+                  {entry.name}
+                </span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{entry.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Répartition des entreprises par secteur */}
@@ -1118,14 +1145,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 style={{ fontSize: '11px' }}
                 width={120}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#F3F4F6'
-                }}
-              />
+              <Tooltip {...rechartsTooltipProps} />
               <Bar dataKey="value" fill={COLORS.info} name="Nombre" />
             </BarChart>
           </ResponsiveContainer>
@@ -1175,7 +1195,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...rechartsTooltipProps} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
@@ -1205,23 +1225,28 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                 </span>
               </div>
             </div>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {usersActiveLooksEstimated
+                ? "Actifs = estimation (actuellement alignée sur le total utilisateurs faute de signal d'activité dédié)."
+                : "Actifs = valeur remontée par le service d'authentification."}
+            </p>
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <ResponsiveContainer width="100%" height={150}>
                 <RechartsPieChart>
                   <Pie
-                    data={Object.entries(stats.users.byRole).map(([name, value]) => ({ name, value }))}
+                    data={usersByRoleData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={50}
-                    label
+                    label={false}
                   >
-                    {Object.entries(stats.users.byRole).map((entry, index) => (
+                    {usersByRoleData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...rechartsTooltipProps} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
@@ -1253,14 +1278,7 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
                     height={60}
                   />
                   <YAxis stroke="#9CA3AF" style={{ fontSize: '10px' }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
+                  <Tooltip {...rechartsTooltipProps} />
                   <Bar dataKey="value" fill={COLORS.secondary} />
                 </BarChart>
               </ResponsiveContainer>
@@ -1358,14 +1376,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[0, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="cpu" 
@@ -1403,14 +1414,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[0, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="memory" 
@@ -1441,14 +1445,7 @@ function SystemTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
                 <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (%)" />
@@ -1598,14 +1595,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Legend />
                     <Line 
                       type="monotone" 
@@ -1648,14 +1638,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Area 
                       type="monotone" 
                       dataKey="responseTime" 
@@ -1685,14 +1668,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Legend />
                     <Area 
                       type="monotone" 
@@ -1733,14 +1709,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
                       stroke="#9CA3AF"
                       style={{ fontSize: '10px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#F3F4F6'
-                      }}
-                    />
+                    <Tooltip {...rechartsTooltipProps} />
                     <Bar 
                       dataKey="errorRate" 
                       fill={COLORS.danger}
@@ -1777,14 +1746,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
               style={{ fontSize: '11px' }}
               width={150}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937', 
-                border: 'none',
-                borderRadius: '8px',
-                color: '#F3F4F6'
-              }}
-            />
+            <Tooltip {...rechartsTooltipProps} />
             <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
           </BarChart>
         </ResponsiveContainer>
@@ -1888,14 +1850,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Area 
                   type="monotone" 
@@ -1936,14 +1891,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Legend />
                 <Area 
                   type="monotone" 
@@ -2054,14 +2002,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   style={{ fontSize: '12px' }}
                   domain={[90, 100]}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Line 
                   type="monotone" 
                   dataKey="availability" 
@@ -2097,14 +2038,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
+                <Tooltip {...rechartsTooltipProps} />
                 <Area 
                   type="monotone" 
                   dataKey="errorRate" 
@@ -2172,7 +2106,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                 <Cell fill={COLORS.warning} />
                 <Cell fill={COLORS.danger} />
               </Pie>
-              <Tooltip />
+              <Tooltip {...rechartsTooltipProps} />
             </RechartsPieChart>
           </ResponsiveContainer>
         </div>
@@ -2222,14 +2156,7 @@ const LogsTab = memo(function LogsTab({ serviceHistory, formatTimestamp }: any) 
               stroke="#9CA3AF"
               style={{ fontSize: '12px' }}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937', 
-                border: 'none',
-                borderRadius: '8px',
-                color: '#F3F4F6'
-              }}
-            />
+            <Tooltip {...rechartsTooltipProps} />
             <Legend />
             <Bar dataKey="totalErrors" fill={COLORS.danger} name="Total Erreurs" />
             <Bar dataKey="avgErrorRate" fill={COLORS.warning} name="Taux Moyen (/min)" />
@@ -2284,7 +2211,7 @@ function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'neg
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-2">
-        <div className={`p-2 rounded-lg ${colors[color]}`}>
+        <div className={`p-2 rounded-lg ${colors[color as keyof typeof colors] ?? colors.blue}`}>
           {icon}
         </div>
         {trend !== undefined && trend !== null && trend !== 0 && (

@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd
+.PHONY: db-migrate db-seed datas-remove-tests-tags db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
 
 # ============================================================================
 # AIDE
@@ -20,6 +20,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-migrate             - Appliquer migrations Prisma"
 	@echo "  make db-push-all            - Synchroniser schémas Prisma (db push)"
 	@echo "  make db-push-auth           - Créer tables auth (User, etc.) si erreur 'User does not exist'"
+	@echo "  make seed-auth             - Créer/mettre à jour l'admin avec email vérifié (après db-push-all, pour pouvoir se connecter)"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
 	@echo "  make db-init-system-metrics - Créer system_metrics/container_metrics (monitoring-c) si absentes"
 	@echo "  make db-push-security      - Créer tables security (security_logs, firewall_rules, etc.)"
@@ -27,6 +28,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make migrate-all           - Alias rapide pour db-migrate"
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
+	@echo "  make datas-remove-tests-tags - Supprimer uniquement isTestData (garde ADMIN_EMAIL / PROTECTED_USER_EMAILS)"
 	@echo "  make db-fix-role           - Réparer rôle et DB PostgreSQL"
 	@echo "  make db-fix-isarchived     - Ajouter colonne Application.isArchived (fix tests API sans rebuild)"
 	@echo ""
@@ -45,9 +47,10 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-restore file=x.sql - Restaurer depuis fichier"
 	@echo ""
 	@echo "🌍 ENVIRONNEMENTS:"
-	@echo "  make up-dev                - DB développement"
+	@echo "  make db-up-dev             - PostgreSQL/Redis DEV seuls (compose test) — pas confondre avec make up-dev (racine : stack + push + tests)"
 	@echo "  make up-test               - DB test"
 	@echo "  make up-staging            - DB staging"
+	@echo "  make db-replicate-schema-to-test - Copier le schéma (sans données) de la base principale vers la base de test"
 	@echo ""
 	@echo "🔑 Identifiants Admin par défaut:"
 	@echo "  📧 Email:    admin@jobbingtrack.test"
@@ -116,8 +119,8 @@ migrate-restart: ## Appliquer les migrations puis redémarrer les services actif
 	@echo ""
 	@echo "✅ Migrations appliquées et services redémarrés !"
 
-db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push)
-	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables"
+db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push) ; DB_PUSH_VERBOSE=1 pour les NOTICE psql complètes
+	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables (NOTICE SQL réduites par défaut — DB_PUSH_VERBOSE=1)"
 	@echo "   Services poussés : auth, application, company, contact, interview, call, followup, event, workflow"
 	@echo "   Tables security/deployment/metrics : via schéma auth ou init-key-tables (pas de push séparé)"
 	@echo ""
@@ -171,6 +174,19 @@ db-push-auth: ## Prisma db push pour auth-service (tables User, Application, etc
 		cd backend/auth-service && (npm install 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -15 && cd ../.. && echo "✅ auth-service : schéma synchronisé (local)"; \
 	fi
 
+# Créer/mettre à jour l'utilisateur admin avec emailVerified=true (nécessaire pour se connecter après up-full)
+# À lancer après make db-push-all si vous avez « Veuillez vérifier votre email avant de vous connecter »
+seed-auth: ## Créer ou mettre à jour l'admin (emailVerified=true) pour pouvoir se connecter au backoffice
+	@echo "🌱 Seed auth : création/mise à jour de l'utilisateur admin (emailVerified=true)..."
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full'." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
+		docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>&1 && echo "✅ Admin prêt (admin@jobbingtrack.test / password123). Vous pouvez vous connecter." || \
+		(echo "⚠️  Seed auth échoué. Vérifiez que backend/auth-service/package.json contient \"prisma\":{\"seed\":\"node prisma/seed.js\"}."; exit 1); \
+	else \
+		echo "⚠️  Conteneur jobbingtrack-auth-service non démarré. Lancez 'make up-full' (profil full) puis réessayez."; \
+		exit 1; \
+	fi
+
 # Créer les tables security-service (security_logs, firewall_rules, network_connections, etc.)
 db-push-security: ## Prisma db push pour security-service
 	@echo "📦 Prisma db push - security-service (security_logs, firewall_rules, network_connections, network_threats, etc.)"
@@ -218,6 +234,17 @@ db-seed: ## Insérer des données de test
 	@echo "🌱 Insertion de données de test..."
 	./scripts/db/seed.sh
 
+# Même logique que POST /api/v1/admin/clear-test-data : lignes isTestData=true uniquement (backoffice propre, admin intact)
+datas-remove-tests-tags: ## Supprimer les données marquées test (isTestData), sans toucher ADMIN_EMAIL ni PROTECTED_USER_EMAILS
+	@echo "🧹 Suppression des enregistrements isTestData=true (DATABASE_URL depuis .env racine)..."
+	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
+	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js
+	@echo "✅ Terminé. Prévisualisation sans écriture : make datas-remove-tests-tags-dry-run"
+
+datas-remove-tests-tags-dry-run: ## Comptage seulement (aucune suppression)
+	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
+	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js --dry-run
+
 # Sauvegarde de la base de données
 db-backup: ## Créer une sauvegarde de la DB
 	@echo "💾 Création d'une sauvegarde..."
@@ -234,12 +261,16 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
 	@echo "✅ Base de données restaurée"
 
-# Réparer rôle/DB Postgres
+# Réparer rôle/DB Postgres (idempotent pour éviter erreurs dans les logs)
+# CREATE USER : dans un DO avec EXCEPTION WHEN duplicate_object (possible en transaction).
+# CREATE DATABASE : ne peut pas s'exécuter dans un bloc DO (PostgreSQL interdit CREATE DATABASE dans une transaction).
+# Donc on vérifie d'abord si la base existe (SELECT) et on ne crée que si elle n'existe pas.
 db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE USER jobbingtrack WITH PASSWORD 'jobbingtrack123';" 2>/dev/null || echo "  Rôle jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;" 2>/dev/null || echo "  Base jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d jobbingtrack -c 'DO $$$$ BEGIN CREATE USER jobbingtrack WITH PASSWORD '\''jobbingtrack123'\''; EXCEPTION WHEN duplicate_object THEN NULL; END $$$$;'
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d postgres -t -A -c "SELECT 1 FROM pg_database WHERE datname = 'jobbingtrack';" 2>/dev/null | grep -q 1 || \
+		docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d postgres -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
 	@echo "✅ Rôle et base de données vérifiés"
 
 create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
@@ -340,8 +371,8 @@ db-reset: ## Réinitialisation complète (ATTENTION: Supprime toutes les donnée
 # ENVIRONNEMENTS MULTIPLES
 # ============================================================================
 
-# Démarrer environnement de développement
-up-dev: ## Démarrer l'environnement de développement
+# Démarrer PostgreSQL/Redis de dev (fichiers compose test) — la cible racine **up-dev** reste réservée au tout-en-un stack + BDD + tests.
+db-up-dev: ## Démarrer postgres-dev + redis-dev (ports 5433 / 6380)
 	@echo "🚀 Démarrage de l'environnement de développement..."
 	$(call check_docker)
 	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-dev redis-dev)
@@ -444,3 +475,9 @@ init-all-dbs: ## Initialiser toutes les bases de données avec le schéma
 	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U jobbingtrack -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
 	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U jobbingtrack -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
 	@echo "✅ Toutes les bases de données initialisées"
+
+# Répliquer le schéma de la base principale vers la base de test (sans les données)
+# Prérequis: make up-full (postgres) et make up-test (postgres-test)
+db-replicate-schema-to-test: ## Copier le schéma (sans données) de la base principale vers la base de test
+	@echo "📋 Réplication du schéma principal → base de test..."
+	@ROOT_DIR="$(ROOT_DIR)" bash "$(ROOT_DIR)/scripts/db/replicate-schema-to-test.sh"

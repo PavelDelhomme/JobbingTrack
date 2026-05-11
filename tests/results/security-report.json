@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-26T15:19:27.528Z",
+  "timestamp": "2026-05-06T09:18:08.546Z",
   "totalVulnerabilities": 70,
   "critical": 0,
   "high": 0,
@@ -8,7 +8,7 @@
   "secure": 64,
   "vulnerabilities": [
     {
-      "endpoint": "http://localhost:5002/api/v1/auth/login",
+      "endpoint": "http://127.0.0.1:5002/api/v1/auth/login",
       "vulnerability": "Rate Limiting",
       "severity": "MEDIUM",
       "description": "Aucun rate limiting détecté"

@@ -1,0 +1,15 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-03-11T13:52:35+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 11,
+    "passed": 4,
+    "failed": 7
+  },
+  "output": "            id             |                       to                       |                        subject                        |      type      | status  | sentAt |        createdAt        \n---------------------------+------------------------------------------------+-------------------------------------------------------+----------------+---------+--------+-------------------------\n cmml8c0pt01401476pglsv9xl | e2e-admin-crud-1773184603161@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack           | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:48.929\n cmml8bwus013z14763rawp8u6 | e2e-admin-crud-1773184603161@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                       | WELCOME        | PENDING |        | 2026-03-10 23:16:43.925\n cmml8bwur013x1476nxnvrwqu | e2e-admin-crud-1773184603161@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack        | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:43.923\n cmml8brzu013u1476kfjpkcvx | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack           | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:37.627\n cmml8bry9013t1476tjd9an7b | redacted@example.invalid          | Vérifiez votre adresse email - JobbingTrack           | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:37.57\n cmml8bo4v013s1476y4j47zgz | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                       | WELCOME        | PENDING |        | 2026-03-10 23:16:32.623\n cmml8bo4u013q1476nb1xjarq | redacted@example.invalid       | ✅ Vérifiez votre adresse email - JobbingTrack        | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:32.622\n cmml8bo3b013n1476wxf5mwmc | redacted@example.invalid          | 🎉 Bienvenue sur JobbingTrack !                       | WELCOME        | PENDING |        | 2026-03-10 23:16:32.567\n cmml8bo0h013l1476qgnc6qmh | redacted@example.invalid          | ✅ Vérifiez votre adresse email - JobbingTrack        | VERIFICATION   | FAILED  |        | 2026-03-10 23:16:32.465\n cmml8bhh3013i14769h6eyo0k | redacted@example.invalid                       | Réinitialisation de votre mot de passe - JobbingTrack | RESET_PASSWORD | FAILED  |        | 2026-03-10 23:16:23.992\n(10 rows)\n"
+}

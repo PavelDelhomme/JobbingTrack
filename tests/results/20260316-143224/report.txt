@@ -1,0 +1,140 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  16/03/2026 14:44:26
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 1011
+  Reussis     : 984
+  Echoues     : 27
+  Ignores     : 1
+  Taux        : 97.3%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [FAIL] [U] Tests API Complets (Jest) (19s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [FAIL] [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (609s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [FAIL] [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (3s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (4s)
+  [OK]   [S] Tests Company Service (Health Check) (0s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (0s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (1s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [FAIL] [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (3s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+    [38] Test: Analytics Errors
+       ✗ FAIL - Status: 503 (attendu: 200)
+       Réponse: {"success":false,"error":"Service workflow-service unavailable","message":"Unable to reach service workflow-service at address http://workflow-service:3013","details":{"error":"getaddrinfo ENOTFOUND w
+
+  --- Tests API Complets (Jest) ---
+          30 |         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          34 |         throw error;
+    FAIL api/test-event-interim-color.test.js
+        ✕ retourne la couleur ambre (#F59E0B) pour un événement lié à une candidature avec agence (intérim) (21 ms)
+        ✕ retourne la couleur bleu (#3B82F6) pour un événement lié à une candidature sans agence (classique) (16 ms)
+        expect(received).toBeDefined()
+        Received: undefined
+        > 121 |     expect(ev).toBeDefined();
+          122 |     expect(ev.color).toBe('#F59E0B');
+        expect(received).toBeDefined()
+        Received: undefined
+        > 134 |     expect(ev).toBeDefined();
+          135 |     expect(ev.color).toBe('#3B82F6');
+    FAIL api/test-status-cascade.test.js
+          ✕ passer un entretien à COMPLETED devrait passer la candidature en INTERVIEW_DONE (43 ms)
+        Résultat entretien positif → OFFER_RECEIVED
+          ✕ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (24 ms)
+          ✕ mettre un résultat NEGATIVE devrait passer la candidature en REJECTED (24 ms)
+          ✕ devrait avoir un historique des changements de statut (10 ms)
+          ✕ créer un entretien devrait créer un événement calendrier (44 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: "INTERVIEW_DONE"
+        Received: "INTERVIEW_PENDING"
+        > 130 |       expect(statusCode).toBe('INTERVIEW_DONE');
+      ● Cascade Statuts & Auto-événements (utilisateur classique) › Résultat entretien positif → OFFER_RECEIVED › mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED
+        expect(received).toBe(expected) // Object.is equality
+        Expected: "OFFER_RECEIVED"
+        Received: "INTERVIEW_PENDING"
+        > 150 |       expect(statusCode).toBe('OFFER_RECEIVED');
+        expect(received).toBe(expected) // Object.is equality
+
+  --- Playwright CRUD Données (admin) ---
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 400
+        > 228 |     expect(res.status()).toBe(200);
+      1 failed
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 403, 404]
+        > 224 |     expect([200, 403, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 403, 404]
+        > 224 |     expect([200, 403, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 403, 404]
+        > 229 |     expect([200, 403, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 403, 404]
+        > 229 |     expect([200, 403, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 404]
+        > 239 |     expect([200, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 404]
+        > 239 |     expect([200, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+        Received array: [200, 404]
+        > 244 |     expect([200, 404]).toContain(res.status);
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 401
+
+  --- Tests Workflow Service (Health Check) ---
+
+================================================================
+  Rapports : tests/results/20260316-143224/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

@@ -3,7 +3,7 @@
  * Vérifie que tous les éléments nécessaires sont affichés correctement
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { useParams, useRouter } from 'next/navigation'
 import ServiceDetailPage from './page'
 
@@ -13,12 +13,25 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
+// next/dynamic : en Jest, éviter le décalage micro-tâches du chunk lazy (waitFor fragile sur titres courts).
+jest.mock('next/dynamic', () => ({
+  __esModule: true,
+  default: () => {
+    const {
+      MonitoringServiceHistoryCharts,
+    } = jest.requireActual('@/components/monitoring/MonitoringServiceHistoryCharts')
+    return MonitoringServiceHistoryCharts
+  },
+}))
+
 // Mock du service centralMetricsService
 jest.mock('@/lib/services/centralMetricsService', () => ({
   centralMetricsService: {
     getServiceMetrics: jest.fn(),
     getServiceLogs: jest.fn(),
     getServiceHistory: jest.fn(),
+    // Rejeter pour exécuter le fallback fetch(.../history) comme en prod quand l’agrégateur ne répond pas.
+    getAggregatorMetrics: jest.fn().mockRejectedValue(new Error('aggregator unavailable in test')),
   },
 }))
 
@@ -36,6 +49,8 @@ const mockServiceMetrics = {
   memory_limit_mb: 512,
   network_rx_mb: 12.3,
   network_tx_mb: 13.1,
+  block_read_mb: 2.5,
+  block_write_mb: 1.1,
   pids: 15,
   health: 'healthy',
   health_status_docker: 'healthy',
@@ -72,6 +87,8 @@ const mockServiceHistory = [
     memory_usage_mb: 175.2,
     network_rx_mb: 10.5,
     network_tx_mb: 11.2,
+    block_read_mb: 1.0,
+    block_write_mb: 0.4,
     response_time_ms: 8,
     error_count_5m: 1,
   },
@@ -81,6 +98,8 @@ const mockServiceHistory = [
     memory_usage_mb: 180.5,
     network_rx_mb: 12.3,
     network_tx_mb: 13.1,
+    block_read_mb: 1.2,
+    block_write_mb: 0.55,
     response_time_ms: 9,
     error_count_5m: 2,
   },
@@ -88,11 +107,33 @@ const mockServiceHistory = [
 
 describe('ServiceDetailPage', () => {
   let mockRouter: any
+  let consoleErrorSpy: jest.SpyInstance
+  let consoleWarnSpy: jest.SpyInstance
+
+  beforeAll(() => {
+    const origErr = console.error.bind(console)
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {
+      const msg = String(args[0] ?? '')
+      if (msg.includes('not wrapped in act')) return
+      origErr(...args)
+    })
+    const origWarn = console.warn.bind(console)
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {
+      const msg = String(args[0] ?? '')
+      if (msg.includes('[SERVICE DETAIL]')) return
+      origWarn(...args)
+    })
+  })
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore()
+    consoleWarnSpy.mockRestore()
+  })
 
   beforeEach(() => {
-    // Reset des mocks
-    jest.clearAllMocks()
-    
+    // Ne pas appeler jest.clearAllMocks() ici : il efface aussi l’implémentation de **next/dynamic** mockée
+    // (composant graphes synchrone en Jest), ce qui casse les tests « unhealthy » / « postgres ».
+
     // Configuration des mocks
     mockRouter = {
       push: jest.fn(),
@@ -104,16 +145,28 @@ describe('ServiceDetailPage', () => {
 
     // Mock global fetch
     global.fetch = jest.fn((url) => {
-      if (url.includes('/logs')) {
+      const u = String(url)
+      if (u.includes('/logs')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockServiceLogs),
         } as Response)
       }
-      if (url.includes('/history')) {
+      if (u.includes('/history')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ data: mockServiceHistory }),
+        } as Response)
+      }
+      if (u.includes('/api/v1/metrics')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              system: {
+                disk: [{ mount: '/', usage_percent: 44, used: 80, total: 200, usage: 44 }],
+              },
+            }),
         } as Response)
       }
       // Métriques par défaut
@@ -125,7 +178,7 @@ describe('ServiceDetailPage', () => {
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    jest.useRealTimers()
   })
 
   describe('Chargement de la page', () => {
@@ -159,14 +212,13 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        const backButton = screen.getByTitle('Retour')
+        const backButton = screen.getByTitle(/Retour à la liste des services/i)
         expect(backButton).toBeInTheDocument()
       })
 
-      const backButton = screen.getByTitle('Retour')
-      fireEvent.click(backButton)
-      
-      expect(mockRouter.back).toHaveBeenCalled()
+      const backButton = screen.getByTitle(/Retour à la liste des services/i)
+      expect(backButton).toHaveAttribute('href', '/backoffice/services')
+      // Pas de click : jsdom déclencherait une navigation non implémentée sur <a href>.
     })
 
     it('devrait avoir un bouton actualiser', async () => {
@@ -174,6 +226,21 @@ describe('ServiceDetailPage', () => {
       
       await waitFor(() => {
         expect(screen.getByText(/Actualiser/i)).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Monitoring détail (A1 — disque hôte, Block I/O, réutilisation API)', () => {
+    it('affiche Block I/O conteneur, disque hôte et encart réutilisation', async () => {
+      render(<ServiceDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText(/Block I\/O conteneur/i)).toBeInTheDocument()
+        expect(screen.getByText(/Disque hôte \(contexte\)/i)).toBeInTheDocument()
+        expect(screen.getByText(/Réutilisation monitoring/i)).toBeInTheDocument()
+      })
+      await waitFor(() => {
+        expect(screen.getByText(/point de montage \//i)).toBeInTheDocument()
+        expect(screen.getByText(/80 Go \/ 200 Go/i)).toBeInTheDocument()
       })
     })
   })
@@ -217,8 +284,9 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Utilisation CPU/i)).toBeInTheDocument()
-        expect(screen.getByText(/42.3%/)).toBeInTheDocument()
+        expect(screen.getAllByText(/Utilisation CPU/i).length).toBeGreaterThanOrEqual(1)
+        // formatCpuPercent + locale fr-FR
+        expect(screen.getByText(/42,3\s*%/)).toBeInTheDocument()
       })
     })
 
@@ -226,8 +294,8 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Utilisation Mémoire/i)).toBeInTheDocument()
-        expect(screen.getByText(/180 MB/)).toBeInTheDocument()
+        expect(screen.getByText(/Mémoire ·/i)).toBeInTheDocument()
+        expect(screen.getByText(/180,50\s*MB/i)).toBeInTheDocument()
       })
     })
 
@@ -235,7 +303,7 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Processus Actifs/i)).toBeInTheDocument()
+        expect(screen.getByText(/Processus \/ tâches \(PIDs\)/i)).toBeInTheDocument()
         expect(screen.getByText('15')).toBeInTheDocument()
       })
     })
@@ -244,10 +312,12 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Traffic Réseau Total/i)).toBeInTheDocument()
-        expect(screen.getByText(/25.4 MB/)).toBeInTheDocument() // 12.3 + 13.1
-        expect(screen.getByText(/RX: 12.3 MB/i)).toBeInTheDocument()
-        expect(screen.getByText(/TX: 13.1 MB/i)).toBeInTheDocument()
+        expect(screen.getByText(/Trafic cumulé interface/i)).toBeInTheDocument()
+        expect(screen.getByText(/25,40\s*MB/i)).toBeInTheDocument()
+        expect(screen.getByText(/↓ RX/i)).toBeInTheDocument()
+        expect(screen.getByText(/12,30\s*MB/i)).toBeInTheDocument()
+        expect(screen.getByText(/↑ TX/i)).toBeInTheDocument()
+        expect(screen.getByText(/13,10\s*MB/i)).toBeInTheDocument()
       })
     })
   })
@@ -255,17 +325,20 @@ describe('ServiceDetailPage', () => {
   describe('Historique des performances', () => {
     it('devrait afficher la section historique', async () => {
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Historique des Performances/i)).toBeInTheDocument()
-      })
+
+      // L’encart « Sources des courbes » contient aussi la sous-chaîne « Historique des performances » : cibler le **h2** du bloc graphes.
+      expect(
+        await screen.findByRole('heading', { level: 2, name: /Historique des Performances/i })
+      ).toBeInTheDocument()
     })
 
     it('devrait afficher le nombre de points de données', async () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/2 points de données/i)).toBeInTheDocument()
+        expect(
+          screen.getByText(/\d+ points \(fichiers agrégateur \+ session courante\)/i)
+        ).toBeInTheDocument()
       })
     })
 
@@ -273,31 +346,46 @@ describe('ServiceDetailPage', () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Utilisation CPU/i)).toBeInTheDocument()
-        expect(screen.getByText(/Utilisation Mémoire/i)).toBeInTheDocument()
-        expect(screen.getByText(/Trafic Réseau/i)).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 3, name: /Utilisation CPU/ })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 3, name: /Utilisation Mémoire/ })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 3, name: /Traffic Réseau/ })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 3, name: /Block I\/O \(cumul\)/ })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 3, name: /Block I\/O — débit estimé/ })).toBeInTheDocument()
       })
     })
 
     it('devrait afficher un message quand pas d\'historique', async () => {
-      // Mock sans historique
+      // Sans métrique service : pas de points « session » — historique vide côté UI
       global.fetch = jest.fn((url) => {
-        if (url.includes('/history')) {
+        const u = String(url)
+        if (u.includes('/docker/service')) {
+          return Promise.resolve({ ok: false, status: 404 } as Response)
+        }
+        if (u.includes('/logs')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ lines: [] }),
+          } as Response)
+        }
+        if (u.includes('/history')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: [] }),
           } as Response)
         }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ service: mockServiceMetrics }),
-        } as Response)
+        if (u.includes('/api/v1/metrics')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ system: { disk: [] } }),
+          } as Response)
+        }
+        return Promise.resolve({ ok: false, status: 500 } as Response)
       }) as jest.Mock
 
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Aucun historique de performance disponible/i)).toBeInTheDocument()
+        expect(screen.getByText(/Aucun historique de performance disponible pour ce service/i)).toBeInTheDocument()
       })
     })
   })
@@ -363,16 +451,23 @@ describe('ServiceDetailPage', () => {
     it('devrait afficher un message quand pas de logs', async () => {
       // Mock sans logs
       global.fetch = jest.fn((url) => {
-        if (url.includes('/logs')) {
+        const u = String(url)
+        if (u.includes('/logs')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ lines: [] }),
           } as Response)
         }
-        if (url.includes('/history')) {
+        if (u.includes('/history')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: [] }),
+          } as Response)
+        }
+        if (u.includes('/api/v1/metrics')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ system: { disk: [{ mount: '/', usage_percent: 10, used: 1, total: 100 }] } }),
           } as Response)
         }
         return Promise.resolve({
@@ -390,31 +485,19 @@ describe('ServiceDetailPage', () => {
   })
 
   describe('Rafraîchissement automatique', () => {
-    it('devrait indiquer que le rafraîchissement est automatique', async () => {
+    it('devrait indiquer la cadence d’auto-rafraîchissement (défaut 15 s)', async () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {
-        expect(screen.getByText(/Rafraîchissement automatique toutes les 5 secondes/i)).toBeInTheDocument()
+        expect(screen.getByText(/aligné sur la cadence ci-dessus \(15 s\)/i)).toBeInTheDocument()
       })
     })
 
-    it('devrait rafraîchir les données toutes les 5 secondes', async () => {
-      jest.useFakeTimers()
-      
+    it('programme le rafraîchissement automatique selon l’intervalle sélectionné (15 s par défaut)', () => {
+      const spy = jest.spyOn(global, 'setInterval')
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(3) // Initial: metrics + logs + history
-      })
-
-      // Avancer de 5 secondes
-      jest.advanceTimersByTime(5000)
-      
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(6) // +3 appels après 5s
-      })
-
-      jest.useRealTimers()
+      expect(spy).toHaveBeenCalledWith(expect.any(Function), 15000)
+      spy.mockRestore()
     })
   })
 
@@ -490,11 +573,9 @@ describe('ServiceDetailPage', () => {
       }) as jest.Mock
 
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Service non disponible/i)).toBeInTheDocument()
-        expect(screen.getByText(/Docker: unhealthy/i)).toBeInTheDocument()
-      })
+
+      expect(await screen.findByText(/Service non disponible/i, undefined, { timeout: 5000 })).toBeInTheDocument()
+      expect(await screen.findByText(/Docker: unhealthy/i, undefined, { timeout: 3000 })).toBeInTheDocument()
     })
 
     it('devrait gérer un service sans endpoint HTTP', async () => {
@@ -516,11 +597,10 @@ describe('ServiceDetailPage', () => {
       ) as jest.Mock
 
       render(<ServiceDetailPage />)
-      
-      await waitFor(() => {
-        expect(screen.getByText(/postgres/i)).toBeInTheDocument()
-        // Le temps de réponse ne devrait pas être affiché pour les DB
-      })
+
+      // Le libellé « PostgreSQL » dans l’encart sources (A1g) matche aussi /postgres/i — cibler le titre principal.
+      const title = await screen.findByRole('heading', { level: 1, name: /^postgres$/i }, { timeout: 5000 })
+      expect(title).toBeInTheDocument()
     })
   })
 })

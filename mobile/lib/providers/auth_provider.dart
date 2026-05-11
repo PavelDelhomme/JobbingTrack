@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -21,6 +22,9 @@ class AuthProvider with ChangeNotifier {
       if (response['success'] == true) {
         _token = response['token'];
         _user = User.fromJson(response['user']);
+        CrashReporter.setToken(_token);
+        CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
+        CrashReporter.flushPendingReports();
         _isLoading = false;
         notifyListeners();
       } else {
@@ -65,6 +69,8 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    CrashReporter.trackAction('logout');
+    CrashReporter.setToken(null);
     _user = null;
     _token = null;
     notifyListeners();

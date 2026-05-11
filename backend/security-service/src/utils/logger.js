@@ -10,7 +10,11 @@ const levels = {
   verbose: 4,
   debug: 5,
   silly: 6,
-  critical: 0 // critical est au même niveau que error (0 = plus important)
+  critical: 0, // même priorité que error
+  // Niveaux métier (évite « Unknown logger level: high » si une meta fuit vers Winston)
+  high: 1,
+  medium: 2,
+  low: 3
 };
 
 const colors = {
@@ -21,13 +25,17 @@ const colors = {
   verbose: 'cyan',
   debug: 'blue',
   silly: 'grey',
-  critical: 'red'
+  critical: 'red',
+  high: 'yellow',
+  medium: 'green',
+  low: 'grey'
 };
 
 winston.addColors(colors);
 
 // Importer le filtre partagé
 const { filterP2021Errors, filterP2021InPrintf } = require('./logger-filter');
+const { getRequestContext } = require('./requestContext');
 
 let centralLogger;
 try {
@@ -42,8 +50,16 @@ class CentralLoggerTransport extends winston.Transport {
     if (centralLogger && ['error', 'warn'].includes(info.level)) {
       const level = info.level.toUpperCase();
       if (level === 'ERROR' || level === 'WARN' || level === 'FATAL') {
+        const ctx = getRequestContext() || {};
         centralLogger.addLog(level, info.message, {
           stackTrace: info.stack || (info.error && info.error.stack),
+          requestId: info.requestId || ctx.requestId || null,
+          correlationId: info.correlationId || ctx.correlationId || null,
+          endpoint: info.endpoint || ctx.endpoint || null,
+          method: info.method || ctx.method || null,
+          protocol: info.protocol || ctx.protocol || null,
+          port: info.port || ctx.port || null,
+          clientIp: info.clientIp || ctx.clientIp || null,
           ...info,
         });
       }
@@ -51,6 +67,19 @@ class CentralLoggerTransport extends winston.Transport {
     callback();
   }
 }
+
+const attachRequestContextFormat = winston.format((info) => {
+  const ctx = getRequestContext();
+  if (!ctx) return info;
+  info.requestId = info.requestId || ctx.requestId || null;
+  info.correlationId = info.correlationId || ctx.correlationId || null;
+  info.endpoint = info.endpoint || ctx.endpoint || null;
+  info.method = info.method || ctx.method || null;
+  info.protocol = info.protocol || ctx.protocol || null;
+  info.port = info.port || ctx.port || null;
+  info.clientIp = info.clientIp || ctx.clientIp || null;
+  return info;
+});
 
 const transports = [
   // Logs de sécurité séparés
@@ -89,6 +118,7 @@ const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     filterP2021Errors(),
+    attachRequestContextFormat(),
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss'
     }),
@@ -139,21 +169,59 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
+/**
+ * Winston ne connaît pas les niveaux métier (high, medium, low) — normaliser vers les niveaux déclarés.
+ */
+function toWinstonLevel(level) {
+  if (!level || typeof level !== 'string') return 'info';
+  const map = {
+    critical: 'error',
+    high: 'warn',
+    medium: 'info',
+    low: 'info',
+    error: 'error',
+    warning: 'warn',
+    warn: 'warn',
+    info: 'info',
+    http: 'http',
+    verbose: 'verbose',
+    debug: 'debug',
+    silly: 'silly'
+  };
+  const normalized = map[level.toLowerCase()] || level;
+  return logger.levels && logger.levels[normalized] !== undefined ? normalized : 'info';
+}
+
 // Fonction pour logger les événements de sécurité
 function logSecurityEvent(level, category, eventType, message, metadata = {}) {
+  const ctx = getRequestContext() || {};
   const logEntry = {
     timestamp: new Date(),
     level,
     category,
     eventType,
     message,
+    requestId: metadata.requestId || ctx.requestId || null,
+    correlationId: metadata.correlationId || ctx.correlationId || null,
+    endpoint: metadata.endpoint || ctx.endpoint || null,
+    method: metadata.method || ctx.method || null,
+    protocol: metadata.protocol || ctx.protocol || null,
+    port: metadata.port || ctx.port || null,
+    clientIp: metadata.clientIp || ctx.clientIp || null,
     ...metadata
   };
 
-  logger.log(level, message, {
+  const winstonLevel = toWinstonLevel(level);
+  // Winston utilise la clé réservée "level" dans les métadonnées → "Unknown logger level: high"
+  const safeMeta = { ...(metadata || {}) };
+  if ('level' in safeMeta) {
+    safeMeta.eventLevel = safeMeta.level;
+    delete safeMeta.level;
+  }
+  logger.log(winstonLevel, message, {
     category,
     eventType,
-    ...metadata
+    ...safeMeta
   });
 
   return logEntry;
