@@ -4,6 +4,20 @@ const { body, param } = require('express-validator');
 const { authenticate } = require('../middlewares/auth.middleware');
 const controller = require('../controllers/notification.controller');
 
+const authenticateInternalSecret = (req, res, next) => {
+  const internalSecret = process.env.SECURITY_INTERNAL_SECRET;
+  const providedSecret = req.get('X-Internal-Secret') || req.get('x-internal-secret');
+
+  if (!internalSecret || providedSecret !== internalSecret) {
+    return res.status(403).json({
+      success: false,
+      error: 'Accès interne refusé'
+    });
+  }
+
+  return next();
+};
+
 // Validations
 const createValidation = [
   body('title').notEmpty().withMessage('Titre requis'),
@@ -16,6 +30,11 @@ const updateValidation = [
 
 // Routes publiques
 router.get('/health', controller.getHealth);
+router.post('/internal/security-alert-email', authenticateInternalSecret, [
+  body('to').isEmail(),
+  body('subject').notEmpty(),
+  body('html').notEmpty()
+], controller.sendInternalSecurityAlertEmail);
 
 // Routes protégées
 router.use(authenticate);

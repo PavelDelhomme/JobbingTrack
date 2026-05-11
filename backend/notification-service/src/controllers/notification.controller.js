@@ -394,6 +394,71 @@ const sendEmail = async (req, res, next) => {
   }
 };
 
+const sendInternalSecurityAlertEmail = async (req, res, next) => {
+  try {
+    const { to, subject, html, alert } = req.body;
+    const from = process.env.SMTP_FROM || 'noreply@jobbingtrack.com';
+    let emailLog = null;
+
+    try {
+      if (prisma.emailLog && typeof prisma.emailLog.create === 'function') {
+        emailLog = await prisma.emailLog.create({
+          data: {
+            userId: null,
+            to,
+            from,
+            subject,
+            type: 'NOTIFICATION',
+            status: 'PENDING',
+            emailContent: html,
+            metadata: {
+              channel: 'security_alert',
+              alert: alert || null
+            }
+          }
+        });
+      }
+    } catch (dbError) {
+      logger.warn('Log email alerte sécurité indisponible:', dbError.message);
+    }
+
+    try {
+      await emailService.sendEmail(to, subject, html);
+
+      if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
+        await prisma.emailLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: 'SENT',
+            sentAt: new Date()
+          }
+        });
+      }
+
+      return res.status(202).json({
+        success: true,
+        message: 'Email alerte sécurité envoyé',
+        emailLogId: emailLog?.id || null
+      });
+    } catch (emailError) {
+      if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
+        await prisma.emailLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: 'FAILED',
+            error: emailError.message
+          }
+        });
+      }
+
+      throw emailError;
+    }
+  } catch (error) {
+    logger.error('Erreur envoi email alerte sécurité:', error);
+    next(error);
+  }
+};
+
 // GESTION DES RAPPELS AUTOMATIQUES
 
 // Récupérer les rappels automatiques
@@ -784,6 +849,7 @@ module.exports = {
   deleteNotification,
   getEmailLogs,
   sendEmail,
+  sendInternalSecurityAlertEmail,
   getAutomatedReminders,
   createAutomatedReminder,
   updateAutomatedReminder,
