@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 6 mai 2026 — **sécurité infra (lot B14)** : audit Perplexity intégré — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14** ; correctifs partiels **`docker-compose.yml`** (WAF gateway, **METRICS_API_KEY**, **JWT_SECRET** **profile-service**, healthcheck **postgres**, **HOST_IP** défaut **localhost**, **security-service** **`no-new-privileges`**), **`.env.example`**, suppression **`server.js.backup.*`**, **`.gitignore`** / **`backend/.dockerignore`**. **Reste critique** : Redis auth, proxy **`docker.sock`**, non-root collecteurs, compose **prod** sans fallbacks secrets. **Pré-VPS** : **`docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md`** (rapport d’audit **hors Git** sous **`reports/env-audit/`**) ; **`.env.example`** réorganisé (sections + clés **A→Z**) ; **`make env-reorder`** pour réaligner **`.env`**. **Compose** : blocs **`environment`** triés A→Z dans **`docker-compose.yml`**, **`docker-compose.monitoring.yml`**, **`docker-compose.prod.yml`**, **`docker-compose.test.yml`**, **`tests/docker-compose.test.yml`**. **7 mai 2026** — analyse run **`make tests`** du **05/05/2026 11:59** (§ **05/05/2026 — bilan run 20260505-113157**) + correctifs **corrélation / logs / console** (§ **7 mai 2026**). Point d’entrée précédent **6 mai 2026** — **Gateway forensics** (§ **6 mai 2026**). **Lot A1 (socle graphes, rappel 7 avril)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
+**Dernière mise à jour** : 6 mai 2026 — **sécurité infra (lot B14)** : audit Perplexity intégré — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14** ; correctifs partiels **`docker-compose.yml`** (WAF gateway, **METRICS_API_KEY**, **JWT_SECRET** **profile-service**, healthcheck **postgres**, **HOST_IP** défaut **localhost**, **security-service** **`no-new-privileges`**), **`.env.example`**, suppression **`server.js.backup.*`**, **`.gitignore`** / **`backend/.dockerignore`**. **Reste critique** : Redis auth, proxy **`docker.sock`**, non-root collecteurs, compose **prod** sans fallbacks secrets. **Pré-VPS** : **`docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md`** (rapport d’audit **hors Git** sous **`reports/env-audit/`**) ; **`.env.example`** réorganisé (sections + clés **A→Z**) ; **`make env-reorder`** pour réaligner **`.env`**. **Compose** : blocs **`environment`** triés A→Z dans **`docker-compose.yml`**, **`docker-compose.monitoring.yml`**, **`docker-compose.prod.yml`**, **`docker-compose.test.yml`**, **`tests/docker-compose.test.yml`**. **7 mai 2026** — analyse run **`make tests`** du **05/05/2026 11:59** (§ **05/05/2026 — bilan run 20260505-113157**) + correctifs **corrélation / logs / console** (§ **7 mai 2026**). Point d’entrée précédent **6 mai 2026** — **Gateway forensics** (§ **6 mai 2026**). **Lot A1 (socle graphes, rappel 7 avril)** : **`serviceHistoryChartModel.ts`** (dérivés purs : `timeMs`, débit Block I/O, axes) + **`useServiceHistoryChartData`** ; page **`/backoffice/services/[nom]`** refactorée (**`RESOLUTIONS.md`**). **Suivi détaillé graphes / A1** : sous-tâches **A1a–A1g** dans **`TODOS.md`**, colonne **A1** dans **`PLAN.md`**. **Roadmap** : **B11** / **B12** ; **A5** légendes live vs BDD. **Qualité** : **`make type-check-frontend-log`** ; **`ERRORS.md`** § `type-check`. *(**23/04** : Block I/O **`aggregated`** ; **7/04** : **`make up-full`**, **`/api/v1/metrics`** ; **22/04** : **`security/STATS.md`**, **F3** ; **17/04** : **`make tests`** — **RESOLUTIONS.md**.)*
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -161,7 +161,7 @@
 - **`make tests`** (= **`make test-all`**, script **`scripts/run-all-tests-with-reports.sh`**) — **exécution du 11/04/2026** sur environnement **sans** `make up-full` actif : **83** tests signalés en échec (API injoignable, conteneurs absents, MailHog absent, Playwright `ECONNREFUSED`, etc.) — **attendu**. Dans le **même** run, le rapport **`tests/results/20260411-052047/frontend-jest.json`** enregistre la gate **Jest** `test:unit-and-analytics` : **27** tests **OK** (7 unit + 20 analytics au moment du rapport ; la suite **`unit`** inclut désormais aussi **`analytics-metric-rows-normalize`** pour **`timestamp` ↔ timestampMs**). Pour un bilan complet **vert**, lancer **`make up-full`** (et profil mail si besoin), **`make db-push-all`**, seed auth, puis **`make tests`** ou **`make test-suite-full`**.
 - **Run 17/04/2026** (`tests/results/20260417-222318/`, ~88 % au compteur global) : causes typiques — **`.env`** avec **`API_GATEWAY_URL=http://api-gateway:…`** ou **`…:3000`** alors que Jest / curl tournent sur l’**hôte** (utiliser **`http://127.0.0.1:<port_publishé>`** , souvent **5002**) ; script API **`Status: 000`** (voir **RESOLUTIONS** : **`mktemp`**) ; **`test-monitoring`** **`load_score`** optionnel ; perf **0/N** désormais reflétée en **échec d’étape** si tout rouge ; **Playwright** : **login** + **`api-e2e`** (URL API côté navigateur). **Health JSON** des microservices : champs différents (**`status`** vs **`success`**, **`version`**, **`port`**) — **comportement normal**, pas une régression d’homogénéisation.
 - **Run antérieur** (`20260417-211711/`) : voir **RESOLUTIONS.md** (entrées 7 et 17 avril) pour l’historique des correctifs (tooltips, Jest worker, firewall, etc.).
-- **`make test-suite-full`** : enchaîne **frontend Jest + BDD + status + test-all** (voir `makefiles/tests/Makefile`) ; le pas **test-frontend** couvre aussi **`src/__tests__/unit/date-metrics-display.test.ts`**. Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**.
+- **`make test-suite-full`** : enchaîne **frontend Jest + BDD + status + test-all** (voir `makefiles/tests/Makefile`) ; le pas **test-frontend** couvre aussi **`src/__tests__/unit/date-metrics-display.test.ts`**. Le backlog large et les sujets explicitement « plus tard » restent dans **`docs/BACKLOG.md`** et la section homonyme en bas de ce fichier. **Index dédié** : **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**.
 
 ### Journalisation gateway — `GET /api/v1/security/*`, firewall, WAF (avril 2026)
 
@@ -191,9 +191,9 @@
 | **B** | Sécurité visible (cohérence menaces / blocages, test IP sûr, UI détection vs blocage, réseau actionnable) | **Partiellement livré** — **B1** cohérence / compteurs / fuseaux (07/04) ; **B3–B4** à poursuivre — voir `RESOLUTIONS.md` | `PLAN.md` § B, `firewallController.js`, `backoffice/security/*` |
 | **C** | Suivi-intérim, bases principal/test, données test | **Partiel (07–21/04)** — **C3** livré partiellement (idem) ; **C2** **`make env-check`** ; **C1** : chargement agences + candidatures déjà en place ; **21/04** : UX erreur API + **Rafraîchir** + lien test data — flux métier / données à enrichir selon **P0** | `PLAN.md` § C, `SuiviInterimContent.tsx`, `testdata.controller.js` |
 | **D** | Crash mobile, observabilité bout en bout | À faire | `PLAN.md` § D |
-| **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (**22/04** : **`STATS.md`** CVE/gabarit + **CHANTIER** ; **21/04** : STATUS, PLAN, ERRORS, TODOS, README Makefile ; reste PROCESSUS, BACKLOG, revue **`docs/`**) | `PLAN.md` § E, `TODOS.md` lot E, **`STATS.md`** |
+| **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (**22/04** : **`security/STATS.md`** CVE/gabarit + **CHANTIER** ; **21/04** : STATUS, PLAN, ERRORS, TODOS, README Makefile ; reste PROCESSUS, BACKLOG, revue **`docs/`**) | `PLAN.md` § E, `TODOS.md` lot E, **`security/STATS.md`** |
 | **F** | Tests ciblés + bilan final chantier | **En cours** — Jest `test:unit-and-analytics` : `make test-unit-frontend`, inclus dans **`make test` / `make tests`** via `scripts/run-all-tests-with-reports.sh` (sortie capturée dans `tests/results/.../frontend-jest.json`) ; **ne couvre pas** tout le frontend Jest (`npm test` dans `frontend/` = suite plus large + mobile-emulator, services, etc.). **`npm run test:audit-jest-scope`** : liste explicite des fichiers de test hors gate (audit manuel / CI optionnelle). **F3 (backlog)** : compléter **`tests/services/`** avec des smokes **health** / endpoints représentatifs pour chaque microservice encore absent (auth, application, call, interview, followup, metrics-aggregator, security, deployment, etc.) — trafic **préféré via API Gateway** pour coller au chemin prod ; exception **metrics-aggregator** pour sondes infra si besoin. Voir **`PLAN.md`** § **F3**. | `PLAN.md` § F |
-| **G** | **Sauvegardes chiffrées**, API backup **non publique**, **délocalisation**, UI admin, **PCA/PRI** (RPO/RTO, runbooks) | **À faire (spec)** — documenté **07/04/2026** ; implémentation **après** cadrage **G1** et stabilisation prioritaire **A/B** ; détail **`PLAN.md`** § G, **`FONCTIONNALITES.md`** § 4.4 | `PLAN.md` § G, futur `docs/operations/BACKUP_AND_DR.md`, `TODOS.md` lot G |
+| **G** | **Sauvegardes chiffrées**, API backup **non publique**, **délocalisation**, UI admin, **PCA/PRI** (RPO/RTO, runbooks) | **À faire (spec)** — documenté **07/04/2026** ; implémentation **après** cadrage **G1** et stabilisation prioritaire **A/B** ; détail **`PLAN.md`** § G, **`project/FONCTIONNALITES.md`** § 4.4 | `PLAN.md` § G, futur `docs/operations/BACKUP_AND_DR.md`, `TODOS.md` lot G |
 
 **Critères d’acceptation** du chantier : voir **`PLAN.md`** (en-tête).
 
@@ -213,7 +213,7 @@
 ### Sauvegardes, API backup et continuité (plan 7 avril 2026)
 
 - **Besoin** : pouvoir **configurer et déclencher** des sauvegardes **très sécurisées** depuis le backoffice, avec **API dédiée** (gateway + services), **chiffrement**, **copies délocalisées**, et **procédures de reprise** — sans exposer les secrets ni les dumps en clair.
-- **Statut** : **spécification** intégrée au **`PLAN.md`** (lot **G**, tâches **G1–G7**), **`FONCTIONNALITES.md`** § **4.4**, **`TODOS.md`** lot **G** ; **code à réaliser** ultérieurement après cadrage (KMS/vault, hébergeur distant, RPO/RTO).
+- **Statut** : **spécification** intégrée au **`PLAN.md`** (lot **G**, tâches **G1–G7**), **`project/FONCTIONNALITES.md`** § **4.4**, **`TODOS.md`** lot **G** ; **code à réaliser** ultérieurement après cadrage (KMS/vault, hébergeur distant, RPO/RTO).
 - **Priorité** : ne pas bloquer les lots **A** (monitoring) et **B** (sécurité UI/API actuelle) ; lancer **G1** (modèle de menaces + stockage des clés) avant toute exposition d’endpoints.
 
 ## Lecture rapide — état par couche
@@ -374,13 +374,13 @@ Ces points ont été traités en code à une date proche ; **à revalider** sur 
 
 ---
 
-**📌 À lire en premier** : **`docs/GUIDE_ETAPES_ACTUELLES.md`** — résumé de ce qui est fait, quoi faire maintenant (backoffice, données de test, suivi intérim, mobile), et **quelle base utiliser** (principale pour backoffice + émulateur en live, base de test pour tests automatisés si besoin).
+**📌 À lire en premier** : **`docs/getting-started/GUIDE_ETAPES_ACTUELLES.md`** — résumé de ce qui est fait, quoi faire maintenant (backoffice, données de test, suivi intérim, mobile), et **quelle base utiliser** (principale pour backoffice + émulateur en live, base de test pour tests automatisés si besoin).
 
 ---
 
 ## Audit global (état réel maintenant)
 
-Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clés (`docs/GUIDE_ETAPES_ACTUELLES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md`, `docs/mobile/PROCHAINES_ETAPES.md`, `docs/deployment/DEPLOIEMENT_FINAL.md`).
+Cet audit consolide `STATUS.md`, `ERRORS.md`, `RESOLUTIONS.md`, et les docs clés (`docs/getting-started/GUIDE_ETAPES_ACTUELLES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md`, `docs/mobile/PROCHAINES_ETAPES.md`, `docs/deployment/DEPLOIEMENT_FINAL.md`).
 
 ### Ce qui est opérationnel et vérifié
 
@@ -556,7 +556,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 **Régressions** : Une fois les bugs corrigés, les tests existants (XSS security-e2e, restore archive-interactions, status-engine, performance-e2e, backoffice-extended) empêchent la régression. company-service garantit `company.name = finalName` en réponse pour éviter toute régression XSS.
 
-**Documentation et nettoyage (mars 2026)** : Nettoyage effectué — voir **`docs/RAPPORT_NETTOYAGE_MARS_2026.md`**. Supprimés : docs/development (diagnostic, recap, setup, testing, workflow + 3 .md), doublons et obsolètes dans docs/monitoring (conservé metrics-flow.md + README), docs/user-journey (anciens correctifs), docs/troubleshooting (CORRECTIONS_*), docs/todo (CORRECTIONS_*). Dossier racine **security-service/** supprimé (contenu déplacé vers docs/security/FIREWALL_PLAN.md). **Services** : tous les backends sont en **Node.js** (aucun Go) ; auth-service et services critiques ne sont pas en Go — migration éventuelle à planifier. **statistics.py** : mentionné dans d’anciennes doc (architecture Python) ; le projet utilise **dashboard-service** (Node, statistics.controller.js) et **metrics-aggregator**. Aucun script dans scripts/ supprimé pour ne pas casser le Makefile.
+**Documentation et nettoyage (mars 2026)** : Nettoyage effectué — voir **`docs/archive/RAPPORT_NETTOYAGE_MARS_2026.md`**. Supprimés : docs/development (diagnostic, recap, setup, testing, workflow + 3 .md), doublons et obsolètes dans docs/monitoring (conservé metrics-flow.md + README), docs/user-journey (anciens correctifs), docs/troubleshooting (CORRECTIONS_*), docs/todo (CORRECTIONS_*). Dossier racine **security-service/** supprimé (contenu déplacé vers docs/security/FIREWALL_PLAN.md). **Services** : tous les backends sont en **Node.js** (aucun Go) ; auth-service et services critiques ne sont pas en Go — migration éventuelle à planifier. **statistics.py** : mentionné dans d’anciennes doc (architecture Python) ; le projet utilise **dashboard-service** (Node, statistics.controller.js) et **metrics-aggregator**. Aucun script dans scripts/ supprimé pour ne pas casser le Makefile.
 
 ---
 
@@ -614,7 +614,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - **CI/CD** : pipeline GitHub Actions a implementer une fois la suite de tests stable.
 - **Moteur de statut** : cascade statuts existante (entretien → INTERVIEW_PENDING/DONE, outcome → OFFER_RECEIVED/REJECTED). Moteur intelligent a implementer (transitions temporelles, option auto/manuel).
 - **Phase 3** : interactions backoffice en cours (CRUD, export/import, pagination).
-- **Processus metier mobile** : 17 processus documentes dans `FONCTIONNALITES.md` section 10 (candidature, relance, entretien, appel, contact, statut intelligent, swipe, suppression, archivage, auto-creation entreprise, liaisons, calendrier).
+- **Processus metier mobile** : 17 processus documentes dans `project/FONCTIONNALITES.md` section 10 (candidature, relance, entretien, appel, contact, statut intelligent, swipe, suppression, archivage, auto-creation entreprise, liaisons, calendrier).
 
 ---
 
@@ -755,7 +755,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 
 ### Phase 3.5 : Processus metier mobile (NOUVEAU)
 
-> Detail complet : `FONCTIONNALITES.md` section 10
+> Detail complet : `project/FONCTIONNALITES.md` section 10
 
 #### Swipe et suppression
 - [ ] Swipe gauche/droite sur toutes les listes (candidatures, contacts, entreprises, relances, entretiens, appels)
@@ -871,7 +871,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 | Flutter crash handler | Implementer intercepteur crash dans l'app Flutter |
 | Cron worker transitions temporelles | Executer les transitions auto du moteur de statut |
 | Push notifications mobile | FCM / APNs pour notifications temps reel |
-| App mobile Flutter | Auth, dashboard, CRUD, calendrier, notifications, sync offline (voir `FONCTIONNALITES.md` Phase 4) |
+| App mobile Flutter | Auth, dashboard, CRUD, calendrier, notifications, sync offline (voir `project/FONCTIONNALITES.md` Phase 4) |
 | Emulateur mobile build/run | `flutter_local_notifications` erreur compilation |
 | CI/CD | Pipeline GitHub Actions (microservices) |
 | Securite avancee | WAF reelle, tests enrichis |
@@ -1024,7 +1024,7 @@ Les rapports sont dans `tests/results/<timestamp>/`. Le backoffice affiche le ra
 Module `tools/adb-lib/` : client, actions, flows, scenarios, runner. 6 exemples. 28 steps mobiles integres dans journey-builder.js. Interface emulateur avec filtres par categorie (22 scenarios, 5 categories).
 
 ### Documentation processus metier — FAIT (23/02/2026)
-17 processus documentes dans `FONCTIONNALITES.md` section 10 : candidature, relance, entretien, appel, contact, statut intelligent, swipe, suppression, archivage, auto-creation entreprise, liaisons, calendrier.
+17 processus documentes dans `project/FONCTIONNALITES.md` section 10 : candidature, relance, entretien, appel, contact, statut intelligent, swipe, suppression, archivage, auto-creation entreprise, liaisons, calendrier.
 
 ### Corriger les tests Playwright E2E — FAIT
 Pre-authentification `storageState`, 213/213 tests passent.
@@ -1086,19 +1086,19 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 ## Documentation
 
-**Fichiers .md à la racine** (à conserver) : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, **`PLAN.md`**, **`TODOS.md`**, **`STATS.md`** (audits **CVE** / dépendances — résultats à remplir après outils). Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+**Fichiers Markdown de pilotage** : la racine du projet conserve uniquement `README.md`. La racine de `docs/` conserve `README.md`, `INDEX.md`, `navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, `ERRORS.md`, `BACKLOG.md` et `RESOLUTIONS.md`. Les documents de contenu sont rangés par domaine (`project/`, `security/`, `getting-started/`, etc.).
 
 | Sujet | Fichier |
 |-------|---------|
 | **Plan chantier backoffice + API + doc (lots A–G)** | **`PLAN.md`** |
 | **Liste de tâches opérationnelles (cases à cocher)** | **`TODOS.md`** |
-| **CVE / dépendances / inventaire scans (à compléter)** | **`STATS.md`** |
-| **Index chantier dans docs/** | **`docs/CHANTIER_SECURITE_DATA_DOCS.md`** |
+| **CVE / dépendances / inventaire scans (à compléter)** | **`docs/security/STATS.md`** |
+| **Index chantier dans docs/** | **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`** |
 | **Migrations Prisma et bases (principale vs test)** | `docs/database/MIGRATIONS_ET_BASES.md` |
-| **Guide pratique – quoi faire maintenant (backoffice, test-data, intérim, mobile, BDD)** | **`docs/GUIDE_ETAPES_ACTUELLES.md`** |
+| **Guide pratique – quoi faire maintenant (backoffice, test-data, intérim, mobile, BDD)** | **`docs/getting-started/GUIDE_ETAPES_ACTUELLES.md`** |
 | **À faire maintenant (priorité)** | Voir section « À faire maintenant » en tête de ce fichier |
 | Prochaines étapes mobile (vérif email + Flutter) | `docs/mobile/PROCHAINES_ETAPES.md` |
-| Fonctionnalites completes | `FONCTIONNALITES.md` |
+| Fonctionnalites completes | `docs/project/FONCTIONNALITES.md` |
 | Backlog complet | `docs/BACKLOG.md` |
 | Demarrage complet | `docs/getting-started/DEMARRAGE.md` |
 | Parcours metier | `docs/user-journey/PARCOURS_METIER.md` |
@@ -1121,7 +1121,7 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 | Suivi boîtes d'intérim (spec) | `docs/features/SUIVI_BOITES_INTÉRIM.md` |
 | Module ADB | `tools/adb-lib/index.js` (voir JSDoc en haut du fichier) |
 | Deploiement | `docs/deployment/DEPLOIEMENT_FINAL.md` |
-| Commandes utiles | `docs/COMMANDES_UTILES.md` |
+| Commandes utiles | `docs/getting-started/COMMANDES_UTILES.md` |
 
 ---
 

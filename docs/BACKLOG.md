@@ -104,6 +104,6 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - `STATUS.md` : état courant du projet.
 - `PLAN.md` : plan d’exécution lots A–F (backoffice, API, doc).
 - `TODOS.md` : cases à cocher alignées sur le plan.
-- `FONCTIONNALITES.md` : fonctionnalités complètes et roadmap.
+- `project/FONCTIONNALITES.md` : fonctionnalités complètes et roadmap.
 - `RESOLUTIONS.md` : erreurs résolues avec détail.
 - `ERRORS.md` : erreurs connues.

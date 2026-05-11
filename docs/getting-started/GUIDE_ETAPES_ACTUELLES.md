@@ -148,5 +148,5 @@ Références : **`docs/mobile/PROCHAINES_ETAPES.md`** (ordre des étapes), **`do
 | Spec suivi intérim (couleurs, interface, API) | **`docs/features/SUIVI_BOITES_INTÉRIM.md`** |
 | Ordre des étapes mobile (vérif email puis Flutter) | **`docs/mobile/PROCHAINES_ETAPES.md`** |
 | Écrans mobile à faire | **`docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`** |
-| Ce guide (résumé « quoi faire maintenant ») | **`docs/GUIDE_ETAPES_ACTUELLES.md`** (ce fichier) |
+| Ce guide (résumé « quoi faire maintenant ») | **`docs/getting-started/GUIDE_ETAPES_ACTUELLES.md`** (ce fichier) |
 | Index doc (ports, performance, parcours, BDD, tests mobile, perf frontend) | **`docs/INDEX.md`** — section « Où trouver quoi » |

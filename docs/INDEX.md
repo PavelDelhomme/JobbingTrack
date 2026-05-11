@@ -8,7 +8,7 @@
 
 | Thème | Emplacement |
 |-------|-------------|
-| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](TODOS.md)**, **[STATS.md](STATS.md)** (CVE / dépendances) ; index **[CHANTIER_SECURITE_DATA_DOCS.md](CHANTIER_SECURITE_DATA_DOCS.md)** |
+| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (CVE / dépendances) ; index **[project/CHANTIER_SECURITE_DATA_DOCS.md](project/CHANTIER_SECURITE_DATA_DOCS.md)** |
 | **Préprod / production (checklist manuelle)** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — NTP, secrets, intrusion, B6, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway en conteneur |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
@@ -21,7 +21,7 @@
 | **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
 | **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
 
-Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[STATS.md](STATS.md)** (audits CVE à compléter).
+Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** et **[getting-started/GUIDE_ETAPES_ACTUELLES.md](getting-started/GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (audits CVE à compléter).
 
 ---
 
@@ -29,11 +29,11 @@ Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** et **[GUIDE_ETAPES_A
 
 ### Ce qu’il reste à faire (priorité)
 - **[STATUS.md](STATUS.md)** — **À faire maintenant** : état courant, priorités et validations porteur.
-- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[STATS.md](STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
+- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
 
 ### Fichiers .md à la racine
-La racine ne garde que `README.md`. Les fichiers de pilotage sont dans `docs/` : `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, `PLAN.md`, `TODOS.md`, `STATS.md`, `STRUCTURE_DOCUMENTATION.md`.
+La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fichiers de pilotage : `README.md`, `INDEX.md`, `navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, `ERRORS.md`, `BACKLOG.md`, `RESOLUTIONS.md`. Les documents de contenu sont rangés par dossier (`project/`, `security/`, `getting-started/`, etc.).
 
 ### Démarrer le projet
 - **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage
