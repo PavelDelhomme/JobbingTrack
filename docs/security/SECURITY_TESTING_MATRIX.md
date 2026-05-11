@@ -56,10 +56,10 @@ Objectif : cadrer les tests de sécurité à réaliser sur JobbingTrack, côté 
 
 ## Interface et commandes à prévoir
 
-- **Commandes projet** : ajouter des cibles `make security-audit`, `make security-scan-api`, `make security-scan-secrets`, `make security-scan-images`, `make security-scan-ports`, `make security-scan-jwt`, `make security-zap-active`, `make security-report`.
+- **Commandes projet** : socle initial ajouté avec `make security-audit`, `make security-scan-secrets`, `make security-scan-images`, `make security-scan-ports`, `make security-scan-jwt`, `make security-zap-active`, `make security-report`. Reste à ajouter un vrai `make security-scan-api` pour `ffuf`/`gobuster`/ZAP passive selon environnement.
 - **Backoffice sécurité** : page de tests non destructifs avec sélection environnement, statut WAF, rate limit, CORS, endpoints protégés, rapport lisible et historique.
 - **Rapports** : stocker les sorties normalisées sous `reports/security/` ou `tests/results/security/`, avec date, environnement, commit, outil, statut et résumé actionnable.
-- **CI/CD** : démarrer par secrets + dépendances/images ; ne bloquer le dev que sur critical/high confirmés, avec exceptions datées.
+- **CI/CD** : workflow initial `security-audit.yml` ajouté pour `gitleaks`, audit dépendances, Trivy filesystem/config et scan images prod manuel. Ne bloquer le dev que sur critical/high confirmés, avec exceptions datées.
 
 ## Architecture par couches à viser
 

@@ -10,7 +10,7 @@
 - **Source de vérité** : **`docs/security/SECURITY_TESTING_MATRIX.md`** liste les menaces, outils Kali/équivalents (`sqlmap`, `commix`, `dalfox`, `nikto`, `hydra`, `jwt_tool`, ZAP/Burp, `ffuf`, `gobuster`, `wfuzz`, `arjun`, `nmap`, `trivy`, `gitleaks`, `truffleHog`, `sslscan`, `testssl.sh`, `slowloris`) et les protections/preuves attendues.
 - **Contrôles P0 explicitement notés** : `gitleaks` sur historique Git complet, `trivy` sur images Docker de prod, `nmap` sur exposition réelle de `docker-compose.prod.yml`, `jwt_tool` pour JWT, OWASP ZAP active scan sur API locale via gateway.
 - **Contrainte performance** : ne pas analyser tout le trafic inter-conteneurs. Le runtime doit rester léger et centré sur l’entrée gateway/public ; les audits lourds passent en CI/commande planifiée, et la corrélation se fait en arrière-plan dans `security-service`.
-- **Cible opérationnelle** : commandes projet + rapports sous `reports/security/` ou `tests/results/security/`, et une interface backoffice pour lancer/voir les contrôles non destructifs. Tous les tests actifs doivent rester bornés et exécutés uniquement en local/test/préprod autorisée.
+- **Cible opérationnelle** : commandes projet + rapports sous `reports/security/` ou `tests/results/security/`, et une interface backoffice pour lancer/voir les contrôles non destructifs. Tous les tests actifs doivent rester bornés et exécutés uniquement en local/test/préprod autorisée. **11/05 suite** : workflow `.github/workflows/security-audit.yml` + cibles `make security-audit`, `security-scan-secrets`, `security-scan-images`, `security-scan-ports`, `security-scan-jwt`, `security-zap-active`, `security-report`.
 
 ### 11 mai 2026 — sécurité menaces : forensics terrain et navigation
 

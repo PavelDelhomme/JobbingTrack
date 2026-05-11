@@ -30,6 +30,7 @@ include makefiles/database/Makefile      # db-*, environnements DB
 include makefiles/compilation/Makefile   # build, rebuild, clean
 include makefiles/tests/Makefile         # tous les tests
 -include makefiles/tests/Makefile.mobile-tests  # tests mobile (optionnel)
+include makefiles/security/Makefile      # audits sécurité passifs / scans contrôlés
 include makefiles/backend/Makefile       # monitoring uniquement
 include makefiles/frontend/Makefile      # frontend spécifiques
 include makefiles/mobile/Makefile        # émulateur mobile (contrôleur, tests en direct)

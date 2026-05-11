@@ -82,6 +82,8 @@ coverage/
 .nyc_output/
 **/tests/e2e/.auth/
 tests/results/security/cve-*/
+reports/security/*
+!reports/security/README.md
 
 # Uploads (le volume Docker gère cela)
 uploads/
