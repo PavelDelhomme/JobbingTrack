@@ -3,8 +3,8 @@ FROM node:20.18.0-alpine
 # Mettre à jour npm vers la version 11.6.4
 RUN npm install -g npm@11.6.4
 
-# OpenSSL (Prisma) + iptables (docker-compose : cap NET_ADMIN + user root pour nft en dev)
-RUN apk add --no-cache openssl iptables
+# OpenSSL (Prisma) + iptables (firewall dev) + python3 (scan CVE périodique)
+RUN apk add --no-cache openssl iptables python3
 
 WORKDIR /app
 

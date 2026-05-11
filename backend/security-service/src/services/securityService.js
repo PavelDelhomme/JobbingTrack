@@ -1,11 +1,21 @@
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
 const { prisma } = require('../config/database');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const dataGenerator = require('./dataGenerator');
+
+const CVE_SCAN_RELATIVE_PATH = path.join('scripts', 'security', 'cve-scan.py');
+const CVE_SCAN_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+const CVE_SCAN_DEFAULT_COMMAND_TIMEOUT_SEC = 120;
+const CVE_SCAN_DEFAULT_OUTPUT_DIR = 'tests/results/security';
+const CVE_SEVERITY_ORDER = ['info', 'low', 'medium', 'moderate', 'high', 'critical'];
 
 class SecurityService {
   constructor() {
     this.analysisCache = new Map();
     this.prisma = prisma; // ✅ Exposer prisma pour le controller
+    this.cveScanInProgress = null;
   }
 
   // Récupérer les métriques de sécurité pour le dashboard
@@ -696,79 +706,229 @@ class SecurityService {
     }
   }
 
+  findProjectRoot() {
+    const candidates = [
+      process.env.CVE_SCAN_PROJECT_ROOT,
+      process.env.PROJECT_ROOT,
+      path.resolve(process.cwd(), '..', '..'),
+      path.resolve(process.cwd(), '..'),
+      process.cwd()
+    ].filter(Boolean);
+
+    return candidates.find((candidate) => (
+      fs.existsSync(path.join(candidate, CVE_SCAN_RELATIVE_PATH))
+    ));
+  }
+
+  runCveScan(projectRoot) {
+    const pythonBin = process.env.CVE_SCAN_PYTHON_BIN || 'python3';
+    const timeoutSec = Number(process.env.CVE_SCAN_TIMEOUT_SEC || CVE_SCAN_DEFAULT_COMMAND_TIMEOUT_SEC);
+    const timeoutMs = Number(process.env.CVE_SCAN_TIMEOUT_MS || CVE_SCAN_DEFAULT_TIMEOUT_MS);
+    const outputDir = process.env.CVE_SCAN_OUTPUT_DIR || CVE_SCAN_DEFAULT_OUTPUT_DIR;
+    const args = [
+      path.join(projectRoot, CVE_SCAN_RELATIVE_PATH),
+      '--root',
+      projectRoot,
+      '--output-dir',
+      outputDir,
+      '--timeout-sec',
+      String(Number.isFinite(timeoutSec) ? timeoutSec : CVE_SCAN_DEFAULT_COMMAND_TIMEOUT_SEC)
+    ];
+
+    if (process.env.CVE_SCAN_INCLUDE_DEV === '1') args.push('--include-dev');
+    if (process.env.CVE_SCAN_DOCKER === '1') args.push('--docker');
+
+    return new Promise((resolve, reject) => {
+      const child = spawn(pythonBin, args, {
+        cwd: projectRoot,
+        env: {
+          ...process.env,
+          PROJECT_ROOT: projectRoot,
+          CVE_SCAN_DOCKER: process.env.CVE_SCAN_DOCKER || '0',
+          CVE_SCAN_STRICT: '0'
+        },
+        shell: false
+      });
+      let stdout = '';
+      let stderr = '';
+      const timer = setTimeout(() => {
+        child.kill('SIGTERM');
+        reject(new Error(`CVE scan timeout after ${timeoutMs}ms`));
+      }, Number.isFinite(timeoutMs) ? timeoutMs : CVE_SCAN_DEFAULT_TIMEOUT_MS);
+
+      child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+      child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+      child.on('error', (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          reject(new Error(`CVE scan failed with code ${code}: ${stderr || stdout}`));
+          return;
+        }
+        resolve({ stdout, stderr });
+      });
+    });
+  }
+
+  loadCveSummary(projectRoot, stdout) {
+    const summaryMdPath = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .pop();
+    if (!summaryMdPath) {
+      throw new Error('CVE scan did not return a summary path');
+    }
+
+    const summaryJsonPath = path.join(path.dirname(path.resolve(projectRoot, summaryMdPath)), 'summary.json');
+    return JSON.parse(fs.readFileSync(summaryJsonPath, 'utf8'));
+  }
+
+  severityFromCounts(counts = {}) {
+    for (const severity of [...CVE_SEVERITY_ORDER].reverse()) {
+      if (Number(counts[severity] || 0) > 0) {
+        return severity === 'moderate' ? 'medium' : severity;
+      }
+    }
+    return null;
+  }
+
+  mapCveResultToVulnerability(result, meta) {
+    const severity = this.severityFromCounts(result.counts);
+    if (!severity) return null;
+
+    const findings = Array.isArray(result.findings) ? result.findings : [];
+    const component = String(result.name || 'unknown').slice(0, 100);
+    const title = `CVE ${result.kind}: ${component}`.slice(0, 200);
+    const descriptionLines = [
+      `Scan CVE ${result.kind} sur ${result.name}.`,
+      `Statut scanner: ${result.status}.`,
+      findings.length > 0 ? `Constats principaux: ${findings.slice(0, 8).join(' ; ')}` : null,
+      result.error ? `Erreur scanner: ${String(result.error).slice(0, 500)}` : null
+    ].filter(Boolean);
+
+    return {
+      title,
+      description: descriptionLines.join('\n'),
+      severity,
+      affectedComponent: component,
+      status: 'open',
+      tags: ['cve', 'supply-chain', String(result.kind || 'unknown')],
+      remediation: 'Consulter le rapport CVE généré, mettre à jour la dépendance/image concernée ou documenter une exception de sécurité.',
+      metadata: {
+        source: 'cve-scan.py',
+        scanner: result.kind,
+        surface: result.name,
+        status: result.status,
+        counts: result.counts || {},
+        findings,
+        command: result.command,
+        exitCode: result.exit_code,
+        generatedAt: meta?.generated_at,
+        dockerScan: meta?.docker_scan,
+        includeDev: meta?.include_dev
+      }
+    };
+  }
+
+  async upsertVulnerability(vuln) {
+    const existing = await prisma.vulnerability.findFirst({
+      where: {
+        title: vuln.title,
+        affectedComponent: vuln.affectedComponent
+      }
+    });
+
+    if (existing) {
+      return {
+        created: false,
+        vulnerability: await prisma.vulnerability.update({
+          where: { id: existing.id },
+          data: vuln
+        })
+      };
+    }
+
+    return {
+      created: true,
+      vulnerability: await prisma.vulnerability.create({ data: vuln })
+    };
+  }
+
+  async alertOnNewCriticalVulnerability(vuln) {
+    if (!['critical', 'high'].includes(vuln.severity)) return;
+    await this.createSecurityAlert({
+      level: vuln.severity === 'critical' ? 'critical' : 'high',
+      title: `Nouvelle vulnérabilité ${vuln.severity}: ${vuln.affectedComponent}`,
+      description: vuln.description,
+      category: 'vulnerability',
+      source: 'cve-scan',
+      metadata: vuln.metadata
+    });
+  }
+
   // Analyser automatiquement les vulnérabilités
   async analyzeVulnerabilities() {
+    if (this.cveScanInProgress) {
+      logger.info('CVE scan already running, skipping overlapping vulnerability analysis');
+      return this.cveScanInProgress;
+    }
+
+    this.cveScanInProgress = this.analyzeVulnerabilitiesFromScanner()
+      .finally(() => {
+        this.cveScanInProgress = null;
+      });
+    return this.cveScanInProgress;
+  }
+
+  async analyzeVulnerabilitiesFromScanner() {
     try {
-      // Cette fonction analyserait automatiquement les dépendances,
-      // configurations, etc. pour détecter les vulnérabilités
+      const projectRoot = this.findProjectRoot();
+      if (!projectRoot) {
+        logger.warn('CVE scan skipped: project root with scripts/security/cve-scan.py not found');
+        return { scanned: false, reason: 'project_root_not_found', vulnerabilities: 0 };
+      }
 
-      // Simulation d'analyse de vulnérabilités
-      const mockVulnerabilities = [
-        {
-          title: 'Configuration CORS trop permissive détectée',
-          description: 'L\'API Gateway accepte des origines trop larges',
-          severity: 'high',
-          cvssScore: 7.5,
-          affectedComponent: 'api-gateway',
-          status: 'open',
-          tags: ['cors', 'configuration', 'security'],
-          remediation: 'Restreindre les origines autorisées dans la configuration'
-        },
-        {
-          title: 'Version obsolète de Express détectée',
-          description: 'Express.js version 4.18.2 présente des failles de sécurité connues',
-          severity: 'medium',
-          cveId: 'CVE-2023-12345',
-          cvssScore: 6.5,
-          affectedComponent: 'express',
-          status: 'open',
-          tags: ['npm', 'express', 'dependencies'],
-          remediation: 'Mettre à jour vers Express 4.19.0 ou supérieure'
-        }
-      ];
+      const scan = await this.runCveScan(projectRoot);
+      const summary = this.loadCveSummary(projectRoot, scan.stdout);
+      let saved = 0;
+      let createdCriticalOrHigh = 0;
 
-      // Enregistrer les vulnérabilités trouvées
-      for (const vuln of mockVulnerabilities) {
+      for (const result of summary.results || []) {
+        const vuln = this.mapCveResultToVulnerability(result, summary.meta);
+        if (!vuln) continue;
+
         try {
-          // Chercher d'abord si la vulnérabilité existe déjà
-          const existing = await prisma.vulnerability.findFirst({
-            where: {
-              title: vuln.title,
-              affectedComponent: vuln.affectedComponent
-            }
-          });
-
-          if (existing) {
-            // Mettre à jour si elle existe
-            await prisma.vulnerability.update({
-              where: { id: existing.id },
-              data: vuln
-            });
-          } else {
-            // Créer si elle n'existe pas
-            await prisma.vulnerability.create({
-              data: vuln
-            });
+          const savedVuln = await this.upsertVulnerability(vuln);
+          saved += 1;
+          if (savedVuln.created && ['critical', 'high'].includes(vuln.severity)) {
+            await this.alertOnNewCriticalVulnerability(vuln);
+            createdCriticalOrHigh += 1;
           }
         } catch (error) {
-          // Gérer les erreurs P2021 (table non trouvée) gracieusement
           if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-            if (process.env.NODE_ENV === 'development') {
-              // Mode silencieux - ignorer
-              continue;
-            } else {
-              logger.warn('Table vulnerabilities non trouvée, vulnérabilité non enregistrée');
+            if (process.env.NODE_ENV !== 'development') {
+              logger.warn('Table vulnerabilities non trouvée, CVE non enregistrée');
             }
-          } else {
-            throw error;
+            continue;
           }
+          throw error;
         }
       }
 
-      logger.info(`Vulnerability analysis completed: ${mockVulnerabilities.length} vulnerabilities analyzed`);
-
+      logger.info(`CVE vulnerability analysis completed: ${saved} vulnerability surfaces saved, ${createdCriticalOrHigh} alerts created`);
+      return {
+        scanned: true,
+        vulnerabilities: saved,
+        alerts: createdCriticalOrHigh,
+        generatedAt: summary.meta?.generated_at
+      };
     } catch (error) {
-      logger.error('Erreur lors de l\'analyse des vulnérabilités:', error);
+      logger.error('Erreur lors de l\'analyse des vulnérabilités CVE:', error);
+      return { scanned: false, reason: error.message, vulnerabilities: 0 };
     }
   }
 

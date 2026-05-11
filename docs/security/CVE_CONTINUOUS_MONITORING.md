@@ -43,6 +43,15 @@ Les rapports sont écrits dans `tests/results/security/cve-<timestamp>/` et ne s
 
 Le `security-service` doit piloter ce flux, mais pas lancer un scan lourd toutes les minutes.
 
+État implémenté :
+
+- `securityService.analyzeVulnerabilities()` lance `scripts/security/cve-scan.py` si la racine projet est accessible ;
+- un verrou applicatif empêche deux scans CVE simultanés ;
+- la cadence par défaut du scheduler est `CVE_SCAN_CRON=17 */6 * * *` ;
+- Docker est désactivé par défaut (`CVE_SCAN_DOCKER=0`) pour éviter une charge forte et Docker-in-Docker ;
+- le conteneur `security-service` reçoit les surfaces du monorepo en lecture seule sous `/scan` et écrit ses rapports sous `/tmp/jobbingtrack-cve-results` ;
+- les surfaces avec vulnérabilités sont persistées dans `vulnerabilities` et les nouvelles surfaces `high` / `critical` créent une `security_alert`.
+
 Cadence recommandée :
 
 - dépendances Node/Rust : toutes les 6 à 12 heures ;
@@ -129,9 +138,8 @@ Exigences :
 
 ## Prochaines implémentations
 
-1. Remplacer `securityService.analyzeVulnerabilities()` par un appel contrôlé au vrai scanner `scripts/security/cve-scan.py`.
-2. Persister un résumé par surface : dernière analyse, sévérité max, nouvelles CVE, scanner utilisé, statut.
-3. Ajouter une table/entité de déduplication `cveId + package + surface`.
-4. Ajouter les préférences mail sécurité avec réauthentification et confirmation email.
-5. Envoyer les alertes `critical` et les digests `high`.
-6. Ajouter la pagination complète des logs sécurité avec total réel et filtres.
+1. Ajouter une table/entité de déduplication fine `cveId + package + surface` pour passer d’un résumé par surface à un suivi par CVE.
+2. Ajouter les préférences mail sécurité avec réauthentification et confirmation email.
+3. Envoyer les alertes email `critical` et les digests `high`.
+4. Ajouter la pagination complète des logs sécurité avec total réel et filtres.
+5. Ajouter un bouton de scan manuel réservé super admin, avec réauthentification récente.
