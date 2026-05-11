@@ -14,19 +14,19 @@
 
 ## 📖 Documentation
 
-### 📄 Fichiers à la racine (référence projet)
+### 📄 Fichiers de référence projet
 
 | Fichier | Rôle |
 |---------|------|
-| **README.md** | Présentation, démarrage rapide, liens docs |
-| **STATUS.md** | **À faire maintenant**, état détaillé, priorités (mobile, vérif email, Flutter) |
-| **ERRORS.md** | Erreurs connues non résolues |
-| **FONCTIONNALITES.md** | Liste complète des fonctionnalités |
-| **RESOLUTIONS.md** | Erreurs résolues et correctifs |
-| **PLAN.md** | Chantier backoffice + API + doc (lots A–F, critères d’acceptation) |
-| **TODOS.md** | Cases à cocher alignées sur le plan |
+| **README.md** | Présentation, démarrage rapide, liens docs. C’est le seul Markdown conservé à la racine. |
+| **[docs/STATUS.md](docs/STATUS.md)** | **À faire maintenant**, état détaillé, priorités produit |
+| **[docs/ERRORS.md](docs/ERRORS.md)** | Erreurs connues non résolues |
+| **[docs/FONCTIONNALITES.md](docs/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |
+| **[docs/RESOLUTIONS.md](docs/RESOLUTIONS.md)** | Erreurs résolues et correctifs |
+| **[docs/PLAN.md](docs/PLAN.md)** | Chantier backoffice + API + sécurité + documentation |
+| **[docs/TODOS.md](docs/TODOS.md)** | Cases à cocher alignées sur le plan |
 
-Pour savoir **ce qu’il faut faire** (priorité mobile, vérification email, suite Flutter) → **[STATUS.md](STATUS.md)** (section « À faire maintenant ») et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (lot **A** monitoring + logs, lot **B** sécurité, suivi-intérim, documentation) → **[PLAN.md](PLAN.md)** et **[TODOS.md](TODOS.md)**.
+Pour savoir **ce qu’il faut faire** → **[docs/STATUS.md](docs/STATUS.md)** et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (lot **A** monitoring + logs, lot **B** sécurité, documentation) → **[docs/PLAN.md](docs/PLAN.md)** et **[docs/TODOS.md](docs/TODOS.md)**.
 
 ### 📚 Documentation détaillée
 
@@ -39,8 +39,8 @@ Pour savoir **ce qu’il faut faire** (priorité mobile, vérification email, su
 - **[🔄 Guide de Redémarrage](docs/getting-started/REDEMARRAGE.md)** - Redémarrer le projet
 
 ### 🧪 Tests & Parcours
-- **[🚶 Guide Tests & Parcours](docs/development/GUIDE_TESTS_PARCOURS.md)** - Utiliser tous les outils de test
-- **[🎯 Récapitulatif Final](docs/RECAPITULATIF_FINAL.md)** - Vue d'ensemble complète
+- **[🚶 Guide Tests & Parcours](docs/tests/README.md)** - Utiliser les outils de test
+- **[🎯 Récapitulatif Projet](docs/RECAPITULATIF_PROJET_COMPLET.md)** - Vue d'ensemble complète
 - **Interface Tests** : `http://localhost:8080/backoffice/user-journey`
 
 Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.
@@ -163,7 +163,7 @@ make up-for-tests
 # http://localhost:8080/backoffice/user-journey
 ```
 
-📖 **Guide complet** : [docs/development/GUIDE_TESTS_PARCOURS.md](docs/development/GUIDE_TESTS_PARCOURS.md)
+📖 **Guide complet** : [docs/tests/README.md](docs/tests/README.md)
 
 ### Aide Contextuelle Intégrée
 
@@ -311,7 +311,7 @@ Nouvelle page de test permettant d'exécuter et analyser automatiquement tous le
 - 🆕 **🗑️ Gestion historique** : Effacez complètement l'historique sauvegardé
 
 **📖 Guides** : 
-- [`GUIDE_TESTS_PARCOURS.md`](docs/development/GUIDE_TESTS_PARCOURS.md) ⭐ - Guide complet
+- [`docs/tests/README.md`](docs/tests/README.md) ⭐ - Guide complet
 - [docs/development/](docs/development/) - Annulation & Sauvegarde parcours
 
 ---
@@ -335,7 +335,7 @@ Système complet de collecte et d'analyse des métriques de l'application mobile
 - 🐛 Monitoring : Crashes, performances, événements utilisateurs
 - 📈 Analytics : Statistiques d'utilisation par module mobile
 
-**Plan d'Implémentation** : 9-14 jours (voir [`STATUS.md`](STATUS.md))
+**Plan d'Implémentation** : 9-14 jours (voir [`docs/STATUS.md`](docs/STATUS.md))
 
 ### 🤖 Machine Learning & Matching
 **TODO: Ajouter du vecteur et de l'embedding pour le traitement des données et analyse, afin de déterminer les profil utilisateur et le matching avec la candidature a laquelle il ont postuler afin de savoir si le profil est compatible avec la candidature**
