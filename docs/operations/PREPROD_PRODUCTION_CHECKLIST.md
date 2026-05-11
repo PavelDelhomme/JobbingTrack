@@ -2,7 +2,7 @@
 
 **Rôle** : regrouper ce que **seul un humain sur l’infra** peut valider (hôte, NTP, TLS, secrets, observabilité). Les tâches **automatisables dans le dépôt** restent dans **`PLAN.md`** / **`TODOS.md`** / **`make tests`**.
 
-**Documents liés** : **`../PLAN.md`** (lots B, G), **`../TODOS.md`**, **`../security/STATS.md`** (CVE), **`../deployment/production/README.md`**, **`../deployment/VPS_PORTAINER_NPM_OVH.md`** (VPS / Portainer / NPM / OVH), **`PRE_VPS_ENV_AUDIT_AND_UPDATES.md`** (inventaire `.env` / secrets **hors Git** avant VPS), **`../tests/TESTS_END.md`**.
+**Documents liés** : **`../PLAN.md`** (lots B, G, H), **`../TODOS.md`**, **`RELEASE_PREPROD_PRODUCTION_PLAN.md`** (séquence tests complets → préprod → bêta mobile → prod, licences, RGPD, déploiements), **`../security/STATS.md`** (CVE), **`../deployment/production/README.md`**, **`../deployment/VPS_PORTAINER_NPM_OVH.md`** (VPS / Portainer / NPM / OVH), **`PRE_VPS_ENV_AUDIT_AND_UPDATES.md`** (inventaire `.env` / secrets **hors Git** avant VPS), **`../tests/TESTS_END.md`**.
 
 ---
 
@@ -34,6 +34,7 @@
 - [ ] **Scripts de perf** (`tests/performance/`) : vérifier que les scénarios **métier** utilisent **`API_GATEWAY_URL`** (chemins **`/api/v1/...`**) et ne contournent pas la gateway par des **`localhost:300x`** obsolètes — **`test-performance.js`** déjà aligné ; **`test-load-advanced.js`** : auth via gateway, **reste** companies/applications (voir **`PLAN.md`** F1 / F3, **`STATUS.md`** § Tests de performance, **`TODOS.md`** F3b). Exception documentée : **metrics-aggregator** pour l’infra.
 - [ ] Parcourir **`docs/tests/TESTS_END.md`** pour les points encore manuels avant bascule.
 - [ ] Garder **`.env`** aligné avec **`.env.example`** (mêmes clés, valeurs réelles hors dépôt) — revue à chaque ajout de variable.
+- [ ] Avant merge vers prod : appliquer le gate **lot H** (`RELEASE_PREPROD_PRODUCTION_PLAN.md`) : branche tests complets, préprod validée, scans sécurité P0, licences, RGPD, sauvegarde/restauration, monitoring/alerting, rollback.
 
 ## F. Courriel (SMTP) et rapports de crash
 
@@ -45,4 +46,4 @@
 
 ---
 
-*Dernière mise à jour : avril 2026 — F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*
+*Dernière mise à jour : 11 mai 2026 — ajout lien lot H release/préprod/conformité ; historique avril 2026 : F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*

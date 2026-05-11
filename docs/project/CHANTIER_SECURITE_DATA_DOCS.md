@@ -1,16 +1,17 @@
 # Chantier sécurité, data backoffice et documentation
 
-**Dernière mise à jour** : 11 mai 2026 — **B11** alertes email critiques backend, **B15** matrice/outillage tests sécurité offensifs contrôlés, réorganisation `docs/` et règle performance : analyse runtime limitée à la gateway/public, pas au trafic inter-conteneurs. Historique conservé : **B14** durcissement Compose/runtime, **B6–B10** forensics/UX sécurité, **A/B** avant **G**.
+**Dernière mise à jour** : 11 mai 2026 — **B11** alertes email critiques backend, **B15** matrice/outillage tests sécurité offensifs contrôlés, **H** release/préprod/conformité, réorganisation `docs/` et règle performance : analyse runtime limitée à la gateway/public, pas au trafic inter-conteneurs. Historique conservé : **B14** durcissement Compose/runtime, **B6–B10** forensics/UX sécurité, **A/B** avant **G/H**.
 
 Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Cursor `chantier_securite_data_docs_*.plan.md`). La **source de vérité versionnée** dans le dépôt est :
 
 | Fichier | Rôle |
 |---------|------|
-| **[PLAN.md](../PLAN.md)** | Lots A–**G**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité ) |
+| **[PLAN.md](../PLAN.md)** | Lots A–**H**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité, **H** = release / préprod / conformité ) |
 | **[TODOS.md](../TODOS.md)** | Cases à cocher opérationnelles ; **dernière section** = méta (validation porteur, audit BDD avant tests, logs gateway sécurité, refonte doc racine + `docs/`) |
 | **[STATS.md](../security/STATS.md)** | Suivi **CVE** / dépendances (npm, Docker, Flutter) — tableaux à compléter après audits |
 | **[SECURITY_TESTING_MATRIX.md](../security/SECURITY_TESTING_MATRIX.md)** | Tests sécurité offensifs contrôlés, outils (`gitleaks`, `trivy`, `nmap`, `jwt_tool`, ZAP, etc.), protections attendues et contraintes performance |
 | **[docs/operations/PREPROD_PRODUCTION_CHECKLIST.md](../operations/PREPROD_PRODUCTION_CHECKLIST.md)** | NTP, secrets, intrusion gateway, vérifs **B6** avant mise en prod |
+| **[docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](../operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** | Lot **H** : branche tests complets, préprod, bêta mobile, licences, RGPD, retours utilisateurs, déploiements, mono-repo vs multi-repo |
 | **[docs/security/COMPOSE_RUNTIME_HARDENING.md](../security/COMPOSE_RUNTIME_HARDENING.md)** | Lot **B14** : secrets, **`docker.sock`**, Redis, non-root, WAF gateway, fichiers backup, limites ressources — tableau **BX1–BX14** |
 | **[STATUS.md](../STATUS.md)** | État projet + **tableau de suivi des lots** + priorités P0–P2 |
 | **[ERRORS.md](../ERRORS.md)** | Erreurs actives + **§ Pièges d’interprétation** (dashboard admin) + pipeline erreurs (synthèse) |
@@ -26,6 +27,7 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 - **E** — Documentation exhaustive (PROCESSUS, revue `docs/`, etc.).
 - **F** — Tests ciblés et bilan (`npm run test:unit-and-analytics` dans **`make test`**, log `frontend-jest.json` ; périmètre ≠ `npm test` complet).
 - **G** — Sauvegardes ultra-sécurisées : API backup (gateway), chiffrement, délocalisation, UI admin, RPO/RTO et runbooks — voir **`../PLAN.md`** § G et **`FONCTIONNALITES.md`** § 4.4.
+- **H** — Release, préprod, conformité, bêta mobile, licences, RGPD, retours utilisateurs, déploiements et stratégie de dépôts — voir **`../PLAN.md`** § H et **`../operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**.
 
 ## Liens utiles dans `docs/`
 

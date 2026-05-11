@@ -59,6 +59,9 @@ docs/
 │   ├── security/README.md              # Sécurité déploiement
 │   └── configuration/                  # Configuration
 │       └── CONFIGURATION_PORTS.md     # Configuration des ports
+├── 🧭 operations/                      # Runbooks et gates opérationnels
+│   ├── PREPROD_PRODUCTION_CHECKLIST.md # Checklist préprod / production
+│   └── RELEASE_PREPROD_PRODUCTION_PLAN.md # Release, licences, RGPD, déploiements
 ├── 💻 development/                     # Guides développement
 │   └── makefile/                       # Makefile et commandes
 │       ├── README.md                   # Guide Makefile complet

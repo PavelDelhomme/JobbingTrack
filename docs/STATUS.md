@@ -2,7 +2,9 @@
 
 **Dernière mise à jour** : 11 mai 2026 — **sécurité exploitable (B11/B15)** : socle alertes email critiques backend livré (`SecurityAlert` `critical/high` → `notification-service` via `X-Internal-Secret`), réorganisation documentaire `docs/`, matrice **tests sécurité offensifs contrôlés** (`docs/security/SECURITY_TESTING_MATRIX.md`), workflow `.github/workflows/security-audit.yml`, cibles `make security-*` et scripts passifs (`gitleaks`/`truffleHog`, Trivy via CVE scan, ports/nmap, JWT, ZAP actif protégé par opt-in). **Règle perf** : ne pas inspecter le trafic inter-conteneurs ; runtime léger côté gateway/public, audits lourds hors chemin critique. **À corriger** : `docker-compose.prod.yml` ne se résout pas seul pour les scans ports/images (`auth-service` sans `image`/`build`). Historique 6–7 mai conservé plus bas : B14 durcissement Compose/runtime, A3 corrélation, logs-watch, rechargements axios, budgets ressources.
 
-**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+**Release / préprod / conformité (11/05)** : nouveau cadrage **lot H** dans **`PLAN.md`** et **`operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**. La validation longue **coût collecte métriques** reste obligatoire avant prod, mais elle est reportée au gate tests complets/préprod plutôt que répétée à chaque itération. À prévoir : branche tests complets depuis `dev`, branche/environnement préprod, bêta mobile, scans sécurité P0, licences, RGPD, retours utilisateurs/crash reports, déploiements automatisés et décision mono-repo vs multi-repo.
 
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
@@ -186,12 +188,12 @@
 | **Mises à jour datées** | Journal des changements récents (observabilité, sécurité, etc.). |
 | **Points de vigilance** | Points à revalider après rebuild / image Docker. |
 | **Audit global** | Ce qui est opérationnel, blocages produit, décisions doc (ex. intérim). |
-| **À faire maintenant** | Priorités P0–P2 **produit** + exécution **en parallèle** des lots A–G (chantier technique ; **G** = backup/continuité, souvent après cadrage). |
-| **Chantier lots A–G** (tableau ci-dessous) | Suivi aligné sur **`PLAN.md`** / **`TODOS.md`** (équivalent logique au plan Cursor `chantier_securite_data_docs_*.plan.md`, versionné dans le dépôt via `PLAN.md`). |
+| **À faire maintenant** | Priorités P0–P2 **produit** + exécution **en parallèle** des lots A–H (chantier technique ; **G** = backup/continuité, **H** = release/préprod/conformité). |
+| **Chantier lots A–H** (tableau ci-dessous) | Suivi aligné sur **`PLAN.md`** / **`TODOS.md`** (équivalent logique au plan Cursor `chantier_securite_data_docs_*.plan.md`, versionné dans le dépôt via `PLAN.md`). |
 | **Sections numérotées 1–5** | Détail suivi-intérim, billing, mobile, tests, commandes Makefile. |
 | **Récapitulatifs / historique** | Tests, migrations, erreurs connues → compléter avec **`ERRORS.md`**, **`RESOLUTIONS.md`**. |
 
-## Chantier lots A–G — suivi (avril 2026)
+## Chantier lots A–H — suivi (avril/mai 2026)
 
 | Lot | Thème | Statut | Où détailler |
 |-----|--------|--------|----------------|
@@ -202,6 +204,7 @@
 | **E** | Doc : STATUS, ERRORS, RESOLUTIONS, PROCESSUS, FONCTIONNALITES, BACKLOG, revue `docs/` | **En cours** (**22/04** : **`security/STATS.md`** CVE/gabarit + **CHANTIER** ; **21/04** : STATUS, PLAN, ERRORS, TODOS, README Makefile ; reste PROCESSUS, BACKLOG, revue **`docs/`**) | `PLAN.md` § E, `TODOS.md` lot E, **`security/STATS.md`** |
 | **F** | Tests ciblés + bilan final chantier | **En cours** — Jest `test:unit-and-analytics` : `make test-unit-frontend`, inclus dans **`make test` / `make tests`** via `scripts/run-all-tests-with-reports.sh` (sortie capturée dans `tests/results/.../frontend-jest.json`) ; **ne couvre pas** tout le frontend Jest (`npm test` dans `frontend/` = suite plus large + mobile-emulator, services, etc.). **`npm run test:audit-jest-scope`** : liste explicite des fichiers de test hors gate (audit manuel / CI optionnelle). **F3 (backlog)** : compléter **`tests/services/`** avec des smokes **health** / endpoints représentatifs pour chaque microservice encore absent (auth, application, call, interview, followup, metrics-aggregator, security, deployment, etc.) — trafic **préféré via API Gateway** pour coller au chemin prod ; exception **metrics-aggregator** pour sondes infra si besoin. Voir **`PLAN.md`** § **F3**. | `PLAN.md` § F |
 | **G** | **Sauvegardes chiffrées**, API backup **non publique**, **délocalisation**, UI admin, **PCA/PRI** (RPO/RTO, runbooks) | **À faire (spec)** — documenté **07/04/2026** ; implémentation **après** cadrage **G1** et stabilisation prioritaire **A/B** ; détail **`PLAN.md`** § G, **`project/FONCTIONNALITES.md`** § 4.4 | `PLAN.md` § G, futur `docs/operations/BACKUP_AND_DR.md`, `TODOS.md` lot G |
+| **H** | **Release / préprod / conformité** : branche tests complets, préprod, bêta mobile, licences, RGPD, retours utilisateurs, déploiements, décision mono-repo vs multi-repo | **À cadrer / partiel doc** — document initial créé le **11/05/2026** ; exécution réelle à faire avant merge `dev` → prod | `PLAN.md` § H, `operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`, `TODOS.md` lot H |
 
 **Critères d’acceptation** du chantier : voir **`PLAN.md`** (en-tête).
 
@@ -1098,7 +1101,7 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 
 | Sujet | Fichier |
 |-------|---------|
-| **Plan chantier backoffice + API + doc (lots A–G)** | **`PLAN.md`** |
+| **Plan chantier backoffice + API + doc (lots A–H)** | **`PLAN.md`** |
 | **Liste de tâches opérationnelles (cases à cocher)** | **`TODOS.md`** |
 | **CVE / dépendances / inventaire scans (à compléter)** | **`docs/security/STATS.md`** |
 | **Index chantier dans docs/** | **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`** |

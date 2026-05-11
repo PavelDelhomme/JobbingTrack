@@ -4,7 +4,7 @@
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
-**Alignement chantier** (lot **A** monitoring + logs, lot **B** sécurité + **B14** durcissement **docker-compose** / runtime, intérim, doc, lot **G** sauvegardes sécurisées) : **`PLAN.md`**, **`TODOS.md`**, **`STATUS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. Les écarts document / code en cours de traitement sont listés dans **`ERRORS.md`** (dont § *Pièges d’interprétation* pour le dashboard admin et § *Risques actifs — configuration Docker*). **Pas de PR** tant que non demandé par le porteur (voir **`TODOS.md`** en-tête).
+**Alignement chantier** (lot **A** monitoring + logs, lot **B** sécurité + **B14/B15** durcissement et tests sécurité, intérim, doc, lot **G** sauvegardes sécurisées, lot **H** release/préprod/conformité) : **`PLAN.md`**, **`TODOS.md`**, **`STATUS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**. Les écarts document / code en cours de traitement sont listés dans **`ERRORS.md`** (dont § *Pièges d’interprétation* pour le dashboard admin et § *Risques actifs — configuration Docker*). **Pas de PR** tant que non demandé par le porteur (voir **`TODOS.md`** en-tête).
 
 ---
 

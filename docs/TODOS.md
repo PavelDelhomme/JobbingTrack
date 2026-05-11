@@ -15,6 +15,7 @@
 - [ ] **Suite sécurité runtime sans surcoût** : auditer `api-gateway` existant (`helmet`, rate limit, payload 64kb, WAF, intrusion detector, `TRUST_PROXY_HOPS`) puis renforcer seulement les trous prouvés, sans double filtrage coûteux.
 - [ ] **Suite forensics menaces** : provider IP intelligence ASN/VPN/proxy/Tor, payload/request samples, comptes impactés fiables, IPs à surveiller détaillables, export signé.
 - [ ] **Suite alertes mail** : UI admin avec réauth/audit pour adresse d’alerte, anti-flap/dédup, digest `high`, et alertes `service down` via metrics-aggregator/monitoring Rust.
+- [ ] **Préprod / release / conformité** : suivre le nouveau **lot H** (`PLAN.md`) et **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`** : branche tests complets, branche préprod, serveur préprod, beta mobile, prod, licences, RGPD, retours utilisateurs, déploiements et stratégie mono-repo vs multi-repo.
 
 ## Priorité précédente 6 mai 2026 — perf ressources + corrélation
 
@@ -26,9 +27,9 @@
 - [x] Redis: mesurer la pression mémoire réelle (dataset, RSS/buffers, fragmentation) + budget/actions — **`make redis-memory-report`** (`scripts/monitoring/redis-memory-report.sh`) ; budget local **128 MB**, warn **70%**, critical **85%**, fragmentation ignorée sous **10 MB** utilisés, actions affichées si `maxmemory=0`, fragmentation haute ou clients bloqués.
 - [x] Log collector C: rotation/troncature + découverte dynamique + lecture non bloquante — **`collector.c`** passe à `inotify_init1(IN_NONBLOCK)` + `poll`, traite les événements fichier même avec `len=0`, rescane `/var/lib/docker/containers` toutes les 10s, évite les watches en double, retire les watches sur `IN_MOVE_SELF`/`IN_DELETE_SELF`, option **`LOG_COLLECTOR_READ_EXISTING=0`** pour éviter d’ingérer tout l’historique au démarrage ; compilation C OK.
 - [x] Monitoring C: remplacer les `popen` coûteux (`docker stats`/`inspect`/`curl`) par collecte non-forkée et checks parallèles. **07/05** : inventaire conteneurs via Docker socket Unix sans shell, métriques CPU/mémoire/réseau via cgroups/proc, health checks via libcurl multi parallèle ; plus aucun `popen` dans `monitoring-c`.
-- [ ] Validation dédiée "coût collecte métriques": benchmark CPU/RAM/IO p95 sur 40-60 min via **`make resource-budget-sample`**. **Baseline 07/05 40 min** (`tests/results/resource-budget/20260507-123612/summary.md`) : `metrics-aggregator` **CPU p95 93.04% / max 121.75% / RAM p95 588.4 MB**, `frontend` **CPU p95 19.61% / max 79.68% / RAM p95 868.4 MB**, `monitoring-c` **CPU p95 1.22% / RAM p95 2.7 MB**, `log-collector-c` **CPU p95 0% / RAM p95 5.1 MB**, Redis **CPU p95 2.48% / RAM p95 29.7 MB**. **Contrôle post-correctifs 07/05** : 10 min `20260507-132438`, puis 5 min `20260507-133829`; hors première minute de redémarrage, `metrics-aggregator` ≈ **CPU p95 3.20% / RAM p95 138.2 MB**, `frontend` ≈ **CPU p95 2.88% / RAM p95 203.6 MB**. Budget cible p95 : aggregator < **5% CPU / 250 MB**, frontend dev < **8% CPU / 700 MB** (prod cible < **3% / 300 MB**), collecteurs C < **2% CPU / 20 MB**, Redis < **2% CPU / 64 MB**. Reste : refaire un contrôle long 40-60 min après une session utilisateur réelle.
+- [ ] Validation dédiée "coût collecte métriques": benchmark CPU/RAM/IO p95 sur 40-60 min via **`make resource-budget-sample`**. **Baseline 07/05 40 min** (`tests/results/resource-budget/20260507-123612/summary.md`) : `metrics-aggregator` **CPU p95 93.04% / max 121.75% / RAM p95 588.4 MB**, `frontend` **CPU p95 19.61% / max 79.68% / RAM p95 868.4 MB**, `monitoring-c` **CPU p95 1.22% / RAM p95 2.7 MB**, `log-collector-c` **CPU p95 0% / RAM p95 5.1 MB**, Redis **CPU p95 2.48% / RAM p95 29.7 MB**. **Contrôle post-correctifs 07/05** : 10 min `20260507-132438`, puis 5 min `20260507-133829`; hors première minute de redémarrage, `metrics-aggregator` ≈ **CPU p95 3.20% / RAM p95 138.2 MB**, `frontend` ≈ **CPU p95 2.88% / RAM p95 203.6 MB**. Budget cible p95 : aggregator < **5% CPU / 250 MB**, frontend dev < **8% CPU / 700 MB** (prod cible < **3% / 300 MB**), collecteurs C < **2% CPU / 20 MB**, Redis < **2% CPU / 64 MB**. **Décision 11/05** : ne pas relancer à chaque itération ; refaire un contrôle long 40-60 min dans le gate tests complets/préprod avant prod.
 
-Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.
+Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**. Sujets reportés : **`docs/BACKLOG.md`** et « Plus tard » dans **`STATUS.md`**.
 
 ## Lire ce fichier (validation vs inventaire)
 
@@ -39,7 +40,7 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–G) et **`STATUS.md`**
 
 ---
 
-## Suite & suivi explicite (post-livraisons, hors cœur des lots A–G)
+## Suite & suivi explicite (post-livraisons, hors cœur des lots A–H)
 
 **Rôle de ce bloc** : noter ici ce qui a été **évoqué en fin de chantier** ou **« à faire ensuite »** sans mériter tout de suite une case dans **A1–H** détaillée. Ce n’est **pas** le backlog long terme (**`docs/BACKLOG.md`** reste la file « officielle » reportée). **Règle** : une ligne = une intention ; cocher quand c’est fait ; si le sujet grossit, **créer** une entrée dans le lot concerné (**A–H** ou **`PLAN.md`**) et **retirer** la ligne d’ici pour éviter le double compte.
 
@@ -472,6 +473,24 @@ Source de cadrage : **`docs/security/SECURITY_TESTING_MATRIX.md`**. À exécuter
 
 ---
 
+## Release, préprod, conformité et distribution (PLAN lot H)
+
+Source : **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**. Ces tâches sont majoritairement à traiter plus tard, avant merge `dev` → prod, mais elles doivent rester visibles dès maintenant.
+
+- [ ] **Branche tests complets** : créer une branche dédiée depuis `dev` pour campagne complète backend, frontend, API, mobile, services, BDD, sécurité, performances, Playwright, qualité, erreurs, délivrables.
+- [ ] **Reporter le benchmark long 40–60 min au gate préprod/prod** : garder `make resource-budget-sample` comme contrôle obligatoire avant prod, avec baseline 07/05 et budgets p95 déjà documentés ; ne pas le refaire à chaque petite itération.
+- [ ] **Branche / environnement préprod** : définir branche préprod, serveur préprod, domaines, secrets, base, stockage, monitoring, alertes, sauvegardes et jeux de données distincts de la prod.
+- [ ] **Bêta mobile** : préparer builds Android/iOS pointant vers préprod, canaux beta, signature, versioning, collecte retours et crash reports.
+- [ ] **Gate prod** : tests complets verts ou exceptions validées, préprod validée, scans sécurité P0 traités, sauvegarde/restauration testée, monitoring/alerting actif, rollback documenté.
+- [ ] **Licences** : inventorier licences packages Node/Rust/Flutter/Docker/outils/services externes ; décider licence projet ou licences par sous-partie ; produire notices si publication.
+- [ ] **RGPD / conformité** : cadrer données collectées, consentement analytics/crash, minimisation, pseudonymisation, export/suppression utilisateur, rétention et accès aux logs.
+- [ ] **Retours utilisateurs / rapports erreurs** : centraliser feedback, crash reports, requestId/correlationId, version app, device/service, statut de traitement et exploitation backoffice.
+- [ ] **Déploiements automatisés** : définir quelles branches déclenchent build/test/deploy backend/API/front/web/mobile, registry/images, migrations, release notes et rollback.
+- [ ] **Mono-repo vs multi-repo** : décider si garder le mono-repo actuel ou séparer backend/frontend/mobile/infra selon cadence release, droits, CI, contrats API et complexité de rollback.
+- [ ] **Plateformes futures** : prioriser Android/iOS/Web/Linux ; Windows/macOS seulement plus tard si besoin produit validé.
+
+---
+
 ## Fichiers « dot » à la racine & déploiement (à garder en tête)
 
 | Fichier | Rôle | Git / CI / prod |
@@ -496,7 +515,7 @@ Source de cadrage : **`docs/security/SECURITY_TESTING_MATRIX.md`**. À exécuter
 - [ ] **Refonte documentation (racine + `docs/`)** : reprendre **tous** les **`.md` à la racine** et **tous les `.md` sous `docs/`** de façon **structurée** (rôles, doublons, liens, ordre de lecture, index unique ou fil d’Ariane clair) ; aligner **PLAN**, **STATUS**, **TODOS**, **ERRORS**, **RESOLUTIONS**, **STATS**, **FONCTIONNALITES**, **`docs/BACKLOG.md`**, **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**. *À planifier explicitement avant grosses réécritures.*
 - [ ] **HX1 — Variables d’environnement sans « fallback magique »** : le porteur souhaite **ne pas** coder de valeurs par défaut du type **`process.env.X || '3000'`** dans le dépôt (risque : prod silencieusement mal configurée). **Périmètre** : audit **`next.config.js`**, **frontend**, **backend** (chaque service), **mobile** (`mobile/`, `flutter-mobile-app/`), scripts — remplacer par **variables obligatoires** documentées dans **`.env.example`** / runbooks, ou échec explicite au démarrage si critique.
 - [ ] **HX2 — Audit transverse « sécurité × doc × config »** : parcourir **toutes** les zones du dépôt (front, back, mobile, Docker, CI) pour repérer **URLs / secrets / schémas internes** dans la doc ou les commentaires **trop exposants** (faille d’ingénierie sociale ou fuite d’architecture) ; **niveau de détail** des guides : suffisant pour exploiter, pas de cookbook d’attaque. Croiser **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`docs/BACKLOG.md`**.
-- [ ] **HX3 — Environnements prod / préprod / tests conteneurs** : formaliser une **matrice** (compose profiles, fichiers env, noms d’images, jeux de données) pour éviter les dérives « même stack que le dev » ; une ligne dans **`STATUS.md`** ou doc **`docs/operations/`** une fois le modèle figé.
+- [ ] **HX3 — Environnements prod / préprod / tests conteneurs** : formaliser une **matrice** (compose profiles, fichiers env, noms d’images, jeux de données) pour éviter les dérives « même stack que le dev » ; cadrage initial dans **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**, à détailler quand le modèle préprod sera figé.
 - [ ] **HX4 — Session backoffice : reconnexion / expiration** : lorsqu’une **reconnexion** est demandée sans message clair (JWT expiré, middleware, refresh, WebSocket metrics), **instrumenter** (message UI + corrélation `requestId` / logs gateway) et documenter le comportement attendu dans **`ERRORS.md`** ou **`RESOLUTIONS.md`** — diagnostic reproductible pour le porteur.
 - [ ] **HX5 — Hôte Linux / Redis : `vm.overcommit_memory`** : le conteneur **`jobbingtrack-redis`** peut logger *« WARNING Memory overcommit must be enabled »* — à traiter sur **l’hôte** (pas dans l’image Redis) : `sudo sysctl vm.overcommit_memory=1` et persistance dans **`/etc/sysctl.conf`** (`vm.overcommit_memory = 1`) puis reboot ou rechargement sysctl ; voir [redis / jemalloc](https://github.com/jemalloc/jemalloc/issues/1328). Objectif : éviter échecs **BGSAVE** / réplication sous pression mémoire.
 - [ ] **Séquence post-`git pull` (stack locale)** : typiquement **`make db-push-all`** (schéma BDD + scripts SQL) puis **`make up-full`** (ou **`make up-dev`** si besoin seed + tests) — validé côté porteur **mai 2026** ; documenter tout écart machine (WSL, rootless Docker) dans **`ERRORS.md`** si besoin.

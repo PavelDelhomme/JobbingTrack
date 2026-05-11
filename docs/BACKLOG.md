@@ -2,7 +2,7 @@
 
 Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` contient l'état courant ; ce fichier contient le backlog complet.
 
-**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc) : pour ne pas dupliquer la granularité, suivre **`docs/PLAN.md`** (lots A–G) et **`docs/TODOS.md`**. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
+**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc ; **lot H** : release/préprod/conformité) : pour ne pas dupliquer la granularité, suivre **`docs/PLAN.md`** (lots A–H) et **`docs/TODOS.md`**. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
 
 **Méta (11/05/2026)** : la racine ne garde que `README.md`; les fichiers de pilotage sont sous `docs/`. Revue **BDD** avant campagne de tests, interprétation des **logs gateway sécurité** et suite sécurité — voir **`docs/TODOS.md`** et **`docs/STATUS.md`**.
 
@@ -74,6 +74,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [ ] **CI/CD** : exécution suite de tests complète dans pipeline.
 - [ ] **CI/CD** : déploiement automatisé après tests passés.
 - [ ] **Déploiement** : voir `docs/deployment/DEPLOIEMENT_FINAL.md`.
+- [ ] **Release / préprod / conformité (lot H)** : cadrer et implémenter branche tests complets, branche/environnement préprod, bêta mobile, gates prod, licences, RGPD, retours utilisateurs/crash reports, déploiements automatisés et décision mono-repo vs multi-repo. Source : `docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`.
 
 ## Priorité basse – Infra hôte (Docker / noyau)
 

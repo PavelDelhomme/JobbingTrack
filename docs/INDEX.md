@@ -1,6 +1,6 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Dernière mise à jour** : avril 2026
+**Dernière mise à jour** : 11 mai 2026
 
 ---
 
@@ -8,8 +8,8 @@
 
 | Thème | Emplacement |
 |-------|-------------|
-| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (CVE / dépendances) ; index **[project/CHANTIER_SECURITE_DATA_DOCS.md](project/CHANTIER_SECURITE_DATA_DOCS.md)** |
-| **Préprod / production (checklist manuelle)** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — NTP, secrets, intrusion, B6, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway en conteneur |
+| **Chantier monitoring / sécurité / data / doc (lots A–H)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité, lot **H** release/préprod/conformité), **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (CVE / dépendances) ; index **[project/CHANTIER_SECURITE_DATA_DOCS.md](project/CHANTIER_SECURITE_DATA_DOCS.md)** |
+| **Préprod / production / release** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — checklist manuelle ; **[operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** — branche tests complets, préprod, bêta mobile, licences, RGPD, déploiements, mono-repo vs multi-repo |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
 | **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
