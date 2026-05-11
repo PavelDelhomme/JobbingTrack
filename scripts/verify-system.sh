@@ -65,7 +65,7 @@ SERVICES=(
     "jobbingtrack-security-service:5017"
     "jobbingtrack-deployment-service:5018"
     "jobbingtrack-monitoring-c:5098"
-    "jobbingtrack-log-collector-c:5099"
+    "jobbingtrack-log-collector-c:3019"
 )
 
 for service_port in "${SERVICES[@]}"; do

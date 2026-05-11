@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -176,11 +176,14 @@ help-services: ## Afficher l'aide services
 	@echo "  make up-monitoring         - Postgres + monitoring-c + metrics-aggregator (stack monitoring seul)"
 	@echo ""
 	@echo "🛑 ARRÊT:"
-	@echo "  make down                  - Arrêter tous les services"
+	@echo "  make down                  - Arrêter tous les services (données conservées)"
+	@echo "  make down-clean           - Arrêter + supprimer les volumes (tout effacer)"
 	@echo "  make stop-service SERVICE=x - Arrêter un service"
 	@echo ""
 	@echo "🔄 RESTART:"
-	@echo "  make restart               - Redémarrer tous les services actifs (sans argument)"
+	@echo "  make restart               - Redémarrer les conteneurs actifs (sans recréation : env compose inchangées)"
+	@echo "  make restart-metrics-recreate - Recrée monitoring-c + metrics-aggregator (TZ / env / image)"
+	@echo "  make monitoring-clock-refresh - Recrée postgres + monitoring-c + agrégateur (applique .env fuseaux, volumes OK)"
 	@echo "  make restart-tests-api-services - Redémarrer application, interview, call, followup (fix tests API isArchived)"
 	@echo "  make restart-clean         - Redémarrage + nettoyage"
 	@echo "  make restart-full          - Redémarrage complet en conservant la DB (ex. après setup-ports)"
@@ -189,7 +192,9 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-live           - Statut en temps réel (actualisation automatique)"
+	@echo "  make status-watch          - Statut en boucle (INTERVAL=5) : ALTSCREEN=1 défaut = buffer terminal alternatif (remplace l’affichage sans polluer le scrollback) ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 pour désactiver le retour à la ligne selon largeur terminal"
+	@echo "  make status-live           - Idem, INTERVAL=2s par défaut (même options ALTSCREEN / CLEAR / STATUS_FOLD)"
+	@echo "  STATUS_LEGEND=1 make status — affiche la légende longue des ports (désactivée par défaut)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
 	@echo "  make logs-service SERVICE=x - Logs d'un service"
@@ -201,7 +206,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "🔨 REBUILD (depuis la racine):"
 	@echo "  make rebuild-metrics-aggregator   - Reconstruire l'agrégateur de métriques"
-	@echo "  make rebuild-monitoring-c        - Reconstruire le collecteur C (ex-systems)"
+	@echo "  make rebuild-monitoring-c        - Reconstruire le collecteur C"
 	@echo "  make rebuild-service SERVICE=nom - Reconstruire un service (ex: auth-service)"
 	@echo ""
 	@echo "💡 EXEMPLES:"
@@ -247,6 +252,7 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
+	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer SANS vérification Docker
 up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode contournement)
@@ -258,10 +264,11 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services démarrés (mode NO-CHECK)!"
+	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer uniquement la stack monitoring (Postgres + monitoring-c + metrics-aggregator)
 up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-c, metrics-aggregator)
-	@echo "📊 Démarrage de la stack monitoring (ex-systems)..."
+	@echo "📊 Démarrage de la stack monitoring..."
 	$(call ensure_docker_network)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres)
 	@echo "⏳ Attente PostgreSQL (10s)..."
@@ -462,6 +469,13 @@ _up-full-internal:
 	@echo "⏳ Attente supplémentaire pour que PostgreSQL soit complètement prêt (3s)..."
 	@sleep 3
 	
+	# Avant la gateway : DNS joignable pour les proxys /api/v1/security/* et /api/v1/metrics (évite ENOTFOUND au boot)
+	@echo "🚀 Pré-démarrage security-service + monitoring-c + metrics-aggregator..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d security-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente résolution des noms security / metrics (6s)..."
+	@sleep 6
+	
 	# Démarrer services principaux
 	@echo "🚀 Démarrage des services principaux..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service)
@@ -473,22 +487,21 @@ _up-full-internal:
 	# Correction DB
 	$(MAKE) db-fix-role
 	
+	# ✅ db-push-all AVANT de démarrer les services "full" (deployment-service, etc.) pour que la table deployments existe
+	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
+	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
+	
 	# Démarrer frontend
 	@echo "🚀 Démarrage du frontend..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	
-	# Démarrer TOUS les autres services avec le profil 'full' (SANS monitoring-c et metrics-aggregator pour l'instant)
+	# Démarrer TOUS les autres services avec le profil 'full' (table deployments déjà créée ci-dessus)
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
-	# Attendre que tous les conteneurs soient démarrés (nécessaire pour db-push-all qui exécute Prisma dans chaque conteneur)
+	# Attendre que tous les conteneurs soient démarrés
 	@echo "⏳ Attente que tous les services soient démarrés (8s)..."
 	@sleep 8
-	
-	# ✅ UN SEUL db-push-all : Prisma push (9 services) + init-system-metrics + init-key-tables
-	# Fait AVANT monitoring/metrics-aggregator pour que container_metrics_snapshots existe dès le premier run
-	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
-	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
 	
 	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
 	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
@@ -508,7 +521,7 @@ _up-full-internal:
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:5003"
 	@echo "  - API Gateway:        http://localhost:5002"
-	@echo "  - Monitoring C:       http://localhost:5098 (collecteur ex-systems)"
+	@echo "  - Monitoring C:       http://localhost:5098 (collecteur C)"
 	@echo "  - Metrics Aggregator: http://localhost:5004 (API backoffice)"
 	@echo "  - Log Collector C:    http://localhost:5099 (optionnel)"
 	@echo ""
@@ -544,6 +557,7 @@ _up-full-internal:
 	
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
+	@printf '%s\n' up-full > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer TOUS les services (AVEC vérification Docker)
 up-full: ## Démarrer TOUS les services avec tous les profils (avec vérification Docker)
@@ -579,16 +593,21 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	fi
 	@echo ""
 	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
-	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/launcher.js" ] && command -v node >/dev/null 2>&1; then \
 		_port_check=0; \
-		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
-		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5056 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5056 ') && _port_check=1; \
 		if [ "$$_port_check" = "1" ]; then \
-			echo "   ✅ Contrôleur déjà en cours (port 5055). Backoffice → Émulateur mobile."; \
+			echo "   ✅ Lanceur + contrôleur déjà en cours (5056 + 5055). Backoffice → Émulateur mobile."; \
 		else \
-			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
-			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile pour le rendu en direct."; \
+			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node launcher.js > /tmp/emulator-controller.log 2>&1 & \
+			echo "   ✅ Lanceur + contrôleur démarrés (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur depuis l'interface."; \
 		fi; \
+	elif [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Contrôleur déjà en cours (5055)."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Contrôleur démarré (5055)."; fi; \
 	else \
 		echo "   ℹ️  Optionnel : lancez 'make emulator-controller' pour l'émulateur mobile."; \
 	fi
@@ -603,16 +622,16 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 	@$(MAKE) _up-full-internal
 	@echo ""
 	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
-	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/launcher.js" ] && command -v node >/dev/null 2>&1; then \
 		_port_check=0; \
-		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5056 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Lanceur + contrôleur déjà en cours."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node launcher.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Lanceur + contrôleur démarrés (5056 + 5055)."; fi; \
+	elif [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
 		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
-		if [ "$$_port_check" = "1" ]; then \
-			echo "   ✅ Contrôleur déjà en cours (port 5055)."; \
-		else \
-			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
-			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile."; \
-		fi; \
+		if [ "$$_port_check" = "1" ]; then echo "   ✅ Contrôleur déjà en cours."; \
+		else cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & echo "   ✅ Contrôleur démarré (5055)."; fi; \
 	else \
 		echo "   ℹ️  Optionnel : make emulator-controller pour l'émulateur mobile."; \
 	fi
@@ -621,30 +640,54 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 # ARRÊT DES SERVICES
 # ============================================================================
 
-# Arrêter tous les services (COMPOSE_FILES_ESSENTIAL uniquement : monitoring.yml redéfinit monitoring-c avec profil → "depends on undefined service")
-down: ## Arrêter tous les services
-	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
+# Arrêter tous les services (conserve les volumes = BDD, Redis, admin, etc. persistent)
+down: ## Arrêter tous les services (données conservées : admin, BDD, métriques)
+	@echo "🛑 Arrêt de tous les services JobbingTrack (volumes conservés)..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
 	# Arrêter conteneurs restants (ex. log-collector-c si démarré avec monitoring)
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
 	@docker network prune -f || true
-	@echo "✅ Tous les services arrêtés"
+	@echo "✅ Tous les services arrêtés (données intactes : make up-full pour redémarrer)"
 
-# Arrêter en conservant les volumes (DB, Redis)
-down-keep-data: ## Arrêter les services SANS supprimer les volumes (données conservées)
-	@echo "🛑 Arrêt des services (volumes conservés)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
+# Arrêter en conservant les volumes (alias : même comportement que down par défaut)
+down-keep-data: ## Alias de down (données conservées)
+	$(MAKE) down
+
+# Arrêter ET supprimer les volumes (BDD effacée, admin à recréer avec make create-admin-user)
+down-clean: ## Arrêter les services ET supprimer les volumes (tout effacer, admin à recréer)
+	@echo "⚠️  Arrêt + suppression des volumes (données effacées)..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
+	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
+	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
 	@docker network prune -f || true
-	@echo "✅ Services arrêtés (données intactes)"
+	@echo "✅ Services arrêtés et volumes supprimés."
+	@echo "💡 Au prochain make up-full : make create-admin-user si besoin (admin@jobbingtrack.com)"
 
 # ============================================================================
 # REDÉMARRAGE DES SERVICES
 # ============================================================================
 
-# Redémarrer conteneurs actifs
-restart: ## Redémarrer seulement les conteneurs actuellement actifs
+# Redémarrer conteneurs actifs (docker compose restart uniquement, pas down/up)
+restart: ## Redémarrer seulement les conteneurs actuellement actifs (pas un down/up)
 	@echo "🔄 Redémarrage des services JobbingTrack actifs..."
+	@MODE=$$(cat "$(ROOT_DIR)/.jobbingtrack-stack-mode" 2>/dev/null | tr -d '\r\n' || true); \
+	if [ -n "$$MODE" ]; then \
+		printf '%b\n' "\033[0;90m📌 Dernier enregistrement de démarrage Makefile : \033[0;33m$$MODE\033[0;90m (fichier .jobbingtrack-stack-mode ; ignoré par Git)\033[0m"; \
+		if [ "$$MODE" = "up-dev" ]; then \
+			echo "   ℹ️  Dernier make up-dev (stack + db-push + seed + tests) : make restart ne relance pas les tests ni les migrations."; \
+		elif [ "$$MODE" = "up-full" ]; then \
+			echo "   ℹ️  Dernier make up-full : redémarrage des conteneurs uniquement."; \
+		elif [ "$$MODE" = "up-essential" ]; then \
+			echo "   ℹ️  Dernier make up (essentiels) : moins de microservices que up-full."; \
+		fi; \
+	else \
+		printf '%b\n' "\033[0;90m📌 Aucun fichier .jobbingtrack-stack-mode — démarrage non enregistré depuis cette machine (make up / up-full / up-dev) ou déjà effacé par make down.\033[0m"; \
+		echo "   💡 Ce n’est pas bloquant : la suite redémarre les conteneurs actifs."; \
+	fi
+	@echo "   💡 Nouvelles variables docker-compose (ex. TZ) ou image à jour : make restart-metrics-recreate — make restart seul ne recrée pas les conteneurs."
 	@ACTIVE_CONTAINERS=$$(docker ps -q --filter "name=jobbingtrack-*" | wc -l); \
 	if [ "$$ACTIVE_CONTAINERS" -eq 0 ]; then \
 		echo "ℹ️  Aucun conteneur JobbingTrack en cours d'exécution"; \
@@ -674,6 +717,31 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs
 	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 	@echo "✅ Services redémarrés"
 
+# Recréation ciblée monitoring (nouvelles env compose, image rebuild) — sans toucher Postgres ni le reste de la stack
+restart-metrics-recreate: ## Recrée monitoring-c + jobbingtrack-metrics-aggregator (--force-recreate, --no-deps)
+	@echo "♻️  Recréation forcée : monitoring-c + jobbingtrack-metrics-aggregator…"
+	$(call check_docker)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate --no-deps monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente stabilisation (20s)…"
+	@sleep 20
+	@echo "✅ Terminé. Vérifiez les graphiques (heure = fuseau navigateur). Sinon : make rebuild-service SERVICE=metrics-aggregator"
+
+# Remettre d’aplomb fuseaux + binaires monitoring depuis le .env (court downtime Postgres)
+# REBUILD_METRICS=1 : make rebuild-service SERVICE=metrics-aggregator avant le recreate (image à jour si pas de volume src)
+monitoring-clock-refresh: ## Recrée postgres + monitoring-c + metrics-aggregator (--force-recreate, volumes conservés)
+	@echo "♻️  monitoring-clock-refresh : postgres + monitoring-c + jobbingtrack-metrics-aggregator"
+	@echo "   → Applique POSTGRES_SYSTEM_METRICS_TZ / env compose depuis ton .env (données PostgreSQL conservées sur le volume)."
+	$(call check_docker)
+	@if [ "$${REBUILD_METRICS:-0}" = "1" ]; then \
+		echo "🔨 REBUILD_METRICS=1 → rebuild de l’image metrics-aggregator…"; \
+		$(MAKE) rebuild-service SERVICE=metrics-aggregator || exit 1; \
+	fi
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate postgres monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "⏳ Attente stabilisation Postgres + agrégateur (35s)…"
+	@sleep 35
+	@echo "✅ Terminé. Recharge /backoffice/analytics/performances (heure locale navigateur)."
+	@echo "💡 Sans rebuild image : make restart-metrics-recreate suffit si seule l’env a changé."
+
 # Redémarrer les 4 services concernés par les tests API (isArchived/archived) pour charger le code à jour (volumes montés)
 restart-tests-api-services: ## Redémarrer application, interview, call, followup (après modif fallback isArchived)
 	@echo "🔄 Redémarrage des services Tests API (application, interview, call, followup)..."
@@ -696,6 +764,7 @@ fix-unhealthy-healthchecks: ## Recréer notification, profile, workflow pour app
 restart-clean: ## Redémarrage complet avec nettoyage
 	@echo "🔄 Redémarrage complet de JobbingTrack (avec nettoyage)..."
 	@echo "🧹 Nettoyage complet avant redémarrage..."
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes --timeout 30) || true
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop --time 30 || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm -f || true
@@ -723,9 +792,15 @@ restart-full: ## Redémarrer tout le projet en conservant la base de données (p
 	$(MAKE) up-full
 	@echo "✅ Redémarrage terminé. Connexion : http://localhost:5003"
 
-# Rebuild de toutes les images
-rebuild: ## Reconstruire toutes les images Docker (sans cache)
-	@echo "🔨 Reconstruction de toutes les images Docker..."
+# Build avec cache (profil full) — rapide après changement de code, utilise le cache Docker
+build-full: ## Build des images avec cache (sans --no-cache) — plus rapide que rebuild
+	@echo "🔨 Build des images (avec cache Docker)..."
+	@$(call docker_compose, -f docker-compose.yml --profile full build)
+	@echo "✅ Build terminé (cache utilisé). Pour démarrer: make up-full"
+
+# Rebuild de toutes les images (down + suppression images + build --no-cache ; puis make up-full pour démarrer)
+rebuild: ## Reconstruire toutes les images Docker (sans cache) — lourd et long, préférer build-full ou test-full-quick
+	@echo "🔨 Reconstruction de toutes les images Docker (--no-cache, très lourd)..."
 	@echo ""
 	@echo "🛑 Arrêt des services..."
 	@$(MAKE) down
@@ -733,8 +808,8 @@ rebuild: ## Reconstruire toutes les images Docker (sans cache)
 	@echo "🗑️  Suppression des anciennes images JobbingTrack..."
 	@docker images | grep "jobbingtrack-" | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
 	@echo ""
-	@echo "🔨 Rebuild avec --no-cache..."
-	@docker-compose -f docker-compose.yml --profile full build --no-cache
+	@echo "🔨 Rebuild avec --no-cache (peut prendre 10–20 min, forte charge CPU/RAM)..."
+	@$(call docker_compose, -f docker-compose.yml --profile full build --no-cache)
 	@echo ""
 	@echo "✅ Rebuild terminé !"
 	@echo ""
@@ -939,11 +1014,19 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # STATUS ET LOGS
 # ============================================================================
 
+# Légende longue des ports (monitoring-c, log-collector-c, etc.) : STATUS_LEGEND=1 make status
+STATUS_LEGEND ?= 0
+
 # Statut détaillé
 status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, ports, uptime)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
 	@echo ""
+	@if [ "$(STATUS_LEGEND)" = "1" ]; then \
+		printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"; \
+		printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m (C) ecoute \033[0;33m8015\033[0;90m dans le conteneur ; hote \033[0;36m5098\033[0;90m. \033[1;33mlog-collector-c\033[0;90m (C) ecoute \033[0;33m3019\033[0;90m dans le conteneur ; hote \033[0;36m5099\033[0;90m (pas 5099->5099). Acces reseau Docker : \033[0;36mlog-collector-c:3019\033[0;90m / \033[0;36mmonitoring-c:8015\033[0;90m.\033[0m"; \
+		echo ""; \
+	fi
 	@echo "🏗️  Infrastructure:"
 	@echo ""
 	@services="postgres redis"; \
@@ -1230,7 +1313,14 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
 	all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
 	if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
-	if [ "$$up_count" -eq 0 ]; then \
+	if [ "$$up_count" -eq 0 ] && [ "$$all_count" -eq 0 ]; then \
+		printf "📊 Résumé : \033[1;31maucun\033[0m conteneur \033[0;90mjobbingtrack-*\033[0m (stack non démarrée ou Docker inaccessible)\n"; \
+		if ! docker info >/dev/null 2>&1; then \
+			printf '%b\n' "\033[1;33m    → \`docker info\` échoue : démarrez Docker / droits (groupe docker) / contexte (\`docker context show\`).\033[0m"; \
+		else \
+			printf '%b\n' "\033[1;33m    → À la racine du dépôt : \033[0;36mmake up-full\033[1;33m ou \033[0;36mmake up\033[1;33m, puis \033[0;36mmake status\033[0m.\033[0m"; \
+		fi; \
+	elif [ "$$up_count" -eq 0 ]; then \
 		printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	elif [ "$$up_count" -lt "$$all_count" ]; then \
 		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
@@ -1260,78 +1350,16 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
-# Statut en temps réel (actualisation automatique)
-status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)
-	@echo "📊 Statut en temps réel des services JobbingTrack"
-	@echo "=========================================="
-	@echo ""
-	@echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"
-	@echo ""
-	@while true; do \
-		clear; \
-		echo "📊 Statut détaillé des services JobbingTrack"; \
-		echo "=========================================="; \
-		echo ""; \
-		echo "🟢 Services essentiels:"; \
-		echo ""; \
-		services="postgres redis api-gateway frontend auth-service dashboard-service"; \
-		for service in $$services; do \
-			container="jobbingtrack-$$service"; \
-			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
-				if [ -n "$$ports" ]; then \
-					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
-					if [ -n "$$port_main" ]; then \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
-					else \
-						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
-					fi; \
-				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
-				fi; \
-			else \
-				printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
-			fi; \
-		done; \
-		echo ""; \
-		echo "🔵 Services optionnels:"; \
-		echo ""; \
-		services="application-service company-service contact-service interview-service followup-service call-service metrics-aggregator"; \
-		for service in $$services; do \
-			container="jobbingtrack-$$service"; \
-			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
-				if [ -n "$$ports" ]; then \
-					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
-					if [ -n "$$port_main" ]; then \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
-					else \
-						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
-					fi; \
-				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
-				fi; \
-			else \
-				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
-			fi; \
-		done; \
-		echo ""; \
-		up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
-		all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
-		if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
-		if [ "$$up_count" -eq 0 ]; then \
-			printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-		elif [ "$$up_count" -lt "$$all_count" ]; then \
-			printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-		else \
-			printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-		fi; \
-		echo ""; \
-		echo "💡 Actualisation dans 2 secondes... (Ctrl+C pour quitter)"; \
-		sleep 2; \
-	done
+# Boucle `make status` : script \`scripts/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
+# INTERVAL=s · ALTSCREEN=1 (défaut) = pas d’empilement dans le scrollback · ALTSCREEN=0 = ancien défilement · CLEAR=1 + ALTSCREEN=0 = clear plein écran.
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, ALTSCREEN=1 par défaut — voir scripts/status-watch-loop.sh)
+	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
+
+# Même rendu que `make status`, boucle rapide (pas de vue « compacte » dupliquée — évite ports tronqués et services manquants).
+status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut 2, Ctrl+C pour quitter)
+	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),2)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs
@@ -1339,18 +1367,44 @@ ps: ## Liste les conteneurs actifs
 	@echo "================================"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) ps)
 
-# Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
-logs: ## Affiche tous les logs en temps réel (tags colorés)
-	@echo "📋 Logs en temps réel des services JobbingTrack"
-	@echo "==============================================="
-	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests (tests)  |  make logs-metrics"
-	@echo "   Un service: make logs-service SERVICE=frontend"
-	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta"
-	@echo "   Erreurs (rouge): ERROR/FATAL, HTTP 404/5xx, tables absentes, « does not exist », Erreur insertion/sauvegarde"
-	@echo "   Timestamps: date/heure affichées (format ISO)"
+# Logs : dernières lignes sans suivi (sort immédiatement)
+logs-tail: ## Affiche les N dernières lignes de logs puis quitte (LINES=200 par défaut)
+	@echo "📋 Dernières lignes des logs JobbingTrack (puis sortie)"
+	@echo "======================================================"
+	@echo "💡 Pour suivre en continu : make logs  (puis Ctrl+C pour quitter)"
 	@echo ""
+	@N=$${LINES:-200}; cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -t --tail=$$N 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
+
+# Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
+# S'exécute indéfiniment jusqu'à Ctrl+C (suivi continu).
+logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
+	@echo "📋 Logs en temps réel des services JobbingTrack (suivi continu)"
+	@echo "==============================================================="
+	@echo "⏹️  Pour arrêter : Ctrl+C  |  Pour voir les dernières lignes sans suivi : make logs-tail"
+	@echo "🔁 Conteneurs qui redémarrent / flux coupé : make logs-watch (même pipeline couleurs, reconnexion auto)"
+	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
+	@echo "   Un service: make logs-service SERVICE=frontend"
+	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"
+	@echo "   Redis/Postgres: grisé (dim). Sans Redis/Postgres: make logs-app"
+	@echo ""
+	@printf '\033]0;Logs\007' >/dev/tty 2>/dev/null || true
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
+
+# Même pipeline couleur que `logs` : reconnexion automatique si le flux s’interrompt (redémarrage conteneurs, etc.)
+logs-watch: ## Logs temps réel avec reconnexion auto — Ctrl+C pour quitter
+	@chmod +x "$(ROOT_DIR)/scripts/logs-watch.sh" 2>/dev/null; true
+	@cd $(ROOT_DIR) && exec bash "$(ROOT_DIR)/scripts/logs-watch.sh" $(COMPOSE_FILES_ESSENTIAL)
+
+# Logs sans Redis ni Postgres (uniquement services applicatifs + infra légère)
+logs-app: ## Logs en temps réel SANS redis ni postgres (moins de bruit)
+	@echo "📋 Logs applicatifs (sans redis, sans postgres)"
+	@echo "=============================================="
+	@echo "⏹️  Ctrl+C pour quitter  |  Tout voir : make logs"
+	@echo ""
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-redis[[:space:]]|^jobbingtrack-postgres[[:space:]]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-app"; exit 1)
 
 # Logs de metrics-aggregator uniquement (tags colorés)
 logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour quitter)

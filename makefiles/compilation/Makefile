@@ -84,6 +84,7 @@ clean: ## Nettoyage complet
 clean-force: ## Nettoyage d'urgence - force la suppression de TOUT
 	@echo "⚠️  NETTOYAGE D'URGENCE - SUPPRESSION COMPLÈTE"
 	@echo "🗑️  Cette commande va supprimer TOUS les conteneurs, images et volumes JobbingTrack"
+	@rm -f "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 	# Arrêter et supprimer tous les conteneurs
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm -f || true

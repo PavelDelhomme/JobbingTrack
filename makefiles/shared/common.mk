@@ -265,7 +265,7 @@ endef
 
 # Fonction wrapper simple pour Docker Compose
 define docker_compose
-	if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
 		docker compose --ansi never $(1); \
 	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
 		docker-compose --ansi never $(1); \
@@ -360,6 +360,11 @@ define check_docker
 		exit 1; \
 	fi
 	@echo "✅ Docker permissions OK"
+	@if [ -f /proc/modules ] && ! grep -q '^veth ' /proc/modules 2>/dev/null; then \
+		echo "⚠️  Module réseau veth non visible. Docker peut échouer à créer les endpoints bridge."; \
+		echo "   Diagnostic: ./scripts/docker/diagnose-network.sh"; \
+		echo "   Réparation courante: sudo modprobe veth bridge br_netfilter overlay && sudo systemctl restart docker"; \
+	fi
 endef
 
 # Vérification des dépendances système

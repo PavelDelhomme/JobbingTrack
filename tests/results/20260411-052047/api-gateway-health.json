@@ -1,0 +1,15 @@
+{
+  "testName": "Tests API Gateway Health",
+  "userType": "system",
+  "command": "curl -sf \"http://localhost:5002/health\" && curl -sf \"http://localhost:5002/metrics\"",
+  "timestamp": "2026-04-11T05:21:43+02:00",
+  "duration": 1,
+  "exitCode": 7,
+  "status": "failed",
+  "statistics": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "output": "Erreur lors de l'exécution du test (code de sortie: 7). Vérifiez les logs pour plus de détails.\n"
+}

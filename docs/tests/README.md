@@ -167,12 +167,12 @@ Tests des vulnérabilités et vérifications sécurité.
 - CSRF (Cross-Site Request Forgery)
 - Authentification/Autorisation
 - Variables d'environnement sécurisées
-- Dépendances vulnérables
+- Dépendances vulnérables / CVE supply-chain (Node, Rust, Docker si scanner local disponible)
 
 **Outils**:
 - OWASP ZAP
-- npm audit
-- Snyk
+- `make test-cve-scan` (`scripts/security/cve-scan.py`) : `npm audit`, `cargo audit` si installé, Trivy Docker si `CVE_SCAN_DOCKER=1` (conteneurs en cours)
+- Snyk / Trivy / Grype en complément CI ou poste sécurité
 - Tests manuels
 
 **Exemple**:
@@ -222,7 +222,8 @@ describe('Security - SQL Injection', () => {
 |-------|-------|---------|
 | OWASP ZAP | Scan vulnérabilités | latest |
 | npm audit | Audit dépendances | built-in |
-| Snyk | Scan sécurité | latest |
+| `make test-cve-scan` | Rapport CVE projet (`tests/results/security/cve-*`) | script dépôt |
+| Snyk / Trivy / Grype | Scan sécurité complémentaire | latest |
 
 ## 📊 Coverage et Rapports
 
@@ -254,38 +255,33 @@ tests/coverage/
 ### Commandes principales
 
 ```bash
-# Configuration initiale
-make test-setup
-
-# Tous les tests
-make test-all
-
-# Tests rapides (sans E2E)
-make test-quick
-
-# Tests avec coverage
-make test-coverage
+# Depuis la racine du projet (important pour make test)
+make test          # alias make test-all – suite complète avec rapports
+make test-all      # exécute run-all-tests-with-reports.sh (User Journey, BDD, API Jest, API script, Playwright E2E, etc.)
+make test-suite-full # test-frontend → test-database → status → test-all
 ```
+
+**Prérequis** : le script lance automatiquement le seed auth (admin + testuser avec email vérifié) si le conteneur auth-service tourne. Si des tests échouent en 401 "email not verified", lancer `make up-full` puis relancer les tests, ou exécuter le seed manuellement (voir [STRUCTURE_TESTS_MAKE_TEST.md](STRUCTURE_TESTS_MAKE_TEST.md)).
 
 ### Tests par catégorie
 
 ```bash
-make test-unit           # Tests unitaires
-make test-integration    # Tests intégration
-make test-database       # Tests BDD
-make test-api            # Tests API
-make test-backend        # Tests backend
-make test-frontend       # Tests frontend
-make test-e2e            # Tests E2E
+make test-unit           # Tests unitaires (frontend Jest)
+make test-database       # Tests BDD (relations, enums)
+make test-api            # Tests API (Jest – tests/api/)
+make test-backend        # Tests Backend Services (Jest)
+make test-frontend       # Tests frontend (Jest)
+make test-e2e            # Tests E2E Playwright (frontend)
 make test-performance    # Tests performance
 make test-security       # Tests sécurité
+make test-cve-scan       # Scan CVE dépendances/images
 ```
 
 ### Nettoyage
 
 ```bash
-make test-clean          # Nettoyer environnement tests
-make test-clean-reports  # Nettoyer rapports
+make tests-clean         # alias tests-reset – nettoyer rapports et état
+make tests-reset         # reset complet (arrêt, BDD, etc.)
 ```
 
 ## 🔄 Intégration Continue (CI/CD)
@@ -369,17 +365,20 @@ open tests/coverage/index.html
 # Ajouter tests pour fichiers critiques
 ```
 
-## 📚 Tests Spécifiques Disponibles
+## 📚 Documents disponibles
 
-### 🧪 Tests de Fonctionnalités
-- **[Tests Page Détail Services](TESTS_PAGE_DETAIL_SERVICES.md)** - Tests complets de la page de détail des services Docker avec métriques en temps réel
+- **[Structure des tests (make test)](STRUCTURE_TESTS_MAKE_TEST.md)** – Prérequis (seed auth, email vérifié), CWD, health checks, rapports.
+- **[Commandes tests](COMMANDES_TESTS.md)** – Commandes make et scripts.
+- **[Quick Start - Tests Mobile](QUICK_START_MOBILE_TESTS.md)** – Démarrage rapide des tests E2E mobile (Playwright).
+- **[MOBILE_TESTS_README](MOBILE_TESTS_README.md)** – Tests mobile détaillés.
+- **[TESTS_END](TESTS_END.md)** – Fin de suite, conventions.
+- **[Backoffice tests coverage](BACKOFFICE_TESTS_COVERAGE.md)** – Couverture backoffice.
+- **[Rapports et conventions](RAPPORTS_CONVENTIONS.md)** – Conventions de rapports.
 
 ## 📚 Ressources
 
-- **[Tests Racine](../../tests/README.md)** - Documentation complète des tests
-- **[Guide Développement](../development/testing/README.md)** - Configuration environnement tests
-- **[API Reference](../api/api-reference/README.md)** - Documentation API pour tests
-- **[Guide CI/CD](../deployment/production/README.md)** - Pipeline déploiement
+- **[Tests racine](../../tests/README.md)** – Documentation des tests à la racine.
+- **[API Reference](../api/api-reference/README.md)** – Documentation API pour tests.
 
 ## ✅ Checklist Avant Commit
 
@@ -398,11 +397,11 @@ open tests/coverage/index.html
 - [ ] Tests E2E passent (`make test-e2e`)
 - [ ] Tests performance acceptables
 - [ ] Tests sécurité OK
-- [ ] Pas de dépendances vulnérables (`npm audit`)
+- [ ] Pas de CVE non acceptée (`make test-cve-scan`, idéalement `CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high`)
 - [ ] Documentation à jour
 - [ ] Changelog mis à jour
 
 ---
 
 **Version**: 4.1  
-**Dernière mise à jour**: Octobre 2025
+**Dernière mise à jour** : Mars 2026

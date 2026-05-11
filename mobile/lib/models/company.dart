@@ -43,9 +43,9 @@ class Company {
       logo: json['logo'] ?? '',
       isActive: json['isActive'] ?? true,
       isDeleted: json['isDeleted'] ?? false,
-      createdBy: User.fromJson(json['createdBy'] ?? {}),
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdBy: json['createdBy'] != null ? User.fromJson(json['createdBy'] as Map<String, dynamic>) : User.fromJson({}),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

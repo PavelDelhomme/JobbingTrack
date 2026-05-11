@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Performance Avancés (CPU & endpoints)",
+  "userType": "user",
+  "command": "node tests/performance/test-performance.js",
+  "timestamp": "2026-03-18T15:17:02+01:00",
+  "duration": 4,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0
+  },
+  "output": "🧪 Lancement des tests de performance...\n\n📊 Génération du rapport de performance...\n\n⚡ Test des performances API (endpoints réels)...\n   Gateway Health: ✅ 17ms \n   Auth Health: ✅ 3ms \n   Applications (list): ✅ 4ms (auth requise, OK)\n   Companies (list): ✅ 3ms (auth requise, OK)\n   Contacts (list): ✅ 3ms (auth requise, OK)\n   Interviews (list): ✅ 4ms (auth requise, OK)\n   Calls (list): ✅ 3ms (auth requise, OK)\n   Followups (list): ✅ 4ms (auth requise, OK)\n   Events (list): ✅ 5ms (auth requise, OK)\n   Notifications (list): ✅ 3ms (auth requise, OK)\n   Métriques système: ✅ 3ms \n   Docker services: ✅ 2292ms \n🔥 Test de charge...\n📊 Charge: Gateway Health (30 requêtes parallèles)\n   ✅ 30/30 succès - moy: 10ms, max: 10ms\n📊 Charge: Auth Health (20 requêtes parallèles)\n   ✅ 20/20 succès - moy: 14ms, max: 18ms\n📊 Charge: Companies API (15 requêtes parallèles)\n   ✅ 15/15 succès - moy: 15ms, max: 19ms\n📊 Charge globale: 65/65 succès, moy: 13ms\n🧠 Collecte des métriques système (metrics-aggregator)...\n   ✅ CPU: 23.0% (16 coeurs)\n   ✅ Mémoire: 45.0/46.9 GB (95.9%)\n📊 Test traitement de données (stress mémoire)...\n   ✅ Traitement 1000 éléments: 10ms\n   ✅ Traitement 5000 éléments: 53ms\n   ✅ Traitement 10000 éléments: 46ms\n   ✅ Augmentation heap: 29.6 MB\n\n✅ Rapport sauvegardé: tests/reports/performance-report.json\n\n📊 ANALYSE DES PERFORMANCES:\n=====================================\n🧪 Tests: 15/15 réussis\n⏱️ Temps moyen: 195ms\n📊 Requêtes charge: 65/65 (100.0%)\n\n🎯 Score: 100/100\n✅ Performances excellentes\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

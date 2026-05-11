@@ -1,20 +1,99 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import Link from 'next/link';
-import { 
-  Server, Activity, TrendingUp, Database, Clock, 
+import {
+  Server, Activity, TrendingUp, Database, Clock,
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
-  RefreshCw, Terminal, BarChart3, Zap, Network
+  RefreshCw, Terminal, Network, HardDrive
 } from 'lucide-react';
-import { centralMetricsService } from '@/lib/services/centralMetricsService';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import {
+  mergeHistoryChronological,
+  type ServiceHistoryPoint,
+} from '@/lib/monitoring/serviceDetailHistory';
+import { loadServerHistoryPoints } from '@/lib/monitoring/serviceHistorySources';
+import { useServiceHistoryChartData } from '@/lib/monitoring/useServiceHistoryChartData';
+import { formatLocalDateTime } from '@/lib/utils/date';
+
+/** Lot A1c : chargement client de Recharts pour réduire le JS initial de la route. */
+const MonitoringServiceHistoryCharts = dynamic(
+  () =>
+    import('@/components/monitoring/MonitoringServiceHistoryCharts').then(
+      (m) => m.MonitoringServiceHistoryCharts
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 p-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        Chargement des graphiques d&apos;historique…
+      </div>
+    ),
+  }
+);
+
+function formatCpuPercent(value: number | null | undefined): string {
+  const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0
+  if (n === 0) return '0,00 %'
+  if (n > 0 && n < 0.005) return '< 0,01 %'
+  if (n < 1) return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} %`
+  if (n < 10) return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} %`
+  return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`
+}
+
+function formatMegabytes(mb: number | null | undefined): string {
+  if (mb == null || Number.isNaN(mb)) return '—'
+  const abs = Math.abs(mb)
+  if (abs > 0 && abs < 0.01) return `${(mb * 1024).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} KB`
+  return `${mb.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} MB`
+}
+
+function cpuBarWidthPercent(cpu: number): string {
+  if (cpu <= 0) return '0%'
+  const w = Math.min(100, Math.max(cpu < 0.05 ? 1.2 : 0.8, cpu))
+  return `${w}%`
+}
+
+/** Lignes très verbeuses (souvent normales sur api-gateway) — masquables à la demande. */
+function isFirewallNoiseMessage(message: string): boolean {
+  return /firewall|waf|iptables|ip\s*block|blocked\s|unblock|rate.?limit|security.?middleware/i.test(message)
+}
+
+function serviceLogLineClass(message: string): string {
+  const m = message.toLowerCase()
+  if (isFirewallNoiseMessage(message)) {
+    return 'text-purple-300/95 break-words'
+  }
+  if (/\b(get|post|put|patch|delete)\s+\//i.test(message)) {
+    return 'text-cyan-300/95 break-words'
+  }
+  if (/\berror\b|\bexception\b|\bfatal\b|\beconnrefused\b|\b5\d\d\b|\bfail(ed)?\b/i.test(m)) {
+    return 'text-red-400 font-semibold break-words'
+  }
+  if (/\bwarn(ing)?\b/.test(m)) {
+    return 'text-amber-300/95 break-words'
+  }
+  if (/\binfo\b|\bhttp\b.*\b200\b/.test(m)) {
+    return 'text-slate-300/95 break-words'
+  }
+  if (/\bdebug\b|\btrace\b/.test(m)) {
+    return 'text-gray-500 break-words'
+  }
+  return 'text-emerald-300/90 break-words'
+}
+
+/** Disque principal vu par l’agrégateur (hôte / VM), distinct du Block I/O du conteneur */
+type HostDiskContext = {
+  usagePercent: number
+  mount?: string
+  usedGb?: number
+  totalGb?: number
+} | null
 
 export default function ServiceDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const logsEndRef = useRef<HTMLDivElement>(null);
   
   const serviceName = params.serviceName as string;
@@ -22,12 +101,22 @@ export default function ServiceDetailPage() {
   
   const [serviceMetrics, setServiceMetrics] = useState<any>(null);
   const [serviceLogs, setServiceLogs] = useState<any>(null);
-  const [serviceHistory, setServiceHistory] = useState<any[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<ServiceHistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [hideFirewallNoise, setHideFirewallNoise] = useState(false);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [isLogsWidgetVisible, setIsLogsWidgetVisible] = useState(false);
+  const [lastMetricsAt, setLastMetricsAt] = useState<Date | null>(null);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(15);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [hostDiskContext, setHostDiskContext] = useState<HostDiskContext>(null);
+  const sessionHistoryRef = useRef<ServiceHistoryPoint[]>([]);
+
+  useEffect(() => {
+    sessionHistoryRef.current = []
+  }, [serviceName]);
 
   // Observer pour détecter si le widget des logs est visible
   useEffect(() => {
@@ -51,12 +140,26 @@ export default function ServiceDetailPage() {
     };
   }, []);
 
+  const displayLogLines = useMemo(() => {
+    const raw = serviceLogs?.lines
+    if (!Array.isArray(raw) || raw.length === 0) return []
+    const tail = raw.slice(-220)
+    const filtered = hideFirewallNoise
+      ? tail.filter((line: string) => {
+          const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+([\s\S]*)$/)
+          const message = timestampMatch ? timestampMatch[2] : line
+          return !isFirewallNoiseMessage(message)
+        })
+      : tail
+    return filtered.slice(-120)
+  }, [serviceLogs?.lines, hideFirewallNoise])
+
   // Auto-scroll vers le bas des logs UNIQUEMENT si le widget est visible
   useEffect(() => {
     if (autoScroll && logsEndRef.current && isLogsWidgetVisible) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [serviceLogs, autoScroll, isLogsWidgetVisible]);
+  }, [serviceLogs, displayLogLines, autoScroll, isLogsWidgetVisible]);
 
   const loadServiceData = async (showRefreshing = false) => {
     try {
@@ -82,6 +185,8 @@ export default function ServiceDetailPage() {
                   memory_limit_mb: s.memory_limit_mb ?? 0,
                   network_rx_mb: s.network_rx_mb ?? 0,
                   network_tx_mb: s.network_tx_mb ?? 0,
+                  block_read_mb: s.block_read_mb ?? 0,
+                  block_write_mb: s.block_write_mb ?? 0,
                   response_time_ms: s.response_time_ms ?? null,
                   health_status_http: s.health_status_http ?? s.health ?? 'unknown',
                   health_status_docker: s.health_status_docker ?? 'none',
@@ -99,6 +204,8 @@ export default function ServiceDetailPage() {
                 if (s.cpu_percent != null) merged.cpu_percent = s.cpu_percent;
                 if (s.memory_percent != null) merged.memory_percent = s.memory_percent;
                 if (s.memory_usage_mb != null) merged.memory_usage_mb = s.memory_usage_mb;
+                if (s.block_read_mb != null) merged.block_read_mb = s.block_read_mb;
+                if (s.block_write_mb != null) merged.block_write_mb = s.block_write_mb;
                 if (s.response_time_ms != null) merged.response_time_ms = s.response_time_ms;
               }
               break;
@@ -106,6 +213,43 @@ export default function ServiceDetailPage() {
           }
         } catch {
           // try next name
+        }
+      }
+
+      // Fallback 2 : liste agrégée des services (souvent disponible même si la route /service/<name> échoue ponctuellement)
+      if (!merged) {
+        try {
+          const allServicesRes = await fetch(`${metricsUrl}/api/v1/docker/services/all`);
+          if (allServicesRes.ok) {
+            const allServicesJson = await allServicesRes.json();
+            const services = Array.isArray(allServicesJson?.services) ? allServicesJson.services : [];
+            const found = services.find((s: any) => {
+              const n = String(s?.name || '').replace(/^\//, '');
+              return n === fullServiceName || n === serviceName;
+            });
+            if (found) {
+              merged = {
+                name: found.name || fullServiceName,
+                cpu_percent: found.cpu_percent ?? 0,
+                memory_percent: found.memory_percent ?? 0,
+                memory_usage_mb: found.memory_usage_mb ?? 0,
+                memory_limit_mb: found.memory_limit_mb ?? 0,
+                network_rx_mb: found.network_rx_mb ?? 0,
+                network_tx_mb: found.network_tx_mb ?? 0,
+                block_read_mb: found.block_read_mb ?? 0,
+                block_write_mb: found.block_write_mb ?? 0,
+                response_time_ms: found.response_time_ms ?? null,
+                health_status_http: found.health_status_http ?? found.health_status ?? 'unknown',
+                health_status_docker: found.health_status_docker ?? 'none',
+                pids: found.pids ?? null,
+                image: found.image,
+                ports: found.ports,
+                created: found.created
+              };
+            }
+          }
+        } catch {
+          // ignore
         }
       }
 
@@ -127,10 +271,12 @@ export default function ServiceDetailPage() {
                 memory_limit_mb: m.limit ?? 0,
                 network_rx_mb: (raw.network?.rx ?? 0) / (1024 * 1024),
                 network_tx_mb: (raw.network?.tx ?? 0) / (1024 * 1024),
+                block_read_mb: 0,
+                block_write_mb: 0,
                 response_time_ms: null,
                 health_status_http: 'unknown',
                 health_status_docker: 'none',
-                pids: null
+                pids: raw.pids ?? null
               };
             }
           }
@@ -139,10 +285,6 @@ export default function ServiceDetailPage() {
         }
       }
 
-      if (merged) {
-        setServiceMetrics(merged);
-      }
-      
       // Récupérer les logs : metrics-aggregator (docker service logs) — l'API gateway n'expose pas /api/v1/logs/:service
       try {
         const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
@@ -160,38 +302,62 @@ export default function ServiceDetailPage() {
       } catch (logsErr) {
         // Ne pas faire planter la page
       }
-      
-      // Historique : via metrics-aggregator (centralMetricsService ou docker/service/:name/history)
+
+      // Contexte disque hôte (GET /api/v1/metrics — même agrégateur ; utile pour corréler charge hôte vs I/O conteneur)
+      let hostDiskNext: HostDiskContext = null
       try {
-        const metrics = await centralMetricsService.getAggregatorMetrics();
-        if (metrics && metrics.servicesList) {
-          const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName || s.name === serviceName || s.rawName === serviceName);
-          if (service && metrics.chartData) {
-            // Construire l'historique depuis chartData pour ce service
-            const history = metrics.chartData
-              .map((point: any) => ({
-                timestamp: point.time || point.timestamp,
-                cpu_percent: point.services?.[service.rawName]?.cpu || service.metrics?.cpu?.percentage || 0,
-                memory_percent: point.services?.[service.rawName]?.memory || service.metrics?.memory?.percentage || 0,
-                memory_usage_mb: point.services?.[service.rawName]?.memory_mb || service.metrics?.memory?.usageMb || 0,
-                network_rx_mb: point.services?.[service.rawName]?.network_rx || service.metrics?.network?.rx_mb || 0,
-                network_tx_mb: point.services?.[service.rawName]?.network_tx || service.metrics?.network?.tx_mb || 0
-              }))
-              .filter((h: any) => h.timestamp)
-              .slice(-50); // Derniers 50 points
-            setServiceHistory(history);
+        const hostRes = await fetch(`${metricsUrl}/api/v1/metrics`)
+        if (hostRes.ok) {
+          const hostJson = await hostRes.json()
+          const d0 = hostJson?.system?.disk?.[0]
+          if (d0) {
+            const up = Number(d0.usage_percent ?? d0.usage ?? NaN)
+            if (!Number.isNaN(up)) {
+              hostDiskNext = {
+                usagePercent: Math.round(up),
+                mount: typeof d0.mount === 'string' ? d0.mount : undefined,
+                usedGb: typeof d0.used === 'number' ? d0.used : undefined,
+                totalGb: typeof d0.total === 'number' ? d0.total : undefined
+              }
+            }
           }
         }
       } catch {
-        try {
-          const historyResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/history?limit=50`);
-          if (historyResponse.ok) {
-            const historyData = await historyResponse.json();
-            setServiceHistory(historyData.data || []);
+        // ignore
+      }
+      setHostDiskContext(hostDiskNext)
+      
+      // Historique : snapshots disque (/history) + complément chartData agrégateur + courbe « session » (lot A1a → serviceHistorySources)
+      const serverHistoryPoints = await loadServerHistoryPoints({
+        metricsUrl,
+        fullServiceName,
+        serviceName,
+        historyLimit: 280,
+        chartDataMaxPoints: 80
+      })
+
+      if (merged) {
+        const ts = new Date().toISOString()
+        sessionHistoryRef.current = [
+          ...sessionHistoryRef.current,
+          {
+            timestamp: ts,
+            cpu_percent: Number(merged.cpu_percent) || 0,
+            memory_percent: Number(merged.memory_percent) || 0,
+            memory_usage_mb: Number(merged.memory_usage_mb) || 0,
+            network_rx_mb: Number(merged.network_rx_mb) || 0,
+            network_tx_mb: Number(merged.network_tx_mb) || 0,
+            block_read_mb: Number(merged.block_read_mb) || 0,
+            block_write_mb: Number(merged.block_write_mb) || 0
           }
-        } catch (error) {
-          console.warn('[SERVICE DETAIL] Erreur historique:', error);
-        }
+        ].slice(-260)
+        setLastMetricsAt(new Date())
+      }
+
+      setServiceHistory(mergeHistoryChronological(serverHistoryPoints, sessionHistoryRef.current))
+
+      if (merged) {
+        setServiceMetrics(merged)
       }
     } catch (error) {
       console.error('[SERVICE DETAIL] Erreur chargement données service:', error);
@@ -202,20 +368,29 @@ export default function ServiceDetailPage() {
   };
 
   useEffect(() => {
-    loadServiceData();
-    // Rafraîchir toutes les 5 secondes pour des données plus en temps réel
-    // ✅ OPTIMISATION : Réduire la fréquence de polling pour économiser CPU
+    loadServiceData()
+    if (!autoRefreshEnabled || refreshIntervalSec <= 0) return undefined
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible' && !document.hidden) {
         loadServiceData()
       }
-    }, 20000); // 20 secondes au lieu de 5 secondes
-    return () => clearInterval(interval);
-  }, [serviceName]);
+    }, refreshIntervalSec * 1000)
+    return () => clearInterval(interval)
+  }, [serviceName, autoRefreshEnabled, refreshIntervalSec])
 
   const handleRefresh = () => {
     loadServiceData(true);
   };
+
+  const {
+    historyChartRows,
+    historyChartRowsIo,
+    historyCpuMax,
+    historyMemMax,
+    historyAxisShowDate,
+    historyBlockMbMax,
+    historyIoRateMax
+  } = useServiceHistoryChartData(serviceHistory)
 
   if (loading) {
     return (
@@ -238,7 +413,11 @@ export default function ServiceDetailPage() {
   const memoryLimitMb = serviceMetrics?.memory_limit_mb || 0;
   const networkRxMb = serviceMetrics?.network_rx_mb || 0;
   const networkTxMb = serviceMetrics?.network_tx_mb || 0;
-  const pids = serviceMetrics?.pids || 0;
+  const blockReadMb = serviceMetrics?.block_read_mb ?? 0;
+  const blockWriteMb = serviceMetrics?.block_write_mb ?? 0;
+  const pidsRaw = serviceMetrics?.pids;
+  const pidsDisplay =
+    pidsRaw != null && pidsRaw !== '' && !Number.isNaN(Number(pidsRaw)) ? Number(pidsRaw) : null;
   const responseTime = serviceMetrics?.response_time_ms;
   
   // Log uniquement en mode développement et seulement lors du premier rendu
@@ -264,19 +443,47 @@ export default function ServiceDetailPage() {
                 <Server className="h-8 w-8 mr-3 text-blue-600" />
                 {serviceName}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {serviceMetrics ? 'Monitoring détaillé du service' : 'Service non détecté — vérifiez que le conteneur est démarré et que metrics-aggregator est accessible'}
-              </p>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Monitoring détaillé du service</p>
             </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Actualiser
-          </button>
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoRefreshEnabled}
+                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  className="rounded border-gray-400"
+                />
+                Auto
+              </label>
+              <select
+                value={refreshIntervalSec}
+                onChange={(e) => setRefreshIntervalSec(Number(e.target.value))}
+                className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-gray-800 dark:text-gray-200"
+                disabled={!autoRefreshEnabled}
+              >
+                <option value={10}>10 s</option>
+                <option value={15}>15 s</option>
+                <option value={30}>30 s</option>
+                <option value={60}>60 s</option>
+              </select>
+              {lastMetricsAt && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatLocalDateTime(lastMetricsAt.toISOString())}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
+          </div>
         </div>
 
         {/* Status Banner */}
@@ -337,18 +544,20 @@ export default function ServiceDetailPage() {
                 {cpuPercent > 70 ? 'Élevé' : 'Normal'}
               </span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {cpuPercent.toFixed(1)}%
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {formatCpuPercent(cpuPercent)}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Utilisation CPU</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Utilisation CPU (Docker stats)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Valeur brute : {typeof serviceMetrics?.cpu_percent === 'number' ? serviceMetrics.cpu_percent.toFixed(6) : '—'} %
+            </p>
             <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all ${
-                  cpuPercent > 70 ? 'bg-red-600' :
-                  cpuPercent > 40 ? 'bg-yellow-600' : 'bg-green-600'
+                  cpuPercent > 70 ? 'bg-red-600' : cpuPercent > 40 ? 'bg-yellow-600' : 'bg-green-600'
                 }`}
-                style={{ width: `${Math.min(cpuPercent, 100)}%` }}
-              ></div>
+                style={{ width: cpuBarWidthPercent(cpuPercent) }}
+              />
             </div>
           </div>
 
@@ -359,202 +568,119 @@ export default function ServiceDetailPage() {
                 {memoryPercent > 80 ? 'Élevé' : 'Normal'}
               </span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {memoryUsageMb.toFixed(0)} MB
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {formatMegabytes(memoryUsageMb)}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Utilisation Mémoire</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Mémoire · {memoryPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} % de la limite
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Limite conteneur : {formatMegabytes(memoryLimitMb)}
+            </p>
             <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all ${
-                  memoryPercent > 80 ? 'bg-red-600' :
-                  memoryPercent > 50 ? 'bg-yellow-600' : 'bg-blue-600'
+                  memoryPercent > 80 ? 'bg-red-600' : memoryPercent > 50 ? 'bg-yellow-600' : 'bg-blue-600'
                 }`}
-                style={{ width: `${Math.min(memoryPercent, 100)}%` }}
-              ></div>
+                style={{ width: `${Math.min(100, Math.max(memoryPercent, memoryPercent > 0 ? 0.5 : 0))}%` }}
+              />
             </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
               <Activity className="h-8 w-8 text-green-600" />
-              <span className="text-sm font-medium text-green-600">Actifs</span>
+              <span className="text-sm font-medium text-green-600">cgroup</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {pids}
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {pidsDisplay != null ? pidsDisplay : '—'}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Processus Actifs</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Processus / tâches (PIDs)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 leading-relaxed">
+              Compteur renvoyé par <strong>docker stats</strong> pour ce conteneur (processus visibles dans le cgroup, pas la liste des commandes).
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
               <Network className="h-8 w-8 text-orange-600" />
-              <span className="text-sm font-medium text-orange-600">I/O</span>
+              <span className="text-sm font-medium text-orange-600">Net</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {(networkRxMb + networkTxMb).toFixed(2)} MB
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+              {formatMegabytes(networkRxMb + networkTxMb)}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Traffic Réseau Total</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-              <span>↓ RX: {networkRxMb.toFixed(2)} MB</span>
-              <span>↑ TX: {networkTxMb.toFixed(2)} MB</span>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Trafic cumulé interface (depuis dernier reset conteneur)</p>
+            <div className="mt-2 flex flex-col gap-0.5 text-xs text-gray-500">
+              <span>↓ RX : {formatMegabytes(networkRxMb)}</span>
+              <span>↑ TX : {formatMegabytes(networkTxMb)}</span>
             </div>
           </div>
         </div>
 
-        {/* Performance History */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-              <BarChart3 className="h-6 w-6 mr-2" />
-              Historique des Performances
-            </h2>
-            <span className="text-sm text-gray-500">
-              {serviceHistory.length > 0 ? `${serviceHistory.length} points de données` : 'Aucune donnée disponible'}
-            </span>
-          </div>
-          
-          {serviceHistory.length > 0 ? (
-            <div>
-            
-            {/* Graphique CPU */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Utilisation CPU</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={serviceHistory}>
-                  <defs>
-                    <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    stroke="#9CA3AF"
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                    }}
-                  />
-                  <YAxis stroke="#9CA3AF" unit="%" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${value.toFixed(2)}%`, 'CPU']}
-                    labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="cpu_percent" 
-                    stroke="#3B82F6" 
-                    fillOpacity={1} 
-                    fill="url(#colorCpu)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Graphique Mémoire */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Utilisation Mémoire</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={serviceHistory}>
-                  <defs>
-                    <linearGradient id="colorMemory" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    stroke="#9CA3AF"
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                    }}
-                  />
-                  <YAxis stroke="#9CA3AF" unit="%" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${value.toFixed(2)}%`, 'Mémoire']}
-                    labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="memory_percent" 
-                    stroke="#10B981" 
-                    fillOpacity={1} 
-                    fill="url(#colorMemory)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Graphique Réseau */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Traffic Réseau</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={serviceHistory}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    stroke="#9CA3AF"
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                    }}
-                  />
-                  <YAxis stroke="#9CA3AF" unit=" MB" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    labelStyle={{ color: '#F9FAFB' }}
-                    formatter={(value: any) => [`${value.toFixed(2)} MB`]}
-                    labelFormatter={(label) => {
-                      const date = new Date(label);
-                      return date.toLocaleString('fr-FR');
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="network_rx_mb" 
-                    stroke="#F59E0B" 
-                    strokeWidth={2}
-                    name="RX (Réception)"
-                    dot={false}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="network_tx_mb" 
-                    stroke="#EF4444" 
-                    strokeWidth={2}
-                    name="TX (Transmission)"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-3">
+              <HardDrive className="h-8 w-8 text-slate-600 dark:text-slate-300 shrink-0" aria-hidden />
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Block I/O conteneur (Docker stats)</p>
+                <p>
+                  Lecture cumulée :{' '}
+                  <span className="tabular-nums font-medium">{formatMegabytes(blockReadMb)}</span>
+                  <span className="mx-2 text-gray-400">·</span>
+                  Écriture cumulée :{' '}
+                  <span className="tabular-nums font-medium">{formatMegabytes(blockWriteMb)}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Cumuls depuis la création ou le dernier redémarrage du conteneur (équivalent <code className="text-[11px]">docker stats</code>).
+                  Ce n’est <strong>pas</strong> l’espace disque occupé par les couches d’image : uniquement les octets lus/écrits par le cgroup.
+                </p>
+              </div>
             </div>
           </div>
-          ) : (
-            <div className="text-center py-12">
-              <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">
-                Aucun historique de performance disponible pour ce service.
-              </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                Les données d'historique s'accumuleront au fil du temps.
-              </p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-3">
+              <HardDrive className="h-8 w-8 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
+              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Disque hôte (contexte)</p>
+                {hostDiskContext ? (
+                  <>
+                    <p className="tabular-nums">
+                      Utilisation :{' '}
+                      <span className="font-medium">{hostDiskContext.usagePercent} %</span>
+                      {hostDiskContext.mount ? (
+                        <span className="text-gray-500 dark:text-gray-400"> — point de montage {hostDiskContext.mount}</span>
+                      ) : null}
+                    </p>
+                    {hostDiskContext.usedGb != null && hostDiskContext.totalGb != null ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        ≈ {hostDiskContext.usedGb} Go / {hostDiskContext.totalGb} Go (agrégateur / monitoring-c, pas par conteneur)
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Données issues de <code className="text-[11px]">GET /api/v1/metrics</code> sur le nœud observé par l’agrégateur.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Indisponible (agrégateur ou route <code className="text-[11px]">/api/v1/metrics</code> injoignable depuis le navigateur).
+                  </p>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
+
+        <MonitoringServiceHistoryCharts
+          serviceHistoryLength={serviceHistory.length}
+          historyChartRows={historyChartRows}
+          historyChartRowsIo={historyChartRowsIo}
+          historyCpuMax={historyCpuMax}
+          historyMemMax={historyMemMax}
+          historyAxisShowDate={historyAxisShowDate}
+          historyBlockMbMax={historyBlockMbMax}
+          historyIoRateMax={historyIoRateMax}
+        />
 
         {/* Logs en Temps Réel */}
         <div ref={logsContainerRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
@@ -564,7 +690,7 @@ export default function ServiceDetailPage() {
               Logs du Service (Temps Réel)
             </h2>
             {serviceLogs?.lines && serviceLogs.lines.length > 0 && (
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   onClick={() => setAutoScroll(!autoScroll)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
@@ -575,8 +701,21 @@ export default function ServiceDetailPage() {
                 >
                   {autoScroll ? '✓ Auto-Scroll Actif' : 'Auto-Scroll Désactivé'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setHideFirewallNoise((v) => !v)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    hideFirewallNoise
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                  title="Masque les lignes détectées comme firewall / WAF / rate-limit (souvent très verbeuses sur la gateway)"
+                >
+                  {hideFirewallNoise ? 'Firewall : masqué' : 'Firewall : tout afficher'}
+                </button>
                 <span className="text-sm text-gray-500">
                   {serviceLogs?.total ?? serviceLogs?.lines?.length ?? 0} lignes
+                  {hideFirewallNoise ? ` · affichées ${displayLogLines.length}` : ''}
                 </span>
                 {(serviceLogs?.errors ?? 0) > 0 && (
                   <span className="flex items-center text-sm font-medium text-red-600">
@@ -614,52 +753,38 @@ export default function ServiceDetailPage() {
           {/* All Logs - Affichage Terminal Style */}
           {serviceLogs?.lines && serviceLogs.lines.length > 0 ? (
             <>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Couleurs : erreurs / avertissements / requêtes HTTP / firewall (violet). Le statut{' '}
+                <strong className="font-medium text-gray-700 dark:text-gray-300">make status</strong> indique que le
+                conteneur tourne, pas qu’une route backoffice précise a été appelée récemment.
+              </p>
               <div className="relative">
-                <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
-                  {serviceLogs.lines.slice(-100).map((line: string, index: number) => {
+                <div className="max-h-[500px] overflow-y-auto rounded-lg bg-zinc-950 p-3 font-mono text-[11px] leading-snug sm:text-xs sm:p-4">
+                  {displayLogLines.map((line: string, index: number) => {
                     // Parser le timestamp Docker (format: 2025-12-02T17:21:30.123456789Z message)
-                    const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+(.*)$/);
+                    const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+([\s\S]*)$/);
                     const timestamp = timestampMatch ? timestampMatch[1] : null;
                     const message = timestampMatch ? timestampMatch[2] : line;
                     
-                    // Formater la date pour l'affichage
+                    // Formater la date pour l'affichage (heure locale utilisateur)
                     let formattedDate = '';
                     if (timestamp) {
                       try {
-                        const date = new Date(timestamp);
-                        formattedDate = date.toLocaleString('fr-FR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          fractionalSecondDigits: 3
-                        });
+                        formattedDate = formatLocalDateTime(timestamp);
                       } catch (e) {
                         formattedDate = timestamp;
                       }
                     }
                     
                     return (
-                      <div 
-                        key={index} 
-                        className={`py-0.5 leading-relaxed ${
-                          message.toLowerCase().includes('error') || message.toLowerCase().includes('exception') || message.toLowerCase().includes('fatal')
-                            ? 'text-red-400 font-semibold'
-                            : message.toLowerCase().includes('warn')
-                            ? 'text-yellow-400'
-                            : message.toLowerCase().includes('info')
-                            ? 'text-blue-300'
-                            : message.toLowerCase().includes('debug')
-                            ? 'text-gray-500'
-                            : 'text-green-400'
-                        }`}
+                      <div
+                        key={`${index}-${line.slice(0, 24)}`}
+                        className="grid grid-cols-1 gap-x-2 border-b border-white/[0.06] py-1.5 sm:grid-cols-[minmax(0,10.5rem)_1fr]"
                       >
-                        {formattedDate && (
-                          <span className="text-gray-500 mr-2">[{formattedDate}]</span>
-                        )}
-                        {message}
+                        <div className="text-gray-500 shrink-0 tabular-nums">
+                          {formattedDate ? formattedDate : '—'}
+                        </div>
+                        <div className={`min-w-0 ${serviceLogLineClass(message)}`}>{message}</div>
                       </div>
                     );
                   })}
@@ -681,7 +806,9 @@ export default function ServiceDetailPage() {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                🔄 Rafraîchissement automatique toutes les 5 secondes
+                {autoRefreshEnabled
+                  ? `Rafraîchissement des métriques et des logs aligné sur la cadence ci-dessus (${refreshIntervalSec} s).`
+                  : 'Auto-rafraîchissement désactivé — utilisez « Actualiser ».'}
               </p>
             </>
           ) : (

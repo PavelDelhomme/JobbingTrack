@@ -5,6 +5,8 @@ const adminController = require('../controllers/admin.controller');
 const archiveController = require('../controllers/archive.controller');
 const trashController = require('../controllers/trash.controller');
 const dataManagementController = require('../controllers/data-management.controller');
+const testdataController = require('../controllers/testdata.controller');
+const logsController = require('../controllers/logs.controller');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -53,6 +55,12 @@ router.get('/playwright/result/:executionId', authenticate, advancedController.g
 router.get('/playwright/events/:executionId', authenticate, advancedController.getTestEvents);
 router.get('/playwright/report/:executionId', authenticate, advancedController.getTestReport);
 
+// ✅ Logs Docker (tous services) — chemins statiques avant /services/:id
+router.get('/logs/all', authenticate, logsController.getAllLogs);
+router.get('/logs/services', authenticate, logsController.getAvailableServices);
+router.get('/logs/:serviceName/stream', authenticate, logsController.streamServiceLogs);
+router.get('/logs/:serviceName', authenticate, logsController.getServiceLogs);
+
 // ✅ Routes de gestion des services (restart, start, stop)
 router.post('/services/restart', authenticate, adminController.restartService);
 router.post('/services/start', authenticate, adminController.startService);
@@ -71,6 +79,14 @@ router.get('/trash', authenticate, trashController.getAllDeletedItems);
 router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
 router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
 router.post('/trash/empty', authenticate, trashController.emptyTrash);
+
+// ✅ Génération / nettoyage données de test
+router.post('/generate-test-data', authenticate, testdataController.generateTestData);
+router.post('/test-data/clear', authenticate, testdataController.clearTestData);
+router.post('/clear-test-data', authenticate, testdataController.clearTestData); // Alias pour backoffice Actions « Revenir à la base propre »
+router.get('/test-data/status', authenticate, testdataController.getTestDataStatus);
+router.get('/test-data/summary', authenticate, testdataController.getTestDataSummary);
+router.post('/test-data/tag-likely', authenticate, testdataController.tagLikelyTestData);
 
 // ✅ Export / Import / Cleanup (gestion des données)
 // Type frontend : applications, companies, contacts, all -> tableName backend (Application, Company, Contact)

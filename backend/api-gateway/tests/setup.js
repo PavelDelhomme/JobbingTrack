@@ -4,6 +4,7 @@ const path = require('path');
 // Configuration de l'environnement de test
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-key';
+process.env.SECURITY_INTERNAL_SECRET = 'test-internal-security-secret';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/testdb';
 process.env.REDIS_URL = 'redis://localhost:6379';
 

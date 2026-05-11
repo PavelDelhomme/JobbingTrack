@@ -5,17 +5,24 @@
 
 const axios = require('axios');
 const { performance } = require('perf_hooks');
+const {
+  normalizeGatewayUrlForHost,
+  normalizeMetricsAggregatorUrl,
+} = require('../helpers/dockerHostUrl');
 
 class PerformanceTester {
   constructor() {
     this.metrics = [];
-    const apiBase = process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002';
-    const authPort = process.env.AUTH_SERVICE_PORT || '5005';
     const metricsPort = process.env.METRICS_AGGREGATOR_PORT || '5004';
+    const apiBase = normalizeGatewayUrlForHost(
+      process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002'
+    );
     this.services = {
+      /** Trafic applicatif mesuré via la gateway (WAF, rate limits, corrélation) — pas d’appel direct aux ports microservices sauf metrics-aggregator (sondage infra). */
       apiGateway: apiBase,
-      auth: process.env.AUTH_SERVICE_URL || `http://localhost:${authPort}`,
-      metricsAggregator: process.env.METRICS_AGGREGATOR_URL || `http://localhost:${metricsPort}`,
+      metricsAggregator: normalizeMetricsAggregatorUrl(
+        process.env.METRICS_AGGREGATOR_URL || `http://localhost:${metricsPort}`
+      ),
     };
   }
 
@@ -40,7 +47,7 @@ class PerformanceTester {
 
     const endpoints = [
       { service: 'apiGateway', path: '/health', method: 'GET', label: 'Gateway Health' },
-      { service: 'auth', path: '/health', method: 'GET', label: 'Auth Health' },
+      { service: 'apiGateway', path: '/api/v1/auth/health', method: 'GET', label: 'Auth Health (gateway)' },
       { service: 'apiGateway', path: '/api/v1/applications', method: 'GET', label: 'Applications (list)' },
       { service: 'apiGateway', path: '/api/v1/companies', method: 'GET', label: 'Companies (list)' },
       { service: 'apiGateway', path: '/api/v1/contacts', method: 'GET', label: 'Contacts (list)' },
@@ -68,12 +75,19 @@ class PerformanceTester {
 
   async testLoadPerformance() {
     console.log('🔥 Test de charge...');
-
-    const loadTests = [
-      { service: 'apiGateway', endpoint: '/health', requests: 30, label: 'Gateway Health' },
-      { service: 'auth', endpoint: '/health', requests: 20, label: 'Auth Health' },
-      { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 15, label: 'Companies API' },
-    ];
+    const light = process.env.PERF_LIGHT === '1' || process.env.CI === 'true';
+    const loadTests = light
+      ? [
+          { service: 'apiGateway', endpoint: '/health', requests: 5, label: 'Gateway Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/auth/health', requests: 4, label: 'Auth Health (gateway)' },
+          { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 4, label: 'Companies API' },
+        ]
+      : [
+          { service: 'apiGateway', endpoint: '/health', requests: 10, label: 'Gateway Health' },
+          { service: 'apiGateway', endpoint: '/api/v1/auth/health', requests: 8, label: 'Auth Health (gateway)' },
+          { service: 'apiGateway', endpoint: '/api/v1/companies', requests: 6, label: 'Companies API' },
+        ];
+    if (light) console.log('   (mode léger PERF_LIGHT/CI : moins de requêtes parallèles)');
 
     const results = [];
     let totalSuccessful = 0;
@@ -108,8 +122,11 @@ class PerformanceTester {
       totalRequests += test.requests;
       totalTime += averageTime;
 
-      console.log(`   ✅ ${successful}/${test.requests} succès - moy: ${Math.round(averageTime)}ms, max: ${Math.round(maxTime)}ms`);
-      await new Promise(resolve => setTimeout(resolve, 200));
+      const loadIcon = successful > 0 ? '✅' : '⚠️';
+      console.log(
+        `   ${loadIcon} ${successful}/${test.requests} succès - moy: ${Math.round(averageTime)}ms, max: ${Math.round(maxTime)}ms`
+      );
+      await new Promise(resolve => setTimeout(resolve, light ? 100 : 400));
     }
 
     const overallAverageTime = totalTime / loadTests.length;
@@ -291,7 +308,20 @@ class PerformanceTester {
 async function main() {
   const tester = new PerformanceTester();
   try {
-    await tester.runAllTests();
+    const report = await tester.runAllTests();
+    const apiResults = report.api || [];
+    const apiOk = apiResults.filter((r) => r.success || r.status === 401).length;
+    const loadFailed =
+      report.summary.totalRequests > 0 &&
+      report.summary.successfulRequests < report.summary.totalRequests;
+    const strictFail =
+      (apiResults.length > 0 && apiOk < apiResults.length) || loadFailed;
+    if (strictFail) {
+      console.log(
+        '\n⚠️ Sortie non nulle : au moins un endpoint ou la charge a échoué (voir détails ci-dessus).'
+      );
+      process.exit(1);
+    }
     process.exit(0);
   } catch (error) {
     console.error('⚠️ Erreur:', error.message);

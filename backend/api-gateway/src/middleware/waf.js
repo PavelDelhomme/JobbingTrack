@@ -6,12 +6,13 @@ const WAF_RULES = {
   SQL_INJECTION: {
     patterns: [
       /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/gi,
-      /('|(\\')|(;)|(\|)|(\*)|(%)|(\+)|(\-)|(\=)|(\^)|(\{)|(\})|(\[)|(\])|(\()|(\)))/g,
+      /(union(?:\s|%20|\+)+select)/gi,
+      /(select(?:\s|%20|\+)+.+(?:\s|%20|\+)+from)/gi,
+      /((or|and)(?:\s|%20|\+)+\d+(?:\s|%20|\+)*=(?:\s|%20|\+)*\d+)/gi,
       /(\b(and|or|not)\b\s*\w+\s*[\=\<\>])/gi,
       /--/,
       /\/\*/,
       /\*\//,
-      /(\b(script|javascript|vbscript|onload|onerror|onclick|onsubmit|onreset|onfocus|onblur)\b)/gi,
       // Patterns plus spécifiques pour éviter les faux positifs
       /(\bunion\s+select\b)/gi,
       /(\bselect\s+\*\s+from\b)/gi,
@@ -29,6 +30,8 @@ const WAF_RULES = {
   XSS: {
     patterns: [
       /<script[^>]*>.*?<\/script>/gi,
+      /%3cscript/gi,
+      /%3c\/script%3e/gi,
       /javascript:/gi,
       /on\w+\s*=/gi,
       /<iframe[^>]*>.*?<\/iframe>/gi,
@@ -61,11 +64,10 @@ const WAF_RULES = {
 
   COMMAND_INJECTION: {
     patterns: [
-      /[;&|`$\(\){}<>]/g,
       /(\||\$\(|\`)/g,
-      /(rm\s|del\s|format\s|shutdown\s)/gi,
-      /(wget|curl|nc|netcat|telnet|ssh)/gi,
-      /(cmd|powershell|bash|sh)\s/gi
+      /(;\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
+      /(&&\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
+      /(\b(cmd|powershell|bash|sh)\s+(-c|\/c)\b)/gi
     ],
     severity: 'critical',
     message: 'Command Injection détectée'
@@ -73,7 +75,8 @@ const WAF_RULES = {
 
   LDAP_INJECTION: {
     patterns: [
-      /(\*|\(|\))/g,
+      /\(\s*[&|!]/g,
+      /[&|!]\s*\([^)]+=[^)]+\)/g,
       /(\|&\w+\s*[\=\<\>])/gi,
       /(\b(and|or|not)\b\s*\w+\s*[\=\<\>])/gi
     ],
@@ -103,7 +106,7 @@ const WAF_RULES = {
       /beef/gi,
       /metasploit/gi
     ],
-    severity: 'medium',
+    severity: 'high',
     message: 'User-Agent suspect détecté'
   },
 
@@ -153,12 +156,69 @@ const WHITELISTED_IPS = [
   // '10.0.0.1'
 ];
 
+const DEFAULT_INTERNAL_BYPASS_CIDRS = [
+  '127.0.0.0/8',
+  '::1/128',
+  '10.0.0.0/8',
+  '172.16.0.0/12',
+  '192.168.0.0/16'
+];
+
+function normalizeIp(ip) {
+  let value = String(ip || '').trim();
+  if (!value) return '';
+  if (value.startsWith('::ffff:')) value = value.slice(7);
+  if (value.includes(',') && !value.includes(':')) value = value.split(',')[0].trim();
+  return value;
+}
+
+function ipv4ToNumber(ip) {
+  const parts = normalizeIp(ip).split('.').map(Number);
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+  return ((parts[0] * 256 ** 3) + (parts[1] * 256 ** 2) + (parts[2] * 256) + parts[3]) >>> 0;
+}
+
+function isIpInCidr(ip, cidr) {
+  const normalizedIp = normalizeIp(ip);
+  const normalizedCidr = String(cidr || '').trim();
+  if (!normalizedIp || !normalizedCidr) return false;
+  if (!normalizedCidr.includes('/')) return normalizedIp === normalizeIp(normalizedCidr);
+  const [rangeIp, prefixRaw] = normalizedCidr.split('/');
+  const prefix = Number(prefixRaw);
+  if (!Number.isInteger(prefix)) return false;
+  if (normalizedIp === '::1' && normalizeIp(rangeIp) === '::1') return true;
+  const ipNum = ipv4ToNumber(normalizedIp);
+  const rangeNum = ipv4ToNumber(rangeIp);
+  if (ipNum == null || rangeNum == null || prefix < 0 || prefix > 32) return false;
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
+function getInternalBypassCidrs() {
+  const configured = process.env.WAF_INTERNAL_BYPASS_CIDRS;
+  if (!configured) return DEFAULT_INTERNAL_BYPASS_CIDRS;
+  return configured.split(',').map((x) => x.trim()).filter(Boolean);
+}
+
+function getObservedClientIp(req) {
+  return normalizeIp(req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress);
+}
+
+function isInternalWafBypassRequest(req) {
+  if (String(process.env.WAF_INTERNAL_BYPASS_ENABLED || 'true').toLowerCase() === 'false') return false;
+  const clientIp = getObservedClientIp(req);
+  return getInternalBypassCidrs().some((cidr) => isIpInCidr(clientIp, cidr));
+}
+
 // Fonction de détection des attaques
 const detectAttack = (input, rules) => {
   const detections = [];
 
   for (const [ruleName, rule] of Object.entries(rules)) {
     for (const pattern of rule.patterns) {
+      if (typeof pattern.lastIndex === 'number') {
+        pattern.lastIndex = 0;
+      }
       if (pattern.test(input)) {
         detections.push({
           rule: ruleName,
@@ -187,11 +247,26 @@ const wafCheck = async (req, res, next) => {
       return next();
     }
 
-    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    const clientIP = getObservedClientIp(req);
     const userAgent = req.get('User-Agent') || '';
     const url = req.url || '';
     const method = req.method || '';
     const headers = req.headers || {};
+
+    if (isInternalWafBypassRequest(req)) {
+      logger.debug('WAF bypass trafic interne', {
+        ip: clientIP,
+        url,
+        method,
+        bypass: 'internal_network'
+      });
+      res.set({
+        'X-WAF-Status': 'BYPASSED_INTERNAL',
+        'X-Protected-By': 'JobbingTrack-WAF',
+        'X-OWASP-Protection': 'BYPASSED_FOR_INTERNAL_TRAFFIC'
+      });
+      return next();
+    }
 
     // Vérification de la liste noire
     if (BLACKLISTED_IPS.includes(clientIP)) {
@@ -370,6 +445,8 @@ const getWAFStats = async () => {
       rules: Object.keys(WAF_RULES).length,
       blacklistedIPs: BLACKLISTED_IPS.length,
       whitelistedIPs: WHITELISTED_IPS.length,
+      internalBypassEnabled: String(process.env.WAF_INTERNAL_BYPASS_ENABLED || 'true').toLowerCase() !== 'false',
+      internalBypassCidrs: getInternalBypassCidrs(),
       realTimeData: true
     };
   } catch (error) {
@@ -418,5 +495,8 @@ module.exports = {
   getWAFStats,
   WAF_RULES,
   BLACKLISTED_IPS,
-  WHITELISTED_IPS
+  WHITELISTED_IPS,
+  isInternalWafBypassRequest,
+  isIpInCidr,
+  getObservedClientIp
 };

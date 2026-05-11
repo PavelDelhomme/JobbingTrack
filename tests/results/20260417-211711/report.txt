@@ -1,0 +1,140 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  17/04/2026 21:47:48
+================================================================
+
+RESUME
+------
+  Categories  : 25
+  Total tests : 456
+  Reussis     : 372
+  Echoues     : 84
+  Ignores     : 1
+  Taux        : 81.6%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (0s)
+  [OK]   [A] Email Logs (1s)
+  [FAIL] [S] Tests API Complets (Jest local) (135s)
+  [FAIL] [U] Tests Backend Services (Jest) (42s)
+  [FAIL] [U] Tests API Backend (script - tous services) (294s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (14s)
+  [OK]   [U] Playwright Email Workflows (6s)
+  [OK]   [A] Playwright CRUD Données (admin) (5s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (4s)
+  [OK]   [S] Tests Frontend Jest (unit + pages analytics) (6s)
+  [OK]   [U] Tests Performance (73s)
+  [OK]   [U] Tests Sécurité (168s)
+  [OK]   [U] Tests Intégration Système (25s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [FAIL] [S] Tests API Gateway Health (2s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (71s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 401)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 200)
+       ✗ FAIL - Status: 000 (attendu: 201)
+
+  --- Tests API Gateway Health ---
+
+  --- Tests API Complets (Jest local) ---
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    FAIL api/test-archive-trash.test.js
+      ● Test suite failed to run
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    FAIL api/test-monitoring-c-endpoints.test.js
+      ● Test suite failed to run
+    TypeError: Converting circular structure to JSON
+    FAIL api/test-bdd-relations.test.js
+      ● Test suite failed to run
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    TypeError: Converting circular structure to JSON
+    FAIL api/test-email-endpoints.test.js
+      ● Test suite failed to run
+    TypeError: Converting circular structure to JSON
+
+  --- Tests Backend Services (Jest) ---
+    FAIL backend/test-security-service.test.js
+            ✕ devrait bloquer une IP (5 ms)
+        AxiosError: Request failed with status code 400
+    Test Suites: 1 failed, 1 total
+    Tests:       1 failed, 11 passed, 12 total
+    FAIL backend/test-security-service.test.js
+            ✕ devrait bloquer une IP (5 ms)
+        AxiosError: Request failed with status code 400
+    Test Suites: 1 failed, 1 total
+    Tests:       1 failed, 11 passed, 12 total
+    FAIL backend/test-security-service.test.js (38.766 s)
+            ✕ devrait créer une règle firewall (3857 ms)
+          at Function.Object.<anonymous>.AxiosError.from (node_modules/axios/lib/core/AxiosError.js:96:14)
+          at RedirectableRequest.handleRequestError (node_modules/axios/lib/adapters/http.js:638:25)
+    Test Suites: 1 failed, 1 total
+    Tests:       1 failed, 11 passed, 12 total
+
+  --- Playwright E2E Frontend ---
+
+================================================================
+  Rapports : tests/results/20260417-211711/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

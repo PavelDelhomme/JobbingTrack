@@ -2,6 +2,10 @@
 /**
  * 🎲 Script de génération de données de test cohérentes
  * Génère des données réalistes pour tous les services JobbingTrack
+ *
+ * Nettoyage des enregistrements marques isTestData (sans toucher aux comptes admin proteges) :
+ *   make datas-remove-tests-tags
+ * Preset ou volumes personnalises : voir PRESETS et l option --balanced ci-dessous.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -14,6 +18,12 @@ const prisma = new PrismaClient({
     }
   }
 });
+
+/** Détecte si l’erreur Prisma est « Unknown argument isTestData » (ancienne image api-gateway). */
+function isTestDataUnknownError(err) {
+  const msg = (err && err.message) ? String(err.message) : '';
+  return msg.includes('Unknown argument') && msg.includes('isTestData');
+}
 
 // Configuration par défaut
 const DEFAULT_CONFIG = {
@@ -35,11 +45,11 @@ const PRESETS = {
     users: 4,
     companies: 8,
     applications: 12,
-    contacts: 10,
-    interviews: 4,
-    followups: 6,
-    calls: 4,
-    events: 8,
+    contacts: 24,
+    interviews: 6,
+    followups: 8,
+    calls: 6,
+    events: 12,
     deletedItems: 2,
     archivedItems: 2,
     description: 'Données minimales pour tests end-to-end'
@@ -139,21 +149,27 @@ const PRESETS = {
 
 // Données de test réalistes
 const COMPANIES_DATA = [
-  { name: 'Google', website: 'https://google.com', industry: 'Technologie', size: '10000+', location: 'Mountain View, CA' },
-  { name: 'Microsoft', website: 'https://microsoft.com', industry: 'Technologie', size: '10000+', location: 'Redmond, WA' },
-  { name: 'Amazon', website: 'https://amazon.com', industry: 'E-commerce', size: '10000+', location: 'Seattle, WA' },
-  { name: 'Meta', website: 'https://meta.com', industry: 'Réseaux sociaux', size: '10000+', location: 'Menlo Park, CA' },
-  { name: 'Apple', website: 'https://apple.com', industry: 'Technologie', size: '10000+', location: 'Cupertino, CA' },
-  { name: 'Netflix', website: 'https://netflix.com', industry: 'Streaming', size: '1000-5000', location: 'Los Gatos, CA' },
-  { name: 'Spotify', website: 'https://spotify.com', industry: 'Musique', size: '1000-5000', location: 'Stockholm, Suède' },
-  { name: 'Airbnb', website: 'https://airbnb.com', industry: 'Voyage', size: '1000-5000', location: 'San Francisco, CA' },
-  { name: 'Stripe', website: 'https://stripe.com', industry: 'Fintech', size: '500-1000', location: 'San Francisco, CA' },
-  { name: 'Datadog', website: 'https://datadoghq.com', industry: 'Monitoring', size: '500-1000', location: 'New York, NY' },
-  { name: 'GitLab', website: 'https://gitlab.com', industry: 'DevOps', size: '500-1000', location: 'Remote' },
-  { name: 'Notion', website: 'https://notion.so', industry: 'Productivité', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Figma', website: 'https://figma.com', industry: 'Design', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Vercel', website: 'https://vercel.com', industry: 'Cloud', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Supabase', website: 'https://supabase.com', industry: 'Backend as a Service', size: '50-100', location: 'Remote' }
+  { name: 'Google', website: 'https://google.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Mountain View, CA' },
+  { name: 'Microsoft', website: 'https://microsoft.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Redmond, WA' },
+  { name: 'Amazon', website: 'https://amazon.com', industry: 'E-commerce', size: 'ENTERPRISE', location: 'Seattle, WA' },
+  { name: 'Meta', website: 'https://meta.com', industry: 'Réseaux sociaux', size: 'ENTERPRISE', location: 'Menlo Park, CA' },
+  { name: 'Apple', website: 'https://apple.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Cupertino, CA' },
+  { name: 'Netflix', website: 'https://netflix.com', industry: 'Streaming', size: 'LARGE', location: 'Los Gatos, CA' },
+  { name: 'Spotify', website: 'https://spotify.com', industry: 'Musique', size: 'LARGE', location: 'Stockholm, Suède' },
+  { name: 'Airbnb', website: 'https://airbnb.com', industry: 'Voyage', size: 'LARGE', location: 'San Francisco, CA' },
+  { name: 'Stripe', website: 'https://stripe.com', industry: 'Fintech', size: 'LARGE', location: 'San Francisco, CA' },
+  { name: 'Datadog', website: 'https://datadoghq.com', industry: 'Monitoring', size: 'LARGE', location: 'New York, NY' },
+  { name: 'GitLab', website: 'https://gitlab.com', industry: 'DevOps', size: 'LARGE', location: 'Remote' },
+  { name: 'Notion', website: 'https://notion.so', industry: 'Productivité', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Figma', website: 'https://figma.com', industry: 'Design', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Vercel', website: 'https://vercel.com', industry: 'Cloud', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Supabase', website: 'https://supabase.com', industry: 'Backend as a Service', size: 'SMALL', location: 'Remote' }
+];
+
+// Boîtes d'intérim pour tests (companyType TEMP_AGENCY)
+const TEMP_AGENCY_DATA = [
+  { name: 'Randstad', website: 'https://randstad.fr', industry: 'Intérim', size: 'LARGE', location: 'Paris, France' },
+  { name: 'Manpower', website: 'https://manpower.fr', industry: 'Intérim', size: 'LARGE', location: 'Lyon, France' }
 ];
 
 const POSITIONS = [
@@ -193,11 +209,11 @@ async function cleanExistingData() {
   console.log('🧹 Suppression des données existantes...');
 
   try {
-    // Supprimer dans l'ordre inverse des dépendances
+    // Supprimer dans l'ordre inverse des dépendances (pas de Activity dans le schéma partagé)
     await prisma.followUp.deleteMany({});
     await prisma.call.deleteMany({});
     await prisma.interview.deleteMany({});
-    await prisma.activity.deleteMany({});
+    try { await prisma.activity.deleteMany({}); } catch (_) { /* Activity absent du schéma */ }
     await prisma.applicationContact.deleteMany({});
     await prisma.application.deleteMany({});
     await prisma.contact.deleteMany({});
@@ -220,13 +236,14 @@ async function main() {
   const presetName = args.find(arg => !arg.startsWith('--') && PRESETS[arg]);
   const configArg = args.find(arg => !arg.startsWith('--') && arg !== presetName);
   const isClean = args.includes('--clean');
+  let balanced = args.includes('--balanced') || process.env.GENERATE_TEST_DATA_BALANCED === '1';
   const tagArg = args.find(arg => arg.startsWith('--tag='));
   const testTag = tagArg ? tagArg.split('=')[1] : `test-${Date.now()}`;
 
-  let config = DEFAULT_CONFIG;
+  let config = { ...DEFAULT_CONFIG };
 
   if (presetName && PRESETS[presetName]) {
-    config = PRESETS[presetName];
+    config = { ...PRESETS[presetName] };
     console.log(`🎯 Preset utilisé: ${presetName}`);
     console.log(`📝 Description: ${PRESETS[presetName].description}`);
   } else if (presetName) {
@@ -237,11 +254,31 @@ async function main() {
   if (configArg) {
     try {
       const customConfig = JSON.parse(configArg);
-      config = { ...config, ...customConfig };
+      if (customConfig._balanced === true) {
+        balanced = true;
+        console.log('🔧 Option balanced (API / env) activée');
+      }
+      const { _balanced, ...rest } = customConfig;
+      config = { ...config, ...rest };
       console.log('🔧 Configuration personnalisée appliquée');
     } catch (error) {
       console.log('⚠️ Configuration personnalisée invalide, utilisation de la configuration par défaut');
     }
+  }
+
+  // Volumes plus coherents pour tableaux de bord (contacts / entretiens / relances / appels par rapport aux entreprises et candidatures)
+  if (balanced) {
+    const minContacts = Math.max(config.contacts, config.companies * 3, Math.ceil(config.applications * 0.35));
+    const minInterviews = Math.max(config.interviews, Math.ceil(config.applications * 0.28));
+    const minFollowups = Math.max(config.followups, Math.ceil(config.applications * 0.32));
+    const minCalls = Math.max(config.calls, Math.ceil(config.applications * 0.22));
+    const cap = (n, max) => Math.min(max, n);
+    config.contacts = cap(minContacts, 800);
+    config.interviews = cap(minInterviews, 400);
+    config.followups = cap(minFollowups, 500);
+    config.calls = cap(minCalls, 400);
+    config.events = Math.max(config.events, Math.ceil((config.interviews + config.followups + config.calls) * 1.1));
+    console.log('⚖️  Mode --balanced : contacts, entretiens, relances, appels et evenements augmentes pour des stats plus representatives');
   }
 
   if (isClean) {
@@ -261,45 +298,121 @@ async function main() {
     // 1. Créer les utilisateurs
     console.log('👥 Création des utilisateurs...');
     const hashedPassword = await bcrypt.hash('password123', 10);
+    const user1Email = process.env.TEST_USER_EMAIL || 'user1@jobbingtrack.com';
+    const user1Password = process.env.TEST_USER_PASSWORD || 'password123';
+    const user1HashedPassword = user1Password === 'password123' ? hashedPassword : await bcrypt.hash(user1Password, 10);
+    const adminEmailNorm = String(process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com').trim().toLowerCase();
 
     const users = [];
     for (let i = 0; i < config.users; i++) {
+      const email = i === 0 ? user1Email : `user${i + 1}@jobbingtrack.com`;
+      const password = i === 0 ? user1HashedPassword : hashedPassword;
+      const isProtectedAdmin = String(email).trim().toLowerCase() === adminEmailNorm;
       const user = await prisma.user.upsert({
-        where: { email: `user${i + 1}@jobbingtrack.com` },
-        update: { isTestData: true },
+        where: { email },
+        update: {
+          ...(isProtectedAdmin ? {} : { isTestData: true }),
+          ...(i === 0 ? { password: user1HashedPassword } : {})
+        },
         create: {
-          email: `user${i + 1}@jobbingtrack.com`,
-          password: hashedPassword,
+          email,
+          password,
           firstName: FIRST_NAMES[i % FIRST_NAMES.length],
           lastName: LAST_NAMES[i % LAST_NAMES.length],
           phone: `+3361234567${i}`,
           role: i === 0 ? 'SUPER_ADMIN' : (i === 1 ? 'ADMIN' : 'USER'),
-          isTestData: true
+          isTestData: !isProtectedAdmin
         }
       });
       users.push(user);
     }
-    console.log(`   ✅ ${users.length} utilisateurs créés`);
+    console.log(`   ✅ ${users.length} utilisateurs créés (user1: ${user1Email})`);
 
-    // 2. Créer les entreprises
+    // Utiliser l’admin qui a lancé la génération comme propriétaire (Suivi intérim visible).
+    // La gateway peut passer un id factice (ex. user-123) ou un email (ex. user@jobbingtrack.com) alors que le seed crée admin@jobbingtrack.com.
+    let companyOwners = users;
+    const ownerId = process.env.TEST_DATA_OWNER_ID;
+    const ownerEmail = process.env.TEST_DATA_OWNER_EMAIL;
+    if (ownerId || ownerEmail) {
+      let owner = ownerId ? await prisma.user.findUnique({ where: { id: ownerId } }).catch(() => null) : null;
+      if (!owner && ownerEmail) {
+        owner = await prisma.user.findUnique({ where: { email: ownerEmail } }).catch(() => null);
+      }
+      if (!owner && process.env.ADMIN_EMAIL) {
+        owner = await prisma.user.findUnique({ where: { email: process.env.ADMIN_EMAIL } }).catch(() => null);
+      }
+      if (!owner) {
+        owner = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } }).catch(() => null);
+      }
+      if (owner) {
+        companyOwners = [owner];
+        console.log(`   👤 Données rattachées à l’admin: ${owner.email}`);
+      }
+    }
+
+    // 2. Créer les entreprises (fallback si ancienne image api-gateway sans isTestData dans le schéma)
+    let skipIsTestData = false;
     console.log('🏢 Création des entreprises...');
     const companies = [];
     for (let i = 0; i < Math.min(config.companies, COMPANIES_DATA.length); i++) {
       const companyData = COMPANIES_DATA[i];
-      const company = await prisma.company.create({
-        data: {
-          ...companyData,
-          userId: users[i % users.length].id,
-          // Ajouter le tag dans la description ou un champ metadata si disponible
-          description: companyData.description 
-            ? `${companyData.description}\n[TEST_DATA_TAG:${testTag}]`
-            : `[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+      const { name, website, industry, size, location } = companyData;
+      const base = {
+        name,
+        website,
+        industry,
+        size,
+        location,
+        userId: companyOwners[i % companyOwners.length].id,
+        description: `[TEST_DATA_TAG:${testTag}]`,
+        companyType: 'EMPLOYER',
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      try {
+        const company = await prisma.company.create({ data: base });
+        companies.push(company);
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          console.warn('⚠️ Schéma Prisma sans isTestData (rebuild api-gateway pour le marquage). Génération sans isTestData.');
+          const company = await prisma.company.create({
+            data: { name, website, industry, size, location, userId: base.userId, description: base.description, companyType: base.companyType }
+          });
+          companies.push(company);
+        } else {
+          throw err;
         }
-      });
-      companies.push(company);
+      }
     }
-    console.log(`   ✅ ${companies.length} entreprises créées`);
+    for (const agencyData of TEMP_AGENCY_DATA) {
+      const { name, website, industry, size, location } = agencyData;
+      const base = {
+        name,
+        website,
+        industry,
+        size,
+        location,
+        userId: companyOwners[0].id,
+        description: `[TEST_DATA_TAG:${testTag}]`,
+        companyType: 'TEMP_AGENCY',
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      try {
+        const agency = await prisma.company.create({ data: base });
+        companies.push(agency);
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const agency = await prisma.company.create({
+            data: { name, website, industry, size, location, userId: base.userId, description: base.description, companyType: base.companyType }
+          });
+          companies.push(agency);
+        } else {
+          throw err;
+        }
+      }
+    }
+    console.log(`   ✅ ${companies.length} entreprises créées (dont ${TEMP_AGENCY_DATA.length} boîtes d'intérim)`);
 
     // 3. Créer les contacts
     console.log('👤 Création des contacts...');
@@ -307,20 +420,29 @@ async function main() {
     for (let i = 0; i < config.contacts; i++) {
       const user = users[i % users.length];
       const company = companies[i % companies.length];
-      
-      const contact = await prisma.contact.create({
-        data: {
-          userId: user.id,
-          firstName: FIRST_NAMES[i % FIRST_NAMES.length],
-          lastName: LAST_NAMES[(i + 3) % LAST_NAMES.length],
-          position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
-          email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
-          phone: `+3361234${1000 + i}`,
-          linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
-          notes: `[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+      const contactData = {
+        userId: user.id,
+        firstName: FIRST_NAMES[i % FIRST_NAMES.length],
+        lastName: LAST_NAMES[(i + 3) % LAST_NAMES.length],
+        position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
+        email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
+        phone: `+3361234${1000 + i}`,
+        linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
+        notes: `[TEST_DATA_TAG:${testTag}]`,
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      let contact;
+      try {
+        contact = await prisma.contact.create({ data: contactData });
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const { isTestData, ...rest } = contactData;
+          contact = await prisma.contact.create({ data: rest });
+        } else {
+          throw err;
         }
-      });
+      }
       
       // Lier le contact à l'entreprise via la table de jonction
       try {
@@ -337,53 +459,84 @@ async function main() {
     }
     console.log(`   ✅ ${contacts.length} contacts créés`);
 
-    // 4. Créer les candidatures
+    // Récupérer ou créer un statut de candidature (ApplicationStatus)
+    let appStatus = await prisma.applicationStatus.findFirst({ where: { isActive: true } });
+    if (!appStatus) {
+      appStatus = await prisma.applicationStatus.create({
+        data: { code: 'DRAFT', name: 'Brouillon', order: 0, isPredefined: true, isActive: true }
+      });
+    }
+    const applicationStatusId = appStatus.id;
+
+    // 4. Créer les candidatures (même propriétaire que les entreprises pour visibilité Suivi intérim)
     console.log('📋 Création des candidatures...');
+    const tempAgencies = companies.filter(c => c.companyType === 'TEMP_AGENCY');
     const applications = [];
     for (let i = 0; i < config.applications; i++) {
-      const user = users[i % users.length];
+      const owner = companyOwners[i % companyOwners.length];
       const company = companies[i % companies.length];
       const position = POSITIONS[i % POSITIONS.length];
-      const status = STATUSES[i % STATUSES.length];
-      
+      // Au moins une candidature par boîte d’intérim + répartition régulière pour le Suivi intérim
+      let agencyId = null;
+      if (tempAgencies.length > 0) {
+        if (i < tempAgencies.length) {
+          agencyId = tempAgencies[i].id;
+        } else if (i % 2 === 0) {
+          agencyId = tempAgencies[i % tempAgencies.length].id;
+        }
+      }
+
       const applicationDate = new Date();
       applicationDate.setDate(applicationDate.getDate() - Math.floor(Math.random() * 60));
-      
-      const application = await prisma.application.create({
-        data: {
-          userId: user.id,
-          companyId: company.id,
-          position,
-          description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
-          location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],
-          contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
-          applicationDate,
-          applicationType: 'OFFRE',
-          status,
-          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+
+      const appData = {
+        userId: owner.id,
+        companyId: company.id,
+        agencyId: agencyId || undefined,
+        position,
+        description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
+        location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],
+        contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
+        applicationDate,
+        applicationType: 'OFFRE',
+        statusId: applicationStatusId,
+        notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
+        ...(skipIsTestData ? {} : { isTestData: true })
+      };
+      let application;
+      try {
+        application = await prisma.application.create({ data: appData });
+      } catch (err) {
+        if (isTestDataUnknownError(err)) {
+          skipIsTestData = true;
+          const { isTestData, ...rest } = appData;
+          application = await prisma.application.create({ data: rest });
+        } else {
+          throw err;
         }
-      });
+      }
       applications.push(application);
 
-      // Créer des activités pour chaque candidature
-      await prisma.activity.create({
-        data: {
-          applicationId: application.id,
-          type: 'APPLICATION_CREATED',
-          description: `Candidature créée pour ${position} chez ${company.name}`
-        }
-      });
+      // Créer des activités pour chaque candidature (Activity n'existe peut-être pas dans le schéma partagé)
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: application.id,
+            type: 'APPLICATION_CREATED',
+            description: `Candidature créée pour ${position} chez ${company.name}`
+          }
+        });
+      } catch (_) { /* Activity peut être absent du schéma */ }
 
-      if (status !== 'DRAFT') {
+      try {
         await prisma.activity.create({
           data: {
             applicationId: application.id,
             type: 'STATUS_CHANGED',
-            description: `Statut changé vers ${status}`
+            description: `Statut initial`
           }
         });
-      }
+      } catch (_) { /* ignore */ }
     }
     console.log(`   ✅ ${applications.length} candidatures créées`);
 
@@ -407,6 +560,19 @@ async function main() {
     }
     console.log(`   ✅ ${linkedContacts} liaisons créées`);
 
+    // Récupérer ou créer les statuts d'entretien (InterviewStatus)
+    const interviewStatusCodes = ['SCHEDULED', 'COMPLETED', 'CANCELLED'];
+    const interviewStatusIds = {};
+    for (const code of interviewStatusCodes) {
+      let s = await prisma.interviewStatus.findFirst({ where: { code } });
+      if (!s) {
+        s = await prisma.interviewStatus.create({
+          data: { code, name: code.charAt(0) + code.slice(1).toLowerCase(), order: interviewStatusCodes.indexOf(code), isPredefined: true, isActive: true }
+        });
+      }
+      interviewStatusIds[code] = s.id;
+    }
+
     // 6. Créer des entretiens
     console.log('🎤 Création des entretiens...');
     const interviews = [];
@@ -425,22 +591,36 @@ async function main() {
           location: ['Visioconférence', 'Bureau Paris', 'Téléphone', 'Remote'][i % 4],
           videoLink: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
           notes: `Entretien technique prévu\n[TEST_DATA_TAG:${testTag}]`,
-          status: ['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3],
-          isTestData: true
+          statusId: interviewStatusIds[['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3]],
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       interviews.push(interview);
 
-      // Activité
-      await prisma.activity.create({
-        data: {
-          applicationId: application.id,
-          type: 'INTERVIEW_SCHEDULED',
-          description: `Entretien ${interview.type} planifié le ${scheduledDate.toLocaleDateString('fr-FR')}`
-        }
-      });
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: application.id,
+            type: 'INTERVIEW_SCHEDULED',
+            description: `Entretien planifié le ${scheduledDate.toLocaleDateString('fr-FR')}`
+          }
+        });
+      } catch (_) { /* Activity absent du schéma */ }
     }
     console.log(`   ✅ ${interviews.length} entretiens créés`);
+
+    // Récupérer ou créer les statuts de relance (FollowUpStatus)
+    const followUpStatusCodes = ['PENDING', 'POSITIVE_RESPONSE'];
+    const followUpStatusIds = {};
+    for (const code of followUpStatusCodes) {
+      let s = await prisma.followUpStatus.findFirst({ where: { code } });
+      if (!s) {
+        s = await prisma.followUpStatus.create({
+          data: { code, name: code === 'PENDING' ? 'En attente' : 'Réponse positive', order: followUpStatusCodes.indexOf(code), isPredefined: true, isActive: true }
+        });
+      }
+      followUpStatusIds[code] = s.id;
+    }
 
     // 7. Créer des relances
     console.log('📧 Création des relances...');
@@ -457,10 +637,10 @@ async function main() {
           applicationId: application.id,
           companyId: application.companyId,
           followUpDate: scheduledDate,
-          status: i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING',
+          statusId: followUpStatusIds[i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING'],
           response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null,
           notes: `Suivi candidature ${application.position}\nBonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       followups.push(followup);
@@ -487,7 +667,7 @@ async function main() {
           subject: `Appel concernant la candidature ${application.position}`,
           notes: `Appel concernant la candidature ${application.position}\n[TEST_DATA_TAG:${testTag}]`,
           status: ['SCHEDULED', 'COMPLETED', 'MISSED', 'CANCELLED'][i % 4],
-          isTestData: true
+          ...(skipIsTestData ? {} : { isTestData: true })
         }
       });
       calls.push(call);
@@ -517,7 +697,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 15,
             color: '#3B82F6',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -545,7 +725,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 30,
             color: '#10B981',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -573,7 +753,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 60,
             color: '#F59E0B',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -603,7 +783,7 @@ async function main() {
             reminderEnabled: true,
             reminderMinutes: 15,
             color: '#8B5CF6',
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -635,7 +815,7 @@ async function main() {
             reminderEnabled: i % 2 === 0,
             reminderMinutes: 60,
             color: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][i % 5],
-            isTestData: true
+            ...(skipIsTestData ? {} : { isTestData: true })
           }
         });
         events.push(event);
@@ -666,10 +846,7 @@ async function main() {
       const app = applications[i];
       await prisma.application.update({
         where: { id: app.id },
-        data: { 
-          deletedAt: new Date(),
-          canRestore: true
-        }
+        data: { deletedAt: new Date() }
       });
       deletedCount++;
     }
@@ -691,6 +868,10 @@ async function main() {
     console.log(`   - ${linkedContacts} liaisons contact-candidature`);
     console.log(`   - ${archivedCount} éléments archivés`);
     console.log(`   - ${deletedCount} éléments en corbeille`);
+    if (skipIsTestData) {
+      console.log('');
+      console.warn('⚠️ Données créées sans marquage isTestData (ancienne image api-gateway). Pour que « Revenir à la base propre » les supprime, rebuild: make rebuild-service SERVICE=api-gateway');
+    }
     console.log('');
     console.log('🔐 Comptes de test créés:');
     users.forEach((user, index) => {

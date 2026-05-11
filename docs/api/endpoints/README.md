@@ -406,4 +406,4 @@ GET    /docker-stats/performance
 ---
 
 **Version**: 4.1 - Endpoints complets
-**Dernière mise à jour**: Octobre 2025
+**Dernière mise à jour** : Mars 2026

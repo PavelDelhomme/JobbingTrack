@@ -1148,9 +1148,9 @@ REDIS_URL=redis://redis:6379
 
 SMTP_HOST=smtp.ovh.net
 SMTP_PORT=587
-SMTP_USER=candidatures@delhomme.ovh
+SMTP_USER=infos@delhomme.ovh
 SMTP_PASS=your-smtp-password
-SMTP_FROM=JobbingTrack <candidatures@delhomme.ovh>
+SMTP_FROM=JobbingTrack <infos@delhomme.ovh>
 
 ALLOWED_ORIGINS=https://jobbingtrack.com,https://app.jobbingtrack.com
 FRONTEND_URL=https://jobbingtrack.com

@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
+const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
@@ -10,7 +11,7 @@ class WorkflowEngine {
     // Vérifier si la table existe
     if (!prisma.workflowRule || typeof prisma.workflowRule.findMany !== 'function') {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('Table WorkflowRule non disponible, retour de règles vides (mode développement)');
+        logger.warn('Table WorkflowRule non disponible, retour de règles vides (mode développement)');
         return [];
       }
       throw new Error('Table WorkflowRule non disponible');
@@ -27,7 +28,7 @@ class WorkflowEngine {
     } catch (error) {
       // Fallback si table WorkflowRule n'existe pas (P2021) - Mode développement
       if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-        console.warn('Table WorkflowRule non trouvée, retour de règles vides (mode développement)');
+        logger.warn('Table WorkflowRule non trouvée, retour de règles vides (mode développement)');
         return [];
       }
       throw error;
@@ -49,7 +50,7 @@ class WorkflowEngine {
         await this.scheduleExecution(rule, entityId);
       }
     } catch (error) {
-      console.error('Error processing rule:', error);
+      logger.error('Error processing rule:', error);
     }
   }
 
@@ -88,7 +89,7 @@ class WorkflowEngine {
     // Vérifier si la table existe
     if (!prisma.workflowRule || typeof prisma.workflowRule.findUnique !== 'function') {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('Table WorkflowRule non disponible, exécution ignorée (mode développement)');
+        logger.warn('Table WorkflowRule non disponible, exécution ignorée (mode développement)');
         return;
       }
       throw new Error('Table WorkflowRule non disponible');
@@ -102,7 +103,7 @@ class WorkflowEngine {
     } catch (error) {
       // Fallback si table WorkflowRule n'existe pas (P2021) - Mode développement
       if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-        console.warn('Table WorkflowRule non trouvée, exécution ignorée (mode développement)');
+        logger.warn('Table WorkflowRule non trouvée, exécution ignorée (mode développement)');
         return;
       }
       throw error;
@@ -127,7 +128,7 @@ class WorkflowEngine {
       } catch (error) {
         // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
         if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
+          logger.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
         } else {
           throw error;
         }

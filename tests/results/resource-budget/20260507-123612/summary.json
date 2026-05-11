@@ -1,0 +1,61 @@
+{
+  "duration_sec": 2400,
+  "interval_sec": 15,
+  "containers": {
+    "jobbingtrack-metrics-aggregator": {
+      "samples": 144,
+      "cpu_percent_avg": 0.32499999999999996,
+      "cpu_percent_p95": 93.0355,
+      "cpu_percent_max": 121.75,
+      "memory_mb_p95": 588.435,
+      "memory_mb_max": 740.7,
+      "memory_percent_p95": 1.2269999999999999,
+      "block_read_kb_s_p95": 0.0,
+      "block_write_kb_s_p95": 1.1895856227031323
+    },
+    "jobbingtrack-monitoring-c": {
+      "samples": 144,
+      "cpu_percent_avg": 0.0,
+      "cpu_percent_p95": 1.2185,
+      "cpu_percent_max": 3.64,
+      "memory_mb_p95": 2.7226499999999993,
+      "memory_mb_max": 3.453,
+      "memory_percent_p95": 0.01,
+      "block_read_kb_s_p95": 0.0,
+      "block_write_kb_s_p95": 0.0
+    },
+    "jobbingtrack-log-collector-c": {
+      "samples": 144,
+      "cpu_percent_avg": 0.0,
+      "cpu_percent_p95": 0.0,
+      "cpu_percent_max": 2.39,
+      "memory_mb_p95": 5.062,
+      "memory_mb_max": 6.008,
+      "memory_percent_p95": 0.01,
+      "block_read_kb_s_p95": 0.0,
+      "block_write_kb_s_p95": 0.0
+    },
+    "jobbingtrack-redis": {
+      "samples": 144,
+      "cpu_percent_avg": 0.29,
+      "cpu_percent_p95": 2.4785,
+      "cpu_percent_max": 2.87,
+      "memory_mb_p95": 29.7355,
+      "memory_mb_max": 30.54,
+      "memory_percent_p95": 0.06,
+      "block_read_kb_s_p95": 0.0,
+      "block_write_kb_s_p95": 0.0
+    },
+    "jobbingtrack-frontend": {
+      "samples": 144,
+      "cpu_percent_avg": 14.915,
+      "cpu_percent_p95": 19.6125,
+      "cpu_percent_max": 79.68,
+      "memory_mb_p95": 868.4,
+      "memory_mb_max": 870.8,
+      "memory_percent_p95": 1.81,
+      "block_read_kb_s_p95": 0.0,
+      "block_write_kb_s_p95": 0.0
+    }
+  }
+}

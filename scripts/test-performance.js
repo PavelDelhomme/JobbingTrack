@@ -83,7 +83,7 @@ function main() {
   log('\n📊 Test de Performance Post-Optimisation\n', 'cyan');
   
   const analyticsPage = path.join(ROOT_DIR, 'frontend/src/app/(admin)/backoffice/analytics/page.tsx');
-  const statsPage = path.join(ROOT_DIR, 'frontend/src/app/(admin)/backoffice/statistique/page.tsx');
+  const statsPage = path.join(ROOT_DIR, 'frontend/src/app/(admin)/backoffice/statistics/page.tsx');
   const dashboardPage = path.join(ROOT_DIR, 'frontend/src/app/(admin)/backoffice/page.tsx');
   
   log('🔍 Analyse des fichiers...\n', 'blue');

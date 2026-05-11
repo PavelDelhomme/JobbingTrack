@@ -7,6 +7,29 @@ import { FileText, CheckCircle, XCircle, AlertCircle, Download, Eye, RefreshCw, 
 
 const CATEGORY_PARCOURS = 'Parcours Utilisateur'
 
+/** Iframe via Blob URL pour éviter erreurs srcdoc (newlines/guillemets dans le HTML). */
+function ReportIframe({ content }: { content: string }) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    if (!content) {
+      setSrc(null)
+      return
+    }
+    const blob = new Blob([content], { type: 'text/html; charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    setSrc(url)
+    return () => URL.revokeObjectURL(url)
+  }, [content])
+  if (!src) return <div className="p-4 text-gray-500">Chargement...</div>
+  return (
+    <iframe
+      src={src}
+      className="w-full h-full min-h-[400px] border border-gray-200 dark:border-gray-700 rounded"
+      title="Rapport parcours"
+    />
+  )
+}
+
 interface TestReport {
   id: string
   category?: string
@@ -222,11 +245,7 @@ export default function UserJourneyReportsPage() {
                     </button>
                   </div>
                   <div className="p-4 h-[500px] overflow-auto">
-                    <iframe
-                      srcDoc={reportContent}
-                      className="w-full h-full min-h-[400px] border border-gray-200 dark:border-gray-700 rounded"
-                      title="Rapport parcours"
-                    />
+                    <ReportIframe content={reportContent} />
                   </div>
                 </div>
               ) : (

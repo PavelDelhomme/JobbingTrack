@@ -17,6 +17,7 @@ export interface ApplicationStatistics {
   users: {
     total: number;
     active: number;
+    active_source?: string;
     by_role: Record<string, number>;
     new_this_month: number;
     new_this_week: number;

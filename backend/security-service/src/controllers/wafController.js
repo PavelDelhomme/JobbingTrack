@@ -11,12 +11,13 @@ const WAF_RULES = {
   SQL_INJECTION: {
     patterns: [
       /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/gi,
-      /('|(\\')|(;)|(\|)|(\*)|(%)|(\+)|(\-)|(\=)|(\^)|(\{)|(\})|(\[)|(\])|(\()|(\)))/g,
+      /(union(?:\s|%20|\+)+select)/gi,
+      /(select(?:\s|%20|\+)+.+(?:\s|%20|\+)+from)/gi,
+      /((or|and)(?:\s|%20|\+)+\d+(?:\s|%20|\+)*=(?:\s|%20|\+)*\d+)/gi,
       /(\b(and|or|not)\b\s*\w+\s*[\=\<\>])/gi,
       /--/,
       /\/\*/,
       /\*\//,
-      /(\b(script|javascript|vbscript|onload|onerror|onclick|onsubmit|onreset|onfocus|onblur)\b)/gi,
       /(\bunion\s+select\b)/gi,
       /(\bselect\s+\*\s+from\b)/gi,
       /(\bdrop\s+table\b)/gi,
@@ -33,6 +34,8 @@ const WAF_RULES = {
   XSS: {
     patterns: [
       /<script[^>]*>.*?<\/script>/gi,
+      /%3cscript/gi,
+      /%3c\/script%3e/gi,
       /javascript:/gi,
       /on\w+\s*=/gi,
       /<iframe[^>]*>.*?<\/iframe>/gi,
@@ -65,11 +68,10 @@ const WAF_RULES = {
   },
   COMMAND_INJECTION: {
     patterns: [
-      /[;&|`$\(\){}<>]/g,
       /(\||\$\(|\`)/g,
-      /(rm\s|del\s|format\s|shutdown\s)/gi,
-      /(wget|curl|nc|netcat|telnet|ssh)/gi,
-      /(cmd|powershell|bash|sh)\s/gi
+      /(;\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
+      /(&&\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
+      /(\b(cmd|powershell|bash|sh)\s+(-c|\/c)\b)/gi
     ],
     severity: 'critical',
     message: 'Command Injection détectée',
@@ -77,7 +79,8 @@ const WAF_RULES = {
   },
   LDAP_INJECTION: {
     patterns: [
-      /(\*|\(|\))/g,
+      /\(\s*[&|!]/g,
+      /[&|!]\s*\([^)]+=[^)]+\)/g,
       /(\|&\w+\s*[\=\<\>])/gi,
       /(\b(and|or|not)\b\s*\w+\s*[\=\<\>])/gi
     ],
@@ -106,7 +109,7 @@ const WAF_RULES = {
       /beef/gi,
       /metasploit/gi
     ],
-    severity: 'medium',
+    severity: 'high',
     message: 'User-Agent suspect détecté',
     enabled: true
   },
@@ -146,8 +149,8 @@ const WAF_RULES = {
 const BLACKLISTED_IPS = [];
 const WHITELISTED_IPS = [];
 
-// État du WAF (peut être stocké en base de données)
-let wafEnabled = process.env.WAF_ENABLED === 'true';
+// État du WAF (activé par défaut ; mettre WAF_ENABLED=false pour désactiver)
+let wafEnabled = process.env.WAF_ENABLED !== 'false';
 
 /**
  * GET /api/v1/security/waf/config

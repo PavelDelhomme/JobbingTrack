@@ -20,13 +20,33 @@ interface FirewallRule {
   enabled: boolean;
 }
 
+type BlockedIpEntry = {
+  ip: string;
+  blockedAt?: string;
+  reason?: string;
+  blockOrigin?: string;
+  threatId?: string;
+};
+
+function blockedOriginBadgeLabel(blockOrigin?: string): string | null {
+  const o = String(blockOrigin || '');
+  if (o === 'lab_simulation') return 'Test lab';
+  if (o === 'manual_rule') return 'Manuel';
+  if (o === 'automatic_threat') return 'Auto';
+  if (o === 'iptables') return 'iptables';
+  if (o === 'log_inferred') return 'Logs';
+  return null;
+}
+
 export default function SecurityPoliciesPage() {
   const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
   const [wafSaving, setWafSaving] = useState(false);
   const [firewallRules, setFirewallRules] = useState<FirewallRule[]>([]);
-  const [blockedIPs, setBlockedIPs] = useState<string[]>([]);
+  const [blockedIPs, setBlockedIPs] = useState<Array<string | BlockedIpEntry>>([]);
   const [newIP, setNewIP] = useState('');
   const [loading, setLoading] = useState(true);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceResult, setMaintenanceResult] = useState<string | null>(null);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -65,10 +85,11 @@ export default function SecurityPoliciesPage() {
       const res = await axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, {
         headers: getAuthHeaders(),
       });
-      if (res.data?.success && Array.isArray(res.data?.data)) {
-        setBlockedIPs(res.data.data);
-      } else if (res.data?.ips) {
-        setBlockedIPs(res.data.ips);
+      const raw = res.data?.success && Array.isArray(res.data?.data) ? res.data.data : res.data?.ips;
+      if (Array.isArray(raw)) {
+        setBlockedIPs(raw);
+      } else {
+        setBlockedIPs([]);
       }
     } catch (e) {
       console.error('Erreur IPs bloquées:', e);
@@ -155,6 +176,39 @@ export default function SecurityPoliciesPage() {
     }
   };
 
+  const handleCleanupSecurityData = async () => {
+    if (!confirm('Nettoyer maintenant les menaces, règles firewall et IPs bloquées ?')) return;
+    setMaintenanceLoading(true);
+    setMaintenanceResult(null);
+    try {
+      const rulesRes = await axios.get(`${API_URL}/api/v1/security/firewall/rules`, { headers: getAuthHeaders() });
+      const rules = Array.isArray(rulesRes.data?.data) ? rulesRes.data.data : [];
+      for (const rule of rules) {
+        await axios.delete(`${API_URL}/api/v1/security/firewall/rules/${rule.id}`, { headers: getAuthHeaders() });
+      }
+
+      const ipsRes = await axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers: getAuthHeaders() });
+      const ipsRaw = Array.isArray(ipsRes.data?.data) ? ipsRes.data.data : [];
+      const ips = ipsRaw
+        .map((x: string | { ip?: string }) => (typeof x === 'string' ? x : x?.ip))
+        .filter(Boolean) as string[];
+      for (const ip of ips) {
+        await axios.post(`${API_URL}/api/v1/security/firewall/unblock-ip`, { ip }, { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } });
+      }
+
+      const threatsRes = await axios.delete(`${API_URL}/api/v1/security/firewall/threats?scope=all`, { headers: getAuthHeaders() });
+      const deletedThreats = threatsRes.data?.data?.deleted ?? 0;
+
+      await Promise.all([fetchWafConfig(), fetchFirewallRules(), fetchBlockedIPs()]);
+      setMaintenanceResult(`Nettoyage terminé: ${rules.length} règle(s), ${ips.length} IP(s), ${deletedThreats} menace(s) supprimée(s).`);
+    } catch (e) {
+      console.error('Erreur nettoyage sécurité:', e);
+      setMaintenanceResult('Échec du nettoyage sécurité. Vérifie les services et réessaie.');
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -175,6 +229,24 @@ export default function SecurityPoliciesPage() {
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Paramétrage détaillé : WAF, règles firewall, blocage IP.
           </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Maintenance sécurité</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Purge menaces + règles firewall + IPs bloquées pour repartir propre.</p>
+            </div>
+            <button
+              onClick={handleCleanupSecurityData}
+              disabled={maintenanceLoading}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {maintenanceLoading ? 'Nettoyage...' : 'Nettoyer maintenant'}
+            </button>
+          </div>
+          {maintenanceResult && (
+            <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">{maintenanceResult}</p>
+          )}
         </div>
 
         {/* WAF */}
@@ -274,14 +346,39 @@ export default function SecurityPoliciesPage() {
             </button>
           </div>
           <ul className="space-y-2">
-            {blockedIPs.map((ip) => (
-              <li key={ip} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="font-mono text-gray-900 dark:text-gray-100">{ip}</span>
-                <button onClick={() => handleUnblockIP(ip)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
-                  Débloquer
-                </button>
-              </li>
-            ))}
+            {blockedIPs.map((item) => {
+              const ipStr = typeof item === 'string' ? item : (item?.ip ?? JSON.stringify(item));
+              const row = typeof item === 'object' ? item : null;
+              const originLabel = row ? blockedOriginBadgeLabel(row.blockOrigin) : null;
+              return (
+                <li key={ipStr} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-gray-900 dark:text-gray-100">{ipStr}</span>
+                      {originLabel && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100">
+                          {originLabel}
+                        </span>
+                      )}
+                      {row?.threatId && (
+                        <Link
+                          href={`/backoffice/security/threats/${row.threatId}`}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Fiche menace
+                        </Link>
+                      )}
+                    </div>
+                    {row?.reason && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{row.reason}</p>
+                    )}
+                  </div>
+                  <button onClick={() => handleUnblockIP(ipStr)} className="px-3 py-1 shrink-0 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
+                    Débloquer
+                  </button>
+                </li>
+              );
+            })}
             {blockedIPs.length === 0 && (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">Aucune IP bloquée</p>
             )}

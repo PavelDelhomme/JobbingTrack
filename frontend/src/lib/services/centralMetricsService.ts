@@ -11,6 +11,7 @@ import {
   UserCustomization
 } from '@/lib/interfaces'
 import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
+import { normalizeMetricTimestampToIso } from '@/lib/utils/date'
 import { cacheManager } from '@/lib/cache/cacheManager'
 
 class CentralMetricsService {
@@ -443,6 +444,7 @@ class CentralMetricsService {
    * L'aggregator récupère les données depuis monitoring-c et les persiste en BDD ; le frontend ne parle qu'à l'aggregator.
    */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
+    this.updateToken()
     const endpoint = '/api/v1/metrics'
     const headers: HeadersInit = { 'Accept': 'application/json' }
     if (this.token) (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`
@@ -532,13 +534,23 @@ class CentralMetricsService {
   }
 
   // Récupération des logs d'un service : via metrics-aggregator (page détail service ou Services & Logs)
-  async getServiceLogs(serviceName: string, options?: { lines?: number }): Promise<any | null> {
+  async getServiceLogs(
+    serviceName: string,
+    options?: { lines?: number; since?: string | null; until?: string | null }
+  ): Promise<any | null> {
     try {
       const name = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`
-      const res = await fetch(`${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${options?.lines ?? 100}`, {
-        headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
-        signal: AbortSignal.timeout(8000)
-      })
+      const params = new URLSearchParams()
+      params.set('lines', String(options?.lines ?? 100))
+      if (options?.since) params.set('since', options.since)
+      if (options?.until) params.set('until', options.until)
+      const res = await fetch(
+        `${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?${params.toString()}`,
+        {
+          headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+          signal: AbortSignal.timeout(15000)
+        }
+      )
       if (!res.ok) return null
       const data = await res.json()
       return data
@@ -755,11 +767,12 @@ class CentralMetricsService {
             if (s.http_status === 200) {
               return true
             }
-            if (s.status === 'running' && s.http_status >= 400) {
+            const http = s.http_status ?? 0
+            if (s.status === 'running' && http >= 400) {
               return true // Dégradé mais disponible
             }
             // Si http_status === 0 mais on a des métriques CPU/mémoire, le service est disponible
-            if (s.http_status === 0 && (s.cpu_percent > 0 || s.memory_mb > 0)) {
+            if (http === 0 && ((s.cpu_percent ?? 0) > 0 || (s.memory_mb ?? 0) > 0)) {
               return true
             }
             return false
@@ -840,9 +853,12 @@ class CentralMetricsService {
     
     // ✅ NOUVEAU : Calculer le pourcentage de mémoire projet par rapport à la mémoire système totale
     const systemTotalMemoryMb = data.memory?.total_mb || 0
-    const memoryProjectPercent = systemTotalMemoryMb > 0 ? (projectMemoryMb / systemTotalMemoryMb) * 100 : 0
+    const projectMemoryMbSafe = projectMemoryMb ?? 0
+    const memoryProjectPercent =
+      systemTotalMemoryMb > 0 ? (projectMemoryMbSafe / systemTotalMemoryMb) * 100 : 0
     // Pourcentage par rapport à la limite des conteneurs (pour affichage détaillé)
-    const avgMemoryPercentContainers = totalMemoryLimitMb > 0 ? (projectMemoryMb / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
+    const avgMemoryPercentContainers =
+      totalMemoryLimitMb > 0 ? (projectMemoryMbSafe / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
     
     return {
       services: servicesMap, 
@@ -951,8 +967,7 @@ class CentralMetricsService {
         per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) 
       },
       overallLoadScore: loadScore,
-      servicesList: servicesList, // ✅ IMPORTANT : Inclure servicesList pour analytics
-      services: servicesMap // ✅ Aussi inclure services pour compatibilité
+      servicesList: servicesList // ✅ IMPORTANT : Inclure servicesList pour analytics
     }
   }
 
@@ -1021,39 +1036,16 @@ class CentralMetricsService {
         const networkRxMb = networkRxBytes ? (Number(networkRxBytes) / (1024 * 1024)) : 0
         const networkTxMb = networkTxBytes ? (Number(networkTxBytes) / (1024 * 1024)) : 0
 
-        // ✅ CORRECTION : Convertir le timestamp en ISO string valide
-        // Les timestamps viennent de PostgreSQL en UTC (format: "2025-12-23 16:37:58 UTC" ou Date object)
-        let timestamp = item.timestamp;
-        if (timestamp) {
-          if (typeof timestamp === 'string') {
-            // ✅ CORRECTION : Si c'est une date PostgreSQL (format: "2025-12-23 16:37:58 UTC")
-            if (timestamp.includes(' UTC')) {
-              timestamp = timestamp.replace(' UTC', 'Z');
-            } else if (!timestamp.includes('Z') && !timestamp.includes('+') && !timestamp.includes('-', 10)) {
-              // Si c'est une date ISO sans timezone, ajouter 'Z' pour UTC
-              timestamp = timestamp + 'Z';
-            }
-            // Vérifier que c'est une date valide
-            const date = new Date(timestamp);
-            if (Number.isNaN(date.getTime())) {
-              console.warn('[CENTRAL METRICS] ⚠️ Timestamp invalide:', timestamp, 'utilisation de la date actuelle');
-              timestamp = new Date().toISOString();
-            } else {
-              timestamp = date.toISOString();
-            }
-          } else if (timestamp instanceof Date) {
-            timestamp = timestamp.toISOString();
-          } else {
-            // Si c'est un nombre (timestamp Unix), le convertir
-            const date = new Date(typeof timestamp === 'number' ? timestamp : Number(timestamp));
-            if (Number.isNaN(date.getTime())) {
-              timestamp = new Date().toISOString();
-            } else {
-              timestamp = date.toISOString();
-            }
+        // ISO UTC canonique (même règles que graphiques analytics : naïf PostgreSQL = UTC, pas heure locale du parseur)
+        const rawTs = item.timestamp;
+        let timestamp = new Date().toISOString();
+        if (rawTs != null && rawTs !== '') {
+          const iso = normalizeMetricTimestampToIso(rawTs);
+          if (iso) {
+            const d = new Date(iso);
+            if (!Number.isNaN(d.getTime())) timestamp = d.toISOString();
+            else console.warn('[CENTRAL METRICS] ⚠️ Timestamp invalide après normalisation:', rawTs);
           }
-        } else {
-          timestamp = new Date().toISOString();
         }
 
         // ✅ NOUVEAU : Inclure memory_total_mb pour le calcul de project_memory_percent
@@ -1101,7 +1093,7 @@ class CentralMetricsService {
   /**
    * Récupère les statistiques sur une période
    */
-  async getMetricsStats(options?: { startTime?: number; endTime?: number }) {
+  async getMetricsStats(options?: { startTime?: number; endTime?: number }): Promise<Record<string, unknown> | null> {
     // Stats sur période : à implémenter côté metrics-aggregator si besoin
     return null
   }

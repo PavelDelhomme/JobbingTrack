@@ -110,9 +110,9 @@ services:
       - JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
       - SMTP_HOST=smtp.ovh.net
       - SMTP_PORT=587
-      - SMTP_USER=candidatures@delhomme.ovh
+      - SMTP_USER=infos@delhomme.ovh
       - SMTP_PASS=V**Uw61^3*bz5c2AFrx&2d&%
-      - SMTP_FROM=JobbingTrack <candidatures@delhomme.ovh>
+      - SMTP_FROM=JobbingTrack <infos@delhomme.ovh>
       - FRONTEND_URL=http://localhost:5173
     depends_on:
       postgres:
@@ -229,9 +229,9 @@ services:
       - JWT_SECRET=your-secret-key-change-in-production-2025
       - SMTP_HOST=smtp.ovh.net
       - SMTP_PORT=587
-      - SMTP_USER=candidatures@delhomme.ovh
+      - SMTP_USER=infos@delhomme.ovh
       - SMTP_PASS=V**Uw61^3*bz5c2AFrx&2d&%
-      - SMTP_FROM=JobbingTrack <candidatures@delhomme.ovh>
+      - SMTP_FROM=JobbingTrack <infos@delhomme.ovh>
     depends_on:
       postgres:
         condition: service_healthy

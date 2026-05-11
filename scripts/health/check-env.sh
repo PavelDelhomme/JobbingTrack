@@ -9,7 +9,7 @@ set -e
 echo "🔍 Vérification du fichier .env..."
 echo ""
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # Vérifier si .env existe
 if [ ! -f ".env" ]; then

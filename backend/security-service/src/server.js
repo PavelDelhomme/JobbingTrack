@@ -17,7 +17,9 @@ const wafRoutes = require('./routes/wafRoutes');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { securityMiddleware } = require('./middleware/securityMiddleware');
+const { requireFirewallWafAccess } = require('./middleware/firewallWafAuth');
 const { logger } = require('./utils/logger');
+const { requestContextMiddleware } = require('./utils/requestContext');
 const { initializeDatabase } = require('./config/database');
 const securityScheduler = require('./services/securityScheduler');
 
@@ -45,7 +47,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Internal-Secret', 'X-Request-Id', 'X-Correlation-Id']
 }));
 
 // Rate limiting global
@@ -73,6 +75,7 @@ app.use('/api/v1/security/sensitive', speedLimiter);
 app.use(morgan('combined', {
   stream: { write: msg => logger.info(msg.trim()) }
 }));
+app.use(requestContextMiddleware);
 
 // Middleware de sécurité personnalisé (lier le contexte avec bind)
 app.use((req, res, next) => {
@@ -89,10 +92,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Routes de santé (pas de limite de taux)
 app.use('/health', healthRoutes);
 
-// Routes API avec protection
+// Préfixes les plus spécifiques en premier (firewall/waf) pour éviter toute ambiguïté avec /api/v1/security
+app.use('/api/v1/security/firewall', requireFirewallWafAccess, firewallRoutes);
+app.use('/api/v1/security/waf', requireFirewallWafAccess, wafRoutes);
 app.use('/api/v1/security', securityRoutes);
-app.use('/api/v1/security/firewall', firewallRoutes);
-app.use('/api/v1/security/waf', wafRoutes);
 app.use('/api/v1/logs', logsRoutes);
 app.use('/api/v1/vulnerabilities', vulnerabilitiesRoutes);
 app.use('/api/v1/intrusion', intrusionRoutes);

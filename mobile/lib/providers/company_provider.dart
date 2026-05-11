@@ -9,12 +9,11 @@ class CompanyProvider with ChangeNotifier {
   List<Company> get companies => _companies;
   bool get isLoading => _isLoading;
 
-  Future<void> loadCompanies() async {
+  Future<void> loadCompanies({String? token}) async {
     _isLoading = true;
     notifyListeners();
-
     try {
-      _companies = await ApiService.getCompanies();
+      _companies = await ApiService.getCompanies(token: token);
       _isLoading = false;
       notifyListeners();
     } catch (e) {

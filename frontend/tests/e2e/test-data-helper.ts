@@ -28,14 +28,37 @@ export async function getAdminToken(request: APIRequestContext): Promise<string>
   }
 }
 
+/** Email/mot de passe de l'utilisateur seedé (make seed-auth). Utiliser en fallback quand ensureTestUser échoue. */
+export const SEEDED_USER_EMAIL = process.env.TEST_USER_EMAIL || 'testuser@jobbingtrack.test';
+export const SEEDED_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'TestPassword123!';
+
+/**
+ * Token utilisateur seedé — login direct sans inscription.
+ * À utiliser en fallback pour les tests API E2E quand ensureTestUser échoue (worker isolé, etc.).
+ */
+export async function getSeededUserToken(request: APIRequestContext): Promise<string> {
+  try {
+    const resp = await request.post(`${API_URL}/api/v1/auth/login`, {
+      data: { email: SEEDED_USER_EMAIL, password: SEEDED_USER_PASSWORD },
+    });
+    if (!resp.ok()) return '';
+    const body = await resp.json();
+    return body.token || body.data?.token || '';
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Token utilisateur classique — pour les tests fonctionnels (app mobile).
- * Crée un compte test puis se connecte.
+ * Crée un compte test puis se connecte ; si échec, tente le login avec l'utilisateur seedé.
  */
 export async function getUserToken(request: APIRequestContext): Promise<string> {
   if (_cachedUserToken) return _cachedUserToken;
   const creds = await ensureTestUser(request);
-  if (!creds) return '';
+  if (creds) return _cachedUserToken;
+  const seeded = await getSeededUserToken(request);
+  if (seeded) _cachedUserToken = seeded;
   return _cachedUserToken;
 }
 
@@ -48,9 +71,11 @@ export async function ensureTestUser(request: APIRequestContext): Promise<{ emai
   const email = `e2e-user-${Date.now()}@jobbingtrack.test`;
   const password = 'TestPassword123!';
   try {
-    await request.post(`${API_URL}/api/v1/auth/register`, {
+    const regResp = await request.post(`${API_URL}/api/v1/auth/register`, {
       data: { email, password, firstName: 'E2EUser', lastName: 'Test', phone: '+33600000000' },
     });
+    // 409 = utilisateur déjà existant (email unique), on tente quand même le login
+    if (!regResp.ok() && regResp.status() !== 409) return null;
     const resp = await request.post(`${API_URL}/api/v1/auth/login`, {
       data: { email, password },
     });
@@ -130,7 +155,7 @@ export async function apiCreateCompany(
         name: companyName,
         industry: 'E2E Testing',
         location: 'Paris Test',
-        size: '11-50',
+        size: 'SMALL',
         website: 'https://e2e-test.example.com',
         description: 'Donnée de test E2E - suppression automatique',
       },
@@ -236,20 +261,63 @@ export async function apiCreateInterview(
   }
 }
 
+/** Réponse détaillée pour archive/unarchive/restore (pour logs en cas d'échec). */
+export async function apiArchiveWithResponse(
+  request: APIRequestContext,
+  token: string,
+  endpoint: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; body?: unknown }> {
+  if (!id) return { ok: false, status: 0 };
+  try {
+    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/archive`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {},
+    });
+    let body: unknown;
+    try {
+      body = await resp.json();
+    } catch {
+      body = await resp.text();
+    }
+    return { ok: resp.ok(), status: resp.status(), body };
+  } catch (e) {
+    return { ok: false, status: 0, body: (e as Error).message };
+  }
+}
+
 export async function apiArchive(
   request: APIRequestContext,
   token: string,
   endpoint: string,
   id: string,
 ): Promise<boolean> {
-  if (!id) return false;
+  const r = await apiArchiveWithResponse(request, token, endpoint, id);
+  return r.ok;
+}
+
+/** Réponse détaillée pour unarchive (pour logs en cas d'échec). */
+export async function apiUnarchiveWithResponse(
+  request: APIRequestContext,
+  token: string,
+  endpoint: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; body?: unknown }> {
+  if (!id) return { ok: false, status: 0 };
   try {
-    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/archive`, {
+    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/unarchive`, {
       headers: { Authorization: `Bearer ${token}` },
+      data: {},
     });
-    return resp.ok();
-  } catch {
-    return false;
+    let body: unknown;
+    try {
+      body = await resp.json();
+    } catch {
+      body = await resp.text();
+    }
+    return { ok: resp.ok(), status: resp.status(), body };
+  } catch (e) {
+    return { ok: false, status: 0, body: (e as Error).message };
   }
 }
 
@@ -259,14 +327,30 @@ export async function apiUnarchive(
   endpoint: string,
   id: string,
 ): Promise<boolean> {
-  if (!id) return false;
+  const r = await apiUnarchiveWithResponse(request, token, endpoint, id);
+  return r.ok;
+}
+
+export async function apiRestoreWithResponse(
+  request: APIRequestContext,
+  token: string,
+  endpoint: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; body?: unknown }> {
+  if (!id) return { ok: false, status: 0 };
   try {
-    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/unarchive`, {
+    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/restore`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return resp.ok();
-  } catch {
-    return false;
+    let body: unknown;
+    try {
+      body = await resp.json();
+    } catch {
+      body = await resp.text();
+    }
+    return { ok: resp.ok(), status: resp.status(), body };
+  } catch (e) {
+    return { ok: false, status: 0, body: (e as Error).message };
   }
 }
 
@@ -276,15 +360,8 @@ export async function apiRestore(
   endpoint: string,
   id: string,
 ): Promise<boolean> {
-  if (!id) return false;
-  try {
-    const resp = await request.post(`${API_URL}/api/v1/${endpoint}/${id}/restore`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return resp.ok();
-  } catch {
-    return false;
-  }
+  const r = await apiRestoreWithResponse(request, token, endpoint, id);
+  return r.ok;
 }
 
 export async function cleanupTestData(

@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
-import { Database, Play, AlertCircle, CheckCircle, Trash2, RefreshCw, Settings, Zap, Users, Building2, FileText, Calendar, Phone, Mail, Clock } from 'lucide-react';
+import { Database, Play, AlertCircle, CheckCircle, Trash2, RefreshCw, Settings, Zap, Users, Building2, FileText, Calendar, Phone, Mail, Clock, Tag } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 interface Preset {
   name: string;
@@ -66,6 +66,7 @@ export default function TestDataPage() {
   const [customConfig, setCustomConfig] = useState(PRESETS.find(p => p.name === 'standard')!.config);
   const [showCustomConfig, setShowCustomConfig] = useState(false);
   const [output, setOutput] = useState<string>('');
+  const [balancedGenerate, setBalancedGenerate] = useState(false);
 
   const generateTestData = async (preset?: string, custom?: any) => {
     try {
@@ -73,11 +74,12 @@ export default function TestDataPage() {
       setMessage(null);
       setOutput('');
       
-      const config = {
+      const config: Record<string, unknown> = {
         preset: preset || selectedPreset,
         custom: custom || (showCustomConfig ? customConfig : undefined),
         clean: false
       };
+      if (balancedGenerate) config.balanced = true;
       
       const response = await axios.post(
         `${API_URL}/api/v1/admin/generate-test-data`,
@@ -97,6 +99,38 @@ export default function TestDataPage() {
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.error || 'Erreur lors de la génération des données de test' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tagLikelyTestData = async () => {
+    if (
+      !confirm(
+        'Marquer isTestData sur les comptes de test évidents et les entités liées (notes [TEST_DATA_TAG:…]) ? Admin et PROTECTED_USER_EMAILS exclus.'
+      )
+    ) {
+      return;
+    }
+    try {
+      setLoading(true);
+      setMessage(null);
+      const response = await axios.post(
+        `${API_URL}/api/v1/admin/test-data/tag-likely`,
+        { includeTaggedNotes: true },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setMessage({
+          type: 'success',
+          text: `Marquage terminé : ${JSON.stringify(response.data.tagged, null, 2)}`
+        });
+      }
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.error || 'Erreur marquage données de test'
       });
     } finally {
       setLoading(false);
@@ -157,7 +191,17 @@ export default function TestDataPage() {
               Générez des données réalistes et cohérentes avec relations entrecroisées
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => tagLikelyTestData()}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+              title="Marquer isTestData sur comptes / entités de test existants"
+            >
+              <Tag className="h-5 w-5" />
+              Marquer données existantes
+            </button>
             <button
               onClick={() => clearTestData(true)}
               disabled={loading}
@@ -289,7 +333,16 @@ export default function TestDataPage() {
             </div>
           )}
 
-          <div className="mt-6 flex items-center gap-4">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={balancedGenerate}
+                onChange={(e) => setBalancedGenerate(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-600"
+              />
+              Volumes équilibrés (plus de contacts / relances / entretiens par rapport aux entreprises — recommandé pour les stats)
+            </label>
             <button
               onClick={() => generateTestData(selectedPreset, showCustomConfig ? customConfig : undefined)}
               disabled={loading}

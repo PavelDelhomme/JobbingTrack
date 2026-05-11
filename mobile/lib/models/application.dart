@@ -37,22 +37,25 @@ class Application {
   });
 
   factory Application.fromJson(Map<String, dynamic> json) {
+    final status = json['status'];
+    final statusCode = status is Map ? (status['code'] ?? status['name'] ?? '') : (status?.toString() ?? '');
+    final appliedDate = json['applicationDate'] ?? json['appliedDate'];
     return Application(
       id: json['id'] ?? '',
       position: json['position'] ?? '',
       description: json['description'] ?? '',
       company: Company.fromJson(json['company'] ?? {}),
-      status: json['status'] ?? '',
+      status: statusCode.isNotEmpty ? statusCode : (json['status']?.toString() ?? ''),
       priority: json['priority'] ?? 'MEDIUM',
-      appliedDate: DateTime.parse(json['appliedDate'] ?? DateTime.now().toIso8601String()),
-      interviewDate: json['interviewDate'] != null ? DateTime.parse(json['interviewDate']) : null,
+      appliedDate: appliedDate != null ? DateTime.tryParse(appliedDate.toString()) ?? DateTime.now() : DateTime.now(),
+      interviewDate: json['interviewDate'] != null ? DateTime.tryParse(json['interviewDate'].toString()) : null,
       location: json['location'] ?? '',
-      salary: json['salary'] ?? '',
+      salary: json['salary']?.toString() ?? '',
       notes: json['notes'] ?? '',
       tags: List<String>.from(json['tags'] ?? []),
-      createdBy: User.fromJson(json['createdBy'] ?? {}),
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdBy: json['createdBy'] != null ? User.fromJson(json['createdBy'] as Map<String, dynamic>) : User.fromJson({}),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

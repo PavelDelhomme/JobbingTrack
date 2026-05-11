@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/features';
-import { Play, Terminal, Copy, Check, Settings, History, Save, Download, Upload, X, Plus, Trash2, Clock, ChevronDown, ChevronUp } from '@/lib/icons';
+import { Play, Terminal, Copy, Check, Settings, History, Save, Download, Upload, X, Plus, Trash2, Clock, ChevronDown, ChevronUp, Info, RotateCcw } from '@/lib/icons';
 import axios from 'axios';
 import { useAuth } from '@/lib/hooks/auth';
 
@@ -155,11 +155,11 @@ export default function APITesterPage() {
   };
 
   const handleTest = async () => {
+    const startTime = Date.now();
     try {
       setLoading(true);
       setResponse(null);
       setRequestDuration(null);
-      const startTime = Date.now();
       
       // Validation de l'endpoint
       if (!endpoint || endpoint.trim() === '') {
@@ -414,7 +414,7 @@ export default function APITesterPage() {
   const copyResponse = () => {
     navigator.clipboard.writeText(JSON.stringify(response, null, 2));
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    window.setTimeout(() => { setCopied(false); }, 2000);
   };
 
   // ✅ Configuration des services avec leurs ports (API Gateway exclu car déjà dans quickEndpoints)
@@ -1051,7 +1051,7 @@ export default function APITesterPage() {
                         onClick={() => {
                           navigator.clipboard.writeText(curlCommand);
                           setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
+                          window.setTimeout(() => setCopied(false), 2000);
                         }}
                         className="absolute top-2 right-2 p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
                       >

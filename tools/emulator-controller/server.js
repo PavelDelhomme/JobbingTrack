@@ -125,6 +125,43 @@ function ensureWritableFlutterGradle() {
   return gradleCache;
 }
 
+/** Exécute uiautomator dump avec timeout et 2 tentatives (évite échec après redémarrage app). */
+async function uiaDumpWithRetry(deviceId, timeoutMs = 25000) {
+  const deviceArg = deviceId ? `-s ${deviceId}` : '';
+  const dumpCmd = `adb ${deviceArg} shell uiautomator dump /sdcard/ui_dump.xml`;
+  const catCmd = `adb ${deviceArg} shell cat /sdcard/ui_dump.xml`;
+  let lastErr;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await execPromise(dumpCmd, { timeout: timeoutMs });
+      const { stdout } = await execPromise(catCmd, { timeout: 10000 });
+      return stdout || '';
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  throw lastErr;
+}
+
+/** Retourne la date de modification la plus récente des fichiers sous dir (récursif), ou 0 si absent. */
+function getNewestMtime(dir) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return 0;
+  let max = 0;
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) {
+      const sub = getNewestMtime(full);
+      if (sub > max) max = sub;
+    } else {
+      const m = stat.mtimeMs;
+      if (m > max) max = m;
+    }
+  }
+  return max;
+}
+
 const routes = {
   async '/avds'(req, res) {
     try {
@@ -170,9 +207,31 @@ const routes = {
       const baseEnv = envWithAndroid();
       const gradleCache = ensureWritableFlutterGradle();
       if (gradleCache) baseEnv.FLUTTER_GRADLE_BUILD_PATH = gradleCache;
+
+      // 1) Supprimer tout le dossier outputs (et build/app si besoin) pour éviter "Zip already contains entry ... cannot overwrite"
+      const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
+      const buildAppDir = path.join(MOBILE_PATH, 'build', 'app');
+      try {
+        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
+        // Au cas où outputs a échoué : supprimer les dossiers apk et flutter-apk un par un
+        const apkDir = path.join(buildAppDir, 'outputs', 'apk');
+        const flutterApkDir = path.join(buildAppDir, 'outputs', 'flutter-apk');
+        if (fs.existsSync(apkDir)) fs.rmSync(apkDir, { recursive: true, force: true });
+        if (fs.existsSync(flutterApkDir)) fs.rmSync(flutterApkDir, { recursive: true, force: true });
+      } catch (_) { /* ignore */ }
+
+      // 2) flutter clean (vide le cache build Flutter)
       await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
+
+      // 3) Re-supprimer outputs après clean au cas où clean aurait recréé un dossier
+      try {
+        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
+      } catch (_) { /* ignore */ }
+
       const { stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv });
-      const apkPath = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : apkPathLegacy;
       const exists = fs.existsSync(apkPath);
       const ok = exists && code === 0;
       const stdoutStr = typeof stdout === 'string' ? stdout : String(stdout || '');
@@ -196,13 +255,78 @@ const routes = {
       if (!deviceId) {
         return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
       }
-      const apkPath = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
-      if (!fs.existsSync(apkPath)) {
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : (fs.existsSync(apkPathLegacy) ? apkPathLegacy : null);
+      if (!apkPath || !fs.existsSync(apkPath)) {
         return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
       }
-      await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`);
-      await execPromise(`adb -s ${deviceId} shell am start -n com.jobbingtrack_mobile/.MainActivity`);
-      send(res, 200, { success: true, message: 'App installée et lancée' });
+      const execOpts = { cwd: MOBILE_PATH };
+      // Rediriger les ports du PC vers le téléphone pour que localhost fonctionne sur l'appareil
+      const portsToReverse = [5002, 5003, 3000, 3001, 3002, 3003, 3004, 3005, 8025];
+      for (const port of portsToReverse) {
+        try {
+          await execPromise(`adb -s ${deviceId} reverse tcp:${port} tcp:${port}`, execOpts);
+        } catch (_) { /* ignore si adb reverse échoue */ }
+      }
+      await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
+      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+      send(res, 200, { success: true, message: 'App installée, fermée puis relancée (adb reverse activé sur ports API)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Arrête l'app (force-stop) sans la relancer. Utile après un build APK pour réactiver "Installer et lancer". */
+  async '/stop-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, { cwd: MOBILE_PATH });
+      send(res, 200, { success: true, message: 'App arrêtée (force-stop)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Désinstalle l'app du périphérique (adb uninstall). Permet une réinstallation propre. */
+  async '/uninstall-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      const execOpts = { cwd: MOBILE_PATH };
+      await execPromise(`adb -s ${deviceId} uninstall ${ANDROID_PACKAGE}`, execOpts);
+      send(res, 200, { success: true, message: 'App désinstallée du périphérique' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Redémarre le processus du contrôleur (pour charger la dernière version du code). Le client doit relancer make emulator-controller. */
+  async '/restart'(req, res, _body, _url) {
+    send(res, 200, { success: true, message: 'Redémarrage du contrôleur dans 1s. Relancez : make emulator-controller' });
+    setTimeout(() => process.exit(0), 1000);
+  },
+
+  /** Ferme l'app (force-stop) puis la relance sans réinstaller. Délai avant retour pour laisser uiautomator prêt. */
+  async '/force-restart-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      const execOpts = { cwd: MOBILE_PATH };
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
+      await new Promise(r => setTimeout(r, 800));
+      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+      // Délai pour que l'app et uiautomator soient prêts (évite "uiauto machine failed")
+      await new Promise(r => setTimeout(r, 5500));
+      send(res, 200, { success: true, message: 'App fermée puis relancée' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
@@ -271,6 +395,271 @@ const routes = {
     }
   },
 
+  async '/input-text'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const text = body && body.text;
+      if (!deviceId || typeof text !== 'string') {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "text": "..." } requis' });
+      }
+      const escaped = text.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"']/g, (c) => `\\${c}`);
+      await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
+      send(res, 200, { success: true, message: `Text: ${text.slice(0, 30)}` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/input-keyevent'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const keycode = body && body.keycode;
+      if (!deviceId || keycode == null) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "keycode": 4 } requis (4=BACK, 3=HOME, 66=ENTER, 67=DEL, 61=TAB)' });
+      }
+      await execPromise(`adb -s ${deviceId} shell input keyevent ${keycode}`);
+      send(res, 200, { success: true, message: `Keyevent: ${keycode}` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/input-swipe'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const { x1, y1, x2, y2, duration } = body || {};
+      if (!deviceId || x1 == null || y1 == null || x2 == null || y2 == null) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "x1", "y1", "x2", "y2", "duration"? } requis' });
+      }
+      const dur = duration || 300;
+      await execPromise(`adb -s ${deviceId} shell input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${dur}`);
+      send(res, 200, { success: true, message: `Swipe (${x1},${y1})->(${x2},${y2})` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/clear-field'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const length = (body && body.length) || 50;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "length"?: 50 } requis' });
+      }
+      for (let i = 0; i < length; i++) {
+        await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+      }
+      send(res, 200, { success: true, message: `Cleared ${length} chars` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/ui-dump'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const xml = await uiaDumpWithRetry(deviceId);
+      send(res, 200, { success: true, xml });
+    } catch (e) {
+      send(res, 200, { success: false, xml: '', error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/find-and-tap'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const text = body && body.text;
+      const contentDesc = body && body.contentDesc;
+      const className = body && body.className;
+      const index = (body && body.index) || 0;
+      const preferClickable = body && body.preferClickable !== false;
+      if (!deviceId || (!text && !contentDesc && !className)) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId", "text"? | "contentDesc"? | "className"?, "index"?: 0 } requis' });
+      }
+      const xml = await uiaDumpWithRetry(deviceId);
+
+      const nodes = [];
+      const nodeRegex = /<node[^>]*>/g;
+      let match;
+      while ((match = nodeRegex.exec(xml)) !== null) {
+        const n = match[0];
+        const getText = (attr) => { const m = n.match(new RegExp(`${attr}="([^"]*)"`)); return m ? m[1] : ''; };
+        const clickable = /clickable="true"/.test(n);
+        nodes.push({ text: getText('text'), contentDesc: getText('content-desc'), className: getText('class'), bounds: getText('bounds'), resourceId: getText('resource-id'), clickable });
+      }
+
+      const safe = (s) => (s == null || s === undefined ? '' : String(s));
+      const matches = nodes.filter((n) => {
+        if (text) {
+          const t = text.toLowerCase();
+          if (safe(n.text).toLowerCase().includes(t) || safe(n.contentDesc).toLowerCase().includes(t)) return true;
+        }
+        if (contentDesc && safe(n.contentDesc).toLowerCase().includes(String(contentDesc).toLowerCase())) return true;
+        if (className && safe(n.className).includes(className)) return true;
+        return false;
+      });
+
+      if (matches.length === 0) {
+        return send(res, 200, { success: false, error: `Element not found: text="${text}" contentDesc="${contentDesc}"`, nodes: nodes.filter(n => n.text || n.contentDesc).slice(0, 30) });
+      }
+
+      let sorted = matches;
+      if (preferClickable && matches.length > 1) {
+        const clickableMatches = matches.filter(n => n.clickable);
+        if (clickableMatches.length > 0) sorted = clickableMatches;
+      }
+
+      const target = sorted[Math.min(index, sorted.length - 1)];
+      const boundsMatch = target.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+      if (!boundsMatch) {
+        return send(res, 200, { success: false, error: `Cannot parse bounds: ${target.bounds}` });
+      }
+      const cx = Math.round((parseInt(boundsMatch[1]) + parseInt(boundsMatch[3])) / 2);
+      const cy = Math.round((parseInt(boundsMatch[2]) + parseInt(boundsMatch[4])) / 2);
+
+      await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
+      send(res, 200, { success: true, message: `Tapped "${target.text || target.contentDesc}" at (${cx}, ${cy})`, bounds: target.bounds, clickable: target.clickable });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/tap-field-and-type'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const hint = body && body.hint;
+      const text = body && body.text;
+      const index = Math.max(0, parseInt(body && body.index, 10) || 0);
+      if (!deviceId || !hint || typeof text !== 'string') {
+        return send(res, 400, { success: false, error: 'Body { "deviceId", "hint": "Email", "text": "value" } requis' });
+      }
+      const xml = await uiaDumpWithRetry(deviceId);
+      const nodeRegex = /<node[^>]*>/g;
+      const hintLower = hint.toLowerCase();
+      const matchStr = (attr) => attr && attr.toLowerCase().includes(hintLower);
+      const editableTrue = (n) => /editable="true"/.test(n) || /class="[^"]*EditText[^"]*"/.test(n);
+      const targets = [];
+      const targetsEditable = [];
+      const targetCurrentTexts = [];
+      let match;
+      while ((match = nodeRegex.exec(xml)) !== null) {
+        const n = match[0];
+        const h = (n.match(/hint="([^"]*)"/) || [])[1];
+        const t = (n.match(/text="([^"]*)"/) || [])[1];
+        const c = (n.match(/content-desc="([^"]*)"/) || [])[1];
+        const ok = matchStr(h) || matchStr(t) || matchStr(c);
+        if (ok) {
+          const boundsMatch = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+          if (boundsMatch) {
+            const currentText = (t || '').trim();
+            targets.push(boundsMatch);
+            targetCurrentTexts.push(currentText);
+            if (editableTrue(n)) targetsEditable.push(boundsMatch);
+          }
+        }
+      }
+      const list = targetsEditable.length > 0 ? targetsEditable : targets;
+      const target = list[index];
+      if (!target) {
+        return send(res, 200, { success: false, error: `Field with hint/text "${hint}" not found${targets.length ? ` (${targets.length} match(es), ${targetsEditable.length} editable, index ${index})` : ''}` });
+      }
+      const targetIdxInAll = targets.indexOf(target);
+      const currentFieldText = targetIdxInAll >= 0 && targetCurrentTexts[targetIdxInAll] !== undefined ? targetCurrentTexts[targetIdxInAll] : '';
+      const cx = Math.round((parseInt(target[1]) + parseInt(target[3])) / 2);
+      const cy = Math.round((parseInt(target[2]) + parseInt(target[4])) / 2);
+      await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
+      let trimmed = typeof text === 'string' ? text.trim() : String(text).trim();
+      const isEmailField = (hint && String(hint).toLowerCase().includes('email')) || (trimmed.includes('@'));
+      if (isEmailField) console.log(`[tap-field-and-type] Champ email: valeur reçue="${trimmed}" longueur=${trimmed.length} fin="${trimmed.slice(-6)}"`);
+      if (isEmailField) {
+        await new Promise(r => setTimeout(r, 600));
+      } else {
+        await new Promise(r => setTimeout(r, 400));
+      }
+      await execPromise(`adb -s ${deviceId} shell input keyevent KEYCODE_MOVE_END`);
+      const delCount = currentFieldText.length > 0 ? Math.min(120, currentFieldText.length + 15) : 0;
+      for (let i = 0; i < delCount; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+      await new Promise(r => setTimeout(r, 150));
+      if (isEmailField && /[0-9]$/.test(trimmed)) trimmed = trimmed.slice(0, -1);
+      const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
+      const escaped = esc(trimmed);
+      // Pour éviter que le clavier Android transforme ".com" en ".com6" ou ".me" en ".me6" : on tape les TLD caractère par caractère.
+      const tldCom = trimmed.length >= 3 && trimmed.slice(-3) === 'com';
+      const tldMe = trimmed.length >= 2 && trimmed.slice(-2) === 'me';
+      if (isEmailField && tldCom) {
+        const part1 = trimmed.slice(0, -3);
+        const part1Esc = esc(part1);
+        console.log(`[tap-field-and-type] Email .com: part1="${part1}" puis "com" caractère par caractère`);
+        await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
+        await new Promise(r => setTimeout(r, 550));
+        for (const ch of 'com') {
+          await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
+          await new Promise(r => setTimeout(r, 220));
+        }
+      } else if (isEmailField && tldMe) {
+        const part1 = trimmed.slice(0, -2);
+        const part1Esc = esc(part1);
+        console.log(`[tap-field-and-type] Email .me: part1="${part1}" puis "me" caractère par caractère`);
+        await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
+        await new Promise(r => setTimeout(r, 450));
+        for (const ch of 'me') {
+          await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
+          await new Promise(r => setTimeout(r, 220));
+        }
+      } else {
+        await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
+      }
+      // Après saisie email : relire le champ via UI dump et supprimer uniquement les chiffres en fin (suggestion clavier "6").
+      // On n'envoie pas de backspace+retype pour éviter de re-déclencher la suggestion.
+      if (isEmailField) {
+        await new Promise(r => setTimeout(r, 550));
+        const xml2 = await uiaDumpWithRetry(deviceId);
+        const nodeRegex2 = /<node[^>]*>/g;
+        const targets2 = [];
+        const texts2 = [];
+        let m2;
+        while ((m2 = nodeRegex2.exec(xml2)) !== null) {
+          const n = m2[0];
+          const h = (n.match(/hint="([^"]*)"/) || [])[1];
+          const t = (n.match(/text="([^"]*)"/) || [])[1];
+          const ok = h && String(h).toLowerCase().includes(hintLower);
+          if (ok && editableTrue(n)) {
+            const b = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+            if (b) {
+              targets2.push(b);
+              texts2.push((t || '').trim());
+            }
+          }
+        }
+        const idx = Math.min(index, texts2.length - 1);
+        const currentText = idx >= 0 ? texts2[idx] : '';
+        const trailingDigits = (currentText.match(/[0-9]+$/) || [])[0];
+        if (trailingDigits) {
+          const nBack = trailingDigits.length;
+          console.log(`[tap-field-and-type] Email: champ se termine par "${trailingDigits}", envoi de ${nBack} backspace(s)`);
+          for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+        }
+      }
+      send(res, 200, { success: true, message: `Typed "${trimmed.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/screen-info'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const deviceArg = deviceId ? `-s ${deviceId}` : '';
+      const { stdout } = await execPromise(`adb ${deviceArg} shell wm size`);
+      const m = stdout.match(/(\d+)x(\d+)/);
+      const width = m ? parseInt(m[1]) : 1080;
+      const height = m ? parseInt(m[2]) : 1920;
+      send(res, 200, { success: true, width, height });
+    } catch (e) {
+      send(res, 200, { success: false, width: 1080, height: 1920, error: (e && e.message) || String(e) });
+    }
+  },
+
   async '/screenshot'(req, res, _, url) {
     const u = new URL(url, 'http://x');
     const device = u.searchParams.get('device');
@@ -289,8 +678,50 @@ const routes = {
     }
   },
 
+  async '/adb-shell'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const command = (body && body.command) || '';
+      if (!command) {
+        return send(res, 400, { success: false, error: 'Body { "command": "am start ..." } requis' });
+      }
+      const deviceArg = deviceId ? `-s ${deviceId}` : '';
+      const { stdout, stderr } = await execPromise(`adb ${deviceArg} shell ${command}`, { timeout: 15000 });
+      send(res, 200, { success: true, stdout: (stdout || '').trim(), stderr: (stderr || '').trim() });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
   async '/health'(req, res) {
     send(res, 200, { ok: true, service: 'emulator-controller', mobilePath: MOBILE_PATH });
+  },
+
+  /** GET: indique si un build est nécessaire (APK plus ancien que mobile/lib). */
+  async '/build-status'(req, res) {
+    try {
+      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : (fs.existsSync(apkPathLegacy) ? apkPathLegacy : null);
+      const apkMtime = apkPath && fs.existsSync(apkPath) ? fs.statSync(apkPath).mtimeMs : 0;
+      const libDir = path.join(MOBILE_PATH, 'lib');
+      const mobileLibMtime = getNewestMtime(libDir);
+      const needsBuild = !apkPath || apkMtime < mobileLibMtime;
+      send(res, 200, {
+        needsBuild: !!needsBuild,
+        apkPath: apkPath || null,
+        apkMtime,
+        mobileLibMtime,
+      });
+    } catch (e) {
+      send(res, 200, { needsBuild: true, error: (e && e.message) || String(e) });
+    }
+  },
+
+  /** Liste des routes enregistrées (GET) — pour vérifier que /stop-app est bien présent après redémarrage du contrôleur. */
+  async '/routes'(req, res) {
+    const list = Object.keys(routes).filter((k) => typeof routes[k] === 'function');
+    send(res, 200, { routes: list, hasStopApp: list.includes('/stop-app') });
   },
 };
 
@@ -305,7 +736,7 @@ const server = http.createServer((req, res) => {
   }
 
   const url = req.url || '';
-  const pathname = url.split('?')[0];
+  const pathname = (url.split('?')[0] || '').replace(/\/$/, '') || '/';
   let body = null;
 
   const next = () => {
@@ -313,7 +744,8 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    if (req.method === 'POST' && (pathname === '/start-avd' || pathname === '/build-apk' || pathname === '/install-run' || pathname === '/run-flutter' || pathname === '/input-tap')) {
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });
       req.on('end', () => {

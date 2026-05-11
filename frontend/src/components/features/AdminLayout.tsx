@@ -12,6 +12,9 @@ import { SettingsPopup } from './SettingsPopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from '@/lib/icons'
+import { FlaskConical, Eraser } from 'lucide-react'
+
+const BACKOFFICE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -35,10 +38,19 @@ interface NavSection {
   isCollapsible?: boolean
 }
 
+/** Correspondance pathname sur un item ou un sous-arbre (sous-menus imbriqués, ex. Analytics → Application). */
+function navItemMatchesPath(pathname: string, item: NavItem): boolean {
+  if (item.href && !item.external && pathname === item.href) return true
+  if (item.subItems?.length) {
+    return item.subItems.some((sub) => navItemMatchesPath(pathname, sub))
+  }
+  return false
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout, token } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop (visible par défaut)
@@ -46,6 +58,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   // ✅ SUPPRIMÉ : isThemeDropdownOpen n'est plus nécessaire (thème switcher simplifié)
   const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false) // ✅ État pour le dropdown des actions rapides
+  const [dataSourceActionLoading, setDataSourceActionLoading] = useState<'generate' | 'clear' | null>(null)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     security: true,
@@ -127,28 +140,71 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     localStorage.setItem('expandedSections', JSON.stringify(newExpandedSections))
   }
 
-
-  // Fonction pour vérifier si une section contient l'élément actif
-  const isSectionActive = (section: NavSection) => {
-    return section.items.some(item => {
-      if (pathname === item.href) return true
-      if (item.subItems) {
-        return item.subItems.some(subItem => pathname === subItem.href)
+  /** Générer les données de test (suivi intérim, candidatures, etc.) puis recharger la page (URL conservée). */
+  const handleGenerateTestData = async () => {
+    if (!token) {
+      alert('Non connecté. Connectez-vous pour utiliser cette action.')
+      return
+    }
+    setDataSourceActionLoading('generate')
+    setIsQuickActionsDropdownOpen(false)
+    try {
+      const res = await fetch(`${BACKOFFICE_API_URL}/api/v1/admin/generate-test-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ preset: 'standard', clean: false })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        router.refresh()
+      } else {
+        alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
       }
-      return false
-    })
+    } catch (e) {
+      alert('Erreur réseau. Vérifiez que la gateway et les services sont démarrés.')
+    } finally {
+      setDataSourceActionLoading(null)
+    }
   }
 
-  // Fonction pour obtenir l'élément actif dans une section
-  const getActiveItemInSection = (section: NavSection) => {
-    return section.items.find(item => {
-      if (pathname === item.href) return true
-      if (item.subItems) {
-        return item.subItems.some(subItem => pathname === subItem.href)
+  /** Revenir à la base propre (supprimer uniquement les données de test) puis recharger la page (URL conservée). */
+  const handleClearTestData = async () => {
+    if (!token) {
+      alert('Non connecté. Connectez-vous pour utiliser cette action.')
+      return
+    }
+    if (!confirm('Supprimer uniquement les données de test (isTestData=true) ? La base principale ne sera pas modifiée.')) {
+      return
+    }
+    setDataSourceActionLoading('clear')
+    setIsQuickActionsDropdownOpen(false)
+    try {
+      const res = await fetch(`${BACKOFFICE_API_URL}/api/v1/admin/clear-test-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ onlyTestData: true })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        router.refresh()
+      } else {
+        alert(data?.error || `Erreur ${res.status}: ${res.statusText}`)
       }
-      return false
-    })
+    } catch (e) {
+      alert('Erreur réseau. Vérifiez que la gateway et les services sont démarrés.')
+    } finally {
+      setDataSourceActionLoading(null)
+    }
   }
+
+
+  const isSectionActive = (section: NavSection) =>
+    section.items.some((item) => navItemMatchesPath(pathname, item))
+
+  const getActiveItemInSection = (section: NavSection) =>
+    section.items.find((item) => navItemMatchesPath(pathname, item))
 
   const sections: NavSection[] = [
     {
@@ -158,13 +214,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
-        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
-        { name: 'Performances complètes', href: '/backoffice/analytics/performances', icon: '📈' },
-        { name: 'Performances réseau', href: '/backoffice/analytics/network', icon: '🌐' },
-        { name: 'Performances applicatives', href: '/backoffice/analytics/application', icon: '📱' },
-        { name: 'Analytics conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
-        { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
+        {
+          name: 'Performances',
+          href: '/backoffice/performances',
+          icon: '📉',
+          subItems: [
+            { name: 'Synthèse', href: '/backoffice/performances', icon: '📊' },
+            { name: 'Temps de réponse', href: '/backoffice/performances/latency', icon: '⏱️' },
+            { name: 'Conteneurs', href: '/backoffice/performances/containers', icon: '🐳' },
+            { name: 'Disque', href: '/backoffice/performances/disk', icon: '💽' },
+            { name: 'Réseau (détail)', href: '/backoffice/performances/network', icon: '🌐' },
+            { name: 'Corrélation', href: '/backoffice/performances/correlation', icon: '🧩' },
+          ],
+        },
+        {
+          name: 'Statistiques',
+          href: '/backoffice/statistics',
+          icon: '📈',
+          subItems: [
+            { name: 'Vue d’ensemble', href: '/backoffice/statistics', icon: '📊' },
+            { name: 'App data', href: '/backoffice/statistics/app-data', icon: '📦' },
+            { name: 'Sécurité', href: '/backoffice/statistics/security', icon: '🛡️' },
+            { name: 'Logs (stats)', href: '/backoffice/statistics/log-stats', icon: '📜' },
+          ],
+        },
+        {
+          name: 'Analytics',
+          href: '/backoffice/analytics',
+          icon: '⚡',
+          subItems: [
+            {
+              name: 'Application',
+              href: '/backoffice/analytics/application/performance',
+              icon: '📱',
+              subItems: [
+                { name: 'Performances live', href: '/backoffice/analytics/application/performance', icon: '📊' },
+                { name: 'Activité & traces', href: '/backoffice/analytics/application/activity', icon: '👣' },
+                { name: 'Retours & signalements', href: '/backoffice/analytics/application/feedback', icon: '✉️' },
+              ],
+            },
+            { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '👤' },
+          ],
+        },
       ]
     },
     {
@@ -173,6 +264,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
+        { name: 'Vue d’ensemble sécurité', href: '/backoffice/security', icon: '🛡️' },
         { name: 'Logs de sécurité', href: '/backoffice/security/logs', icon: '📋' },
         { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
         { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
@@ -198,9 +290,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
           name: 'Gestion des données',
-          href: '/backoffice/data',
+          href: '/backoffice/datas',
           icon: '💾',
           subItems: [
+            { name: 'Données applicatives', href: '/backoffice/datas', icon: '📋' },
+            { name: 'Suivi intérim', href: '/backoffice/suivi-interim', icon: '👔' },
+            { name: 'Stats utilisateur', href: '/backoffice/user-stats', icon: '📊' },
+            { name: 'Abonnement & facturation', href: '/backoffice/billing', icon: '📄' },
+            { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
             { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
             { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
           ]
@@ -338,7 +435,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Navigation - Scrollable */}
           <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
-            {sections.map((section) => (
+            {sections.map((section) => {
+              const showSectionItems =
+                !section.isCollapsible ||
+                isSectionActive(section) ||
+                expandedSections[section.id] !== false
+              return (
               <div key={section.id} className="mb-4">
                 {/* Section Header - Cliquable */}
                 <button
@@ -362,22 +464,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     </span>
                   </div>
                   {section.isCollapsible && (
-                    <span className={`transform transition-transform ${expandedSections[section.id] ? 'rotate-90' : ''}`}>
+                    <span className={`transform transition-transform ${showSectionItems ? 'rotate-90' : ''}`}>
                       ▶
                     </span>
                   )}
                 </button>
 
-                {/* Section Items - Collapsible (indentés sous le titre de section) */}
-                {(!section.isCollapsible || expandedSections[section.id]) && (
+                {/* Section Items : ouvert si la section est active (sous-route) ou si l’utilisateur n’a pas replié explicitement à false */}
+                {showSectionItems && (
                   <div className="pl-4 space-y-1 border-l border-gray-200 dark:border-gray-700 ml-2">
                     {section.items.map((item) => {
-                      const isActive = pathname === item.href
-                      const hasSubItems = item.subItems && item.subItems.length > 0
-                      const isSubItemActive = hasSubItems && item.subItems?.some(subItem => pathname === subItem.href)
+                      const isActive = !!(item.href && !item.external && pathname === item.href)
+                      const hasSubItems = !!(item.subItems && item.subItems.length > 0)
+                      const isSubItemActive =
+                        hasSubItems && item.subItems!.some((sub) => navItemMatchesPath(pathname, sub))
                       const itemKey = `item-${item.name}-${section.id}`
-                      // Expanded par défaut si on est sur cette page ou un sous-item ; sinon état sauvegardé
-                      const isItemExpanded = expandedSections[itemKey] ?? (hasSubItems && (isSubItemActive || isActive))
+                      const routeNeedsSubmenuOpen = hasSubItems && (isSubItemActive || isActive)
+                      const showItemSubItems =
+                        hasSubItems &&
+                        (routeNeedsSubmenuOpen || expandedSections[itemKey] !== false)
                       const activeItem = getActiveItemInSection(section)
 
                       const content = (
@@ -449,21 +554,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       toggleSection(itemKey)
                                     }}
                                     className={`ml-1 px-2 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-all ${
-                                      isItemExpanded ? 'text-white bg-gray-700' : ''
+                                      showItemSubItems ? 'text-white bg-gray-700' : ''
                                     }`}
                                     aria-label="Expander les sous-items"
                                   >
-                                    <span className={`transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
+                                    <span className={`transform transition-transform ${showItemSubItems ? 'rotate-90' : ''}`}>
                                       ▶
                                     </span>
                                   </button>
                                 )}
                               </div>
                               {/* Sous-items (retrait supplémentaire sous l'item parent) */}
-                              {hasSubItems && isItemExpanded && (
+                              {hasSubItems && showItemSubItems && (
                                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
-                                  {item.subItems.map((subItem) => {
-                                    const isSubActive = !subItem.external && pathname === subItem.href
+                                  {(item.subItems ?? []).map((subItem) => {
+                                    const isSubActive =
+                                      !subItem.external && navItemMatchesPath(pathname, subItem)
                                     const linkClass = `
                                           flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all relative group
                                           ${isSubActive
@@ -508,7 +614,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </nav>
 
           {/* User info - Toujours en bas */}
@@ -689,6 +796,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       >
                         <Server className="h-4 w-4 text-green-600" />
                         <span>Services</span>
+                      </button>
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                      <button
+                        onClick={handleGenerateTestData}
+                        disabled={!!dataSourceActionLoading}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                        title="Génère des données de test (agences intérim, candidatures, etc.) puis recharge la page"
+                      >
+                        <FlaskConical className="h-4 w-4 text-amber-600" />
+                        <span>Générer données de test (suivi intérim…)</span>
+                      </button>
+                      <button
+                        onClick={handleClearTestData}
+                        disabled={!!dataSourceActionLoading}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                        title="Supprime uniquement les données de test puis recharge la page"
+                      >
+                        <Eraser className="h-4 w-4 text-red-500" />
+                        <span>Revenir à la base propre</span>
                       </button>
                     </div>
                   </>

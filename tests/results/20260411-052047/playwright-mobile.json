@@ -1,0 +1,1 @@
+{"testName":"Playwright Mobile","status":"skipped","reason":"Tests mobiles exclus du pipeline E2E (emulateur non lance)","timestamp":"2026-04-11T05:21:33+02:00"}

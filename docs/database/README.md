@@ -41,6 +41,12 @@
 - Système de synchronisation
 - Liste des modèles principaux, tables de jonction, listes personnalisables
 
+### 3. 🔄 **[PRISMA_VERSIONS_ET_UPGRADE.md](PRISMA_VERSIONS_ET_UPGRADE.md)** - **Versions Prisma et mise à jour majeure**
+
+- Versions Prisma par service (5.x, 6.x)
+- Message « Update available 5.22.0 -> 7.4.2 » (major) : explication et lien vers le guide officiel
+- Procédure pour une future mise à jour majeure (5/6 → 7)
+
 ---
 
 ## 📚 Documentation Complémentaire (Référence)
@@ -48,8 +54,8 @@
 ### Relations & Liaisons
 - **[Liaisons Inter-Modèles](relations.md)** - Toutes les relations 1:N et M:N implémentées
 
-### Structure Détaillée
-- **[Structure Actuelle Complète](structure-actuelle.md)** - Vue d'ensemble détaillée de tous les modèles actuels (si besoin de détails)
+### Structure détaillée
+- **[STRUCTURE_ACTUELLE.md](STRUCTURE_ACTUELLE.md)** – Référence et valeurs par défaut des enums. Pour le détail des modèles, voir aussi [schema/README.md](schema/README.md) et [relations.md](relations.md).
 
 ---
 
@@ -90,4 +96,4 @@
 
 ---
 
-**Dernière mise à jour** : 2025-01-27
+**Dernière mise à jour** : Mars 2026

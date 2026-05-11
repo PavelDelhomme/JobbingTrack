@@ -8,17 +8,18 @@ const PROJECT_ROOT = process.env.PROJECT_ROOT
   || (process.cwd().includes('frontend') ? join(process.cwd(), '..') : process.cwd())
 const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
 
-// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR peut être /tmp/tests/results)
+// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR = /app/tests/results pour utiliser le volume monté)
 const REPORT_DIRS = {
   'performance-backend': join(PROJECT_ROOT, 'backend-performance-reports'),
   'performance-frontend': join(PROJECT_ROOT, 'frontend', 'performance-reports'),
   'playwright': join(PROJECT_ROOT, 'frontend', 'playwright-report'),
-  'tests-results': join(PROJECT_ROOT, 'tests', 'results'),
+  'tests-results': process.env.TESTS_RESULTS_DIR || join(PROJECT_ROOT, 'tests', 'results'),
   'tests-results-tmp': process.env.TESTS_RESULTS_DIR && process.env.TESTS_RESULTS_DIR !== join(PROJECT_ROOT, 'tests', 'results') ? process.env.TESTS_RESULTS_DIR : '',
   'tests-reports': join(PROJECT_ROOT, 'tests', 'reports'),
   'coverage': join(PROJECT_ROOT, 'tests', 'coverage'),
   'coverage-frontend': join(PROJECT_ROOT, 'frontend', 'coverage'),
   'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
+  'user-journey-fallback': IS_DOCKER ? '/tmp/journey-reports' : '',
   'analytics': join(PROJECT_ROOT, 'tests', 'analytics-reports'),
 }
 
@@ -33,6 +34,8 @@ interface TestReport {
   generatedAtISO?: string
   path: string
   htmlPath?: string
+  /** Chemin relatif summary.json si présent */
+  summaryPath?: string
   pdfPath?: string
   jsonPath?: string
   summary?: any
@@ -302,9 +305,11 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
           totalFailed = vulns
         }
       }
-      // Cohérence globale : total = passed + failed (évite affichage "1 exécuté, 1 réussi, 2 échoués")
+      // Cohérence globale : si totalTests est 0 ou absent, utiliser passed+failed+skipped ; sinon garder totalTests du rapport (ex. 776 = 774+2)
       const sum = totalPassed + totalFailed
-      if (sum > 0 && totalTests !== sum) totalTests = sum
+      const sumWithSkipped = sum + totalSkipped
+      if (totalTests === 0 && sumWithSkipped > 0) totalTests = sumWithSkipped
+      if (totalTests === 0 && sum > 0) totalTests = sum
 
       // Déterminer le statut (éviter "unknown" : utiliser testResults[0].status si totalTests === 0)
       let status: 'success' | 'failed' | 'partial' | 'unknown' = 'partial'

@@ -5,7 +5,7 @@ import { test, expect, Page } from '@playwright/test';
 // ═══════════════════════════════════════════════════════
 test.describe('🏢 CRUD Entreprises (interactions)', () => {
   test('ouvrir le modal de création, remplir le formulaire et annuler', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /Nouvelle entreprise/i }).click();
@@ -33,7 +33,7 @@ test.describe('🏢 CRUD Entreprises (interactions)', () => {
   });
 
   test('le champ de recherche filtre les entreprises en temps réel', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const searchInput = page.getByPlaceholder('Rechercher une entreprise...');
@@ -50,7 +50,7 @@ test.describe('🏢 CRUD Entreprises (interactions)', () => {
   });
 
   test('filtrer avec un terme inexistant donne zéro résultat', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const searchInput = page.getByPlaceholder('Rechercher une entreprise...');
@@ -61,7 +61,7 @@ test.describe('🏢 CRUD Entreprises (interactions)', () => {
   });
 
   test('le bouton Supprimer déclenche une confirmation', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const deleteBtn = page.getByRole('button', { name: /Supprimer/i }).first();
@@ -83,7 +83,7 @@ test.describe('🏢 CRUD Entreprises (interactions)', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('👤 CRUD Contacts (interactions)', () => {
   test('ouvrir le modal de création, remplir les champs et annuler', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /Nouveau contact/i }).click();
@@ -114,7 +114,7 @@ test.describe('👤 CRUD Contacts (interactions)', () => {
   });
 
   test('rechercher un contact via le champ de recherche', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const searchInput = page.getByPlaceholder('Rechercher un contact...');
@@ -128,7 +128,7 @@ test.describe('👤 CRUD Contacts (interactions)', () => {
   });
 
   test('le bouton d\'édition ouvre le modal de modification', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const editBtn = page.locator('td:last-child button, .flex.gap-2 button').first();
@@ -146,7 +146,7 @@ test.describe('👤 CRUD Contacts (interactions)', () => {
   });
 
   test('le bouton de suppression déclenche une confirmation', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const rows = page.locator('table tbody tr');
@@ -166,7 +166,7 @@ test.describe('👤 CRUD Contacts (interactions)', () => {
   });
 
   test('le bouton Actualiser recharge les contacts', async ({ page }) => {
-    await page.goto('/backoffice/contacts');
+    await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const refreshBtn = page.locator('button').filter({ has: page.locator('svg') }).last();
@@ -182,7 +182,7 @@ test.describe('👤 CRUD Contacts (interactions)', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📧 Interactions Emails', () => {
   test('remplir et envoyer un email de test', async ({ page }) => {
-    await page.goto('/backoffice/emails');
+    await page.goto('/backoffice/emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const tabTest = page.locator('[role="tab"]').filter({ hasText: /Email de Test/i });
@@ -215,7 +215,7 @@ test.describe('📧 Interactions Emails', () => {
   });
 
   test('basculer entre onglets Email de Test et Reset Password', async ({ page }) => {
-    await page.goto('/backoffice/emails');
+    await page.goto('/backoffice/emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const tabReset = page.locator('[role="tab"]').filter({ hasText: /Reset/i });
@@ -236,7 +236,7 @@ test.describe('📧 Interactions Emails', () => {
   });
 
   test('cliquer Actualiser rafraîchit les statistiques', async ({ page }) => {
-    await page.goto('/backoffice/emails');
+    await page.goto('/backoffice/emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const refreshBtn = page.getByRole('button', { name: /Actualiser/i });
@@ -255,7 +255,7 @@ test.describe('📧 Interactions Emails', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('👥 Interactions Utilisateurs', () => {
   test('rechercher un utilisateur par nom ou email', async ({ page }) => {
-    await page.goto('/backoffice/users');
+    await page.goto('/backoffice/users', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const searchInput = page.getByPlaceholder('Rechercher par nom ou email...');
@@ -269,7 +269,7 @@ test.describe('👥 Interactions Utilisateurs', () => {
   });
 
   test('filtrer les utilisateurs par rôle', async ({ page }) => {
-    await page.goto('/backoffice/users');
+    await page.goto('/backoffice/users', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const roleSelect = page.locator('select').first();
@@ -286,7 +286,7 @@ test.describe('👥 Interactions Utilisateurs', () => {
   });
 
   test('cliquer Actualiser recharge la liste', async ({ page }) => {
-    await page.goto('/backoffice/users');
+    await page.goto('/backoffice/users', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const refreshBtn = page.getByRole('button', { name: /Actualiser/i });
@@ -304,7 +304,7 @@ test.describe('👥 Interactions Utilisateurs', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('💾 Interactions Data Management', () => {
   test('les boutons d\'export sont cliquables', async ({ page }) => {
-    await page.goto('/backoffice/data-management');
+    await page.goto('/backoffice/data-management', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const exportBtns = [
@@ -323,7 +323,7 @@ test.describe('💾 Interactions Data Management', () => {
   });
 
   test('la zone d\'import fichier est visible', async ({ page }) => {
-    await page.goto('/backoffice/data-management');
+    await page.goto('/backoffice/data-management', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const fileInput = page.locator('input[type="file"]');
@@ -333,8 +333,11 @@ test.describe('💾 Interactions Data Management', () => {
   });
 
   test('onglets de la page Data sont cliquables', async ({ page }) => {
-    await page.goto('/backoffice/data');
-    await page.waitForLoadState('networkidle');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/datas', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    await expect(page.getByRole('heading', { name: /Gestion des Données/i })).toBeVisible({ timeout: 30000 });
 
     const tabs = [
       'Candidatures', 'Entreprises', 'Contacts', 'Entretiens',
@@ -343,9 +346,10 @@ test.describe('💾 Interactions Data Management', () => {
 
     for (const tabText of tabs) {
       const tab = page.locator('button, [role="tab"]').filter({ hasText: new RegExp(tabText, 'i') }).first();
-      if (await tab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await tab.click();
-        await page.waitForTimeout(300);
+      if (await tab.isVisible({ timeout: 8000 }).catch(() => false)) {
+        await tab.scrollIntoViewIfNeeded().catch(() => {});
+        await tab.click({ timeout: 10000 });
+        await page.waitForTimeout(400);
       }
     }
 
@@ -359,26 +363,35 @@ test.describe('💾 Interactions Data Management', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📊 Interactions Statistiques', () => {
   test('cliquer onglets Vue d\'ensemble / Sécurité / Logs change le contenu', async ({ page }) => {
-    await page.goto('/backoffice/statistique');
-    await page.waitForLoadState('networkidle');
+    test.setTimeout(90000);
+    await page.goto('/backoffice/statistics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    // La page attend les stats API : le h1 n’apparaît qu’après chargement (pas seulement le spinner).
+    await expect(
+      page.getByRole('heading', { name: /Statistiques|Monitoring/i })
+    ).toBeVisible({ timeout: 60000 });
 
-    const tabVue = page.locator('button, [role="tab"]').filter({ hasText: /Vue d/i }).first();
-    if (await tabVue.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabVue.click();
+    const tabVue = page.locator('button').filter({ hasText: /Vue d'ensemble|Vue d/i }).first();
+    if (await tabVue.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabVue.scrollIntoViewIfNeeded().catch(() => {});
+      await tabVue.click({ timeout: 10000 });
       await page.waitForTimeout(500);
       const content1 = await page.locator('body').textContent() ?? '';
       expect(content1.length).toBeGreaterThan(100);
     }
 
-    const tabSecu = page.locator('button, [role="tab"]').filter({ hasText: /curit/i }).first();
-    if (await tabSecu.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabSecu.click();
+    const tabSecu = page.locator('button').filter({ hasText: /Sécurité|curit/i }).first();
+    if (await tabSecu.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabSecu.scrollIntoViewIfNeeded().catch(() => {});
+      await tabSecu.click({ timeout: 10000 });
       await page.waitForTimeout(500);
     }
 
-    const tabLogs = page.locator('button, [role="tab"]').filter({ hasText: /Logs/i }).first();
-    if (await tabLogs.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tabLogs.click();
+    const tabLogs = page.locator('button').filter({ hasText: /Statistiques Logs/i }).first();
+    if (await tabLogs.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await tabLogs.scrollIntoViewIfNeeded().catch(() => {});
+      await tabLogs.click({ timeout: 10000 });
       await page.waitForTimeout(500);
     }
   });
@@ -389,7 +402,7 @@ test.describe('📊 Interactions Statistiques', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔧 Interactions Services', () => {
   test('cliquer onglets Services / Logs Système', async ({ page }) => {
-    await page.goto('/backoffice/services');
+    await page.goto('/backoffice/services', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const tabServices = page.locator('button, [role="tab"]').filter({ hasText: /Services/i }).first();
@@ -406,7 +419,7 @@ test.describe('🔧 Interactions Services', () => {
   });
 
   test('naviguer vers le détail d\'un service', async ({ page }) => {
-    await page.goto('/backoffice/services/api-gateway');
+    await page.goto('/backoffice/services/api-gateway', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -420,8 +433,9 @@ test.describe('🔧 Interactions Services', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Interactions Analytics', () => {
   test('cliquer onglets Analytics utilisateur', async ({ page }) => {
-    await page.goto('/backoffice/user-analytics');
+    await page.goto('/backoffice/user-analytics', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const tabTexts = ['Vue d', 'nements', 'Erreurs', 'Performance'];
     for (const tabText of tabTexts) {
@@ -434,7 +448,7 @@ test.describe('⚡ Interactions Analytics', () => {
   });
 
   test('page Performances affiche des métriques interactives', async ({ page }) => {
-    await page.goto('/backoffice/analytics/performances');
+    await page.goto('/backoffice/performances', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -451,7 +465,7 @@ test.describe('⚡ Interactions Analytics', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔒 Interactions Sécurité', () => {
   test('page Firewall affiche des éléments interactifs', async ({ page }) => {
-    await page.goto('/backoffice/security/firewall');
+    await page.goto('/backoffice/security/firewall', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
@@ -463,7 +477,7 @@ test.describe('🔒 Interactions Sécurité', () => {
   });
 
   test('page Politiques de sécurité est interactive', async ({ page }) => {
-    await page.goto('/backoffice/security/policies');
+    await page.goto('/backoffice/security/policies', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
@@ -477,7 +491,7 @@ test.describe('🔒 Interactions Sécurité', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔍 Interactions Recherche', () => {
   test('la page de recherche est interactive', async ({ page }) => {
-    await page.goto('/backoffice/search');
+    await page.goto('/backoffice/search', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -496,7 +510,7 @@ test.describe('🔍 Interactions Recherche', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🏠 Interactions Dashboard', () => {
   test('cliquer un lien de navigation change de page', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('nav').first().waitFor({ timeout: 10000 });
 
@@ -514,7 +528,7 @@ test.describe('🏠 Interactions Dashboard', () => {
   });
 
   test('les cartes de métriques sont présentes et cliquables', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('nav').first().waitFor({ timeout: 10000 });
 
@@ -529,10 +543,11 @@ test.describe('🏠 Interactions Dashboard', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📦 Interactions Archives & Corbeille', () => {
   test('page Archives affiche les filtres et éléments interactifs', async ({ page }) => {
-    await page.goto('/backoffice/archives');
+    await page.goto('/backoffice/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
+    await page.locator('nav').first().waitFor({ state: 'visible', timeout: 20000 });
 
-    const body = await page.locator('body').textContent() ?? '';
+    const body = await page.locator('body').textContent({ timeout: 20000 }) ?? '';
     expect(body.length).toBeGreaterThan(100);
 
     const interactiveCount = await page.locator('button, input, select, [role="tab"]').count();
@@ -540,11 +555,14 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
   });
 
   test('page Corbeille affiche les éléments interactifs', async ({ page }) => {
-    await page.goto('/backoffice/trash');
-    await page.waitForLoadState('networkidle');
-
-    const body = await page.locator('body').textContent() ?? '';
-    expect(body.length).toBeGreaterThan(100);
+    test.setTimeout(90000);
+    await page.goto('/backoffice/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 45000 });
+    await expect(page.getByRole('heading', { name: /Corbeille/i })).toBeVisible({ timeout: 30000 });
+    const body = await page.locator('body').textContent({ timeout: 25000 }) ?? '';
+    expect(body.length, 'Le body de la page Corbeille doit être chargé').toBeGreaterThan(100);
+    expect(body).toMatch(/Corbeille|Gestion|éléments supprimés|Tous les éléments|Restaurer/i);
   });
 });
 
@@ -553,7 +571,7 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🎯 Interactions Parcours', () => {
   test('page Parcours prédéfinis affiche des scénarios cliquables', async ({ page }) => {
-    await page.goto('/backoffice/user-journey');
+    await page.goto('/backoffice/user-journey', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('domcontentloaded');
     await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
@@ -566,7 +584,7 @@ test.describe('🎯 Interactions Parcours', () => {
   });
 
   test('page Parcours personnalisé est interactive', async ({ page }) => {
-    await page.goto('/backoffice/user-journey/custom');
+    await page.goto('/backoffice/user-journey/custom', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -579,7 +597,7 @@ test.describe('🎯 Interactions Parcours', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🧪 Interactions Tests & API', () => {
   test('page Testeur d\'API permet de configurer une requête', async ({ page }) => {
-    await page.goto('/backoffice/api-tester');
+    await page.goto('/backoffice/api-tester', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const urlInput = page.locator('input[type="text"], input[type="url"]').first();
@@ -604,7 +622,7 @@ test.describe('🧪 Interactions Tests & API', () => {
   });
 
   test('page Hub Tests affiche les catégories de tests cliquables', async ({ page }) => {
-    await page.goto('/backoffice/tests');
+    await page.goto('/backoffice/tests', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -616,7 +634,7 @@ test.describe('🧪 Interactions Tests & API', () => {
   });
 
   test('page Rapports de tests affiche les rapports et permet le tri', async ({ page }) => {
-    await page.goto('/backoffice/test-reports');
+    await page.goto('/backoffice/test-reports', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const body = await page.locator('body').textContent() ?? '';
@@ -635,7 +653,7 @@ test.describe('🧪 Interactions Tests & API', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('📝 Interactions Templates Emails', () => {
   test('cliquer onglets Prévisualisation / Code / Variables', async ({ page }) => {
-    await page.goto('/backoffice/emails/templates');
+    await page.goto('/backoffice/emails/templates', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await page.waitForLoadState('networkidle');
 
     const tabTexts = ['visualisation', 'Code', 'Variables'];

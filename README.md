@@ -14,11 +14,24 @@
 
 ## 📖 Documentation
 
-### 📚 Documentation Principale
+### 📄 Fichiers à la racine (référence projet)
 
-- **[STATUS.md](STATUS.md)** - État complet du projet et avancement
+| Fichier | Rôle |
+|---------|------|
+| **README.md** | Présentation, démarrage rapide, liens docs |
+| **STATUS.md** | **À faire maintenant**, état détaillé, priorités (mobile, vérif email, Flutter) |
+| **ERRORS.md** | Erreurs connues non résolues |
+| **FONCTIONNALITES.md** | Liste complète des fonctionnalités |
+| **RESOLUTIONS.md** | Erreurs résolues et correctifs |
+| **PLAN.md** | Chantier backoffice + API + doc (lots A–F, critères d’acceptation) |
+| **TODOS.md** | Cases à cocher alignées sur le plan |
+
+Pour savoir **ce qu’il faut faire** (priorité mobile, vérification email, suite Flutter) → **[STATUS.md](STATUS.md)** (section « À faire maintenant ») et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (lot **A** monitoring + logs, lot **B** sécurité, suivi-intérim, documentation) → **[PLAN.md](PLAN.md)** et **[TODOS.md](TODOS.md)**.
+
+### 📚 Documentation détaillée
+
+- **[Index Documentation](docs/INDEX.md)** | **[README Docs](docs/README.md)** | **[Navigation](docs/navigation.md)**
 - **[MAIL.md](docs/emails/MAIL.md)** - Configuration envoi d'emails (SMTP)
-- **[Index Documentation](docs/INDEX_DOCUMENTATION.md)** | **[README Docs](docs/README.md)** | **[Navigation](docs/navigation.md)**
 
 ### 🚀 Démarrage Rapide
 - **[⚡ Guide de Démarrage](docs/getting-started/README.md)** - Commencez ici !
@@ -150,7 +163,7 @@ make up-for-tests
 # http://localhost:8080/backoffice/user-journey
 ```
 
-📖 **Guide complet** : [DEMARRAGE_TESTS_PARCOURS.md](DEMARRAGE_TESTS_PARCOURS.md)
+📖 **Guide complet** : [docs/development/GUIDE_TESTS_PARCOURS.md](docs/development/GUIDE_TESTS_PARCOURS.md)
 
 ### Aide Contextuelle Intégrée
 
@@ -299,7 +312,7 @@ Nouvelle page de test permettant d'exécuter et analyser automatiquement tous le
 
 **📖 Guides** : 
 - [`GUIDE_TESTS_PARCOURS.md`](docs/development/GUIDE_TESTS_PARCOURS.md) ⭐ - Guide complet
-- [`NOUVELLES_FONCTIONNALITES_PARCOURS.md`](NOUVELLES_FONCTIONNALITES_PARCOURS.md) 🆕 - Annulation & Sauvegarde
+- [docs/development/](docs/development/) - Annulation & Sauvegarde parcours
 
 ---
 

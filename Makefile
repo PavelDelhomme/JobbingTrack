@@ -45,6 +45,25 @@ include makefiles/help/Makefile          # système d'aide
 start: ## Alias de up-full - Démarrer TOUS les services (sans rebuild)
 	@$(MAKE) up-full
 
+up-all: ## Alias de up-full (même chose)
+	@$(MAKE) up-full
+
+# Démarrer la stack, BDD, admin et lancer les tests (une seule commande pour le dev)
+up-dev: ## up-full + db-push-all + seed-auth + tests — tout pour redémarrer et tester (ex. suivi intérim)
+	@echo "🚀 up-dev : up-full → db-push-all → seed-auth → tests"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) up-full
+	@$(MAKE) db-push-all
+	@$(MAKE) seed-auth
+	@$(MAKE) tests
+	@echo ""
+	@echo "✅ up-dev terminé. Rapports : tests/results/<timestamp>/"
+	@printf '%s\n' up-dev > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
+
+# Recréation ciblée monitoring (alias explicite) — voir makefiles/services/Makefile
+restart-force-recreate-metrics: ## Recrée monitoring-c + metrics-aggregator (env compose / image)
+	@$(MAKE) restart-metrics-recreate
+
 # Rebuild complet : down + build + up-full + status (utilise docker compose build puis up, pas make dev)
 fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make down && make build && make up-full && make status)
 	@$(MAKE) down

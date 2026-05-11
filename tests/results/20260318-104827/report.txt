@@ -1,0 +1,94 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  18/03/2026 10:59:23
+================================================================
+
+RESUME
+------
+  Categories  : 33
+  Total tests : 882
+  Reussis     : 873
+  Echoues     : 9
+  Ignores     : 1
+  Taux        : 99.0%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [OK]   [U] Tests API Complets (Jest) (8s)
+  [OK]   [U] Tests Backend Services (Jest) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (1s)
+  [FAIL] [A] Playwright E2E Frontend (570s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (4s)
+  [OK]   [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (4s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (0s)
+  [OK]   [S] Tests Contact Service (Health Check) (1s)
+  [OK]   [S] Tests Interview Service (Health Check) (0s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (0s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (0s)
+  [OK]   [S] Tests Profile Service (Health Check) (1s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (1s)
+  [OK]   [S] Tests Deployment Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Playwright E2E Frontend ---
+        Error: Restore entretien: 400 ""
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        >  98 |     expect(restoreRes.ok, `Restore entretien: ${restoreRes.status} ${JSON.stringify(restoreRes.body)}`).toBe(true);
+        Error: Restore entretien: 400 ""
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+        >  98 |     expect(restoreRes.ok, `Restore entretien: ${restoreRes.status} ${JSON.stringify(restoreRes.body)}`).toBe(true);
+        Error: expect(locator).not.toContainText(expected) failed
+        Expected substring: not "404"
+        Received string: ""
+          - Expect "not toContainText" with timeout 5000ms
+        > 417 |     await expect(body).not.toContainText('404');
+        Error: expect(locator).not.toContainText(expected) failed
+        Expected substring: not "404"
+        Received string: ""
+          - Expect "not toContainText" with timeout 5000ms
+        > 417 |     await expect(body).not.toContainText('404');
+        Error: locator.textContent: Test timeout of 30000ms exceeded.
+          547 |     expect(body.length).toBeGreaterThan(100);
+        Error: locator.textContent: Test timeout of 30000ms exceeded.
+          547 |     expect(body.length).toBeGreaterThan(100);
+        Error: expect(locator).toBeVisible() failed
+        Expected: visible
+        Error: element(s) not found
+          - Expect "toBeVisible" with timeout 10000ms
+        > 58 |     await expect(page.getByText(/À :\s*paul\.?delhomme\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+          59 |     await expect(page.getByText('À : paul.delhomme@proton.me').first()).toBeVisible({ timeout: 10000 });
+
+================================================================
+  Rapports : tests/results/20260318-104827/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

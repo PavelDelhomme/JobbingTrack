@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Sécurité Firewall & WAF (API)",
+  "userType": "system",
+  "command": "API_GATEWAY_URL='http://localhost:5002' bash scripts/security/test-firewall.sh",
+  "timestamp": "2026-03-19T11:51:28+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 19,
+    "passed": 18,
+    "failed": 1
+  },
+  "output": "🔥 Test du Firewall et WAF\n==========================\n\n📋 Test 1: Récupération des règles firewall\n  Test: GET /api/v1/security/firewall/rules... ✅ PASS (HTTP 200)\n\n📋 Test 2: Création d'une règle firewall de test\n✅ PASS (HTTP 201)\n\n  ✅ Règle créée avec ID: cmmxco5ol000th5d1t5ulauga\n\n📋 Test 3: Mise à jour de la règle firewall\n  Test: PUT /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)\n\n📋 Test 4: Suppression de la règle firewall\n  Test: DELETE /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)\n\n📋 Test 5: Récupération des IPs bloquées\n  Test: GET /api/v1/security/firewall/blocked-ips... ✅ PASS (HTTP 200)\n\n📋 Test 6: Blocage d'une IP de test\n  Test: POST /api/v1/security/firewall/block-ip... ✅ PASS (HTTP 200)\n\n📋 Test 7: Déblocage de l'IP de test\n  Test: POST /api/v1/security/firewall/unblock-ip... ✅ PASS (HTTP 200)\n\n📋 Test 8: Récupération des menaces réseau\n  Test: GET /api/v1/security/firewall/threats... ✅ PASS (HTTP 200)\n\n📋 Test 9: Création d'une menace de test\n  Test: POST /api/v1/security/firewall/threats... ✅ PASS (HTTP 201)\n\n📋 Test 10: Récupération des statistiques réseau\n  Test: GET /api/v1/security/firewall/network/stats... ✅ PASS (HTTP 200)\n\n📋 Test 11: Configuration WAF\n  Test: GET /api/v1/security/waf/config... ✅ PASS (HTTP 200)\n\n📋 Test 12: Statistiques WAF\n  Test: GET /api/v1/security/waf/stats... ✅ PASS (HTTP 200)\n\n📋 Test 13: Activation/désactivation WAF\n  Test: PUT /api/v1/security/waf/toggle... ✅ PASS (HTTP 200)\n\n📋 Test 14: Activation/désactivation règle WAF\n  Test: PUT /api/v1/security/waf/rules/:ruleName... ✅ PASS (HTTP 200)\n\n📋 Test 15: Vérification des logs de sécurité\n  Test: GET /api/v1/security/logs... ✅ PASS (HTTP 200)\n\n==========================\n📊 RÉSUMÉ DES TESTS\n==========================\n✅ Tests réussis: 15\n   Tests échoués: 0\n\n✅ Tous les tests sont passés !\n\n💡 Note: Si certains tests ont été ignorés (SKIP), c'est normal si:\n   - La table FirewallRule n'existe pas (exécutez: make db-push-all)\n   - iptables n'est pas disponible dans le conteneur (normal en développement)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

@@ -52,7 +52,7 @@ export default function CallsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setCalls(cached)
+        setCalls(Array.isArray(cached) ? (cached as Call[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         callService.getAll({ limit: 100 }).then(response => {

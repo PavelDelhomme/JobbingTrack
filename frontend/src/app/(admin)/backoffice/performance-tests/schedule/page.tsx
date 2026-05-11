@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 interface TestSchedule {
   id: string
   name: string
-  type: 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails'
+  type: 'performance-backend' | 'performance-frontend' | 'both' | 'performance-infrastructure' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails'
   interval: 'hourly' | 'daily' | 'weekly' | 'custom'
   customCron?: string
   enabled: boolean
@@ -32,7 +32,7 @@ export default function PerformanceTestsSchedulePage() {
   const [editingSchedule, setEditingSchedule] = useState<TestSchedule | null>(null)
   const [formData, setFormData] = useState({
     name: '',
-    type: 'both' as 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails',
+    type: 'both' as 'performance-backend' | 'performance-frontend' | 'both' | 'performance-infrastructure' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails',
     interval: 'daily' as 'hourly' | 'daily' | 'weekly' | 'custom',
     customCron: '',
     enabled: true
@@ -137,6 +137,9 @@ export default function PerformanceTestsSchedulePage() {
       }
       if (schedule.type === 'performance-frontend' || schedule.type === 'both') {
         await fetch('/api/test/run-performance-frontend', { method: 'POST' })
+      }
+      if (schedule.type === 'performance-infrastructure') {
+        await fetch('/api/test/run-performance-infrastructure', { method: 'POST' })
       }
       if (schedule.type === 'api') {
         await fetch('/api/test/run-api', { method: 'POST' })
@@ -264,9 +267,10 @@ export default function PerformanceTestsSchedulePage() {
                       <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {schedule.type === 'both' ? 'Performance Backend + Frontend' : 
-                           schedule.type === 'performance-backend' ? 'Performance Backend' : 
+                          {schedule.type === 'both' ? 'Performance Backend + Frontend' :
+                           schedule.type === 'performance-backend' ? 'Performance Backend' :
                            schedule.type === 'performance-frontend' ? 'Performance Frontend' :
+                           schedule.type === 'performance-infrastructure' ? 'Performance Infrastructure (BDD)' :
                            schedule.type === 'api' ? 'Tests API' :
                            schedule.type === 'backend' ? 'Tests Backend' :
                            schedule.type === 'frontend' ? 'Tests Frontend' :
@@ -388,6 +392,7 @@ export default function PerformanceTestsSchedulePage() {
                       <option value="both">Performance Backend + Frontend</option>
                       <option value="performance-backend">Performance Backend uniquement</option>
                       <option value="performance-frontend">Performance Frontend uniquement</option>
+                      <option value="performance-infrastructure">Infrastructure (BDD / schéma)</option>
                     </optgroup>
                     <optgroup label="Autres Types de Tests">
                       <option value="api">Tests API</option>

@@ -99,7 +99,9 @@ if command -v docker &> /dev/null; then
                             firstName: '$ADMIN_FIRST_NAME',
                             lastName: '$ADMIN_LAST_NAME',
                             role: 'SUPER_ADMIN',
-                            isActive: true
+                            isActive: true,
+                            emailVerified: true,
+                            emailVerifiedAt: new Date()
                         },
                         create: {
                             email: '$ADMIN_EMAIL',
@@ -107,7 +109,9 @@ if command -v docker &> /dev/null; then
                             firstName: '$ADMIN_FIRST_NAME',
                             lastName: '$ADMIN_LAST_NAME',
                             role: 'SUPER_ADMIN',
-                            isActive: true
+                            isActive: true,
+                            emailVerified: true,
+                            emailVerifiedAt: new Date()
                         }
                     });
                     console.log('✅ Utilisateur admin créé/mis à jour:', user.email);
@@ -144,8 +148,8 @@ if command -v docker &> /dev/null; then
                     const hashedPassword = await bcrypt.hash('$ADMIN_PASSWORD', 10);
                     await prisma.user.upsert({
                         where: { email: '$ADMIN_EMAIL' },
-                        create: { email: '$ADMIN_EMAIL', password: hashedPassword, firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true },
-                        update: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true }
+                        create: { email: '$ADMIN_EMAIL', password: hashedPassword, firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true, emailVerified: true, emailVerifiedAt: new Date() },
+                        update: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true, emailVerified: true, emailVerifiedAt: new Date() }
                     });
                     console.log('OK');
                 } finally { await prisma.\$disconnect(); }
@@ -172,7 +176,7 @@ if command -v docker &> /dev/null; then
         BCRYPT_ESC=$(echo "$BCRYPT_HASH" | sed 's/\$/\\$/g')
         # id obligatoire (Prisma @id @default(cuid())) : CUID-like = 'c' + 24 caractères (compatible toutes versions PG)
         docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
-        INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
+        INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
         VALUES (
           'c' || substr(md5(random()::text || now()::text), 1, 24),
           '$ADMIN_EMAIL',
@@ -181,6 +185,8 @@ if command -v docker &> /dev/null; then
           '$ADMIN_LAST_NAME',
           'SUPER_ADMIN',
           true,
+          true,
+          NOW(),
           NOW(),
           NOW()
         );
@@ -198,6 +204,8 @@ if command -v docker &> /dev/null; then
             \"lastName\" = '$ADMIN_LAST_NAME',
             role = 'SUPER_ADMIN',
             \"isActive\" = true,
+            \"emailVerified\" = true,
+            \"emailVerifiedAt\" = NOW(),
             \"updatedAt\" = NOW()
         WHERE email = '$ADMIN_EMAIL';
         " 2>&1)
@@ -224,8 +232,8 @@ else
 
         if [ -z "$EXISTS" ] || [ "$EXISTS" = "0" ]; then
             PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
-            INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
-            VALUES ('c' || substr(md5(random()::text || now()::text), 1, 24), '$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
+            INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
+            VALUES ('c' || substr(md5(random()::text || now()::text), 1, 24), '$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW());
             " 2>/dev/null || {
                 echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
                 exit 1
@@ -237,6 +245,8 @@ else
                 \"lastName\" = '$ADMIN_LAST_NAME',
                 role = 'SUPER_ADMIN',
                 \"isActive\" = true,
+                \"emailVerified\" = true,
+                \"emailVerifiedAt\" = NOW(),
                 \"updatedAt\" = NOW()
             WHERE email = '$ADMIN_EMAIL';
             " 2>/dev/null || {

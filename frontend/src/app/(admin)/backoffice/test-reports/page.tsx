@@ -6,6 +6,7 @@ import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare, Image } from 'lucide-react'
 import axios from 'axios'
+import { ReportIframe } from './ReportIframe'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
@@ -14,6 +15,8 @@ interface CompareReportData {
   name: string
   date: string
   time: string
+  /** ISO UTC pour affichage cohérent (optionnel) */
+  generatedAtISO?: string
   category: string
   summary: { total: number; passed: number; failed: number; skipped: number }
   tests: Array<{ num: number; name: string; status: 'pass' | 'fail'; expected: string; actual: string }>
@@ -90,6 +93,8 @@ interface TestReport {
   passed?: number
   failed?: number
   skipped?: number
+  /** Résumé JSON (ex. rapports sécurité imbriqués) */
+  summary?: unknown
   status?: 'success' | 'failed' | 'partial' | 'unknown'
   type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'other'
   size?: number
@@ -194,6 +199,12 @@ export default function TestReportsPage() {
           console.error('Erreur API affichage rapport:', data.error)
           alert(`Erreur: ${data.error}`)
         }
+      } else if (response.status === 404) {
+        const errorData = await response.json().catch(() => ({ error: 'Fichier non trouvé' }))
+        console.error('Rapport non trouvé:', reportId, errorData.error)
+        setReportContent(null)
+        setSelectedReport(null)
+        alert(`Rapport introuvable. Le fichier a peut-être été supprimé ou déplacé.\n\nID : ${reportId}\n\nRafraîchissez la liste pour ne voir que les rapports disponibles.`)
       } else {
         const errorData = await response.json().catch(() => ({ error: response.statusText }))
         console.error('Erreur chargement rapport:', errorData.error)
@@ -949,16 +960,7 @@ export default function TestReportsPage() {
                     </div>
                   </div>
                   <div className={`p-2 sm:p-4 ${isFullscreen ? 'h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]' : ''}`}>
-                    <iframe
-                      srcDoc={reportContent}
-                      className={`w-full border border-gray-200 dark:border-gray-700 rounded ${isFullscreen ? 'h-full' : 'h-[400px] sm:h-[500px] lg:h-[600px]'}`}
-                      title="Rapport de test"
-                      style={{
-                        maxWidth: '100%',
-                        overflow: 'auto',
-                        WebkitOverflowScrolling: 'touch'
-                      }}
-                    />
+                    <ReportIframe content={reportContent} isFullscreen={isFullscreen} />
                   </div>
                 </div>
               ) : (

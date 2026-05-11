@@ -4,6 +4,12 @@ Document de référence pour le développement et la validation de l’applicati
 
 ---
 
+## 📌 Par où commencer maintenant
+
+- **Validation manuelle vérification email** puis **suite sur l’app Flutter** : voir **[PROCHAINES_ETAPES.md](PROCHAINES_ETAPES.md)** (étapes précises à faire à la main, puis priorités Flutter).
+
+---
+
 ## 🚀 Premières étapes (auth puis dashboard)
 
 **Ordre de développement** : on commence par la base **authentification** (connexion uniquement via **email + mot de passe**) :

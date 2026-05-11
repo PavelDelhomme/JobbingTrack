@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Workflow Service (Health Check)",
+  "userType": "system",
+  "command": "curl -sf --max-time 10 'http://localhost:5016/health' || { echo 'Service non accessible (optionnel)'; exit 0; }",
+  "timestamp": "2026-05-06T11:13:04+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"service\":\"workflow-service\",\"timestamp\":\"2026-05-06T09:13:03.960Z\",\"version\":\"1.0.0\",\"environment\":\"development\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

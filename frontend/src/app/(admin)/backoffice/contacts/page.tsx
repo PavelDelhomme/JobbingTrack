@@ -49,7 +49,7 @@ export default function ContactsPage() {
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
       
       if (cached) {
-        setContacts(cached)
+        setContacts(Array.isArray(cached) ? (cached as Contact[]) : [])
         setLoading(false)
         // Rafraîchir en arrière-plan
         contactService.getAll({ limit: 100 }).then(response => {

@@ -1,7 +1,18 @@
 // Setup global pour les tests
 process.env.NODE_ENV = 'test';
+
+// Indication claire si les tests API Jest sont lancés sans gateway (ECONNREFUSED fréquent)
+// eslint-disable-next-line no-console
+console.info(
+  '[Jest] Tests API utilisent API_GATEWAY_URL / API_URL (voir tests/helpers/auth.helper.js + dockerHostUrl.js). ' +
+    'Prérequis : stack démarrée (make up-full) et port publié aligné sur API_GATEWAY_PORT.'
+);
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/jobbingtrack_test';
+// Secret de test explicite — le runtime dev/prod doit venir de .env / secret manager.
+if (!process.env.SECURITY_INTERNAL_SECRET) {
+  process.env.SECURITY_INTERNAL_SECRET = 'test-internal-security-secret';
+}
 
 // Configuration pour les tests
 global.testConfig = {

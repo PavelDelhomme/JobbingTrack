@@ -3,6 +3,8 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
 const axios = require('axios');
+const { logMetricsAggregatorFailure } = require('../utils/logMetricsAggregatorFailure');
+const { buildFallbackServicesPayload } = require('../utils/servicesMetricsFallback');
 
 // Map des noms de services frontend vers Docker (avec toutes les variantes possibles)
 const SERVICE_MAP = {
@@ -334,71 +336,8 @@ const getServicesList = async (req, res) => {
         throw new Error('Format de réponse invalide du service de métriques');
       }
     } catch (metricsError) {
-      logger.error('Service de métriques non disponible:', {
-        error: metricsError.message,
-        code: metricsError.code,
-        response: metricsError.response ? {
-          status: metricsError.response.status,
-          statusText: metricsError.response.statusText,
-          data: typeof metricsError.response.data === 'object' ? Object.keys(metricsError.response.data).slice(0, 5) : 'N/A'
-        } : 'N/A',
-        url: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
-        timestamp: new Date().toISOString()
-      });
-
-      // Fallback : retourner des données mockées si le service de métriques n'est pas disponible
-      const fallbackServices = [
-        {
-          name: 'api-gateway',
-          status: 'running',
-          port: 3000,
-          url: 'http://localhost:3000',
-          health: 'healthy',
-          version: '1.0.0',
-          environment: 'development',
-          type: 'api-gateway',
-          dataSource: 'fallback',
-          lastCheck: new Date().toISOString(),
-          responseTime: '45ms'
-        },
-        {
-          name: 'auth-service',
-          status: 'running',
-          port: 3001,
-          url: 'http://localhost:3001',
-          health: 'healthy',
-          version: '1.0.0',
-          environment: 'development',
-          type: 'auth',
-          dataSource: 'fallback',
-          lastCheck: new Date().toISOString(),
-          responseTime: '25ms'
-        },
-        {
-          name: 'frontend',
-          status: 'running',
-          port: 8080,
-          url: 'http://localhost:8080',
-          health: 'healthy',
-          version: '1.0.0',
-          environment: 'development',
-          type: 'frontend',
-          dataSource: 'fallback',
-          lastCheck: new Date().toISOString(),
-          responseTime: '120ms'
-        }
-      ];
-
-      return res.status(200).json({
-        success: true,
-        services: fallbackServices,
-        total: fallbackServices.length,
-        running: fallbackServices.filter(s => s.status === 'running').length,
-        dataSource: 'fallback',
-        fallback: true,
-        message: 'Liste des services (données de fallback - service de métriques indisponible)',
-        timestamp: new Date().toISOString()
-      });
+      logMetricsAggregatorFailure(logger, metricsError, { route: 'GET admin getServicesList' });
+      return res.status(200).json(buildFallbackServicesPayload());
     }
 
   } catch (error) {

@@ -488,4 +488,4 @@ curl -X POST http://localhost:3000/companies \
 ---
 
 **Version**: 4.1 - API étendue
-**Dernière mise à jour**: Octobre 2025
+**Dernière mise à jour** : Mars 2026

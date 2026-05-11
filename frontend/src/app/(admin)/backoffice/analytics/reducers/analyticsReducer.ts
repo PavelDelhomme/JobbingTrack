@@ -1,3 +1,5 @@
+import { metricTimestampToMs } from '@/lib/utils/date';
+
 /**
  * Reducer pour consolider les états de la page Analytics
  * Réduit de 15 useState à un seul useReducer
@@ -77,8 +79,9 @@ export function analyticsReducer(state: AnalyticsState, action: AnalyticsAction)
     case 'APPEND_METRICS_HISTORY':
       // ✅ OPTIMISATION : Limiter à 500 points lors de l'ajout
       const merged = [...state.metricsHistory, ...action.payload];
-      const sorted = merged.sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      const sorted = merged.sort(
+        (a, b) =>
+          (metricTimestampToMs(a.timestamp) ?? 0) - (metricTimestampToMs(b.timestamp) ?? 0)
       );
       const limited = sorted.slice(-500);
       return { ...state, metricsHistory: limited };

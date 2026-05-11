@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Security Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5017/health || echo 'Service non accessible'",
+  "timestamp": "2026-03-19T17:56:27+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"service\":\"security-service\",\"timestamp\":\"2026-03-19T16:56:26.588Z\",\"uptime\":13763.684194299,\"version\":\"1.0.1\",\"environment\":\"development\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
 const { initializePrisma } = require('./utils/prismaClient');
+const { requestContextMiddleware } = require('./utils/requestContext');
 
 const authRoutes = require('./routes/auth.routes');
 const preferencesRoutes = require('./routes/preferences.routes');
@@ -18,6 +19,7 @@ const notFound = require('./middlewares/notFound');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+app.set('trust proxy', true);
 
 // Configuration des middlewares
 app.use(helmet());
@@ -69,6 +71,7 @@ app.use(cors({
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(cookieParser()); // ✅ Middleware pour gérer les cookies
+app.use(requestContextMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -101,6 +104,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/preferences', preferencesRoutes);
+app.use('/api/v1/auth/preferences', preferencesRoutes); // alias pour tests et clients utilisant /auth/preferences
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/auth/users', usersRoutes); // ✅ Dupliquer pour compatibilité avec /api/v1/auth/users
 app.use('/api/v1/emails', emailRoutes);

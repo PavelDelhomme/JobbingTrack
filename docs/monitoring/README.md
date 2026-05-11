@@ -1,12 +1,14 @@
-# 📊 Système de Monitoring Complet - JobbingTrack
+# 📊 Monitoring - JobbingTrack
 
-[← Retour à la documentation](../README.md) | [← README principal](../../README.md) | [🧭 Navigation](../navigation.md)
+[← Retour à la documentation](../README.md) | [🧭 Navigation](../navigation.md)
 
-📖 **[Architecture Métriques](../architecture/metrics/README.md)** | **[Dépannage Métriques](../architecture/metrics/troubleshooting/README.md)**
+**Référence principale** : [metrics-flow.md](./metrics-flow.md) — flux des métriques (monitoring-c → metrics-aggregator → backoffice).
+
+**Guides détaillés** : [METRICS_DB_README.md](METRICS_DB_README.md) (BDD métriques), [MONITORING_GUIDE.md](MONITORING_GUIDE.md) (système de monitoring), [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) (optimisation metrics-aggregator).
 
 ## 🎯 Vue d'ensemble
 
-Système de monitoring complet pour JobbingTrack avec surveillance avancée des métriques, logs et alertes en temps réel.
+Métriques système et conteneurs : **metrics-aggregator** (Node, port 5004) agrège les données de **monitoring-c** (C, port 5098) ou Docker, persiste en PostgreSQL et expose une API pour le backoffice. Pas de Prometheus/Loki/Grafana par défaut (optionnel, voir archive).
 
 ## 🏗️ Architecture
 

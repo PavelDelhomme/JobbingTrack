@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { companyService } from '@/lib/api'
 import Link from 'next/link'
 import { usePagination } from '@/lib/hooks/usePagination'
@@ -15,6 +15,7 @@ interface Company {
   website?: string
   industry?: string
   size?: string
+  companyType?: 'EMPLOYER' | 'TEMP_AGENCY'
   location?: string
   description?: string
   createdAt: string
@@ -27,10 +28,20 @@ interface Company {
 export default function CompaniesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [companyTypeFilter, setCompanyTypeFilter] = useState<'ALL' | 'EMPLOYER' | 'TEMP_AGENCY'>('ALL')
+
+  // Initialiser le filtre depuis l'URL (ex. ?companyType=TEMP_AGENCY)
+  useEffect(() => {
+    const type = searchParams?.get('companyType')
+    if (type === 'TEMP_AGENCY' || type === 'EMPLOYER') {
+      setCompanyTypeFilter(type)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -43,35 +54,34 @@ export default function CompaniesPage() {
     if (isAuthenticated) {
       fetchCompanies()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, companyTypeFilter])
 
   const fetchCompanies = async () => {
     try {
       setLoading(true)
-      // ✅ OPTIMISATION : Utiliser le cache
-      const cacheKey = 'companies_list'
-      const cached = await (await import('@/lib/cache/cacheManager')).cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const params: { limit: number; companyType?: 'EMPLOYER' | 'TEMP_AGENCY' } = { limit: 100 }
+      if (companyTypeFilter === 'EMPLOYER') params.companyType = 'EMPLOYER'
+      if (companyTypeFilter === 'TEMP_AGENCY') params.companyType = 'TEMP_AGENCY'
+
+      const cacheKey = `companies_list_${companyTypeFilter}`
+      const cached = await (await import('@/lib/cache/cacheManager')).cacheManager.get(cacheKey, { ttl: 30000 })
+
       if (cached) {
-        setCompanies(cached)
+        setCompanies(Array.isArray(cached) ? (cached as Company[]) : [])
         setLoading(false)
-        // Rafraîchir en arrière-plan
-        companyService.getAll({ limit: 100 }).then(async response => {
-          const companies = response.data.companies || []
+        companyService.getAll(params).then(async response => {
+          const list = response.data.companies || []
           const { cacheManager } = await import('@/lib/cache/cacheManager')
-          await cacheManager.set(cacheKey, companies, { ttl: 30000 })
-          setCompanies(companies)
-        }).catch(() => {}) // Ignorer les erreurs en arrière-plan
+          await cacheManager.set(cacheKey, list, { ttl: 30000 })
+          setCompanies(list)
+        }).catch(() => {})
         return
       }
-      
-      // ✅ OPTIMISATION : Limiter à 100 entreprises par défaut (pagination)
-      const response = await companyService.getAll({ limit: 100 })
-      const companies = response.data.companies || []
-      setCompanies(companies)
-      
-      // Mettre en cache
-      await (await import('@/lib/cache/cacheManager')).cacheManager.set(cacheKey, companies, { ttl: 30000 })
+
+      const response = await companyService.getAll(params)
+      const list = response.data.companies || []
+      setCompanies(list)
+      await (await import('@/lib/cache/cacheManager')).cacheManager.set(cacheKey, list, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement entreprises:', error)
     } finally {
@@ -136,15 +146,31 @@ export default function CompaniesPage() {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
+        {/* Search + Filter */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4">
           <input
             type="text"
             placeholder="Rechercher une entreprise..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
+          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+            {(['ALL', 'EMPLOYER', 'TEMP_AGENCY'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setCompanyTypeFilter(f)}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  companyTypeFilter === f
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+              >
+                {f === 'ALL' ? 'Toutes' : f === 'EMPLOYER' ? 'Employeur' : 'Boîte d\'intérim'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Companies Table */}
@@ -156,6 +182,9 @@ export default function CompaniesPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Entreprise
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Secteur
@@ -201,6 +230,15 @@ export default function CompaniesPage() {
                           )}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                        company.companyType === 'TEMP_AGENCY'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {company.companyType === 'TEMP_AGENCY' ? 'Boîte d\'intérim' : 'Employeur'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                       {company.industry || '-'}
@@ -373,6 +411,7 @@ function CreateCompanyModal({ onClose, onSuccess }: {
     website: '',
     industry: '',
     size: '',
+    companyType: 'EMPLOYER' as 'EMPLOYER' | 'TEMP_AGENCY',
     location: '',
     description: ''
   })
@@ -450,14 +489,29 @@ function CreateCompanyModal({ onClose, onSuccess }: {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Sélectionner...</option>
-                <option value="1-10">1-10 employés</option>
-                <option value="11-50">11-50 employés</option>
-                <option value="51-200">51-200 employés</option>
-                <option value="201-500">201-500 employés</option>
-                <option value="501-1000">501-1000 employés</option>
-                <option value="1000+">1000+ employés</option>
+                <option value="STARTUP">STARTUP (&lt; 10)</option>
+                <option value="SMALL">SMALL (10-50)</option>
+                <option value="MEDIUM">MEDIUM (50-250)</option>
+                <option value="LARGE">LARGE (250-1000)</option>
+                <option value="ENTERPRISE">ENTERPRISE (&gt; 1000)</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Type
+              </label>
+              <select
+                value={formData.companyType}
+                onChange={(e) => setFormData({ ...formData, companyType: e.target.value as 'EMPLOYER' | 'TEMP_AGENCY' })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="EMPLOYER">Employeur</option>
+                <option value="TEMP_AGENCY">Boîte d&apos;intérim</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Localisation

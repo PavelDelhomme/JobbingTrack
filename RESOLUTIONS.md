@@ -1,6 +1,556 @@
 # Resolutions appliquees
 
-**Derniere mise a jour** : 26 fevrier 2026
+**Dernière mise à jour** : 6 mai 2026
+
+---
+
+## 6 mai 2026 — Durcissement partiel Docker Compose & suivi sécurité infra (lot B14)
+
+### Contexte
+- Audit externe (Perplexity) listant secrets par défaut, montage **`docker.sock`**, **`WAF_ENABLED=false`** sur la gateway, Redis sans auth, fichiers **`*.backup.*`** versionnés, **`JWT_SECRET`** manquant côté **profile-service**, etc.
+
+### Correctifs livrés (dépôt)
+1. **`docker-compose.yml`** : **`WAF_ENABLED=${WAF_ENABLED:-true}`** ; **`METRICS_API_KEY=${METRICS_API_KEY:-…}`** ; **profile-service** : **`JWT_SECRET`** aligné sur les autres services ; healthcheck **postgres** : **`pg_isready -U $POSTGRES_USER -d $POSTGRES_DB`** (variables conteneur) ; **frontend** : défaut **`HOST_IP=localhost`** pour les **`NEXT_PUBLIC_*`** ; **security-service** : **`security_opt: no-new-privileges:true`**.
+2. **`.env.example`** : **`WAF_ENABLED=true`** (comportement type prod ; **`false`** seulement pour diagnostic local), **`METRICS_API_KEY`**, **`HOST_IP=localhost`**, sections variables en **ordre alphabétique** ; **`make env-reorder`** pour réaligner **`.env`**.
+3. Suppression des fichiers **`backend/api-gateway/src/server.js.backup.20251023_*`** ; **`.gitignore`** : **`**/*.backup.*`** ; ajustement règle Docker : **`/.dockerignore`** seulement à la racine (pour ne plus ignorer **`backend/.dockerignore`** versionné) ; **`backend/.dockerignore`** pour exclure les backups du contexte de build.
+4. Documentation : **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** ; mises à jour **`PLAN.md`** (**B14**), **`TODOS.md`**, **`STATUS.md`**, **`ERRORS.md`**, **`FONCTIONNALITES.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+
+### Reste
+- Chantiers **BX1–BX14** (Redis **`requirepass`**, proxy socket, non-root collecteurs, **`read_only`**, limites ressources, compose prod strict, bootstrap admin, etc.) — ne pas les traiter « en douce » sans plan de migration : **`TODOS.md`** § **B14**.
+
+---
+
+## 24 avril 2026 — Analytics conteneurs : graphes vides + lenteur ; `next build` / `self`
+
+### Problème
+- Graphes **CPU / mémoire** vides alors que la liste de conteneurs s’affichait ; chargement **très long** en mode **Tous les conteneurs**.
+- **`next build`** : **`ReferenceError: self is not defined`** pendant la collecte des pages ; tentatives de **BannerPlugin** webpack sur `vendors.js` → régression **`webpack-runtime.js`**.
+
+### Correctifs
+1. **metrics-aggregator** — **`docker.routes.js`** : fonction **`normalizeDockerPsName`** ; **`/api/v1/docker/services/all`** renvoie des **`name`** sans slash ; **`statsMap`** indexé sous forme brute et canonique ; **`normaliseServiceKey`** normalise l’entrée (probes HTTP cohérents).
+2. **metrics-aggregator** — **`persistence.service.js`** : **`getContainerMetricsHistory`** filtre sur **`containerName`** normalisé (sans `/` initial).
+3. **frontend** — **`analytics.service.ts`** : segment de chemin **`encodeURIComponent`** + normalisation liste ; **`containers/page.tsx`** : **`promisePool`** (concurrence **5**) pour les historiques multi-conteneurs.
+4. **frontend** — **`scripts/self-server-polyfill.cjs`** + **`package.json`** `build` avec **`NODE_OPTIONS='--require …'`** ; **`src/instrumentation.ts`** + **`next.config.js`** `experimental.instrumentationHook`.
+5. **`ERRORS.md`** : sections **Analytics conteneurs** et **`self` / `next build`**.
+
+---
+
+## 24 avril 2026 — Frontend : `GET /health` en 500 (réécriture vers l’API Gateway)
+
+### Problème
+- Les logs **`jobbingtrack-frontend`** montraient **`GET /health` 500** (et parfois **`GET /` 500**) alors que le souci immédiat pouvait être une **erreur de compile** ou un **proxy** ; la réécriture **`/health` → `/api/health` → `http://api-gateway:3000/health`** faisait dépendre la liveness **sur le port Next** de la joignabilité de la **gateway** dans Docker.
+
+### Correctifs
+1. **`frontend/next.config.js`** : suppression de la réécriture **`source: '/health'`** ; conservation de **`/api/health`** → gateway pour une sonde « stack » si besoin.
+2. **`frontend/src/app/health/route.ts`** : ajout de **`HEAD`** (statut **200** sans corps) pour les probes **`wget --spider`** / **`curl -I`**.
+3. **`ERRORS.md`** : section **Next.js — `GET /health` ou `HEAD /` en 500** (compile vs ancienne réécriture).
+
+---
+
+## 7 avril 2026 — Lot A1 : socle graphes historique service (`useServiceHistoryChartData` + modèle pur)
+
+### Contexte
+- La dérivation des séries Recharts (lignes avec **`timeMs`**, débit Block I/O Mo/min, plafonds d’axes CPU/mémoire/I-O) vivait en **sept `useMemo`** dans **`services/[serviceName]/page.tsx`**, sans réutilisation possible pour les autres écrans monitoring.
+
+### Correctifs
+1. **`frontend/src/lib/monitoring/serviceHistoryChartModel.ts`** : fonctions pures **`buildHistoryChartRows`**, **`buildHistoryChartRowsIo`**, **`historyCpuMaxY`**, **`historyMemMaxY`**, **`historyAxisShowDateForSpan`**, **`historyBlockMbMaxY`**, **`historyIoRateMaxY`** (export des types **`ServiceHistoryChartRow`** / **`ServiceHistoryIoRow`**).
+2. **`frontend/src/lib/monitoring/useServiceHistoryChartData.ts`** : hook **`useServiceHistoryChartData(serviceHistory)`** qui enchaîne les **`useMemo`** et retourne l’objet attendu par la page.
+3. **`frontend/.../services/[serviceName]/page.tsx`** : import du hook ; **`serviceHistory`** typé **`ServiceHistoryPoint[]`** ; suppression des **`useMemo`** dupliqués et de l’import **`useMemo`**.
+
+### Complément (même jour — A1a / A1c / tests A1b)
+- **`frontend/src/lib/monitoring/serviceHistorySources.ts`** : **`loadServerHistoryPoints`**, **`historyPointsFromAggregatorChartData`** ; la page détail appelle **`loadServerHistoryPoints`** dans **`loadServiceData`**.
+- **`frontend/src/components/monitoring/MonitoringServiceHistoryCharts.tsx`** : bloc Recharts « Historique des performances ».
+- **Tests** : **`serviceHistoryChartModel.test.ts`**, **`serviceHistorySources.test.ts`** ; scripts **`npm run test:service-detail-page`**, **`test:service-history-model`** ; **`ERRORS.md`** § Jest **`testPathPattern`** vs crochets **`[serviceName]`**.
+
+### Suite (A1 — même lot)
+- Lazy **`@/lib/charts`** / **`rechartsTooltipProps`** homogènes avec **analytics** si schéma aligné.
+- Brancher le **hook** (ou le modèle seul) sur **vue d’ensemble** `/backoffice`, **analytics**, **statistique**, si le schéma de points est aligné.
+
+---
+
+## 7 avril 2026 — `make up-full` : ENOTFOUND gateway → security / metrics ; faux positifs `/api/v1/metrics`
+
+### Problème
+- Les logs **`jobbingtrack-api-gateway`** montraient **`getaddrinfo ENOTFOUND`** pour **`security-service`** et **`jobbingtrack-security-service`**, et des erreurs proxy **`/api/v1/metrics`** (parfois sérialisées de façon illisible).
+- **Cause** : **`_up-full-internal`** démarrait **`api-gateway`** avant le batch **`--profile full`** (dont **`security-service`**) et avant le profil **`monitoring`** (**`jobbingtrack-metrics-aggregator`**). Le front / le navigateur interroge tout de suite ces routes → **DNS introuvable** pendant une fenêtre.
+- **Faux positifs sécurité** : le motif **`UNAUTHORIZED_ACCESS`** incluait **`/api/v1/metrics`** ; le dashboard appelle cette URL sans en-tête « admin » → alertes **`INTRUSION ÉLEVÉE`** et entrées **`unauthorized_access`** en base.
+
+### Correctifs
+1. **`makefiles/services/Makefile`** : après l’attente Postgres, **pré-démarrage** de **`security-service`** (profil **`full`**) puis **`monitoring-c`** + **`jobbingtrack-metrics-aggregator`** (profil **`monitoring`**), **6 s** d’attente, **puis** **`api-gateway`** + **`auth-service`**.
+2. **`backend/api-gateway/src/middleware/intrusionDetector.js`** : retrait de **`/api/v1/metrics`** des patterns **`UNAUTHORIZED_ACCESS`** (commentaire explicite).
+3. **`backend/api-gateway/src/server.js`** : journalisation d’erreur du proxy métriques avec **`message` / `code` / fallback** lisible.
+
+### Doc
+- **`ERRORS.md`**, **`STATUS.md`**, **`PLAN.md`**, **`TODOS.md`** mis à jour en parallèle (**`up-full-timed`**, pondération score **`securityScoreWeights`** côté **B10**).
+
+### Suite — `make up-full-timed` / `test-full-timed` (erreur 127 `time`)
+- Sous **`sh`** sans builtin **`time`**, **`make`** interprétait **`time`** comme une cible inexistante → **127**.
+- **`makefiles/tests/Makefile`** : **`bash -c 'time $(MAKE) up-full'`** (idem **`test-full-timed`**).
+
+---
+
+## 23 avril 2026 — Lot A1 : historique Block I/O + snapshots agrégés
+
+### Contexte
+- Les snapshots fichier par service (**`metricsHistory.saveServiceSnapshots`**, alimentés par **`GET /api/v1/docker/jobbingtrack/aggregated`**) ne contenaient pas **`block_read_mb` / `block_write_mb`** dans chaque entrée **`containers[]`**, donc **`GET …/docker/service/<nom>/history`** ne pouvait pas alimenter de courbes I/O alignées CPU/mémoire/réseau.
+- Le **mock `fetch`** vers **`/api/v1/metrics`** dans **`page.test.tsx`** sert **uniquement** aux **tests Jest** (voir **`ERRORS.md`** § Tests Jest) — pas au runtime.
+
+### Correctifs
+1. **`backend/metrics-aggregator-service/src/routes/docker.routes.js`** : pour chaque ligne **`serviceInsights`**, ajout de **`block_read_mb`** et **`block_write_mb`** (octets Docker stats → Mo) ; même chose dans **`servicesSummary[].metrics`**.
+2. **`frontend/.../services/[serviceName]/page.tsx`** : type **`HistoryPoint`** étendu ; **`normalizeServerHistoryRows`** ; points de **session** ; fallback **`chartData`** ; graphes **Block I/O (cumul)** et **débit estimé** (ΔMo / Δt en Mo/min) ; **`historyChartRowsIo`**.
+3. **Tests** : **`page.test.tsx`** (historique mock avec I/O ; attentes graphiques ; mock **`/api/v1/metrics`** inchangé côté rôle).
+
+### Reste (produit / A1)
+- **Liste des processus** (ex. `docker top`) : pas implémentée — à cadrer si besoin enquête / support.
+
+---
+
+## 6 mai 2026 — Corrélation incidents: chargement tableau clarifié
+
+### Problème
+- Pendant le chargement des incidents corrélés, le tableau pouvait paraître vide/ambigu pour l'utilisateur.
+
+### Correctif
+1. `frontend/src/app/(admin)/backoffice/performances/correlation/page.tsx`:
+   - ajout d'un état de chargement animé (skeleton lignes) dans le tableau "Corrélation fine incidents ↔ points métriques",
+   - message explicite "Chargement de la correlation incidents..." sous le tableau.
+
+### Résultat attendu
+- Plus de confusion visuelle pendant le fetch incidents: l'utilisateur voit immédiatement qu'un chargement est en cours.
+
+---
+
+## 6 mai 2026 — Metrics-aggregator: réduction des cycles coûteux
+
+### Problème
+- Des pics CPU ponctuels apparaissaient sur `jobbingtrack-metrics-aggregator`, notamment lors de cycles où la collecte fallback Docker et les health checks étaient exécutés trop fréquemment.
+
+### Correctif
+1. `backend/metrics-aggregator-service/src/server.js`:
+   - ajout d'un throttle du fallback Docker (`DOCKER_FALLBACK_INTERVAL_MS`, défaut 60s),
+   - ajout d'un throttle des health checks services (`SERVICE_HEALTH_CHECK_INTERVAL_MS`, défaut 30s),
+   - réutilisation du dernier état de santé quand le refresh n'est pas nécessaire.
+
+### Effet attendu
+- Baisse des pics CPU liés aux itérations de collecte les plus coûteuses.
+- Réduction de la pression réseau/HTTP interne sur les checks de santé.
+
+---
+
+## 6 mai 2026 — Frontend monitoring: réduction massive CPU/RAM en dev
+
+### Problème
+- `jobbingtrack-frontend` consommait fortement CPU/RAM (pics >300% CPU et ~4 GiB RAM) sur le mode dev.
+
+### Correctifs
+1. `docker-compose.yml` (service `frontend`):
+   - `WATCHPACK_POLLING` désactivé par défaut (polling coûteux),
+   - ajout de `NODE_OPTIONS` avec limite mémoire (`--max-old-space-size=2048` par défaut),
+   - healthcheck simplifié (`curl` unique) pour éviter la double requête `HEAD`+`GET`.
+
+### Résultat mesuré
+- CPU `frontend` tombé autour de 1-2% sur les échantillons post-correctif.
+- RAM `frontend` tombée autour de 220-232 MiB.
+
+---
+
+## 22 avril 2026 (suite) — Lot A2 : query logs gateway + port interne log-collector-c
+
+### A2 — Alignement `admin/logs` et proxy `/api/v1/services/:name/logs`
+- **`api-gateway/src/utils/dockerLogsQuery.js`** : whitelist **`since`/`until`** + **`lines`** 10–5000 (identique **`metrics-aggregator`** `docker.routes.js`) ; **`normalizeDockerLogsQuery()`** pour construire la query string du proxy.
+- **`server.js`** : le proxy vers l’agrégateur réutilise **`normalizeDockerLogsQuery`** ; réponse avec **`query`** effective.
+- **`logs.controller.js`** : même sanitisation avant **`docker exec`**.
+- **Tests Jest** : `tests/dockerLogsQuery.test.js` (sanitizers + **`normalizeDockerLogsQuery`**). Complément recommandé : smoke **`make tests`** / curl avec stack up.
+
+### log-collector-c — port d’écoute **3019** dans le conteneur (hôte **5099** inchangé)
+- **Problème** : mappage **5099:5099** prêtait à confusion avec la convention **50xx hôte → 30xx interne** des services Node.
+- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/verify-system.sh`** ; **`scripts/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
+
+---
+
+## 22 avril 2026 — Détection d’intrusion (gateway), B6, tests gateway, checklist préprod
+
+### Contexte
+- Le middleware **`intrusionDetection`** était **désactivé** à cause de **`patternConfig is not defined`** (variable de boucle réutilisée pour le brute-force) et d’un **`next()`** appelé après une réponse **403** (double envoi).
+- Les actions **NTP**, validation **security-service** sur le terrain, et secrets **prod** ne peuvent pas être exécutées depuis le dépôt seul.
+
+### Correctifs
+1. **`intrusionDetector.js`** : `checkBruteForce(req, INTRUSION_PATTERNS.BRUTE_FORCE)` ; **`handleIntrusionResponse`** retourne **`true`** si la requête est terminée (403 critique) ; **`detect`** fait **`return`** dans ce cas.
+2. **Réactivation** dans **`server.js`** après parsers JSON (ordre cohérent avec le corps des requêtes). Garde-fous : **`INTRUSION_DETECTION_ENABLED=false`**, **`NODE_ENV=test`** (Jest), **`X-Test-Mode: true`**, User-Agent **Playwright** → pas d’exécution (évite faux positifs / Redis absent en test unitaire).
+3. **`requestCorrelation`** : inchangé fonctionnellement ; métadonnées / en-têtes vers **security-service** conservées.
+4. **`scripts/run-all-tests-with-reports.sh`** : étape **« API Gateway (Jest local) »** après les tests backend **`tests/`** (`api-gateway-jest.json`).
+5. **`.env.example`** : **`INTRUSION_DETECTION_ENABLED`** documenté.
+6. **Nouveau** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** ; **`TODOS.md`** § actions manuelles ; **`PLAN.md`** lien documentaire.
+
+### À faire côté porteur
+- Cocher la checklist **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** avant préprod/prod (y compris **§ F** SMTP / TLS / **`CRASH_REPORT_EMAIL`**).
+- **`make test-all`** : l’étape **Jest API Gateway** s’exécute d’abord dans le conteneur **`jobbingtrack-api-gateway`** si la stack est up (`docker ps`) ; le fallback **hôte** + `npm install` dans **`backend/api-gateway`** ne sert que sans conteneur.
+
+---
+
+## 17 avril 2026 — Suite `make tests` : URLs hôte, script API, perf, gateway health, monitoring Jest
+
+### Problèmes observés (rapport type **`tests/results/20260417-222318/`**)
+- Jest **`ENOTFOUND api-gateway`** / **`monitoring-c`** ; **`ECONNREFUSED 127.0.0.1:3000`** quand **`.env`** pointe la gateway vers un mauvais port.
+- Script **`test-api-specific.sh`** : **`Status: 000`** avec un corps JSON qui semblait valide (fichier **`/tmp/response.txt`** partagé + **`curl` `000`** sans HTTP).
+- **`test-monitoring-c-endpoints.test.js`** : échec **`load_score`** absent dans certaines payloads gateway.
+- **`test-performance.js`** : **✅ 0/N** et sortie **0** même en échec total ; étape **`make tests`** marquée succès.
+- **`run-all-tests-with-reports.sh`** : test **API Gateway Health** trop strict (**`/health` && `/metrics`**) ; **`API_GATEWAY_URL`** avec nom Docker depuis l’hôte.
+
+### Correctifs
+1. **`tests/helpers/dockerHostUrl.js`** : normalisation **`api-gateway`**, **`monitoring-c`** (port hôte **`MONITORING_C_PORT`**), **`jobbingtrack-metrics-aggregator`** ; **`auth.helper`** s’appuie dessus.
+2. **`tests/api/test-monitoring-c-endpoints.test.js`** : URLs normalisées ; **`load_score`** non bloquant.
+3. **`tests/performance/test-performance.js`** : URLs + auth service ; icône charge si 0 succès ; **`process.exit(1)`** si API ou charge en échec.
+4. **`scripts/test-api-specific.sh`** : **`mktemp`** par appel **`test_endpoint`** ; normalisation **`api-gateway`** ; **`curl`** sans **`eval`**.
+5. **`scripts/run-all-tests-with-reports.sh`** : après **`.env`**, normalisation **`API_GATEWAY_URL`** / **`METRICS_AGGREGATOR_URL`** ; health gateway = **`curl -sf …/health`** seul (timeout 15 s) ; firewall : **`API_GATEWAY_URL`** exportée correctement.
+6. **`tests/api/test-bdd-relations.test.js`** : messages d’erreur explicites si pas de token / chaîne BDD incomplète.
+
+### Reste (hors ce commit)
+- Durcir **exit codes** des scripts intégration / sécurité quand **`ENOTFOUND`**.
+- Stabiliser **Playwright** (login, **`api-e2e`**) — **`TODOS.md`** lot F.
+- Backlog métriques / graphiques / tests dédiés par surface (réseau, applications, conteneurs, user analytics, stats) — **`PLAN.md`** A5 / F1.
+
+---
+
+## 7 avril 2026 (suite) — Tooltips Recharts (mode sombre) + fiabilité Jest (`tests/`) + test firewall
+
+### Problèmes
+- **Backoffice analytics** : survol des graphiques Recharts en **thème sombre** → infobulle **illisible** (texte clair sur fond clair ou équivalent).
+- **`make tests` / Jest `tests/api/`** : crash worker **`TypeError: Converting circular structure to JSON`** (sérialisation IPC Node 22).
+- **`tests/backend/test-security-service.test.js`** : IP **`192.168.1.999`** invalide → **400** ; **`API_GATEWAY_URL=http://api-gateway:…`** depuis l’hôte → **`ENOTFOUND`**.
+
+### Correctifs
+1. **`frontend/src/lib/charts/rechartsTooltipTheme.ts`** : styles **`contentStyle` / `labelStyle` / `itemStyle`** basés sur les **tokens CSS** shadcn (`hsl(var(--popover))`, etc.) ; import **`rechartsTooltipProps`** sur **`/backoffice/analytics`** (performances, réseau, conteneurs, page test CPU).
+2. **`tests/jest.config.js`** : **`maxWorkers: 1`** pour éviter les crashs worker sur la suite API.
+3. **`tests/helpers/auth.helper.js`** : **`normalizeGatewayUrlForHost`** — hostname **`api-gateway`** → **`http://127.0.0.1:<port>`** (port compose ou **`API_GATEWAY_PORT`** ou **5002**).
+4. **`tests/backend/test-security-service.test.js`** : **`API_URL`** depuis **`auth.helper`** ; IP de blocage de test **`192.168.254.254`**.
+5. **`tests/api/test-bdd-relations.test.js`** : suppression des **`return expect(…).toBeTruthy()`** (garder uniquement **`expect(…)`** pour l’échec rapide).
+
+### Vérification
+- Manuel : **`/backoffice/analytics/performances`** (et réseau / conteneurs / page CPU) en **dark** — infobulle lisible.
+- **`cd tests && npx jest api/ backend/test-security-service.test.js`** avec stack gateway joignable.
+
+---
+
+## 7 avril 2026 (suite) – Front analytics : **`timestampMs`** désaligné de la chaîne **`timestamp`**
+
+### Problème
+- Graphiques **performances** / **réseau** / **conteneurs** : l’axe ou les points pouvaient rester **décalés** (~2 h ou valeur « figée ») malgré un **ISO `timestamp`** correct dans la réponse JSON, car **`metricRowToTimeMs`** privilégiait **`timestampMs`** et **`normalizeMetricRows`** recopiait un **`timestampMs`** incohérent au lieu de le recalculer depuis l’ISO.
+
+### Correctifs
+1. **`frontend/src/lib/api/analytics.service.ts`** — fonction **`normalizeMetricRows`** (exportée pour les tests) : dès qu’un **`timestamp`** normalisé est un ISO parseable, **`timestampMs = Date.parse(ts)`** — **une seule source de vérité** côté client après sérialisation JSON.
+2. **`frontend/src/__tests__/unit/analytics-metric-rows-normalize.test.ts`** : garde-fou (**`TZ=Europe/Paris`**) — **`timestampMs`** erroné (+2 h) écrasé ; **`formatLocalChartAxisTick`** et **`metricRowToTimeMs`** cohérents avec l’instant attendu.
+
+### Vérification
+- **`npm run test:unit`** (inclus dans **`npm run test:unit-and-analytics`**) : la suite **`unit`** couvre ce fichier.
+- **Manuel** : recharger **`/backoffice/analytics/performances`**, utiliser **« Période actuelle (→ maintenant) »** — l’axe doit suivre l’**heure locale du navigateur** pour les points renvoyés avec ISO correct. Si les **lignes déjà stockées** en BDD ont été écrites avec une session Postgres hors **UTC** (naïfs décalés), corriger l’infra (**`POSTGRES_SYSTEM_METRICS_TZ`**, **`make monitoring-clock-refresh`**) reste nécessaire en parallèle (voir entrée **Historique `system_metrics`** ci-dessous).
+
+---
+
+## 7 avril 2026 (suite) – Historique **`system_metrics`** : axe ~2 h + **`make restart`** / mode de stack
+
+### Problème
+- Graphiques **performances** / **statistiques** : heures proches de **UTC** (ex. **09:07** sur l’axe alors que l’horloge locale affiche **11:07** en été européen) — lecture **`TIMESTAMP` sans fuseau** via Prisma **`$queryRaw`** sans normalisation **UTC** explicite.
+- Besoin de rappeler après un **`make up-dev`** que **`make restart`** ne relance pas les **tests** ni **`db-push-all`**.
+
+### Correctifs
+1. **`backend/metrics-aggregator-service/src/services/persistence.service.js`** : requête **`getSystemMetricsHistory`** — **`SELECT`**, filtres **`WHERE`** et **`ORDER BY`** sur **`(timestamp AT TIME ZONE …)`** où le fuseau = **`POSTGRES_SYSTEM_METRICS_TZ`** (défaut **UTC**, **même** valeur que la session **`postgres`** pour **`NOW()`**) — évite le décalage **+2 h** si Postgres était en **Europe/Paris** et le SQL supposait à tort **UTC**.
+2. **`docker-compose.yml`** : service **`jobbingtrack-metrics-aggregator`** — **`POSTGRES_SYSTEM_METRICS_TZ`** alignée sur **`postgres`** ; **`TZ=UTC`** pour le runtime Node.
+3. **Makefile** : cible **`make restart-metrics-recreate`** (et alias racine **`make restart-force-recreate-metrics`**) : **`docker compose up -d --force-recreate --no-deps`** sur **monitoring-c** + **jobbingtrack-metrics-aggregator** — **`make restart` seul** ne recrée pas les conteneurs (les **env** compose ne changent pas).
+4. **Makefile** : fichier racine **`.jobbingtrack-stack-mode`** (ignoré par Git) ; **`make restart`** affiche un rappel ; suppression sur **`make down`**, **`down-clean`**, **`restart-clean`**.
+
+### Vérification
+- **`make restart-metrics-recreate`** (ou **`make restart-force-recreate-metrics`** à la racine), puis **`/backoffice/analytics/performances`** : graduations et **« Dernier point (heure locale) »** alignés avec l’horloge du navigateur ; changer le fuseau OS/navigateur → les libellés suivent (**`Intl`** dans **`date.ts`**).
+- **`make restart`** : message affichant **`up-dev`** / **`up-full`** / **`up-essential`** selon le dernier démarrage enregistré — ne suffit **pas** à prendre en compte de nouvelles **env** Docker sur l’agrégateur.
+
+---
+
+## 7 avril 2026 (suite) – `make status` / `status-watch` : couleurs littérales `\033` + conflit `up-dev`
+
+### Problème
+- Sous **`/bin/sh`** (souvent **dash**), **`echo "\033[…]"`** n’interprète pas les séquences ANSI : la **légende des ports** s’affichait en texte brut dans **`make status`** et **`make status-watch`**.
+- **GNU Make** avertissait : *« ancienne recette ignorée pour la cible `up-dev` »* car **`up-dev`** était défini à la **racine** (tout-en-un) et dans **`makefiles/database/Makefile`** (PostgreSQL/Redis dev seuls).
+
+### Correctifs
+1. **`makefiles/services/Makefile`** : légende et messages colorés de la boucle → **`printf '%b\n' "…"`** ; **`INTERVAL`** par défaut **5** s (au lieu de 10) pour **`status-watch`**.
+2. **`makefiles/database/Makefile`** : renommage **`up-dev`** → **`db-up-dev`** (`.PHONY`, aide, recette) ; documentation **`makefiles/README.md`**, **`docs/development/makefile/README.md`**.
+
+### Vérification
+- **`make status`** puis **`make status-watch`** (quelques cycles) : légende grise/cyan/jaune lisible ; **`make -n up-dev`** ne doit plus signaler de recette ignorée pour la base (une seule cible **`up-dev`** = racine).
+
+---
+
+## 7 avril 2026 (suite) – `/backoffice/analytics` : « Element type is invalid » (composant `undefined`)
+
+### Problème
+- En dev (webpack Next), la page **Test CPU** (`AnalyticsPage`) plantait avec **Element type is invalid** (souvent **12** erreurs en cascade dans `reconcileChildrenArray`), typique d’un **composant React `undefined`** (icône Lucide ou export du baril analytics).
+
+### Correctifs
+1. **`frontend/next.config.js`** : retirer **`lucide-react`** de **`experimental.optimizePackageImports`**. Avec le baril **`@/lib/icons`** qui ré-exporte de nombreuses icônes, l’optimisation Next pouvait produire des **imports résolus à `undefined`** côté client.
+2. **`frontend/src/app/(admin)/backoffice/analytics/page.tsx`** : ne plus importer depuis le baril **`@/components/analytics`** pour cette page — **imports directs** de `ChartPeriodCaption`, `timeRangeUtils`, type `TimeRangeOption` depuis les fichiers du dossier `components/analytics/` ; **`Cpu`** depuis **`@/lib/icons`** (OK une fois Lucide non optimisé de cette façon).
+
+### Vérification
+- **`npm run test:unit-and-analytics`** (ou en deux temps : `jest unit` puis `jest --testPathPattern=backoffice/analytics`) : suites vertes incl. smoke des sous-routes analytics.
+
+---
+
+## 7 avril 2026 – Vue sécurité / Analyse : fenêtre logs, détections, temps de réponse, fuseaux
+
+### Problème
+- Compteurs **vue d’ensemble** (0 logs, 0 détections) alors que l’**Analyse** montrait beaucoup de signaux : l’API logs applique par défaut **24 h** et la vue ne lisait pas **`metrics.responseTime`** à la racine → **N/A** ; incidents sans clarification (données réelles vs test).
+
+### Correctifs
+- Front **vue sécurité** : `GET /api/v1/security/logs?limit=500&startDate=…` sur **30 jours** ; **détections** = logs (hors `network_threat_detected` pour éviter doublon avec la table menaces) + agrégat menaces (SQLi / XSS / autres / DDoS) comme l’Analyse ; **temps de réponse** via `pickResponseTimeMs` (`responseTime.average_ms` agrégateur + repli) ; texte explicatif sur les **incidents** ; horodatages en **locale navigateur** (`formatLocalDateTime` avec fuseau court).
+- Front **Analyse** : même fenêtre **30 j.** pour les logs ; module partagé **`src/lib/security/threatSignals.ts`** + test unitaire.
+- **metrics-aggregator** : plus de **NaN** sur `responseTime.average_ms` quand aucune mesure service.
+- **Menaces API** : `enrichThreatForApi` (liste + détail + création) pour **`destIp`** dérivée des métadonnées si absente ; **POST** accepte **`destIp`** IPv4 optionnel.
+- **Mobile** : `lib/utils/datetime_display.dart` + README (ISO → affichage local).
+
+---
+
+## 8 avril 2026 – `make security-live-check` : 401 sans token + génération menaces
+
+### Problème
+- **`test-firewall.sh`** (invoqué avec `API_GATEWAY_URL` = URL du **security-service**) : les tests 21 attendaient **401/403** sur `GET /api/v1/security/firewall/rules` **sans** `Authorization`, mais le service répondait **200** (routes ouvertes).
+- **`generate-test-threats.sh`** : type **`XSS_ATTACK`** refusé par l’API (**400**) ; la liste autorisée expose **`XSS`** (`ALLOWED_THREAT_TYPES`).
+
+### Solution
+1. **Middleware** `requireFirewallWafAccess` sur `/api/v1/security/firewall` et `/api/v1/security/waf` : **JWT** (`Authorization: Bearer`, même secret que l’auth) **ou** header machine **`X-Internal-Secret`** (variable d’environnement **`SECURITY_INTERNAL_SECRET`**, défaut dev aligné avec `docker-compose.yml`).
+2. **docker-compose** : `JWT_SECRET` + `SECURITY_INTERNAL_SECRET` sur **security-service** ; même secret interne sur **api-gateway** et **auth-service** ; gateway envoie le header sur `POST .../firewall/threats` (payload trop gros).
+3. **Scripts** : `live-security-check.sh` exporte le secret et l’envoie aux sondes curl ; `test-firewall.sh` / `generate-test-threats.sh` envoient **`X-Internal-Secret`** sauf cas négatifs (**`SKIP_INTERNAL_AUTH_HDR=1`** pour les tests « sans token »).
+4. **Menaces test** : `XSS_ATTACK` → **`XSS`**.
+
+### Fichiers touchés (principaux)
+`backend/security-service/src/middleware/firewallWafAuth.js`, `server.js`, `package.json` ; `backend/api-gateway/src/server.js` ; `backend/auth-service/src/utils/securityLogger.js` ; `docker-compose.yml` ; `scripts/security/live-security-check.sh`, `test-firewall.sh`, `generate-test-threats.sh`.
+
+### Suite (validation `make security-live-check` sans échec)
+
+- **Image Docker** : après ajout de **`jsonwebtoken`**, un simple `docker compose up --force-recreate` ne suffit pas si l’image n’a pas été **reconstruite** (`docker compose build security-service`). Sinon le conteneur peut crasher au boot (`Cannot find module 'jsonwebtoken'`).
+- **Montage dev** : `docker-compose.yml` monte **`./backend/security-service/src:/app/src`** (comme l’api-gateway) pour que le code à jour soit pris en compte sans rebuild à chaque modification.
+- **Ordre des routes** : `server.js` monte **`/api/v1/security/firewall`** et **`/api/v1/security/waf`** avant le routeur large **`/api/v1/security`** ; CORS autorise **`X-Internal-Secret`**.
+- **`test-firewall.sh` + live-check** : variables **`FIREWALL_BASE_URL`** (souvent = URL du security-service) et **`AUTH_GATEWAY_URL`** (= gateway publique, ex. `:5002`). Sans cela, le **test 25** (`POST /api/v1/auth/login`) frappait le security-service → **404** au lieu de **400** depuis l’auth-service via la gateway.
+- **Logs « effrayants » mais normaux pendant le live-check** :
+  - **`[security] error:`** sur **`iptables` Permission denied** : attendu dans le conteneur (process non root / namespace) ; l’API peut quand même répondre **201/200** (persistance DB).
+  - **`[gateway] warn: Attaque détectée par WAF`** : le scénario **sous charge** envoie volontairement du trafic malveillant ; ce ne sont pas des erreurs de panne.
+  - **Timestamps mélangés** dans le flux `docker logs` : tampon / lignes d’anciens runs possibles ; seul compte le **résumé final** (**PASS/FAIL**).
+  - **Make** : ~~avertissement cible `up-dev` dupliquée~~ — la cible base **`db-up-dev`** remplace l’ancienne **`up-dev`** dans **`makefiles/database/Makefile`** ; **`make up-dev`** à la **racine** reste le tout-en-un (up-full → push → seed → tests).
+
+### Security-service : iptables en dev
+
+- **`docker-compose.yml`** : le service **`security-service`** est lancé avec **`user: "0:0"`** en complément de **`cap_add: NET_ADMIN, NET_RAW`**. Avec l’image Alpine et **nftables**, l’utilisateur non-root du Dockerfile provoquait encore **`Permission denied`** sur `iptables` ; en root dans le conteneur, les règles peuvent s’appliquer dans la netns du conteneur. **À durcir en prod** (hôte / sidecar dédié plutôt que root applicatif si possible).
+
+---
+
+## Avril 2026 – Lot B sécurité (cohérence, test IP, UI) — anciennement « lot A » avant permutation PLAN
+
+### Backend (`firewallController.js`)
+- **Anti auto-blocage** : refus `403` si l’IP à bloquer = IP client observée (`X-Forwarded-For` / `req.ip`, IPv4 normalisée), sauf `lab_simulation`.
+- **Stats réseau** : `containerCorrelation` (parts dockerNamed / hostLayer / unmapped) + `correlationHint` si beaucoup de sockets non mappées.
+- **IPs bloquées** : propriété **`blockOrigin`** sur chaque entrée (`manual_rule`, `lab_simulation`, `automatic_threat`, `iptables`, `log_inferred`) ; sélection `description` sur les règles firewall pour détecter le lab.
+
+### Frontend
+- **Vue sécurité** : légende détection / blocage ; compteur blocages manuels inclut `ip_blocked_lab_simulation` ; retour utilisateur sur le test blocage+déblocage.
+- **Analyse** : trois cartes (détections, manuels+lab détaillé, auto) ; pastilles `blockOrigin` sur la liste des IPs.
+- **Réseau** : encart corrélation + texte sur les libellés `port:` / hôte.
+- **Firewall** : badges d’origine sur chaque IP bloquée ; texte d’aide anti–auto-blocage.
+
+---
+
+## Avril 2026 – Vue d’ensemble backoffice : observabilité et libellés métriques
+
+### Contexte
+- Confusion possible entre **uptime** affiché **N/A** et point **vert** (service pourtant joignable).
+- Libellé **« Erreurs récentes 24 h »** alors que l’agrégateur expose une **fenêtre courte** (ex. quelques minutes).
+- **Taux d’erreur** affiché en **%** alors que le backend expose **`rate_per_min`** (débit).
+- Compteurs **recentErrors** / **errorRate** qui ne repassaient pas à **0** quand l’agrégateur renvoyait zéro.
+
+### Solution (frontend `frontend/src/app/(admin)/backoffice/page.tsx`)
+1. Carte **Incidents sécurité** + sous-titre honnête sur la fenêtre agrégateur ; lien vers `/backoffice/security`.
+2. Grille en **deux rangées** (pilotage puis ressources conteneurs).
+3. Fonction **`serviceAvailabilityCaption`** : affichage **En ligne** / **~X ms** / durée d’uptime si présente.
+4. Fusion métriques services : **uptime** résolu quand statut running sans uptime API (**En ligne**).
+5. **setStats** : `errorRate` et `recentErrors` mis à jour avec **0** explicite quand la source renvoie 0.
+6. Panneau Performance : temps de réponse pour toute valeur numérique (y compris 0 ms) ; débit **X,XX /min** ; libellés clarifiés.
+7. Sous-titre carte CPU : **total** = somme CPUs conteneurs, peut varier avec les détections Docker.
+
+### Documentation
+- **ERRORS.md** : section *Pièges d’interprétation* + synthèse pipeline (base lot **A** après permutation `PLAN.md`).
+- **STATUS.md**, **PLAN.md**, **TODOS.md**, **docs/CHANTIER_SECURITE_DATA_DOCS.md** : navigation chantier lots A–F.
+
+---
+
+## Mars 2026 – Bascule données de test / base propre (backoffice Actions)
+
+### Problème
+- Le frontend appelait `POST /api/v1/admin/clear-test-data` alors que la gateway n’exposait que `POST /api/v1/admin/test-data/clear` → le bouton « Revenir à la base propre » pouvait renvoyer 404.
+- Les Company et Application créés par `generate-test-data.js` n’avaient pas `isTestData: true` → le nettoyage ne les supprimait pas.
+- La suppression des « données de test » supprimait tous les users dont l’email contenait `@jobbingtrack.com` ou `test` → risque de supprimer l’admin principal.
+
+### Solution
+1. **Alias route** : ajout de `POST /clear-test-data` (même handler que `test-data/clear`) dans `backend/api-gateway/src/routes/admin.routes.js`.
+2. **Script** : dans `backend/generate-test-data.js`, ajout de `isTestData: true` sur les Company (EMPLOYER et TEMP_AGENCY) et sur les Application.
+3. **Nettoyage users** : dans `backend/api-gateway/src/controllers/testdata.controller.js`, suppression des users uniquement avec `where: { isTestData: true }` (dans les deux branches onlyTestData et else).
+
+---
+
+## Mars 2026 – Generate-test-data sans isTestData (ancienne image api-gateway)
+
+### Problème
+- Depuis le backoffice (Actions → Générer données de test), l’appel à `generate-test-data.js` échouait avec `Unknown argument isTestData` sur `prisma.company.create` lorsque l’image Docker de l’api-gateway avait été construite avant l’ajout du champ `isTestData` dans le schéma partagé.
+
+### Solution
+- Dans `backend/generate-test-data.js` : détection de l’erreur Prisma « Unknown argument isTestData » ; au premier échec, passage en mode fallback (création Company, Application, Contact, Interview, FollowUp, Call, Event sans `isTestData`) et message d’avertissement. La génération réussit donc même avec une ancienne image. Un message en fin de script indique de rebuilder l’api-gateway pour que « Revenir à la base propre » supprime bien les données générées.
+
+---
+
+## Mars 2026 – E2E Corbeille, restore visibility, security-e2e sortie illisible
+
+### Problème
+- **archive-interactions.spec.ts** : tests « la page Corbeille du backoffice charge sans erreur » et « la page Corbeille charge correctement » en timeout (33s, 40s) à cause de `networkidle` et d’attentes trop courtes.
+- **archive-interactions** : après restore d’une candidature, `GET /applications/:id` retournait parfois 404 → assertion « Candidature visible après restauration » échouait.
+- **security-e2e.spec.ts** : en cas d’échec XSS, le message d’assertion affichait tout le HTML du body (innerHTML) dans le terminal, rendant la sortie illisible.
+
+### Solution
+1. **Corbeille** : remplacer `waitForLoadState('networkidle')` par `domcontentloaded`, attendre la nav (25s), puis le heading « Gestion de la Corbeille » (visible 20s), et `test.setTimeout(50000)`. Assertions sur le body en textContent avec timeout 10s.
+2. **Restore puis GET** : après `apiRestoreWithResponse`, boucle de retry (jusqu’à 5 fois, 1s entre chaque) sur `GET /applications/:id` avant d’asserter `appRes.ok()`.
+3. **Security XSS** : au lieu de `expect(bodyHtml).not.toContain('...')`, calculer `const hasOnError = bodyHtml.includes('onerror=alert(1)')` et `expect(hasOnError, '...').toBe(false)` (idem pour le script alert XSS). Ainsi la valeur « reçue » en cas d’échec est un booléen, pas tout le HTML.
+
+---
+
+## Mars 2026 – Tests BDD restore 404 et CRUD admin « candidature archivée absente »
+
+### Problème
+- **test-bdd-relations.test.js** : en nettoyage (afterEach), les appels restore sur interview/followup/call renvoyaient parfois 404 (entité déjà supprimée définitivement par le test), ce qui générait des `console.error` et du bruit dans la sortie.
+- **admin-data-crud.spec.ts** : le test « candidature archivée absente de la liste normale » échouait car la liste GET /applications était interrogée juste après l’archivage, avant que la BDD ait persisté l’état.
+
+### Solution
+- **test-bdd-relations** : ne plus logger en erreur lorsque le restore retourne 404 (attendu en nettoyage) ; logger uniquement pour les autres codes (ex. 500).
+- **admin-data-crud** : ajout d’un délai de 800 ms après l’appel d’archivage, puis GET `/api/v1/applications?limit=50` ; assertion que la candidature archivée n’apparaît pas dans la liste.
+
+---
+
+## Mars 2026 – ERRORS.md : Postgres db-fix-role, Loki metrics-aggregator
+
+### Problème
+- **make db-fix-role** : messages « role "jobbingtrack" already exists » et « database "jobbingtrack" already exists » dans les logs quand le rôle/base existent déjà.
+- **Loki** : quand Loki n’est pas déployé, `getaddrinfo ENOTFOUND loki` faisait échouer les requêtes logs du metrics-aggregator (erreurs 500 / exceptions).
+
+### Solution
+1. **makefiles/database/Makefile** : CREATE USER reste idempotent (DO $$ ... EXCEPTION WHEN duplicate_object). CREATE DATABASE ne peut pas être exécuté dans un bloc DO/transaction (PostgreSQL renvoie « CREATE DATABASE cannot run inside a transaction block »). Donc retour à la vérification en shell : `SELECT 1 FROM pg_database WHERE datname = 'jobbingtrack'` puis exécution de `CREATE DATABASE` **uniquement si** la base n’existe pas (grep -q 1 || docker-compose ... CREATE DATABASE).
+2. **backend/metrics-aggregator-service/src/services/loki.service.js** : détection des erreurs Loki indisponible (`ENOTFOUND`, `ECONNREFUSED`, `ETIMEDOUT`, `ECONNRESET`) ; dans ce cas `queryLogs` retourne `{ data: { result: [] } }` au lieu de throw ; `streamLogs` retourne `null`. Les méthodes appelantes (getContainerLogs, getAllLogs, searchLogs, countPattern) utilisent déjà le retour et renvoient des tableaux vides.
+3. **backend/metrics-aggregator-service/src/routes/logs.routes.js** : route GET `/stream/:name` vérifie si `streamLogs` retourne `null` et envoie alors un événement SSE « Loki non disponible » puis ferme la réponse.
+
+---
+
+## Mars 2026 – Deuxième vague : docs/tests, changelog, api, database, services
+
+### Problème
+- **docs/tests** : rapports obsolètes (ECHECS_TESTS_API_2026-02-19, RESULTATS_TESTS, RESUME_TESTS_COMPLETS, TESTS_COMPLETS_RAPPORT, TESTS_MANQUANTS, TESTS_PAGE_DETAIL_SERVICES) à supprimer ; README à mettre à jour.
+- **docs/changelog** : sous-dossiers all-changes, final-implementation, implementation-completed redondants ; remplacer par un README unique pointant vers STATUS.md et RESOLUTIONS.md.
+- **docs/api** : BACKEND_FIXES_SUMMARY obsolète ; ajouter README index et mettre à jour les dates.
+- **docs/database** : structure-actuelle.md en doublon avec STRUCTURE_ACTUELLE.md ; README à aligner et dater.
+- **docs/troubleshooting** : README référençait des CORRECTIONS_* déjà supprimées ; mettre à jour liens et date.
+- **Backend** : fichiers .md dans auth-service (SMTP_CONFIGURATION, PYTHON_EMAIL_SETUP), security-service (ARCHITECTURE), metrics-aggregator (METRICS_DB_README, PERFORMANCE_OPTIMIZATION, MONITORING_GUIDE) à centraliser dans docs/.
+
+### Solution
+1. **docs/tests** : suppression des 6 fichiers listés ; mise à jour du README (liens vers documents conservés : STRUCTURE_TESTS_MAKE_TEST, COMMANDES_TESTS, QUICK_START_MOBILE_TESTS, etc.).
+2. **docs/changelog** : suppression des 3 sous-dossiers et de leur contenu ; création d’un README.md unique pointant vers STATUS.md et RESOLUTIONS.md.
+3. **docs/api** : suppression de BACKEND_FIXES_SUMMARY.md ; création de api/README.md ; mise à jour « Dernière mise à jour » en Mars 2026 dans api-reference et endpoints.
+4. **docs/database** : suppression de structure-actuelle.md ; mise à jour du README (lien structure détaillée, date Mars 2026).
+5. **docs/troubleshooting** : README mis à jour (liens vers POSTGRES_MONITORING, TROUBLESHOOTING_LOGIN ; suppression des références CORRECTIONS_* ; date Mars 2026).
+6. **docs/emails** : ajout de SMTP_CONFIGURATION.md et PYTHON_EMAIL_SETUP.md (contenu déplacé depuis backend/auth-service) ; README mis à jour.
+7. **docs/security** : ajout de ARCHITECTURE_SECURITY_SERVICE.md (contenu déplacé depuis backend/security-service) ; README mis à jour.
+8. **docs/monitoring** : ajout de METRICS_DB_README.md, PERFORMANCE_OPTIMIZATION.md, MONITORING_GUIDE.md (copiés depuis backend/metrics-aggregator-service) ; README mis à jour.
+9. **Backend** : suppression des .md déplacés dans auth-service, security-service, metrics-aggregator-service ; README de chaque service mis à jour pour pointer vers docs/.
+10. **docs/README.md** : arborescence et liens mis à jour (development, troubleshooting, tests, api, changelog, emails, monitoring, security).
+11. **docs/GUIDE_ETAPES_ACTUELLES.md** : ajout « Dernière révision : Mars 2026 ».
+
+---
+
+## Mars 2026 – Nettoyage documentation et racine projet
+
+### Probleme
+- **docs/development** : dossiers diagnostic, recap, setup, testing, workflow et fichiers FINAL_IMPLEMENTATION_SUMMARY, GUIDE_TESTS_PARCOURS, RESUME_NETTOYAGE obsolètes ou doublons.
+- **docs/monitoring** : nombreux doublons (README-MONITORING, QUICK-START, etc.) et doc référençant une architecture Python (statistics.py) non utilisée.
+- **docs/user-journey** : anciens correctifs de session (LIRE_MOI_URGENT, QUICK_FIX, RESUME_FINAL, TOKEN_TEST_PERMANENT, SOLUTION_ERREUR_403, RESOUDRE_TOKEN_INVALIDE).
+- **docs/troubleshooting** et **docs/todo** : fichiers CORRECTIONS_* et TODO_CORRECTIONS obsolètes.
+- **Racine** : dossier `security-service/` contenant uniquement FIREWALL_PLAN.md (doublon avec le service réel dans backend/security-service).
+
+### Solution
+1. **docs/development** : suppression des dossiers diagnostic, recap, setup, testing, workflow et des 3 .md cités. Conservation de makefile/ et makefile-commands/.
+2. **docs/monitoring** : suppression de 16 fichiers doublons/obsolètes ; conservation de metrics-flow.md, README.md (mis à jour), MONITORING_COMMANDS.md, QUICK_START_MONITORING.md.
+3. **docs/user-journey** : suppression des 6 fichiers de correctifs anciens ; conservation de README, GUIDE_COMPLET, PARCOURS_METIER.
+4. **docs/troubleshooting** : suppression des 4 CORRECTIONS_* ; conservation de README, POSTGRES_MONITORING, TROUBLESHOOTING_LOGIN.
+5. **docs/todo** : suppression de CORRECTIONS_EN_COURS et TODO_CORRECTIONS ; conservation de README et TODO_PERFORMANCE.
+6. **security-service (racine)** : déplacement de FIREWALL_PLAN.md vers docs/security/FIREWALL_PLAN.md ; suppression du dossier racine.
+7. **Rapport** : création de docs/RAPPORT_NETTOYAGE_MARS_2026.md (détail des suppressions, réponse sur services Go/Python, security-service, statistics).
+8. **STATUS.md** : ajout d’une section « Documentation et nettoyage » avec lien vers le rapport et précisions sur services Node.js (pas de Go), statistics (dashboard-service Node, pas de Python).
+
+### Clarifications (rapport)
+- **Services en Go** : aucun service backend n’est en Go ; auth-service et les autres sont en Node.js. Migration Go éventuelle à planifier.
+- **statistics.py** : ancienne doc décrivait une architecture Python ; le projet utilise dashboard-service (Node, statistics.controller.js) et metrics-aggregator.
+- **Scripts** : aucune suppression dans scripts/ pour ne pas casser le Makefile ; audit ciblé possible plus tard.
+
+---
+
+## 27 fevrier 2026 – Rapports de tests 404, Test inconnu, compression
+
+### Probleme
+- **Rapports user-journey 404** : la route view utilisait en Docker `/tmp/journey-reports` alors que la liste (all) et le volume utilisent `USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports` → les rapports Parcours utilisateur affichaient « Fichier non trouvé ».
+- **Anciens rapports 404** : des IDs (ex. 20260224-164723, 20251219-152341) apparaissaient dans la liste mais le fichier avait été supprimé ou déplacé → message d’erreur peu clair.
+- **Test inconnu** : certains fichiers JSON de résultats contenaient des guillemets non échappés dans le champ `command`, ce qui rendait le JSON invalide et faisait échouer jq → libellé « Test inconnu » et statistiques vides.
+- **Tests API Gateway Health** : en cas d’échec (ex. curl exit 7, gateway injoignable), les stats affichaient 0/0/0 au lieu de 1 échec.
+- **Espace disque** : logs, rapports et monitoring s’accumulent sans compression.
+
+### Solution
+1. **`frontend/src/app/api/test-reports/view/route.ts`** : utilisation de `process.env.USER_JOURNEY_REPORTS_DIR` pour le type user-journey (comme pour la liste), au lieu de `/tmp/journey-reports` en Docker.
+2. **`frontend/src/app/(admin)/backoffice/test-reports/page.tsx`** : en cas de 404 sur un rapport, message explicite « Rapport introuvable… Rafraîchissez la liste pour ne voir que les rapports disponibles ».
+3. **`scripts/run-all-tests-with-reports.sh`** : génération du JSON de résultat avec `jq -Rs .` pour `testName` et `command` (échappement correct) ; lorsque `exit_code != 0` et aucune stat extraite, forcer `total=1`, `failed=1` pour afficher 1 échec (ex. API Gateway Health).
+4. **`scripts/compress-old-reports.sh`** : nouveau script pour compresser en .tar.gz les rapports de plus de N jours (défaut 14) dans `tests/archived/`. Usage : `./scripts/compress-old-reports.sh [JOURS]`.
+
+### Note pour plus tard
+- **Rosenpath / WireGuard / logs** : mettre en place rosenpath pour la sécurité, WireGuard et une stratégie de rotation/archivage des logs (à documenter dans STATUS ou FONCTIONNALITES).
+- **Frontend Jest** : « Cannot find module 'next/jest' » → exécuter depuis le dossier frontend : `cd frontend && npm install && npm run test:unit`.
+- **Tests Intégration** : en cas de `SyntaxError` sur `test-full-system.js`, exécuter depuis la racine : `node tests/integration/test-full-system.js`.
+
+---
+
+## 27 fevrier 2026 – Analytics utilisateur et tests en echec
+
+### Probleme
+- **Page Analytics utilisateur** : la requete `GET /api/v1/analytics/events?limit=50` etait bloquee par uBlock Origin (ou erreur reseau), ce qui faisait echouer tout le `Promise.all` et affichait en console `[ANALYTICS] Erreur chargement donnees: Network Error`. La page ne chargeait pas les autres donnees (stats, errors, versions).
+- **Test Enums** : le script `scripts/test-enums.js` attendait 6 valeurs pour `NotificationType` alors que le schema Prisma en contient 9 (ajout de CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE) → echec « Valeurs manquantes ou incorrectes ».
+- **Test CRUD Donnees (admin)** : « creer une entreprise » envoyait `size: '11-50'` alors que l’enum `CompanySize` n’accepte que STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE → reponse 500.
+
+### Solution
+1. **`frontend/src/app/(admin)/backoffice/user-analytics/page.tsx`** : remplacement de `Promise.all` par `Promise.allSettled` pour que l’echec d’une requete (ex. events bloquee par uBlock) n’empêche pas le chargement des autres. Ajout d’un state `eventsLoadError` et affichage d’un message explicite sur l’onglet « Evenements » en cas d’echec (« Evenements non disponibles (requete bloquee par une extension ou erreur reseau)... »).
+2. **`scripts/test-enums.js`** : mise a jour de la liste attendue pour `NotificationType` pour inclure `CRASH_REPORT`, `ERROR_REPORT`, `STATUS_CHANGE`.
+3. **`tests/e2e/specs/admin-data-crud.spec.ts`** : creation entreprise avec `size: 'SMALL'` au lieu de `'11-50'` pour respecter l’enum CompanySize.
+
+### Non corrige (a investiguer si besoin)
+- **test-status-engine.test.js** : le test « desactiver auto-statut devrait empecher la cascade entretien → INTERVIEW_PENDING » attend CANDIDATE_PENDING apres creation d’un entretien avec auto-statut desactive, mais recoit INTERVIEW_PENDING. Le backend (interview-service) respecte deja `UserCustomization.settings.statusEngine.autoStatusEnabled` ; a verifier en environnement de test (meme BDD auth/interview, ordre des appels).
+- **Playwright CRUD Utilisateurs** : login 401 si identifiants admin non configures ou differents (TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD).
+- **Playwright Securite** : certains tests attendent 400 pour des payloads invalides ; les APIs peuvent renvoyer 200/201 si la validation est permissive.
+- **Playwright Email Workflows** : connexion nouvel utilisateur et reset password MailHog deja identifies comme flaky (delai email, tokens).
+
+---
+
+## 23 fevrier 2026 – Corrections parcours utilisateur mobile
+
+### Probleme
+- **ENOENT sauvegarde rapport** : `POST /api/user-journey/save-report` echouait avec `ENOENT: no such file or directory, open '/tmp/tests/user-journey-reports/...'`. Le repertoire existait dans l'overlay Docker mais etait corrompu (Links: 0, taille 0) — impossible d'y ecrire des fichiers.
+- **PUT /applications/:id 500** : deux etapes du parcours envoyaient des champs invalides au controleur `updateApplication`. `link_contact_to_application` envoyait `contactId` (champ inexistant dans le modele Application). `update_application_status` envoyait `{ status: 'FIRST_INTERVIEW_PENDING' }` via PUT generique au lieu de l'endpoint dedie PUT `/:id/status`.
+- **Reinitialisation des resultats** : apres execution du parcours, les resultats de chaque etape disparaissaient. Un `useEffect` dependant de `isRunning` resettait les steps a 'pending' quand le parcours se terminait.
+- **verify_email 400** : l'appel `GET /auth/verify-email/test-token-simulation` retournait 400 car l'endpoint n'accepte pas de faux tokens.
+
+### Solution
+1. **`save-report/route.ts`** : remplace le `resolveReportsDir()` statique par `getWritableReportsDir()` qui teste l'ecriture reelle (write + rm) sur chaque candidat. Fallback sur `/tmp/journey-reports` si le chemin configure est inaccessible.
+2. **`user-journey/page.tsx`** :
+   - `link_contact_to_application` : supprime `contactId` du body PUT, envoie uniquement `notes`.
+   - `update_application_status` : utilise `PUT /api/v1/applications/:id/status` avec `{ status, comment }`.
+   - `verify_email` : supprime l'appel API, retourne directement un resultat de simulation.
+   - `useEffect` d'initialisation des steps : remplace la dependance sur `isRunning` par un `useRef(prevScenario)` pour ne reset que lors d'un changement de scenario.
+3. **`test-reports/all/route.ts`** et **`test-reports/view/route.ts`** : ajout du chemin fallback `/tmp/journey-reports` pour la lecture des rapports.
 
 ---
 
@@ -323,5 +873,51 @@
 - `backend/workflow-service/prisma/schema.prisma`
 - `scripts/db/db-push-all.sh`
 - `backend/init-db/01-init-critical-tables.sql` (cree)
+
+---
+
+## Fevrier 2026 – Schema BDD partagee (notification-service + monitoring-c)
+
+### Probleme 1 : `@@map("notifications")` dans notification-service
+- Le modele `Notification` utilisait `@@map("notifications")` (minuscule) alors que la table en BDD est `Notification` (majuscule).
+- Inserait dans table `notifications` inexistante → FK constraint violation.
+
+### Solution
+- Supprime `@@map("notifications")` du schema Prisma `notification-service`.
+- Le modele pointe maintenant sur la table `Notification` existante.
+
+### Probleme 2 : `User_email_key` duplicate key lors de `reportCrash`
+- L'upsert dans `reportCrash` tentait de creer un User avec `req.user?.email` (ex: `admin@jobbingtrack.com`) deja pris par un autre ID.
+
+### Solution
+- Logique reecrite : `findUnique` par ID d'abord, puis `findUnique` par email, creation uniquement si aucun match.
+- Plus de violation de contrainte unique.
+
+### Probleme 3 : Schema User simplifie dans notification-service
+- Le modele `User` utilisait `role: String` au lieu de `role: UserRole` enum.
+- Colonnes manquantes : `authToken`, `verificationToken`, `lastLoginAt`, etc.
+
+### Solution
+- Copie du modele `User` complet depuis auth-service (avec tous les champs et `UserRole` enum).
+- Enum `NotificationType` aligne dans les 10 schemas Prisma (CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE ajoutes).
+- `ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS` execute en SQL direct.
+
+### Probleme 4 : Tables `system_metrics` et `container_metrics` supprimees
+- `prisma db push --accept-data-loss` depuis auth-service a supprime ces tables (creees par monitoring-c en C, pas par Prisma).
+
+### Solution
+- Tables recreees manuellement via SQL avec le schema exact de `monitoring/monitoring-c/src/storage.c`.
+- `container_metrics` inclut `system_metrics_id` (FK), `memory_mb`, `response_time_ms`, `http_status`.
+- Index recrees : `idx_system_metrics_timestamp`, `idx_container_metrics_*`.
+
+### Fichiers modifies
+- `backend/notification-service/prisma/schema.prisma` (User complet + @@map supprime)
+- `backend/notification-service/src/controllers/notification.controller.js` (reportCrash)
+- `backend/auth-service/prisma/schema.prisma` (enum NotificationType)
+- `backend/*/prisma/schema.prisma` (enum NotificationType dans 9 services)
+- `backend/workflow-service/prisma/schema.prisma` (enum aligne + default SYSTEM)
+- `mobile/lib/services/crash_reporter.dart` (monitoring memoire + tracking etendu)
+
+---
 
 Voir **STATUS.md** pour les taches restantes et **ERRORS.md** pour les erreurs non resolues.

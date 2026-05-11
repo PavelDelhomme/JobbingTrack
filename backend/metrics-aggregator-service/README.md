@@ -4,11 +4,11 @@
 
 Service d'agrégation de métriques avec auto-discovery pour la plateforme JobbingTrack.
 
-## 📖 Documentation complète
+## 📖 Documentation
 
-- **[Architecture Métriques](../../docs/architecture/metrics/README.md)** - Documentation technique complète
-- **[Dépannage Métriques](../../docs/architecture/metrics/troubleshooting/README.md)** - Résolution des problèmes
-- **[Monitoring Global](../../monitoring/README.md)** - Vue d'ensemble du monitoring
+- **[Monitoring](../../docs/monitoring/README.md)** – Vue d’ensemble, [METRICS_DB_README](../../docs/monitoring/METRICS_DB_README.md), [MONITORING_GUIDE](../../docs/monitoring/MONITORING_GUIDE.md), [PERFORMANCE_OPTIMIZATION](../../docs/monitoring/PERFORMANCE_OPTIMIZATION.md).
+- **[Architecture Métriques](../../docs/architecture/metrics/README.md)** – Documentation technique.
+- **[Dépannage Métriques](../../docs/architecture/metrics/troubleshooting/README.md)** – Résolution des problèmes.
 
 ## 🚀 Démarrage rapide
 

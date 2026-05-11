@@ -6,6 +6,15 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# Dernier mode de démarrage Makefile (up / up-full / up-dev) — make restart affiche un rappel
+.jobbingtrack-stack-mode
+
+# Marqueur manuel historique (nettoyage doc nov. 2025) — ne pas versionner
+.nettoyage_effectue
+
+# Sauvegardes de code / artefacts backup (ne pas versionner)
+**/*.backup.*
+
 # Environment files
 .env
 .env.local
@@ -13,10 +22,18 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.backup.*
+.env.append-from-example.txt
+
+# Rapports d’audit variables / secrets — ne jamais committer le contenu ; seul README.md reste suivi
+reports/env-audit/*
+!reports/env-audit/README.md
+*.env.secrets-report.*
+*.env.inventory.local
 
 # Production build
 dist/
 build/
+target/
 
 # Database
 *.sqlite
@@ -64,6 +81,7 @@ Thumbs.db
 coverage/
 .nyc_output/
 **/tests/e2e/.auth/
+tests/results/security/cve-*/
 
 # Uploads (le volume Docker gère cela)
 uploads/
@@ -76,7 +94,8 @@ temp/
 
 # Docker
 docker-compose.override.yml
-.dockerignore
+# Ignorer uniquement un `.dockerignore` à la racine (local) ; les sous-dossiers peuvent versionner le leur (ex. `backend/.dockerignore`).
+/.dockerignore
 
 # Backup files
 backups/

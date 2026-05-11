@@ -1,0 +1,15 @@
+{
+  "testName": "Email Logs",
+  "userType": "admin",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"",
+  "timestamp": "2026-04-17T16:37:02+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 10,
+    "passed": 3,
+    "failed": 7
+  },
+  "output": "            id             |                       to                       |                    subject                     |     type     | status  | sentAt |        createdAt        \n---------------------------+------------------------------------------------+------------------------------------------------+--------------+---------+--------+-------------------------\n cmnx4slft00441bl5jlqro07m | e2e-admin-crud-1776081034572@jobbingtrack.test | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-13 11:50:40.266\n cmnx4shko00431bl5igg4nr6s | e2e-admin-crud-1776081034572@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-13 11:50:35.257\n cmnx4shkm00411bl5nmspkdcf | e2e-admin-crud-1776081034572@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-13 11:50:35.254\n cmnx4seeq003y1bl5x35oalq6 | e2e-noverify-1776081025897@mailhog.local       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-13 11:50:31.154\n cmnx4se6i003x1bl51e5akcbq | e2e-register-1776081025491@mailhog.local       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-13 11:50:30.859\n cmnx4se5g003w1bl5hy1bn94z | e2e-reset-1776081025248@mailhog.local          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |        | 2026-04-13 11:50:30.82\n cmnx4sajl003v1bl5xq2ezafp | e2e-noverify-1776081025897@mailhog.local       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-13 11:50:26.145\n cmnx4sajk003t1bl5ylu9ph7i | e2e-noverify-1776081025897@mailhog.local       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-13 11:50:26.144\n cmnx4sabi003q1bl54jlvhjw0 | e2e-register-1776081025491@mailhog.local       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |        | 2026-04-13 11:50:25.854\n cmnx4sabh003o1bl51d5jb3ss | e2e-register-1776081025491@mailhog.local       | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |        | 2026-04-13 11:50:25.853\n(10 rows)\n"
+}

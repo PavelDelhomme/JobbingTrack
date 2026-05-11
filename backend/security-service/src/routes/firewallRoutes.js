@@ -20,6 +20,8 @@ router.get('/threats', firewallController.getNetworkThreats);
 router.get('/threats/:id', firewallController.getThreatDetails);
 router.post('/threats', firewallController.createThreat);
 router.post('/threats/:id/block', firewallController.blockThreat);
+router.delete('/threats/:id', firewallController.deleteThreat);
+router.delete('/threats', firewallController.purgeThreats);
 
 // Routes pour les statistiques réseau
 router.get('/network/stats', firewallController.getNetworkStats);

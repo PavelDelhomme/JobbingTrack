@@ -126,6 +126,7 @@ model Company {
   website           String?
   industry          String?   // Secteur d'activité
   size              CompanySize?
+  companyType       CompanyType            @default(EMPLOYER) // EMPLOYER = entreprise classique, TEMP_AGENCY = boîte d'intérim
   location          String?
   address           String?
   city              String?
@@ -133,24 +134,35 @@ model Company {
   country           String?   @default("France")
   logoUrl           String?
   description       String?
-  
+
+  // Données de test (nettoyage ciblé) — doit rester aligné avec backend/prisma + company-service (db push = auth uniquement)
+  isTestData        Boolean   @default(false)
+
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
   isArchived        Boolean             @default(false)
   archivedAt        DateTime?
-  
+
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applications      Application[]
+  applications      Application[]      // Candidatures où cette company est l'employeur (entreprise utilisatrice)
+  applicationsViaAgency Application[]  @relation("AgencyApplications") // Candidatures/propositions passées par cette boîte d'intérim
   contacts          ContactCompany[]  // Many-to-many
   followUps         FollowUp[]
   calls             Call[]
   interviews        Interview[]
-  
+
   @@index([userId])
   @@index([name])
+  @@index([companyType])
+  @@index([isTestData])
+}
+
+enum CompanyType {
+  EMPLOYER           // Entreprise employeuse classique (recherche directe)
+  TEMP_AGENCY        // Boîte d'intérim (propositions / missions via l'agence)
 }
 
 enum CompanySize {
@@ -168,7 +180,8 @@ enum CompanySize {
 model Application {
   id                    String              @id @default(cuid())
   userId                String
-  companyId             String
+  companyId             String              // Entreprise employeuse (client final ou agence si candidature directe agence)
+  agencyId              String?             // Optionnel : boîte d'intérim à l'origine de la proposition/mission
   platformId            String?             // Plateforme de candidature (personnalisable)
   
   // Informations de l'offre
@@ -193,7 +206,9 @@ model Application {
   notes                 String?
   isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
-  
+  statusEngineOptOut    Boolean             @default(false)
+  thankYouEmailSentAt   DateTime?           // Email remerciement post-entretien → reset suggestion « Considérer rejetée »
+
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -202,6 +217,7 @@ model Application {
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   company               Company             @relation(fields: [companyId], references: [id])
+  agency                Company?            @relation("AgencyApplications", fields: [agencyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
   status                ApplicationStatus   @relation(fields: [statusId], references: [id])
   
@@ -215,6 +231,7 @@ model Application {
   
   @@index([userId])
   @@index([companyId])
+  @@index([agencyId])
   @@index([statusId])
   @@index([applicationDate])
 }
@@ -669,12 +686,15 @@ model Notification {
 }
 
 enum NotificationType {
-  REMINDER                  // Rappel
-  APPLICATION_UPDATE        // Mise à jour candidature
-  INTERVIEW_SCHEDULED       // Entretien programmé
-  FOLLOWUP_DUE              // Relance à faire
-  DEADLINE                  // Deadline
-  SYSTEM                    // Système
+  REMINDER
+  APPLICATION_UPDATE
+  INTERVIEW_SCHEDULED
+  FOLLOWUP_DUE
+  DEADLINE
+  SYSTEM
+  CRASH_REPORT
+  ERROR_REPORT
+  STATUS_CHANGE
 }
 
 // ============================================

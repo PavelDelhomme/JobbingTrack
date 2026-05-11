@@ -119,6 +119,11 @@ router.get('/stream/:name', async (req, res) => {
     const query = `{container="${name}"}`;
     const stream = await lokiService.streamLogs(query);
 
+    if (!stream) {
+      res.write('data: {"message":"Loki non disponible"}\n\n');
+      return res.end();
+    }
+
     // Pipe le stream vers la réponse
     stream.pipe(res);
 

@@ -133,7 +133,7 @@ const KNOWN_SERVICES = {
   'jobbingtrack-security-service': { port: 3017, healthPath: '/api/v1/security/health' },
   'jobbingtrack-deployment-service': { port: 3016, healthPath: '/api/v1/health' },
   'jobbingtrack-monitoring-c': { port: 8015, healthPath: '/api/v1/health' },
-  'jobbingtrack-log-collector-c': { port: 5099, healthPath: '/health' },
+  'jobbingtrack-log-collector-c': { port: 3019, healthPath: '/health' },
   'jobbingtrack-frontend': { port: 3000, healthPath: '/health' },
   'jobbingtrack-postgres': { port: 5432, type: 'database' },
   'jobbingtrack-redis': { port: 6379, type: 'cache' },
@@ -146,7 +146,7 @@ let servicesMetrics = {}
 let systemMetrics = {}
 let containerMetrics = {}
 
-// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source Docker / monitoring-c)
+// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source bas niveau)
 function isJobbingTrackContainer(name) {
   if (!name || typeof name !== 'string') return false
   const n = name.toLowerCase().trim()
@@ -156,7 +156,7 @@ function isJobbingTrackContainer(name) {
   if (KNOWN_SERVICES[withPrefix]) return true
   return false
 }
-// Payload complet pour le backoffice (une seule source : monitoring-c → aggregator → frontend)
+// Payload complet pour le backoffice (source bas niveau → aggregator → frontend)
 let lastMetricsData = null
 
 // Fonction pour découvrir automatiquement les conteneurs
@@ -496,19 +496,32 @@ async function collectContainerMetrics() {
         
         // ✅ Récupérer les statistiques réseau
         const networkStats = await getContainerNetworkStats(pid)
+        const blkioEntries = Array.isArray(stats.blkio_stats?.io_service_bytes_recursive)
+          ? stats.blkio_stats.io_service_bytes_recursive
+          : []
+        const blockReadBytes = blkioEntries
+          .filter(entry => String(entry?.op || '').toLowerCase() === 'read')
+          .reduce((sum, entry) => sum + Number(entry?.value || 0), 0)
+        const blockWriteBytes = blkioEntries
+          .filter(entry => String(entry?.op || '').toLowerCase() === 'write')
+          .reduce((sum, entry) => sum + Number(entry?.value || 0), 0)
         
         const metrics = {
           cpu: {
-            usage: Math.round(cpuPercent * 10) / 10,
-            percentage: Math.round(cpuPercent * 10) / 10,
+            usage: parseFloat(Number(cpuPercent).toFixed(4)),
+            percentage: parseFloat(Number(cpuPercent).toFixed(4)),
             lastUpdate: Date.now()
           },
           memory: {
             usage: memoryMB,
             limit: memoryLimitMB,
-            percentage: Math.min(100, Math.max(0, Math.round(memoryPercent * 10) / 10))
+            percentage: parseFloat(Math.min(100, Math.max(0, Number(memoryPercent))).toFixed(4))
           },
           network: networkStats,
+          blockIO: {
+            read: Math.round(blockReadBytes),
+            write: Math.round(blockWriteBytes)
+          },
           status: inspect.State.Status || 'running',
           pid: pid
         }
@@ -549,62 +562,155 @@ async function collectContainerMetrics() {
   }
 }
 
-// Throttle: ne loguer l'indisponibilité de monitoring-c qu'au plus toutes les 5 min
+// Throttle: ne loguer l'indisponibilité de la source bas niveau qu'au plus toutes les 5 min
 let lastMonitoringCUnavailableLog = 0
 const MONITORING_C_LOG_INTERVAL_MS = 5 * 60 * 1000
+// Fallback Docker coûteux: désactivé par défaut quand une source bas niveau est disponible.
+// Mettre DOCKER_FALLBACK_INTERVAL_MS > 0 pour réactiver un enrichissement périodique.
+const DOCKER_FALLBACK_INTERVAL_MS = Number(process.env.DOCKER_FALLBACK_INTERVAL_MS || 0)
+let lastDockerFallbackCollectionAt = 0
+// Throttle: limiter les health checks HTTP séquentiels trop fréquents
+const SERVICE_HEALTH_CHECK_INTERVAL_MS = Number(process.env.SERVICE_HEALTH_CHECK_INTERVAL_MS || 30000)
+const SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS = Number(process.env.SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS || 60000)
+const AGGREGATOR_PERSIST_INTERVAL_MS = Number(process.env.AGGREGATOR_PERSIST_INTERVAL_MS || 60000)
+const ENABLE_DOCKER_LOGS_COLLECTION = process.env.ENABLE_DOCKER_LOGS_COLLECTION === 'true'
+const lastServiceAvailabilityPersistAt = new Map()
+let lastAggregatorPersistAt = 0
 
-// ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
-async function collectMetricsFromMonitoringC() {
-  const monitoringCUrl = process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
+/** Profilage durée par phase dans `collectAllMetrics` (logs JSON une ligne). Activer : METRICS_AGGREGATOR_PROFILE_COLLECT=1 */
+function createCollectProfiler(enabled) {
+  if (!enabled) {
+    return {
+      step() {},
+      finish() {},
+    }
+  }
+  const steps = []
+  let last = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+  return {
+    step(name) {
+      const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+      steps.push([name, Math.round((now - last) * 100) / 100])
+      last = now
+    },
+    finish(meta = {}) {
+      const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()
+      const tail = Math.round((now - last) * 100) / 100
+      const ms = Object.fromEntries(steps)
+      const accounted = steps.reduce((s, [, v]) => s + v, 0)
+      console.log(
+        '[PROFILE_COLLECT]',
+        JSON.stringify({
+          ...meta,
+          phaseMs: ms,
+          accountedMs: Math.round(accounted * 100) / 100,
+          tailAfterLastStepMs: tail,
+        })
+      )
+    },
+  }
+}
+
+function monitoringSourceUrls() {
+  return [
+    process.env.MONITORING_AGENT_URL,
+    process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
+  ].filter(Boolean)
+}
+
+function monitoringSourceName(url) {
+  return url.includes('monitoring-agent-rs') ? 'monitoring-agent-rs' : 'monitoring-c'
+}
+
+function roundMetric(value, decimals = 1) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  const factor = 10 ** decimals
+  return Math.round(number * factor) / factor
+}
+
+async function collectMetricsFromMonitoringSource() {
+  const urls = monitoringSourceUrls()
+  let lastError = null
+
+  for (const url of urls) {
+    const sourceName = monitoringSourceName(url)
+    const data = await fetchMonitoringSource(url, sourceName)
+    if (data) return data
+    lastError = sourceName
+  }
+
+  if (lastError) logMonitoringSourceUnavailable(lastError)
+  return null
+}
+
+async function fetchMonitoringSource(url, sourceName) {
   try {
-    const response = await axios.get(`${monitoringCUrl}/api/v1/metrics`, {
+    const response = await axios.get(`${url}/api/v1/metrics`, {
       timeout: 5000
     })
     if (response.data) {
       const containerCount = response.data.containers?.length || 0
-      logIfVerbose(`[MONITORING-C] ✅ Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
+      response.data.source = sourceName
+      logIfVerbose(`[${sourceName}] Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
       return response.data
     }
     return null
   } catch (error) {
-    const now = Date.now()
-    if (now - lastMonitoringCUnavailableLog >= MONITORING_C_LOG_INTERVAL_MS) {
-      lastMonitoringCUnavailableLog = now
-      console.warn('[MONITORING-C] ⚠️ Non disponible (fallback Node actif):', error.message)
-    }
+    logIfVerbose(`[${sourceName}] Non disponible: ${error.message}`)
     return null
   }
 }
 
+function logMonitoringSourceUnavailable(sourceName) {
+  const now = Date.now()
+  if (now - lastMonitoringCUnavailableLog < MONITORING_C_LOG_INTERVAL_MS) return
+  lastMonitoringCUnavailableLog = now
+  console.warn(`[${sourceName}] Non disponible (fallback Node actif)`)
+}
+
 // Fonction principale de collecte des métriques
 async function collectAllMetrics() {
+  const profileCollect =
+    process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === '1' ||
+    process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === 'true'
+  const prof = createCollectProfiler(profileCollect)
+  let monitoringCData = null
+  let dockerFallbackRan = false
+  let collectFatal = null
+
   logIfVerbose('[COLLECTOR] === DÉBUT COLLECTE ===')
   try {
     logIfVerbose('[COLLECTOR] Démarrage de la collecte des métriques...')
 
-    // ✅ NOUVEAU : Essayer d'abord de récupérer depuis monitoring C
-    let monitoringCData = null
+    // Essayer d'abord la source bas niveau configurée (Rust optionnel, C fallback).
     try {
-      monitoringCData = await collectMetricsFromMonitoringC()
+      monitoringCData = await collectMetricsFromMonitoringSource()
     } catch (error) {
-      console.warn('[COLLECTOR] ⚠️ Monitoring C non disponible, utilisation de la collecte classique')
+      console.warn('[COLLECTOR] Source monitoring bas niveau indisponible, utilisation de la collecte classique')
     }
+    prof.step('monitoring_agent_http')
 
     // Découvrir les services
     const discoveredServices = await discoverServices()
+    prof.step('discover_services')
 
-    // Collecter métriques système et conteneurs (fallback si monitoring C non disponible)
+    containerMetrics = {}
+
+    // Collecter métriques système et conteneurs (fallback si la source bas niveau est indisponible)
     if (!monitoringCData) {
       await collectSystemMetrics()
+      prof.step('collect_system_metrics_si')
       const collected = await collectContainerMetrics()
       if (collected && typeof collected === 'object') {
         Object.assign(containerMetrics, collected)
       }
+      prof.step('collect_container_metrics_si')
     } else {
-      logIfVerbose('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
+      logIfVerbose(`[COLLECTOR] Utilisation des données ${monitoringCData.source || 'monitoring'} pour enrichir les métriques`)
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const filtered = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        logIfVerbose(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis monitoring C (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis ${monitoringCData.source || 'monitoring'} (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         filtered.forEach(container => {
           const rawName = container.name || 'unknown'
           const containerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`
@@ -636,14 +742,24 @@ async function collectAllMetrics() {
           }
         })
       }
-      
-      // ✅ Fallback: si on a utilisé monitoring C, compléter avec la collecte Docker pour les noms "jobbingtrack-*" (éviter 0 conteneurs)
-      const dockerCollected = await collectContainerMetrics()
-      if (dockerCollected && typeof dockerCollected === 'object') {
-        Object.assign(containerMetrics, dockerCollected)
+      prof.step('merge_monitoring_c_container_rows')
+
+      // Fallback coûteux: ne pas le faire à chaque cycle si une source bas niveau est déjà disponible.
+      const now = Date.now()
+      const shouldRunDockerFallback =
+        DOCKER_FALLBACK_INTERVAL_MS > 0 &&
+        (now - lastDockerFallbackCollectionAt) >= DOCKER_FALLBACK_INTERVAL_MS
+      if (shouldRunDockerFallback) {
+        dockerFallbackRan = true
+        const dockerCollected = await collectContainerMetrics()
+        if (dockerCollected && typeof dockerCollected === 'object') {
+          Object.assign(containerMetrics, dockerCollected)
+        }
+        lastDockerFallbackCollectionAt = now
       }
+      prof.step(dockerFallbackRan ? 'docker_fallback_collect_containers' : 'docker_fallback_skipped')
       
-      // Enrichir systemMetrics avec les données de monitoring C
+      // Enrichir systemMetrics avec les données de la source bas niveau.
       if (!systemMetrics) {
         systemMetrics = {}
       }
@@ -655,7 +771,7 @@ async function collectAllMetrics() {
         container_count: monitoringCData.container_count || 0,
         load_score: monitoringCData.load_score || 0,
         availability_percent: monitoringCData.availability_percent || 0,
-        // ✅ CORRECTION : Ajouter les métriques réseau depuis monitoring C
+        // Ajouter les métriques réseau depuis la source bas niveau.
         network: monitoringCData.network || {
           total_rx_mb: 0,
           total_tx_mb: 0,
@@ -663,7 +779,7 @@ async function collectAllMetrics() {
         }
       }
       
-      // Enrichir avec les métriques CPU, mémoire, disque depuis monitoring C
+      // Enrichir avec les métriques CPU, mémoire, disque depuis la source bas niveau.
       if (monitoringCData.cpu) {
         systemMetrics.cpu = {
           ...systemMetrics.cpu,
@@ -688,17 +804,29 @@ async function collectAllMetrics() {
       if (monitoringCData.disk) {
         systemMetrics.disk = [{
           name: 'root',
-          total: monitoringCData.disk.total_gb,
-          used: monitoringCData.disk.used_gb,
-          free: monitoringCData.disk.free_gb,
-          usage: monitoringCData.disk.usage_percent
+          total: roundMetric(monitoringCData.disk.total_gb, 1),
+          used: roundMetric(monitoringCData.disk.used_gb, 1),
+          free: roundMetric(monitoringCData.disk.free_gb, 1),
+          usage: roundMetric(monitoringCData.disk.usage_percent, 1),
+          usage_percent: roundMetric(monitoringCData.disk.usage_percent, 1)
         }]
       }
+      prof.step('merge_monitoring_c_system_fields')
     }
 
-    // Tester la santé de chaque service
+    // Tester la santé de chaque service (throttlé pour réduire la charge CPU/réseau)
+    const now = Date.now()
     for (const [serviceName, serviceConfig] of Object.entries(discoveredServices)) {
-      const health = await testServiceHealth(serviceName, serviceConfig)
+      const prevService = servicesMetrics[serviceName]
+      const prevHealth = prevService?.health
+      const prevCheckMs = prevService?.lastCheck ? Date.parse(prevService.lastCheck) : 0
+      const needsFreshHealthCheck =
+        !prevHealth ||
+        !Number.isFinite(prevCheckMs) ||
+        (now - prevCheckMs) >= SERVICE_HEALTH_CHECK_INTERVAL_MS
+      const health = needsFreshHealthCheck
+        ? await testServiceHealth(serviceName, serviceConfig)
+        : prevHealth
 
       servicesMetrics[serviceName] = {
         ...serviceConfig,
@@ -708,10 +836,11 @@ async function collectAllMetrics() {
         health,
         status: health.status, // ✅ Ajouter le statut au niveau racine
         responseTimeMs: health.responseTimeMs, // ✅ Exposer le temps de réponse
-        lastCheck: new Date().toISOString(),
+        lastCheck: needsFreshHealthCheck ? new Date().toISOString() : (prevService?.lastCheck || new Date().toISOString()),
         metrics: containerMetrics[serviceName] || {}
       }
     }
+    prof.step('service_health_checks')
 
     // Calculer les métriques système agrégées depuis TOUS les conteneurs
     const allContainers = Object.entries(containerMetrics)
@@ -846,6 +975,30 @@ async function collectAllMetrics() {
     
     const stackAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 0;
     const systemAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
+
+    // Score de santé système composite (pas seulement UP/DOWN des services)
+    const cpuPercent = Number(systemMetrics.cpu?.usage_percent ?? systemMetrics.host?.cpu?.usagePercent ?? 0);
+    const memoryPercent = Number(systemMetrics.memory?.usage_percent ?? systemMetrics.host?.memory?.usagePercent ?? 0);
+    const diskPercent = Number(
+      systemMetrics.disk?.[0]?.usage_percent ??
+      systemMetrics.disk?.[0]?.usage ??
+      systemMetrics.host?.disk?.usagePercent ??
+      0
+    );
+    const responseTimes = Object.values(servicesMetrics)
+      .map((svc) => Number(svc?.responseTimeMs || 0))
+      .filter((v) => v > 0);
+    const responseAvgMs = responseTimes.length > 0
+      ? responseTimes.reduce((sum, v) => sum + v, 0) / responseTimes.length
+      : 0;
+
+    const resourceHealth = Math.max(0, 100 - ((cpuPercent * 0.4) + (memoryPercent * 0.35) + (diskPercent * 0.25)));
+    const latencyHealth = responseAvgMs <= 100 ? 100 : Math.max(0, 100 - ((responseAvgMs - 100) / 8));
+    const compositeHealthScore = Math.round(
+      (stackAvailability * 0.5) +
+      (resourceHealth * 0.3) +
+      (latencyHealth * 0.2)
+    );
     
     logIfVerbose(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
     logIfVerbose(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
@@ -878,34 +1031,53 @@ async function collectAllMetrics() {
         ...systemMetrics,
         availability: {
           stack: stackAvailability,
-          system: systemAvailability
+          system: systemAvailability,
+          composite: compositeHealthScore
         }
       },
       services: servicesMetrics,
       // ✅ Ajouter les métriques agrégées de disponibilité
       health: {
-        availability_percent: stackAvailability,
+        availability_percent: compositeHealthScore,
         system_availability_percent: systemAvailability,
+        service_availability_percent: stackAvailability,
+        resource_health_percent: Math.round(resourceHealth),
+        latency_health_percent: Math.round(latencyHealth),
         healthy: healthyServices,
         degraded: degradedServices,
         offline: offlineServices,
         total: totalServices
       },
-      // ✅ Ajouter le temps de réponse moyen
-      responseTime: {
-        average_ms: Object.values(servicesMetrics)
-          .filter(s => s.responseTimeMs && s.responseTimeMs > 0)
-          .reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / 
-          Math.max(Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).length, 1),
-        fastest_ms: Math.min(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 9999)),
-        slowest_ms: Math.max(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 0))
-      },
+      // ✅ Temps de réponse agrégé (évite NaN si aucun service n’a de responseTimeMs)
+      ...(function buildResponseTimeBlock() {
+        const withRt = Object.values(servicesMetrics).filter(
+          (s) => typeof s?.responseTimeMs === 'number' && s.responseTimeMs > 0
+        );
+        if (withRt.length === 0) {
+          return {
+            responseTime: {
+              average_ms: null,
+              fastest_ms: null,
+              slowest_ms: null,
+            },
+          };
+        }
+        const vals = withRt.map((s) => s.responseTimeMs);
+        const sum = vals.reduce((a, b) => a + b, 0);
+        return {
+          responseTime: {
+            average_ms: sum / vals.length,
+            fastest_ms: Math.min(...vals),
+            slowest_ms: Math.max(...vals),
+          },
+        };
+      })(),
       // ✅ Ajouter les erreurs (pour l'instant à 0, à implémenter plus tard)
       errors: {
         total_last_5m: 0,
         rate_per_min: 0
       },
-      // ✅ CORRECTION : Ajouter le réseau depuis monitoring C en priorité, puis containersAggregate
+      // Ajouter le réseau depuis la source bas niveau en priorité, puis containersAggregate.
       network: monitoringCData?.network || 
                systemMetrics.containersAggregate?.network || {
         total_rx_mb: 0,
@@ -916,22 +1088,25 @@ async function collectAllMetrics() {
       servicesList: Object.values(servicesMetrics),
       timestamp: new Date().toISOString()
     }
-    
+    prof.step('aggregate_build_metrics_payload')
+
     lastMetricsData = metricsData
 
     // Exporter vers /tmp/metrics/latest.json (partage avec l'hôte)
     try {
       const fs = require('fs').promises
       const exportPath = '/tmp/metrics/latest.json'
-      await fs.writeFile(exportPath, JSON.stringify(metricsData, null, 2), 'utf8')
+      await fs.writeFile(exportPath, JSON.stringify(metricsData), 'utf8')
       console.log(`[EXPORT] Métriques exportées vers ${exportPath}`)
     } catch (err) {
       console.error('[EXPORT] Erreur export /tmp/metrics:', err.message)
     }
+    prof.step('export_json_latest')
 
-    // ✅ PERSISTANCE : Sauvegarder dans la base de données
-    try {
-      // ✅ PRIORITÉ : Utiliser les données de monitoring C si disponibles
+    // La source bas niveau persiste déjà les snapshots fins ; l'agrégateur garde une cadence plus basse.
+    const shouldPersistAggregator = (Date.now() - lastAggregatorPersistAt) >= AGGREGATOR_PERSIST_INTERVAL_MS
+    if (shouldPersistAggregator) try {
+      // Priorité aux données de la source bas niveau si disponibles.
       const cpuPercent = monitoringCData?.avg_cpu_percent || 
                         systemMetrics.monitoringC?.avg_cpu_percent ||
                         systemMetrics.host?.cpu?.usagePercent || 
@@ -954,7 +1129,7 @@ async function collectAllMetrics() {
       
       const availabilityPercent = monitoringCData?.availability_percent ||
                                  systemMetrics.monitoringC?.availability_percent ||
-                                 stackAvailability;
+                                 compositeHealthScore;
       
       // Préparer les métriques système pour la sauvegarde (entiers pour BigInt)
       const memUsed = Math.round(Number(systemMetrics.memory?.used_mb ?? systemMetrics.memory?.used ?? 0));
@@ -998,18 +1173,41 @@ async function collectAllMetrics() {
         responseTimeAvg: responseTimeAvg
       })
       
-      // ✅ Sauvegarder les métriques des conteneurs (depuis monitoring C ou collecte classique)
-      // Convertir les métriques de monitoring C au format attendu par persistenceService
+      // Sauvegarder les métriques des conteneurs (source bas niveau ou collecte classique).
+      // Convertir les métriques bas niveau au format attendu par persistenceService.
       const containersForDb = {}
       
-      // Si on a des données de monitoring C, les utiliser en priorité
+      // Si on a des données bas niveau, les utiliser en priorité.
       if (monitoringCData && monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis ${monitoringCData.source || 'monitoring'} pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         toSave.forEach(container => {
+          const asNum = (...vals) => {
+            for (const v of vals) {
+              const n = Number(v)
+              if (Number.isFinite(n)) return n
+            }
+            return 0
+          }
           const containerName = container.name || 'unknown'
           const memMb = Number(container.memory_mb) || 0
           const limitMb = Number(container.memory_limit_mb) || 0
+          const blockReadBytes = asNum(
+            container.block_read_bytes,
+            container.block_io_read_bytes,
+            container.blkio_read_bytes,
+            container.io_read_bytes,
+            container.block_read,
+            container.blkio_read
+          )
+          const blockWriteBytes = asNum(
+            container.block_write_bytes,
+            container.block_io_write_bytes,
+            container.blkio_write_bytes,
+            container.io_write_bytes,
+            container.block_write,
+            container.blkio_write
+          )
           containersForDb[containerName] = {
             cpu: {
               percentage: container.cpu_percent || 0,
@@ -1024,6 +1222,10 @@ async function collectAllMetrics() {
               rx: Math.round(Number(container.network_rx_bytes) || 0),
               tx: Math.round(Number(container.network_tx_bytes) || 0)
             },
+            blockIO: {
+              read: Math.round(blockReadBytes),
+              write: Math.round(blockWriteBytes)
+            },
             status: container.http_status === 200 ? 'running' : 'unknown'
           }
         })
@@ -1031,14 +1233,41 @@ async function collectAllMetrics() {
       
       // Fusionner avec les métriques collectées classiquement (si disponibles), uniquement JobbingTrack
       Object.keys(containerMetrics).forEach(name => {
-        if (isJobbingTrackContainer(name)) containersForDb[name] = containerMetrics[name]
+        if (!isJobbingTrackContainer(name)) return
+        const incoming = containerMetrics[name] || {}
+        const existing = containersForDb[name] || {}
+        containersForDb[name] = {
+          ...existing,
+          ...incoming,
+          cpu: {
+            ...(existing.cpu || {}),
+            ...(incoming.cpu || {})
+          },
+          memory: {
+            ...(existing.memory || {}),
+            ...(incoming.memory || {})
+          },
+          network: {
+            ...(existing.network || {}),
+            ...(incoming.network || {})
+          },
+          blockIO: {
+            ...(existing.blockIO || {}),
+            ...(incoming.blockIO || {})
+          }
+        }
       })
       
       logIfVerbose(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
       await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
       // Sauvegarder la disponibilité des services (silencieux si table absente)
+      const persistAvailabilityNow = Date.now()
       for (const [serviceName, serviceData] of Object.entries(servicesMetrics)) {
+        const lastPersistAt = lastServiceAvailabilityPersistAt.get(serviceName) || 0
+        if (persistAvailabilityNow - lastPersistAt < SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS) {
+          continue
+        }
         await persistenceService.saveServiceAvailability(serviceName, {
           isAvailable: serviceData.health?.status === 'healthy',
           responseTimeMs: serviceData.health?.responseTime || null,
@@ -1050,13 +1279,16 @@ async function collectAllMetrics() {
             console.error(`[PERSISTENCE] Échec disponibilité ${serviceName}:`, msg);
           }
         });
+        lastServiceAvailabilityPersistAt.set(serviceName, persistAvailabilityNow)
       }
       
       logIfVerbose('[PERSISTENCE] ✅ Métriques persistées avec succès')
+      lastAggregatorPersistAt = Date.now()
     } catch (error) {
       console.error('[PERSISTENCE] ❌ Erreur persistance:', error.message)
     }
-    
+    prof.step('persistence_db')
+
     logIfVerbose('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket
@@ -1066,10 +1298,22 @@ async function collectAllMetrics() {
       containers: containerMetrics,
       timestamp: new Date().toISOString()
     })
-
+    prof.step('websocket_emit')
   } catch (error) {
+    collectFatal = error
     console.error('[COLLECTOR] Erreur lors de la collecte:', error)
     logIfVerbose('[COLLECTOR] === ERREUR COLLECTE ===')
+  } finally {
+    const svcN = servicesMetrics && typeof servicesMetrics === 'object' ? Object.keys(servicesMetrics).length : 0
+    const ctrN = containerMetrics && typeof containerMetrics === 'object' ? Object.keys(containerMetrics).length : 0
+    prof.finish({
+      ok: !collectFatal,
+      error: collectFatal ? String(collectFatal.message || collectFatal) : null,
+      monitoringC: Boolean(monitoringCData),
+      dockerFallbackRan,
+      servicesCount: svcN,
+      containersCount: ctrN,
+    })
   }
 }
 
@@ -1174,17 +1418,33 @@ try {
   const procMounted = fs.existsSync('/host/proc/self')
   console.log('[SERVER] /host/proc monté:', procMounted ? 'oui (métriques par conteneur depuis /proc)' : 'non (fallback Docker stats)')
 } catch (e) { console.log('[SERVER] /host/proc: non disponible') }
-console.log('[SERVER] Source prioritaire: monitoring-c →', process.env.MONITORING_C_URL || 'http://monitoring-c:8015')
+console.log(
+  '[SERVER] Source monitoring prioritaire:',
+  process.env.MONITORING_AGENT_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
+)
 
 // Collecte immédiate au démarrage
 collectAllMetrics()
-collectDockerLogs()
+if (ENABLE_DOCKER_LOGS_COLLECTION) {
+  collectDockerLogs()
+}
 
-// Collecte des métriques toutes les 10 secondes
-cron.schedule('*/10 * * * * *', collectAllMetrics)
+// Collecte des métriques (configurable): défaut 15 secondes pour limiter la charge continue
+const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLLECTION_INTERVAL_SECONDS || '15'))
+const metricsCollectionCron = `*/${metricsCollectionIntervalSec} * * * * *`
+cron.schedule(metricsCollectionCron, collectAllMetrics)
+console.log(`[SERVER] ✅ Collecte métriques planifiée: toutes les ${metricsCollectionIntervalSec}s`)
+if (
+  process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === '1' ||
+  process.env.METRICS_AGGREGATOR_PROFILE_COLLECT === 'true'
+) {
+  console.log('[SERVER] Profilage collecte: METRICS_AGGREGATOR_PROFILE_COLLECT → ligne JSON [PROFILE_COLLECT] à chaque cycle')
+}
 
-// Collecte des logs toutes les 2 minutes
-cron.schedule('*/2 * * * *', collectDockerLogs)
+// Collecte Docker logs désactivée par défaut: log-collector-c est la source dédiée.
+if (ENABLE_DOCKER_LOGS_COLLECTION) {
+  cron.schedule('*/2 * * * *', collectDockerLogs)
+}
 
 // Nettoyage des anciennes données tous les jours à 3h du matin
 cron.schedule('0 3 * * *', async () => {
@@ -1201,7 +1461,7 @@ const PORT = process.env.PORT || 3014
 server.listen(PORT, () => {
   console.log(`[SERVER] ✅ Service démarré sur le port ${PORT}`)
   console.log(`[SERVER] ✅ WebSocket activé pour les clients`)
-  console.log(`[SERVER] ✅ Collecte métriques: toutes les 10 secondes`)
-  console.log(`[SERVER] ✅ Collecte logs: toutes les 2 minutes`)
+  console.log(`[SERVER] ✅ Collecte métriques: toutes les ${metricsCollectionIntervalSec} secondes`)
+  console.log(`[SERVER] ✅ Collecte logs Docker aggregator: ${ENABLE_DOCKER_LOGS_COLLECTION ? 'activée toutes les 2 minutes' : 'désactivée (log-collector-c)'}`)
   console.log(`[SERVER] ✅ Nettoyage automatique: tous les jours à 3h`)
 })

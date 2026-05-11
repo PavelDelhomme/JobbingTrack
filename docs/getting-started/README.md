@@ -131,15 +131,13 @@ Accès aux outils :
 make db-clean
 
 # Supprimer les anciens volumes d'autres projets
-chmod +x scripts/cleanup-docker-volumes.sh
-./scripts/cleanup-docker-volumes.sh
+./scripts/docker/cleanup-docker-volumes.sh
 ```
 
 ### Supprimer les Fichiers Obsolètes
 
 ```bash
-chmod +x scripts/cleanup-old-files.sh
-./scripts/cleanup-old-files.sh
+./scripts/utils/cleanup-old-files.sh
 ```
 
 ## 🆘 En Cas de Problème

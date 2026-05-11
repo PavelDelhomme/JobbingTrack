@@ -280,11 +280,11 @@ class UserTracking {
           ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify({
+          ...this.deviceInfo,
           sessionId: this.sessionId,
           deviceId: this.deviceId,
           platform: this.deviceInfo.platform,
-          userAgent: navigator.userAgent,
-          ...this.deviceInfo
+          userAgent: navigator.userAgent
         })
       });
 

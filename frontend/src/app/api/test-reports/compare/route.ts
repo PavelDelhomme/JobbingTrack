@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 
     // Vérifier même catégorie si on a au moins 2 rapports avec une catégorie
     const categories = reportsData.map((r) => r.category).filter(Boolean)
-    const uniqueCategories = [...new Set(categories)]
+    const uniqueCategories = Array.from(new Set(categories))
     if (uniqueCategories.length > 1) {
       return NextResponse.json(
         { success: false, error: 'Comparaison possible uniquement entre rapports de la même catégorie (ex: tous "Tests API")' },

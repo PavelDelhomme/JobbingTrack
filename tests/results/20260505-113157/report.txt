@@ -1,0 +1,161 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  05/05/2026 11:59:16
+================================================================
+
+RESUME
+------
+  Categories  : 34
+  Total tests : 720
+  Reussis     : 699
+  Echoues     : 21
+  Taux        : 97.1%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [FAIL] [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (1s)
+  [OK]   [U] Tests API Complets (Jest) (10s)
+  [OK]   [U] Tests Backend Services (Jest) (24s)
+  [FAIL] [S] API Gateway (Jest — conteneur jobbingtrack-api-gateway) (2s)
+  [FAIL] [U] Tests API Backend (script - tous services) (3s)
+  [FAIL] [A] Playwright E2E Frontend (901s)
+  [OK]   [A] Playwright Emails MailHog (14s)
+  [OK]   [U] Playwright Email Workflows (5s)
+  [FAIL] [A] Playwright CRUD Données (admin) (3s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (4s)
+  [FAIL] [S] Playwright Mobile E2E (600s)
+  [FAIL] [S] Tests Frontend Jest (unit + pages analytics) (6s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (2s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (0s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Call Service (Health Check) (0s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (1s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (0s)
+  [OK]   [S] Tests Dashboard Service (Health Check) (1s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (0s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (1s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [OK]   [S] Tests API Gateway Health (0s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (4s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Backend (script - tous services) ---
+       ✗ FAIL - Status: 500 (attendu: 201)
+       Réponse: {"success":false,"error":"
+       ✗ FAIL - Status: 500 (attendu: 200)
+       Réponse: {"success":false,"error":"
+       ✗ FAIL - Status: 500 (attendu: 200 400)
+       Réponse: {"success":false,"error":"
+       ✗ FAIL - Status: 500 (attendu: 200 204 404)
+       Réponse: {"success":false,"error":"
+    [43] Test: Analytics Errors
+
+  --- API Gateway (Jest — conteneur jobbingtrack-api-gateway) ---
+    FAIL tests/server.test.js
+        ✕ CORS headers devraient être présents (4 ms)
+        expect(received).toHaveProperty(path)
+        Expected path: "access-control-allow-origin"
+        Received path: []
+        Received value: {"access-control-allow-credentials": "true", "access-control-allow-headers": "Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers,X-Custom-Header,X-Request-Id,X-Correlation-Id", "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS,PATCH", "access-control-expose-headers": "X-Request-Id,X-Correlation-Id", "connection": "close", "content-length": "0", "date": "Tue, 05 May 2026 09:32:38 GMT", "vary": "Origin", "x-powered-by": "Express"}
+          25 |     expect(response.status).toBe(200);
+        > 26 |     expect(response.headers).toHaveProperty('access-control-allow-origin');
+          27 |     expect(response.headers).toHaveProperty('access-control-allow-methods');
+    FAIL tests/controllers/admin.controller.test.js
+          ✕ devrait retourner les logs d'un service (4 ms)
+        expected 200 "OK", got 401 "Unauthorized"
+        > 79 |         .expect(200);
+          81 |       expect(response.body).toHaveProperty('success', true);
+          82 |       expect(response.body).toHaveProperty('serviceName', 'api-gateway');
+          at Object.expect (tests/controllers/admin.controller.test.js:79:10)
+    Test Suites: 2 failed, 2 passed, 4 total
+    Tests:       2 failed, 20 passed, 22 total
+
+  --- Tests Frontend Jest (unit + pages analytics) ---
+    FAIL src/app/(admin)/backoffice/analytics/__tests__/tab-components.test.tsx
+        expect(received).toMatch(expected)
+        Expected pattern: /chartPeriodLabel/
+        Received string:  "'use client';·
+        > 20 |     expect(src).toMatch(/chartPeriodLabel/);
+          21 |     expect(src).toMatch(/useMemo\(/);
+        expect(received).toMatch(expected)
+        Expected pattern: /getTimeRangeParams = useCallback/
+        Received string:  "'use client';·
+        > 26 |     expect(src).toMatch(/getTimeRangeParams = useCallback/);
+          27 |     expect(src).toMatch(/fetchCPUData = useCallback/);
+        expect(received).toMatch(expected)
+        Expected pattern: /<select/
+        Received string:  "'use client';·
+        > 32 |     expect(src).toMatch(/<select/);
+          33 |     expect(src).toMatch(/LineChart/);
+          34 |     expect(src).toMatch(/ChartPeriodCaption/);
+    PASS src/app/(admin)/backoffice/analytics/__tests__/react-errors-detector.test.tsx
+    Test Suites: 1 failed, 4 passed, 5 total
+    Tests:       3 failed, 17 passed, 20 total
+
+  --- Playwright CRUD Données (admin) ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 102 |     expect([200, 201]).toContain(res.status());
+          105 |     expect(applicationId).toBeTruthy();
+      1 failed
+
+  --- Playwright E2E Frontend ---
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 51 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth/error-context.md
+        Error: expect(received).not.toBeNull()
+        Received: null
+        > 51 |     await expect.poll(
+        test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--627cd-ec-des-identifiants-valides-no-auth-retry1/error-context.md
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          76 |       errorVisual.isVisible({ timeout: 15000 }).catch(() => false),
+        > 78 |     expect(hasError).toBe(true);
+        test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth/error-context.md
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          76 |       errorVisual.isVisible({ timeout: 15000 }).catch(() => false),
+        > 78 |     expect(hasError).toBe(true);
+        test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth-retry1/test-failed-1.png
+        Error Context: test-results/login-🔐-Authentification--67cc0--des-identifiants-invalides-no-auth-retry1/error-context.md
+        Error: expect(locator).toHaveAttribute(expected) failed
+        Expected: "text"
+        Received: "password"
+          - Expect "toHaveAttribute" with timeout 5000ms
+              - unexpected value "password"
+           96 |     await expect(toggleButton).toBeVisible();
+
+  --- Playwright Mobile E2E ---
+
+  --- User Journey (API) ---
+       ✗ FAIL - Status: 500 (attendu: 201)
+       Réponse: {"success":false,"error":"
+
+================================================================
+  Rapports : tests/results/20260505-113157/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

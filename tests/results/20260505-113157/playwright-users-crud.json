@@ -1,0 +1,20 @@
+{
+  "testName": "Playwright CRUD Utilisateurs (admin)",
+  "userType": "admin",
+  "command": "timeout 120 bash \"/home/pactivisme/Documents/Dev/Perso/JobbingTrack/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1",
+  "timestamp": "2026-05-05T11:48:42+02:00",
+  "duration": 3,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "output": "\nup to date in 549ms\n\nRunning 6 tests using 6 workers\n\n  ✓  1 [chromium] › e2e/specs/admin-users-crud.spec.ts:80:7 › Gestion Utilisateurs (admin CRUD) › désactiver un utilisateur (si endpoint existe) (4ms)\n  ✓  3 [chromium] › e2e/specs/admin-users-crud.spec.ts:71:7 › Gestion Utilisateurs (admin CRUD) › modifier le rôle d'un utilisateur (si endpoint existe) (3ms)\n  ✓  5 [chromium] › e2e/specs/admin-users-crud.spec.ts:89:7 › Gestion Utilisateurs (admin CRUD) › profil admin accessible (56ms)\n  ✓  4 [chromium] › e2e/specs/admin-users-crud.spec.ts:58:7 › Gestion Utilisateurs (admin CRUD) › vérifier que le nouvel utilisateur peut se connecter (6ms)\n  ✓  6 [chromium] › e2e/specs/admin-users-crud.spec.ts:43:7 › Gestion Utilisateurs (admin CRUD) › créer un utilisateur (316ms)\n  ✓  2 [chromium] › e2e/specs/admin-users-crud.spec.ts:32:7 › Gestion Utilisateurs (admin CRUD) › lister les utilisateurs (455ms)\n\n  6 passed (1.4s)\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

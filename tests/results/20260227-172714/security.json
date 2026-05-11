@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Sécurité",
+  "userType": "user",
+  "command": "node tests/security/test-security.js",
+  "timestamp": "2026-02-27T17:30:11+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 16,
+    "passed": 16,
+    "failed": 0
+  },
+  "output": "🧪 Lancement de tous les tests de sécurité...\n\n🛡️ Test XSS (Cross-Site Scripting)...\n💉 Test injection SQL...\n🔄 Test CSRF (Cross-Site Request Forgery)...\n🔐 Test contournement authentification...\n⏱️ Test rate limiting...\n📋 Test des en-têtes de sécurité...\n🔍 Test exposition des données...\n✅ Test validation des entrées...\n📋 En-têtes de sécurité:\n✅ x-content-type-options: nosniff\n⚠️ x-frame-options: Manquant ou incorrect\n⚠️ x-xss-protection: Manquant ou incorrect\n⚠️ strict-transport-security: Manquant ou incorrect\n✅ content-security-policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\n✅ Protection CSRF active\n✅ Auth protégée: /api/v1/auth/profile\n✅ Validation OK: Données vides\n✅ Auth protégée: /api/v1/applications\n✅ Validation OK: Données null\n✅ Auth protégée: /api/v1/companies\n✅ Validation OK: Données undefined\n✅ Validation OK: Objet profondément nested\n✅ Auth protégée: /api/v1/followups\n✅ Validation OK: Tableau très long\n✅ Validation OK: String très long\n⚠️ Aucun rate limiting détecté\n\n📊 RAPPORT DE SÉCURITÉ:\n🚨 CRITIQUES: 0\n🔴 HAUTES: 0\n🟡 MOYENNES: 1\n🟢 BASSES: 0\n✅ SÉCURISÉES: 64\n\n✅ Niveau de sécurité acceptable.\nSurveillance continue recommandée.\n\n📋 Rapport sauvegardé: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/results/security-report.json\n"
+}

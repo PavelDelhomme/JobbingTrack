@@ -13,6 +13,8 @@ interface Company {
   industry?: string
   size?: string
   location?: string
+  address?: string
+  city?: string
   description?: string
   createdAt: string
   _count?: {
@@ -388,6 +390,8 @@ function EditCompanyModal({ company, onClose, onSuccess }: {
     industry: company.industry || '',
     size: company.size || '',
     location: company.location || '',
+    address: (company as { address?: string }).address || '',
+    city: (company as { city?: string }).city || '',
     description: company.description || ''
   })
   const [loading, setLoading] = useState(false)
@@ -480,6 +484,31 @@ function EditCompanyModal({ company, onClose, onSuccess }: {
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Adresse
+            </label>
+            <input
+              type="text"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ville
+              </label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>

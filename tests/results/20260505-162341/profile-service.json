@@ -1,0 +1,20 @@
+{
+  "testName": "Tests Profile Service (Health Check)",
+  "userType": "system",
+  "command": "curl -s http://localhost:5013/health || echo 'Service non accessible'",
+  "timestamp": "2026-05-05T16:40:50+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"service\":\"profile-service\",\"timestamp\":\"2026-05-05T14:40:49.810Z\",\"version\":\"1.0.0\",\"environment\":\"development\"}\n",
+  "metricsSnapshot": {
+    "cpu": null,
+    "memory": null,
+    "containers": null
+  }
+}

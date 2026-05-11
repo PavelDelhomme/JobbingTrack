@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,7 +27,11 @@ app.post('/api/v1/auth/login', async (req, res) => {
   res.status(200).json({
     success: true,
     user: { id: '1', email: 'admin@jobbingtrack.com', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
-    token: 'mock-jwt-token-12345',
+    token: jwt.sign(
+      { id: '1', userId: '1', email: 'admin@jobbingtrack.com', role: 'SUPER_ADMIN' },
+      process.env.JWT_SECRET || 'dev-test-secret',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+    ),
     fallback: true,
     message: 'Connexion réussie (mode développement)'
   });

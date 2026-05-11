@@ -1,0 +1,62 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  05/05/2026 17:14:38
+================================================================
+
+RESUME
+------
+  Categories  : 34
+  Total tests : 406
+  Reussis     : 395
+  Echoues     : 11
+  Taux        : 97.3%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (1s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [OK]   [U] Tests API Complets (Jest) (10s)
+  [OK]   [U] Tests Backend Services (Jest) (23s)
+  [OK]   [S] API Gateway (Jest — hôte, conteneur gateway absent) (2s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [OK]   [A] Playwright E2E Frontend (83s)
+  [OK]   [A] Playwright Emails MailHog (13s)
+  [OK]   [U] Playwright Email Workflows (7s)
+  [OK]   [A] Playwright CRUD Données (admin) (4s)
+  [OK]   [A] Playwright CRUD Utilisateurs (admin) (3s)
+  [OK]   [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Playwright Mobile E2E (27s)
+  [OK]   [S] Tests Frontend Jest (unit + pages analytics) (6s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests Company Service (Health Check) (1s)
+  [OK]   [S] Tests Contact Service (Health Check) (0s)
+  [OK]   [S] Tests Interview Service (Health Check) (1s)
+  [OK]   [S] Tests Call Service (Health Check) (1s)
+  [OK]   [S] Tests FollowUp Service (Health Check) (0s)
+  [OK]   [S] Tests Event Service (Health Check) (1s)
+  [OK]   [S] Tests Notification Service (Health Check) (1s)
+  [OK]   [S] Tests Profile Service (Health Check) (0s)
+  [OK]   [S] Tests Security Service (Health Check) (1s)
+  [OK]   [S] Tests Metrics Aggregator Service (Health Check) (0s)
+  [OK]   [S] Tests Workflow Service (Health Check) (0s)
+  [OK]   [S] Tests Deployment Service (Health Check) (1s)
+  [OK]   [S] Tests API Gateway Health (0s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (1s)
+  [OK]   [U] Tests Performance Avancés (CPU & endpoints) (3s)
+
+TESTS ECHOUES
+-------------
+
+================================================================
+  Rapports : tests/results/20260505-171106/
+  HTML     : report.html
+  Texte    : report.txt
+  Metriques: metrics-start.json, metrics-end.json (+ metricsSnapshot par test)
+================================================================

@@ -11,8 +11,10 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 ## 📚 Guides Disponibles
 
 ### 🔐 Sécurité des Services
-- **[Système de Sécurité](SYSTEME_SECURITE_README.md)** - Architecture et implémentation du système de sécurité complet
-- **[Démarrage Services Sécurité](DEMARRAGE_SERVICES_SECURITE.md)** - Guide de démarrage et configuration des services de sécurité
+- **[Architecture security-service](ARCHITECTURE_SECURITY_SERVICE.md)** – Périmètre, base dédiée, accès API.
+- **[Monitoring CVE continu](CVE_CONTINUOUS_MONITORING.md)** – Scan CVE multi-technologies, alertes mail critiques, score sécurité et protection des logs.
+- **[Système de Sécurité](SYSTEME_SECURITE_README.md)** – Architecture et implémentation du système de sécurité.
+- **[Démarrage Services Sécurité](DEMARRAGE_SERVICES_SECURITE.md)** – Démarrage et configuration.
 
 ## 🛡️ Principes de Sécurité
 
@@ -43,4 +45,4 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 ---
 
 **Version**: 4.1 - Guide sécurité
-**Dernière mise à jour**: Novembre 2025
+**Dernière mise à jour** : Mars 2026

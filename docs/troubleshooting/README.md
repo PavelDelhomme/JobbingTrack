@@ -20,13 +20,10 @@ Solutions aux problèmes courants et diagnostic pour JobbingTrack.
 - [📊 Métriques / Monitoring](#-métriques--monitoring)
 - [🚀 Déploiement](#-déploiement)
 
-## 📚 Documents de Corrections
+## 📚 Documents dédiés
 
-### 🐛 Corrections Appliquées
-- **[Corrections Analytics Dashboard](CORRECTIONS_ANALYTICS_DASHBOARD.md)** - Corrections du tableau de bord analytics
-- **[Corrections Erreurs 404 et Timeouts](CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Résolution des erreurs 404 et timeouts
-- **[Corrections Finales Session](CORRECTIONS_FINALES_SESSION.md)** - Corrections finales de la session de développement
-- **[Corrections Graphiques Analytics](CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Corrections des graphiques dans le dashboard analytics
+- **[PostgreSQL & monitoring](POSTGRES_MONITORING.md)** – Diagnostic BDD et monitoring.
+- **[Dépannage login](TROUBLESHOOTING_LOGIN.md)** – Problèmes de connexion (admin, token, email).
 
 ---
 
@@ -525,5 +522,4 @@ Si votre problème n'est pas listé ici :
 ---
 
 **Version**: 4.1  
-**Dernière mise à jour**: Novembre 2025  
-**Mainteneur**: JobbingTrack Team
+**Dernière mise à jour**: Mars 2026

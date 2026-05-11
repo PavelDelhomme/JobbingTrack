@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Sécurité Firewall & WAF (API)",
+  "userType": "system",
+  "command": "API_GATEWAY_URL='http://localhost:5002' bash scripts/security/test-firewall.sh",
+  "timestamp": "2026-04-11T05:21:43+02:00",
+  "duration": 0,
+  "exitCode": 7,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "🔥 Test du Firewall et WAF\n==========================\n\n📋 Test 1: Récupération des règles firewall\n  Test: GET /api/v1/security/firewall/rules... \n"
+}

@@ -7,6 +7,16 @@ import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
+interface ContainerCorrelation {
+  unmapped: number;
+  hostLayer: number;
+  dockerNamed: number;
+  total: number;
+  unmappedPercent: number;
+  hostLayerPercent: number;
+  dockerNamedPercent: number;
+}
+
 interface NetworkStats {
   totalConnections: number;
   tcpConnections: number;
@@ -15,31 +25,26 @@ interface NetworkStats {
   connectionsByContainer: Record<string, number>;
   topSourceIps: Record<string, number>;
   topDestinationPorts: Record<string, number>;
+  unmappedConnections?: number;
+  containerCorrelation?: ContainerCorrelation;
+  correlationHint?: string;
   timestamp: string;
 }
+
+const SUSPICIOUS_PORTS = new Set(['21', '22', '23', '3389', '5900', '1433', '3306']);
 
 export default function NetworkStatsPage() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [portFilter, setPortFilter] = useState<string>('');
+  const [minConnectionsAlert, setMinConnectionsAlert] = useState<number>(100);
+  const [suspiciousIpThreshold, setSuspiciousIpThreshold] = useState<number>(20);
+  const [showOnlySuspicious, setShowOnlySuspicious] = useState(false);
 
-  // ✅ OPTIMISATION : useCallback avec cache
   const loadStats = useCallback(async () => {
     try {
-      // ✅ OPTIMISATION : Vérifier le cache d'abord
-      const cacheKey = 'network_stats_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      const cacheTime = cached ? JSON.parse(cached).timestamp : 0
-      const now = Date.now()
-      
-      // Utiliser le cache si moins de 10 secondes
-      if (cached && (now - cacheTime) < 10000 && !loading) {
-        const cachedData = JSON.parse(cached).data
-        setStats(cachedData)
-        // Rafraîchir en arrière-plan
-      } else {
-        setLoading(true);
-      }
+      setLoading(true);
       setError(null);
       
       const response = await axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/network/stats`, {
@@ -49,28 +54,17 @@ export default function NetworkStatsPage() {
       if (response.data.success) {
         const statsData = response.data.data.stats
         setStats(statsData)
-        // ✅ OPTIMISATION : Mettre en cache
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data: statsData,
-          timestamp: now
-        }))
       } else {
         setError('Erreur lors du chargement des statistiques');
       }
     } catch (err: any) {
       console.error('Erreur chargement stats réseau:', err);
-      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
-      const cacheKey = 'network_stats_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        const cachedData = JSON.parse(cached).data
-        setStats(cachedData)
-      }
+      setStats(null);
       setError(err.response?.data?.error || 'Erreur lors du chargement des statistiques');
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, []);
 
   useEffect(() => {
     loadStats();
@@ -84,6 +78,22 @@ export default function NetworkStatsPage() {
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit);
   };
+
+  const suspiciousPorts = stats?.topDestinationPorts
+    ? Object.entries(stats.topDestinationPorts).filter(([port]) => SUSPICIOUS_PORTS.has(port)).sort((a, b) => b[1] - a[1])
+    : [];
+
+  const suspiciousIps = stats?.topSourceIps
+    ? Object.entries(stats.topSourceIps).filter(([ip, count]) => count >= suspiciousIpThreshold || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('192.168.')).sort((a, b) => b[1] - a[1]).slice(0, 10)
+    : [];
+
+  const securityAlerts = [
+    stats?.totalConnections && stats.totalConnections > minConnectionsAlert
+      ? `Volume réseau élevé (${stats.totalConnections} connexions > seuil ${minConnectionsAlert})`
+      : null,
+    suspiciousPorts.length > 0 ? `${suspiciousPorts.length} port(s) sensible(s) détecté(s)` : null,
+    suspiciousIps.length > 0 ? `${suspiciousIps.length} IP source(s) à surveiller` : null,
+  ].filter(Boolean) as string[];
 
   if (loading && !stats) {
     return (
@@ -123,6 +133,73 @@ export default function NetworkStatsPage() {
             <p className="text-red-800 dark:text-red-200">{error}</p>
           </div>
         )}
+
+        {stats?.containerCorrelation && stats.totalConnections > 0 && (
+          <div
+            className={`rounded-lg border p-4 ${
+              (stats.containerCorrelation.unmappedPercent ?? 0) >= 45
+                ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20'
+                : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+            }`}
+          >
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Corrélation conteneurs (actionnable)</h2>
+            <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">
+              Part des sockets classées : <strong>nom Docker / identifiant</strong> {stats.containerCorrelation.dockerNamedPercent}% ·{' '}
+              <strong>couche hôte / port</strong> (local, port:N…) {stats.containerCorrelation.hostLayerPercent}% ·{' '}
+              <strong>non résolu</strong> {stats.containerCorrelation.unmappedPercent}%
+            </p>
+            {stats.correlationHint && (
+              <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">{stats.correlationHint}</p>
+            )}
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Paramètres sécurité réseau</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Seuil volume connexions (alerte)</label>
+              <input
+                type="number"
+                min="1"
+                value={minConnectionsAlert}
+                onChange={(e) => setMinConnectionsAlert(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Seuil IP suspecte (nb connexions)</label>
+              <input
+                type="number"
+                min="1"
+                value={suspiciousIpThreshold}
+                onChange={(e) => setSuspiciousIpThreshold(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div className="flex items-end">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showOnlySuspicious}
+                  onChange={(e) => setShowOnlySuspicious(e.target.checked)}
+                />
+                <span className="text-sm">Afficher uniquement les ports sensibles</span>
+              </label>
+            </div>
+          </div>
+          <div className="mt-4">
+            {securityAlerts.length === 0 ? (
+              <p className="text-sm text-green-700 dark:text-green-300">Aucune alerte réseau active avec vos seuils actuels.</p>
+            ) : (
+              <ul className="space-y-1">
+                {securityAlerts.map((alert) => (
+                  <li key={alert} className="text-sm text-amber-700 dark:text-amber-300">- {alert}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
 
         {/* Statistiques globales */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -181,12 +258,52 @@ export default function NetworkStatsPage() {
           </div>
         </div>
 
+        {/* Analyse sécurité réseau */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Analyse sécurité réseau</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="rounded border border-orange-200 dark:border-orange-900 p-4 bg-orange-50 dark:bg-orange-900/20">
+              <p className="font-semibold text-orange-800 dark:text-orange-200 mb-2">Ports sensibles observés</p>
+              {suspiciousPorts.length === 0 ? (
+                <p className="text-gray-600 dark:text-gray-300">Aucun port sensible observé dans les top connexions.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {suspiciousPorts.map(([port, count]) => (
+                    <li key={port} className="flex justify-between"><span>Port {port}</span><span className="font-semibold">{count}</span></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="rounded border border-red-200 dark:border-red-900 p-4 bg-red-50 dark:bg-red-900/20">
+              <p className="font-semibold text-red-800 dark:text-red-200 mb-2">Sources à surveiller</p>
+              {suspiciousIps.length === 0 ? (
+                <p className="text-gray-600 dark:text-gray-300">Aucune source anormale détectée.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {suspiciousIps.map(([ip, count]) => (
+                    <li key={ip} className="flex justify-between"><span className="font-mono">{ip}</span><span className="font-semibold">{count}</span></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          {(stats?.unmappedConnections || 0) > 0 && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+              {stats?.unmappedConnections} connexion(s) n&apos;ont pas pu être rattachées à un conteneur (label `unmapped`).
+              Vérifie les namespaces réseau Docker pour améliorer la corrélation.
+            </p>
+          )}
+        </div>
+
         {/* Connexions par conteneur */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Server className="h-6 w-6" />
-            Connexions par Conteneur
+            Connexions par conteneur ou indice
           </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Les libellés viennent du moteur de corrélation (Docker, port d&apos;écoute, hôte). Ce ne sont pas des conteneurs « unknown » opaques : un pic sur « port:… » ou « host-network » est attendu si le service tourne sur l&apos;hôte vu depuis /proc.
+          </p>
           {stats?.connectionsByContainer && Object.keys(stats.connectionsByContainer).length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -200,7 +317,9 @@ export default function NetworkStatsPage() {
                 <tbody>
                   {getTopItems(stats.connectionsByContainer).map(([container, count]) => (
                     <tr key={container} className="border-b border-gray-200 dark:border-gray-700">
-                      <td className="p-3 font-semibold">{container || 'unknown'}</td>
+                      <td className="p-3 font-semibold">
+                        {container === 'unmapped' ? 'non-corrélé (à qualifier)' : container || 'non-corrélé (à qualifier)'}
+                      </td>
                       <td className="p-3">{count}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
@@ -230,7 +349,15 @@ export default function NetworkStatsPage() {
 
         {/* Top 10 Ports Destination */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Top 10 Ports Destination</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Top 10 Ports Destination</h2>
+            <input
+              value={portFilter}
+              onChange={(e) => setPortFilter(e.target.value)}
+              placeholder="Filtrer un port"
+              className="px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+            />
+          </div>
           {stats?.topDestinationPorts && Object.keys(stats.topDestinationPorts).length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -242,7 +369,10 @@ export default function NetworkStatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {getTopItems(stats.topDestinationPorts, 10).map(([port, count]) => (
+                  {getTopItems(stats.topDestinationPorts, 10)
+                    .filter(([port]) => !portFilter || port.includes(portFilter))
+                    .filter(([port]) => !showOnlySuspicious || SUSPICIOUS_PORTS.has(port))
+                    .map(([port, count]) => (
                     <tr key={port} className="border-b border-gray-200 dark:border-gray-700">
                       <td className="p-3 font-mono font-semibold">{port}</td>
                       <td className="p-3">{count}</td>

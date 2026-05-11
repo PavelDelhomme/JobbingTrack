@@ -6,21 +6,25 @@ services:
   # SERVICES ESSENTIELS (pas de profile = toujours démarrés)
   # =====================================
 
-  # Base de données principale
+  # Base de données principale (image Debian pour locales correctes ; Alpine affiche "no usable system locales")
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: jobbingtrack-postgres
     environment:
+      # `public.system_metrics.timestamp` = TIMESTAMP sans fuseau, alimenté par NOW() (monitoring-c).
+      # Session UTC explicite : alignée avec `toIsoUtcString` côté metrics-aggregator (suffixe Z).
+      PGTZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
     ports:
       - "${POSTGRES_PORT:-5000}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
       - jobbingtrack_postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,7 +32,7 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Redis pour le cache et les sessions
+  # Redis pour le cache et les sessions (WARNING Memory overcommit = réglage hôte : sysctl vm.overcommit_memory=1)
   redis:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
@@ -43,28 +47,39 @@ services:
       - jobbingtrack-network
     restart: unless-stopped
 
-  # API Gateway (coeur du système)
+  # API Gateway (coeur du système). Contexte backend pour inclure generate-test-data.js + prisma.
   api-gateway:
     image: jobbingtrack-api-gateway
     build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile.backend-context
     container_name: jobbingtrack-api-gateway
     ports:
       - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      # Ordre alphabétique des noms de variables (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
+      - INTRUSION_DETECTION_ENABLED=${INTRUSION_DETECTION_ENABLED:-true}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
+      - SERVICE_NAME=jobbingtrack-api-gateway
+      - WAF_ENABLED=${WAF_ENABLED:-true}
+      - WAF_INTERNAL_BYPASS_CIDRS=${WAF_INTERNAL_BYPASS_CIDRS:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      - WAF_INTERNAL_BYPASS_ENABLED=${WAF_INTERNAL_BYPASS_ENABLED:-true}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/package.json:/app/package.json:ro
+      # Script génération données de test (route admin generate-test-data)
+      - ./backend/generate-test-data.js:/app/generate-test-data.js:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
@@ -86,29 +101,42 @@ services:
       args:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
+    # Sous Linux, host.docker.internal n'existe pas par défaut → le proxy Build APK ne peut pas joindre le contrôleur sur l'hôte
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "0.0.0.0:${FRONTEND_PORT:-5003}:${FRONTEND_INTERNAL_PORT:-3000}"
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-192.168.1.134}:${API_GATEWAY_PORT:-5002}}
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-192.168.1.134}:${AUTH_SERVICE_PORT:-5005}}
-      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-192.168.1.134}:${METRICS_AGGREGATOR_PORT:-5004}}
-      - HOST_IP=${HOST_IP:-192.168.1.134}
-      - FRONTEND_PORT=${FRONTEND_PORT:-5003}
+      # Ordre alphabétique (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
       - API_GATEWAY_PORT=${API_GATEWAY_PORT:-5002}
+      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
       - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-5005}
+      - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
+      - FRONTEND_PORT=${FRONTEND_PORT:-5003}
+      - HOST_IP=${HOST_IP:-localhost}
+      - HOSTNAME=0.0.0.0
+      - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
+      - NEXT_DIST_DIR=/tmp/.next-local
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-localhost}:${API_GATEWAY_PORT:-5002}}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
-      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
-      - WATCHPACK_POLLING=true
-      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-localhost}:${AUTH_SERVICE_PORT:-5005}}
+      - NEXT_PUBLIC_CHART_TIMEZONE=${NEXT_PUBLIC_CHART_TIMEZONE:-}
+      # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
+      # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
+      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-localhost}:${METRICS_AGGREGATOR_PORT:-5004}}
+      - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
+      - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
+      - NODE_ENV=development
+      # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
+      - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=2048}
       - PORT=3000
       - PROJECT_ROOT=/app
-      - TESTS_RESULTS_DIR=/tmp/tests/results
-      - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
+      - TESTS_RESULTS_DIR=/app/tests/results
       - TZ=${TZ:-Europe/Paris}
-      - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
+      - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
@@ -116,7 +144,9 @@ services:
       - ./tests/user-journey-reports:/tmp/tests/user-journey-reports
       - /app/node_modules
       - /app/.next
-    user: "1001:1001"
+    # Aligner l'utilisateur conteneur sur l'utilisateur hôte (pactivisme=1000)
+    # pour éviter EACCES sur /app/tsconfig.json et autres fichiers bind-mount.
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     working_dir: /app
     networks:
       - jobbingtrack-network
@@ -124,17 +154,59 @@ services:
     depends_on:
       - api-gateway
     restart: unless-stopped
+    # Liveness Next seul : `/health` (route App) — pas la racine `/` (app shell + auth) ni l’ancienne réécriture vers la gateway.
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || curl -f http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 90s
   
-  # Collecteur de métriques en C (ex-systems) – CPU, mémoire, réseau, health checks
+  # Collecteur de métriques Rust – source bas niveau par défaut.
+  # Port interne fixe 8015 ; sur l'hôte : MONITORING_RS_PORT (défaut 5118) → 8015.
+  monitoring-agent-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/monitoring-agent/Dockerfile
+    image: jobbingtrack-monitoring-agent-rs
+    container_name: jobbingtrack-monitoring-agent-rs
+    user: "0:0"
+    ports:
+      - "${MONITORING_RS_PORT:-5118}:8015"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - PORT=8015
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - PROCFS_PATH=/host/proc
+      - SYSFS_PATH=/host/sys
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8015/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - full
+      - monitoring
+
+  # Collecteur de métriques C – fallback legacy pendant la fenêtre de migration Rust.
+  # Port interne fixe 8015 ; sur l’hôte : MONITORING_C_PORT (défaut 5098) → 8015.
   monitoring-c:
     build:
-      context: ./ex-systems/monitoring-c
+      context: ./monitoring/monitoring-c
       dockerfile: Dockerfile
     image: jobbingtrack-monitoring-c
     container_name: jobbingtrack-monitoring-c
@@ -142,14 +214,14 @@ services:
     ports:
       - "${MONITORING_C_PORT:-5098}:8015"
     environment:
+      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-15}
-      - PROCFS_PATH=/host/proc
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - PROCFS_PATH=/host/proc
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -166,9 +238,45 @@ services:
       retries: 3
     restart: unless-stopped
     profiles:
+      - monitoring-c
+
+  # Collecteur de logs Rust – source logs Docker/PostgreSQL par défaut.
+  log-collector-rs:
+    build:
+      context: ./monitoring/rust
+      dockerfile: crates/log-collector/Dockerfile
+    image: jobbingtrack-log-collector-rs
+    container_name: jobbingtrack-log-collector-rs
+    user: "0:0"
+    ports:
+      - "${LOG_COLLECTOR_RS_PORT:-5099}:3019"
+    command: ["./log-collector", "3019"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - LOG_COLLECTOR_READ_EXISTING=${LOG_COLLECTOR_READ_EXISTING:-0}
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3019/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - full
       - monitoring
 
-  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-c ou fallback Node)
+  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-agent-rs, fallback C puis Node)
   jobbingtrack-metrics-aggregator:
     image: jobbingtrack-metrics-aggregator
     build:
@@ -185,17 +293,28 @@ services:
       retries: 3
       start_period: 40s
     environment:
+      # Même convention que le service **postgres** pour interpréter `system_metrics.timestamp` (naïf + NOW()).
+      - AGGREGATOR_PERSIST_INTERVAL_MS=${AGGREGATOR_PERSIST_INTERVAL_MS:-60000}
+      - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DOCKER_FALLBACK_INTERVAL_MS=${DOCKER_FALLBACK_INTERVAL_MS:-0}
+      - DOCKER_SERVICES_ALL_CACHE_TTL_MS=${DOCKER_SERVICES_ALL_CACHE_TTL_MS:-60000}
+      - ENABLE_DOCKER_LOGS_COLLECTION=${ENABLE_DOCKER_LOGS_COLLECTION:-false}
+      - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
+      - METRICS_AGGREGATOR_PROFILE_COLLECT=${METRICS_AGGREGATOR_PROFILE_COLLECT:-}
+      - METRICS_API_KEY=${METRICS_API_KEY:-jobbingtrack-metrics-secret-key}
+      - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
+      - MONITORING_AGENT_URL=${MONITORING_AGENT_URL:-http://monitoring-agent-rs:8015}
+      - MONITORING_C_URL=${MONITORING_C_URL:-http://monitoring-c:8015}
       - NODE_ENV=development
       - PORT=3014
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - MONITORING_C_URL=http://monitoring-c:8015
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - METRICS_API_KEY=jobbingtrack-metrics-secret-key
-      - METRICS_COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-300000}
-      - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
+      - POSTGRES_SYSTEM_METRICS_TZ=${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+      - SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS=${SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS:-60000}
       - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
-      - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
-      - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
+      # Runtime Node (logs, Date) : UTC conseillé ; l’affichage utilisateur = fuseau navigateur côté front.
+      - TZ=UTC
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -205,7 +324,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      monitoring-c:
+      monitoring-agent-rs:
         condition: service_started
     restart: unless-stopped
     profiles:
@@ -233,24 +352,29 @@ services:
       - ./backend/auth-service/test-email-diagnostic.js:/app/test-email-diagnostic.js:ro
     command: npm run dev
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - APP_URL=${APP_URL:-http://localhost:5003}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - HOST_IP=${HOST_IP:-localhost}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
+      - SMTP_FROM=${SMTP_FROM}
       - SMTP_HOST=${SMTP_HOST:-ssl0.ovh.net}
+      - SMTP_PASS=${SMTP_PASS}
       - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
       - SMTP_SECURE=${SMTP_SECURE:-false}
       - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - APP_URL=${APP_URL:-http://localhost:5003}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
     networks:
       - jobbingtrack-network
     depends_on:
@@ -284,15 +408,16 @@ services:
       - ./backend/application-service/package.json:/app/package.json:ro
     command: npm run dev
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
-      - PORT=3002
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=true
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
+      - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - NODE_ENV=development
+      - PORT=3002
       - SERVICE_NAME=application-service
-      - ENABLE_CENTRAL_LOGGING=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -326,14 +451,15 @@ services:
       - ./backend/company-service/package.json:/app/package.json:ro
     command: npm run dev
     environment:
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
+      - ENABLE_CENTRAL_LOGGING=true
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3003
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
-      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - SERVICE_NAME=company-service
-      - ENABLE_CENTRAL_LOGGING=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -362,12 +488,15 @@ services:
     container_name: jobbingtrack-contact-service
     ports:
       - "${CONTACT_SERVICE_PORT:-5008}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
+    volumes:
+      - ./backend/contact-service/src:/app/src
+      - ./backend/contact-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=3004
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - NODE_ENV=development
+      - PORT=3004
     depends_on:
       postgres:
         condition: service_healthy
@@ -397,9 +526,10 @@ services:
       - ./backend/interview-service/src:/app/src
       - ./backend/interview-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3005
     depends_on:
       postgres:
         condition: service_healthy
@@ -429,10 +559,10 @@ services:
       - ./backend/call-service/src:/app/src
       - ./backend/call-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
     depends_on:
       postgres:
         condition: service_healthy
@@ -459,10 +589,10 @@ services:
     ports:
       - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3011}"
     environment:
-      - NODE_ENV=development
-      - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=development
+      - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
     depends_on:
       postgres:
         condition: service_healthy
@@ -492,10 +622,10 @@ services:
       - ./backend/followup-service/src:/app/src
       - ./backend/followup-service/package.json:/app/package.json:ro
     environment:
-      - NODE_ENV=development
-      - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
     depends_on:
       postgres:
         condition: service_healthy
@@ -522,8 +652,10 @@ services:
     ports:
       - "${PROFILE_SERVICE_PORT:-5013}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
     environment:
-      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3009
     depends_on:
       postgres:
         condition: service_healthy
@@ -550,10 +682,15 @@ services:
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
     environment:
+      - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
+      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.com}
+      - SMTP_HOST=${SMTP_HOST:-mailhog}
+      - SMTP_PORT=${SMTP_PORT:-1025}
     depends_on:
       postgres:
         condition: service_healthy
@@ -587,15 +724,16 @@ services:
       - ./backend/dashboard-service/package.json:/app/package.json:ro
     command: npm start
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - APPLICATION_SERVICE_URL=http://jobbingtrack-application-service:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}
+      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - COMPANY_SERVICE_URL=http://jobbingtrack-company-service:${COMPANY_SERVICE_INTERNAL_PORT:-3003}
       - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - NODE_ENV=development
+      - PORT=3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -604,9 +742,9 @@ services:
     profiles:
       - dashboard
       - full
-    restart: no
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/dashboard/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -622,9 +760,9 @@ services:
     ports:
       - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - NODE_ENV=development
       - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -666,20 +804,47 @@ services:
     ports:
       - "${SECURITY_SERVICE_PORT:-5017}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
     environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - "CVE_SCAN_CRON=${CVE_SCAN_CRON:-17 */6 * * *}"
+      - CVE_SCAN_DOCKER=${CVE_SCAN_DOCKER:-0}
+      - CVE_SCAN_INCLUDE_DEV=${CVE_SCAN_INCLUDE_DEV:-0}
+      - CVE_SCAN_OUTPUT_DIR=${CVE_SCAN_OUTPUT_DIR:-/tmp/jobbingtrack-cve-results}
+      - CVE_SCAN_PROJECT_ROOT=${CVE_SCAN_PROJECT_ROOT:-/scan}
+      - CVE_SCAN_PYTHON_BIN=${CVE_SCAN_PYTHON_BIN:-python3}
+      - CVE_SCAN_TIMEOUT_MS=${CVE_SCAN_TIMEOUT_MS:-600000}
+      - CVE_SCAN_TIMEOUT_SEC=${CVE_SCAN_TIMEOUT_SEC:-120}
+      - DEBUG=
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - LOG_LEVEL=info
       - NODE_ENV=development
       - PORT=3017
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - LOG_LEVEL=info
-      - SECURITY_SERVICE_URL=http://security-service:3017
       - PRISMA_DISABLE_WARNINGS=true
-      - DEBUG=
-      - WAF_ENABLED=${WAF_ENABLED:-false}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
+      - SECURITY_SERVICE_URL=http://security-service:3017
+      - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
+      # Même principe que api-gateway : le code src sur l’hôte est pris en compte sans rebuild image
+      - ./backend/security-service/src:/app/src
+      # Surfaces CVE en lecture seule : évite de monter .env tout en couvrant Node/Rust/Flutter/scripts.
+      - ./package.json:/scan/package.json:ro
+      - ./package-lock.json:/scan/package-lock.json:ro
+      - ./backend:/scan/backend:ro
+      - ./frontend:/scan/frontend:ro
+      - ./flutter-mobile-app:/scan/flutter-mobile-app:ro
+      - ./mobile:/scan/mobile:ro
+      - ./monitoring/rust:/scan/monitoring/rust:ro
+      - ./scripts/security:/scan/scripts/security:ro
+      - ./tests:/scan/tests:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # nftables/iptables dans le conteneur : souvent « Permission denied » avec USER non-root du Dockerfile ;
+    # en dev on force root pour que les règles firewall s’appliquent réellement (prod : privilégier un sidecar / hôte).
+    user: "0:0"
     depends_on:
       postgres:
         condition: service_healthy
@@ -706,11 +871,11 @@ services:
     ports:
       - "${DEPLOYMENT_SERVICE_PORT:-5018}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
     environment:
-      - NODE_ENV=development
-      - PORT=3016
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
+      - NODE_ENV=development
+      - PORT=3016
     depends_on:
       postgres:
         condition: service_healthy

@@ -3,6 +3,12 @@ const logger = require('./logger');
 
 const SECURITY_SERVICE_URL = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
 
+function securityInternalHeaders() {
+  const secret = process.env.SECURITY_INTERNAL_SECRET;
+  if (!secret) return {};
+  return { 'X-Internal-Secret': secret };
+}
+
 /**
  * Enregistre un événement de sécurité
  */
@@ -51,7 +57,9 @@ async function logSecurityEvent({
     };
 
     // Envoyer au service de sécurité de manière asynchrone
-    axios.post(`${SECURITY_SERVICE_URL}/api/v1/security/logs`, logData)
+    axios.post(`${SECURITY_SERVICE_URL}/api/v1/security/logs`, logData, {
+      headers: { 'Content-Type': 'application/json', ...securityInternalHeaders() }
+    })
       .catch(error => {
         // Logger l'erreur mais ne pas bloquer le flux
         logger.error('Erreur lors de l\'envoi du log de sécurité:', error.message);

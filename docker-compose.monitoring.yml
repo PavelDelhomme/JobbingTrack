@@ -11,20 +11,20 @@ services:
   # Nouveau système de monitoring en C (ultra-léger)
   monitoring-c:
     build:
-      context: ./ex-systems/monitoring-c
+      context: ./monitoring/monitoring-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-monitoring-c
     user: "0:0"
     ports:
       - "5098:8015"
     environment:
+      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-15}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
@@ -44,22 +44,25 @@ services:
       - monitoring-c
       - full
 
-  # Nouveau système de collecte de logs en C (remplace Loki)
+  # Collecteur de logs C legacy (fallback pendant la migration Rust).
   log-collector-c:
     build:
-      context: ./ex-systems/log-collector-c
+      context: ./monitoring/log-collector-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
     ports:
-      - "${LOG_COLLECTOR_C_PORT:-5099}:5099"
+      # Hôte legacy (5109 par défaut) → port interne 3019.
+      - "${LOG_COLLECTOR_C_LEGACY_PORT:-5109}:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"
+    command: ["./log-collector-c", "${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - LOG_COLLECTOR_READ_EXISTING=${LOG_COLLECTOR_READ_EXISTING:-0}
       - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -76,5 +79,4 @@ services:
     restart: unless-stopped
     profiles:
       - monitoring-c
-      - full
 

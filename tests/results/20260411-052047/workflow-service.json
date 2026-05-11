@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Workflow Service (Health Check)",
+  "userType": "system",
+  "command": "curl -sf 'http://localhost:5016/health' && echo OK || { echo 'Workflow non démarré (optionnel)'; exit 0; }",
+  "timestamp": "2026-04-11T05:21:42+02:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "Workflow non démarré (optionnel)\n"
+}

@@ -1,0 +1,15 @@
+{
+  "testName": "Tests Backend Services (Jest local)",
+  "userType": "system",
+  "command": "cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1",
+  "timestamp": "2026-02-27T18:55:14+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "output": "\n> jobbingtrack-tests@1.0.0 test\n> jest backend/ --verbose --forceExit --no-coverage\n\n[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`\nPASS backend/test-security-service.test.js\n  Security Service\n    GET /api/v1/security/logs\n      ✓ devrait retourner les logs de sécurité (45 ms)\n    GET /api/v1/security/policies\n      ✓ devrait retourner les politiques de sécurité (6 ms)\n    GET /api/v1/security/analysis\n      ✓ devrait retourner l'analyse de sécurité (46 ms)\n    Firewall API\n      GET /api/v1/security/firewall/rules\n        ✓ devrait retourner les règles firewall (49 ms)\n      POST /api/v1/security/firewall/rules\n        ✓ devrait créer une règle firewall (16 ms)\n      PUT /api/v1/security/firewall/rules/:id\n        ✓ devrait mettre à jour une règle firewall (12 ms)\n      DELETE /api/v1/security/firewall/rules/:id\n        ✓ devrait supprimer une règle firewall (12 ms)\n      GET /api/v1/security/firewall/blocked-ips\n        ✓ devrait retourner les IPs bloquées (16 ms)\n      POST /api/v1/security/firewall/block-ip\n        ✓ devrait bloquer une IP (20 ms)\n      GET /api/v1/security/firewall/threats\n        ✓ devrait retourner les menaces réseau (18 ms)\n    WAF API\n      GET /api/v1/security/waf/config\n        ✓ devrait retourner la configuration WAF (4 ms)\n      GET /api/v1/security/waf/stats\n        ✓ devrait retourner les statistiques WAF (4 ms)\n\nTest Suites: 1 passed, 1 total\nTests:       12 passed, 12 total\nSnapshots:   0 total\nTime:        0.448 s, estimated 1 s\nRan all test suites matching /backend\\//i.\nForce exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?\n"
+}
