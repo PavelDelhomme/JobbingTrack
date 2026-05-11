@@ -567,7 +567,7 @@ make help               # Aide complète
 
 ## 📚 Ressources Complémentaires
 
-- [STATUS.md](STATUS.md) - État actuel du projet
+- [STATUS.md](../STATUS.md) - État actuel du projet
 - [README.md](README.md) - Documentation principale
 - [GUIDE_STRUCTURE.md](GUIDE_STRUCTURE.md) - Guide d'amélioration structure
 - [docs/getting-started/README.md](docs/getting-started/README.md) - Guide démarrage détaillé

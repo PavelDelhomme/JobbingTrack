@@ -338,7 +338,7 @@ Chaque dossier principal devrait avoir un README.md expliquant :
 
 ## 📚 Ressources
 
-- [STATUS.md](STATUS.md) - État actuel du projet
+- [STATUS.md](../STATUS.md) - État actuel du projet
 - [README.md](README.md) - Documentation principale
 - [docs/INDEX_DOCUMENTATION.md](docs/INDEX_DOCUMENTATION.md) - Index complet
 
