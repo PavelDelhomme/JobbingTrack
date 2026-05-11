@@ -4,7 +4,7 @@
 
 ### 📖 **Documentation du Projet**
 - **[🏠 README Principal](../README.md)** | **[📚 Documentation Centralisée](README.md)**
-- **[📁 Organisation Documentation](ORGANISATION_DOCUMENTATION.md)** - Guide de la nouvelle structure organisée
+- **[📁 Structure Documentation](project/STRUCTURE_DOCUMENTATION.md)** | **[🧭 Audit Documentation](operations/DOCUMENTATION_AUDIT_PLAN.md)** - Structure actuelle, audit et restructuration par domaine
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !
@@ -14,7 +14,7 @@
 - **[🔄 Guide de Redémarrage](getting-started/REDEMARRAGE.md)** - Comment redémarrer le projet
 - **[🛠️ Commandes Makefile](development/makefile-commands/README.md)** - Guide complet des commandes
 - **[🔧 Scripts](scripts/README.md)** - Tous les scripts disponibles
-- **[💻 Configuration Développement](development/setup/README.md)** - Configuration complète du développement
+- **[💻 Guide développement](development/makefile/README.md)** - Makefile, commandes et flux de développement
 - **[🎯 Configuration Déploiement](deployment/getting-started/README.md)** | **[🏭 Production](deployment/production/README.md)** - Configuration complète du déploiement
 
 ### 🏗️ **Architecture et Infrastructure**
@@ -28,20 +28,18 @@
 - **[🎯 Démarrage](deployment/getting-started/README.md)** | **[🏭 Production](deployment/production/README.md)** | **[🔐 Sécurité](deployment/security/README.md)**
 
 ### 💻 **Développement**
-- **[⚙️ Configuration](development/setup/README.md)** | **[🔄 Workflow](development/workflow/README.md)** | **[🧪 Tests](development/testing/README.md)**
+- **[⚙️ Makefile](development/makefile/README.md)** | **[🛠️ Commandes](development/makefile-commands/README.md)** | **[🧪 Tests](tests/README.md)**
 - **[🛠️ Guide Makefile](development/makefile/README.md)** - Système complet avec aide intégrée
 
 ### 📱 **Applications**
-- **[🖥️ Frontend Next.js](development/setup/README.md#frontend)** | **[📱 Mobile Flutter](../mobile/README.md)**
+- **[🖥️ Frontend Next.js](frontend/README.md)** | **[📱 Mobile Flutter](mobile/README.md)**
 - **[🎨 Guide Frontend](frontend/README.md)** - Next.js, composants, services
 
 ### 📧 **Configuration Emails**
 - **[📧 Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
-- **[📊 État du Système](emails/EMAIL_STATUS.md)** - État complet du système email
-- **[🏢 Configuration OVH](emails/OVH_EMAIL_SETUP.md)** - Configuration complète OVH
-- **[🚀 Configuration Production](emails/CONFIGURATION_PRODUCTION_EMAIL.md)** - Configuration pour la production
-- **[🧪 Tests](emails/TEST_EMAIL_DEVELOPPEMENT.md)** - Guide de test en développement
-- **[📋 Prochaines Étapes](emails/PROCHAINES_ETAPES_EMAIL.md)** - Prochaines étapes après configuration
+- **[📬 Mail](emails/MAIL.md)** - Routes, flux et suivi emails
+- **[SMTP](emails/SMTP_CONFIGURATION.md)** - Configuration SMTP
+- **[Python Email Setup](emails/PYTHON_EMAIL_SETUP.md)** - Setup historique / compatibilité
 
 ### 🔧 **Administration**
 - **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/README.md)**
@@ -55,10 +53,10 @@
 
 ### 🧪 **Tests**
 - **[🧪 Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
-- **[📊 Tests Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
-- **[📋 Rapport Tests Complets](tests/TESTS_COMPLETS_RAPPORT.md)** - ⭐ Rapport détaillé des tests système
-- **[✅ Résumé Tests](tests/RESUME_TESTS_COMPLETS.md)** - ⭐ Résumé exécutif (100% réussis)
-- **[📝 Tests Manquants](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests à implémenter
+- **[Commandes Tests](tests/COMMANDES_TESTS.md)** - Commandes de test
+- **[Structure make tests](tests/STRUCTURE_TESTS_MAKE_TEST.md)** - Structure des campagnes
+- **[Rapports conventions](tests/RAPPORTS_CONVENTIONS.md)** - Conventions rapports
+- **[Tests finaux](tests/TESTS_END.md)** - Gate manuel / fin de suite
 
 ---
 
@@ -79,9 +77,8 @@ docs/
 │   ├── production/README.md      # Déploiement production
 │   └── security/README.md        # Sécurité déploiement
 ├── 💻 development/              # Guides développement
-│   ├── setup/README.md           # Configuration environnement
-│   ├── workflow/README.md        # Workflow développement
-│   └── testing/README.md         # Stratégies de tests
+│   ├── makefile/README.md        # Guide Makefile
+│   └── makefile-commands/README.md # Commandes Makefile
 ├── 🖥️ frontend/                 # Guide frontend
 │   ├── README.md                 # Développement frontend
 │   ├── GUIDE_ENREGISTREMENT_AUTOMATIQUE.md  # Enregistrement auto paramètres
@@ -91,21 +88,16 @@ docs/
 │   └── README.md                 # Développement mobile
 ├── 📧 emails/                   # Configuration emails
 │   ├── README.md                 # Index emails
-│   ├── EMAIL_STATUS.md           # État complet du système
-│   ├── OVH_EMAIL_SETUP.md        # Configuration OVH
-│   ├── CONFIGURATION_PRODUCTION_EMAIL.md # Configuration production
-│   ├── TEST_EMAIL_DEVELOPPEMENT.md # Tests en développement
-│   └── PROCHAINES_ETAPES_EMAIL.md # Prochaines étapes
+│   ├── MAIL.md                   # Flux et routes mail
+│   ├── SMTP_CONFIGURATION.md     # SMTP
+│   └── PYTHON_EMAIL_SETUP.md     # Setup historique Python
 ├── 🔧 administration/           # Guide administration
 │   ├── README.md                 # Dashboard administrateur
 │   └── GUIDE_GESTION_UTILISATEURS.md        # Gestion utilisateurs
 ├── 🐛 troubleshooting/          # Dépannage
 │   ├── README.md                 # Guide de résolution
-│   ├── CORRECTIONS_ANALYTICS_DASHBOARD.md   # Corrections analytics
-│   ├── CORRECTIONS_ERREURS_404_TIMEOUTS.md  # Corrections 404/timeouts
-│   ├── CORRECTIONS_FINALES_SESSION.md       # Corrections finales
-│   ├── CORRECTIONS_GRAPHIQUES_ANALYTICS.md  # Corrections graphiques
-│   └── TROUBLESHOOTING_LOGIN.md             # Dépannage login
+│   ├── POSTGRES_MONITORING.md    # PostgreSQL et monitoring
+│   └── TROUBLESHOOTING_LOGIN.md  # Dépannage login
 ├── ⚡ performance/              # Optimisation
 │   └── README.md                 # Guide performance
 ├── 🔒 security/                 # Sécurité
@@ -115,9 +107,9 @@ docs/
 │   └── DEMARRAGE_SERVICES_SECURITE.md       # Démarrage services
 └── 🧪 tests/                    # Tests
     ├── README.md                 # Stratégie tests
-    ├── TESTS_PAGE_DETAIL_SERVICES.md        # Tests page services
-    ├── TESTS_COMPLETS_RAPPORT.md             # ⭐ Rapport complet
-    └── RESUME_TESTS_COMPLETS.md              # ⭐ Résumé exécutif
+    ├── COMMANDES_TESTS.md        # Commandes
+    ├── STRUCTURE_TESTS_MAKE_TEST.md # Structure make tests
+    └── TESTS_END.md              # Gate final
 ```
 
 ---
@@ -125,10 +117,10 @@ docs/
 ## 🔗 Liens rapides
 
 ### Pour les développeurs
-- **[Configuration](./development/setup/README.md)** - Environnement de développement
+- **[Makefile](./development/makefile/README.md)** - Environnement de développement et commandes
 - **[API](./api/api-reference/README.md)** - Documentation des APIs
 - **[Architecture](./core/architecture/README.md)** - Vue technique
-- **[Tests](./development/testing/README.md)** - Stratégies de tests
+- **[Tests](./tests/README.md)** - Stratégies de tests
 - **[Frontend](./frontend/README.md)** - Développement Next.js
 
 ### Pour les administrateurs
@@ -140,21 +132,16 @@ docs/
 
 ### Pour le monitoring
 - **[📚 Quick Start](./monitoring/QUICK_START_MONITORING.md)** - 🚀 Démarrage rapide
-- **[📊 Guide Monitoring](./monitoring/GUIDE_MONITORING_SERVICES.md)** - Monitoring des services
-- **[📈 Tendances Métriques](./monitoring/GUIDE_TENDANCES_METRIQUES.md)** - Analyse des tendances
+- **[📊 Guide Monitoring](./monitoring/MONITORING_GUIDE.md)** - Monitoring des services
+- **[📈 Flux métriques](./monitoring/metrics-flow.md)** - Collecte et API métriques
 - **[💻 Commandes](./monitoring/MONITORING_COMMANDS.md)** - Commandes utiles
-- **[📁 Fichiers](./monitoring/FICHIERS_MONITORING.md)** - Organisation fichiers
-- **[📊 Statistiques](./monitoring/SYSTEME_STATISTIQUES_APPLICATIVES.md)** - Statistiques applicatives
-- **[⚡ Améliorations](./monitoring/AMELIORATIONS_CHARGEMENT_METRIQUES.md)** - Optimisations
-- **[🔧 Corrections](./monitoring/CORRECTION_COHERENCE_METRIQUES.md)** - Cohérence métriques
-- **[📝 Résumé](./monitoring/INTEGRATION_MONITORING_RESUME.md)** - Résumé intégration
+- **[🦀 Migration Rust](../monitoring/MIGRATION_RUST.md)** - Migration agents bas niveau
+- **[⚡ Optimisation](./monitoring/PERFORMANCE_OPTIMIZATION.md)** - Optimisations metrics-aggregator
 
 ### Pour le dépannage
 - **[Guide Principal](./troubleshooting/README.md)** - Résolution problèmes
-- **[Analytics Dashboard](./troubleshooting/CORRECTIONS_ANALYTICS_DASHBOARD.md)** - Corrections analytics
-- **[Erreurs 404/Timeouts](./troubleshooting/CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Erreurs HTTP
-- **[Session](./troubleshooting/CORRECTIONS_FINALES_SESSION.md)** - Corrections session
-- **[Graphiques](./troubleshooting/CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Corrections graphiques
+- **[Login](./troubleshooting/TROUBLESHOOTING_LOGIN.md)** - Dépannage login
+- **[Postgres monitoring](./troubleshooting/POSTGRES_MONITORING.md)** - PostgreSQL et monitoring
 
 ### Pour les utilisateurs
 - **[Démarrage](./deployment/getting-started/README.md)** - Installation
@@ -182,8 +169,7 @@ docs/
 - **[🏭 Production](./pdfs/deployment/production.pdf)**
 
 ### 💻 **Développement**
-- **[⚙️ Configuration](./pdfs/development/setup.pdf)**
-- **[🧪 Tests](./pdfs/development/testing.pdf)**
+- PDFs développement historiques non régénérés dans l'état actuel ; voir les sources [development/makefile/README.md](development/makefile/README.md), [development/makefile-commands/README.md](development/makefile-commands/README.md) et [tests/README.md](tests/README.md).
 
 ---
 

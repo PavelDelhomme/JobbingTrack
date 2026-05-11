@@ -4,7 +4,9 @@
 
 **Référence principale** : [metrics-flow.md](./metrics-flow.md) — flux des métriques (monitoring-c → metrics-aggregator → backoffice).
 
-**Guides détaillés** : [METRICS_DB_README.md](METRICS_DB_README.md) (BDD métriques), [MONITORING_GUIDE.md](MONITORING_GUIDE.md) (système de monitoring), [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) (optimisation metrics-aggregator).
+**Guides détaillés** : [METRICS_DB_README.md](METRICS_DB_README.md) (BDD métriques), [MONITORING_GUIDE.md](MONITORING_GUIDE.md) (système de monitoring), [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) (optimisation metrics-aggregator), [MIGRATION_RUST.md](../../monitoring/MIGRATION_RUST.md) (migration agents Rust).
+
+**Note d'état** : certains passages historiques ci-dessous mentionnent Prometheus/Loki/Grafana/cAdvisor comme stack complète. L'état actif actuel est plutôt `monitoring-agent-rs` + `log-collector-rs` + `metrics-aggregator-service`; la migration et les fallbacks C sont détaillés dans [MIGRATION_RUST.md](../../monitoring/MIGRATION_RUST.md).
 
 ## 🎯 Vue d'ensemble
 

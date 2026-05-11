@@ -14,7 +14,8 @@
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
 | **Flux métriques (metrics-flow)** | [monitoring/metrics-flow.md](monitoring/metrics-flow.md) |
-| **Statistiques projet** | [monitoring/STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md) |
+| **Monitoring / migration Rust** | [monitoring/README.md](monitoring/README.md), [monitoring/metrics-flow.md](monitoring/metrics-flow.md), [../monitoring/MIGRATION_RUST.md](../monitoring/MIGRATION_RUST.md) |
+| **Fonctionnalités métier** | [features/SUIVI_BOITES_INTÉRIM.md](features/SUIVI_BOITES_INTÉRIM.md) |
 | **Status structure BDD** | [database/STATUS_STRUCTURE_BDD.md](database/STATUS_STRUCTURE_BDD.md) |
 | **Parcours métier** | [user-journey/PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md) |
 | **Tracking utilisateur** | [mobile/analytics/TRACKING_UTILISATEUR.md](mobile/analytics/TRACKING_UTILISATEUR.md) |
@@ -30,7 +31,7 @@ Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** et **[getting-starte
 
 ### Ce qu’il reste à faire (priorité)
 - **[STATUS.md](STATUS.md)** — **À faire maintenant** : état courant, priorités et validations porteur.
-- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
+- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–H (lot **A** monitoring + logs, lot **B** sécurité, lot **H** release/préprod/conformité, **STATS** = CVE).
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
 
 ### Fichiers .md à la racine
@@ -51,7 +52,6 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 - **[README.md](user-journey/README.md)** - Index des tests user journey
 - **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
 - **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé
-- **[PARCOURS_METIER.md](user-journey/PARCOURS_METIER.md)** - Parcours métier
 - **[QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md)** - Démarrage rapide tests E2E mobile (Playwright)
 - **[README.md](tests/README.md)** - Stratégie tests, commandes, structure make test
 
@@ -109,12 +109,11 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 
 - **[README.md](monitoring/)** - Guide de monitoring
 - **[metrics-flow.md](monitoring/metrics-flow.md)** - Flux des métriques (qui collecte quoi, ports)
-- **[STATISTIQUES_PROJET.md](monitoring/STATISTIQUES_PROJET.md)** - Statistiques projet
-- **[QUICK-START-MONITORING.md](monitoring/)** - Démarrage rapide monitoring
-- **[MONITORING-GUIDE.md](monitoring/)** - Guide complet
-- **[GUIDE_MONITORING_SERVICES.md](monitoring/)** - Monitoring des services
-- **[GUIDE_TENDANCES_METRIQUES.md](monitoring/)** - Tendances métriques
-- **[SYSTEME_STATISTIQUES_APPLICATIVES.md](monitoring/)** - Statistiques applicatives
+- **[QUICK_START_MONITORING.md](monitoring/QUICK_START_MONITORING.md)** - Démarrage rapide monitoring
+- **[MONITORING_GUIDE.md](monitoring/MONITORING_GUIDE.md)** - Guide monitoring
+- **[MONITORING-GUIDE.md](monitoring/MONITORING-GUIDE.md)** - Guide historique / pièges monitoring
+- **[MONITORING_COMMANDS.md](monitoring/MONITORING_COMMANDS.md)** - Commandes monitoring
+- **[MIGRATION_RUST.md](../monitoring/MIGRATION_RUST.md)** - Migration Rust monitoring/log collector
 
 ---
 
@@ -201,27 +200,28 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 
 ### "Je veux tester les parcours utilisateur"
 1. [user-journey/README.md](user-journey/) - Commencez ici
-2. [user-journey/TOKEN_TEST_PERMANENT.md](user-journey/TOKEN_TEST_PERMANENT.md) - Token permanent
-3. `./START_TESTS.sh` - Lancer les tests
+2. [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) - Tests mobiles / Playwright
+3. [tests/COMMANDES_TESTS.md](tests/COMMANDES_TESTS.md) - Commandes de test
 
 ### "Je veux démarrer le projet"
 1. [getting-started/QUICK_START_GUIDE.md](getting-started/QUICK_START_GUIDE.md)
-2. `make up-for-tests`
-3. http://localhost:8080
+2. [getting-started/DEMARRAGE_RAPIDE.md](getting-started/DEMARRAGE_RAPIDE.md)
+3. `make up-full`
 
 ### "J'ai une erreur"
 1. [troubleshooting/README.md](troubleshooting/) - Dépannage
-3. `make logs` - Voir les logs
+2. [ERRORS.md](ERRORS.md) - Erreurs connues actives
+3. `make logs-watch` - Voir les logs
 
 ### "Je veux comprendre l'architecture"
 1. [api/README.md](api/) - API & Backend
-2. [database/architecture/](database/architecture/) - Base de données
+2. [database/README.md](database/README.md) - Base de données
 3. [security/README.md](security/) - Sécurité
 
 ### "Je veux monitorer le système"
-1. [monitoring/QUICK-START-MONITORING.md](monitoring/QUICK-START-MONITORING.md)
-2. http://localhost:3004 - Grafana
-3. http://localhost:9090 - Prometheus
+1. [monitoring/QUICK_START_MONITORING.md](monitoring/QUICK_START_MONITORING.md)
+2. [monitoring/metrics-flow.md](monitoring/metrics-flow.md)
+3. [../monitoring/MIGRATION_RUST.md](../monitoring/MIGRATION_RUST.md)
 
 ---
 
