@@ -28,15 +28,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR" || true
 
-# Secret machine aligné compose / .env.example (Jest backend + scripts qui appellent /api/v1/security)
-export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
 if [ -f "$ROOT_DIR/.env" ]; then
 	set -a
 	# shellcheck source=/dev/null
 	. "$ROOT_DIR/.env"
 	set +a
-	export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
 fi
+export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-}"
 
 # Curl / Jest sur l’hôte : les noms Docker ne résolvent pas → ENOTFOUND ou curl code 000 + corps obsolète dans /tmp
 normalize_docker_hosts_for_host_runner() {

@@ -68,10 +68,12 @@ services:
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=${NODE_ENV:-development}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
       - SERVICE_NAME=jobbingtrack-api-gateway
       - WAF_ENABLED=${WAF_ENABLED:-true}
+      - WAF_INTERNAL_BYPASS_CIDRS=${WAF_INTERNAL_BYPASS_CIDRS:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      - WAF_INTERNAL_BYPASS_ENABLED=${WAF_INTERNAL_BYPASS_ENABLED:-true}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
@@ -363,7 +365,7 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_HOST=${SMTP_HOST:-ssl0.ovh.net}
@@ -409,6 +411,7 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - ENABLE_CENTRAL_LOGGING=true
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
@@ -450,6 +453,7 @@ services:
     environment:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - ENABLE_CENTRAL_LOGGING=true
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
@@ -725,6 +729,7 @@ services:
       - COMPANY_SERVICE_URL=http://jobbingtrack-company-service:${COMPANY_SERVICE_INTERNAL_PORT:-3003}
       - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - NODE_ENV=development
@@ -815,7 +820,7 @@ services:
       - NODE_ENV=development
       - PORT=3017
       - PRISMA_DISABLE_WARNINGS=true
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SECURITY_SERVICE_URL=http://security-service:3017
       - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:

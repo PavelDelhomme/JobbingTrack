@@ -4,9 +4,7 @@ const logger = require('./logger');
 const SECURITY_SERVICE_URL = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
 
 function securityInternalHeaders() {
-  const secret =
-    process.env.SECURITY_INTERNAL_SECRET ||
-    (process.env.NODE_ENV === 'production' ? undefined : 'jobbingtrack-internal-security-dev');
+  const secret = process.env.SECURITY_INTERNAL_SECRET;
   if (!secret) return {};
   return { 'X-Internal-Secret': secret };
 }

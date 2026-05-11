@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
@@ -27,11 +28,8 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS || '1', 10) || 1);
 const SECURITY_SERVICE_URL = (process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017').replace(/\/$/, '');
 
-/** Même défaut que docker-compose / .env.example ; désactivé en production si non défini. */
 function effectiveSecurityInternalSecret() {
-  if (process.env.SECURITY_INTERNAL_SECRET) return process.env.SECURITY_INTERNAL_SECRET;
-  if (process.env.NODE_ENV === 'production') return undefined;
-  return 'jobbingtrack-internal-security-dev';
+  return process.env.SECURITY_INTERNAL_SECRET;
 }
 
 function securityServiceInternalHeaders() {
@@ -418,103 +416,29 @@ app.get('/api/v1/metrics', async (req, res) => {
   }
 });
 
-// ✅ Routes d'authentification spécifiques (MODE DÉVELOPPEMENT)
-// ⚠️ DÉSACTIVÉ - Laisser le vrai auth-service gérer le login
-/* COMMENTÉ POUR UTILISER LE VRAI AUTH-SERVICE
-app.post('/api/v1/auth/login', async (req, res) => {
-  try {
-    logger.info('🔥 Route /api/v1/auth/login interceptée');
-
-    // Mode développement : retourner toujours une réponse de succès
-    const mockResponse = {
-      success: true,
-      user: {
-        id: 'dev_user_1',
-        email: req.body.email || 'redacted@example.invalid',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'SUPER_ADMIN'
-      },
-      token: 'mock-jwt-token-' + Date.now(),
-      fallback: true,
-      message: 'Connexion réussie (mode développement)'
-    };
-
-    // Configurer le cookie avec le token
-    res.cookie('token', mockResponse.token, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
-    });
-
-    res.status(200).json(mockResponse);
-
-  } catch (error) {
-    logger.error('Error in auth login:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
-*/
-
-// ✅ Route pour récupérer le profil utilisateur
-// ⚠️ DÉSACTIVÉ - Laisser le proxy vers auth-service gérer cette route
-// La route est maintenant gérée par le proxy défini plus bas (ligne 515)
-/* COMMENTÉ POUR UTILISER LE VRAI AUTH-SERVICE
-app.get('/api/v1/auth/profile', async (req, res) => {
-  try {
-    logger.info('👤 Route /api/v1/auth/profile interceptée');
-
-    // Mode développement : retourner le profil de l'utilisateur connecté
-    const mockProfile = {
-      success: true,
-      user: {
-        id: 'dev_user_1',
-        email: 'admin@jobbingtrack.test',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'SUPER_ADMIN',
-        isActive: true,
-        isDeleted: false,
-        isArchived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      fallback: true,
-      message: 'Profil utilisateur (mode développement)'
-    };
-
-    res.status(200).json(mockProfile);
-
-  } catch (error) {
-    logger.error('Error in auth profile:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
-*/
-
 // Jest définit NODE_ENV=test : évite 503 (auth injoignable) sur les tests gateway hors Docker.
 if (process.env.NODE_ENV === 'test') {
   app.post('/api/v1/auth/login', async (req, res) => {
     try {
+      const user = {
+        id: 'dev_user_1',
+        email: req.body?.email || 'redacted@example.invalid',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'SUPER_ADMIN'
+      };
+      const jwtSecret = process.env.JWT_SECRET || 'test-secret-key';
+      const token = jwt.sign(
+        { id: user.id, userId: user.id, email: user.email, role: user.role },
+        jwtSecret,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      );
       const mockResponse = {
         success: true,
-        user: {
-          id: 'dev_user_1',
-          email: req.body?.email || 'redacted@example.invalid',
-          firstName: 'Test',
-          lastName: 'User',
-          role: 'SUPER_ADMIN'
-        },
-        token: 'mock-jwt-token-' + Date.now(),
+        user,
+        token,
         fallback: true,
-        message: 'Connexion réussie (mode test gateway)'
+        message: 'Connexion réussie (mode test gateway, JWT signé)'
       };
       res.cookie('token', mockResponse.token, {
         httpOnly: false,
