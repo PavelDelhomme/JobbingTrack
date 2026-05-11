@@ -1,0 +1,175 @@
+name: Security Audit
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - dev
+      - 'feat/security-*'
+      - 'feat/**'
+    paths:
+      - '.github/workflows/security-audit.yml'
+      - 'backend/**/package*.json'
+      - 'frontend/package*.json'
+      - 'package*.json'
+      - 'docker-compose*.yml'
+      - 'backend/docker-compose*.yml'
+      - 'frontend/docker-compose*.yml'
+      - 'Dockerfile'
+      - '**/Dockerfile'
+      - 'scripts/security/**'
+  pull_request:
+    paths:
+      - '.github/workflows/security-audit.yml'
+      - 'backend/**/package*.json'
+      - 'frontend/package*.json'
+      - 'package*.json'
+      - 'docker-compose*.yml'
+      - 'backend/docker-compose*.yml'
+      - 'frontend/docker-compose*.yml'
+      - 'Dockerfile'
+      - '**/Dockerfile'
+      - 'scripts/security/**'
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      scan_prod_images:
+        description: 'Build and scan docker-compose.prod.yml images'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  gitleaks:
+    name: Gitleaks history scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm-audit:
+    name: Node dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            backend/*/package-lock.json
+            frontend/package-lock.json
+            tests/package-lock.json
+
+      - name: Run repository CVE scan
+        run: |
+          python3 scripts/security/cve-scan.py \
+            --output-dir reports/security \
+            --timeout-sec 90
+
+      - name: Upload npm audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-reports
+          path: reports/security/**
+          if-no-files-found: warn
+
+  trivy:
+    name: Trivy filesystem and config scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          ignore-unfixed: true
+
+      - name: Upload Trivy filesystem SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          format: table
+          output: trivy-config.txt
+
+      - name: Upload Trivy config report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-report
+          path: trivy-config.txt
+          if-no-files-found: warn
+
+  prod-image-scan:
+    name: Trivy prod image scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'workflow_dispatch' && inputs.scan_prod_images == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build production compose images
+        run: docker compose -f docker-compose.prod.yml build
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+
+      - name: Scan production images
+        run: |
+          mkdir -p reports/security/prod-images
+          docker compose -f docker-compose.prod.yml config --images | sort -u > reports/security/prod-images/images.txt
+          while read -r image; do
+            [ -n "$image" ] || continue
+            safe_name="$(echo "$image" | tr '/:' '__')"
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --format json \
+              --output "reports/security/prod-images/${safe_name}.json" "$image"
+          done < reports/security/prod-images/images.txt
+
+      - name: Upload prod image reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-prod-image-reports
+          path: reports/security/prod-images/**
+          if-no-files-found: warn
