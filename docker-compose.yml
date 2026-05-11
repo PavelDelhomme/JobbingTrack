@@ -800,6 +800,14 @@ services:
       - "${SECURITY_SERVICE_PORT:-5017}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - "CVE_SCAN_CRON=${CVE_SCAN_CRON:-17 */6 * * *}"
+      - CVE_SCAN_DOCKER=${CVE_SCAN_DOCKER:-0}
+      - CVE_SCAN_INCLUDE_DEV=${CVE_SCAN_INCLUDE_DEV:-0}
+      - CVE_SCAN_OUTPUT_DIR=${CVE_SCAN_OUTPUT_DIR:-/tmp/jobbingtrack-cve-results}
+      - CVE_SCAN_PROJECT_ROOT=${CVE_SCAN_PROJECT_ROOT:-/scan}
+      - CVE_SCAN_PYTHON_BIN=${CVE_SCAN_PYTHON_BIN:-python3}
+      - CVE_SCAN_TIMEOUT_MS=${CVE_SCAN_TIMEOUT_MS:-600000}
+      - CVE_SCAN_TIMEOUT_SEC=${CVE_SCAN_TIMEOUT_SEC:-120}
       - DEBUG=
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
@@ -813,6 +821,16 @@ services:
     volumes:
       # Même principe que api-gateway : le code src sur l’hôte est pris en compte sans rebuild image
       - ./backend/security-service/src:/app/src
+      # Surfaces CVE en lecture seule : évite de monter .env tout en couvrant Node/Rust/Flutter/scripts.
+      - ./package.json:/scan/package.json:ro
+      - ./package-lock.json:/scan/package-lock.json:ro
+      - ./backend:/scan/backend:ro
+      - ./frontend:/scan/frontend:ro
+      - ./flutter-mobile-app:/scan/flutter-mobile-app:ro
+      - ./mobile:/scan/mobile:ro
+      - ./monitoring/rust:/scan/monitoring/rust:ro
+      - ./scripts/security:/scan/scripts/security:ro
+      - ./tests:/scan/tests:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     security_opt:
       - no-new-privileges:true
