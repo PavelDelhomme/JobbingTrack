@@ -688,6 +688,7 @@ services:
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - REDIS_URL=redis://redis:6379
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.test}
       - SMTP_HOST=${SMTP_HOST:-mailhog}
       - SMTP_PORT=${SMTP_PORT:-1025}
@@ -818,8 +819,13 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - LOG_LEVEL=info
       - NODE_ENV=development
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:3008}
       - PORT=3017
       - PRISMA_DISABLE_WARNINGS=true
+      - SECURITY_ALERT_EMAIL=${SECURITY_ALERT_EMAIL}
+      - SECURITY_ALERT_EMAIL_ENABLED=${SECURITY_ALERT_EMAIL_ENABLED:-true}
+      - SECURITY_ALERT_EMAIL_LEVELS=${SECURITY_ALERT_EMAIL_LEVELS:-critical,high}
+      - SECURITY_ALERT_EMAIL_TIMEOUT_MS=${SECURITY_ALERT_EMAIL_TIMEOUT_MS:-5000}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SECURITY_SERVICE_URL=http://security-service:3017
       - WAF_ENABLED=${WAF_ENABLED:-true}

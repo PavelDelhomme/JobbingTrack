@@ -1,10 +1,10 @@
 # Backlog technique – JobbingTrack
 
-Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la racine contient l'état courant ; ce fichier contient le backlog complet.
+Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` contient l'état courant ; ce fichier contient le backlog complet.
 
-**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc) : pour ne pas dupliquer la granularité, suivre **`PLAN.md`** (lots A–F) et **`TODOS.md`** à la racine du dépôt. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
+**Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc) : pour ne pas dupliquer la granularité, suivre **`docs/PLAN.md`** (lots A–G) et **`docs/TODOS.md`**. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
 
-**Méta (07/04/2026)** : refonte globale des **`.md` racine** + **`docs/**/*.md`**, revue **BDD** avant campagne de tests, et interprétation des **logs gateway sécurité** — voir la **dernière section** de **`TODOS.md`** (priorité porteur / historique) et **`STATUS.md`** § journalisation gateway.
+**Méta (11/05/2026)** : la racine ne garde que `README.md`; les fichiers de pilotage sont sous `docs/`. Revue **BDD** avant campagne de tests, interprétation des **logs gateway sécurité** et suite sécurité — voir **`docs/TODOS.md`** et **`docs/STATUS.md`**.
 
 ---
 
@@ -82,7 +82,7 @@ Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la 
 ## Priorité basse – Sécurité
 
 - [ ] **Forensics menaces réseau — qualité données terrain** : ne pas dépendre uniquement de `network_threats.metadata`. Si une menace de test ou de détection réelle ne contient que peu de métadonnées (`test`, `packetsPerSec`, etc.), corréler avec `network_connections`, `security_logs.metadata.sourceIp`, `metadata.threatId`, `DDoSAttack`, `IntrusionAttempt`, puis afficher clairement ce qui manque. À compléter : provider threat-intel (ASN/VPN/proxy/Tor), payload/request samples, comptes impactés fiables, IPs “à surveiller” cliquables et détaillables.
-- [ ] **Alertes email sécurité + disponibilité** : brancher le système mail sur les vrais problèmes : menace `CRITICAL`, CVE `critical`, blocage firewall automatique majeur, et service/conteneur critique `down` détecté par monitoring Rust / metrics-aggregator. Prévoir adresse admin configurable, réauthentification, audit trail, tests MailHog, et mode digest pour `high`.
+- [ ] **Alertes email sécurité + disponibilité** : brancher le système mail sur les vrais problèmes : menace `CRITICAL`, CVE `critical`, blocage firewall automatique majeur, et service/conteneur critique `down` détecté par monitoring Rust / metrics-aggregator. **11/05 partiel** : `SecurityAlert` `critical/high` envoie via `notification-service` route interne + `EmailLog`. Reste : adresse admin configurable, réauthentification, audit trail, anti-flap/dédup, tests MailHog complets, et mode digest pour `high`.
 - [ ] **WAF — filtrage externe uniquement** : éviter que le WAF inspecte ou bloque le trafic interne inter-services (réseaux Docker privés, healthchecks, appels service-to-service). Définir une règle d’architecture : WAF sur l’entrée gateway/public, allowlist/bypass explicite pour réseaux internes, logs séparés, tests `WAF_ENABLED=true/false` couvrant externe malveillant vs interne légitime. **11/05 partiel** : `WAF_INTERNAL_BYPASS_ENABLED` / `WAF_INTERNAL_BYPASS_CIDRS`; vérifier les CIDR réels du serveur/VPS et le `remoteAddress` après reverse proxy avant prod.
 - [ ] **B14 — Durcissement Docker Compose & runtime** : secrets sans fallback en prod, proxy **`docker.sock`**, Redis **`requirepass`**, non-root collecteurs, **`read_only`** / limites — **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** § **B14**.
 - [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.

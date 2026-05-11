@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const { prisma } = require('../config/database');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const dataGenerator = require('./dataGenerator');
+const securityAlertEmailNotifier = require('./securityAlertEmailNotifier');
 
 const CVE_SCAN_RELATIVE_PATH = path.join('scripts', 'security', 'cve-scan.py');
 const CVE_SCAN_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -553,6 +554,8 @@ class SecurityService {
         source,
         ...(metadata && typeof metadata === 'object' ? metadata : {})
       });
+
+      await securityAlertEmailNotifier.notifySecurityAlert(alert);
 
       return alert;
     } catch (error) {

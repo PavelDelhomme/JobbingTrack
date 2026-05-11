@@ -8,6 +8,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G** + **B14** infra), **`TODOS.md`**, **`STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
 
+**Alertes email sécurité (11/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe, mais l’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
+
 ---
 
 ## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)
