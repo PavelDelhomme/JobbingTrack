@@ -8,7 +8,7 @@
 
 | Thème | Emplacement |
 |-------|-------------|
-| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Racine : **[PLAN.md](../PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](../TODOS.md)**, **[STATS.md](../STATS.md)** (CVE / dépendances) ; index **[CHANTIER_SECURITE_DATA_DOCS.md](CHANTIER_SECURITE_DATA_DOCS.md)** |
+| **Chantier monitoring / sécurité / data / doc (lots A–G)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité), **[TODOS.md](TODOS.md)**, **[STATS.md](STATS.md)** (CVE / dépendances) ; index **[CHANTIER_SECURITE_DATA_DOCS.md](CHANTIER_SECURITE_DATA_DOCS.md)** |
 | **Préprod / production (checklist manuelle)** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — NTP, secrets, intrusion, B6, **SMTP/TLS**, **`CRASH_REPORT_EMAIL`**, Jest gateway en conteneur |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
@@ -21,19 +21,19 @@
 | **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
 | **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
 
-Pour **quoi faire maintenant** : **[../STATUS.md](../STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[../PLAN.md](../PLAN.md)**, **[../TODOS.md](../TODOS.md)**, **[../STATS.md](../STATS.md)** (audits CVE à compléter).
+Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** et **[GUIDE_ETAPES_ACTUELLES.md](GUIDE_ETAPES_ACTUELLES.md)**. Pour le **chantier backoffice / API / doc** : **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[STATS.md](STATS.md)** (audits CVE à compléter).
 
 ---
 
 ## 🎯 Par où commencer
 
 ### Ce qu’il reste à faire (priorité)
-- **[../STATUS.md](../STATUS.md)** — **À faire maintenant** : priorité mobile (vérification email manuelle, puis app Flutter). Détail des commandes et de l’état du projet.
-- **[../PLAN.md](../PLAN.md)** / **[../TODOS.md](../TODOS.md)** / **[../STATS.md](../STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
+- **[STATUS.md](STATUS.md)** — **À faire maintenant** : état courant, priorités et validations porteur.
+- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[STATS.md](STATS.md)** — Lots A–G (lot **A** monitoring + logs, lot **B** sécurité, intérim, doc, tests, **STATS** = CVE).
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
 
-### Fichiers .md à la racine (à garder)
-`README.md` | `STATUS.md` | `ERRORS.md` | `FONCTIONNALITES.md` | `RESOLUTIONS.md` | **`PLAN.md`** | **`TODOS.md`** | **`STATS.md`**. Le reste (checklist tests, TODO performance, etc.) est dans `docs/`.
+### Fichiers .md à la racine
+La racine ne garde que `README.md`. Les fichiers de pilotage sont dans `docs/` : `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`, `PLAN.md`, `TODOS.md`, `STATS.md`, `STRUCTURE_DOCUMENTATION.md`.
 
 ### Démarrer le projet
 - **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage
@@ -258,7 +258,7 @@ make restart
 ```
 
 ### Documentation Essentielle
-- **[../STATUS.md](../STATUS.md)** - À faire maintenant, état projet
+- **[STATUS.md](STATUS.md)** - À faire maintenant, état projet
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** - Mobile : vérif email + Flutter
 - **[user-journey/README.md](user-journey/)** - Tests utilisateur
 - **[troubleshooting/README.md](troubleshooting/)** - Dépannage
@@ -310,7 +310,7 @@ JobbingTrack/
 
 ---
 
-**Pour savoir quoi faire** : [../STATUS.md](../STATUS.md) (section « À faire maintenant »).
+**Pour savoir quoi faire** : [STATUS.md](STATUS.md) (section « À faire maintenant »).
 
 **✨ Documentation mise à jour mars 2026**
 

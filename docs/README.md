@@ -2,7 +2,7 @@
 
 [← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📑 Index](INDEX.md)
 
-**Fichiers à la racine** : `README.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`. Pour **ce qu’il reste à faire** (priorité mobile, vérif email, Flutter) → **[../STATUS.md](../STATUS.md)** et **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)**.
+**Racine du projet** : seul `README.md` reste à la racine. Les fichiers de pilotage projet sont maintenant dans `docs/` : **[STATUS.md](STATUS.md)**, **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[ERRORS.md](ERRORS.md)**, **[RESOLUTIONS.md](RESOLUTIONS.md)**, **[STATS.md](STATS.md)**, **[FONCTIONNALITES.md](FONCTIONNALITES.md)** et **[STRUCTURE_DOCUMENTATION.md](STRUCTURE_DOCUMENTATION.md)**.
 
 ## **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
 
@@ -19,7 +19,16 @@ Documentation complète et organisée du projet **JobbingTrack v4.1** - Système
 ```
 docs/
 ├── 📖 README.md                        # Ce fichier - index principal
+├── 📑 INDEX.md                         # Index rapide
 ├── 🧭 navigation.md                    # Navigation complète
+├── 📌 STATUS.md                        # État courant et priorités
+├── 🗺️ PLAN.md                          # Plan d’exécution
+├── ✅ TODOS.md                         # Checklist opérationnelle
+├── 🐛 ERRORS.md                        # Erreurs connues
+├── 🛠️ RESOLUTIONS.md                   # Correctifs appliqués
+├── 📊 STATS.md                         # Stats, CVE, dépendances
+├── 🎯 FONCTIONNALITES.md               # Vision fonctionnelle
+├── 🧱 STRUCTURE_DOCUMENTATION.md       # Carte et réorganisation docs
 ├── 🏗️ core/                            # Documentation technique de base
 │   ├── architecture/README.md          # Architecture microservices
 │   └── services/README.md              # Détail des microservices
@@ -75,7 +84,7 @@ docs/
 │   ├── POSTGRES_MONITORING.md           # PostgreSQL et monitoring
 │   └── TROUBLESHOOTING_LOGIN.md        # Dépannage login
 ├── 📋 changelog/                        # Historique
-│   └── README.md                        # Pointe vers STATUS.md, RESOLUTIONS.md
+│   └── README.md                        # Pointe vers docs/STATUS.md, docs/RESOLUTIONS.md
 ├── ⚡ performance/guide/README.md      # Optimisation
 ├── 🔒 security/                        # Sécurité
 │   ├── README.md                        # Index sécurité

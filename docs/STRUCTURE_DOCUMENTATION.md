@@ -1,17 +1,17 @@
 # Structure documentation Markdown - brouillon de réorganisation
 
-Objectif : avoir une vue claire de tous les fichiers `.md` du projet avant de réorganiser `docs/` et les fichiers Markdown à la racine.
+Objectif : avoir une vue claire de tous les fichiers `.md` du projet après la première réorganisation : la racine garde uniquement `README.md`, et les fichiers de pilotage projet vivent dans `docs/`.
 
-Ce fichier est volontairement un brouillon de travail. Il contient d’abord la structure actuelle complète des fichiers Markdown, puis une structure proposée à modifier/valider avant tout déplacement.
+Ce fichier reste un brouillon de travail. Il contient d’abord la structure actuelle des fichiers Markdown, puis les décisions restantes pour fusionner, archiver ou supprimer les doublons.
 
 ## Règles proposées
 
-- La racine doit rester courte : uniquement les fichiers de pilotage et d’entrée projet.
+- La racine doit rester courte : uniquement `README.md`.
 - `docs/` doit contenir la documentation durable, organisée par domaine.
 - Les `README.md` dans les services doivent rester proches du code quand ils expliquent le service.
 - Les rapports générés ou datés doivent aller dans `reports/` ou `tests/results/`, pas dans `docs/` durable.
 - Les archives doivent être explicites sous `docs/archive/` avec une raison de conservation.
-- Avant suppression : vérifier si un fichier est référencé depuis `README.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, scripts ou Makefiles.
+- Avant suppression : vérifier si un fichier est référencé depuis `README.md`, `docs/PLAN.md`, `docs/STATUS.md`, `docs/TODOS.md`, scripts ou Makefiles.
 
 ## Structure actuelle complète
 
@@ -19,16 +19,7 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 
 ```text
 .
-├── ERRORS.md
-├── FONCTIONNALITES.md
-├── PLAN.md
-├── PROCESSUS_APPLICATION_MOBILE_ET_API.md
 ├── README.md
-├── RESOLUTIONS.md
-├── STATUS.md
-├── STATS.md
-├── STRUCTURE_DOCUMENTATION.md
-├── TODOS.md
 ├── .github/
 │   └── workflows/
 │       └── README.md
@@ -83,12 +74,21 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   ├── BACKLOG.md
 │   ├── CHANTIER_SECURITE_DATA_DOCS.md
 │   ├── COMMANDES_UTILES.md
+│   ├── ERRORS.md
+│   ├── FONCTIONNALITES.md
 │   ├── GUIDE_ETAPES_ACTUELLES.md
 │   ├── HISTORIQUE.md
 │   ├── INDEX.md
+│   ├── PLAN.md
+│   ├── PROCESSUS_APPLICATION_MOBILE_ET_API.md
 │   ├── RAPPORT_NETTOYAGE_MARS_2026.md
 │   ├── README.md
 │   ├── RECAPITULATIF_PROJET_COMPLET.md
+│   ├── RESOLUTIONS.md
+│   ├── STATUS.md
+│   ├── STATS.md
+│   ├── STRUCTURE_DOCUMENTATION.md
+│   ├── TODOS.md
 │   ├── navigation.md
 │   ├── administration/
 │   │   ├── GUIDE_GESTION_UTILISATEURS.md
@@ -346,19 +346,11 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 
 ## Structure proposée à modifier
 
-Proposition initiale : garder une racine courte, déplacer la documentation durable dans `docs/`, et laisser uniquement les `README.md` techniques au plus près du code.
+Proposition initiale après nettoyage : garder uniquement `README.md` à la racine, centraliser les documents de pilotage dans `docs/`, et laisser uniquement les `README.md` techniques au plus près du code.
 
 ```text
 .
 ├── README.md
-├── PLAN.md
-├── STATUS.md
-├── TODOS.md
-├── ERRORS.md
-├── RESOLUTIONS.md
-├── STATS.md
-├── FONCTIONNALITES.md
-├── STRUCTURE_DOCUMENTATION.md
 ├── backend/
 │   └── **/README.md              # README locaux de services uniquement
 ├── frontend/
@@ -373,11 +365,17 @@ Proposition initiale : garder une racine courte, déplacer la documentation dura
 └── docs/
     ├── README.md
     ├── INDEX.md
-    ├── project/
-    │   ├── backlog.md
-    │   ├── history.md
-    │   ├── roadmap.md
-    │   └── decisions.md
+    ├── navigation.md
+    ├── STATUS.md
+    ├── PLAN.md
+    ├── TODOS.md
+    ├── ERRORS.md
+    ├── RESOLUTIONS.md
+    ├── STATS.md
+    ├── FONCTIONNALITES.md
+    ├── STRUCTURE_DOCUMENTATION.md
+    ├── BACKLOG.md
+    ├── HISTORIQUE.md
     ├── getting-started/
     ├── architecture/
     ├── api/
@@ -400,8 +398,8 @@ Proposition initiale : garder une racine courte, déplacer la documentation dura
 
 À compléter/valider :
 
-- [ ] Fichiers à garder en racine
-- [ ] Fichiers racine à déplacer dans `docs/project/`
+- [x] Fichiers à garder en racine : `README.md` uniquement
+- [x] Fichiers racine de pilotage déplacés dans `docs/`
 - [ ] Dossiers `docs/` à garder
 - [ ] Dossiers `docs/` à fusionner
 - [ ] Dossiers `docs/` à renommer

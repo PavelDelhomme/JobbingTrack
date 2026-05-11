@@ -110,8 +110,8 @@ Quand le parcours **inscription → vérification email → connexion → accuei
 
 - **Écrans et fichiers** : `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md` (tableau des écrans).
 - **API** : `docs/api/api-reference/README.md`.
-- **Fonctionnalités détaillées** : `FONCTIONNALITES.md` section 10 (processus métier mobile).
-- **Checklist détaillée** : `STATUS.md` (sections Phase 3, Application mobile).
+- **Fonctionnalités détaillées** : `../FONCTIONNALITES.md` section 10 (processus métier mobile).
+- **Checklist détaillée** : `../STATUS.md` (sections Phase 3, Application mobile).
 
 ---
 
