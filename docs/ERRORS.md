@@ -1,18 +1,18 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 11 mai 2026 — **sécurité B11/B15** : alertes email critiques backend branchées mais dépendantes de la config SMTP/interne ; tests sécurité offensifs cadrés et partiellement outillés ; `docker-compose.prod.yml` incomplet pour scan ports/images prod si utilisé seul. Historique actif : **6–7 mai** dette sécurité Compose/runtime (**B14**), analyse run `make tests` `tests/results/20260505-113157`, corrélation/logs/console ; **24 avril** `/health` frontend ; **7 avril** `type-check` / journal `tsc` ; **22 avril** `security/STATS.md`.
+**Dernière mise à jour** : 11 mai 2026 — **sécurité B11/B15** : alertes email critiques backend branchées mais dépendantes de la config SMTP/interne ; tests sécurité offensifs cadrés et partiellement outillés ; cible compose prod désormais scannable via merge `docker-compose.yml + docker-compose.prod.yml` avec profile `full`, mais le rapport ports montre encore trop de ports publiés en `0.0.0.0` pour une production. Historique actif : **6–7 mai** dette sécurité Compose/runtime (**B14**), analyse run `make tests` `tests/results/20260505-113157`, corrélation/logs/console ; **24 avril** `/health` frontend ; **7 avril** `type-check` / journal `tsc` ; **22 avril** `security/STATS.md`.
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
-**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G** + **B14** infra), **`TODOS.md`**, **`security/STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–H** + **B14/B15** infra/sécurité), **`TODOS.md`**, **`security/STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** et **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**.
 
 **Alertes email sécurité (11/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe, mais l’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
 
 **Tests sécurité offensifs (11/05)** : l’absence actuelle de rapport `sqlmap` / ZAP / `ffuf` / `gitleaks` / `trivy` / TLS / IDOR ne prouve pas l’absence de faille. Le périmètre est cadré dans **`docs/security/SECURITY_TESTING_MATRIX.md`** et **`PLAN.md` B15** ; exécuter uniquement sur environnement autorisé, avec limites anti-DoS et rapports horodatés.
 
-**Audit ports prod (11/05)** : `make security-scan-ports` signale que `docker-compose.prod.yml` ne se résout pas seul si `auth-service` n’a ni `image` ni `build` dans la configuration fusionnée. Tant que ce point n’est pas corrigé ou documenté avec la bonne commande de merge compose, le scan d’exposition prod et le scan Trivy des images prod peuvent être incomplets.
+**Audit ports prod (11/05)** : la cible est maintenant scannable via `SECURITY_COMPOSE_FILES=docker-compose.yml:docker-compose.prod.yml` et `SECURITY_COMPOSE_PROFILES=full` (valeurs par défaut des scripts). Le rapport local `ports-validation` montre cependant des ports internes publiés sur `0.0.0.0` (`postgres`, `redis`, services backend, MailHog, collecteurs) : à traiter avant prod par reverse proxy/firewall/binds localhost ou suppression des publications inutiles.
 
 ---
 
