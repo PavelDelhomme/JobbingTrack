@@ -90,7 +90,7 @@ analytics.endSession();
 - ✅ Respect des durées de conservation
 
 ### 📋 Plan d'Implémentation
-Voir les détails complets dans [`../STATUS.md`](../STATUS.md) - Section "Système de Monitoring et Analytics Mobile"
+Voir les détails complets dans [`../docs/STATUS.md`](../docs/STATUS.md) - Section "Système de Monitoring et Analytics Mobile"
 
 **Phases** :
 1. Backend : Service mobile-analytics (1-2 jours)

@@ -6,15 +6,15 @@ Ce fichier **indexe** le chantier priorisé (même périmètre que le plan Curso
 
 | Fichier | Rôle |
 |---------|------|
-| **[PLAN.md](../PLAN.md)** | Lots A–**G**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité ) |
-| **[TODOS.md](../TODOS.md)** | Cases à cocher opérationnelles ; **dernière section** = méta (validation porteur, audit BDD avant tests, logs gateway sécurité, refonte doc racine + `docs/`) |
-| **[STATS.md](../STATS.md)** | Suivi **CVE** / dépendances (npm, Docker, Flutter) — tableaux à compléter après audits |
+| **[PLAN.md](PLAN.md)** | Lots A–**G**, critères d’acceptation, fichiers clés, ordre de travail ( **G** = backup / continuité ) |
+| **[TODOS.md](TODOS.md)** | Cases à cocher opérationnelles ; **dernière section** = méta (validation porteur, audit BDD avant tests, logs gateway sécurité, refonte doc racine + `docs/`) |
+| **[STATS.md](STATS.md)** | Suivi **CVE** / dépendances (npm, Docker, Flutter) — tableaux à compléter après audits |
 | **[docs/operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** | NTP, secrets, intrusion gateway, vérifs **B6** avant mise en prod |
 | **[docs/security/COMPOSE_RUNTIME_HARDENING.md](security/COMPOSE_RUNTIME_HARDENING.md)** | Lot **B14** : secrets, **`docker.sock`**, Redis, non-root, WAF gateway, fichiers backup, limites ressources — tableau **BX1–BX14** |
-| **[STATUS.md](../STATUS.md)** | État projet + **tableau de suivi des lots** + priorités P0–P2 |
-| **[ERRORS.md](../ERRORS.md)** | Erreurs actives + **§ Pièges d’interprétation** (dashboard admin) + pipeline erreurs (synthèse) |
-| **[RESOLUTIONS.md](../RESOLUTIONS.md)** | Correctifs documentés (dont entrée avril 2026 — vue d’ensemble) |
-| **[FONCTIONNALITES.md](../FONCTIONNALITES.md)** | Spec fonctionnelle, § 4.1 dashboard à jour ; validation produit = porteur (**`PLAN.md`** colonne **Validé**) |
+| **[STATUS.md](STATUS.md)** | État projet + **tableau de suivi des lots** + priorités P0–P2 |
+| **[ERRORS.md](ERRORS.md)** | Erreurs actives + **§ Pièges d’interprétation** (dashboard admin) + pipeline erreurs (synthèse) |
+| **[RESOLUTIONS.md](RESOLUTIONS.md)** | Correctifs documentés (dont entrée avril 2026 — vue d’ensemble) |
+| **[FONCTIONNALITES.md](FONCTIONNALITES.md)** | Spec fonctionnelle, § 4.1 dashboard à jour ; validation produit = porteur (**`PLAN.md`** colonne **Validé**) |
 
 ## Lots (rappel)
 
