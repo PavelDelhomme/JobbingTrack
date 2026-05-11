@@ -105,14 +105,39 @@ function summarizeSecurityLogs(logs) {
   };
 }
 
+function mapNetworkConnectionToThreatConnection(conn) {
+  return {
+    localIp: conn.destIp,
+    localPort: conn.destPort,
+    remotePort: conn.sourcePort,
+    protocol: conn.protocol,
+    state: conn.state,
+    containerName: conn.containerName,
+    containerId: conn.containerId
+  };
+}
+
 function buildThreatInvestigation(threat, related) {
   const enriched = enrichThreatForApi(threat);
   const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
   const geo = geoip.lookup(enriched.sourceIp);
   const logsSummary = summarizeSecurityLogs(related.securityLogs);
-  const connectionDetails = Array.isArray(meta.connectionDetails) ? meta.connectionDetails : [];
-  const ports = Array.isArray(meta.ports) ? meta.ports : [];
-  const protocols = Array.isArray(meta.protocols) ? meta.protocols : [];
+  const persistedConnections = Array.isArray(related.networkConnections)
+    ? related.networkConnections.map(mapNetworkConnectionToThreatConnection)
+    : [];
+  const metadataConnections = Array.isArray(meta.connectionDetails) ? meta.connectionDetails : [];
+  const connectionDetails = metadataConnections.length > 0 ? metadataConnections : persistedConnections;
+  const ports = Array.isArray(meta.ports) && meta.ports.length > 0
+    ? meta.ports
+    : [...new Set(persistedConnections.map((conn) => conn.localPort).filter(Boolean))];
+  const protocols = Array.isArray(meta.protocols) && meta.protocols.length > 0
+    ? meta.protocols
+    : [...new Set(persistedConnections.map((conn) => conn.protocol).filter(Boolean))];
+  const states = Array.isArray(meta.states) && meta.states.length > 0
+    ? meta.states
+    : [...new Set(persistedConnections.map((conn) => conn.state).filter(Boolean))];
+  const destIpFallback = enriched.destIp || persistedConnections[0]?.localIp || null;
+  const destPortFallback = enriched.destPort || (ports.length === 1 ? ports[0] : null);
   const impactedServices = new Set(logsSummary.services);
 
   if (meta.containerInfo?.containerName) impactedServices.add(meta.containerInfo.containerName);
@@ -142,8 +167,8 @@ function buildThreatInvestigation(threat, related) {
       organization: meta.organization ?? null
     },
     target: {
-      ip: enriched.destIp || null,
-      port: enriched.destPort || null,
+      ip: destIpFallback,
+      port: destPortFallback,
       ports,
       protocols,
       impactedServices: Array.from(impactedServices).slice(0, 12)
@@ -167,7 +192,7 @@ function buildThreatInvestigation(threat, related) {
     },
     network: {
       totalConnections: Number(meta.totalConnections || connectionDetails.length || 0),
-      states: Array.isArray(meta.states) ? meta.states : [],
+      states,
       connectionDetails: connectionDetails.slice(0, 25)
     },
     related: {
@@ -1021,7 +1046,7 @@ async function createThreat(req, res) {
         category: 'firewall',
         eventType: 'network_threat_detected',
         message: `Menace réseau détectée: ${threatType} depuis ${sourceIp} (${severity})`,
-        sourceIP: clientIP,
+        sourceIP: sourceIp,
         userAgent: userAgent,
         userId: req.user?.id || null,
         endpoint: req.originalUrl,
@@ -1035,6 +1060,7 @@ async function createThreat(req, res) {
           sourceIp: sourceIp,
           destPort: destPort || null,
           severity: severity.toUpperCase(),
+          reportedByIp: clientIP,
           isTest: metadata?.test || false,
           detectedAt: new Date().toISOString()
         }
@@ -1088,16 +1114,20 @@ async function getThreatDetails(req, res) {
     const related = {
       securityLogs: [],
       intrusionAttempts: [],
-      ddosAttacks: []
+      ddosAttacks: [],
+      networkConnections: []
     };
 
     try {
-      const [securityLogs, intrusionAttempts, ddosAttacks] = await Promise.all([
+      const [securityLogs, intrusionAttempts, ddosAttacks, networkConnections] = await Promise.all([
         prisma.securityLog.findMany({
           where: {
             OR: [
               { sourceIP: threat.sourceIp },
-              { message: { contains: threat.sourceIp, mode: 'insensitive' } }
+              { message: { contains: threat.sourceIp, mode: 'insensitive' } },
+              { metadata: { path: ['sourceIp'], equals: threat.sourceIp } },
+              { metadata: { path: ['blockedIp'], equals: threat.sourceIp } },
+              { metadata: { path: ['threatId'], equals: threat.id } }
             ],
             timestamp: { gte: since }
           },
@@ -1119,11 +1149,20 @@ async function getThreatDetails(req, res) {
           },
           orderBy: { timestamp: 'desc' },
           take: 20
+        }),
+        prisma.networkConnection.findMany({
+          where: {
+            sourceIp: threat.sourceIp,
+            createdAt: { gte: since }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50
         })
       ]);
       related.securityLogs = securityLogs;
       related.intrusionAttempts = intrusionAttempts;
       related.ddosAttacks = ddosAttacks;
+      related.networkConnections = networkConnections;
     } catch (correlationError) {
       if (process.env.NODE_ENV === 'production') {
         logger.warn('Corrélation détails menace partielle:', correlationError.message);
@@ -1133,7 +1172,15 @@ async function getThreatDetails(req, res) {
     res.json({
       success: true,
       data: {
-        ...enrichThreatForApi(threat),
+        ...(() => {
+          const enriched = enrichThreatForApi(threat);
+          const fallbackConnection = related.networkConnections[0];
+          return {
+            ...enriched,
+            destIp: enriched.destIp || fallbackConnection?.destIp || null,
+            destPort: enriched.destPort || (related.networkConnections.length === 1 ? fallbackConnection?.destPort : null)
+          };
+        })(),
         investigation: buildThreatInvestigation(threat, related)
       }
     });

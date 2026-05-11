@@ -17,6 +17,12 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **Redis sans mot de passe** : tout process sur le réseau Docker interne peut lire/écraser les clés de session — **BX5** (migration planifiée).
 - **WAF gateway** : **`${WAF_ENABLED:-true}`** ; **`.env.example`** utilise **`WAF_ENABLED=true`** (comportement proche prod). Pour diagnostiquer des blocages WAF en local uniquement : **`WAF_ENABLED=false`** dans **`.env`** (ne pas committer).
 
+## Sécurité — trous d’investigation à ne pas interpréter comme absence d’attaque
+
+- **Fiche menace avec métadonnées pauvres** : si une menace contient seulement `{ test: true, packetsPerSec: ... }`, les champs destination/services/logs peuvent être vides si aucune corrélation `network_connections` / `security_logs.metadata.*` n’existe dans la fenêtre. Correctif en cours : fallback sur `network_connections` et recherche logs via `metadata.sourceIp` / `metadata.threatId`.
+- **VPN/proxy/Tor/ASN = N/A** : ce n’est pas une preuve que l’attaquant n’utilise pas de VPN/proxy. Cela signifie qu’aucun provider threat-intel/GeoIP ASN n’est encore branché.
+- **WAF désactivé en dev** : normal pour certains tests locaux, mais les scénarios de validation doivent couvrir explicitement WAF `on` et `off` pour vérifier détection, blocage et absence de faux positifs.
+
 ---
 
 ## Pièges d’interprétation — vue d’ensemble `/backoffice` (ce ne sont pas des bugs)
