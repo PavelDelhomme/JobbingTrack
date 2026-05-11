@@ -14,6 +14,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Audit ports prod (11/05)** : la cible est maintenant scannable via `SECURITY_COMPOSE_FILES=docker-compose.yml:docker-compose.prod.yml` et `SECURITY_COMPOSE_PROFILES=full` (valeurs par défaut des scripts). Le rapport local `ports-validation` montre cependant des ports internes publiés sur `0.0.0.0` (`postgres`, `redis`, services backend, MailHog, collecteurs) : à traiter avant prod par reverse proxy/firewall/binds localhost ou suppression des publications inutiles.
 
+**Scans P0 bruts (11/05)** : `gitleaks` a trouvé **717 occurrences** dans l’historique (majoritairement JWT/headers/clefs génériques dans artefacts de tests) et Trivy/CVE remonte de nombreux `critical/high` sur dépendances Node et images Docker. À ce stade, ce sont des **findings non triés** : ne pas les ignorer, mais ne pas les présenter comme failles exploitables avant classification secret réel/faux positif/dev-only/prod-exposé.
+
 ---
 
 ## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)

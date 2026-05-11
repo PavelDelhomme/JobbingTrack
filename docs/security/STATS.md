@@ -4,7 +4,7 @@
 
 **Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14/B15** infra compose et tests offensifs, lot **A** observabilité, lot **H** release/préprod/conformité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**, **`ERRORS.md`**, **`STATUS.md`**.
 
-**Dernière mise à jour** : 7 mai 2026 — ajout du scan automatisé **`scripts/security/cve-scan.py`** et de la cible **`make test-cve-scan`**.
+**Dernière mise à jour** : 11 mai 2026 — exécution P0 partielle : `gitleaks` historique Git complet et Trivy/CVE images prod compose fusionné (`SECURITY_COMPOSE_PROFILES=full`). Résultats bruts à trier, voir § **11 mai 2026 — scans P0 bruts**.
 
 ---
 
@@ -31,7 +31,8 @@ Ce scan génère un rapport sous **`tests/results/security/cve-<timestamp>/summa
 
 - les dossiers avec **`package-lock.json`** via `npm audit --json --omit=dev` ;
 - le workspace Rust **`monitoring/rust`** via `cargo audit --json` si `cargo-audit` est installé ;
-- les images Docker des conteneurs en cours si lancé avec **`CVE_SCAN_DOCKER=1`** et **Trivy** installé.
+- les images Docker des conteneurs en cours si lancé avec **`CVE_SCAN_DOCKER=1`** et **Trivy** installé ;
+- les images de la stack compose prod fusionnée si lancé avec **`CVE_SCAN_DOCKER=1 CVE_SCAN_DOCKER_COMPOSE=1`** (défaut `make security-scan-images`) ; variables liées : `SECURITY_COMPOSE_FILES` et `SECURITY_COMPOSE_PROFILES`.
 
 Mode bloquant CI possible :
 
@@ -39,7 +40,16 @@ Mode bloquant CI possible :
 CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high make test-cve-scan
 ```
 
-Variables utiles : `CVE_SCAN_INCLUDE_DEV=1` pour inclure les dépendances dev, `CVE_SCAN_DOCKER=1` pour scanner les images des conteneurs en cours, `CVE_SCAN_DOCKER_ALL_IMAGES=1` pour scanner toutes les images locales filtrées JobbingTrack/Postgres/Redis/MailHog, `--docker-image <image>` pour cibler une image précise, `CVE_SCAN_TIMEOUT_SEC=180` pour augmenter les timeouts.
+Variables utiles : `CVE_SCAN_INCLUDE_DEV=1` pour inclure les dépendances dev, `CVE_SCAN_DOCKER=1` pour scanner les images Docker, `CVE_SCAN_DOCKER_COMPOSE=1` pour cibler les images de la stack compose prod fusionnée, `CVE_SCAN_DOCKER_ALL_IMAGES=1` pour scanner toutes les images locales filtrées JobbingTrack/Postgres/Redis/MailHog, `--docker-image <image>` pour cibler une image précise, `CVE_SCAN_TIMEOUT_SEC=180` pour augmenter les timeouts.
+
+### 11 mai 2026 — scans P0 bruts
+
+Rapports locaux générés et **non versionnés** :
+
+- `reports/security/secrets-20260511-142026/summary.md` : `gitleaks` historique complet, **859 commits**, **717 findings** ; `truffleHog` absent. Répartition brute : `jwt` 441, `generic-api-key` 221, `curl-auth-header` 55. Les principaux fichiers sont des artefacts de tests Playwright / résultats de tests ; à confirmer et nettoyer/ignorer proprement sans masquer de vrais secrets.
+- `tests/results/security/cve-20260511-162025/summary.md` : scan Node/Rust/Flutter + Trivy images compose prod fusionné. Résultats bruts critiques/hauts à trier : racine Node (3 critical / 2 high), `backend` (1 critical / 11 high), `frontend` (2 critical / 6 high), API/services Node surtout `axios`, `express`/`path-to-regexp`, `jws`, `lodash`; images Docker avec vulnérabilités de base image, notamment `jobbingtrack-deployment-service` très élevé (190 critical / 1526 high), `mailhog/mailhog:latest` élevé (109 critical / 1145 high), `postgres:15`, `redis:7-alpine`, `frontend` et `api-gateway`.
+
+Statut : **à traiter**, pas encore accepté comme vulnérabilités exploitables. Priorités de tri : secrets réels vs artefacts de tests, images exposées publiquement, dépendances gateway/auth/security/frontend, puis images dev-only comme MailHog.
 
 ---
 
