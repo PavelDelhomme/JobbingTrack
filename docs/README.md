@@ -2,7 +2,7 @@
 
 [← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📑 Index](INDEX.md)
 
-**Racine du projet** : seul `README.md` reste à la racine. Les fichiers de pilotage projet sont maintenant dans `docs/` : **[STATUS.md](STATUS.md)**, **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[ERRORS.md](ERRORS.md)**, **[RESOLUTIONS.md](RESOLUTIONS.md)**, **[STATS.md](STATS.md)**, **[FONCTIONNALITES.md](FONCTIONNALITES.md)** et **[STRUCTURE_DOCUMENTATION.md](STRUCTURE_DOCUMENTATION.md)**.
+**Racine du projet** : seul `README.md` reste à la racine. Dans `docs/`, la racine garde les fichiers de pilotage : **[STATUS.md](STATUS.md)**, **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[ERRORS.md](ERRORS.md)**, **[BACKLOG.md](BACKLOG.md)** et **[RESOLUTIONS.md](RESOLUTIONS.md)**. Les documents de contenu sont rangés par domaine : **[project/FONCTIONNALITES.md](project/FONCTIONNALITES.md)**, **[security/STATS.md](security/STATS.md)**, **[project/STRUCTURE_DOCUMENTATION.md](project/STRUCTURE_DOCUMENTATION.md)**.
 
 ## **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
 
@@ -25,10 +25,14 @@ docs/
 ├── 🗺️ PLAN.md                          # Plan d’exécution
 ├── ✅ TODOS.md                         # Checklist opérationnelle
 ├── 🐛 ERRORS.md                        # Erreurs connues
+├── 📦 BACKLOG.md                       # Backlog large
 ├── 🛠️ RESOLUTIONS.md                   # Correctifs appliqués
-├── 📊 STATS.md                         # Stats, CVE, dépendances
-├── 🎯 FONCTIONNALITES.md               # Vision fonctionnelle
-├── 🧱 STRUCTURE_DOCUMENTATION.md       # Carte et réorganisation docs
+├── 📁 project/                         # Vision produit, historique, récapitulatifs
+│   ├── FONCTIONNALITES.md              # Vision fonctionnelle
+│   ├── STRUCTURE_DOCUMENTATION.md      # Carte et réorganisation docs
+│   ├── CHANTIER_SECURITE_DATA_DOCS.md  # Index chantier sécurité/data/docs
+│   ├── HISTORIQUE.md
+│   └── RECAPITULATIF_PROJET_COMPLET.md
 ├── 🏗️ core/                            # Documentation technique de base
 │   ├── architecture/README.md          # Architecture microservices
 │   └── services/README.md              # Détail des microservices
@@ -88,6 +92,7 @@ docs/
 ├── ⚡ performance/guide/README.md      # Optimisation
 ├── 🔒 security/                        # Sécurité
 │   ├── README.md                        # Index sécurité
+│   ├── STATS.md                         # CVE, dépendances, supply-chain
 │   ├── ARCHITECTURE_SECURITY_SERVICE.md # Périmètre security-service
 │   ├── SYSTEME_SECURITE_README.md      # Système sécurité
 │   ├── SECURITY_AUDIT.md                # ⭐ Audit sécurité

@@ -1,12 +1,12 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 6 mai 2026 — **dette sécurité Compose / runtime** : suivi **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** **B14** (secrets, **`docker.sock`**, Redis, non-root, etc.). **7 mai 2026** — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
+**Dernière mise à jour** : 6 mai 2026 — **dette sécurité Compose / runtime** : suivi **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`PLAN.md`** **B14**, **`TODOS.md`** **B14** (secrets, **`docker.sock`**, Redis, non-root, etc.). **7 mai 2026** — ajout analyse run **`make tests`** `tests/results/20260505-113157` (API backend, gateway Jest, frontend Jest analytics, Playwright login/suivi-intérim/mobile, Prisma application-service). Historique précédent : **24 avril 2026** — **Frontend** : **`GET /health` 500** (réécriture `/health` → gateway corrigée — **§ Next.js /health**) ; **7 avril** : **`type-check` / journal `tsc`** ; **Tests Jest** mock **`/api/v1/metrics`** ; **`make up-full`** / **`ENOTFOUND`** ; **22 avril** : **`security/STATS.md`** ; **17 avril** : **`RESOLUTIONS.md`** § 17/04
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
 **Lecture** : le premier tableau = travail **encore à faire**. La section **Réglées ou sans action** liste ce qui ne doit plus bloquer.
 
-**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G** + **B14** infra), **`TODOS.md`**, **`STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+**Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–G** + **B14** infra), **`TODOS.md`**, **`security/STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
 
 **Alertes email sécurité (11/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe, mais l’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
 
@@ -125,7 +125,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 ### Sauvegardes et reprise (pas une erreur — couverture à construire)
 
-Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié : la **continuité** repose sur les pratiques d’exploitation manuelles (Docker, dumps SQL hors produit, etc.). La trajectoire cible (chiffrement, délocalisation, audit, UI admin) est décrite dans **`PLAN.md`** lot **G** et **`FONCTIONNALITES.md`** § **4.4** ; suivre **`TODOS.md`** lot **G** pour l’implémentation.
+Il n’existe **pas** encore d’API de backup ni d’écran backoffice dédié : la **continuité** repose sur les pratiques d’exploitation manuelles (Docker, dumps SQL hors produit, etc.). La trajectoire cible (chiffrement, délocalisation, audit, UI admin) est décrite dans **`PLAN.md`** lot **G** et **`project/FONCTIONNALITES.md`** § **4.4** ; suivre **`TODOS.md`** lot **G** pour l’implémentation.
 
 ---
 

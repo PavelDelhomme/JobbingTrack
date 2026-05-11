@@ -13,7 +13,7 @@
 1. **`docker-compose.yml`** : **`WAF_ENABLED=${WAF_ENABLED:-true}`** ; **`METRICS_API_KEY=${METRICS_API_KEY:-…}`** ; **profile-service** : **`JWT_SECRET`** aligné sur les autres services ; healthcheck **postgres** : **`pg_isready -U $POSTGRES_USER -d $POSTGRES_DB`** (variables conteneur) ; **frontend** : défaut **`HOST_IP=localhost`** pour les **`NEXT_PUBLIC_*`** ; **security-service** : **`security_opt: no-new-privileges:true`**.
 2. **`.env.example`** : **`WAF_ENABLED=true`** (comportement type prod ; **`false`** seulement pour diagnostic local), **`METRICS_API_KEY`**, **`HOST_IP=localhost`**, sections variables en **ordre alphabétique** ; **`make env-reorder`** pour réaligner **`.env`**.
 3. Suppression des fichiers **`backend/api-gateway/src/server.js.backup.20251023_*`** ; **`.gitignore`** : **`**/*.backup.*`** ; ajustement règle Docker : **`/.dockerignore`** seulement à la racine (pour ne plus ignorer **`backend/.dockerignore`** versionné) ; **`backend/.dockerignore`** pour exclure les backups du contexte de build.
-4. Documentation : **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** ; mises à jour **`PLAN.md`** (**B14**), **`TODOS.md`**, **`STATUS.md`**, **`ERRORS.md`**, **`FONCTIONNALITES.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
+4. Documentation : **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** ; mises à jour **`PLAN.md`** (**B14**), **`TODOS.md`**, **`STATUS.md`**, **`ERRORS.md`**, **`project/FONCTIONNALITES.md`**, **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**.
 
 ### Reste
 - Chantiers **BX1–BX14** (Redis **`requirepass`**, proxy socket, non-root collecteurs, **`read_only`**, limites ressources, compose prod strict, bootstrap admin, etc.) — ne pas les traiter « en douce » sans plan de migration : **`TODOS.md`** § **B14**.
@@ -375,7 +375,7 @@
 
 ### Documentation
 - **ERRORS.md** : section *Pièges d’interprétation* + synthèse pipeline (base lot **A** après permutation `PLAN.md`).
-- **STATUS.md**, **PLAN.md**, **TODOS.md**, **docs/CHANTIER_SECURITE_DATA_DOCS.md** : navigation chantier lots A–F.
+- **STATUS.md**, **PLAN.md**, **TODOS.md**, **docs/project/CHANTIER_SECURITE_DATA_DOCS.md** : navigation chantier lots A–F.
 
 ---
 
@@ -463,7 +463,7 @@
 8. **docs/monitoring** : ajout de METRICS_DB_README.md, PERFORMANCE_OPTIMIZATION.md, MONITORING_GUIDE.md (copiés depuis backend/metrics-aggregator-service) ; README mis à jour.
 9. **Backend** : suppression des .md déplacés dans auth-service, security-service, metrics-aggregator-service ; README de chaque service mis à jour pour pointer vers docs/.
 10. **docs/README.md** : arborescence et liens mis à jour (development, troubleshooting, tests, api, changelog, emails, monitoring, security).
-11. **docs/GUIDE_ETAPES_ACTUELLES.md** : ajout « Dernière révision : Mars 2026 ».
+11. **docs/getting-started/GUIDE_ETAPES_ACTUELLES.md** : ajout « Dernière révision : Mars 2026 ».
 
 ---
 
@@ -483,7 +483,7 @@
 4. **docs/troubleshooting** : suppression des 4 CORRECTIONS_* ; conservation de README, POSTGRES_MONITORING, TROUBLESHOOTING_LOGIN.
 5. **docs/todo** : suppression de CORRECTIONS_EN_COURS et TODO_CORRECTIONS ; conservation de README et TODO_PERFORMANCE.
 6. **security-service (racine)** : déplacement de FIREWALL_PLAN.md vers docs/security/FIREWALL_PLAN.md ; suppression du dossier racine.
-7. **Rapport** : création de docs/RAPPORT_NETTOYAGE_MARS_2026.md (détail des suppressions, réponse sur services Go/Python, security-service, statistics).
+7. **Rapport** : création de docs/archive/RAPPORT_NETTOYAGE_MARS_2026.md (détail des suppressions, réponse sur services Go/Python, security-service, statistics).
 8. **STATUS.md** : ajout d’une section « Documentation et nettoyage » avec lien vers le rapport et précisions sur services Node.js (pas de Go), statistics (dashboard-service Node, pas de Python).
 
 ### Clarifications (rapport)

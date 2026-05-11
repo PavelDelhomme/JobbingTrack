@@ -1,6 +1,6 @@
 # Processus complets – Application mobile et API
 
-**Document à la racine du projet** : description détaillée de tous les parcours utilisateur possibles dans l’application mobile JobbingTrack et des flux API associés. Basé sur le code (Flutter, backend), `FONCTIONNALITES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md` et les écrans existants.
+**Document mobile/API** : description détaillée de tous les parcours utilisateur possibles dans l’application mobile JobbingTrack et des flux API associés. Basé sur le code (Flutter, backend), `../project/FONCTIONNALITES.md`, `docs/features/SUIVI_BOITES_INTÉRIM.md` et les écrans existants.
 
 **Chantier documentation (lot E)** : une **revue d’alignement** avec l’état réel des endpoints et écrans est prévue dans **`PLAN.md`** § E et **`TODOS.md`** ; en cas de divergence, privilégier le code et reporter l’écart dans **`ERRORS.md`**.
 
@@ -135,7 +135,7 @@
 
 ### 4.3 Processus cible (logique métier et API)
 
-D’après la logique décrite dans le projet et `FONCTIONNALITES.md` (§ 10.1, 10.15) :
+D’après la logique décrite dans le projet et `../project/FONCTIONNALITES.md` (§ 10.1, 10.15) :
 
 1. L’utilisateur ouvre le **formulaire d’ajout de candidature**.
 2. **Entreprise** : champ **nom d’entreprise avec autocomplétion** (recherche parmi les entreprises existantes de l’utilisateur).
@@ -315,7 +315,7 @@ Actuellement, l’**API** et l’**application mobile** utilisent du **HTTP** en
 - **Mobile** : configurer `ApiService.baseUrl` (ou l’URL de base) pour pointer vers `https://...` en production. Optionnel mais recommandé : **certificate pinning** (épinglage de certificat) pour limiter les attaques MITM, sans ralentir les requêtes une fois la confiance établie.
 - **Performance** : TLS ajoute peu de latence (négociation une fois par connexion, puis chiffrement symétrique). Pour ne pas ralentir les requêtes, garder les connexions HTTP réutilisables (keep-alive) et, côté mobile, un client HTTP qui réutilise la connexion (déjà le cas avec `http` en Dart).
 
-À prévoir dans la config déploiement et la doc d’exploitation (voir aussi `FONCTIONNALITES.md` et `STATUS.md`).
+À prévoir dans la config déploiement et la doc d’exploitation (voir aussi `../project/FONCTIONNALITES.md` et `../STATUS.md`).
 
 ---
 

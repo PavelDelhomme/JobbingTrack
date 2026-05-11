@@ -21,7 +21,7 @@
 | **README.md** | Présentation, démarrage rapide, liens docs. C’est le seul Markdown conservé à la racine. |
 | **[docs/STATUS.md](docs/STATUS.md)** | **À faire maintenant**, état détaillé, priorités produit |
 | **[docs/ERRORS.md](docs/ERRORS.md)** | Erreurs connues non résolues |
-| **[docs/FONCTIONNALITES.md](docs/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |
+| **[docs/project/FONCTIONNALITES.md](docs/project/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |
 | **[docs/RESOLUTIONS.md](docs/RESOLUTIONS.md)** | Erreurs résolues et correctifs |
 | **[docs/PLAN.md](docs/PLAN.md)** | Chantier backoffice + API + sécurité + documentation |
 | **[docs/TODOS.md](docs/TODOS.md)** | Cases à cocher alignées sur le plan |
@@ -40,7 +40,7 @@ Pour savoir **ce qu’il faut faire** → **[docs/STATUS.md](docs/STATUS.md)** e
 
 ### 🧪 Tests & Parcours
 - **[🚶 Guide Tests & Parcours](docs/tests/README.md)** - Utiliser les outils de test
-- **[🎯 Récapitulatif Projet](docs/RECAPITULATIF_PROJET_COMPLET.md)** - Vue d'ensemble complète
+- **[🎯 Récapitulatif Projet](docs/project/RECAPITULATIF_PROJET_COMPLET.md)** - Vue d'ensemble complète
 - **Interface Tests** : `http://localhost:8080/backoffice/user-journey`
 
 Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.

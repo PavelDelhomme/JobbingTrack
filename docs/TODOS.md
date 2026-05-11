@@ -284,13 +284,13 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
 
 - [x] `STATUS.md` — structure de lecture + tableau lots A–F + liens (avril 2026).
 - [x] `ERRORS.md` — § Pièges dashboard + pipeline + lignes chantier A/B (avril 2026).
-- [x] `FONCTIONNALITES.md` — § 4.1 dashboard détaillé + date avril 2026.
+- [x] `project/FONCTIONNALITES.md` — § 4.1 dashboard détaillé + date avril 2026.
 - [x] `RESOLUTIONS.md` — entrée avril 2026 (vue d’ensemble observabilité).
-- [x] **`STATS.md`** — gabarit **CVE / dépendances** (services, front, mobile, Docker) + script boucle `npm audit` — **22/04** ; remplir tableaux après audits.
+- [x] **`security/STATS.md`** — gabarit **CVE / dépendances** (services, front, mobile, Docker) + script boucle `npm audit` — **22/04** ; remplir tableaux après audits.
 - [ ] `ERRORS.md` — relecture complète après lots A/C (échecs tests, nouvelles erreurs actives).
 - [ ] `RESOLUTIONS.md` — derniers correctifs sécurité (lot **B**) / monitoring & logs (lot **A**) / intérim.
-- [ ] `PROCESSUS_APPLICATION_MOBILE_ET_API.md` — synchro avec l’état API + mobile.
-- [ ] `FONCTIONNALITES.md` — ajuster ce qui est livré vs prévu (y compris § **4.4** lot **G** quand implémenté).
+- [ ] `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md` — synchro avec l’état API + mobile.
+- [ ] `project/FONCTIONNALITES.md` — ajuster ce qui est livré vs prévu (y compris § **4.4** lot **G** quand implémenté).
 - [ ] `docs/BACKLOG.md` — éviter doublons avec ce fichier ; renvoyer vers PLAN pour le chantier structuré.
 - [ ] Revue ciblée des sous-dossiers `docs/` (architecture, API, DB, sécurité, tests).
 
@@ -361,7 +361,7 @@ Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, 
 
 ## Lot G — Sauvegardes sécurisées, API, délocalisation, continuité (PCA/PRI)
 
-Spec détaillée : **`PLAN.md`** § **G** ; fonctionnel : **`FONCTIONNALITES.md`** § **4.4** ; statut projet : **`STATUS.md`** § *Sauvegardes…*.
+Spec détaillée : **`PLAN.md`** § **G** ; fonctionnel : **`project/FONCTIONNALITES.md`** § **4.4** ; statut projet : **`STATUS.md`** § *Sauvegardes…*.
 
 - [ ] G1 — Cadrage sécurité : modèle de menaces, clés (vault/KMS/fichier), rotation, rôles (`SUPER_ADMIN` + service interne) ; doc `docs/operations/BACKUP_AND_DR.md` (ou équivalent).
 - [ ] G2 — API backup sous gateway : jobs, statut, historique, audit, rate limit, **non publique** sans contrôle réseau.
@@ -424,9 +424,9 @@ Checklist détaillée et cohérente : **`docs/operations/PREPROD_PRODUCTION_CHEC
 
 ---
 
-## Analyse CVE & supply chain (voir **`STATS.md`**)
+## Analyse CVE & supply chain (voir **`security/STATS.md`**)
 
-Remplir **`STATS.md`** après chaque passe d'outils ; cocher ici quand le **processus** ou la **CI** est en place (les chiffres CVE restent dans **STATS**).
+Remplir **`security/STATS.md`** après chaque passe d'outils ; cocher ici quand le **processus** ou la **CI** est en place (les chiffres CVE restent dans **STATS**).
 
 - [ ] **`npm audit --omit=dev`** (ou équivalent) sur **chaque** microservice listé dans **STATS.md** § 2.1 + **frontend** + racine — reporter date et severités dans **STATS.md**.
 - [ ] **Docker Scout** ou **Trivy** sur les images **jobbingtrack-*** et bases **postgres** / **redis** — résumer dans **STATS.md** § 2.5.
@@ -456,7 +456,7 @@ Remplir **`STATS.md`** après chaque passe d'outils ; cocher ici quand le **proc
 - [ ] **Validation produit (porteur)** : pour chaque lot livré techniquement, **vous** cochez **`PLAN.md`** (**Validé (porteur)**) ou une mention datée dans **`STATUS.md`** ; tant que ce n’est pas fait, le livrable reste « en attente d’acceptation » même si le code est mergé.
 - [ ] **Revue base de données avant grosse passe de tests** : aligner schéma maître (**auth-service** / `db-push-all`), scripts **`scripts/db/*.sql`**, tables listées dans **`ERRORS.md`**, et attentes des services (déploiements, logs agrégés, etc.) — objectif : éviter les écarts « table absente » / doubles définitions lors de **`make tests`** ou **`make test-suite-full`**. Croiser **lot A2**, **A5**, **C** (données test) dans ce fichier.
 - [ ] **Trafic répété `GET /api/v1/security/*` via la gateway** : ce flux correspond en général à un **client** (UI backoffice sécurité / firewall en rafraîchissement, onglet ouvert) — **ce n’est pas** une erreur isolée « mystérieuse » ; si le volume pose problème (logs, charge), **diagnostiquer la source** (quel onglet, quel intervalle) puis réduire le polling ou mutualiser les requêtes — voir **`STATUS.md`** § journalisation / diagnostic et **`ERRORS.md`** § homonyme.
-- [ ] **Refonte documentation (racine + `docs/`)** : reprendre **tous** les **`.md` à la racine** et **tous les `.md` sous `docs/`** de façon **structurée** (rôles, doublons, liens, ordre de lecture, index unique ou fil d’Ariane clair) ; aligner **PLAN**, **STATUS**, **TODOS**, **ERRORS**, **RESOLUTIONS**, **STATS**, **FONCTIONNALITES**, **`docs/BACKLOG.md`**, **`docs/CHANTIER_SECURITE_DATA_DOCS.md`**. *À planifier explicitement avant grosses réécritures.*
+- [ ] **Refonte documentation (racine + `docs/`)** : reprendre **tous** les **`.md` à la racine** et **tous les `.md` sous `docs/`** de façon **structurée** (rôles, doublons, liens, ordre de lecture, index unique ou fil d’Ariane clair) ; aligner **PLAN**, **STATUS**, **TODOS**, **ERRORS**, **RESOLUTIONS**, **STATS**, **FONCTIONNALITES**, **`docs/BACKLOG.md`**, **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**. *À planifier explicitement avant grosses réécritures.*
 - [ ] **HX1 — Variables d’environnement sans « fallback magique »** : le porteur souhaite **ne pas** coder de valeurs par défaut du type **`process.env.X || '3000'`** dans le dépôt (risque : prod silencieusement mal configurée). **Périmètre** : audit **`next.config.js`**, **frontend**, **backend** (chaque service), **mobile** (`mobile/`, `flutter-mobile-app/`), scripts — remplacer par **variables obligatoires** documentées dans **`.env.example`** / runbooks, ou échec explicite au démarrage si critique.
 - [ ] **HX2 — Audit transverse « sécurité × doc × config »** : parcourir **toutes** les zones du dépôt (front, back, mobile, Docker, CI) pour repérer **URLs / secrets / schémas internes** dans la doc ou les commentaires **trop exposants** (faille d’ingénierie sociale ou fuite d’architecture) ; **niveau de détail** des guides : suffisant pour exploiter, pas de cookbook d’attaque. Croiser **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`docs/BACKLOG.md`**.
 - [ ] **HX3 — Environnements prod / préprod / tests conteneurs** : formaliser une **matrice** (compose profiles, fichiers env, noms d’images, jeux de données) pour éviter les dérives « même stack que le dev » ; une ligne dans **`STATUS.md`** ou doc **`docs/operations/`** une fois le modèle figé.

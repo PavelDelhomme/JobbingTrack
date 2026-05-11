@@ -49,4 +49,4 @@ Puis se déconnecter et se reconnecter.
 | `make test-all` | Lancer tous les tests |
 | `make fresh-start` | down + build + up-full |
 
-Voir aussi : `docs/COMMANDES_UTILES.md`.
+Voir aussi : `docs/getting-started/COMMANDES_UTILES.md`.

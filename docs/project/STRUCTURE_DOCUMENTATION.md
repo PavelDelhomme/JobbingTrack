@@ -72,22 +72,12 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │       └── README.md
 ├── docs/
 │   ├── BACKLOG.md
-│   ├── CHANTIER_SECURITE_DATA_DOCS.md
-│   ├── COMMANDES_UTILES.md
 │   ├── ERRORS.md
-│   ├── FONCTIONNALITES.md
-│   ├── GUIDE_ETAPES_ACTUELLES.md
-│   ├── HISTORIQUE.md
 │   ├── INDEX.md
 │   ├── PLAN.md
-│   ├── PROCESSUS_APPLICATION_MOBILE_ET_API.md
-│   ├── RAPPORT_NETTOYAGE_MARS_2026.md
 │   ├── README.md
-│   ├── RECAPITULATIF_PROJET_COMPLET.md
 │   ├── RESOLUTIONS.md
 │   ├── STATUS.md
-│   ├── STATS.md
-│   ├── STRUCTURE_DOCUMENTATION.md
 │   ├── TODOS.md
 │   ├── navigation.md
 │   ├── administration/
@@ -113,6 +103,7 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   │           └── README.md
 │   ├── archive/
 │   │   ├── NON_FONCTIONNELS_APRES_RESOLUTION.md
+│   │   ├── RAPPORT_NETTOYAGE_MARS_2026.md
 │   │   └── monitoring-old/
 │   │       ├── QUICK_START.md
 │   │       └── README.md
@@ -199,9 +190,11 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   │   └── README.md
 │   ├── getting-started/
 │   │   ├── ACCES_RESEAU_LOCAL.md
+│   │   ├── COMMANDES_UTILES.md
 │   │   ├── DEMARRAGE.md
 │   │   ├── DEMARRAGE_RAPIDE.md
 │   │   ├── FIX_TABLE_USER.md
+│   │   ├── GUIDE_ETAPES_ACTUELLES.md
 │   │   ├── GUIDE_EMOJIS.md
 │   │   ├── GUIDE_INSTALLATION.md
 │   │   ├── GUIDE_SETUP_COMPLET.md
@@ -211,6 +204,7 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   │   └── REDEMARRAGE.md
 │   ├── mobile/
 │   │   ├── APPLICATION_MOBILE_A_FAIRE.md
+│   │   ├── PROCESSUS_APPLICATION_MOBILE_ET_API.md
 │   │   ├── PROCHAINES_ETAPES.md
 │   │   ├── README.md
 │   │   └── analytics/
@@ -254,6 +248,7 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   │   ├── FIREWALL_PLAN.md
 │   │   ├── README.md
 │   │   ├── SECURITY_AUDIT.md
+│   │   ├── STATS.md
 │   │   └── SYSTEME_SECURITE_README.md
 │   ├── tests/
 │   │   ├── BACKOFFICE_TESTS_COVERAGE.md
@@ -271,6 +266,12 @@ Inventaire des fichiers Markdown actuellement visibles dans le projet. Cette sec
 │   │   ├── POSTGRES_MONITORING.md
 │   │   ├── README.md
 │   │   └── TROUBLESHOOTING_LOGIN.md
+│   ├── project/
+│   │   ├── CHANTIER_SECURITE_DATA_DOCS.md
+│   │   ├── FONCTIONNALITES.md
+│   │   ├── HISTORIQUE.md
+│   │   ├── RECAPITULATIF_PROJET_COMPLET.md
+│   │   └── STRUCTURE_DOCUMENTATION.md
 │   └── user-journey/
 │       ├── GUIDE_COMPLET.md
 │       ├── PARCOURS_METIER.md
@@ -371,11 +372,7 @@ Proposition initiale après nettoyage : garder uniquement `README.md` à la raci
     ├── TODOS.md
     ├── ERRORS.md
     ├── RESOLUTIONS.md
-    ├── STATS.md
-    ├── FONCTIONNALITES.md
-    ├── STRUCTURE_DOCUMENTATION.md
     ├── BACKLOG.md
-    ├── HISTORIQUE.md
     ├── getting-started/
     ├── architecture/
     ├── api/
@@ -384,6 +381,13 @@ Proposition initiale après nettoyage : garder uniquement `README.md` à la raci
     ├── mobile/
     ├── database/
     ├── security/
+    │   └── STATS.md
+    ├── project/
+    │   ├── FONCTIONNALITES.md
+    │   ├── STRUCTURE_DOCUMENTATION.md
+    │   ├── CHANTIER_SECURITE_DATA_DOCS.md
+    │   ├── HISTORIQUE.md
+    │   └── RECAPITULATIF_PROJET_COMPLET.md
     ├── monitoring/
     ├── performance/
     ├── deployment/
@@ -433,8 +437,8 @@ Proposition initiale après nettoyage : garder uniquement `README.md` à la raci
 | Fichier | Action | Nouvelle cible | Notes |
 |---|---|---|---|
 | `docs/BACKLOG.md` | à décider |  | doublon potentiel avec `TODOS.md` / `PLAN.md` |
-| `docs/HISTORIQUE.md` | à décider |  | peut aller dans `docs/project/` |
-| `docs/RECAPITULATIF_PROJET_COMPLET.md` | à décider |  | peut être archive ou synthèse projet |
-| `docs/RAPPORT_NETTOYAGE_MARS_2026.md` | à décider |  | rapport daté, probablement archive |
+| `docs/project/HISTORIQUE.md` | à décider |  | peut aller dans `docs/project/` |
+| `docs/project/RECAPITULATIF_PROJET_COMPLET.md` | à décider |  | peut être archive ou synthèse projet |
+| `docs/archive/RAPPORT_NETTOYAGE_MARS_2026.md` | à décider |  | rapport daté, probablement archive |
 | `tests/results/resource-budget/*/summary.md` | à décider |  | artefacts générés |
 | `flutter-mobile-app/.dart_tool/extension_discovery/README.md` | à décider |  | probablement généré |

@@ -322,7 +322,7 @@ make up-full
 
 - 📖 **[README.md](../../README.md)** - Documentation principale
 - 📊 **[STATUS.md](../../STATUS.md)** - État du projet et priorités
-- 📜 **[HISTORIQUE.md](../../HISTORIQUE.md)** - Historique des réalisations
+- 📜 **[HISTORIQUE.md](../project/HISTORIQUE.md)** - Historique des réalisations
 - 🧭 **[Navigation Documentation](../navigation.md)** - Navigation complète
 - 📋 **[Index Documentation](../INDEX_DOCUMENTATION.md)** - Index de la documentation
 

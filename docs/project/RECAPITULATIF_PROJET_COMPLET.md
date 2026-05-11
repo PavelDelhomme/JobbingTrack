@@ -1,7 +1,7 @@
 # Récapitulatif complet du projet JobbingTrack
 
 **Date** : mars 2026  
-**Sources** : fichiers `.md` à la racine (`PROCESSUS_APPLICATION_MOBILE_ET_API.md`, `STATUS.md`, `ERRORS.md`, `FONCTIONNALITES.md`, `RESOLUTIONS.md`) et toute la documentation dans `docs/`.
+**Sources** : fichiers de pilotage et de synthèse (`../STATUS.md`, `../ERRORS.md`, `FONCTIONNALITES.md`, `../RESOLUTIONS.md`, `../mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md`) et toute la documentation dans `docs/`.
 
 Ce document synthétise : **ce qui est fait**, **ce qui n’est pas fait**, et **les priorités** pour l’application mobile, l’API, le backoffice et les tests.
 
@@ -14,7 +14,7 @@ Ce document synthétise : **ce qui est fait**, **ce qui n’est pas fait**, et *
 | Prévu | Fait ? | Détail |
 |-------|--------|--------|
 | Candidature + entreprise (existant ou nouveau nom) | ✅ | Formulaire mobile : choix entreprise existante ou saisie nouveau nom ; API `companyName` + getOrCreateCompany. |
-| HTTPS / chiffrement | ⏳ Doc uniquement | Section 15 de `PROCESSUS_APPLICATION_MOBILE_ET_API.md` : à mettre en place en prod (TLS gateway, optionnel certificate pinning mobile). |
+| HTTPS / chiffrement | ⏳ Doc uniquement | Section 15 de `../mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md` : à mettre en place en prod (TLS gateway, optionnel certificate pinning mobile). |
 | Notification-service ≠ crashes | ✅ | Routes `/crashes` retirées du notification-service ; il ne gère que les notifications in-app. |
 | Crash reporting dédié | ✅ | Route **POST /api/v1/crashes** sur l’API Gateway (sans auth), écriture dans `backend/api-gateway/logs/crashes/`. |
 | Mobile : envoi crash + persistance | ✅ | `CrashReporter` envoie vers `/api/v1/crashes` ; persistance locale + renvoi au prochain démarrage. |
@@ -152,7 +152,7 @@ Ce document synthétise : **ce qui est fait**, **ce qui n’est pas fait**, et *
 
 ### docs/ (sélection)
 
-- **docs/GUIDE_ETAPES_ACTUELLES.md** : quoi faire maintenant (backoffice, mobile, BDD), ordre des actions, suivi intérim.
+- **docs/getting-started/GUIDE_ETAPES_ACTUELLES.md** : quoi faire maintenant (backoffice, mobile, BDD), ordre des actions, suivi intérim.
 - **docs/BACKLOG.md** : backlog technique par priorité.
 - **docs/mobile/PROCHAINES_ETAPES.md** : validation manuelle vérification email puis suite Flutter.
 - **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** : écrans, API, émulateur, user journey, analytics.
