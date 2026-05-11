@@ -10,6 +10,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Alertes email sécurité (11/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe, mais l’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
 
+**Tests sécurité offensifs (11/05)** : l’absence actuelle de rapport `sqlmap` / ZAP / `ffuf` / `gitleaks` / `trivy` / TLS / IDOR ne prouve pas l’absence de faille. Le périmètre est cadré dans **`docs/security/SECURITY_TESTING_MATRIX.md`** et **`PLAN.md` B15** ; exécuter uniquement sur environnement autorisé, avec limites anti-DoS et rapports horodatés.
+
 ---
 
 ## Risques actifs — configuration Docker / secrets (ce ne sont pas des « bugs UI »)

@@ -4,6 +4,14 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–G**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
+
+- **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.
+- **Source de vérité** : **`docs/security/SECURITY_TESTING_MATRIX.md`** liste les menaces, outils Kali/équivalents (`sqlmap`, `commix`, `dalfox`, `nikto`, `hydra`, `jwt_tool`, ZAP/Burp, `ffuf`, `gobuster`, `wfuzz`, `arjun`, `nmap`, `trivy`, `gitleaks`, `truffleHog`, `sslscan`, `testssl.sh`, `slowloris`) et les protections/preuves attendues.
+- **Contrôles P0 explicitement notés** : `gitleaks` sur historique Git complet, `trivy` sur images Docker de prod, `nmap` sur exposition réelle de `docker-compose.prod.yml`, `jwt_tool` pour JWT, OWASP ZAP active scan sur API locale via gateway.
+- **Contrainte performance** : ne pas analyser tout le trafic inter-conteneurs. Le runtime doit rester léger et centré sur l’entrée gateway/public ; les audits lourds passent en CI/commande planifiée, et la corrélation se fait en arrière-plan dans `security-service`.
+- **Cible opérationnelle** : commandes projet + rapports sous `reports/security/` ou `tests/results/security/`, et une interface backoffice pour lancer/voir les contrôles non destructifs. Tous les tests actifs doivent rester bornés et exécutés uniquement en local/test/préprod autorisée.
+
 ### 11 mai 2026 — sécurité menaces : forensics terrain et navigation
 
 - **Constat porteur** : certaines menaces de test/réseau (ex. DDoS avec métadonnées minimales `{ test, packetsPerSec }`) affichaient encore `IP Destination`, services, ports/protocoles, logs corrélés, comptes impactés et localisation comme vides. Cause : la fiche menace lisait surtout `network_threats.destIp` / `metadata.connectionDetails`, alors que les informations peuvent être dans `network_connections` ou `security_logs.metadata`.
