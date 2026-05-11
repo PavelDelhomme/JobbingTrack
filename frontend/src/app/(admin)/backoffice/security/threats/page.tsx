@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDateTime } from '@/lib/utils/date';
-import { AlertTriangle, Shield, Ban, RefreshCw, Eye } from 'lucide-react';
+import { AlertTriangle, Ban, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
@@ -45,6 +45,7 @@ export default function ThreatsPage() {
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
+  const [refreshing, setRefreshing] = useState(false);
   const [newThreatsCount, setNewThreatsCount] = useState(0);
   const previousTopThreatTsRef = useRef<string | null>(null);
   const [consolidatedBlocked, setConsolidatedBlocked] = useState<{
@@ -52,9 +53,11 @@ export default function ThreatsPage() {
     threatIds: Set<string>;
   }>({ ipKeys: new Set(), threatIds: new Set() });
 
-  const loadThreats = useCallback(async () => {
+  const loadThreats = useCallback(async (options: { silent?: boolean } = {}) => {
+    const silent = options.silent === true;
     try {
-      setLoading(true);
+      if (silent) setRefreshing(true);
+      else setLoading(true);
       setServiceError(null);
       
       const params: any = { page, limit: 50 };
@@ -133,14 +136,15 @@ export default function ThreatsPage() {
       setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
       setServiceError(err.response?.data?.error || err.message || 'Service menaces indisponible');
     } finally {
-      setLoading(false);
+      if (silent) setRefreshing(false);
+      else setLoading(false);
     }
   }, [page, severityFilter, typeFilter, sourceIpFilter, destIpFilter, blockedFilter, destPortFilter, startDateFilter, endDateFilter]);
 
   useEffect(() => {
     loadThreats();
     if (!autoRefreshEnabled) return;
-    const interval = setInterval(loadThreats, refreshIntervalMs);
+    const interval = setInterval(() => loadThreats({ silent: true }), refreshIntervalMs);
     return () => clearInterval(interval);
   }, [loadThreats, autoRefreshEnabled, refreshIntervalMs]);
 
@@ -232,7 +236,7 @@ export default function ThreatsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* En-tête */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <AlertTriangle className="h-8 w-8" />
@@ -250,7 +254,7 @@ export default function ThreatsPage() {
               {highOrCriticalCount} menace(s) HIGH/CRITICAL sur la page courante
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={exportThreatsJson}
               className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
@@ -264,7 +268,7 @@ export default function ThreatsPage() {
               Export CSV
             </button>
             <button
-              onClick={loadThreats}
+              onClick={() => loadThreats()}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
             >
               <RefreshCw className="h-5 w-5" />
@@ -272,12 +276,13 @@ export default function ThreatsPage() {
             </button>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
             Temps réel: {autoRefreshEnabled ? `activé (${Math.round(refreshIntervalMs / 1000)}s)` : 'désactivé'}
+            {refreshing && <span className="ml-2 text-blue-600 dark:text-blue-400">rafraîchissement des données…</span>}
             {newThreatsCount > 0 && <span className="ml-2 text-red-600 dark:text-red-400 font-semibold">+{newThreatsCount} nouvelle(s) menace(s)</span>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setNewThreatsCount(0)}
               className="px-3 py-1 bg-gray-600 text-white rounded text-sm"
@@ -305,12 +310,13 @@ export default function ThreatsPage() {
 
         {/* Filtres */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium">Filtrer par sévérité:</label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Sévérité
             <select
               value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              onChange={(e) => { setPage(1); setSeverityFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="">Toutes</option>
               <option value="CRITICAL">CRITICAL</option>
@@ -318,11 +324,13 @@ export default function ThreatsPage() {
               <option value="MEDIUM">MEDIUM</option>
               <option value="LOW">LOW</option>
             </select>
-            <label className="text-sm font-medium">Type:</label>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Type
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              onChange={(e) => { setPage(1); setTypeFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="">Tous</option>
               <option value="SYN_FLOOD">SYN_FLOOD</option>
@@ -332,48 +340,66 @@ export default function ThreatsPage() {
               <option value="XSS">XSS</option>
               <option value="WAF_BLOCK">WAF_BLOCK</option>
             </select>
-            <label className="text-sm font-medium">Statut:</label>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Statut
             <select
               value={blockedFilter}
-              onChange={(e) => setBlockedFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              onChange={(e) => { setPage(1); setBlockedFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="">Tous</option>
               <option value="true">Bloqué</option>
               <option value="false">Non bloqué</option>
             </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              IP source
             <input
               value={sourceIpFilter}
-              onChange={(e) => setSourceIpFilter(e.target.value)}
+              onChange={(e) => { setPage(1); setSourceIpFilter(e.target.value); }}
               placeholder="IP source (ex: 10.0.0.)"
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              IP destination
             <input
               value={destIpFilter}
-              onChange={(e) => setDestIpFilter(e.target.value)}
+              onChange={(e) => { setPage(1); setDestIpFilter(e.target.value); }}
               placeholder="IP dest (ex: 172.18.0.)"
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Port destination
             <input
               value={destPortFilter}
-              onChange={(e) => setDestPortFilter(e.target.value)}
+              onChange={(e) => { setPage(1); setDestPortFilter(e.target.value); }}
               placeholder="Port dest (ex: 443)"
-              className="w-44 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
             />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Début
             <input
               type="datetime-local"
               value={startDateFilter}
-              onChange={(e) => setStartDateFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              onChange={(e) => { setPage(1); setStartDateFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
               title="Date de début"
             />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Fin
             <input
               type="datetime-local"
               value={endDateFilter}
-              onChange={(e) => setEndDateFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              onChange={(e) => { setPage(1); setEndDateFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
               title="Date de fin"
             />
+            </label>
             <button
               onClick={() => {
                 setPage(1)
@@ -386,7 +412,7 @@ export default function ThreatsPage() {
                 setStartDateFilter('')
                 setEndDateFilter('')
               }}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500"
+              className="w-full self-end px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500"
             >
               Réinitialiser
             </button>

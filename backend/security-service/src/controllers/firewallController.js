@@ -3,6 +3,7 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const geoip = require('geoip-lite');
 const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
 const { logger, logSecurityEvent } = require('../utils/logger');
@@ -27,6 +28,19 @@ const ALLOWED_THREAT_TYPES = new Set([
   'WAF_BLOCK',
   'FIREWALL_BLOCK'
 ]);
+
+function isPrivateIp(ip) {
+  const s = normalizeFirewallIp(ip);
+  if (!IPV4_REGEX.test(s)) return false;
+  const parts = s.split('.').map(Number);
+  return (
+    parts[0] === 10 ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    parts[0] === 127 ||
+    (parts[0] === 169 && parts[1] === 254)
+  );
+}
 
 /** Ports internes courants → indice de service (quand Docker n’est pas mappable depuis le conteneur). */
 /** IP vue côté service (premier hop X-Forwarded-For ou req.ip), normalisée pour comparaisons. */
@@ -60,6 +74,108 @@ function enrichThreatForApi(threat) {
     if (first && first.localIp) destIp = String(first.localIp);
   }
   return { ...threat, destIp };
+}
+
+function summarizeSecurityLogs(logs) {
+  const endpoints = new Set();
+  const methods = new Set();
+  const services = new Set();
+  const impactedUsers = new Set();
+  let blockedEvents = 0;
+  let maxRiskScore = 0;
+
+  for (const log of logs) {
+    if (log.endpoint) endpoints.add(log.endpoint);
+    if (log.method) methods.add(log.method);
+    if (log.userId) impactedUsers.add(log.userId);
+    if (log.isBlocked) blockedEvents += 1;
+    if (Number(log.riskScore || 0) > maxRiskScore) maxRiskScore = Number(log.riskScore || 0);
+    const serviceName = log.metadata?.serviceName || log.metadata?.service || log.metadata?.containerName;
+    if (serviceName) services.add(String(serviceName));
+  }
+
+  return {
+    total: logs.length,
+    blockedEvents,
+    maxRiskScore,
+    endpoints: Array.from(endpoints).slice(0, 12),
+    methods: Array.from(methods).slice(0, 8),
+    impactedUsers: Array.from(impactedUsers).slice(0, 12),
+    services: Array.from(services).slice(0, 12)
+  };
+}
+
+function buildThreatInvestigation(threat, related) {
+  const enriched = enrichThreatForApi(threat);
+  const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
+  const geo = geoip.lookup(enriched.sourceIp);
+  const logsSummary = summarizeSecurityLogs(related.securityLogs);
+  const connectionDetails = Array.isArray(meta.connectionDetails) ? meta.connectionDetails : [];
+  const ports = Array.isArray(meta.ports) ? meta.ports : [];
+  const protocols = Array.isArray(meta.protocols) ? meta.protocols : [];
+  const impactedServices = new Set(logsSummary.services);
+
+  if (meta.containerInfo?.containerName) impactedServices.add(meta.containerInfo.containerName);
+  for (const conn of connectionDetails) {
+    if (conn.containerName) impactedServices.add(String(conn.containerName));
+  }
+
+  const missingTelemetry = [];
+  if (!geo) missingTelemetry.push('GeoIP/ASN public indisponible pour cette IP');
+  if (!meta.proxy && !meta.vpn && !meta.asn) missingTelemetry.push('Détection VPN/proxy/ASN non branchée à un provider threat-intel');
+  if (connectionDetails.length === 0) missingTelemetry.push('Aucun détail de connexion réseau brut conservé');
+  if (related.securityLogs.length === 0) missingTelemetry.push('Aucun log sécurité corrélé à cette IP ou menace');
+
+  return {
+    attacker: {
+      ip: enriched.sourceIp,
+      isPrivateIp: isPrivateIp(enriched.sourceIp),
+      country: geo?.country || null,
+      city: geo?.city || null,
+      region: geo?.region || null,
+      timezone: geo?.timezone || null,
+      ll: geo?.ll || null,
+      proxy: meta.proxy ?? null,
+      vpn: meta.vpn ?? null,
+      tor: meta.tor ?? null,
+      asn: meta.asn ?? null,
+      organization: meta.organization ?? null
+    },
+    target: {
+      ip: enriched.destIp || null,
+      port: enriched.destPort || null,
+      ports,
+      protocols,
+      impactedServices: Array.from(impactedServices).slice(0, 12)
+    },
+    application: {
+      logs: logsSummary,
+      recentEvents: related.securityLogs.slice(0, 10).map((log) => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        level: log.level,
+        category: log.category,
+        eventType: log.eventType,
+        endpoint: log.endpoint,
+        method: log.method,
+        statusCode: log.statusCode,
+        responseTime: log.responseTime,
+        riskScore: log.riskScore,
+        isBlocked: log.isBlocked,
+        message: log.message
+      }))
+    },
+    network: {
+      totalConnections: Number(meta.totalConnections || connectionDetails.length || 0),
+      states: Array.isArray(meta.states) ? meta.states : [],
+      connectionDetails: connectionDetails.slice(0, 25)
+    },
+    related: {
+      intrusionAttempts: related.intrusionAttempts,
+      ddosAttacks: related.ddosAttacks
+    },
+    missingTelemetry
+  };
 }
 
 /** Plus haut = source préférée si plusieurs entrées pour la même IP (Lot A — cohérence). */
@@ -968,10 +1084,58 @@ async function getThreatDetails(req, res) {
         error: 'Menace non trouvée'
       });
     }
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const related = {
+      securityLogs: [],
+      intrusionAttempts: [],
+      ddosAttacks: []
+    };
+
+    try {
+      const [securityLogs, intrusionAttempts, ddosAttacks] = await Promise.all([
+        prisma.securityLog.findMany({
+          where: {
+            OR: [
+              { sourceIP: threat.sourceIp },
+              { message: { contains: threat.sourceIp, mode: 'insensitive' } }
+            ],
+            timestamp: { gte: since }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 50
+        }),
+        prisma.intrusionAttempt.findMany({
+          where: {
+            sourceIP: threat.sourceIp,
+            timestamp: { gte: since }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 20
+        }),
+        prisma.dDoSAttack.findMany({
+          where: {
+            sourceIPs: { has: threat.sourceIp },
+            timestamp: { gte: since }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 20
+        })
+      ]);
+      related.securityLogs = securityLogs;
+      related.intrusionAttempts = intrusionAttempts;
+      related.ddosAttacks = ddosAttacks;
+    } catch (correlationError) {
+      if (process.env.NODE_ENV === 'production') {
+        logger.warn('Corrélation détails menace partielle:', correlationError.message);
+      }
+    }
 
     res.json({
       success: true,
-      data: enrichThreatForApi(threat)
+      data: {
+        ...enrichThreatForApi(threat),
+        investigation: buildThreatInvestigation(threat, related)
+      }
     });
   } catch (error) {
     logger.error('Erreur récupération détails menace:', error);
