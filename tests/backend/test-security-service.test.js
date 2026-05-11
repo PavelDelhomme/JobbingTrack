@@ -6,8 +6,7 @@
 const axios = require('axios');
 const { describe, it, expect, beforeAll } = require('@jest/globals');
 const { API_URL } = require('../helpers/auth.helper');
-/** Même défaut que docker-compose / tests/jest.setup.js — pas besoin d’exporter la variable à la main en local. */
-const DEFAULT_INTERNAL_SECRET = 'jobbingtrack-internal-security-dev';
+const TEST_INTERNAL_SECRET = 'test-internal-security-secret';
 
 async function waitForApiGateway(maxMs = 45000, stepMs = 1500) {
   const deadline = Date.now() + maxMs;
@@ -36,7 +35,7 @@ describe('Security Service', () => {
     authHeaders = {
       'Content-Type': 'application/json',
       'X-Internal-Secret':
-        process.env.SECURITY_INTERNAL_SECRET || DEFAULT_INTERNAL_SECRET
+        process.env.SECURITY_INTERNAL_SECRET || TEST_INTERNAL_SECRET
     };
     await waitForApiGateway();
   });

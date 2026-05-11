@@ -156,6 +156,60 @@ const WHITELISTED_IPS = [
   // '10.0.0.1'
 ];
 
+const DEFAULT_INTERNAL_BYPASS_CIDRS = [
+  '127.0.0.0/8',
+  '::1/128',
+  '10.0.0.0/8',
+  '172.16.0.0/12',
+  '192.168.0.0/16'
+];
+
+function normalizeIp(ip) {
+  let value = String(ip || '').trim();
+  if (!value) return '';
+  if (value.startsWith('::ffff:')) value = value.slice(7);
+  if (value.includes(',') && !value.includes(':')) value = value.split(',')[0].trim();
+  return value;
+}
+
+function ipv4ToNumber(ip) {
+  const parts = normalizeIp(ip).split('.').map(Number);
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+  return ((parts[0] * 256 ** 3) + (parts[1] * 256 ** 2) + (parts[2] * 256) + parts[3]) >>> 0;
+}
+
+function isIpInCidr(ip, cidr) {
+  const normalizedIp = normalizeIp(ip);
+  const normalizedCidr = String(cidr || '').trim();
+  if (!normalizedIp || !normalizedCidr) return false;
+  if (!normalizedCidr.includes('/')) return normalizedIp === normalizeIp(normalizedCidr);
+  const [rangeIp, prefixRaw] = normalizedCidr.split('/');
+  const prefix = Number(prefixRaw);
+  if (!Number.isInteger(prefix)) return false;
+  if (normalizedIp === '::1' && normalizeIp(rangeIp) === '::1') return true;
+  const ipNum = ipv4ToNumber(normalizedIp);
+  const rangeNum = ipv4ToNumber(rangeIp);
+  if (ipNum == null || rangeNum == null || prefix < 0 || prefix > 32) return false;
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
+function getInternalBypassCidrs() {
+  const configured = process.env.WAF_INTERNAL_BYPASS_CIDRS;
+  if (!configured) return DEFAULT_INTERNAL_BYPASS_CIDRS;
+  return configured.split(',').map((x) => x.trim()).filter(Boolean);
+}
+
+function getObservedClientIp(req) {
+  return normalizeIp(req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress);
+}
+
+function isInternalWafBypassRequest(req) {
+  if (String(process.env.WAF_INTERNAL_BYPASS_ENABLED || 'true').toLowerCase() === 'false') return false;
+  const clientIp = getObservedClientIp(req);
+  return getInternalBypassCidrs().some((cidr) => isIpInCidr(clientIp, cidr));
+}
+
 // Fonction de détection des attaques
 const detectAttack = (input, rules) => {
   const detections = [];
@@ -193,11 +247,26 @@ const wafCheck = async (req, res, next) => {
       return next();
     }
 
-    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    const clientIP = getObservedClientIp(req);
     const userAgent = req.get('User-Agent') || '';
     const url = req.url || '';
     const method = req.method || '';
     const headers = req.headers || {};
+
+    if (isInternalWafBypassRequest(req)) {
+      logger.debug('WAF bypass trafic interne', {
+        ip: clientIP,
+        url,
+        method,
+        bypass: 'internal_network'
+      });
+      res.set({
+        'X-WAF-Status': 'BYPASSED_INTERNAL',
+        'X-Protected-By': 'JobbingTrack-WAF',
+        'X-OWASP-Protection': 'BYPASSED_FOR_INTERNAL_TRAFFIC'
+      });
+      return next();
+    }
 
     // Vérification de la liste noire
     if (BLACKLISTED_IPS.includes(clientIP)) {
@@ -376,6 +445,8 @@ const getWAFStats = async () => {
       rules: Object.keys(WAF_RULES).length,
       blacklistedIPs: BLACKLISTED_IPS.length,
       whitelistedIPs: WHITELISTED_IPS.length,
+      internalBypassEnabled: String(process.env.WAF_INTERNAL_BYPASS_ENABLED || 'true').toLowerCase() !== 'false',
+      internalBypassCidrs: getInternalBypassCidrs(),
       realTimeData: true
     };
   } catch (error) {
@@ -424,5 +495,8 @@ module.exports = {
   getWAFStats,
   WAF_RULES,
   BLACKLISTED_IPS,
-  WHITELISTED_IPS
+  WHITELISTED_IPS,
+  isInternalWafBypassRequest,
+  isIpInCidr,
+  getObservedClientIp
 };

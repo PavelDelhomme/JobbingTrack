@@ -5,8 +5,8 @@ set -euo pipefail
 API_GATEWAY_URL="${API_GATEWAY_URL:-http://localhost:5002}"
 FRONTEND_URL="${FRONTEND_URL:-http://localhost:5003}"
 SECURITY_SERVICE_URL="${SECURITY_SERVICE_URL:-http://localhost:5017}"
-# Même valeur par défaut que docker-compose (appels directs host → conteneur firewall/waf)
-SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-jobbingtrack-internal-security-dev}"
+# Appels directs host → conteneur firewall/waf : secret explicite depuis .env / environnement.
+SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-}"
 export SECURITY_INTERNAL_SECRET
 WATCH_SECONDS="${WATCH_SECONDS:-25}"
 STRICT_MODE="${STRICT_MODE:-1}"
