@@ -8,6 +8,8 @@
 
 **Scan prod scannable (11/05)** : `make security-scan-ports` utilise maintenant la stack fusionnée `docker-compose.yml + docker-compose.prod.yml` avec profile `full` par défaut, et le scan images Trivy peut récupérer les images de cette même cible compose. Corrections appliquées : volume Postgres prod aligné sur `jobbingtrack_postgres_data`, `deploy.replicas` ramené à `1` tant que les services héritent de `container_name`. Résultat local : `docker compose config` OK ; finding à traiter ensuite, trop de ports internes restent publiés sur `0.0.0.0`.
 
+**Scans P0 passifs (11/05)** : `gitleaks` historique complet exécuté (859 commits, 717 findings bruts : surtout `jwt`, `generic-api-key`, `curl-auth-header` dans artefacts de tests) ; Trivy/CVE images compose prod fusionné exécuté (`tests/results/security/cve-20260511-162025/summary.md`) avec nombreuses vulnérabilités critiques/hautes à trier sur dépendances Node et images Docker. `truffleHog`, `jwt_tool` et ZAP CLI ne sont pas installés ; `nmap` nécessite une cible autorisée (`SECURITY_NMAP_TARGET`).
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.
