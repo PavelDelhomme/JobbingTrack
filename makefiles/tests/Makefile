@@ -726,15 +726,10 @@ test-database: ## Tests base de données (connexion, schéma, enums, relations)
 	@echo ""
 	@echo "🚀 Lancement des tests..."
 	@echo ""
-	@if docker ps | grep -q jobbingtrack-frontend; then \
-		echo "🐳 Exécution dans le conteneur jobbingtrack-frontend..."; \
-		docker exec -e DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack -w /app/tests jobbingtrack-frontend sh -c "npm run test:database 2>&1" || \
-		docker exec -e DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack -w /app jobbingtrack-frontend sh -c "cd tests && npm run test:database 2>&1" || \
-		(cd tests && npm run test:database 2>&1); \
-	else \
-		echo "💻 Exécution en local..."; \
-		(cd tests && npm run test:database 2>&1) || echo "⚠️  Tests nécessitent: cd tests && npm install"; \
-	fi
+	@echo "💻 Exécution en local (les tests lisent aussi docker-compose.yml et docs/)..."
+	@(export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:$${POSTGRES_PORT:-5000}/jobbingtrack}"; \
+		cd tests && npm run test:database 2>&1) || \
+		(echo "❌ Tests BDD échoués. Vérifiez: make up-full puis make db-push-all"; exit 1)
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║                ✅ TEST BDD TERMINÉ                    ║"

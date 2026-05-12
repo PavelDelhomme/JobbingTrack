@@ -8,7 +8,7 @@
     "test:all": "npm run test:unit && npm run test:integration && npm run test:database && npm run test:api && npm run test:e2e",
     "test:unit": "jest --config jest.config.js unit/",
     "test:integration": "jest --config jest.config.js integration/",
-    "test:database": "node database/test-database.js",
+    "test:database": "node database/test-database.js && node database/test-postgresql-config.js && node database/test-migrations.js",
     "test:api": "jest --config jest.config.js api/",
     "test:e2e": "playwright test e2e/",
     "test:backend": "jest --config jest.config.js backend/",
