@@ -8,6 +8,7 @@ const cron = require('node-cron')
 const si = require('systeminformation')
 const axios = require('axios')
 const Docker = require('dockerode')
+const jwt = require('jsonwebtoken')
 
 // Réduction des logs : moins de bruit conteneurs/monitoring pour se concentrer sur données et tests API.
 // Mettre REDUCE_METRICS_LOGS=0 dans .env pour réactiver les logs verbeux ([PROC], [DISCOVERY], [CONTAINERS], etc.).
@@ -105,7 +106,16 @@ const authenticateMetrics = (req, res, next) => {
   }
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
-    if (token && token.length > 10) {
+    const jwtSecret = process.env.JWT_SECRET
+    if (jwtSecret && token) {
+      try {
+        req.user = jwt.verify(token, jwtSecret)
+        return next()
+      } catch {
+        return res.status(403).json({ success: false, error: 'Forbidden', message: 'Invalid metrics bearer token' })
+      }
+    }
+    if (process.env.NODE_ENV === 'test' && token && token.length > 10) {
       return next()
     }
   }
@@ -1364,10 +1374,10 @@ app.get('/health', healthPayload)
 app.get('/api/v1/health', healthPayload)
 
 // Routes Docker (métriques directes depuis Docker)
-app.use('/api/v1/docker', dockerRoutes)
+app.use('/api/v1/docker', authenticateMetrics, dockerRoutes)
 
 // Routes Persistence (accès aux données historiques)
-app.use('/api/v1/persistence', persistenceRoutes)
+app.use('/api/v1/persistence', authenticateMetrics, persistenceRoutes)
 
 app.get('/api/v1/metrics', authenticateMetrics, (req, res) => {
   if (lastMetricsData) {

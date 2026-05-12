@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend dev-https-certs dev-https-install-ca dev-https-up dev-https-down dev-https-status _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -150,6 +150,36 @@ fix-frontend: ## Rebuild et redémarrer le frontend (fix erreurs JavaScript)
 	@echo ""
 	@echo "📋 Vérifier les logs: make logs-service SERVICE=frontend"
 
+dev-https-certs: ## Générer les certificats HTTPS locaux (hors Git)
+	@bash "$(ROOT_DIR)/scripts/ops/dev-https-certs.sh"
+
+dev-https-install-ca: ## Générer les certificats et installer la CA locale si l'outil système le permet
+	@DEV_HTTPS_INSTALL_CA=1 bash "$(ROOT_DIR)/scripts/ops/dev-https-certs.sh"
+
+dev-https-up: dev-https-certs ## Démarrer le proxy HTTPS dev (https://jobbingtrack.localhost:5443)
+	@echo "🔐 Démarrage du proxy HTTPS dev..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) -f docker-compose.https.yml --profile https up -d dev-https-proxy)
+	@printf '%s\n' up-https > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
+	@echo ""
+	@echo "✅ HTTPS dev disponible :"
+	@echo "   Frontend:    https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
+	@echo "   API Gateway: https://api.jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
+	@echo ""
+	@echo "Si le navigateur affiche une erreur certificat, lancez : make dev-https-install-ca"
+
+dev-https-down: ## Arrêter uniquement le proxy HTTPS dev
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) -f docker-compose.https.yml --profile https stop dev-https-proxy)
+
+dev-https-status: ## Vérifier les certificats et le proxy HTTPS dev
+	@bash "$(ROOT_DIR)/scripts/ops/dev-https-certs.sh" >/dev/null
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^jobbingtrack-dev-https-proxy$$'; then \
+		echo "✅ Proxy HTTPS dev actif"; \
+	else \
+		echo "⚠️  Proxy HTTPS dev arrêté. Lancez: make dev-https-up"; \
+	fi
+	@echo "Frontend:    https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
+	@echo "API Gateway: https://api.jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
+
 # ============================================================================
 # AIDE
 # ============================================================================
@@ -169,6 +199,9 @@ help-services: ## Afficher l'aide services
 	@echo "  make start                 - Alias de up-full (démarrer sans rebuild)"
 	@echo "  make fresh-start           - down + build + up-full + status (rebuild complet)"
 	@echo "  make up                    - Services essentiels (postgres, redis, gateway, frontend, auth)"
+	@echo "  make dev-https-up          - Proxy HTTPS local fiable (https://jobbingtrack.localhost:5443)"
+	@echo "  make dev-https-certs       - Générer les certificats HTTPS dev locaux"
+	@echo "  make dev-https-install-ca  - Générer + installer la CA locale si possible"
 	@echo "  make up-no-check           - Sans vérification Docker"
 	@echo "  make up-full               - TOUS les services (avec vérification Docker)"
 	@echo "  make up-full-mickdevil    - TOUS les services (SANS vérification Docker)"

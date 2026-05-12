@@ -38,6 +38,57 @@ function securityServiceInternalHeaders() {
   return { 'X-Internal-Secret': secret };
 }
 
+function metricsServiceHeaders(req) {
+  const apiKey = process.env.METRICS_API_KEY;
+  return {
+    ...forwardCorrelationHeaders(req),
+    ...(apiKey ? { 'X-API-Key': apiKey } : {})
+  };
+}
+
+function parseCsv(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getAllowedCorsOrigins() {
+  const configured = parseCsv(process.env.ALLOWED_ORIGINS);
+  if (process.env.NODE_ENV === 'production') {
+    if (configured.length === 0) {
+      throw new Error('ALLOWED_ORIGINS est requis en production');
+    }
+    return configured;
+  }
+  return [
+    ...configured,
+    'http://localhost:5003',
+    'http://localhost:5002',
+    'http://localhost:5005',
+    'http://localhost:5004',
+    'http://localhost:8000',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'https://localhost:5003',
+    'https://localhost:5002',
+    'http://127.0.0.1:5003',
+    'http://127.0.0.1:5002',
+    'http://127.0.0.1:5005',
+    'http://127.0.0.1:5004',
+    'http://127.0.0.1:8000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
+    'https://127.0.0.1:5003',
+    'https://127.0.0.1:5002',
+    'http://frontend:3000',
+    'http://api-gateway:3000',
+    'http://jobbingtrack-metrics-aggregator:3014'
+  ];
+}
+
+const ALLOWED_CORS_ORIGINS = getAllowedCorsOrigins();
+
 async function reportPayloadTooLarge(req, details = {}) {
   const sourceIp = String(
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -100,78 +151,10 @@ app.use(cors({
     // Autoriser les requêtes sans origine (Postman, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Liste des origines autorisées
-    const allowedOrigins = [
-      // Développement local (prioritaires)
-      'http://localhost:5003',  // Frontend (nouveau port)
-      'http://localhost:5002',  // API Gateway (nouveau port)
-      'http://localhost:5005',  // Auth Service (nouveau port)
-      'http://localhost:5000',  // PostgreSQL (nouveau port)
-      'http://localhost:5001',  // Redis (nouveau port)
-      'http://localhost:5004',  // Metrics Aggregator (nouveau port)
-      'http://localhost:8000',  // Frontend (ancien port)
-      'http://localhost:8080',  // Frontend (port Next.js dev)
-      'http://localhost:3000',  // API Gateway (ancien port)
-      'http://localhost:8081',  // cAdvisor
-      'http://localhost:8082',  // Metrics Aggregator (ancien)
-      'http://localhost:8083',  // Grafana
-      'http://localhost:8084',  // Node Exporter
-      'http://localhost:8085',  // Alertmanager
-      'http://localhost:8086',  // Blackbox Exporter
-      'http://127.0.0.1:5003',
-      'http://127.0.0.1:5002',
-      'http://127.0.0.1:5005',
-      'http://127.0.0.1:5000',
-      'http://127.0.0.1:5001',
-      'http://127.0.0.1:5004',
-      'http://127.0.0.1:8000',
-      'http://127.0.0.1:8080',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:8081',
-      'http://127.0.0.1:8082',
-      'http://127.0.0.1:8083',
-      'http://127.0.0.1:8084',
-      'http://127.0.0.1:8085',
-      'http://127.0.0.1:8086',
-      // IPv6 localhost
-      'http://[::1]:5003',
-      'http://[::1]:5002',
-      'http://[::1]:5005',
-      'http://[::1]:5000',
-      'http://[::1]:5001',
-      'http://[::1]:5004',
-      'http://[::1]:8000',
-      'http://[::1]:8080',
-      'http://[::1]:3000',
-      'http://[::1]:8081',
-      'http://[::1]:8082',
-      'http://[::1]:8083',
-      'http://[::1]:8084',
-      'http://[::1]:8085',
-      // Services Docker
-      'http://frontend:3000',
-    'http://api-gateway:3000',
-    'http://cadvisor:8080',
-    'http://jobbingtrack-metrics-aggregator:3014',
-    // Autres services
-    'http://jobbingtrack-auth-service:3001',
-    'http://application-service:3002',
-    'http://company-service:3003',
-    'http://contact-service:3004',
-    'http://interview-service:3005',
-    'http://notification-service:3006',
-    'http://dashboard-service:3007',
-    'http://call-service:3008',
-    'http://profile-service:3009',
-    'http://event-service:3011',
-    'http://followup-service:3012',
-    'http://workflow-service:3013'
-    ];
-    
     // Autoriser les IPs locales du réseau (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
     const localNetworkPattern = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
     
-    if (allowedOrigins.includes(origin) || localNetworkPattern.test(origin)) {
+    if (ALLOWED_CORS_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && localNetworkPattern.test(origin))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -385,7 +368,7 @@ app.get('/api/v1/metrics', async (req, res) => {
     const response = await axios.get(`${metricsUrl}/api/v1/metrics`, {
       timeout: 10000,
       validateStatus: () => true,
-      headers: { ...forwardCorrelationHeaders(req) },
+      headers: metricsServiceHeaders(req),
     });
     // ✅ Normaliser certains champs pour compatibilité tests/front (snake_case vs camelCase)
     const data = response.data && typeof response.data === 'object' ? response.data : {};
@@ -606,7 +589,7 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
         const response = await axios.get(url, {
           timeout: 20000,
           validateStatus: () => true,
-          headers: { ...forwardCorrelationHeaders(req) },
+          headers: metricsServiceHeaders(req),
         });
         if (response.status === 200 && response.data) {
           const d = response.data;
@@ -997,7 +980,7 @@ app.get('/api/v1/services', async (req, res) => {
       // Utiliser l'endpoint /api/v1/docker/jobbingtrack/aggregated qui retourne containers
       const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/jobbingtrack/aggregated`, {
         timeout: 10000,
-        headers: { ...forwardCorrelationHeaders(req) },
+        headers: metricsServiceHeaders(req),
       });
 
       if (response.data && response.data.containers && Array.isArray(response.data.containers)) {

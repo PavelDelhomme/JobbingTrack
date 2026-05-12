@@ -16,6 +16,7 @@ lerna-debug.log*
 **/*.backup.*
 
 # Environment files
+.local/
 .env
 .env.local
 .env.development.local
