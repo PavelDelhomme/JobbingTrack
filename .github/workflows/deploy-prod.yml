@@ -11,6 +11,7 @@ on:
 
 env:
   DOCKER_BUILDKIT: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   deploy-prod:
@@ -21,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Verification manuelle (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
