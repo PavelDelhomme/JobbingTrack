@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Script pour comparer les résultats complets des benchmarks backoffice
-# Usage: ./scripts/compare-all-backoffice.sh
+# Usage: ./scripts/performance/compare-all-backoffice.sh
 
 set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 RESULTS_DIR="tests/performance-benchmark"
 
@@ -22,8 +25,8 @@ if [ -z "$BEFORE_FILE" ] || [ -z "$AFTER_FILE" ]; then
     echo "   Après: ${AFTER_FILE:-NON TROUVÉ}"
     echo ""
     echo "💡 Lancez d'abord:"
-    echo "   ./scripts/benchmark-all-backoffice.sh before"
-    echo "   ./scripts/benchmark-all-backoffice.sh after"
+    echo "   ./scripts/performance/benchmark-all-backoffice.sh before"
+    echo "   ./scripts/performance/benchmark-all-backoffice.sh after"
     exit 1
 fi
 

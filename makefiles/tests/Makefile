@@ -85,7 +85,7 @@ tests-help:
 	@echo "  make test-full-cached         Build avec cache + up + db + seed + test-all (compromis)"
 	@echo "  make test-full-timed          test-full avec mesure de durée (début/fin + time)"
 	@echo "  make up-full-timed            up-full avec mesure de durée"
-	@echo "  ./scripts/timed-make.sh TARGET [--verbose]  Mesure temps (+ mémoire si -v)"
+	@echo "  ./scripts/ops/timed-make.sh TARGET [--verbose]  Mesure temps (+ mémoire si -v)"
 	@echo ""
 	@echo "💡 make logs-applicative suit les logs (ne termine jamais) → à lancer dans un autre terminal."
 	@echo ""

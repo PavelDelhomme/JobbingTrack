@@ -98,7 +98,7 @@ monitoring-c-restart: ## Redémarrer nouveau système de monitoring en C
 
 monitoring-c-logs: ## Voir les logs du nouveau système de monitoring en C (tags colorés)
 	@echo "📋 Logs monitoring en C..."
-	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c logs -f monitoring-c log-collector-c) 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c logs -f monitoring-c log-collector-c) 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh"
 
 monitoring-c-debug: ## Mode debug monitoring-c (interactif, build, logs)
 	@echo "🐛 Mode debug monitoring-c..."

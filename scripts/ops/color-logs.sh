@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Colorize docker compose logs - service name, HTTP method/path/status, tags ([DEBUG], [STATS], etc.) and errors
-# Usage: docker compose logs -f 2>/dev/null | ./scripts/color-logs.sh
+# Usage: docker compose logs -f 2>/dev/null | ./scripts/ops/color-logs.sh
 #
 # Couleurs :
 #   - Nom du service (jobbingtrack-xxx) : magenta

@@ -9,7 +9,7 @@
         disable-help enable-help help-status-help
 
 menu: ## Affiche le menu interactif CLI pour toutes les commandes Makefile
-	@./scripts/make-menu.sh
+	@./scripts/ops/make-menu.sh
 help-tests: ## Aide globale pour les commandes de tests
 	@echo "================================================================"
 	@echo "🧪 AIDE: Suite de tests JobbingTrack"

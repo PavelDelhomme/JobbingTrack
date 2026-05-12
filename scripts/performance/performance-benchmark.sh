@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Script de benchmark de performance pour mesurer les temps de chargement des pages
-# Usage: ./scripts/performance-benchmark.sh [before|after]
+# Usage: ./scripts/performance/performance-benchmark.sh [before|after]
 
 set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 RESULTS_DIR="tests/performance-benchmark"

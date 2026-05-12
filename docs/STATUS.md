@@ -28,6 +28,8 @@
 
 **Dependabot alerts → BDD sécurité (12/05)** : import GitHub branché côté `security-service` sans exposition frontend. `analyzeDependabotAlerts()` récupère `/repos/:owner/:repo/dependabot/alerts`, normalise vers `Vulnerability`, conserve `ghsaId`/`cveId`/manifest/path/range dans `metadata`, et crée une `SecurityAlert` seulement pour une nouvelle alerte `critical/high` encore `open`. Endpoint manuel : `POST /api/v1/vulnerabilities/dependabot/import`. Job cron optionnel : `DEPENDABOT_ALERTS_ENABLED=true` + `DEPENDABOT_ALERTS_TOKEN` ou `GITHUB_TOKEN`; désactivé par défaut. Validation ciblée : `backend/security-service npm test -- --runInBand tests/security-cve-alerts.test.js` = **5/5**.
 
+**Scripts — restructuration progressive (12/05)** : plusieurs lots sûrs déplacent les scripts racine vers des dossiers métier sans casser les commandes Make : `env/`, `setup/`, `db/`, `reports/`, `performance/`, `ops/`. Validations : `bash -n` sur les scripts déplacés, `make -n setup-ports`, `make -n test-mobile-report`, `make -n status-watch`, `make -n logs-watch`, `make -n menu`, puis `make scripts-inventory`. État actuel : **124 scripts**, **58 actifs**, **9 encore à la racine**, **24 sans référence automatique**.
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.
@@ -57,7 +59,7 @@
 
 ### 7 mai 2026 — Corrélation perf, `logs-watch`, rechargements navigateur (PLAN A3 / suite)
 
-- **`scripts/logs-watch.sh`** : le code de sortie **141** (souvent **SIGPIPE** sur le pipe vers `color-logs.sh` quand le flux Docker se coupe) **ne quitte plus** comme un Ctrl+C — **seul 130** arrête ; **141** déclenche la **reconnexion** en boucle (affichage couleurs inchangé).
+- **`scripts/ops/logs-watch.sh`** : le code de sortie **141** (souvent **SIGPIPE** sur le pipe vers `scripts/ops/color-logs.sh` quand le flux Docker se coupe) **ne quitte plus** comme un Ctrl+C — **seul 130** arrête ; **141** déclenche la **reconnexion** en boucle (affichage couleurs inchangé).
 - **Front** — **`analytics.service.ts`** : les erreurs axios **bénignes** au rechargement de page (**`ECONNABORTED`**, *Request aborted*, annulation React) sont mieux filtrées (**`isAxiosError`**) pour éviter le spam console « Erreur stats … ».
 - **Front corrélation (suite)** : annulation explicite des requêtes en vol via **`AbortController`** (chargement principal, historiques conteneurs/disponibilité/stats, incidents/logs) + propagation du `signal` dans **`analytics.service.ts`** pour réduire les courses au reload et le bruit `NS_BINDING_ABORTED`.
 - **UX corrélation (suite)** : ajout d’un **brush/zoom** partagé sur les sous-graphes du service focalisé (CPU, mémoire, réseau, I/O, TR) + indicateurs visuels de tri (**↑ / ↓ / ↕**) sur les tableaux synthèse et incidents.
@@ -545,7 +547,7 @@ Rapports dans `tests/results/<timestamp>/`.
 |--------|----------|
 | **Tout redémarrer et tester (dev)** | **`make up-dev`** (racine) — enchaîne up-full, db-push-all, seed-auth, tests. **PostgreSQL/Redis dev seuls** (compose test) : **`make db-up-dev`** (plus de conflit de nom avec la racine). |
 | **Lancer la suite de tests** | `make test` (stack déjà up) ; `make test-full-quick` (sans rebuild, léger) ; `make test-full-cached` (build avec cache) ; `make test-full` (rebuild complet, lourd) |
-| **Mesurer durée / ressources** | `make test-full-timed` ou `make up-full-timed` ; ou `./scripts/timed-make.sh test-full-quick` (option `--verbose` pour mémoire) |
+| **Mesurer durée / ressources** | `make test-full-timed` ou `make up-full-timed` ; ou `./scripts/ops/timed-make.sh test-full-quick` (option `--verbose` pour mémoire) |
 | Arrêter (données conservées) | `make down` |
 | Tout effacer puis redémarrer | `make down-clean` → `make up-full` → `make seed-auth` |
 | Créer / mettre à jour l’admin | `make seed-auth` |
@@ -639,7 +641,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - **Parcours utilisateur mobile** : 22 scenarios predefinis organises en 5 categories (auth, navigation, verification, crud, complet). **Emulateur** : liste complete des parcours avec **6 parcours principaux** en tête (Inscription complète, Reset mot de passe, Première utilisation, Usage quotidien, Archives & Corbeille, Parcours complet), tous lancables depuis l’interface après sélection d’un appareil ADB. Module ADB reutilisable (`tools/adb-lib/`, `frontend/src/lib/adb/`) avec 6 methodes d'utilisation (client direct, flows, actions parametrees, scenarios, runner actions, runner custom). 28 steps mobiles integres dans `journey-builder.js`.
 - **Tests** : corrections appliquees (activities→statusHistory, isUUID→isString, api-e2e credentials, networkidle, enums NotificationType, CRUD admin company size). Cascade désarchivage : `restoreRelatedElements` en raw SQL (Interview, FollowUp, Call, Event) pour garantir la même BDD que les services dédiés. Jest : test « événements liés » strict (si l’API retourne des events, au moins un doit être lié à la candidature/entretien — sinon bug event-service ou createAutoEvent) ; délai 800 ms après unarchive dans test-archive-trash. Playwright : `apiUnarchiveWithResponse` + test archivage désarchive la **candidature** (applicationId) pour déclencher la cascade ; backoffice `expectPageLoaded` attend `nav` (25 s) après domcontentloaded.
 - **Backoffice Analytics utilisateur** : page resilient si requete events bloquee (uBlock) : chargement partiel + message onglet Evenements.
-- **Rapports de tests** : view utilise `USER_JOURNEY_REPORTS_DIR` (aligné avec la liste) ; message 404 explicite ; JSON des résultats échappé (plus de « Test inconnu ») ; script `scripts/compress-old-reports.sh` pour compresser les rapports de plus de N jours.
+- **Rapports de tests** : view utilise `USER_JOURNEY_REPORTS_DIR` (aligné avec la liste) ; message 404 explicite ; JSON des résultats échappé (plus de « Test inconnu ») ; script `scripts/reports/compress-old-reports.sh` pour compresser les rapports de plus de N jours.
 - **Backend CRUD** : mise à jour complète des champs pour candidature (whitelist), entretien (feedback, outcome, type/style), relance (response, type/method), appel (followUpId, callTypeId), événement (reminder, color, callId, eventTypeId), contact (whitelist).
 - **Mobile** : formulaire candidature complet (création + édition) ; écran détail candidature avec listes relances/entretiens/appels et création relance/entretien/appel depuis le détail ; écran Entretiens (liste API) ; FollowUpProvider et InterviewProvider branchés sur l’API ; retour arrière depuis le détail revient à la liste (pas de sortie d’app).
 - **Notifications auto** : cron workflow-service — rappel entretien &lt; 24h (8h), « Penser à relancer » candidatures &gt; 7j (9h30), rappels relances du jour (10h) ; notifications in-app créées en BDD.
