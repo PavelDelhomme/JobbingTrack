@@ -26,6 +26,9 @@ class SecurityScheduler {
     // Planifier l'analyse CVE avec cadence légère pour éviter une charge permanente
     this.scheduleVulnerabilityAnalysis();
 
+    // Import GitHub Dependabot optionnel, désactivé par défaut sans token serveur.
+    this.scheduleDependabotAlertsImport();
+
     // Planifier l'analyse des patterns d'attaque toutes les 15 minutes
     this.scheduleAttackPatternAnalysis();
 
@@ -165,6 +168,30 @@ class SecurityScheduler {
     this.jobs.set('vulnerability-analysis', job);
     job.start();
     logger.info(`Job d'analyse CVE planifié (${cronExpression})`);
+  }
+
+  scheduleDependabotAlertsImport() {
+    if (process.env.DEPENDABOT_ALERTS_ENABLED !== 'true') {
+      logger.info('Import Dependabot alerts désactivé');
+      return;
+    }
+
+    const cronExpression = process.env.DEPENDABOT_ALERTS_CRON || '43 */6 * * *';
+    const job = cron.schedule(cronExpression, async () => {
+      try {
+        logger.debug('Import Dependabot alerts en cours...');
+        await securityService.analyzeDependabotAlerts();
+        logger.debug('Import Dependabot alerts terminé');
+      } catch (error) {
+        logger.warn('Erreur lors de l\'import Dependabot alerts:', error.message);
+      }
+    }, {
+      scheduled: false
+    });
+
+    this.jobs.set('dependabot-alerts-import', job);
+    job.start();
+    logger.info(`Job d'import Dependabot alerts planifié (${cronExpression})`);
   }
 
   // Planifier l'analyse des patterns d'attaque

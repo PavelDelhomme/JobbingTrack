@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const axios = require('axios');
 const { prisma } = require('../config/database');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const dataGenerator = require('./dataGenerator');
@@ -862,16 +863,169 @@ class SecurityService {
     };
   }
 
-  async alertOnNewCriticalVulnerability(vuln) {
+  async alertOnNewCriticalVulnerability(vuln, source = 'cve-scan') {
     if (!['critical', 'high'].includes(vuln.severity)) return;
     await this.createSecurityAlert({
       level: vuln.severity === 'critical' ? 'critical' : 'high',
       title: `Nouvelle vulnérabilité ${vuln.severity}: ${vuln.affectedComponent}`,
       description: vuln.description,
       category: 'vulnerability',
-      source: 'cve-scan',
+      source,
       metadata: vuln.metadata
     });
+  }
+
+  resolveDependabotRepository(repository = process.env.DEPENDABOT_ALERTS_REPOSITORY) {
+    const value = String(repository || '').trim();
+    if (!value || !/^[^/\s]+\/[^/\s]+$/.test(value)) {
+      throw new Error('DEPENDABOT_ALERTS_REPOSITORY doit être au format owner/repo');
+    }
+    return value;
+  }
+
+  getDependabotToken(token = process.env.DEPENDABOT_ALERTS_TOKEN || process.env.GITHUB_TOKEN) {
+    const value = String(token || '').trim();
+    if (!value) {
+      throw new Error('GITHUB_TOKEN ou DEPENDABOT_ALERTS_TOKEN requis pour importer les alertes Dependabot');
+    }
+    return value;
+  }
+
+  async fetchDependabotAlerts(options = {}) {
+    const repository = this.resolveDependabotRepository(options.repository);
+    const token = this.getDependabotToken(options.token);
+    const state = options.state || process.env.DEPENDABOT_ALERTS_STATE || 'open';
+    const perPage = Math.min(Number(options.perPage || 100), 100);
+    const maxPages = Math.max(Number(options.maxPages || process.env.DEPENDABOT_ALERTS_MAX_PAGES || 5), 1);
+    const alerts = [];
+
+    for (let page = 1; page <= maxPages; page++) {
+      const response = await axios.get(`https://api.github.com/repos/${repository}/dependabot/alerts`, {
+        params: {
+          state,
+          per_page: perPage,
+          page
+        },
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        timeout: Number(process.env.DEPENDABOT_ALERTS_TIMEOUT_MS || 15000)
+      });
+
+      const pageAlerts = Array.isArray(response.data) ? response.data : [];
+      alerts.push(...pageAlerts);
+      if (pageAlerts.length < perPage) break;
+    }
+
+    return alerts;
+  }
+
+  getDependabotIdentifier(alert, type) {
+    const identifiers = alert?.security_advisory?.identifiers;
+    if (!Array.isArray(identifiers)) return null;
+    const found = identifiers.find((identifier) => String(identifier.type || '').toUpperCase() === type);
+    return found?.value || null;
+  }
+
+  normalizeDependabotStatus(state) {
+    switch (String(state || '').toLowerCase()) {
+      case 'fixed':
+        return 'resolved';
+      case 'dismissed':
+        return 'dismissed';
+      default:
+        return 'open';
+    }
+  }
+
+  mapDependabotAlertToVulnerability(alert, meta = {}) {
+    const advisory = alert?.security_advisory || {};
+    const vulnerablePackage = alert?.security_vulnerability?.package || {};
+    const securityVulnerability = alert?.security_vulnerability || {};
+    const dependency = alert?.dependency || {};
+    const packageName = String(vulnerablePackage.name || 'unknown').slice(0, 80);
+    const ecosystem = String(vulnerablePackage.ecosystem || dependency.package?.ecosystem || 'unknown').toLowerCase();
+    const ghsaId = advisory.ghsa_id || this.getDependabotIdentifier(alert, 'GHSA');
+    const cveId = advisory.cve_id || this.getDependabotIdentifier(alert, 'CVE');
+    const severity = String(advisory.severity || 'medium').toLowerCase();
+    const patchedVersion = securityVulnerability.first_patched_version?.identifier || null;
+    const manifestPath = dependency.manifest_path || null;
+    const state = String(alert?.state || 'open').toLowerCase();
+    const titlePrefix = ghsaId || cveId || `DEPENDABOT-${alert?.number || 'unknown'}`;
+    const affectedComponent = `${ecosystem}:${packageName}`.slice(0, 100);
+
+    return {
+      title: `Dependabot ${titlePrefix}: ${packageName}`.slice(0, 200),
+      description: String(advisory.description || advisory.summary || `Alerte Dependabot pour ${packageName}`).slice(0, 5000),
+      severity: ['critical', 'high', 'medium', 'low'].includes(severity) ? severity : 'medium',
+      cveId: cveId || null,
+      cvssScore: advisory.cvss?.score ? Number(advisory.cvss.score) : null,
+      affectedComponent,
+      status: this.normalizeDependabotStatus(state),
+      resolvedAt: state === 'fixed' ? new Date() : null,
+      remediation: patchedVersion
+        ? `Mettre à jour ${packageName} vers ${patchedVersion} ou une version supérieure.`
+        : `Mettre à jour ${packageName} selon l'avis GitHub Dependabot.`,
+      tags: ['dependabot', 'supply-chain', ecosystem].filter(Boolean),
+      metadata: {
+        source: 'dependabot',
+        repository: meta.repository || null,
+        importedAt: meta.importedAt || new Date().toISOString(),
+        dependabotAlertNumber: alert?.number || null,
+        dependabotState: state,
+        ghsaId: ghsaId || null,
+        cveId: cveId || null,
+        packageName,
+        ecosystem,
+        manifestPath,
+        vulnerableRange: securityVulnerability.vulnerable_version_range || null,
+        patchedVersion,
+        htmlUrl: alert?.html_url || null,
+        advisoryUrl: advisory.url || null,
+        dismissedReason: alert?.dismissed_reason || null,
+        dismissedComment: alert?.dismissed_comment || null,
+        dismissedAt: alert?.dismissed_at || null
+      }
+    };
+  }
+
+  async analyzeDependabotAlerts(options = {}) {
+    try {
+      const repository = this.resolveDependabotRepository(options.repository);
+      const alerts = options.alerts || await this.fetchDependabotAlerts({ ...options, repository });
+      const importedAt = new Date().toISOString();
+      let saved = 0;
+      let created = 0;
+      let createdCriticalOrHigh = 0;
+
+      for (const alert of alerts) {
+        const vuln = this.mapDependabotAlertToVulnerability(alert, { repository, importedAt });
+        const savedVuln = await this.upsertVulnerability(vuln);
+        saved += 1;
+        if (savedVuln.created) {
+          created += 1;
+          if (vuln.status === 'open' && ['critical', 'high'].includes(vuln.severity)) {
+            await this.alertOnNewCriticalVulnerability(vuln, 'dependabot');
+            createdCriticalOrHigh += 1;
+          }
+        }
+      }
+
+      logger.info(`Dependabot alerts import completed: ${saved} saved, ${created} created, ${createdCriticalOrHigh} alerts created`);
+      return {
+        scanned: true,
+        repository,
+        alerts: alerts.length,
+        vulnerabilities: saved,
+        created,
+        securityAlerts: createdCriticalOrHigh
+      };
+    } catch (error) {
+      logger.warn('Import Dependabot alerts ignoré:', error.message);
+      return { scanned: false, reason: error.message, vulnerabilities: 0, securityAlerts: 0 };
+    }
   }
 
   // Analyser automatiquement les vulnérabilités
