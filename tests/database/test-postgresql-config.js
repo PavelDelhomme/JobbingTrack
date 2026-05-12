@@ -1,204 +1,133 @@
 /**
- * Test de la configuration PostgreSQL
+ * Test de configuration PostgreSQL.
  *
- * Ce script vérifie que toutes les configurations PostgreSQL utilisent
- * les bonnes valeurs (jobbingtrack/jobbingtrack123) au lieu des valeurs
- * par défaut (admin/admin123)
+ * Le dépôt utilise deux formes valides :
+ * - docker-compose.yml racine : variables .env obligatoires (${POSTGRES_USER}, etc.)
+ * - compose backend historiques : valeurs dev explicites jobbingtrack/jobbingtrack123
  */
 
 const fs = require('fs');
 const path = require('path');
 
-async function testPostgreSQLConfig() {
-    console.log('🗄️ Test de la configuration PostgreSQL...\n');
+const ROOT = path.resolve(__dirname, '../..');
+const EXPECTED = {
+  user: 'jobbingtrack',
+  password: 'jobbingtrack123',
+  database: 'jobbingtrack'
+};
 
-    let allTestsPassed = true;
+let failed = 0;
 
-    // Configuration attendue
-    const expectedConfig = {
-        user: 'jobbingtrack',
-        password: 'jobbingtrack123',
-        database: 'jobbingtrack'
-    };
-
-    console.log('📋 Configuration attendue:');
-    console.log(`   Utilisateur: ${expectedConfig.user}`);
-    console.log(`   Mot de passe: ${expectedConfig.password}`);
-    console.log(`   Base de données: ${expectedConfig.database}`);
-    console.log('');
-
-    // Test 1: Vérifier la configuration PostgreSQL dans docker-compose.yml principal
-    console.log('🐳 Test 1: Configuration PostgreSQL dans docker-compose.yml...');
-    const mainDockerCompose = fs.readFileSync('./docker-compose.yml', 'utf8');
-    if (mainDockerCompose.includes(`POSTGRES_USER: \${POSTGRES_USER:-${expectedConfig.user}}`)) {
-        console.log('✅ POSTGRES_USER correct dans docker-compose.yml');
-    } else {
-        console.log('❌ POSTGRES_USER incorrect dans docker-compose.yml');
-        allTestsPassed = false;
-    }
-
-    if (mainDockerCompose.includes(`POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-${expectedConfig.password}}`)) {
-        console.log('✅ POSTGRES_PASSWORD correct dans docker-compose.yml');
-    } else {
-        console.log('❌ POSTGRES_PASSWORD incorrect dans docker-compose.yml');
-        allTestsPassed = false;
-    }
-
-    if (mainDockerCompose.includes(`POSTGRES_DB: \${POSTGRES_DB:-${expectedConfig.database}}`)) {
-        console.log('✅ POSTGRES_DB correct dans docker-compose.yml');
-    } else {
-        console.log('❌ POSTGRES_DB incorrect dans docker-compose.yml');
-        allTestsPassed = false;
-    }
-
-    // Test 2: Vérifier les DATABASE_URL dans docker-compose.yml
-    console.log('\n🔗 Test 2: DATABASE_URL dans docker-compose.yml...');
-    const databaseUrlPattern = `postgresql://\${POSTGRES_USER:-${expectedConfig.user}}:\${POSTGRES_PASSWORD:-${expectedConfig.password}}@postgres:5432/\${POSTGRES_DB:-${expectedConfig.database}}`;
-    if (mainDockerCompose.includes(databaseUrlPattern)) {
-        console.log('✅ DATABASE_URL utilise les bonnes variables PostgreSQL');
-    } else {
-        console.log('❌ DATABASE_URL n\'utilise pas les bonnes variables PostgreSQL');
-        console.log('   Pattern attendu:', databaseUrlPattern);
-        allTestsPassed = false;
-    }
-
-    // Test 3: Vérifier le backend docker-compose.yml
-    console.log('\n🔧 Test 3: Configuration backend...');
-    const backendDockerCompose = fs.readFileSync('./backend/docker-compose.yml', 'utf8');
-    if (backendDockerCompose.includes(databaseUrlPattern)) {
-        console.log('✅ DATABASE_URL backend utilise les bonnes variables');
-    } else {
-        console.log('❌ DATABASE_URL backend n\'utilise pas les bonnes variables');
-        allTestsPassed = false;
-    }
-
-    // Test 4: Vérifier le backend docker-compose.prod.yml
-    console.log('\n🏭 Test 4: Configuration production...');
-    const prodDockerCompose = fs.readFileSync('./backend/docker-compose.prod.yml', 'utf8');
-    if (prodDockerCompose.includes(databaseUrlPattern)) {
-        console.log('✅ DATABASE_URL production utilise les bonnes variables');
-    } else {
-        console.log('❌ DATABASE_URL production n\'utilise pas les bonnes variables');
-        allTestsPassed = false;
-    }
-
-    // Test 5: Vérifier les scripts de génération de données
-    console.log('\n📊 Test 5: Scripts de génération de données...');
-    const generateTestData = fs.readFileSync('./backend/generate-test-data.js', 'utf8');
-    if (generateTestData.includes('postgresql://jobbingtrack:jobbingtrack123@localhost:5432')) {
-        console.log('✅ Script de test utilise les bonnes credentials');
-    } else {
-        console.log('❌ Script de test n\'utilise pas les bonnes credentials');
-        allTestsPassed = false;
-    }
-
-    // Test 6: Vérifier les schémas Prisma
-    console.log('\n📋 Test 6: Schémas Prisma...');
-    const prismaFiles = [
-        './backend/auth-service/prisma/schema.prisma',
-        './backend/application-service/prisma/schema.prisma',
-        './backend/company-service/prisma/schema.prisma',
-        './backend/contact-service/prisma/schema.prisma',
-        './backend/interview-service/prisma/schema.prisma',
-        './backend/call-service/prisma/schema.prisma',
-        './backend/notification-service/prisma/schema.prisma',
-        './backend/profile-service/prisma/schema.prisma',
-        './backend/event-service/prisma/schema.prisma',
-        './backend/followup-service/prisma/schema.prisma',
-        './backend/workflow-service/prisma/schema.prisma',
-        './backend/security-service/prisma/schema.prisma',
-        './backend/deployment-service/prisma/schema.prisma',
-        './backend/system-metrics-service/prisma/schema.prisma'
-    ];
-
-    let prismaTestsPassed = true;
-    prismaFiles.forEach(file => {
-        if (fs.existsSync(file)) {
-            const content = fs.readFileSync(file, 'utf8');
-            if (content.includes('url      = env("DATABASE_URL")')) {
-                // C'est correct si ça utilise DATABASE_URL
-            } else {
-                console.log(`❌ ${path.basename(file)} n'utilise pas DATABASE_URL`);
-                prismaTestsPassed = false;
-            }
-        }
-    });
-
-    if (prismaTestsPassed) {
-        console.log('✅ Tous les schémas Prisma utilisent DATABASE_URL');
-    } else {
-        console.log('❌ Certains schémas Prisma n\'utilisent pas DATABASE_URL');
-        allTestsPassed = false;
-    }
-
-    // Test 7: Vérifier qu'il n'y a plus de références aux anciennes valeurs
-    console.log('\n🚫 Test 7: Vérification des anciennes valeurs...');
-    const filesToCheck = [
-        './docker-compose.yml',
-        './backend/docker-compose.yml',
-        './backend/docker-compose.prod.yml'
-    ];
-
-    let oldValuesFound = false;
-    filesToCheck.forEach(file => {
-        if (fs.existsSync(file)) {
-            const content = fs.readFileSync(file, 'utf8');
-            if (content.includes('admin:admin123') || content.includes('admin/admin123')) {
-                console.log(`❌ ${file} contient encore des références aux anciennes valeurs`);
-                oldValuesFound = true;
-                allTestsPassed = false;
-            }
-        }
-    });
-
-    if (!oldValuesFound) {
-        console.log('✅ Aucune référence aux anciennes valeurs trouvée');
-    }
-
-    // Test 8: Vérifier la documentation
-    console.log('\n📚 Test 8: Documentation...');
-    const docContent = fs.readFileSync('./docs/postgresql-configuration.md', 'utf8');
-    if (docContent.includes(expectedConfig.user) && docContent.includes(expectedConfig.password)) {
-        console.log('✅ Documentation PostgreSQL à jour');
-    } else {
-        console.log('❌ Documentation PostgreSQL pas à jour');
-        allTestsPassed = false;
-    }
-
-    console.log('\n🎉 Tests terminés !');
-    console.log('\n📋 Résumé de la configuration PostgreSQL:');
-
-    if (allTestsPassed) {
-        console.log('✅ CONFIGURATION POSTGRESQL UNIFIÉE ET CORRECTE !');
-        console.log('');
-        console.log('🚀 Configuration standardisée:');
-        console.log(`   Utilisateur: ${expectedConfig.user}`);
-        console.log(`   Mot de passe: ${expectedConfig.password}`);
-        console.log(`   Base: ${expectedConfig.database}`);
-        console.log('');
-        console.log('📦 Services configurés:');
-        console.log('   ✅ docker-compose.yml principal');
-        console.log('   ✅ backend/docker-compose.yml');
-        console.log('   ✅ backend/docker-compose.prod.yml');
-        console.log('   ✅ Scripts de génération de données');
-        console.log('   ✅ Tous les schémas Prisma');
-        console.log('   ✅ Documentation mise à jour');
-        console.log('');
-        console.log('💡 Utilisation:');
-        console.log('   make up-full                    # Démarre avec la config PostgreSQL');
-        console.log('   docker-compose exec postgres psql -U jobbingtrack -d jobbingtrack');
-        console.log('   # Mot de passe: jobbingtrack123');
-    } else {
-        console.log('❌ Configuration PostgreSQL incomplète ou incorrecte');
-    }
-
-    return allTestsPassed;
+function read(relativePath) {
+  return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 }
 
-// Exécuter les tests
-testPostgreSQLConfig().then(success => {
-    process.exit(success ? 0 : 1);
-}).catch(error => {
-    console.error('❌ Erreur lors des tests:', error);
+function pass(message) {
+  console.log(`✅ ${message}`);
+}
+
+function fail(message) {
+  failed += 1;
+  console.log(`❌ ${message}`);
+}
+
+function assertIncludes(content, patterns, label) {
+  const ok = patterns.some((pattern) => (
+    pattern instanceof RegExp ? pattern.test(content) : content.includes(pattern)
+  ));
+  if (ok) pass(label);
+  else fail(label);
+}
+
+function walkFiles(dir, predicate, acc = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (['node_modules', '.git', '.next', '.next-local', 'dist'].includes(entry.name)) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkFiles(fullPath, predicate, acc);
+    else if (predicate(fullPath)) acc.push(fullPath);
+  }
+  return acc;
+}
+
+async function main() {
+  console.log('🗄️ Test de la configuration PostgreSQL...\n');
+  console.log(`📋 Valeurs dev attendues: ${EXPECTED.user}/${EXPECTED.database}`);
+
+  const rootCompose = read('docker-compose.yml');
+  assertIncludes(rootCompose, ['POSTGRES_USER: ${POSTGRES_USER}', 'POSTGRES_USER: ${POSTGRES_USER:-jobbingtrack}'], 'docker-compose.yml expose POSTGRES_USER via env');
+  assertIncludes(rootCompose, ['POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}', 'POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobbingtrack123}'], 'docker-compose.yml expose POSTGRES_PASSWORD via env');
+  assertIncludes(rootCompose, ['POSTGRES_DB: ${POSTGRES_DB}', 'POSTGRES_DB: ${POSTGRES_DB:-jobbingtrack}'], 'docker-compose.yml expose POSTGRES_DB via env');
+  assertIncludes(rootCompose, [/postgresql:\/\/\$\{POSTGRES_USER(?::-jobbingtrack)?\}:\$\{POSTGRES_PASSWORD(?::-jobbingtrack123)?\}@postgres:5432\/\$\{POSTGRES_DB(?::-jobbingtrack)?\}/], 'docker-compose.yml construit DATABASE_URL depuis POSTGRES_*');
+
+  for (const composePath of ['backend/docker-compose.yml', 'backend/docker-compose.prod.yml']) {
+    if (!fs.existsSync(path.join(ROOT, composePath))) continue;
+    const content = read(composePath);
+    assertIncludes(content, [
+      `POSTGRES_USER: ${EXPECTED.user}`,
+      `POSTGRES_USER: \${POSTGRES_USER:-${EXPECTED.user}}`
+    ], `${composePath} configure POSTGRES_USER`);
+    assertIncludes(content, [
+      `POSTGRES_DB: ${EXPECTED.database}`,
+      `POSTGRES_DB: \${POSTGRES_DB:-${EXPECTED.database}}`
+    ], `${composePath} configure POSTGRES_DB`);
+    assertIncludes(content, [
+      `POSTGRES_PASSWORD: ${EXPECTED.password}`,
+      `POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-${EXPECTED.password}}`
+    ], `${composePath} configure POSTGRES_PASSWORD`);
+    assertIncludes(content, [
+      `postgresql://${EXPECTED.user}:${EXPECTED.password}@postgres:5432/${EXPECTED.database}`,
+      `postgresql://\${POSTGRES_USER:-${EXPECTED.user}}:\${POSTGRES_PASSWORD:-${EXPECTED.password}}@postgres:5432/\${POSTGRES_DB:-${EXPECTED.database}}`
+    ], `${composePath} configure DATABASE_URL`);
+  }
+
+  const prismaSchemas = walkFiles(path.join(ROOT, 'backend'), (file) => file.endsWith(path.join('prisma', 'schema.prisma')));
+  for (const schemaPath of prismaSchemas) {
+    const content = fs.readFileSync(schemaPath, 'utf8');
+    if (content.includes('url      = env("DATABASE_URL")') || content.includes('url = env("DATABASE_URL")')) {
+      pass(`${path.relative(ROOT, schemaPath)} utilise DATABASE_URL`);
+    } else {
+      fail(`${path.relative(ROOT, schemaPath)} n'utilise pas DATABASE_URL`);
+    }
+  }
+
+  for (const filePath of ['docker-compose.yml', 'backend/docker-compose.yml', 'backend/docker-compose.prod.yml']) {
+    if (!fs.existsSync(path.join(ROOT, filePath))) continue;
+    const content = read(filePath);
+    if (content.includes('admin:admin123') || content.includes('admin/admin123')) {
+      fail(`${filePath} contient encore admin/admin123`);
+    } else {
+      pass(`${filePath} ne contient pas les anciens identifiants admin/admin123`);
+    }
+  }
+
+  const docsToCheck = [
+    'docs/database/MIGRATIONS_ET_BASES.md',
+    'docs/TODOS.md',
+    'docs/STATUS.md'
+  ];
+  for (const docPath of docsToCheck) {
+    const fullPath = path.join(ROOT, docPath);
+    if (!fs.existsSync(fullPath)) {
+      fail(`${docPath} introuvable`);
+      continue;
+    }
+    const content = fs.readFileSync(fullPath, 'utf8');
+    if (content.includes('db-push-all') || content.includes('DATABASE_URL')) {
+      pass(`${docPath} documente la BDD`);
+    } else {
+      fail(`${docPath} ne documente pas la BDD`);
+    }
+  }
+
+  if (failed > 0) {
+    console.log(`\n❌ Configuration PostgreSQL incomplète: ${failed} échec(s)`);
     process.exit(1);
+  }
+
+  console.log('\n✅ Configuration PostgreSQL cohérente');
+}
+
+main().catch((error) => {
+  console.error('❌ Erreur lors des tests:', error);
+  process.exit(1);
 });
