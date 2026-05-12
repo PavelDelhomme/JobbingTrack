@@ -33,7 +33,9 @@ function buildTargetUrl(request: NextRequest, pathParts: string[]): string {
   return target.toString();
 }
 
-async function proxy(request: NextRequest, context: { params: { path?: string[] } }) {
+type RouteContext = { params: Promise<{ path?: string[] }> };
+
+async function proxy(request: NextRequest, context: RouteContext) {
   const apiKey = process.env.METRICS_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -48,7 +50,8 @@ async function proxy(request: NextRequest, context: { params: { path?: string[] 
   }
   headers.set('X-API-Key', apiKey);
 
-  const response = await fetch(buildTargetUrl(request, context.params.path || []), {
+  const params = await context.params;
+  const response = await fetch(buildTargetUrl(request, params.path || []), {
     method: request.method,
     headers,
     body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer(),
@@ -64,22 +67,22 @@ async function proxy(request: NextRequest, context: { params: { path?: string[] 
   });
 }
 
-export async function GET(request: NextRequest, context: { params: { path?: string[] } }) {
+export async function GET(request: NextRequest, context: RouteContext) {
   return proxy(request, context);
 }
 
-export async function POST(request: NextRequest, context: { params: { path?: string[] } }) {
+export async function POST(request: NextRequest, context: RouteContext) {
   return proxy(request, context);
 }
 
-export async function PUT(request: NextRequest, context: { params: { path?: string[] } }) {
+export async function PUT(request: NextRequest, context: RouteContext) {
   return proxy(request, context);
 }
 
-export async function PATCH(request: NextRequest, context: { params: { path?: string[] } }) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
   return proxy(request, context);
 }
 
-export async function DELETE(request: NextRequest, context: { params: { path?: string[] } }) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   return proxy(request, context);
 }

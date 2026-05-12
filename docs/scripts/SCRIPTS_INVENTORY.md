@@ -12,6 +12,8 @@ La commande ne supprime rien. Elle classe les scripts selon les références tro
 
 Contrôle local du 12/05/2026 : `make scripts-inventory` OK, **125 scripts** détectés, dont **58 actifs**, **30 sans référence automatique** et **20 encore à la racine**. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
 
+État d'usage : le dossier reste utilisable parce que les entrées contractuelles Make/CI sont détectées, mais il n'est pas encore propre. Le prochain lot sûr doit déplacer uniquement les scripts racine à destination évidente (`db`, `ops`, `reports/monitoring`, `testing`) et garder un wrapper temporaire si l'ancien chemin est documenté ou appelé. Les **30** scripts `non-reference` ne doivent pas être supprimés avant audit manuel : certains peuvent être des outils de dépannage utilisés ponctuellement.
+
 ## Statuts
 
 - `actif` : appelé par un Makefile, la CI ou un flux de test connu.
