@@ -58,6 +58,7 @@ services:
       - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
       # Ordre alphabétique des noms de variables (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://jobbingtrack.localhost:5443,https://api.jobbingtrack.localhost:5443}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -118,14 +119,17 @@ services:
       - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
       - NEXT_DIST_DIR=/tmp/.next-local
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${HOST_IP:-localhost}:${API_GATEWAY_PORT:-5002}}
+      - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://${HOST_IP:-localhost}:${AUTH_SERVICE_PORT:-5005}}
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       - NEXT_PUBLIC_CHART_TIMEZONE=${NEXT_PUBLIC_CHART_TIMEZONE:-}
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-https://jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
       # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
-      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://${HOST_IP:-localhost}:${METRICS_AGGREGATOR_PORT:-5004}}
+      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-/api/metrics-aggregator}
+      - NEXT_PUBLIC_METRICS_AGGREGATOR_URL=${NEXT_PUBLIC_METRICS_AGGREGATOR_URL:-/api/metrics-aggregator}
       - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
       - NODE_ENV=development
@@ -300,11 +304,12 @@ services:
       - DOCKER_FALLBACK_INTERVAL_MS=${DOCKER_FALLBACK_INTERVAL_MS:-0}
       - DOCKER_SERVICES_ALL_CACHE_TTL_MS=${DOCKER_SERVICES_ALL_CACHE_TTL_MS:-60000}
       - ENABLE_DOCKER_LOGS_COLLECTION=${ENABLE_DOCKER_LOGS_COLLECTION:-false}
+      - ENABLE_METRICS_AUTH=${ENABLE_METRICS_AUTH:-true}
       - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
       - METRICS_AGGREGATOR_PROFILE_COLLECT=${METRICS_AGGREGATOR_PROFILE_COLLECT:-}
-      - METRICS_API_KEY=${METRICS_API_KEY:-jobbingtrack-metrics-secret-key}
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-15}
       - MONITORING_AGENT_URL=${MONITORING_AGENT_URL:-http://monitoring-agent-rs:8015}
       - MONITORING_C_URL=${MONITORING_C_URL:-http://monitoring-c:8015}

@@ -63,10 +63,12 @@ const nextConfig = {
         NEXT_PUBLIC_METRICS_AGGREGATOR_PORT: process.env.METRICS_AGGREGATOR_PORT || '5004',
         NEXT_PUBLIC_DASHBOARD_SERVICE_PORT: process.env.DASHBOARD_SERVICE_PORT || '8012',
         // URLs complètes
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.API_GATEWAY_PORT || '5002'}`,
-        NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || `http://localhost:${process.env.AUTH_SERVICE_PORT || '8001'}`,
-        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || `http://localhost:${process.env.METRICS_AGGREGATOR_PORT || '5004'}`,
-        NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '5003'}`,
+        NEXT_PUBLIC_API_GATEWAY_URL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || `https://api.jobbingtrack.localhost:${process.env.DEV_HTTPS_PORT || '5443'}`,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || `https://api.jobbingtrack.localhost:${process.env.DEV_HTTPS_PORT || '5443'}`,
+        NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || `https://api.jobbingtrack.localhost:${process.env.DEV_HTTPS_PORT || '5443'}`,
+        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || '/api/metrics-aggregator',
+        NEXT_PUBLIC_METRICS_AGGREGATOR_URL: process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || '/api/metrics-aggregator',
+        NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || `https://jobbingtrack.localhost:${process.env.DEV_HTTPS_PORT || '5443'}`,
         NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET: process.env.NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET || 'false',
     },
     // ✅ Désactiver les messages de développement React DevTools
@@ -76,14 +78,9 @@ const nextConfig = {
         } : false,
     },
     async rewrites() {
-        const metricsInternalPort = process.env.METRICS_AGGREGATOR_INTERNAL_PORT || '3014';
         return [
-            // Métriques agrégateur (persistance, docker/services) : le navigateur appelle
-            // `/api/metrics-aggregator/...` (même origine que le front) → pas de HOST_IP:5004 ni CORS.
-            {
-                source: '/api/metrics-aggregator/:path*',
-                destination: `http://jobbingtrack-metrics-aggregator:${metricsInternalPort}/api/v1/:path*`,
-            },
+            // `/api/metrics-aggregator/...` est servi par une route Next qui ajoute
+            // X-API-Key côté serveur. Ne pas réécrire ici, sinon la clé serait absente.
             {
                 source: '/api/v1/:path*',
                 // ✅ Utiliser le nom Docker pour la communication inter-conteneurs

@@ -10,10 +10,18 @@ export function getMobileTestCredentials(): { email: string; password: string } 
     email: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
       ? process.env.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
       : 'user1@jobbingtrack.test',
-    password: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD
-      ? process.env.NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD
-      : 'password123',
+    password: getMobileTestPassword(),
   };
+}
+
+function getMobileTestPassword(): string {
+  if (typeof window !== 'undefined') {
+    return window.sessionStorage.getItem('jobbingtrack:mobile-test-password') || '';
+  }
+  if (typeof process !== 'undefined' && process.env?.MOBILE_TEST_USER_PASSWORD) {
+    return process.env.MOBILE_TEST_USER_PASSWORD;
+  }
+  return '';
 }
 
 /** Emails utilisés pour les parcours inscription + vérification email (Gmail, Proton, BlueMail). */
@@ -282,6 +290,7 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
 
     case 'fill_register_form': {
       const { email, password } = getMobileTestCredentials();
+      if (!password) throw new Error('Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou MOBILE_TEST_USER_PASSWORD côté runner.');
       await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, 'Test');
       await adb.wait(600);
       await typeInFieldWithHints(adb, REGISTER_LAST_NAME_HINTS, 'Mobile');
@@ -467,6 +476,7 @@ export async function executeStep(stepId: string, adb: AdbClient, options?: Exec
 
     case 'fill_login_form_user1': {
       const { email, password } = getMobileTestCredentials();
+      if (!password) throw new Error('Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou MOBILE_TEST_USER_PASSWORD côté runner.');
       await adb.wait(500);
       await adb.typeInField('Email', email);
       await adb.wait(800);

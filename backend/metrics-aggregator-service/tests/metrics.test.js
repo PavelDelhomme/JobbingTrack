@@ -2,7 +2,7 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const app = require('../src/index');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
 
 // Génère un token JWT valide pour les tests
 const generateToken = () => {
