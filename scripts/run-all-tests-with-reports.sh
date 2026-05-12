@@ -625,6 +625,14 @@ run_test "Tests API Backend (script - tous services)" \
     "$REPORT_DIR/api-backend-script.json" \
     "user"
 
+# 6c. Smoke services exposés par la gateway (health + routes typiques, auth requise acceptée)
+if [ -f "tests/services/smoke-gateway-services.js" ]; then
+    run_test "Smoke Gateway Services" \
+        "API_URL='$API_BASE_URL' API_GATEWAY_URL='$API_BASE_URL' node tests/services/smoke-gateway-services.js" \
+        "$REPORT_DIR/smoke-gateway-services.json" \
+        "user"
+fi
+
 # ==============================================================================
 # CATÉGORIE 2 : TESTS FRONTEND (PLAYWRIGHT)
 # ==============================================================================
