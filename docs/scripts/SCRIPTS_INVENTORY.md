@@ -8,6 +8,10 @@ make scripts-inventory
 
 La commande ne supprime rien. Elle classe les scripts selon les références trouvées dans Makefiles, CI, tests et documentation.
 
+## Dernier Contrôle
+
+Contrôle local du 12/05/2026 : `make scripts-inventory` OK, **125 scripts** détectés, dont **58 actifs**, **30 sans référence automatique** et **20 encore à la racine**. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
+
 ## Statuts
 
 - `actif` : appelé par un Makefile, la CI ou un flux de test connu.
@@ -39,3 +43,4 @@ La commande ne supprime rien. Elle classe les scripts selon les références tro
 2. Pour un script `non-reference`, vérifier l'historique, les docs et les usages manuels avant de l'archiver.
 3. Tout script qui modifie `.env`, Docker, la base de données ou les rapports doit documenter son mode dry-run ou ses garde-fous.
 4. Les secrets ne doivent jamais être affichés en clair dans stdout, stderr ou les rapports générés.
+5. Les scripts racine doivent être déplacés par lots cohérents (`testing`, `reports/monitoring`, `db`, `ops`) avec wrapper temporaire si l'ancien chemin est contractuel.
