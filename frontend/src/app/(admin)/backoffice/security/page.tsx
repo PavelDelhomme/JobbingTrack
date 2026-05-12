@@ -340,20 +340,20 @@ export default function SecurityOverviewPage() {
       title: 'Logs sécurité',
       value: overview.logsCount,
       subtitle: `Entrées chargées sur ${overview.logsPeriodDays} j. (limite UI ${SECURITY_LOGS_FETCH_LIMIT})`,
-      href: '/backoffice/security/logs',
+      href: '/b4ck0ff1ce/security/logs',
     },
-    { title: 'Menaces', value: overview.threatsCount, subtitle: 'Détections réseau', href: '/backoffice/security/threats' },
-    { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: overview.blockedIpsSubtitle, href: '/backoffice/security/firewall' },
-    { title: 'Règles firewall', value: overview.firewallRulesCount, subtitle: 'Configuration active', href: '/backoffice/security/firewall' },
+    { title: 'Menaces', value: overview.threatsCount, subtitle: 'Détections réseau', href: '/b4ck0ff1ce/security/threats' },
+    { title: 'IPs bloquées', value: overview.blockedIpsCount, subtitle: overview.blockedIpsSubtitle, href: '/b4ck0ff1ce/security/firewall' },
+    { title: 'Règles firewall', value: overview.firewallRulesCount, subtitle: 'Configuration active', href: '/b4ck0ff1ce/security/firewall' },
     {
       title: 'Détections',
       value: overview.detectionsCount,
       subtitle: 'Logs (hors doublon network_threat) + menaces (page courante)',
-      href: '/backoffice/security/analysis',
+      href: '/b4ck0ff1ce/security/analysis',
     },
-    { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Opérateur + tests lab (RFC5737)', href: '/backoffice/security/firewall' },
-    { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/backoffice/security/firewall' },
-    { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/backoffice/statistics' },
+    { title: 'Blocages manuels', value: overview.manualBlocksCount, subtitle: 'Opérateur + tests lab (RFC5737)', href: '/b4ck0ff1ce/security/firewall' },
+    { title: 'Blocages automatiques', value: overview.automaticBlocksCount, subtitle: 'Réponse moteur', href: '/b4ck0ff1ce/security/firewall' },
+    { title: 'Crashes mobile', value: overview.mobileCrashesCount, subtitle: 'Rapports API mobile', href: '/b4ck0ff1ce/statistics' },
   ]
 
   const runSafeBlockTest = async () => {
@@ -539,15 +539,15 @@ export default function SecurityOverviewPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href="/backoffice/security/analysis" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+          <Link href="/b4ck0ff1ce/security/analysis" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">Analyse sécurité</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Vérifier la posture globale, tendances et recommandations.</p>
           </Link>
-          <Link href="/backoffice/security/policies" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+          <Link href="/b4ck0ff1ce/security/policies" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">Politiques</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Gérer les règles et exigences de conformité.</p>
           </Link>
-          <Link href="/backoffice/security/network" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+          <Link href="/b4ck0ff1ce/security/network" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">Réseau</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Suivre le trafic, les anomalies et les alertes réseau.</p>
           </Link>

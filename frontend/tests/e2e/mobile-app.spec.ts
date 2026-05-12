@@ -355,7 +355,7 @@ test.describe('🧪 Tests d\'intégration mobile', () => {
     await webPage.fill('input[type="email"]', 'user1@jobbingtrack.test');
     await webPage.fill('input[type="password"]', 'password123');
     await webPage.click('button[type="submit"]');
-    await webPage.waitForURL('**/backoffice');
+    await webPage.waitForURL('**/b4ck0ff1ce');
 
     // Se connecter sur le mobile
     await mobilePage.goto('http://localhost:8090');

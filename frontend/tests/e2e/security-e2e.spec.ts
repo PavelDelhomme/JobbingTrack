@@ -38,7 +38,7 @@ async function apiFetch(
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/backoffice');
+  await page.goto('/b4ck0ff1ce');
   await page.waitForLoadState('domcontentloaded');
 });
 
@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
 // ═══════════════════════════════════════════════════════
 test.describe('🛡️ Sécurité – Protection XSS', () => {
   test('injection XSS dans le champ recherche entreprises est neutralisée', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/b4ck0ff1ce/companies');
     await page.waitForLoadState('domcontentloaded');
 
     const searchInput = page.getByPlaceholder(/rechercher/i);
@@ -66,7 +66,7 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
   });
 
   test('injection XSS dans la recherche globale est neutralisée', async ({ page }) => {
-    await page.goto('/backoffice/search');
+    await page.goto('/b4ck0ff1ce/search');
     await page.waitForLoadState('domcontentloaded');
 
     const searchInput = page.locator('input[type="text"], input[type="search"]').first();
@@ -201,7 +201,7 @@ test.describe('🔐 Sécurité – Auth & Autorisation', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔒 Sécurité – Headers HTTP', () => {
   test('les réponses contiennent des headers de sécurité', async ({ page }) => {
-    const response = await page.goto('/backoffice');
+    const response = await page.goto('/b4ck0ff1ce');
     const headers = response?.headers() ?? {};
 
     const hasFrameOptions =

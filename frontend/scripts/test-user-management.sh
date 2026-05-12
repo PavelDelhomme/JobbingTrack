@@ -116,7 +116,7 @@ echo -e "${GREEN}🎉 Tests d'administration des utilisateurs terminés !${NC}"
 # Afficher les instructions
 echo ""
 echo -e "${BLUE}📊 Interface d'administration :${NC}"
-echo "   http://localhost:8080/backoffice/playwright-tests"
+echo "   http://localhost:8080/b4ck0ff1ce/playwright-tests"
 echo ""
 echo -e "${BLUE}🎭 Tests disponibles :${NC}"
 echo "   npm run test:e2e:mobile           # Tests de l'application mobile"

@@ -122,7 +122,7 @@ export default function ThreatDetailsPage() {
       await axios.post(`${API_GATEWAY_URL}/api/v1/security/firewall/threats/${params.id}/block`, {}, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      router.push('/backoffice/security/threats');
+      router.push('/b4ck0ff1ce/security/threats');
     } catch (err: any) {
       console.error('Erreur blocage menace:', err);
       alert('Erreur lors du blocage de la menace');
@@ -169,7 +169,7 @@ export default function ThreatDetailsPage() {
       <AdminLayout>
         <div className="space-y-6">
           <button
-            onClick={() => router.push('/backoffice/security/threats')}
+            onClick={() => router.push('/b4ck0ff1ce/security/threats')}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -228,7 +228,7 @@ export default function ThreatDetailsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/backoffice/security/threats')}
+              onClick={() => router.push('/b4ck0ff1ce/security/threats')}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
             >
               <ArrowLeft className="h-6 w-6" />
@@ -262,7 +262,7 @@ export default function ThreatDetailsPage() {
               pare-feu pour l&apos;origine exacte du blocage.
             </p>
             <Link
-              href="/backoffice/security/firewall#liste-ips-bloquees"
+              href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
               className="text-blue-700 dark:text-blue-300 font-medium hover:underline"
             >
               Ouvrir la liste des IPs bloquées

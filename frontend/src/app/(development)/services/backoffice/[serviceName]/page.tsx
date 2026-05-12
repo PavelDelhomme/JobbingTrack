@@ -94,7 +94,7 @@ export default function ServiceDetailPage() {
         setMetrics(metricsData.container);
       }
 
-      // Logs Docker (même source que /backoffice/services/logs — route docker du metrics-aggregator)
+      // Logs Docker (même source que /b4ck0ff1ce/services/logs — route docker du metrics-aggregator)
       const logsRes = await fetch(
         `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(containerFullName)}/logs?lines=120`,
         { signal: AbortSignal.timeout(15000) }
@@ -156,9 +156,9 @@ export default function ServiceDetailPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <Button 
-                onClick={() => router.push('/backoffice')} 
-                variant="ghost" 
+              <Button
+                onClick={() => router.push('/b4ck0ff1ce')}
+                variant="ghost"
                 size="sm"
                 className="mb-2 text-gray-600 hover:text-gray-900"
               >

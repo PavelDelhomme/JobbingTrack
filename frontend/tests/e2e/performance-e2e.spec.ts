@@ -31,14 +31,14 @@ async function apiFetch(
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – Chargement des pages', () => {
   const criticalPages = [
-    { name: 'Dashboard', path: '/backoffice' },
-    { name: 'Entreprises', path: '/backoffice/companies' },
-    { name: 'Contacts', path: '/backoffice/contacts' },
-    { name: 'Analytics', path: '/backoffice/analytics' },
-    { name: 'Emails', path: '/backoffice/emails' },
-    { name: 'Recherche', path: '/backoffice/search' },
-    { name: 'Utilisateurs', path: '/backoffice/users' },
-    { name: 'Sécurité', path: '/backoffice/security/analysis' },
+    { name: 'Dashboard', path: '/b4ck0ff1ce' },
+    { name: 'Entreprises', path: '/b4ck0ff1ce/companies' },
+    { name: 'Contacts', path: '/b4ck0ff1ce/contacts' },
+    { name: 'Analytics', path: '/b4ck0ff1ce/analytics' },
+    { name: 'Emails', path: '/b4ck0ff1ce/emails' },
+    { name: 'Recherche', path: '/b4ck0ff1ce/search' },
+    { name: 'Utilisateurs', path: '/b4ck0ff1ce/users' },
+    { name: 'Sécurité', path: '/b4ck0ff1ce/security/analysis' },
   ];
 
   for (const { name, path } of criticalPages) {
@@ -59,7 +59,7 @@ test.describe('⚡ Performance – Chargement des pages', () => {
 test.describe('⚡ Performance – Réponse API', () => {
   test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.goto('/b4ck0ff1ce', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('domcontentloaded');
   });
 
@@ -85,7 +85,7 @@ test.describe('⚡ Performance – Réponse API', () => {
 test.describe('⚡ Performance – Requêtes multiples', () => {
   test.setTimeout(45000);
   test.beforeEach(async ({ page }) => {
-    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.goto('/b4ck0ff1ce', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('domcontentloaded');
   });
 
@@ -147,11 +147,11 @@ test.describe('⚡ Performance – Requêtes multiples', () => {
 test.describe('⚡ Performance – Navigation rapide', () => {
   test('navigation entre 5 pages consécutives est fluide', async ({ page }) => {
     const pages = [
-      '/backoffice',
-      '/backoffice/companies',
-      '/backoffice/contacts',
-      '/backoffice/emails',
-      '/backoffice/users',
+      '/b4ck0ff1ce',
+      '/b4ck0ff1ce/companies',
+      '/b4ck0ff1ce/contacts',
+      '/b4ck0ff1ce/emails',
+      '/b4ck0ff1ce/users',
     ];
 
     const start = Date.now();
@@ -173,7 +173,7 @@ test.describe('⚡ Performance – Navigation rapide', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('⚡ Performance – DOM', () => {
   test('le dashboard n\'a pas un DOM excessivement grand', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
     await page.waitForLoadState('networkidle');
 
     const domSize = await page.evaluate(() => document.querySelectorAll('*').length);
@@ -181,7 +181,7 @@ test.describe('⚡ Performance – DOM', () => {
   });
 
   test('la page entreprises n\'a pas un DOM excessivement grand', async ({ page }) => {
-    await page.goto('/backoffice/companies');
+    await page.goto('/b4ck0ff1ce/companies');
     await page.waitForLoadState('networkidle');
 
     const domSize = await page.evaluate(() => document.querySelectorAll('*').length);
@@ -195,7 +195,7 @@ test.describe('⚡ Performance – DOM', () => {
 test.describe('⚡ Performance – Mémoire', () => {
   test.setTimeout(60000);
   test('pas de fuite mémoire évidente après navigation', async ({ page }) => {
-    await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.goto('/b4ck0ff1ce', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('domcontentloaded');
 
     const memBefore = await page.evaluate(
@@ -203,9 +203,9 @@ test.describe('⚡ Performance – Mémoire', () => {
     );
 
     for (let i = 0; i < 3; i++) {
-      await page.goto('/backoffice/companies', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.goto('/b4ck0ff1ce/companies', { waitUntil: 'domcontentloaded', timeout: 45000 });
       await page.waitForLoadState('domcontentloaded');
-      await page.goto('/backoffice/contacts', { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.goto('/b4ck0ff1ce/contacts', { waitUntil: 'domcontentloaded', timeout: 45000 });
       await page.waitForLoadState('domcontentloaded');
     }
 

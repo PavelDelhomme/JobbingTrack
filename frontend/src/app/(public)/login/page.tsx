@@ -18,9 +18,9 @@ export default function LoginPage() {
   // ✅ Si déjà connecté, rediriger automatiquement
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('✅ Already logged in, redirecting to /backoffice...');
+      console.log('✅ Already logged in, redirecting to /b4ck0ff1ce...');
       // Forcer la redirection immédiatement
-      router.push('/backoffice');
+      router.push('/b4ck0ff1ce');
       router.refresh();
     }
   }, [isAuthenticated, user, router]);
@@ -49,7 +49,7 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Forcer la redirection immédiatement
-      router.push('/backoffice');
+      router.push('/b4ck0ff1ce');
       router.refresh(); // Forcer le rafraîchissement pour que le middleware se déclenche
 
     } catch (err: any) {

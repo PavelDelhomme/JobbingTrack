@@ -121,6 +121,27 @@ class IntrusionDetector {
     this.bruteForceTrackers = new Map(); // Tracker pour les attaques par force brute
   }
 
+  isPrivateOrLocalIp(ip) {
+    const value = String(ip || '').replace(/^::ffff:/, '');
+    return (
+      value === '127.0.0.1' ||
+      value === '::1' ||
+      value.startsWith('10.') ||
+      value.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(value)
+    );
+  }
+
+  shouldPersistentlyBlockIp(ip) {
+    // En dev local, les tests offensifs et le navigateur passent souvent par la
+    // même IP Docker/proxy (ex. 172.19.0.1). On bloque la requête malveillante,
+    // mais on ne bannit pas cette IP pour ne pas casser le backoffice ensuite.
+    if (process.env.NODE_ENV !== 'production' && this.isPrivateOrLocalIp(ip)) {
+      return false;
+    }
+    return true;
+  }
+
   // Méthode principale de détection
   async detect(req, res, next) {
     try {
@@ -540,10 +561,13 @@ class IntrusionDetector {
 
     // Pour les intrusions critiques, bloquer immédiatement
     if (criticalIntrusions.length > 0) {
-      // Ajouter l'IP à une liste de blocage temporaire (1h)
-      await this.blockIP(req.ip, 3600);
+      const shouldBlockIp = this.shouldPersistentlyBlockIp(req.ip);
+      if (shouldBlockIp) {
+        // Ajouter l'IP à une liste de blocage temporaire (1h)
+        await this.blockIP(req.ip, 3600);
+      }
 
-      logger.error('🚨 INTRUSION CRITIQUE - IP BLOQUÉE', {
+      logger.error(shouldBlockIp ? '🚨 INTRUSION CRITIQUE - IP BLOQUÉE' : '🚨 INTRUSION CRITIQUE - REQUÊTE BLOQUÉE (IP locale non bannie)', {
         ip: req.ip,
         detections: criticalIntrusions,
         url: req.url,

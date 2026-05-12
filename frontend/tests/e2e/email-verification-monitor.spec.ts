@@ -42,7 +42,7 @@ test.describe('Inscription + vérification email (Email Monitor)', () => {
     await page.waitForTimeout(5000);
 
     // 3) Aller sur Email Monitor (avec session admin déjà chargée)
-    await page.goto('/backoffice/email-monitor');
+    await page.goto('/b4ck0ff1ce/email-monitor');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -69,7 +69,7 @@ test.describe('Inscription + vérification email (Email Monitor)', () => {
 
   test('Email Monitor affiche les filtres et le type Vérification', async ({ page }) => {
     test.skip(!!process.env.TEST_SKIP_EMAIL_MONITOR, 'TEST_SKIP_EMAIL_MONITOR');
-    await page.goto('/backoffice/email-monitor');
+    await page.goto('/b4ck0ff1ce/email-monitor');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 

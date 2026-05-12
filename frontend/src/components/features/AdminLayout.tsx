@@ -218,47 +218,47 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📊',
       isCollapsible: true,
       items: [
-        { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
+        { name: 'Vue d\'ensemble', href: '/b4ck0ff1ce', icon: '📊' },
         {
           name: 'Performances',
-          href: '/backoffice/performances',
+          href: '/b4ck0ff1ce/performances',
           icon: '📉',
           subItems: [
-            { name: 'Synthèse', href: '/backoffice/performances', icon: '📊' },
-            { name: 'Temps de réponse', href: '/backoffice/performances/latency', icon: '⏱️' },
-            { name: 'Conteneurs', href: '/backoffice/performances/containers', icon: '🐳' },
-            { name: 'Disque', href: '/backoffice/performances/disk', icon: '💽' },
-            { name: 'Réseau (détail)', href: '/backoffice/performances/network', icon: '🌐' },
-            { name: 'Corrélation', href: '/backoffice/performances/correlation', icon: '🧩' },
+            { name: 'Synthèse', href: '/b4ck0ff1ce/performances', icon: '📊' },
+            { name: 'Temps de réponse', href: '/b4ck0ff1ce/performances/latency', icon: '⏱️' },
+            { name: 'Conteneurs', href: '/b4ck0ff1ce/performances/containers', icon: '🐳' },
+            { name: 'Disque', href: '/b4ck0ff1ce/performances/disk', icon: '💽' },
+            { name: 'Réseau (détail)', href: '/b4ck0ff1ce/performances/network', icon: '🌐' },
+            { name: 'Corrélation', href: '/b4ck0ff1ce/performances/correlation', icon: '🧩' },
           ],
         },
         {
           name: 'Statistiques',
-          href: '/backoffice/statistics',
+          href: '/b4ck0ff1ce/statistics',
           icon: '📈',
           subItems: [
-            { name: 'Vue d’ensemble', href: '/backoffice/statistics', icon: '📊' },
-            { name: 'App data', href: '/backoffice/statistics/app-data', icon: '📦' },
-            { name: 'Sécurité', href: '/backoffice/statistics/security', icon: '🛡️' },
-            { name: 'Logs (stats)', href: '/backoffice/statistics/log-stats', icon: '📜' },
+            { name: 'Vue d’ensemble', href: '/b4ck0ff1ce/statistics', icon: '📊' },
+            { name: 'App data', href: '/b4ck0ff1ce/statistics/app-data', icon: '📦' },
+            { name: 'Sécurité', href: '/b4ck0ff1ce/statistics/security', icon: '🛡️' },
+            { name: 'Logs (stats)', href: '/b4ck0ff1ce/statistics/log-stats', icon: '📜' },
           ],
         },
         {
           name: 'Analytics',
-          href: '/backoffice/analytics',
+          href: '/b4ck0ff1ce/analytics',
           icon: '⚡',
           subItems: [
             {
               name: 'Application',
-              href: '/backoffice/analytics/application/performance',
+              href: '/b4ck0ff1ce/analytics/application/performance',
               icon: '📱',
               subItems: [
-                { name: 'Performances live', href: '/backoffice/analytics/application/performance', icon: '📊' },
-                { name: 'Activité & traces', href: '/backoffice/analytics/application/activity', icon: '👣' },
-                { name: 'Retours & signalements', href: '/backoffice/analytics/application/feedback', icon: '✉️' },
+                { name: 'Performances live', href: '/b4ck0ff1ce/analytics/application/performance', icon: '📊' },
+                { name: 'Activité & traces', href: '/b4ck0ff1ce/analytics/application/activity', icon: '👣' },
+                { name: 'Retours & signalements', href: '/b4ck0ff1ce/analytics/application/feedback', icon: '✉️' },
               ],
             },
-            { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '👤' },
+            { name: 'Analytics utilisateur', href: '/b4ck0ff1ce/user-analytics', icon: '👤' },
           ],
         },
       ]
@@ -269,13 +269,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
-        { name: 'Vue d’ensemble sécurité', href: '/backoffice/security', icon: '🛡️' },
-        { name: 'Logs de sécurité', href: '/backoffice/security/logs', icon: '📋' },
-        { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
-        { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
-        { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
-        { name: 'Réseau', href: '/backoffice/security/network', icon: '🌐' },
-        { name: 'Menaces', href: '/backoffice/security/threats', icon: '⚠️' },
+        { name: 'Vue d’ensemble sécurité', href: '/b4ck0ff1ce/security', icon: '🛡️' },
+        { name: 'Logs de sécurité', href: '/b4ck0ff1ce/security/logs', icon: '📋' },
+        { name: 'Politiques', href: '/b4ck0ff1ce/security/policies', icon: '⚙️' },
+        { name: 'Analyse', href: '/b4ck0ff1ce/security/analysis', icon: '🛡️' },
+        { name: 'Firewall', href: '/b4ck0ff1ce/security/firewall', icon: '🔥' },
+        { name: 'Réseau', href: '/b4ck0ff1ce/security/network', icon: '🌐' },
+        { name: 'Menaces', href: '/b4ck0ff1ce/security/threats', icon: '⚠️' },
       ]
     },
     {
@@ -286,28 +286,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         {
           name: 'Gestion des services',
-          href: '/backoffice/services',
+          href: '/b4ck0ff1ce/services',
           icon: '🔧',
           subItems: [
-            { name: 'Liste des services', href: '/backoffice/services', icon: '📋' },
-            { name: 'Services & Logs', href: '/backoffice/services/logs', icon: '📜' },
+            { name: 'Liste des services', href: '/b4ck0ff1ce/services', icon: '📋' },
+            { name: 'Services & Logs', href: '/b4ck0ff1ce/services/logs', icon: '📜' },
           ]
         },
         {
           name: 'Gestion des données',
-          href: '/backoffice/datas',
+          href: '/b4ck0ff1ce/datas',
           icon: '💾',
           subItems: [
-            { name: 'Données applicatives', href: '/backoffice/datas', icon: '📋' },
-            { name: 'Suivi intérim', href: '/backoffice/suivi-interim', icon: '👔' },
-            { name: 'Stats utilisateur', href: '/backoffice/user-stats', icon: '📊' },
-            { name: 'Abonnement & facturation', href: '/backoffice/billing', icon: '📄' },
-            { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
-            { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
-            { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
+            { name: 'Données applicatives', href: '/b4ck0ff1ce/datas', icon: '📋' },
+            { name: 'Suivi intérim', href: '/b4ck0ff1ce/suivi-interim', icon: '👔' },
+            { name: 'Stats utilisateur', href: '/b4ck0ff1ce/user-stats', icon: '📊' },
+            { name: 'Abonnement & facturation', href: '/b4ck0ff1ce/billing', icon: '📄' },
+            { name: 'Données de test', href: '/b4ck0ff1ce/test-data', icon: '🎲' },
+            { name: 'Archives', href: '/b4ck0ff1ce/archives', icon: '📦' },
+            { name: 'Corbeille', href: '/b4ck0ff1ce/trash', icon: '🗑️' },
           ]
         },
-        { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
+        { name: 'Utilisateurs', href: '/b4ck0ff1ce/users', icon: '👥' },
       ]
     },
     {
@@ -316,35 +316,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🛠️',
       isCollapsible: true,
       items: [
-        { name: 'Testeur d’API (manuel)', href: '/backoffice/api-tester', icon: '🧪' },
-        { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
-        { name: 'Émulateur mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
+        { name: 'Testeur d’API (manuel)', href: '/b4ck0ff1ce/api-tester', icon: '🧪' },
+        { name: 'Données de test', href: '/b4ck0ff1ce/test-data', icon: '🎲' },
+        { name: 'Émulateur mobile', href: '/b4ck0ff1ce/mobile-emulator', icon: '📱' },
         {
           name: 'Tests',
-          href: '/backoffice/tests',
+          href: '/b4ck0ff1ce/tests',
           icon: '🧪',
           subItems: [
-            { name: 'Vue d\'ensemble', href: '/backoffice/tests', icon: '📋' },
-            { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
-            { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '📧' },
-            { name: 'Tests API', href: '/backoffice/tests-api', icon: '🔌' },
-            { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
-            { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
-            { name: 'Tests Backoffice', href: '/backoffice/tests-backoffice', icon: '🛡️' },
-            { name: 'Tests Sécurité', href: '/backoffice/tests-security', icon: '🔒' },
-            { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
-            { name: 'Programmer tests', href: '/backoffice/performance-tests/schedule', icon: '📅' },
-            { name: 'Rapports de tests', href: '/backoffice/test-reports', icon: '📊' },
+            { name: 'Vue d\'ensemble', href: '/b4ck0ff1ce/tests', icon: '📋' },
+            { name: 'Tests Playwright', href: '/b4ck0ff1ce/playwright-tests', icon: '🎭' },
+            { name: 'Tests Emails', href: '/b4ck0ff1ce/tests-emails', icon: '📧' },
+            { name: 'Tests API', href: '/b4ck0ff1ce/tests-api', icon: '🔌' },
+            { name: 'Tests Backend', href: '/b4ck0ff1ce/tests-backend', icon: '🗄️' },
+            { name: 'Tests Frontend', href: '/b4ck0ff1ce/tests-frontend', icon: '💻' },
+            { name: 'Tests Backoffice', href: '/b4ck0ff1ce/tests-backoffice', icon: '🛡️' },
+            { name: 'Tests Sécurité', href: '/b4ck0ff1ce/tests-security', icon: '🔒' },
+            { name: 'Tests Performance', href: '/b4ck0ff1ce/performance-tests', icon: '⚡' },
+            { name: 'Programmer tests', href: '/b4ck0ff1ce/performance-tests/schedule', icon: '📅' },
+            { name: 'Rapports de tests', href: '/b4ck0ff1ce/test-reports', icon: '📊' },
           ]
         },
         {
           name: 'Parcours utilisateur',
-          href: '/backoffice/user-journey',
+          href: '/b4ck0ff1ce/user-journey',
           icon: '🚶',
           subItems: [
-            { name: 'Parcours prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
-            { name: 'Parcours personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
-            { name: 'Rapports de parcours', href: '/backoffice/user-journey/reports', icon: '📄' },
+            { name: 'Parcours prédéfinis', href: '/b4ck0ff1ce/user-journey', icon: '📋' },
+            { name: 'Parcours personnalisé', href: '/b4ck0ff1ce/user-journey/custom', icon: '🎯' },
+            { name: 'Rapports de parcours', href: '/b4ck0ff1ce/user-journey/reports', icon: '📄' },
           ]
         },
       ]
@@ -355,13 +355,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📧',
       isCollapsible: true,
       items: [
-        { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
-        { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
-        { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
-        { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
-        { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
-        { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
-        { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '🧪' },
+        { name: 'Dashboard', href: '/b4ck0ff1ce/emails', icon: '📊' },
+        { name: 'Email Monitor', href: '/b4ck0ff1ce/email-monitor', icon: '📈' },
+        { name: 'Historique', href: '/b4ck0ff1ce/emails/logs', icon: '📋' },
+        { name: 'Templates', href: '/b4ck0ff1ce/emails/templates', icon: '📝' },
+        { name: 'Configuration', href: '/b4ck0ff1ce/emails/settings', icon: '⚙️' },
+        { name: 'Déliverabilité', href: '/b4ck0ff1ce/emails/deliverability', icon: '✅' },
+        { name: 'Tests Emails', href: '/b4ck0ff1ce/tests-emails', icon: '🧪' },
         { name: 'MailHog (interface)', href: process.env.NEXT_PUBLIC_MAILHOG_UI_URL || 'http://localhost:8025', icon: '📬', external: true },
       ]
     },
@@ -414,10 +414,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Logo avec bouton de fermeture sur mobile */}
           <div className="flex h-16 items-center justify-between px-4 bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
             <Link
-              href="/backoffice"
+              href="/b4ck0ff1ce"
               prefetch={false}
-              onMouseEnter={() => prefetchInternalRoute('/backoffice')}
-              onFocus={() => prefetchInternalRoute('/backoffice')}
+              onMouseEnter={() => prefetchInternalRoute('/b4ck0ff1ce')}
+              onFocus={() => prefetchInternalRoute('/b4ck0ff1ce')}
               className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white"
             >
               🎯 JobbingTrack
@@ -630,11 +630,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
-                  onMouseEnter={() => user?.id && prefetchInternalRoute(`/backoffice/users/${user.id}`)}
-                  onFocus={() => user?.id && prefetchInternalRoute(`/backoffice/users/${user.id}`)}
+                  onMouseEnter={() => user?.id && prefetchInternalRoute(`/b4ck0ff1ce/users/${user.id}`)}
+                  onFocus={() => user?.id && prefetchInternalRoute(`/b4ck0ff1ce/users/${user.id}`)}
                   onClick={() => {
                     if (user?.id) {
-                      router.push(`/backoffice/users/${user.id}`)
+                      router.push(`/b4ck0ff1ce/users/${user.id}`)
                     }
                   }}
                   className="flex items-center hover:bg-gray-800 rounded-lg p-2 transition-colors cursor-pointer"
@@ -767,10 +767,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     />
                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
                       <button
-                        onMouseEnter={() => prefetchInternalRoute('/backoffice/analytics')}
-                        onFocus={() => prefetchInternalRoute('/backoffice/analytics')}
+                        onMouseEnter={() => prefetchInternalRoute('/b4ck0ff1ce/analytics')}
+                        onFocus={() => prefetchInternalRoute('/b4ck0ff1ce/analytics')}
                         onClick={() => {
-                          router.push('/backoffice/analytics')
+                          router.push('/b4ck0ff1ce/analytics')
                           setIsQuickActionsDropdownOpen(false)
                         }}
                         className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
@@ -779,10 +779,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <span>Analytics</span>
                       </button>
                       <button
-                        onMouseEnter={() => prefetchInternalRoute('/backoffice/statistics')}
-                        onFocus={() => prefetchInternalRoute('/backoffice/statistics')}
+                        onMouseEnter={() => prefetchInternalRoute('/b4ck0ff1ce/statistics')}
+                        onFocus={() => prefetchInternalRoute('/b4ck0ff1ce/statistics')}
                         onClick={() => {
-                          router.push('/backoffice/statistics')
+                          router.push('/b4ck0ff1ce/statistics')
                           setIsQuickActionsDropdownOpen(false)
                         }}
                         className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
@@ -803,10 +803,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <span>Recherche</span>
                       </button>
                       <button
-                        onMouseEnter={() => prefetchInternalRoute('/backoffice/services')}
-                        onFocus={() => prefetchInternalRoute('/backoffice/services')}
+                        onMouseEnter={() => prefetchInternalRoute('/b4ck0ff1ce/services')}
+                        onFocus={() => prefetchInternalRoute('/b4ck0ff1ce/services')}
                         onClick={() => {
-                          router.push('/backoffice/services')
+                          router.push('/b4ck0ff1ce/services')
                           setIsQuickActionsDropdownOpen(false)
                         }}
                         className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
@@ -874,7 +874,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onClose={() => setIsQuickMenuOpen(false)}
         onSelectProfile={() => {
           if (user?.id) {
-            router.push(`/backoffice/users/${user.id}`)
+            router.push(`/b4ck0ff1ce/users/${user.id}`)
           }
           setIsQuickMenuOpen(false)
         }}

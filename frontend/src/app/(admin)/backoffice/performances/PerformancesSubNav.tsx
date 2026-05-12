@@ -5,16 +5,16 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const TABS = [
-  { href: '/backoffice/performances', label: 'Synthèse', hash: null as string | null },
+  { href: '/b4ck0ff1ce/performances', label: 'Synthèse', hash: null as string | null },
   {
-    href: '/backoffice/performances#latence',
+    href: '/b4ck0ff1ce/performances#latence',
     label: 'Temps de réponse',
     hash: '#latence' as string | null,
   },
-  { href: '/backoffice/performances/containers', label: 'Conteneurs', hash: null },
-  { href: '/backoffice/performances/disk', label: 'Disque', hash: null },
-  { href: '/backoffice/performances/network', label: 'Réseau (détail)', hash: null },
-  { href: '/backoffice/performances/correlation', label: 'Corrélation', hash: null },
+  { href: '/b4ck0ff1ce/performances/containers', label: 'Conteneurs', hash: null },
+  { href: '/b4ck0ff1ce/performances/disk', label: 'Disque', hash: null },
+  { href: '/b4ck0ff1ce/performances/network', label: 'Réseau (détail)', hash: null },
+  { href: '/b4ck0ff1ce/performances/correlation', label: 'Corrélation', hash: null },
 ] as const
 
 function useLocationHash(): string {
@@ -35,15 +35,15 @@ export function PerformancesSubNav() {
   const isActive = (tab: (typeof TABS)[number]) => {
     if (tab.hash === '#latence') {
       return (
-        pathname === '/backoffice/performances/latency' ||
-        (pathname === '/backoffice/performances' && hash === '#latence')
+        pathname === '/b4ck0ff1ce/performances/latency' ||
+        (pathname === '/b4ck0ff1ce/performances' && hash === '#latence')
       )
     }
-    if (tab.href === '/backoffice/performances') {
+    if (tab.href === '/b4ck0ff1ce/performances') {
       return (
-        pathname === '/backoffice/performances' &&
+        pathname === '/b4ck0ff1ce/performances' &&
         hash !== '#latence' &&
-        !pathname.startsWith('/backoffice/performances/')
+        !pathname.startsWith('/b4ck0ff1ce/performances/')
       )
     }
     return pathname === tab.href || pathname.startsWith(`${tab.href}/`)

@@ -198,7 +198,7 @@ export default function SecurityAnalysisPage() {
         {/* Métriques clés */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Link
-            href="/backoffice/security/threats?threatType=BRUTE_FORCE"
+            href="/b4ck0ff1ce/security/threats?threatType=BRUTE_FORCE"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -212,7 +212,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/backoffice/security/threats?blocked=false"
+            href="/b4ck0ff1ce/security/threats?blocked=false"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -226,7 +226,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/backoffice/security/firewall#liste-ips-bloquees"
+            href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -240,7 +240,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/backoffice/security/threats?threatType=SQL_INJECTION"
+            href="/b4ck0ff1ce/security/threats?threatType=SQL_INJECTION"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -336,7 +336,7 @@ export default function SecurityAnalysisPage() {
           {summary?.blockedIpsMeta && typeof summary.blockedIpsMeta.count === 'number' && (
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
               API consolidée : {summary.blockedIpsMeta.count} entrée(s) — voir aussi{' '}
-              <Link href="/backoffice/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
+              <Link href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
                 Firewall
               </Link>
               .
@@ -380,7 +380,7 @@ export default function SecurityAnalysisPage() {
                         )}
                         {ipItem.threatId && (
                           <Link
-                            href={`/backoffice/security/threats/${ipItem.threatId}`}
+                            href={`/b4ck0ff1ce/security/threats/${ipItem.threatId}`}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             Fiche menace

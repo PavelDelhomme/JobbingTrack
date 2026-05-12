@@ -251,7 +251,7 @@ export default function ThreatsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Toutes les menaces détectées (réseau, WAF, firewall, intrusions) — tri par date/heure de détection. La
               colonne Statut est croisée avec la{' '}
-              <Link href="/backoffice/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
+              <Link href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees" className="text-blue-600 hover:underline">
                 liste consolidée des IPs bloquées
               </Link>
               .
@@ -492,7 +492,7 @@ export default function ThreatsPage() {
                                 )}
                                 {inList && (
                                   <Link
-                                    href="/backoffice/security/firewall#liste-ips-bloquees"
+                                    href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
                                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                   >
                                     Liste consolidée
@@ -505,7 +505,7 @@ export default function ThreatsPage() {
                         <td className="p-3">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => router.push(`/backoffice/security/threats/${threat.id}`)}
+                              onClick={() => router.push(`/b4ck0ff1ce/security/threats/${threat.id}`)}
                               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
                             >
                               <Eye className="h-4 w-4" />

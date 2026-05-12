@@ -482,7 +482,7 @@ export default function ContainersAnalyticsPage() {
     <AdminLayout>
       <div className="p-6 space-y-6 w-full">
         <Link
-          href="/backoffice/performances"
+          href="/b4ck0ff1ce/performances"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <span aria-hidden>←</span>

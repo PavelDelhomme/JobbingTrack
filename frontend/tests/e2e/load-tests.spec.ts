@@ -6,7 +6,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
 
   test('devrait résister à une charge utilisateur intensive', async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler 50 utilisateurs simultanés
     const userCount = 50;
@@ -25,7 +25,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
       contexts.push(context);
       pages.push(userPage);
 
-      await userPage.goto('/backoffice');
+      await userPage.goto('/b4ck0ff1ce');
     }
 
     const connectionTime = Date.now() - startTime;
@@ -106,7 +106,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait maintenir les performances lors de requêtes API intensives', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler 100 requêtes API simultanées
     const requestCount = 100;
@@ -151,7 +151,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait gérer efficacement la mémoire sous charge prolongée', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Mesurer la mémoire avant le test de charge
     const memoryBefore = await page.evaluate(() => (performance as any).memory?.usedJSHeapSize || 0);
@@ -241,7 +241,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait maintenir la réactivité lors de la création massive de données', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer 100 entreprises rapidement
     await page.locator('text=Entreprises').click();
@@ -345,14 +345,14 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
     expect(attackTime).toBeLessThan(30000);
 
     // Vérifier que l'application reste fonctionnelle après l'attaque
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // L'application devrait fonctionner normalement après l'attaque
     await expect(page.locator('text=Backoffice Administrateur')).toBeVisible();
   });
 
   test('devrait optimiser les performances réseau sous charge', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Surveiller les requêtes réseau
     const networkRequests: any[] = [];
@@ -415,7 +415,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait maintenir la fluidité de l\'interface sous charge CPU', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler une charge CPU intensive côté client
     const cpuLoadStartTime = Date.now();
@@ -448,7 +448,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait gérer efficacement les grandes quantités de données DOM', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une grande quantité d'éléments DOM
     await page.route('**/api/v1/applications*', async route => {
@@ -509,7 +509,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
   });
 
   test('devrait maintenir la stabilité lors de stress tests prolongés', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Test de stabilité prolongé (2 minutes)
     const stressTestDuration = 120000;

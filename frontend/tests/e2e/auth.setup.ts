@@ -32,11 +32,11 @@ test('authenticate as admin', async ({ page, request }) => {
     document.cookie = `token=${t}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
   }, token);
 
-  await page.goto('/backoffice', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  await page.goto('/b4ck0ff1ce', { waitUntil: 'domcontentloaded', timeout: 90_000 });
   await expect.poll(
     async () => {
       const hasToken = await page.evaluate(() => !!(localStorage.getItem('token') || sessionStorage.getItem('token')));
-      const isBackoffice = page.url().includes('/backoffice');
+      const isBackoffice = page.url().includes('/b4ck0ff1ce');
       const hasMain = await page.locator('main').first().isVisible().catch(() => false);
       return hasToken && (isBackoffice || hasMain);
     },

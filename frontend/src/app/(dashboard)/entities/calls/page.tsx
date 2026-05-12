@@ -415,7 +415,7 @@ export default function CallsPage() {
                               </button>
                             )}
                             <Link
-                              href={`/backoffice/calls/${call.id}`}
+                              href={`/b4ck0ff1ce/calls/${call.id}`}
                               className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               👁️
@@ -489,7 +489,7 @@ export default function CallsPage() {
                         </button>
                       )}
                       <Link
-                        href={`/backoffice/calls/${call.id}`}
+                        href={`/b4ck0ff1ce/calls/${call.id}`}
                         className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm text-center"
                       >
                         Voir détails

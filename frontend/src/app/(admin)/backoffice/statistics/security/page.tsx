@@ -163,7 +163,7 @@ export default function StatisticsSecurityPage() {
           <strong className="font-semibold">Rôle de cette page</strong> : tendances et agrégats issus de la{' '}
           <strong>base persistée</strong> du metrics-aggregator (fenêtre {hoursWindow} h). Les compteurs live,
           menaces récentes et pilotage se trouvent sous{' '}
-          <Link href="/backoffice/security" className="font-medium underline hover:no-underline">
+          <Link href="/b4ck0ff1ce/security" className="font-medium underline hover:no-underline">
             Sécurité
           </Link>
           — pas de doublon volontaire.
@@ -331,19 +331,19 @@ export default function StatisticsSecurityPage() {
 
             <div className="flex flex-wrap gap-3 text-sm">
               <Link
-                href="/backoffice/statistics"
+                href="/b4ck0ff1ce/statistics"
                 className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
               >
                 ← Statistiques
               </Link>
               <Link
-                href="/backoffice/security"
+                href="/b4ck0ff1ce/security"
                 className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
               >
                 Sécurité (opérationnel) →
               </Link>
               <Link
-                href="/backoffice/security/analysis"
+                href="/b4ck0ff1ce/security/analysis"
                 className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
               >
                 Analyse →

@@ -85,7 +85,7 @@ export default function SecurityLogsPage() {
         eventType: 'manual_test_event',
         message: 'Log de sécurité de test généré depuis le backoffice',
         sourceIP: '127.0.0.1',
-        endpoint: '/backoffice/security/logs',
+        endpoint: '/b4ck0ff1ce/security/logs',
         method: 'POST',
         riskScore: 35,
         metadata: { manual: true }

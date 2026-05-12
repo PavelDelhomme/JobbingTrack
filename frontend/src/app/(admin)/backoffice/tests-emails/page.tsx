@@ -84,7 +84,7 @@ export default function TestsEmailsPage() {
             </p>
           </div>
           <Link
-            href="/backoffice/emails/deliverability"
+            href="/b4ck0ff1ce/emails/deliverability"
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400"
           >
             Déliverabilité complète <ArrowRight className="w-4 h-4" />
@@ -151,7 +151,7 @@ export default function TestsEmailsPage() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/backoffice/email-monitor">
+          <Link href="/b4ck0ff1ce/email-monitor">
             <Card className="hover:border-blue-400 transition-colors cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="text-base">Email Monitor</CardTitle>
@@ -163,7 +163,7 @@ export default function TestsEmailsPage() {
               </CardContent>
             </Card>
           </Link>
-          <Link href="/backoffice/emails/logs">
+          <Link href="/b4ck0ff1ce/emails/logs">
             <Card className="hover:border-blue-400 transition-colors cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="text-base">Historique emails</CardTitle>
@@ -175,7 +175,7 @@ export default function TestsEmailsPage() {
               </CardContent>
             </Card>
           </Link>
-          <Link href="/backoffice/emails/templates">
+          <Link href="/b4ck0ff1ce/emails/templates">
             <Card className="hover:border-blue-400 transition-colors cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="text-base">Templates</CardTitle>

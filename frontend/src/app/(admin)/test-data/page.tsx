@@ -626,7 +626,7 @@ export default function TestDataGeneratorPage() {
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">🧪 Tests automatiques après génération</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <button
-                onClick={() => window.open('/backoffice/playwright-tests', '_blank')}
+                onClick={() => window.open('/b4ck0ff1ce/playwright-tests', '_blank')}
                 className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-left"
               >
                 <div className="text-lg sm:text-xl mb-1">🧪</div>
@@ -737,7 +737,7 @@ export default function TestDataGeneratorPage() {
                       userSelection: { generateForAllUsers: true, selectedUsers: [] }
                     })
                     setTimeout(() => {
-                      window.open('/backoffice/playwright-tests', '_blank')
+                      window.open('/b4ck0ff1ce/playwright-tests', '_blank')
                     }, 1000)
                     alert('✅ Données E2E générées + Tests lancés !')
                   } catch (error) {

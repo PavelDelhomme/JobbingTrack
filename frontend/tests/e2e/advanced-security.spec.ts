@@ -43,15 +43,15 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
       });
     });
 
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
     await expect(page).toHaveURL('/login');
   });
 
   test('devrait protéger contre les attaques par élévation de privilèges', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Essayer d'accéder directement à une route admin
-    await page.goto('/backoffice/users');
+    await page.goto('/b4ck0ff1ce/users');
 
     // Devrait être refusé côté serveur
     await page.route('**/api/v1/auth/users', async route => {
@@ -101,7 +101,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait protéger contre les attaques XSS avancées', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Aller dans les entreprises et créer une entreprise avec du contenu XSS
     await page.locator('text=Entreprises').click();
@@ -148,7 +148,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait protéger contre les attaques CSRF sophistiquées', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une page malveillante dans un autre onglet
     const maliciousPage = await page.context().newPage();
@@ -209,10 +209,10 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait gérer correctement les politiques de sécurité du contenu (CSP)', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Vérifier que les headers CSP sont présents
-    const response = await page.request.get('/backoffice');
+    const response = await page.request.get('/b4ck0ff1ce');
     const headers = response.headers();
 
     expect(headers['content-security-policy']).toBeDefined();
@@ -249,7 +249,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait protéger contre les attaques par déni de service côté client', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler une attaque DoS côté client
     const dosStartTime = Date.now();
@@ -292,7 +292,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait sécuriser les téléchargements et exports de données', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Aller dans les rapports
     await page.locator('text=Analytics').click();
@@ -346,7 +346,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait protéger contre les attaques de traversée de répertoire', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Essayer d'accéder à des chemins malveillants
     const maliciousPaths = [
@@ -371,7 +371,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
       try {
         // Tenter d'accéder au chemin malveillant
-        await page.goto(`/backoffice/${path}`);
+        await page.goto(`/b4ck0ff1ce/${path}`);
 
         // Devrait recevoir une erreur 404
         await expect(page.locator('text=Chemin non trouvé')).toBeVisible();
@@ -383,12 +383,12 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
     }
 
     // Vérifier que l'application fonctionne normalement après les tentatives d'attaque
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
     await expect(page.locator('text=Backoffice Administrateur')).toBeVisible();
   });
 
   test('devrait maintenir la sécurité lors des changements de configuration', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Aller dans les paramètres de sécurité
     await page.locator('text=Paramètres').click();
@@ -488,7 +488,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait sécuriser les communications WebSocket et temps réel', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Vérifier que les connexions WebSocket sont sécurisées
     await page.route('**/api/v1/notifications/websocket', async route => {
@@ -536,7 +536,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait protéger contre les attaques de désérialisation', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Essayer d'envoyer des données sérialisées malveillantes
     const maliciousData = {
@@ -614,7 +614,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait maintenir la sécurité lors des mises à jour système', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Aller dans la gestion système
     await page.locator('text=Système').click();

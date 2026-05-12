@@ -21,14 +21,14 @@ test.describe('⚡ Tests de Performance', () => {
   test('devrait répondre rapidement aux actions utilisateur', async ({ page }) => {
     const startTime = Date.now();
 
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     const loadTime = Date.now() - startTime;
     expect(loadTime).toBeLessThan(2000);
   });
 
   test('devrait gérer la charge de données importantes', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler une grande quantité de données dans les applications
     await page.route('**/api/v1/applications*', async route => {
@@ -76,7 +76,7 @@ test.describe('⚡ Tests de Performance', () => {
   });
 
   test('devrait maintenir les performances lors du filtrage et tri', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Aller dans les applications
     await page.locator('text=Applications').click();
@@ -104,7 +104,7 @@ test.describe('⚡ Tests de Performance', () => {
   });
 
   test('devrait résister à une charge utilisateur simulée', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler plusieurs actions rapides
     const actions = [
@@ -137,7 +137,7 @@ test.describe('⚡ Tests de Performance', () => {
 
     const startTime = Date.now();
 
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     const loadTime = Date.now() - startTime;
 
@@ -165,7 +165,7 @@ test.describe('⚡ Tests de Performance', () => {
       });
     });
 
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Vérifier que les ressources sont optimisées
     const cssRequests = requests.filter(r => r.resourceType === 'stylesheet');
@@ -181,7 +181,7 @@ test.describe('⚡ Tests de Performance', () => {
   });
 
   test('devrait gérer efficacement la mémoire', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Mesurer l'utilisation mémoire avant et après les actions
     const memoryBefore = await page.evaluate(() => (performance as any).memory?.usedJSHeapSize || 0);
@@ -207,7 +207,7 @@ test.describe('⚡ Tests de Performance', () => {
   });
 
   test('devrait maintenir les performances sous charge', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer plusieurs éléments rapidement
     await page.locator('text=Entreprises').click();

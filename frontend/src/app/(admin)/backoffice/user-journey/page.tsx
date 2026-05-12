@@ -2358,7 +2358,7 @@ export default function UserJourneyPage() {
               <Trash2 className="h-4 w-4" />
             </Button>
 
-            <Link href="/backoffice/user-journey/reports">
+            <Link href="/b4ck0ff1ce/user-journey/reports">
               <Button variant="outline" size="sm" className="gap-1" title="Voir les rapports">
                 <FileText className="h-4 w-4" />
                 Rapports
@@ -2713,7 +2713,7 @@ export default function UserJourneyPage() {
                     <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                       Consulter tous les rapports (prédéfinis et personnalisés) :
                     </p>
-                    <Link href="/backoffice/user-journey/reports" className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    <Link href="/b4ck0ff1ce/user-journey/reports" className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
                       <FileText className="h-4 w-4" />
                       Voir les rapports de parcours
                     </Link>

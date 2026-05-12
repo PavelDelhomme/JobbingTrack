@@ -25,13 +25,13 @@ describe('Analytics page.tsx — structure source', () => {
   it('redirige les métriques infra vers Performances', () => {
     const src = readFileSync(pagePath, 'utf8');
     expect(src).toMatch(/title:\s*'Performances \(infra\)'/);
-    expect(src).toMatch(/href:\s*'\/backoffice\/performances'/);
+    expect(src).toMatch(/href:\s*'\/b4ck0ff1ce\/performances'/);
     expect(src).toMatch(/métriques machine/i);
   });
 
   it('propose un lien vers Statistiques', () => {
     const src = readFileSync(pagePath, 'utf8');
-    expect(src).toMatch(/\/backoffice\/statistics/);
+    expect(src).toMatch(/\/b4ck0ff1ce\/statistics/);
     expect(src).toMatch(/Statistiques agrégées/);
   });
 });

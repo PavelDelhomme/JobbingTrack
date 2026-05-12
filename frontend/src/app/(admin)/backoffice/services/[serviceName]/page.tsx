@@ -432,7 +432,7 @@ export default function ServiceDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link
-              href="/backoffice/services"
+              href="/b4ck0ff1ce/services"
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
               title="Retour à la liste des services"
             >

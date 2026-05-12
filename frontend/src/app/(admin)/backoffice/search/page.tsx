@@ -47,35 +47,35 @@ const MODULE_CONFIG = {
     label: 'Candidatures',
     color: 'blue',
     fields: ['title', 'companyName', 'status'],
-    link: (id: string) => `/backoffice/applications`
+    link: (id: string) => `/b4ck0ff1ce/applications`
   },
   companies: {
     icon: Building2,
     label: 'Entreprises',
     color: 'purple',
     fields: ['name', 'sector', 'location'],
-    link: (id: string) => `/backoffice/companies`
+    link: (id: string) => `/b4ck0ff1ce/companies`
   },
   contacts: {
     icon: Users,
     label: 'Contacts',
     color: 'green',
     fields: ['firstName', 'lastName', 'email', 'position'],
-    link: (id: string) => `/backoffice/contacts`
+    link: (id: string) => `/b4ck0ff1ce/contacts`
   },
   interviews: {
     icon: Calendar,
     label: 'Entretiens',
     color: 'orange',
     fields: ['type', 'status', 'scheduledAt'],
-    link: (id: string) => `/backoffice/interviews`
+    link: (id: string) => `/b4ck0ff1ce/interviews`
   },
   calls: {
     icon: Phone,
     label: 'Appels',
     color: 'pink',
     fields: ['title', 'status', 'scheduledAt'],
-    link: (id: string) => `/backoffice/calls`
+    link: (id: string) => `/b4ck0ff1ce/calls`
   }
 };
 

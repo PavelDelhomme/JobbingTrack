@@ -51,7 +51,7 @@ echo ""
 
 # 2. Tests unitaires
 echo -e "${YELLOW}[2/5]${NC} Tests unitaires..."
-if npm run test -- src/app/\(admin\)/backoffice/analytics/__tests__ 2>&1 | tee /tmp/analytics-unit-tests.log; then
+if npm run test -- src/app/\(admin\)/b4ck0ff1ce/analytics/__tests__ 2>&1 | tee /tmp/analytics-unit-tests.log; then
   echo -e "${GREEN}✅ Tests unitaires réussis${NC}"
 else
   echo -e "${RED}❌ Tests unitaires échoués${NC}"
@@ -61,7 +61,7 @@ echo ""
 
 # 3. Tests de détection d'erreurs React
 echo -e "${YELLOW}[3/5]${NC} Tests de détection d'erreurs React..."
-if npm run test -- src/app/\(admin\)/backoffice/analytics/__tests__/react-errors-detector.test.tsx 2>&1 | tee /tmp/analytics-react-tests.log; then
+if npm run test -- src/app/\(admin\)/b4ck0ff1ce/analytics/__tests__/react-errors-detector.test.tsx 2>&1 | tee /tmp/analytics-react-tests.log; then
   echo -e "${GREEN}✅ Tests React réussis${NC}"
 else
   echo -e "${RED}❌ Tests React échoués${NC}"
@@ -71,7 +71,7 @@ echo ""
 
 # 4. Tests E2E avec Playwright
 echo -e "${YELLOW}[4/5]${NC} Tests E2E (Playwright)..."
-if npm run test:e2e -- tests/e2e/backoffice.spec.ts --grep "analytics" 2>&1 | tee /tmp/analytics-e2e-tests.log; then
+if npm run test:e2e -- tests/e2e/b4ck0ff1ce.spec.ts --grep "analytics" 2>&1 | tee /tmp/analytics-e2e-tests.log; then
   echo -e "${GREEN}✅ Tests E2E réussis${NC}"
 else
   echo -e "${YELLOW}⚠️  Tests E2E ignorés (nécessite serveur démarré)${NC}"

@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const TABS = [
-  { href: '/backoffice/analytics/application/performance', label: 'Performances live' },
-  { href: '/backoffice/analytics/application/activity', label: 'Activité & traces' },
-  { href: '/backoffice/analytics/application/feedback', label: 'Retours & signalements' },
+  { href: '/b4ck0ff1ce/analytics/application/performance', label: 'Performances live' },
+  { href: '/b4ck0ff1ce/analytics/application/activity', label: 'Activité & traces' },
+  { href: '/b4ck0ff1ce/analytics/application/feedback', label: 'Retours & signalements' },
 ] as const
 
 export function ApplicationSubNav() {

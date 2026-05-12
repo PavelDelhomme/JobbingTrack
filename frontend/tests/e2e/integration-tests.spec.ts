@@ -4,7 +4,7 @@ import { testUsers, testCompanies, testContacts, testApplications, apiMocks } fr
 test.describe('🔗 Tests d\'Intégration - Microservices', () => {
 
   test('devrait permettre l\'intégration complète entre auth et applications', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Vérifier que l'utilisateur est bien connecté
     await expect(page.locator('text=Admin JobbingTrack')).toBeVisible();
@@ -37,7 +37,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait synchroniser les données entre entreprises et contacts', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une entreprise
     await page.route(apiMocks.createCompany.url, async route => {
@@ -81,7 +81,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait maintenir la cohérence des données lors des modifications', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Modifier une entreprise existante
     await page.route('**/api/v1/companies/*', async route => {
@@ -123,7 +123,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait gérer correctement les dépendances entre services', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une candidature liée à une entreprise
     await page.route(apiMocks.createApplication.url, async route => {
@@ -167,7 +167,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait gérer les erreurs d\'intégration de manière appropriée', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler une erreur de service (service company indisponible)
     await page.route('**/api/v1/companies*', async route => {
@@ -195,7 +195,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait maintenir la cohérence lors des suppressions en cascade', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une entreprise avec contacts et candidatures associés
     await page.route(apiMocks.createCompany.url, async route => {
@@ -266,7 +266,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait gérer les conflits de données entre services', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler un conflit de données (entreprise référencée dans une candidature mais supprimée)
     await page.route('**/api/v1/companies*', async route => {
@@ -302,7 +302,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait maintenir la performance lors des intégrations complexes', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Charger plusieurs pages qui nécessitent des intégrations entre services
     const pages = ['Applications', 'Entreprises', 'Contacts', 'Analytics'];
@@ -359,7 +359,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait gérer les timeouts et erreurs de réseau entre services', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Simuler un timeout sur un service
     await page.route('**/api/v1/companies*', async route => {
@@ -390,7 +390,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait maintenir l\'intégrité référentielle entre services', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une candidature avec une entreprise qui sera supprimée
     await page.route(apiMocks.createApplication.url, async route => {
@@ -448,7 +448,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
   });
 
   test('devrait synchroniser les données en temps réel entre services', async ({ page }) => {
-    await page.goto('/backoffice');
+    await page.goto('/b4ck0ff1ce');
 
     // Créer une entreprise dans une fenêtre
     await page.route(apiMocks.createCompany.url, async route => {
@@ -469,7 +469,7 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
     const newContext = await browser.newContext();
     const newPage = await newContext.newPage();
 
-    await newPage.goto('/backoffice');
+    await newPage.goto('/b4ck0ff1ce');
 
     // Dans la nouvelle page, vérifier que la nouvelle entreprise apparaît
     await newPage.route(apiMocks.getCompanies.url, async route => {

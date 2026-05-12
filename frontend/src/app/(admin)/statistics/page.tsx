@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation'
 
 /**
  * Ancienne route **`/statistics`** (hors préfixe `backoffice/`).
- * Canon backoffice : **`/backoffice/statistics`**.
+ * Canon backoffice : **`/b4ck0ff1ce/statistics`**.
  */
 export default function StatisticsLegacyRedirectPage() {
-  redirect('/backoffice/statistics')
+  redirect('/b4ck0ff1ce/statistics')
 }

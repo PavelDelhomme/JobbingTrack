@@ -132,7 +132,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
 
       if (!response.ok) throw new Error('Erreur lors de la suppression')
 
-      router.push('/backoffice/calls')
+      router.push('/b4ck0ff1ce/calls')
     } catch (err: any) {
       alert(err.message)
     }
@@ -195,7 +195,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
       <AdminLayout>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <p className="text-red-800 dark:text-red-200">{error || 'Appel non trouvé'}</p>
-          <Link href="/backoffice/calls" className="text-blue-600 hover:underline mt-2 inline-block">
+          <Link href="/b4ck0ff1ce/calls" className="text-blue-600 hover:underline mt-2 inline-block">
             Retour à la liste
           </Link>
         </div>
@@ -212,7 +212,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <Link href="/backoffice/calls" className="text-blue-600 hover:underline mb-2 inline-block">
+            <Link href="/b4ck0ff1ce/calls" className="text-blue-600 hover:underline mb-2 inline-block">
               ← Retour aux appels
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -465,7 +465,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
                   <Link
-                    href={`/backoffice/applications/${call.applicationId}`}
+                    href={`/b4ck0ff1ce/applications/${call.applicationId}`}
                     className="inline-block mt-2 text-blue-600 hover:underline text-sm"
                   >
                     Voir la candidature →
@@ -512,7 +512,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   )}
                   <Link
-                    href={`/backoffice/contacts/${call.contactId}`}
+                    href={`/b4ck0ff1ce/contacts/${call.contactId}`}
                     className="inline-block mt-2 text-blue-600 hover:underline text-sm"
                   >
                     Voir le contact →

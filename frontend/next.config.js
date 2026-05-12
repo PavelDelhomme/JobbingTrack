@@ -27,7 +27,7 @@ const nextConfig = {
     experimental: {
         // ✅ Compression et optimisation des assets
         // lucide-react retiré : avec le baril @/lib/icons, optimizePackageImports peut laisser
-        // certains composants Lucide à undefined → « Element type is invalid » (ex. /backoffice/analytics).
+        // certains composants Lucide à undefined → « Element type is invalid » (ex. /b4ck0ff1ce/analytics).
         optimizePackageImports: ['@radix-ui/react-icons'],
         // ✅ Optimisation CSS
         optimizeCss: true,

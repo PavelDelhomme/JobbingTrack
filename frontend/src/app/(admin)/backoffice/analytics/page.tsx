@@ -7,24 +7,24 @@ import { BarChart3, Smartphone, Users } from '@/lib/icons';
 
 /**
  * Hub Analytics : résumé orienté **données produit** (application, utilisateurs).
- * CPU / conteneurs / réseau système → **`/backoffice/performances`**.
+ * CPU / conteneurs / réseau système → **`/b4ck0ff1ce/performances`**.
  */
 export default function AnalyticsPage() {
   const cards = [
     {
-      href: '/backoffice/analytics/application/performance',
+      href: '/b4ck0ff1ce/analytics/application/performance',
       title: 'Application',
       desc: 'Performances live mobile, activité & traces, retours et signalements.',
       icon: Smartphone,
     },
     {
-      href: '/backoffice/user-analytics',
+      href: '/b4ck0ff1ce/user-analytics',
       title: 'Utilisateurs',
       desc: 'Analytics utilisateur (parcours, engagement, segments).',
       icon: Users,
     },
     {
-      href: '/backoffice/performances',
+      href: '/b4ck0ff1ce/performances',
       title: 'Performances (infra)',
       desc: 'CPU, mémoire, conteneurs Docker, réseau système — hors périmètre « analytics » métier.',
       icon: BarChart3,
@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
             <strong className="font-medium text-gray-800 dark:text-gray-200">utilisateurs</strong>. Les métriques machine
             (charge, conteneurs, réseau hôte) sont regroupées sous{' '}
             <Link
-              href="/backoffice/performances"
+              href="/b4ck0ff1ce/performances"
               className="font-medium text-blue-600 underline hover:no-underline dark:text-blue-400"
             >
               Performances
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
 
         <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
           Statistiques agrégées (app data, sécurité, logs) :{' '}
-          <Link href="/backoffice/statistics" className="font-medium text-blue-600 underline dark:text-blue-400">
+          <Link href="/b4ck0ff1ce/statistics" className="font-medium text-blue-600 underline dark:text-blue-400">
             Statistiques
           </Link>
         </div>

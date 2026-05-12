@@ -114,7 +114,7 @@ const METRIC_GAP_MS = 15 * 60 * 1000;
 
 /**
  * Performances système (CPU, mémoire, réseau) — entrée principale **Tableau de bord → Performances**.
- * Ancienne URL `/backoffice/analytics/performances` redirige ici (lot A, socle graphes).
+ * Ancienne URL `/b4ck0ff1ce/analytics/performances` redirige ici (lot A, socle graphes).
  */
 export default function PerformancesPage() {
   const [rawData, setRawData] = useState<SystemMetric[]>([]);
@@ -564,7 +564,7 @@ export default function PerformancesPage() {
       <div className="p-6 space-y-6 w-full">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <Link
-            href="/backoffice"
+            href="/b4ck0ff1ce"
             className="inline-flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             <span aria-hidden>←</span>
@@ -574,7 +574,7 @@ export default function PerformancesPage() {
             |
           </span>
           <Link
-            href="/backoffice/analytics"
+            href="/b4ck0ff1ce/analytics"
             className="inline-flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             Analytics (appli &amp; utilisateurs)
