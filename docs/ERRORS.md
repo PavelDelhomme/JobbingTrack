@@ -30,6 +30,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **`/var/run/docker.sock`** monté dans un conteneur : **même en `:ro`**, risque **équivalent root hôte** si le service est compromis — **BX2**.
 - **Redis sans mot de passe** : tout process sur le réseau Docker interne peut lire/écraser les clés de session — **BX5** (migration planifiée).
 - **WAF gateway** : **`${WAF_ENABLED:-true}`** ; **`.env.example`** utilise **`WAF_ENABLED=true`** (comportement proche prod). Pour diagnostiquer des blocages WAF en local uniquement : **`make waf-disable`**, puis **`make waf-enable`** après test ; `make waf-status` affiche l’état local.
+- **WAF derrière reverse proxy** : un proxy Docker/local peut avoir une IP interne. Correctif 12/05 : les requêtes avec `X-Forwarded-*` restent inspectées par le WAF sauf `X-Internal-Secret` valide. Vérifier avec `make security-waf-lab` après `make dev-https-up`.
 - **HTTPS dev** : le navigateur doit passer par `https://jobbingtrack.localhost:5443` / `https://api.jobbingtrack.localhost:5443`. Si une erreur certificat réapparaît après changement de profil navigateur, relancer `make dev-https-install-ca`; les certificats vivent hors Git dans `.local/dev-certs/`. Ne pas activer HSTS strict sur `*.localhost`.
 
 ## Sécurité — trous d’investigation à ne pas interpréter comme absence d’attaque

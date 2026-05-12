@@ -39,6 +39,7 @@ scripts/
 | `scripts/utils/diagnostic.sh` | Diagnostic général et sous-modes Docker/CORS/réseau. |
 | `scripts/security/cve-scan.py` | Scan CVE Node/Rust/Docker, utilisé par `make test-cve-scan`. |
 | `scripts/security/test-firewall.sh` | Tests sécurité firewall/WAF. |
+| `scripts/security/waf-lab-check.sh` | Test WAF borné via HTTPS dev, utilisé par `make security-waf-lab`. |
 | `scripts/monitoring/resource-budget-sample.py` | Mesure CPU/RAM/I/O p95 des conteneurs ciblés. |
 | `scripts/monitoring/redis-memory-report.sh` | Rapport mémoire Redis. |
 | `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
