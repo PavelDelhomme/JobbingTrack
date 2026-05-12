@@ -1119,7 +1119,7 @@ async function getThreatDetails(req, res) {
     };
 
     try {
-      const [securityLogs, intrusionAttempts, ddosAttacks, networkConnections] = await Promise.all([
+      const [securityLogs, intrusionAttempts, ddosAttacks, networkConnections] = await Promise.allSettled([
         prisma.securityLog.findMany({
           where: {
             OR: [
@@ -1159,10 +1159,15 @@ async function getThreatDetails(req, res) {
           take: 50
         })
       ]);
-      related.securityLogs = securityLogs;
-      related.intrusionAttempts = intrusionAttempts;
-      related.ddosAttacks = ddosAttacks;
-      related.networkConnections = networkConnections;
+      related.securityLogs = securityLogs.status === 'fulfilled' ? securityLogs.value : [];
+      related.intrusionAttempts = intrusionAttempts.status === 'fulfilled' ? intrusionAttempts.value : [];
+      related.ddosAttacks = ddosAttacks.status === 'fulfilled' ? ddosAttacks.value : [];
+      related.networkConnections = networkConnections.status === 'fulfilled' ? networkConnections.value : [];
+      const rejectedCorrelations = [securityLogs, intrusionAttempts, ddosAttacks, networkConnections]
+        .filter((result) => result.status === 'rejected');
+      if (rejectedCorrelations.length > 0) {
+        logger.warn(`Corrélation détails menace partielle: ${rejectedCorrelations.length} source(s) indisponible(s)`);
+      }
     } catch (correlationError) {
       if (process.env.NODE_ENV === 'production') {
         logger.warn('Corrélation détails menace partielle:', correlationError.message);

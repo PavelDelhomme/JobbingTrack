@@ -292,7 +292,7 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
       let totalTests = summary?.totalTests || summary?.summary?.totalTests || 0
       let totalPassed = summary?.totalPassed || summary?.summary?.totalPassed || summary?.passed || 0
       let totalFailed = summary?.totalFailed || summary?.summary?.totalFailed || summary?.failed || 0
-      let totalSkipped = summary?.totalSkipped || summary?.summary?.totalSkipped || summary?.skipped || 0
+      const totalSkipped = summary?.totalSkipped || summary?.summary?.totalSkipped || summary?.skipped || 0
       // Tests Sécurité : si summary.security existe, rendre total/passed/failed cohérents (total = sécurisées + vulnérabilités)
       const sec = summary?.summary?.security as { critical?: number; high?: number; medium?: number; low?: number; secure?: number } | undefined
       if (sec && (typeof sec.secure === 'number' || typeof sec.critical === 'number')) {
@@ -467,7 +467,8 @@ async function scanAnalyticsReports(dir: string): Promise<TestReport[]> {
       const stats = await stat(filePath)
       
       let summary = null
-      let totalTests = 0, passed = 0, failed = 0
+      let totalTests = 0, passed = 0
+      const failed = 0
       let status: TestReport['status'] = 'unknown'
       
       try {

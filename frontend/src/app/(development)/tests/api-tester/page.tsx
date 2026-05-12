@@ -426,7 +426,7 @@ export default function APITesterPage() {
       const url = `${API_URL}/api/v1/${service}${processedUrl}`
 
     // Construire les headers d'authentification
-    let authHeaders: Record<string, string> = {}
+    const authHeaders: Record<string, string> = {}
 
     if (authMethod === 'bearer') {
       // Utiliser le token de l'utilisateur sélectionné ou le token actuel

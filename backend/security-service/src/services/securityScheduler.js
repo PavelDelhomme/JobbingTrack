@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const axios = require('axios');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('./securityService');
 const networkThreatDetector = require('./networkThreatDetector');
@@ -7,6 +8,7 @@ class SecurityScheduler {
   constructor() {
     this.jobs = new Map();
     this.isRunning = false;
+    this.availabilityAlertState = new Map();
   }
 
   // Démarrer le planificateur
@@ -32,6 +34,9 @@ class SecurityScheduler {
 
     // Planifier l'analyse des menaces en temps réel toutes les minutes
     this.scheduleRealTimeThreatAnalysis();
+
+    // Planifier les alertes disponibilité service/conteneur sans poller le trafic interne
+    this.scheduleServiceAvailabilityAlerts();
 
     // Démarrer la détection continue des menaces réseau
     networkThreatDetector.startDetection(30000); // Toutes les 30 secondes
@@ -303,6 +308,123 @@ class SecurityScheduler {
     logger.info('Job d\'analyse des menaces en temps réel planifié (toutes les minutes)');
   }
 
+  scheduleServiceAvailabilityAlerts() {
+    if (process.env.SECURITY_SERVICE_DOWN_ALERTS_ENABLED === 'false') {
+      logger.info('Alertes disponibilité services désactivées');
+      return;
+    }
+
+    const cronExpression = process.env.SECURITY_SERVICE_DOWN_ALERT_CRON || '*/2 * * * *';
+    const job = cron.schedule(cronExpression, async () => {
+      try {
+        await this.checkServiceAvailabilityAlerts();
+      } catch (error) {
+        logger.warn('Erreur analyse disponibilité services:', error.message);
+      }
+    }, {
+      scheduled: false
+    });
+
+    this.jobs.set('service-availability-alerts', job);
+    job.start();
+    logger.info(`Job d'alertes disponibilité services planifié (${cronExpression})`);
+  }
+
+  getCriticalServiceNames() {
+    const raw = process.env.SECURITY_CRITICAL_SERVICES ||
+      'jobbingtrack-api-gateway,jobbingtrack-auth-service,jobbingtrack-frontend,jobbingtrack-postgres,jobbingtrack-redis,jobbingtrack-metrics-aggregator,jobbingtrack-security-service';
+    return new Set(
+      raw
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean)
+    );
+  }
+
+  shouldEmitAvailabilityAlert(key) {
+    const dedupMs = Number(process.env.SECURITY_SERVICE_DOWN_DEDUP_MINUTES || 30) * 60 * 1000;
+    const last = this.availabilityAlertState.get(key) || 0;
+    const now = Date.now();
+    if (now - last < dedupMs) return false;
+    this.availabilityAlertState.set(key, now);
+    return true;
+  }
+
+  async createAvailabilityAlert({ level, title, description, source, metadata }) {
+    const key = `${source}:${metadata?.status || metadata?.reason || 'down'}`;
+    if (!this.shouldEmitAvailabilityAlert(key)) {
+      return null;
+    }
+
+    return securityService.createSecurityAlert({
+      level,
+      title,
+      description,
+      category: 'availability',
+      source,
+      metadata: {
+        alertType: 'SERVICE_DOWN',
+        ...metadata
+      }
+    });
+  }
+
+  async checkServiceAvailabilityAlerts() {
+    const baseUrl = process.env.METRICS_SERVICE_URL || process.env.METRICS_AGGREGATOR_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+    const timeout = Number(process.env.SECURITY_SERVICE_DOWN_ALERT_TIMEOUT_MS || 5000);
+    const criticalServices = this.getCriticalServiceNames();
+
+    let payload;
+    try {
+      const response = await axios.get(`${baseUrl.replace(/\/$/, '')}/api/v1/docker/services/all`, { timeout });
+      payload = response.data;
+    } catch (error) {
+      await this.createAvailabilityAlert({
+        level: 'critical',
+        title: 'Metrics aggregator indisponible',
+        description: `Impossible de récupérer la santé des services depuis le metrics-aggregator: ${error.message}`,
+        source: 'jobbingtrack-metrics-aggregator',
+        metadata: {
+          reason: 'metrics_aggregator_unreachable',
+          metricsServiceUrl: baseUrl,
+          error: error.message
+        }
+      });
+      return { checked: 0, alerts: 1, error: error.message };
+    }
+
+    const services = Array.isArray(payload?.services) ? payload.services : [];
+    let alerts = 0;
+
+    for (const service of services) {
+      const name = String(service?.name || '').trim();
+      if (!name || !criticalServices.has(name)) continue;
+
+      const status = String(service?.status || '').toLowerCase();
+      const isRunning = service?.is_running === true || status === 'running';
+      if (isRunning) continue;
+
+      const alert = await this.createAvailabilityAlert({
+        level: 'critical',
+        title: `Service critique indisponible: ${name}`,
+        description: `Le service critique ${name} n'est plus en état running.`,
+        source: name,
+        metadata: {
+          serviceName: name,
+          status: service?.status || 'unknown',
+          healthStatus: service?.health_status || service?.health?.status || null,
+          isRunning: service?.is_running ?? null,
+          image: service?.image || null,
+          ports: service?.ports || null,
+          metricsServiceUrl: baseUrl
+        }
+      });
+      if (alert) alerts += 1;
+    }
+
+    return { checked: services.length, alerts };
+  }
+
   // Collecter les métriques système automatiques
   async collectSystemMetrics() {
     try {
@@ -409,19 +531,21 @@ class SecurityScheduler {
   }
 }
 
-// Gestion de l'arrêt propre du processus
-process.on('SIGTERM', () => {
-  logger.info('Signal SIGTERM reçu, arrêt du planificateur de sécurité...');
-  securityScheduler.stop();
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  logger.info('Signal SIGINT reçu, arrêt du planificateur de sécurité...');
-  securityScheduler.stop();
-  process.exit(0);
-});
-
 const securityScheduler = new SecurityScheduler();
+
+// Gestion de l'arrêt propre du processus
+if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGTERM', () => {
+    logger.info('Signal SIGTERM reçu, arrêt du planificateur de sécurité...');
+    securityScheduler.stop();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    logger.info('Signal SIGINT reçu, arrêt du planificateur de sécurité...');
+    securityScheduler.stop();
+    process.exit(0);
+  });
+}
 
 module.exports = securityScheduler;

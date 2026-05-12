@@ -671,6 +671,14 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
+        <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-800 dark:text-blue-200">
+          <p className="font-semibold">Réutilisation monitoring</p>
+          <p className="mt-1">
+            Cette page réutilise les endpoints du metrics-aggregator pour éviter des collectes Docker redondantes côté
+            frontend. Le Block I/O vient du conteneur, tandis que le disque hôte vient du contexte global `/api/v1/metrics`.
+          </p>
+        </div>
+
         <MonitoringServiceHistoryCharts
           serviceHistoryLength={serviceHistory.length}
           historyChartRows={historyChartRows}

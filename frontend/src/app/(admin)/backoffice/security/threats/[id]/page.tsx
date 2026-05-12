@@ -190,9 +190,15 @@ export default function ThreatDetailsPage() {
   const appLogs = investigation.application?.logs;
   const recentEvents = investigation.application?.recentEvents || [];
   const missingTelemetry = investigation.missingTelemetry || [];
+  const networkConnectionDetails =
+    Array.isArray(investigation.network?.connectionDetails) && investigation.network.connectionDetails.length > 0
+      ? investigation.network.connectionDetails
+      : Array.isArray(metadata.connectionDetails)
+        ? metadata.connectionDetails
+        : [];
   const destFromConnections =
-    Array.isArray(metadata.connectionDetails) && metadata.connectionDetails[0]?.localIp
-      ? String(metadata.connectionDetails[0].localIp)
+    networkConnectionDetails[0]?.localIp
+      ? String(networkConnectionDetails[0].localIp)
       : null;
   const destDisplay = threat.destIp || destFromConnections;
   const metadataKeys = Object.keys(metadata || {});
@@ -468,6 +474,12 @@ export default function ThreatDetailsPage() {
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">Tor: {attacker.tor === null ? 'N/A' : attacker.tor ? 'oui' : 'non'}</span>
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">ASN: {attacker.asn || 'N/A'}</span>
               </div>
+              {attacker.organization && (
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">Organisation réseau</p>
+                  <p className="font-semibold">{attacker.organization}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -550,7 +562,7 @@ export default function ThreatDetailsPage() {
         )}
 
         {/* Connexions détaillées */}
-        {metadata.connectionDetails && metadata.connectionDetails.length > 0 && (
+        {networkConnectionDetails.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Connexions Détectées</h2>
             <div className="overflow-x-auto">
@@ -562,10 +574,11 @@ export default function ThreatDetailsPage() {
                     <th className="text-left p-3">Port Distant</th>
                     <th className="text-left p-3">Protocole</th>
                     <th className="text-left p-3">État</th>
+                    <th className="text-left p-3">Service / conteneur</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {metadata.connectionDetails.map((conn: any, idx: number) => (
+                  {networkConnectionDetails.map((conn: any, idx: number) => (
                     <tr key={idx} className="border-b border-gray-200 dark:border-gray-700">
                       <td className="p-3 font-mono text-sm">{conn.localIp}</td>
                       <td className="p-3">{conn.localPort}</td>
@@ -576,6 +589,7 @@ export default function ThreatDetailsPage() {
                           {conn.state}
                         </span>
                       </td>
+                      <td className="p-3 text-sm">{conn.containerName || conn.serviceName || 'Non corrélé'}</td>
                     </tr>
                   ))}
                 </tbody>

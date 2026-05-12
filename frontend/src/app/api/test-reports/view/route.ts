@@ -242,7 +242,7 @@ function generateHTMLFromJSON(data: any, reportId: string): string {
   const isPerformance = reportId.includes('perf-')
   const isBackend = reportId.includes('backend')
   
-  let html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">

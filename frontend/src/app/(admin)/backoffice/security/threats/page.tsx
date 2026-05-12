@@ -49,12 +49,16 @@ export default function ThreatsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [newThreatsCount, setNewThreatsCount] = useState(0);
   const previousTopThreatTsRef = useRef<string | null>(null);
+  const refreshInFlightRef = useRef(false);
   const [consolidatedBlocked, setConsolidatedBlocked] = useState<{
     ipKeys: Set<string>;
     threatIds: Set<string>;
   }>({ ipKeys: new Set(), threatIds: new Set() });
 
   const loadThreats = useCallback(async (options: { silent?: boolean } = {}) => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+
     const silent = options.silent === true;
     try {
       if (silent) setRefreshing(true);
@@ -137,6 +141,7 @@ export default function ThreatsPage() {
       setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
       setServiceError(err.response?.data?.error || err.message || 'Service menaces indisponible');
     } finally {
+      refreshInFlightRef.current = false;
       if (silent) setRefreshing(false);
       else setLoading(false);
     }
