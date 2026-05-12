@@ -29,6 +29,7 @@
 - [x] **Suite Jest frontend complète** : `npm test -- --runInBand --passWithNoTests` OK (**86/86**) après réalignement de l’encart service-detail “Réutilisation monitoring”.
 - [x] **Suite Jest `security-service` complète** : `npm test -- --runInBand` OK (**15/15**) après correction de `tests/setup.js` pour utiliser la base Docker locale exposée sur `POSTGRES_PORT` (`5000` par défaut) au lieu de forcer `localhost:5432`, et alignement du test `/security/logs` sur le contrat actuel `data + pagination`.
 - [x] **Redis runtime vérifié** : `jobbingtrack-redis` healthy sur le port hôte `5001`; `redis-cli PING` OK, `DBSIZE=7`, clés `intrusion:*` présentes et `blocked_ip:*` présent. Redis est utilisé côté gateway pour intrusion/rate-limit/blocage temporaire; absence de clé `rate_limit:*` au moment du check = aucune fenêtre active, pas une preuve de non-utilisation.
+- [x] **Tests réels HTTPS / WAF / metrics / backoffice** : stack recréée avec `dev-https-proxy`, `frontend`, `api-gateway`, `metrics-aggregator` healthy. Vérifié en réel : frontend HTTPS `200`, gateway `/health` HTTPS `200`, payload XSS externe via proxy `403`, bypass interne avec `X-Internal-Secret` valide `200`, metrics-aggregator direct sans clé `401`, direct avec `X-API-Key` `200`, proxy Next `/api/metrics-aggregator/docker/services/all` `200`, gateway `/api/v1/metrics` `200`, smoke navigateur HTTPS avec JWT/cookie réel sur `/backoffice/security`, `/backoffice/security/threats` et `/backoffice/services` sans `401/403/500`.
 
 ## Priorité précédente 6 mai 2026 — perf ressources + corrélation
 
