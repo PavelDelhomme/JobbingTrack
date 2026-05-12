@@ -132,6 +132,8 @@ endef
 ### 🚀 Services (makefiles/services/Makefile)
 ```bash
 make up                 # Démarrer services essentiels
+make dev-https-up       # Démarrer le proxy HTTPS local fiable
+make dev-https-install-ca # Installer la CA locale navigateur si possible
 make up-no-check        # Démarrer SANS vérification Docker
 make up-full            # Démarrer TOUS les services
 make down               # Arrêter tous les services
