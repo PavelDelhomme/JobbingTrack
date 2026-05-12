@@ -10,11 +10,14 @@
     "test:redis": "node test-service-detail-endpoints.js redis",
     "test:all": "npm run test:auth && npm run test:postgres && npm run test:redis"
   },
-  "keywords": ["test", "monitoring", "services"],
+  "keywords": [
+    "test",
+    "monitoring",
+    "services"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.2"
+    "axios": "^1.16.0"
   }
 }
-

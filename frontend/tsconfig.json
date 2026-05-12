@@ -15,7 +15,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "downlevelIteration": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -36,7 +36,8 @@
       "@/app/*": [
         "./src/app/*"
       ]
-    }
+    },
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",
@@ -45,7 +46,7 @@
     ".next/types/**/*.ts",
     "src/**/*",
     ".next-local/types/**/*.ts",
-    "/tmp/.next-local/types/**/*.ts"
+    ".next-local/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

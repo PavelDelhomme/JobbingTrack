@@ -4,8 +4,6 @@ const nextConfig = {
     // et contourne les bundles potentiellement corrompus.
     distDir: process.env.NEXT_DIST_DIR || '.next-local',
     output: 'standalone',
-    // Permet au build de passer malgré les warnings ESLint (lint à lancer séparément)
-    eslint: { ignoreDuringBuilds: true },
     // Ignorer les erreurs TS restantes pendant le build (à corriger progressivement)
     typescript: { ignoreBuildErrors: true },
     // ✅ Désactiver le mode strict React pour éviter les erreurs d'hydratation avec les extensions navigateur
@@ -16,24 +14,23 @@ const nextConfig = {
         maxInactiveAge: 25 * 1000,
         pagesBufferLength: 2,
     },
+    serverExternalPackages: ['socket.io-client'],
+    turbopack: {
+        root: __dirname,
+        rules: {
+            '*.svg': {
+                loaders: ['@svgr/webpack'],
+                as: '*.js',
+            },
+        },
+    },
     experimental: {
-        instrumentationHook: true,
-        serverComponentsExternalPackages: ['socket.io-client'],
         // ✅ Compression et optimisation des assets
         // lucide-react retiré : avec le baril @/lib/icons, optimizePackageImports peut laisser
         // certains composants Lucide à undefined → « Element type is invalid » (ex. /backoffice/analytics).
         optimizePackageImports: ['@radix-ui/react-icons'],
         // ✅ Optimisation CSS
         optimizeCss: true,
-        // ✅ Tree shaking amélioré
-        turbo: {
-            rules: {
-                '*.svg': {
-                    loaders: ['@svgr/webpack'],
-                    as: '*.js',
-                },
-            },
-        },
     },
     // ✅ Compression des assets (Gzip activé, Brotli via serveur/reverse proxy)
     compress: true,
