@@ -1,6 +1,16 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+function getJwtSecret() {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    return 'test-secret-key';
+  }
+
+  throw new Error('JWT_SECRET est requis pour authentifier les routes métriques');
+}
 
 /**
  * Middleware d'authentification JWT
@@ -21,7 +31,7 @@ const authenticateToken = (req, res, next) => {
   }
 
   // Vérifier la validité du token
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, getJwtSecret(), (err, user) => {
     if (err) {
       return res.status(403).json({ 
         success: false,

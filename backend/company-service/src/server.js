@@ -14,10 +14,22 @@ const notFound = require('./middlewares/notFound');
 const app = express();
 const PORT = process.env.PORT || 3003;
 
+function getAllowedOrigins() {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean);
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ALLOWED_ORIGINS est requis en production');
+  }
+
+  return ['http://localhost:5003', 'http://localhost:5002', 'http://localhost:5173'];
+}
+
 // Configuration des middlewares
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: getAllowedOrigins(),
   credentials: true
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));

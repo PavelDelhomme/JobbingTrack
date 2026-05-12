@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder
+.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder env-validate env-validate-prod
 
 # ============================================================================
 # AIDE
@@ -45,6 +45,8 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo ""
 	@echo "📄 ENV (.env vs .env.example):"
 	@echo "  make env-check                    - Clés manquantes / orphelines (sans modifier .env)"
+	@echo "  make env-validate                 - Validation sécurité runtime .env (sans afficher les valeurs)"
+	@echo "  make env-validate-prod            - Validation stricte production .env"
 	@echo "  make env-reorder                  - Réordonne .env comme .env.example (conserve tes valeurs)"
 	@echo "  make env-append-missing           - Fichier .env.append-from-example.txt (à fusionner à la main)"
 	@echo ""
@@ -290,6 +292,12 @@ status-port: ## Afficher tous les ports externes Docker utilisés par JobbingTra
 
 env-check: ## Compare .env et .env.example (variables manquantes ou uniquement dans .env)
 	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs"
+
+env-validate: ## Valide .env sans afficher les valeurs sensibles
+	@node "$(ROOT_DIR)/scripts/env-validate-runtime.cjs"
+
+env-validate-prod: ## Valide .env en mode strict production
+	@node "$(ROOT_DIR)/scripts/env-validate-runtime.cjs" --production
 
 env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .env, valeurs copiées depuis l’exemple) — ne modifie pas .env
 	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
