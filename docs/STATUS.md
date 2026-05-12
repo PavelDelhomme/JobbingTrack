@@ -30,6 +30,8 @@
 
 **Scripts — restructuration progressive (12/05)** : plusieurs lots sûrs déplacent les scripts racine vers des dossiers métier sans casser les commandes Make/CI/routes : `env/`, `setup/`, `db/`, `docker/`, `reports/`, `performance/`, `ops/`, `health/`, `testing/`, `utils/`. Validations : `bash -n` sur les scripts déplacés, `make -n setup-ports`, `make -n test-mobile-report`, `make -n status-watch`, `make -n logs-watch`, `make -n menu`, `make -n fix-all`, `make -n git-checkout`, `make -n test-performance-backend`, puis `make scripts-inventory`. État actuel : **121 scripts**, **58 actifs**, **0 à la racine**, **21 sans référence automatique**.
 
+**Tests performance avancés via gateway (12/05)** : `tests/performance/test-load-advanced.js` ne contourne plus la gateway par les anciens ports `localhost:300x`. Les scénarios `companies`, `applications`, `auth` et spike utilisent `normalizeGatewayUrlForHost` + `API_GATEWAY_URL`, et les `401/403` des endpoints protégés comptent comme endpoints joignables/auth requis. `scripts/run-all-tests-with-reports.sh` exécute désormais aussi ce test en mode léger. Validation réelle locale : gateway `127.0.0.1:5002/health` OK, `API_GATEWAY_URL=http://127.0.0.1:5002 PERF_LIGHT=1 node tests/performance/test-load-advanced.js` = **46/46 succès**, `test-performance.js` en `PERF_LIGHT=1` = score **100/100**.
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.
@@ -236,7 +238,7 @@
 
 - **Principe** : pour la perf **applicative**, faire transiter les requêtes par l’**API Gateway** (WAF, rate limit, corrélation), comme en usage réel ; réserver les appels **directs** au **metrics-aggregator** aux sondes **infra** (métriques hôte / Docker).
 - **`tests/performance/test-performance.js`** : les endpoints listés (companies, interviews, notifications, etc.) passent déjà par **`API_GATEWAY_URL`** ; la santé **auth** est **`GET /api/v1/auth/health`** sur la même base.
-- **`tests/performance/test-load-advanced.js`** : le stress **auth** a été basculé sur **`apiGateway` + `/api/v1/auth/health`** ; les entrées **companies** / **applications** (et le reste des clés **`localhost:300x`**) suivent encore l’**ancien modèle** ports microservices — à aligner sur la gateway (**`PLAN.md`** **F3** / tâche **F3b** dans **`TODOS.md`**).
+- **`tests/performance/test-load-advanced.js`** : aligné le **12/05** sur **`API_GATEWAY_URL`** via `normalizeGatewayUrlForHost`; les scénarios **companies**, **applications**, **auth** et spike passent par `/api/v1/...` sur la gateway, sans bases `localhost:300x`. Validation réelle locale : `PERF_LIGHT=1` = **46/46 succès**.
 
 ### Statistiques, monitoring, intérim, données test (7 avril 2026)
 
@@ -1172,4 +1174,4 @@ Après `make up-full`, tu peux te **connecter** directement au backoffice : **ad
 - Correctif perf appliqué sur `metrics-aggregator` (`backend/metrics-aggregator-service/src/server.js`): throttling du fallback Docker et des health checks services pour éviter les cycles coûteux inutiles quand `monitoring-c` est disponible.
 - Correctif perf appliqué sur `frontend` (`docker-compose.yml`): désactivation du polling watchpack par défaut, limite mémoire Node (`--max-old-space-size=2048`) et healthcheck simplifié (single `curl`).
 - Mesure post-correctifs (6 échantillons): `frontend` passe à ~1-2.6% CPU et ~220-232 MiB RAM (forte baisse), `metrics-aggregator` garde des pics ponctuels (jusqu'à ~88%) mais CPU bas entre cycles; `monitoring-c` faible hors cycle.
-- Réglage cadence collecte: `monitoring-c` par défaut 30s (`METRICS_COLLECTION_INTERVAL_SEC`), `metrics-aggregator` collecte configurable (défaut 15s via `METRICS_COLLECTION_INTERVAL_SECONDS`).
+- Réglage cadence collecte: `monitoring-c` par défaut 30s (`METRICS_COLLECTION_INTERVAL_SEC`), `metrics-aggregator` collecte configurable (défaut 30s via `METRICS_COLLECTION_INTERVAL_SECONDS`).

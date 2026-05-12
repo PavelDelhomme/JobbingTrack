@@ -1065,6 +1065,14 @@ if [ -f "tests/performance/test-performance.js" ]; then
         "user"
 fi
 
+# 35b. Tests de charge avancés via gateway (mode léger dans l'agrégat)
+if [ -f "tests/performance/test-load-advanced.js" ]; then
+    run_test "Tests Charge Avancée Gateway" \
+        "PERF_LIGHT=1 node tests/performance/test-load-advanced.js" \
+        "$REPORT_DIR/performance-load-advanced.json" \
+        "user"
+fi
+
 # 36. Tests de Charge
 if [ -f "tests/performance/test-load.js" ]; then
     run_test "Tests de Charge (Load Testing)" \

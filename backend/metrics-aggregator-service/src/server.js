@@ -1439,8 +1439,8 @@ if (ENABLE_DOCKER_LOGS_COLLECTION) {
   collectDockerLogs()
 }
 
-// Collecte des métriques (configurable): défaut 15 secondes pour limiter la charge continue
-const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLLECTION_INTERVAL_SECONDS || '15'))
+// Collecte des métriques (configurable): défaut 30 secondes, aligné avec les exemples d'environnement.
+const metricsCollectionIntervalSec = Math.max(5, Number(process.env.METRICS_COLLECTION_INTERVAL_SECONDS || '30'))
 const metricsCollectionCron = `*/${metricsCollectionIntervalSec} * * * * *`
 cron.schedule(metricsCollectionCron, collectAllMetrics)
 console.log(`[SERVER] ✅ Collecte métriques planifiée: toutes les ${metricsCollectionIntervalSec}s`)

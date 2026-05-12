@@ -31,7 +31,7 @@
 ## E. Tests & release
 
 - [ ] **`make tests`** (ou **`make test-all`**) vert avec la stack **Docker** (**`make up-full`**) : l’étape **Jest API Gateway** s’exécute dans le conteneur **`jobbingtrack-api-gateway`** quand il est up (voir **`scripts/run-all-tests-with-reports.sh`** § 6a).
-- [ ] **Scripts de perf** (`tests/performance/`) : vérifier que les scénarios **métier** utilisent **`API_GATEWAY_URL`** (chemins **`/api/v1/...`**) et ne contournent pas la gateway par des **`localhost:300x`** obsolètes — **`test-performance.js`** déjà aligné ; **`test-load-advanced.js`** : auth via gateway, **reste** companies/applications (voir **`PLAN.md`** F1 / F3, **`STATUS.md`** § Tests de performance, **`TODOS.md`** F3b). Exception documentée : **metrics-aggregator** pour l’infra.
+- [x] **Scripts de perf** (`tests/performance/`) : vérifier que les scénarios **métier** utilisent **`API_GATEWAY_URL`** (chemins **`/api/v1/...`**) et ne contournent pas la gateway par des **`localhost:300x`** obsolètes — **`test-performance.js`** et **`test-load-advanced.js`** sont alignés gateway (`normalizeGatewayUrlForHost`). Exception documentée : **metrics-aggregator** pour l’infra.
 - [ ] Parcourir **`docs/tests/TESTS_END.md`** pour les points encore manuels avant bascule.
 - [ ] Garder **`.env`** aligné avec **`.env.example`** (mêmes clés, valeurs réelles hors dépôt) — revue à chaque ajout de variable.
 - [ ] Avant merge vers prod : appliquer le gate **lot H** (`RELEASE_PREPROD_PRODUCTION_PLAN.md`) : branche tests complets, préprod validée, scans sécurité P0, licences, RGPD, sauvegarde/restauration, monitoring/alerting, rollback.

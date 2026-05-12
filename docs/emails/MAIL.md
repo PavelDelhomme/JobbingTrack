@@ -34,7 +34,7 @@ Exemple avec **redacted@example.invalid** (MX Plan maily.ovh actif) — affichag
 ```env
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=587
-SMTP_SECURE=false
+SMTP_SECURE=true
 SMTP_USE_SSL=false
 SMTP_USER=redacted@example.invalid
 SMTP_PASS=<mot_de_passe_compte_maily.ovh>
@@ -44,7 +44,7 @@ EMAIL_PROVIDER=SMTP
 ```
 
 - **Alternative** : si tu as un compte **noreply@jobbingtrack.test**, mets `SMTP_USER=noreply@jobbingtrack.test` et `SMTP_PASS` correspondant.
-- **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USE_SSL=true`.
+- **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=false`, `SMTP_USE_SSL=true`.
 
 Détail des variables et commandes de test : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 
