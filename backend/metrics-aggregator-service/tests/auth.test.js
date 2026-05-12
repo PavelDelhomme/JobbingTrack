@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../src/middlewares/auth.middleware');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
 
 /**
  * Tests pour le middleware d'authentification JWT
