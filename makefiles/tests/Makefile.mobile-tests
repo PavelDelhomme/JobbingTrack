@@ -168,7 +168,7 @@ test-mobile-debug: check-services-mobile ## Mode debug step-by-step (nécessite 
 		--debug
 
 test-mobile-report: ## Ouvre le rapport HTML des tests mobile (sur port 5004)
-	@./scripts/show-mobile-report.sh
+	@./scripts/reports/show-mobile-report.sh
 
 test-mobile-interactive: ## Menu interactif pour les tests mobile
 	@cd $(FRONTEND_DIR) && node scripts/test-mobile-cli.js || \

@@ -56,8 +56,8 @@ help-utils: ## Afficher l'aide utilitaires
 # ============================================================================
 
 setup-ports: ## Mettre à jour .env avec les ports cohérents (5000-5019)
-	@chmod +x $(ROOT_DIR)/scripts/setup-ports.sh 2>/dev/null || true
-	@$(ROOT_DIR)/scripts/setup-ports.sh
+	@chmod +x $(ROOT_DIR)/scripts/setup/setup-ports.sh 2>/dev/null || true
+	@$(ROOT_DIR)/scripts/setup/setup-ports.sh
 
 setup-port: setup-ports ## Alias : même chose que setup-ports
 

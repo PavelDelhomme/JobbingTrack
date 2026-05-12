@@ -1,13 +1,14 @@
 #!/bin/bash
-# Script pour créer les tables Prisma de manière sécurisée
-# en gérant correctement les tables de monitoring-c
+# Crée les tables Prisma en préservant les tables de monitoring-c.
 
 set -e
+
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "$ROOT_DIR"
 
 echo "🔄 Création sécurisée des tables Prisma..."
 echo ""
 
-# 1. Supprimer temporairement les tables de monitoring-c
 echo "1️⃣  Suppression temporaire des tables de monitoring-c..."
 docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "
 DROP VIEW IF EXISTS recent_container_metrics CASCADE;
@@ -18,7 +19,6 @@ DROP TABLE IF EXISTS system_metrics CASCADE;
 echo "✅ Tables de monitoring-c supprimées temporairement"
 echo ""
 
-# 2. Créer toutes les tables Prisma
 echo "2️⃣  Création des tables Prisma..."
 PUSHED=0
 SKIPPED=0
@@ -28,8 +28,8 @@ for service in $SERVICES; do
     container="jobbingtrack-$service"
     if docker ps --format '{{.Names}}' | grep -q "^$container$"; then
         echo "  📦 $service..."
-        if docker exec $container test -f /app/prisma/schema.prisma 2>/dev/null; then
-            if docker exec $container npx prisma db push --accept-data-loss --skip-generate > /dev/null 2>&1; then
+        if docker exec "$container" test -f /app/prisma/schema.prisma 2>/dev/null; then
+            if docker exec "$container" npx prisma db push --accept-data-loss --skip-generate > /dev/null 2>&1; then
                 echo "  ✅ $service - Schéma synchronisé"
                 PUSHED=$((PUSHED + 1))
             else
@@ -47,20 +47,17 @@ for service in $SERVICES; do
 done
 echo ""
 
-# 3. Recréer les tables de monitoring-c
 echo "3️⃣  Recréation des tables de monitoring-c..."
 docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack < monitoring/monitoring-c/sql/init_metrics_tables.sql > /dev/null 2>&1
 echo "✅ Tables de monitoring-c recréées"
 echo ""
 
-# 4. Redémarrer monitoring-c
 echo "4️⃣  Redémarrage de monitoring-c..."
 docker restart jobbingtrack-monitoring-c > /dev/null 2>&1
 sleep 3
 echo "✅ monitoring-c redémarré"
 echo ""
 
-# 5. Vérification
 echo "5️⃣  Vérification..."
 TOTAL_TABLES=$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' \n\r')
 echo "✅ $TOTAL_TABLES tables au total dans la base de données"
@@ -69,4 +66,3 @@ echo ""
 echo "✅ Création des tables Prisma terminée !"
 echo "   📦 Services synchronisés: $PUSHED"
 echo "   ⏭️  Ignorés: $SKIPPED"
-
