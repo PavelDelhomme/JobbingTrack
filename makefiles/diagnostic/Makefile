@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder env-validate env-validate-prod
+.PHONY: health check-deps show-docker-info docker-network-diagnose clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics redis-memory-report resource-budget-sample status-port help-diagnostic env-check env-append-missing env-reorder env-validate env-validate-prod env-validate-prod-example env-generate-secrets waf-enable waf-disable waf-status scripts-inventory
 
 # ============================================================================
 # AIDE
@@ -46,9 +46,12 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "📄 ENV (.env vs .env.example):"
 	@echo "  make env-check                    - Clés manquantes / orphelines (sans modifier .env)"
 	@echo "  make env-validate                 - Validation sécurité runtime .env (sans afficher les valeurs)"
-	@echo "  make env-validate-prod            - Validation stricte production .env"
+	@echo "  make env-validate-prod            - Validation stricte production (ENV_FILE=.env.production)"
+	@echo "  make env-validate-prod-example    - Validation structurelle .env.production.example"
+	@echo "  make env-generate-secrets         - Régénère les secrets locaux faibles dans .env"
 	@echo "  make env-reorder                  - Réordonne .env comme .env.example (conserve tes valeurs)"
 	@echo "  make env-append-missing           - Fichier .env.append-from-example.txt (à fusionner à la main)"
+	@echo "  make waf-enable / waf-disable     - Active/désactive WAF dans .env puis redémarre la gateway si elle tourne"
 	@echo ""
 	@echo "📖 Documentation: docs/troubleshooting/guide.md"
 	@echo ""
@@ -291,17 +294,48 @@ status-port: ## Afficher tous les ports externes Docker utilisés par JobbingTra
 # ---------------------------------------------------------------------------
 
 env-check: ## Compare .env et .env.example (variables manquantes ou uniquement dans .env)
-	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs"
+	@node "$(ROOT_DIR)/scripts/env/env-align-with-example.cjs"
 
 env-validate: ## Valide .env sans afficher les valeurs sensibles
-	@node "$(ROOT_DIR)/scripts/env-validate-runtime.cjs"
+	@node "$(ROOT_DIR)/scripts/env/env-validate-runtime.cjs"
 
-env-validate-prod: ## Valide .env en mode strict production
-	@node "$(ROOT_DIR)/scripts/env-validate-runtime.cjs" --production
+env-validate-prod: ## Valide une config prod stricte (usage: ENV_FILE=.env.production make env-validate-prod)
+	@node "$(ROOT_DIR)/scripts/env/env-validate-runtime.cjs" --production
+
+env-validate-prod-example: ## Valide le modèle .env.production.example sans exiger de vrais secrets
+	@node "$(ROOT_DIR)/scripts/env/env-validate-runtime.cjs" --production --production-example --allow-placeholders
+
+env-generate-secrets: ## Régénère les secrets locaux faibles dans .env sans les afficher
+	@node "$(ROOT_DIR)/scripts/env/env-generate-secrets.cjs" --write
+	@$(MAKE) env-validate
 
 env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .env, valeurs copiées depuis l’exemple) — ne modifie pas .env
-	@node "$(ROOT_DIR)/scripts/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
+	@node "$(ROOT_DIR)/scripts/env/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
 	@echo "👉 Fusionnez manuellement le contenu dans .env puis supprimez le fichier si besoin."
 
 env-reorder: ## Réordonne .env comme .env.example en conservant tes valeurs (voir scripts/reorder-env-from-example.cjs)
-	@node "$(ROOT_DIR)/scripts/reorder-env-from-example.cjs" --write
+	@node "$(ROOT_DIR)/scripts/env/reorder-env-from-example.cjs" --write
+
+waf-enable: ## Active WAF_ENABLED=true dans .env puis redémarre api-gateway si elle tourne
+	@node "$(ROOT_DIR)/scripts/env/env-set-key.cjs" WAF_ENABLED true
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^jobbingtrack-api-gateway$$'; then \
+		echo "🔄 Redémarrage api-gateway pour appliquer WAF_ENABLED=true"; \
+		$(MAKE) restart-service SERVICE=api-gateway; \
+	else \
+		echo "ℹ️  api-gateway non démarrée : WAF_ENABLED=true sera pris au prochain make up."; \
+	fi
+
+waf-disable: ## Désactive WAF_ENABLED=false dans .env pour diagnostic local puis redémarre api-gateway si elle tourne
+	@node "$(ROOT_DIR)/scripts/env/env-set-key.cjs" WAF_ENABLED false
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^jobbingtrack-api-gateway$$'; then \
+		echo "🔄 Redémarrage api-gateway pour appliquer WAF_ENABLED=false"; \
+		$(MAKE) restart-service SERVICE=api-gateway; \
+	else \
+		echo "ℹ️  api-gateway non démarrée : WAF_ENABLED=false sera pris au prochain make up."; \
+	fi
+
+waf-status: ## Affiche uniquement l'état WAF local sans exposer les secrets
+	@awk -F= '/^WAF_ENABLED=/{print "WAF_ENABLED=" $$2}' "$(ROOT_DIR)/.env" 2>/dev/null || echo "WAF_ENABLED non défini"
+
+scripts-inventory: ## Inventorie scripts/ et repère les scripts peu ou pas référencés
+	@node "$(ROOT_DIR)/scripts/ops/inventory-scripts.cjs"

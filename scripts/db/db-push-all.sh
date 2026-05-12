@@ -13,7 +13,7 @@
 # Les tables security/deployment ne sont PAS poussées depuis security/deployment (schéma partiel) ;
 # elles sont créées via le schéma auth-service (étendu) ou par init-key-tables.sql.
 
-set -e
+set -euo pipefail
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT_DIR"
 
