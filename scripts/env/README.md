@@ -8,7 +8,10 @@ Les implémentations de configuration runtime vivent ici. Les anciens chemins à
 - `env-generate-secrets.cjs` : régénère des secrets locaux forts sans les afficher.
 - `env-set-key.cjs` : modifie une clé `.env`; les clés sensibles doivent passer via `--stdin`.
 - `env-validate-runtime.cjs` : valide `.env`, `.env.production.example` ou `ENV_FILE=...`.
+- `generate-env-example.sh` : wrapper déprécié, conservé pour expliquer la source de vérité `.env.example`.
 - `reorder-env-from-example.cjs` : réaligne `.env` sur `.env.example`.
+- `sync-env.js` : ancien synchroniseur interactif `.env.example` → `.env`, gardé pour compatibilité manuelle.
+- `verify-env-usage.js` : audit manuel des variables `.env.example` référencées dans le dépôt.
 
 ## Commandes
 

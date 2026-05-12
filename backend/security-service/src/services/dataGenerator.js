@@ -1,5 +1,6 @@
 const { prisma } = require('../config/database');
 const { logger } = require('../utils/logger');
+const { lookupGeoIp } = require('../utils/geoipProvider');
 
 class SecurityDataGenerator {
   constructor() {
@@ -137,16 +138,11 @@ class SecurityDataGenerator {
         break;
     }
 
-    // Utiliser geoip-lite pour obtenir le pays réel
+    // Utiliser le provider GeoIP optionnel si configuré.
     let country = 'FR';
-    try {
-      const geoip = require('geoip-lite');
-      const geo = geoip.lookup(ip);
-      if (geo && geo.country) {
-        country = geo.country;
-      }
-    } catch (error) {
-      // Fallback si geoip-lite n'est pas disponible
+    const geo = lookupGeoIp(ip);
+    if (geo && geo.country) {
+      country = geo.country;
     }
 
     await prisma.securityLog.create({
@@ -189,8 +185,7 @@ class SecurityDataGenerator {
     };
 
     try {
-      const geoip = require('geoip-lite');
-      const geo = geoip.lookup(ip);
+      const geo = lookupGeoIp(ip);
 
       await prisma.intrusionAttempt.create({
         data: {

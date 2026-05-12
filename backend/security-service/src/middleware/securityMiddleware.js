@@ -1,8 +1,8 @@
-const geoip = require('geoip-lite');
 const UAParser = require('ua-parser-js');
 const validator = require('validator');
 const { logSecurityEvent } = require('../utils/logger');
 const { prisma } = require('../config/database');
+const { lookupGeoIp } = require('../utils/geoipProvider');
 
 class SecurityMiddleware {
   constructor() {
@@ -26,7 +26,7 @@ class SecurityMiddleware {
       const referer = req.get('referer') || '';
 
       // Analyser l'IP et la géolocalisation
-      const geo = geoip.lookup(clientIP);
+      const geo = lookupGeoIp(clientIP);
       const country = geo ? geo.country : 'Unknown';
       const city = geo ? geo.city : 'Unknown';
 
@@ -372,7 +372,7 @@ class SecurityMiddleware {
   // Enregistrer une tentative d'intrusion
   async recordIntrusionAttempt(clientIP, attackType, endpoint, method, riskScore) {
     try {
-      const geo = geoip.lookup(clientIP);
+      const geo = lookupGeoIp(clientIP);
 
       await prisma.intrusionAttempt.create({
         data: {
