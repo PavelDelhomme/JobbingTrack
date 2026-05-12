@@ -10,6 +10,7 @@ env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
   NODE_ENV: test
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   # ============================================================================
@@ -23,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -45,7 +46,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -92,6 +93,8 @@ jobs:
     name: Validation de la structure de base de donnees
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
 
     services:
       postgres:
@@ -110,7 +113,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -132,7 +135,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -237,19 +240,19 @@ jobs:
           fi
 
           # Vérifier que Application/Interview/FollowUp utilisent des relations (statusId)
-          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model Application"; then
+          if awk '/^model Application /,/^}/' prisma/schema.prisma | grep -q "statusId.*String"; then
             echo "✅ Application utilise statusId (relation)"
           else
             echo "⚠️  Vérification manuelle nécessaire: Application doit utiliser statusId"
           fi
 
-          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model Interview"; then
+          if awk '/^model Interview /,/^}/' prisma/schema.prisma | grep -q "statusId.*String"; then
             echo "✅ Interview utilise statusId (relation)"
           else
             echo "⚠️  Vérification manuelle nécessaire: Interview doit utiliser statusId"
           fi
 
-          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model FollowUp"; then
+          if awk '/^model FollowUp /,/^}/' prisma/schema.prisma | grep -q "statusId.*String"; then
             echo "✅ FollowUp utilise statusId (relation)"
           else
             echo "⚠️  Vérification manuelle nécessaire: FollowUp doit utiliser statusId"
@@ -486,7 +489,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -508,7 +511,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -626,7 +629,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Lecture de la version Node.js depuis les Dockerfiles
         id: node-version
@@ -646,7 +649,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -830,7 +833,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Lecture de la version Node.js depuis les Dockerfiles
         id: node-version
@@ -850,7 +853,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -991,7 +994,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Lecture de la version Node.js depuis les Dockerfiles
         id: node-version
@@ -1011,7 +1014,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -1096,7 +1099,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Lecture de la version Node.js depuis les Dockerfiles
         id: node-version
@@ -1116,7 +1119,7 @@ jobs:
           fi
 
       - name: Configuration Node.js (Version depuis config)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
@@ -1269,7 +1272,7 @@ jobs:
 
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Lecture de la version Node.js depuis les Dockerfiles
         id: node-version
@@ -1499,7 +1502,7 @@ jobs:
 
       - name: 📤 Upload des artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ci-reports-${{ github.run_id }}
           path: ci-artifacts/
