@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Script pour comparer les résultats des benchmarks before/after
-# Usage: ./scripts/compare-benchmark.sh
+# Usage: ./scripts/performance/compare-benchmark.sh
 
 set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 RESULTS_DIR="tests/performance-benchmark"
 
@@ -22,8 +25,8 @@ if [ -z "$BEFORE_FILE" ] || [ -z "$AFTER_FILE" ]; then
     echo "   Après: ${AFTER_FILE:-NON TROUVÉ}"
     echo ""
     echo "💡 Lancez d'abord:"
-    echo "   ./scripts/performance-benchmark.sh before"
-    echo "   ./scripts/performance-benchmark.sh after"
+    echo "   ./scripts/performance/performance-benchmark.sh before"
+    echo "   ./scripts/performance/performance-benchmark.sh after"
     exit 1
 fi
 

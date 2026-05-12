@@ -1041,7 +1041,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 		echo "📋 Exemple: make logs-service SERVICE=metrics-aggregator"; \
 		exit 1; \
 	fi
-	@$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f -t $(COMPOSE_SVC)) 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+	@$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f -t $(COMPOSE_SVC)) 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh"
 
 # ============================================================================
 # STATUS ET LOGS
@@ -1383,16 +1383,16 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
-# Boucle `make status` : script \`scripts/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
+# Boucle `make status` : script \`scripts/ops/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
 # INTERVAL=s · ALTSCREEN=1 (défaut) = pas d’empilement dans le scrollback · ALTSCREEN=0 = ancien défilement · CLEAR=1 + ALTSCREEN=0 = clear plein écran.
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, ALTSCREEN=1 par défaut — voir scripts/status-watch-loop.sh)
-	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
-	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, ALTSCREEN=1 par défaut — voir scripts/ops/status-watch-loop.sh)
+	@chmod +x "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
 
 # Même rendu que `make status`, boucle rapide (pas de vue « compacte » dupliquée — évite ports tronqués et services manquants).
 status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut 2, Ctrl+C pour quitter)
-	@chmod +x "$(ROOT_DIR)/scripts/status-watch-loop.sh" 2>/dev/null || true
-	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),2)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/status-watch-loop.sh"
+	@chmod +x "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh" 2>/dev/null || true
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),2)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs
@@ -1406,7 +1406,7 @@ logs-tail: ## Affiche les N dernières lignes de logs puis quitte (LINES=200 par
 	@echo "======================================================"
 	@echo "💡 Pour suivre en continu : make logs  (puis Ctrl+C pour quitter)"
 	@echo ""
-	@N=$${LINES:-200}; cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -t --tail=$$N 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@N=$${LINES:-200}; cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -t --tail=$$N 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
 
 # Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
@@ -1422,13 +1422,13 @@ logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
 	@echo "   Redis/Postgres: grisé (dim). Sans Redis/Postgres: make logs-app"
 	@echo ""
 	@printf '\033]0;Logs\007' >/dev/tty 2>/dev/null || true
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
 
 # Même pipeline couleur que `logs` : reconnexion automatique si le flux s’interrompt (redémarrage conteneurs, etc.)
 logs-watch: ## Logs temps réel avec reconnexion auto — Ctrl+C pour quitter
-	@chmod +x "$(ROOT_DIR)/scripts/logs-watch.sh" 2>/dev/null; true
-	@cd $(ROOT_DIR) && exec bash "$(ROOT_DIR)/scripts/logs-watch.sh" $(COMPOSE_FILES_ESSENTIAL)
+	@chmod +x "$(ROOT_DIR)/scripts/ops/logs-watch.sh" 2>/dev/null; true
+	@cd $(ROOT_DIR) && exec bash "$(ROOT_DIR)/scripts/ops/logs-watch.sh" $(COMPOSE_FILES_ESSENTIAL)
 
 # Logs sans Redis ni Postgres (uniquement services applicatifs + infra légère)
 logs-app: ## Logs en temps réel SANS redis ni postgres (moins de bruit)
@@ -1436,14 +1436,14 @@ logs-app: ## Logs en temps réel SANS redis ni postgres (moins de bruit)
 	@echo "=============================================="
 	@echo "⏹️  Ctrl+C pour quitter  |  Tout voir : make logs"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-redis[[:space:]]|^jobbingtrack-postgres[[:space:]]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-redis[[:space:]]|^jobbingtrack-postgres[[:space:]]' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-app"; exit 1)
 
 # Logs de metrics-aggregator uniquement (tags colorés)
 logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour quitter)
 	@echo "📊 Logs de metrics-aggregator"
 	@echo "=============================="
-	@docker logs jobbingtrack-metrics-aggregator -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+	@docker logs jobbingtrack-metrics-aggregator -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh"
 
 # Logs applicatifs uniquement (sans metrics-aggregator ni monitoring-c) — moins de bruit
 logs-applicative: ## Logs des services applicatifs (sans métriques / monitoring)
@@ -1451,14 +1451,14 @@ logs-applicative: ## Logs des services applicatifs (sans métriques / monitoring
 	@echo "=================================================================="
 	@echo "💡 Pour tout voir : make logs  |  Métriques seules : make logs-metrics"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-metrics-aggregator[[:space:]]|^jobbingtrack-monitoring-c[[:space:]]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-metrics-aggregator[[:space:]]|^jobbingtrack-monitoring-c[[:space:]]' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-applicative"; exit 1)
 
 # Logs contenant uniquement les lignes [PERSISTENCE] (sauvegardes, snapshots, etc.)
 logs-persistence: ## Affiche uniquement les logs de type persistance (tag [PERSISTENCE])
 	@echo "💾 Logs Persistance ([PERSISTENCE])"
 	@echo "===================================="
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[PERSISTENCE\]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[PERSISTENCE\]' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
 
 # Logs pendant les tests : uniquement les lignes [TESTS API], [TESTS BACKEND], [TESTS FRONTEND], etc.
@@ -1468,5 +1468,5 @@ logs-tests: ## Affiche uniquement les logs liés aux tests (tags [TESTS ...])
 	@echo "💡 Les lignes affichées sont celles émises pendant les runs (Démarrage / Fin)."
 	@echo "   Pour tous les logs : make logs  |  Applicatifs : make logs-applicative"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[TESTS ' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[TESTS ' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-tests"; exit 1)

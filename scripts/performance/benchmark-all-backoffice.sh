@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Script de benchmark complet pour toutes les pages du backoffice
-# Usage: ./scripts/benchmark-all-backoffice.sh [before|after]
+# Usage: ./scripts/performance/benchmark-all-backoffice.sh [before|after]
 
 set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 RESULTS_DIR="tests/performance-benchmark"
@@ -342,5 +345,5 @@ echo "📁 Résultats sauvegardés dans: $RESULTS_DIR"
 echo "📊 Rapport consolidé: $consolidated_report"
 echo ""
 echo "💡 Pour comparer avant/après:"
-echo "   ./scripts/compare-all-backoffice.sh"
+echo "   ./scripts/performance/compare-all-backoffice.sh"
 

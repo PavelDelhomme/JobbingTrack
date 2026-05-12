@@ -1,12 +1,12 @@
 #!/bin/bash
 # Compresse les anciens rapports de tests (tests/results, user-journey-reports, etc.)
 # pour libérer de l'espace. Les dossiers plus vieux que JOURS sont archivés en .tar.gz
-# Usage: ./scripts/compress-old-reports.sh [JOURS]   (défaut: 14)
+# Usage: ./scripts/reports/compress-old-reports.sh [JOURS]   (défaut: 14)
 
 set -euo pipefail
 
 JOURS="${1:-14}"
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULTS_DIR="${TESTS_RESULTS_DIR:-$PROJECT_ROOT/tests/results}"
 USER_JOURNEY_DIR="${USER_JOURNEY_REPORTS_DIR:-$PROJECT_ROOT/tests/user-journey-reports}"
 ARCHIVE_DIR="${ARCHIVE_REPORTS_DIR:-$PROJECT_ROOT/tests/archived}"

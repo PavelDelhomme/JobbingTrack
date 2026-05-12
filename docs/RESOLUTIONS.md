@@ -506,7 +506,7 @@
 1. **`frontend/src/app/api/test-reports/view/route.ts`** : utilisation de `process.env.USER_JOURNEY_REPORTS_DIR` pour le type user-journey (comme pour la liste), au lieu de `/tmp/journey-reports` en Docker.
 2. **`frontend/src/app/(admin)/backoffice/test-reports/page.tsx`** : en cas de 404 sur un rapport, message explicite « Rapport introuvable… Rafraîchissez la liste pour ne voir que les rapports disponibles ».
 3. **`scripts/run-all-tests-with-reports.sh`** : génération du JSON de résultat avec `jq -Rs .` pour `testName` et `command` (échappement correct) ; lorsque `exit_code != 0` et aucune stat extraite, forcer `total=1`, `failed=1` pour afficher 1 échec (ex. API Gateway Health).
-4. **`scripts/compress-old-reports.sh`** : nouveau script pour compresser en .tar.gz les rapports de plus de N jours (défaut 14) dans `tests/archived/`. Usage : `./scripts/compress-old-reports.sh [JOURS]`.
+4. **`scripts/reports/compress-old-reports.sh`** : script pour compresser en .tar.gz les rapports de plus de N jours (défaut 14) dans `tests/archived/`. Usage : `./scripts/reports/compress-old-reports.sh [JOURS]`.
 
 ### Note pour plus tard
 - **Rosenpath / WireGuard / logs** : mettre en place rosenpath pour la sécurité, WireGuard et une stratégie de rotation/archivage des logs (à documenter dans STATUS ou FONCTIONNALITES).

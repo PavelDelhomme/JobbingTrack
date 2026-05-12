@@ -11,7 +11,7 @@ set -euo pipefail
 
 set_term_title() { printf '\033]0;%s\007' "$1" 2>/dev/null || true; }
 
-ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 INTERVAL="${INTERVAL:-5}"
 ALTSCREEN="${ALTSCREEN:-1}"
 CLEAR="${CLEAR:-0}"

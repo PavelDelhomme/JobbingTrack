@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Suivi continu des logs compose : se reconnecte si le flux se coupe (conteneurs arrêtés/redémarrés).
-# Couleurs : même pipeline que `make logs` → scripts/color-logs.sh
+# Couleurs : même pipeline que `make logs` -> scripts/ops/color-logs.sh
 # Ctrl+C : quitte proprement (code 130).
 set -u
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 set_term_title() { printf '\033]0;%s\007' "$1" 2>/dev/null || true; }
@@ -27,7 +27,7 @@ while true; do
     continue
   fi
   set +e
-  docker compose "$@" logs -f -t 2>&1 | bash "$ROOT_DIR/scripts/color-logs.sh"
+  docker compose "$@" logs -f -t 2>&1 | bash "$ROOT_DIR/scripts/ops/color-logs.sh"
   pipe=("${PIPESTATUS[@]}")
   dc="${pipe[0]:-1}"
   # 130 = Ctrl+C sur docker compose — quitter. 141 = SIGPIPE (pipeline/couleurs) — reconnecter, ne pas confondre avec Ctrl+C.

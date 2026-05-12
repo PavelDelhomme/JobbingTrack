@@ -35,6 +35,11 @@ scripts/
 | `scripts/db/create-prisma-tables-safe.sh` | Reconstruction Prisma manuelle en préservant les tables monitoring-c. |
 | `scripts/ops/dev-https-certs.sh` | Génération et installation navigateur de la CA HTTPS dev, utilisé par `make dev-https-*`. |
 | `scripts/ops/inventory-scripts.cjs` | Inventaire des scripts et références, utilisé par `make scripts-inventory`. |
+| `scripts/ops/color-logs.sh` | Coloration des logs Docker. |
+| `scripts/ops/logs-watch.sh` | Suivi continu des logs avec reconnexion. |
+| `scripts/ops/status-watch-loop.sh` | Watch `make status`, utilisé par `make status-watch` / `status-live`. |
+| `scripts/ops/timed-make.sh` | Mesure de durée d'une cible Make. |
+| `scripts/ops/make-menu.sh` | Menu interactif Make. |
 | `scripts/health/check-env.sh` | Validation `.env`. |
 | `scripts/health/check-services.sh` | Inspection des conteneurs JobbingTrack. |
 | `scripts/docker/diagnose-network.sh` | Diagnostic réseau Docker local (`veth`, `bridge`, `overlay`) quand les conteneurs ne peuvent plus se connecter. |
@@ -45,7 +50,11 @@ scripts/
 | `scripts/monitoring/resource-budget-sample.py` | Mesure CPU/RAM/I/O p95 des conteneurs ciblés. |
 | `scripts/monitoring/redis-memory-report.sh` | Rapport mémoire Redis. |
 | `scripts/reports/show-mobile-report.sh` | Ouverture du rapport HTML mobile, utilisé par `make test-mobile-report`. |
+| `scripts/reports/compress-old-reports.sh` | Compression des anciens rapports de tests. |
+| `scripts/reports/clean-empty-reports.sh` | Nettoyage des rapports vides ou invalides. |
 | `scripts/reports/clean-all-reports-docker.sh` | Nettoyage manuel des rapports dans le conteneur frontend. |
+| `scripts/performance/performance-benchmark.sh` | Benchmark before/after léger. |
+| `scripts/performance/benchmark-all-backoffice.sh` | Benchmark complet des pages backoffice. |
 | `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
 | `scripts/verify-user-journey.sh` | Parcours API utilisateur. |
 | `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
