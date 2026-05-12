@@ -16,7 +16,7 @@ const API_URL = process.env.API_GATEWAY_URL || process.env.API_URL || 'http://lo
 const GMAIL_EMAIL = process.env.TEST_GMAIL_EMAIL || `jt-inscription-${Date.now()}@jobbingtrack.test`;
 const GMAIL_PASSWORD = 'password123';
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 const outPath = path.join(__dirname, 'results', 'inscription-gmail-check.log');
 function log(msg) {

@@ -147,6 +147,13 @@ if [ -f "${ROOT_DIR}/scripts/db/fix-application-isarchived.sql" ]; then
   echo ""
 fi
 
+# Fix colonne Application.isTestData (nettoyage ciblé données de test)
+if [ -f "${ROOT_DIR}/scripts/db/fix-application-isTestData.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Application.isTestData (si absente)"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/fix-application-isTestData.sql" 2>&1 | grep -E "NOTICE|ERROR" || true
+  echo ""
+fi
+
 # Fix colonne Application.thankYouEmailSentAt (moteur de statut / email remerciement)
 if [ -f "${ROOT_DIR}/scripts/db/fix-application-thankyou-sent.sql" ]; then
   echo "[DB-PUSH-ALL] Fix Application.thankYouEmailSentAt (si absente)"

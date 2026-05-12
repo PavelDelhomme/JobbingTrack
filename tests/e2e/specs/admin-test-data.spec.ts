@@ -6,8 +6,8 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
-const ADMIN_EMAIL = 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 test.describe('Testeur de Données de Test - Tests Complets', () => {
   test.beforeEach(async ({ page }) => {

@@ -28,11 +28,46 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR" || true
 
+load_env_file_safely() {
+    local env_file="$1"
+    local line key value
+
+    [ -f "$env_file" ] || return 0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line%$'\r'}"
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" != *=* ]] && continue
+
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="$(printf '%s' "$key" | xargs)"
+
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+        if [[ "${!key+x}" ]]; then
+            continue
+        fi
+
+        if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+
+        export "$key=$value"
+    done < "$env_file"
+}
+
 if [ -f "$ROOT_DIR/.env" ]; then
-	set -a
-	# shellcheck source=/dev/null
-	. "$ROOT_DIR/.env"
-	set +a
+    load_env_file_safely "$ROOT_DIR/.env"
+fi
+export TEST_ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-${ADMIN_EMAIL:-admin@jobbingtrack.test}}"
+if [ -n "${ADMIN_PASSWORD:-}" ] && [ "${TEST_ADMIN_EMAIL:-}" = "${ADMIN_EMAIL:-}" ]; then
+    # Le seed auth met à jour ADMIN_EMAIL avec ADMIN_PASSWORD. Si TEST_ADMIN_EMAIL pointe
+    # vers le même compte, le mot de passe de test doit suivre le compte seedé.
+    export TEST_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+else
+    export TEST_ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD:-${ADMIN_PASSWORD:-password123}}"
 fi
 export SECURITY_INTERNAL_SECRET="${SECURITY_INTERNAL_SECRET:-}"
 
@@ -86,7 +121,9 @@ if command -v docker >/dev/null 2>&1 && docker ps 2>/dev/null | grep -q jobbingt
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser emailVerified)...${NC}"
     docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.test}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
         -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
-        jobbingtrack-auth-service npx prisma db seed 2>/dev/null && echo -e "${GREEN}   ✅ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré (déjà à jour ou erreur)${NC}"
+        jobbingtrack-auth-service npx prisma db seed 2>/dev/null \
+        | sed -E 's/(Mot de passe: ).*/\1[masqué]/' \
+        && echo -e "${GREEN}   ✅ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré (déjà à jour ou erreur)${NC}"
     echo ""
 fi
 
@@ -513,7 +550,9 @@ if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q 
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser email vérifié)...${NC}"
     docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.test}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
         -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
-        jobbingtrack-auth-service npx prisma db seed 2>/dev/null && echo -e "${GREEN}   ✓ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré ou déjà à jour${NC}"
+        jobbingtrack-auth-service npx prisma db seed 2>/dev/null \
+        | sed -E 's/(Mot de passe: ).*/\1[masqué]/' \
+        && echo -e "${GREEN}   ✓ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré ou déjà à jour${NC}"
     echo ""
 fi
 
@@ -1577,10 +1616,11 @@ echo ""
 if [ -f "$HTML_REPORT" ] && [ -f "$SUMMARY_RESULT" ]; then
     if [ $TOTAL_FAILED -eq 0 ]; then
         echo -e "${GREEN}✅ Tous les tests ont réussi !${NC}"
+        exit 0
     else
         echo -e "${YELLOW}⚠️  $TOTAL_FAILED test(s) échoué(s) – voir le rapport pour les détails${NC}"
+        exit 1
     fi
-    exit 0
 else
     echo -e "${RED}❌ Erreur : Le rapport n'a pas pu être généré${NC}"
     exit 1

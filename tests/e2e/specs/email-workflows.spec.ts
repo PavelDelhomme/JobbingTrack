@@ -28,7 +28,7 @@ async function loginAdminToken(request: any): Promise<string> {
   const loginRes = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
     data: {
       email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test',
-      password: process.env.TEST_ADMIN_PASSWORD || 'password123',
+      password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123',
     },
   });
   expect(loginRes.status(), 'Login admin requis pour lire EmailLog').toBe(200);
@@ -285,7 +285,7 @@ test.describe('Workflows Email Complets', () => {
         const loginRes = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
           data: {
             email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test',
-            password: process.env.TEST_ADMIN_PASSWORD || 'password123',
+            password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123',
           },
         });
 

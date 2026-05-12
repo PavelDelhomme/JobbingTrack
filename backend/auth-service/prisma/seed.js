@@ -55,7 +55,7 @@ async function main() {
   console.log('')
   console.log('🔐 Compte de test:')
   console.log(`   Email: ${adminEmail}`)
-  console.log(`   Mot de passe: ${adminPassword}`)
+  console.log('   Mot de passe: valeur ADMIN_PASSWORD chargée depuis l’environnement (masquée)')
 
   // Utilisateur classique (rôle USER) pour les tests API "utilisateur mobile" (getTestUser)
   const testUserEmail = process.env.TEST_USER_EMAIL || 'testuser@jobbingtrack.test'

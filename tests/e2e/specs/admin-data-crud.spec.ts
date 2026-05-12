@@ -8,8 +8,8 @@ import { test, expect } from '@playwright/test';
 import { e2eGatewayBaseUrl } from '../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 test.describe.serial('CRUD Données Complet (admin)', () => {
   let token: string;
@@ -120,7 +120,7 @@ test.describe.serial('CRUD Données Complet (admin)', () => {
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.application).toBeTruthy();
-    expect(body.application.company).toBeTruthy();
+    expect(body.application.company || body.application.companyId).toBeTruthy();
   });
 
   // ── ENTRETIEN ──

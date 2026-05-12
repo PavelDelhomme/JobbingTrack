@@ -17,6 +17,16 @@ const { getTestUser, API_URL } = require('../helpers/auth.helper');
 
 const PREFIX = 'ENGTEST';
 
+function responseApplication(response) {
+  return response.data?.application || response.data?.data?.application || response.data?.data;
+}
+
+function applicationStatusCode(application) {
+  if (!application) return undefined;
+  if (typeof application.status === 'string') return application.status;
+  return application.status?.code || application.statusCode || application.statusId;
+}
+
 describe('Moteur de statut intelligent (utilisateur classique)', () => {
   let authHeaders;
   let validToken;
@@ -188,7 +198,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         { headers: authHeaders, validateStatus: () => true }
       );
 
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(statusCode).toBe('CANDIDATE_PENDING');
 
       // Nettoyer
@@ -214,7 +224,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         `${API_URL}/api/v1/applications/${testApplicationId2}`,
         { headers: authHeaders, validateStatus: () => true }
       );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(statusCode).toBe('INTERVIEW_PENDING');
 
       // Remettre en CANDIDATE_PENDING pour les tests suivants
@@ -249,7 +259,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         `${API_URL}/api/v1/applications/${testApplicationId}`,
         { headers: authHeaders, validateStatus: () => true }
       );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(statusCode).toBe('INTERVIEW_PENDING');
     });
 
@@ -264,7 +274,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         `${API_URL}/api/v1/applications/${testApplicationId}`,
         { headers: authHeaders, validateStatus: () => true }
       );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(statusCode).toBe('INTERVIEW_DONE');
     });
   });
@@ -386,7 +396,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         { headers: authHeaders, validateStatus: () => true }
       );
 
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       // Le statut doit encore etre CANDIDATE_PENDING (pas de time-travel encore)
       expect(['CANDIDATE_PENDING', 'INTERVIEW_PENDING'].includes(statusCode)).toBe(true);
     });
@@ -468,7 +478,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         { headers: authHeaders, validateStatus: () => true }
       );
 
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(statusCode).toBe('REJECTED');
 
       // Verifier que l'historique contient le commentaire
@@ -524,7 +534,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         headers: authHeaders,
         validateStatus: () => true
       });
-      const statusCode = afterApp.data?.application?.status?.code || afterApp.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(afterApp));
       expect(statusCode).toBe('INTERVIEW_PENDING');
 
       if (intId) {
@@ -581,7 +591,7 @@ describe('Moteur de statut intelligent (utilisateur classique)', () => {
         headers: authHeaders,
         validateStatus: () => true
       });
-      const statusCode = afterApp.data?.application?.status?.code || afterApp.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(afterApp));
       expect(statusCode).toBe('CANDIDATE_PENDING');
 
       if (intId) {

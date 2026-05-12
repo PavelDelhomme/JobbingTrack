@@ -22,8 +22,8 @@ import { e2eGatewayBaseUrl } from '../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
 const MAILHOG_WEB = process.env.MAILHOG_WEB_URL || 'http://localhost:8025';
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 test.describe('Emails + MailHog', () => {
   let authToken: string | null = null;
@@ -49,7 +49,7 @@ test.describe('Emails + MailHog', () => {
   });
 
   test('envoi email de test puis vérification réception dans MailHog via API', async ({ request }) => {
-    if (!authToken) throw new Error('Login admin requis pour envoyer un email de test (admin@jobbingtrack.test / password123)');
+    if (!authToken) throw new Error('Login admin requis pour envoyer un email de test');
 
     const { total: countBefore } = await getMessages(1);
 

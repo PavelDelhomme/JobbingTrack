@@ -32,6 +32,18 @@ refresh_icurl_hdrs() {
 }
 refresh_icurl_hdrs
 
+if [ -z "$TOKEN" ]; then
+  ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-${ADMIN_EMAIL:-admin@jobbingtrack.test}}"
+  ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD:-${ADMIN_PASSWORD:-password123}}"
+  login_body=$(curl -s --max-time 10 -X POST "${AUTH_GATEWAY_URL}/api/v1/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" 2>/dev/null || true)
+  TOKEN=$(printf '%s' "$login_body" | python3 -c "import sys,json; data=json.load(sys.stdin); print(data.get('token') or data.get('data', {}).get('token') or '')" 2>/dev/null || true)
+  if [ -n "$TOKEN" ]; then
+    echo "🔐 Auth admin JWT OK pour les routes firewall/WAF"
+  fi
+fi
+
 echo "🔥 Test du Firewall et WAF"
 echo "=========================="
 echo ""

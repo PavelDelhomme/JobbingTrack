@@ -5,7 +5,7 @@
 
 const axios = require('axios');
 const { describe, it, expect, beforeAll } = require('@jest/globals');
-const { API_URL } = require('../helpers/auth.helper');
+const { API_URL, getAdminUser } = require('../helpers/auth.helper');
 const TEST_INTERNAL_SECRET = 'test-internal-security-secret';
 
 async function waitForApiGateway(maxMs = 45000, stepMs = 1500) {
@@ -32,8 +32,17 @@ describe('Security Service', () => {
   let authHeaders;
 
   beforeAll(async () => {
+    let adminHeaders = {};
+    try {
+      adminHeaders = (await getAdminUser()).headers;
+    } catch (error) {
+      // Le secret interne reste un fallback pour les environnements sans seed admin.
+      console.warn(`Admin JWT indisponible pour les tests firewall/WAF: ${error.message}`);
+    }
+
     authHeaders = {
       'Content-Type': 'application/json',
+      ...adminHeaders,
       'X-Internal-Secret':
         process.env.SECURITY_INTERNAL_SECRET || TEST_INTERNAL_SECRET
     };

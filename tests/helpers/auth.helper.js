@@ -14,8 +14,8 @@ const { normalizeGatewayUrlForHost } = require('./dockerHostUrl');
 
 const API_URL = normalizeGatewayUrlForHost(process.env.API_GATEWAY_URL);
 
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'testuser@jobbingtrack.test';
 const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'TestPassword123!';

@@ -15,8 +15,8 @@ export async function getAdminToken(request: APIRequestContext): Promise<string>
   try {
     const resp = await request.post(`${API_URL}/api/v1/auth/login`, {
       data: {
-        email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test',
-        password: process.env.TEST_ADMIN_PASSWORD || 'password123',
+        email: process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test',
+        password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123',
       },
     });
     if (!resp.ok()) return '';
@@ -95,8 +95,8 @@ export async function ensureTestUser(request: APIRequestContext): Promise<{ emai
  */
 export function getAdminCredentials(): { email: string; password: string } {
   return {
-    email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test',
-    password: process.env.TEST_ADMIN_PASSWORD || 'password123',
+    email: process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test',
+    password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123',
   };
 }
 

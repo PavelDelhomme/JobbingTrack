@@ -17,6 +17,16 @@ const { getTestUser, API_URL } = require('../helpers/auth.helper');
 
 const PREFIX = 'CASCTEST';
 
+function responseApplication(response) {
+  return response.data?.application || response.data?.data?.application || response.data?.data;
+}
+
+function applicationStatusCode(application) {
+  if (!application) return undefined;
+  if (typeof application.status === 'string') return application.status;
+  return application.status?.code || application.statusCode || application.statusId;
+}
+
 describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
   let authHeaders;
   let validToken;
@@ -117,8 +127,7 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
         { headers: authHeaders, validateStatus: () => true }
       );
       expect(appRes.status).toBe(200);
-      const app = appRes.data?.application;
-      const statusCode = app?.status?.code || app?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       // Cascade auto peut être désactivée (statusEngine) : accepter les deux
       expect(['INTERVIEW_PENDING', 'CANDIDATE_PENDING']).toContain(statusCode);
     });
@@ -139,7 +148,7 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
         `${API_URL}/api/v1/applications/${testApplicationId}`,
         { headers: authHeaders, validateStatus: () => true }
       );
-      const statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+      const statusCode = applicationStatusCode(responseApplication(appRes));
       expect(['INTERVIEW_DONE', 'INTERVIEW_PENDING', 'CANDIDATE_PENDING']).toContain(statusCode);
     });
   });
@@ -167,7 +176,7 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
           `${API_URL}/api/v1/applications/${testApplicationId}`,
           { headers: authHeaders, validateStatus: () => true }
         );
-        statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+        statusCode = applicationStatusCode(responseApplication(appRes));
         if (statusCode === 'OFFER_RECEIVED') break;
         await new Promise(r => setTimeout(r, 800));
       }
@@ -193,7 +202,7 @@ describe('Cascade Statuts & Auto-événements (utilisateur classique)', () => {
           `${API_URL}/api/v1/applications/${testApplicationId}`,
           { headers: authHeaders, validateStatus: () => true }
         );
-        statusCode = appRes.data?.application?.status?.code || appRes.data?.application?.statusCode;
+        statusCode = applicationStatusCode(responseApplication(appRes));
         if (statusCode === 'REJECTED') break;
         await new Promise(r => setTimeout(r, 600));
       }
