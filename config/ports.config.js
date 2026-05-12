@@ -21,7 +21,7 @@ module.exports = {
     DASHBOARD_SERVICE: process.env.DASHBOARD_SERVICE_PORT || 8012,
     POSTGRES: process.env.POSTGRES_PORT || 5432,
     REDIS: process.env.REDIS_PORT || 6379,
-    MAILHOG: process.env.MAILHOG_PORT || 8025,
+    MAILHOG: process.env.MAILHOG_WEB_PORT || process.env.MAILHOG_PORT || 8025,
   },
 
   // Ports internes (dans les conteneurs Docker)

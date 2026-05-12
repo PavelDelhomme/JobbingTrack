@@ -34,7 +34,7 @@ Exemple avec **noreply@maily.ovh** (MX Plan maily.ovh actif) — affichage expé
 ```env
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=587
-SMTP_SECURE=false
+SMTP_SECURE=true
 SMTP_USE_SSL=false
 SMTP_USER=noreply@maily.ovh
 SMTP_PASS=<mot_de_passe_compte_maily.ovh>
@@ -44,7 +44,7 @@ EMAIL_PROVIDER=SMTP
 ```
 
 - **Alternative** : si tu as un compte **noreply@jobbingtrack.com**, mets `SMTP_USER=noreply@jobbingtrack.com` et `SMTP_PASS` correspondant.
-- **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USE_SSL=true`.
+- **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=false`, `SMTP_USE_SSL=true`.
 
 Détail des variables et commandes de test : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 
