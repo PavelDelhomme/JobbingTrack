@@ -22,84 +22,84 @@ export default function ServicesManagementPage() {
       name: 'Service d\'Authentification',
       description: 'Gestion des utilisateurs et authentification',
       icon: '🔐',
-      route: '/backoffice/services/auth-service'
+      route: '/b4ck0ff1ce/services/auth-service'
     },
     {
       id: 'application-service',
       name: 'Service des Candidatures',
       description: 'Gestion des candidatures et processus',
       icon: '📝',
-      route: '/backoffice/services/application-service'
+      route: '/b4ck0ff1ce/services/application-service'
     },
     {
       id: 'company-service',
       name: 'Service des Entreprises',
       description: 'Gestion des entreprises et recrutement',
       icon: '🏢',
-      route: '/backoffice/services/company-service'
+      route: '/b4ck0ff1ce/services/company-service'
     },
     {
       id: 'contact-service',
       name: 'Service des Contacts',
       description: 'Gestion des contacts et réseaux',
       icon: '👥',
-      route: '/backoffice/services/contact-service'
+      route: '/b4ck0ff1ce/services/contact-service'
     },
     {
       id: 'interview-service',
       name: 'Service des Entretiens',
       description: 'Gestion des entretiens et calendrier',
       icon: '📅',
-      route: '/backoffice/services/interview-service'
+      route: '/b4ck0ff1ce/services/interview-service'
     },
     {
       id: 'call-service',
       name: 'Service des Appels',
       description: 'Gestion des appels et communications',
       icon: '📞',
-      route: '/backoffice/services/call-service'
+      route: '/b4ck0ff1ce/services/call-service'
     },
     {
       id: 'notification-service',
       name: 'Service de Notifications',
       description: 'Gestion des notifications et alertes',
       icon: '🔔',
-      route: '/backoffice/services/notification-service'
+      route: '/b4ck0ff1ce/services/notification-service'
     },
     {
       id: 'dashboard-service',
       name: 'Service du Tableau de Bord',
       description: 'Gestion des métriques et analytics',
       icon: '📊',
-      route: '/backoffice/services/dashboard-service'
+      route: '/b4ck0ff1ce/services/dashboard-service'
     },
     {
       id: 'workflow-service',
       name: 'Service de Workflow',
       description: 'Gestion des workflows automatisés',
       icon: '⚙️',
-      route: '/backoffice/services/workflow-service'
+      route: '/b4ck0ff1ce/services/workflow-service'
     },
     {
       id: 'event-service',
       name: 'Service des Événements',
       description: 'Gestion des événements et rappels',
       icon: '🎯',
-      route: '/backoffice/services/event-service'
+      route: '/b4ck0ff1ce/services/event-service'
     },
     {
       id: 'followup-service',
       name: 'Service de Relances',
       description: 'Gestion des relances automatiques',
       icon: '📧',
-      route: '/backoffice/services/followup-service'
+      route: '/b4ck0ff1ce/services/followup-service'
     },
     {
       id: 'profile-service',
       name: 'Service des Profils',
       description: 'Gestion des profils utilisateurs',
       icon: '👤',
-      route: '/backoffice/services/profile-service'
+      route: '/b4ck0ff1ce/services/profile-service'
     }
   ];
 

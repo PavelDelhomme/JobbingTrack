@@ -165,7 +165,7 @@ export default function SecurityTestsPage() {
         {reportId && (
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <Link
-              href={`/backoffice/test-reports?open=${encodeURIComponent(reportId)}`}
+              href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(reportId)}`}
               className="inline-flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:underline font-medium"
             >
               <FileText className="w-4 h-4" />
@@ -197,7 +197,7 @@ export default function SecurityTestsPage() {
             {reportId && (
               <div className="mt-3 pt-3 border-t border-gray-700">
                 <Link
-                  href={`/backoffice/test-reports?open=${encodeURIComponent(reportId)}`}
+                  href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(reportId)}`}
                   className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
                 >
                   <FileText className="w-4 h-4" />

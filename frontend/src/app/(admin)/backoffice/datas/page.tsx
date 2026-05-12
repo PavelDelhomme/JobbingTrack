@@ -47,15 +47,15 @@ export default function DataPage() {
   useEffect(() => {
     const tabFromUrl = searchParams?.get('tab')
     if (tabFromUrl === 'test-data') {
-      router.replace('/backoffice/test-data')
+      router.replace('/b4ck0ff1ce/test-data')
       return
     }
     if (tabFromUrl === 'billing') {
-      router.replace('/backoffice/billing')
+      router.replace('/b4ck0ff1ce/billing')
       return
     }
     if (tabFromUrl === 'user-stats') {
-      router.replace('/backoffice/user-stats')
+      router.replace('/b4ck0ff1ce/user-stats')
       return
     }
     setActiveTab(tabFromUrl || 'management')
@@ -64,7 +64,7 @@ export default function DataPage() {
   // Mettre à jour l'URL quand l'onglet change
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId)
-    const newUrl = `/backoffice/datas${tabId !== 'management' ? `?tab=${tabId}` : ''}`
+    const newUrl = `/b4ck0ff1ce/datas${tabId !== 'management' ? `?tab=${tabId}` : ''}`
     router.push(newUrl, { scroll: false })
   }
 

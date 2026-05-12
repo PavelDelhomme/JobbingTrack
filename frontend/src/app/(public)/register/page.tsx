@@ -59,7 +59,7 @@ export default function RegisterPage() {
       localStorage.setItem('token', data.token)
       
       // Redirection vers le dashboard
-      router.push('/backoffice')
+      router.push('/b4ck0ff1ce')
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue')
     } finally {

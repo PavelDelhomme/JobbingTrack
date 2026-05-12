@@ -714,7 +714,7 @@ export default function FirewallPage() {
                         )}
                         {item.threatId && (
                           <Link
-                            href={`/backoffice/security/threats/${item.threatId}`}
+                            href={`/b4ck0ff1ce/security/threats/${item.threatId}`}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
                           >
                             Fiche menace

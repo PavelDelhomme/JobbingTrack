@@ -261,7 +261,7 @@ export default function UsersPage() {
 
   const impersonateUser = (user: User) => {
     // Rediriger vers l'émulateur mobile avec cet utilisateur
-    router.push(`/backoffice/mobile-emulator?impersonate=${user.id}`)
+    router.push(`/b4ck0ff1ce/mobile-emulator?impersonate=${user.id}`)
     setShowDetailModal(false)
   }
 

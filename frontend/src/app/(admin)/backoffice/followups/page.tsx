@@ -282,13 +282,13 @@ export default function FollowupsPage() {
           onClose={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/backoffice/followups');
+              router.push('/b4ck0ff1ce/followups');
             }
           }}
           onSuccess={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/backoffice/followups');
+              router.push('/b4ck0ff1ce/followups');
             }
             loadFollowups();
           }}

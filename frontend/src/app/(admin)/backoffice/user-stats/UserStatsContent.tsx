@@ -135,7 +135,7 @@ export default function UserStatsContent() {
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Vue détaillée (sessions, événements, erreurs) :{' '}
-            <Link href="/backoffice/user-analytics" className="text-blue-600 dark:text-blue-400 underline hover:no-underline">
+            <Link href="/b4ck0ff1ce/user-analytics" className="text-blue-600 dark:text-blue-400 underline hover:no-underline">
               Analytics utilisateur
             </Link>
           </p>

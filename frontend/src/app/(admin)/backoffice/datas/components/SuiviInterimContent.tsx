@@ -127,11 +127,11 @@ export default function SuiviInterimContent() {
         {!loadError && agencies.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             Aucune boîte d&apos;intérim. Créez une entreprise avec le type &quot;Boîte d&apos;intérim&quot; depuis l&apos;onglet{' '}
-            <Link href="/backoffice/datas?tab=companies" className="text-amber-600 dark:text-amber-400 hover:underline">
+            <Link href="/b4ck0ff1ce/datas?tab=companies" className="text-amber-600 dark:text-amber-400 hover:underline">
               Entreprises
             </Link>
             {' '}(filtre Boîtes d&apos;intérim), ou générez des données de test depuis{' '}
-            <Link href="/backoffice/test-data" className="text-amber-600 dark:text-amber-400 hover:underline">
+            <Link href="/b4ck0ff1ce/test-data" className="text-amber-600 dark:text-amber-400 hover:underline">
               Données de test
             </Link>
             .
@@ -181,7 +181,7 @@ export default function SuiviInterimContent() {
                           {apps.map((app) => (
                             <li key={app.id}>
                               <Link
-                                href={`/backoffice/applications/${app.id}`}
+                                href={`/b4ck0ff1ce/applications/${app.id}`}
                                 className="block px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:border-amber-300 dark:hover:border-amber-600 transition-colors"
                               >
                                 <span className="font-medium text-gray-900 dark:text-gray-100">{app.position}</span>

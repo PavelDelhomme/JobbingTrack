@@ -1267,7 +1267,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
 
       <div className="mb-3 p-2.5 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-gray-700 dark:text-gray-300 text-xs">
         Pour tester <strong>inscription + envoi email de vérification</strong> (Gmail, Proton, BlueMail) <strong>en direct sur votre téléphone</strong> : choisissez un parcours ci-dessous, cliquez sur <strong>Lancer le parcours</strong>. Les actions s’exécutent en live sur l’appareil. Consultez{' '}
-        <a href="/backoffice/email-monitor" className="text-indigo-600 dark:text-indigo-400 underline">Email Monitor</a>
+        <a href="/b4ck0ff1ce/email-monitor" className="text-indigo-600 dark:text-indigo-400 underline">Email Monitor</a>
         {' '}(rafraîchi en temps réel) pour voir l’email envoyé ; l’utilisateur peut ensuite se connecter après vérification.
       </div>
 
@@ -1302,7 +1302,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
         </div>
         <p className="mt-2 text-[11px] text-purple-700 dark:text-purple-400">
           Flux attendu : Accepter les conditions → S&apos;inscrire → écran &quot;Vérifiez votre email&quot; → ouvrir Gmail/Proton/OVH sur l&apos;appareil → cliquer le lien → retour app → Se connecter → Dashboard. Vérifiez les envois dans{' '}
-          <a href="/backoffice/email-monitor" className="underline">Email Monitor</a> et dans votre boîte réelle.
+          <a href="/b4ck0ff1ce/email-monitor" className="underline">Email Monitor</a> et dans votre boîte réelle.
         </p>
       </div>
 
@@ -1367,10 +1367,10 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
           </button>
         )}
         <div className="flex gap-2 ml-auto">
-          <a href="/backoffice/user-journey" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Tous les parcours</a>
-          <a href="/backoffice/user-journey/custom" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Personnalise</a>
-          <a href="/backoffice/user-journey/reports" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Rapports</a>
-          <a href="/backoffice/email-monitor" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Email Monitor</a>
+          <a href="/b4ck0ff1ce/user-journey" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Tous les parcours</a>
+          <a href="/b4ck0ff1ce/user-journey/custom" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Personnalise</a>
+          <a href="/b4ck0ff1ce/user-journey/reports" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Rapports</a>
+          <a href="/b4ck0ff1ce/email-monitor" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Email Monitor</a>
         </div>
       </div>
 

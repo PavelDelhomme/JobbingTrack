@@ -125,7 +125,7 @@ export default function BackofficeApplicationDetailPage() {
         <div className="p-4 sm:p-8">
           <p className="text-gray-500 dark:text-gray-400">Candidature non trouvée</p>
           <button
-            onClick={() => router.push('/backoffice/companies')}
+            onClick={() => router.push('/b4ck0ff1ce/companies')}
             className="mt-4 text-blue-600 dark:text-blue-400"
           >
             ← Retour
@@ -159,7 +159,7 @@ export default function BackofficeApplicationDetailPage() {
                 onClick={async () => {
                   if (confirm('Supprimer cette candidature ?')) {
                     await applicationService.delete(application.id)
-                    router.push('/backoffice/companies')
+                    router.push('/b4ck0ff1ce/companies')
                   }
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"

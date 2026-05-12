@@ -29,8 +29,8 @@ Pages principales de l'application (authentification requise) :
 
 ### `(admin)/` - Administration
 Pages d'administration système (rôle admin requis) :
-- `/backoffice` - Vue d'ensemble administration
-  - `/backoffice/analytics` - Analyses admin
+- `/b4ck0ff1ce` - Vue d'ensemble administration
+  - `/b4ck0ff1ce/analytics` - Analyses admin
 - `/analytics` - Métriques et analyses système
 - `/settings` - Configuration système
 - `/notifications` - Gestion des notifications
@@ -60,7 +60,7 @@ Outils de développement (mode dev uniquement, rôle admin requis) :
 - `/tests/playwright` - Tests Playwright
 - `/mobile-emulator` - Émulateur mobile
 - `/services/applications` - Services applicatifs
-- `/services/backoffice` - Services backoffice
+- `/services/b4ck0ff1ce` - Services backoffice
 
 ### `api/` - API Routes
 Routes API Next.js :

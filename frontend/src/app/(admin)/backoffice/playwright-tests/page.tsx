@@ -49,7 +49,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce/contacts', description: 'Naviguer vers la page Contacts' },
       { id: '2', action: 'click', target: 'button:has-text("Nouveau contact")', description: 'Cliquer sur le bouton Nouveau contact' },
       { id: '3', action: 'fill', target: 'input[name="firstName"]', value: 'John', description: 'Remplir le prénom' },
       { id: '4', action: 'fill', target: 'input[name="lastName"]', value: 'Doe', description: 'Remplir le nom' },
@@ -66,7 +66,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce/contacts', description: 'Naviguer vers la page Contacts' },
       { id: '2', action: 'click', target: 'button[aria-label*="Supprimer"]:first', description: 'Cliquer sur le bouton Supprimer du premier contact' },
       { id: '3', action: 'click', target: 'button:has-text("OK")', description: 'Confirmer la suppression' },
       { id: '4', action: 'waitFor', target: 'text=Aucun contact trouvé', description: 'Vérifier que le contact a été supprimé' }
@@ -79,7 +79,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce/contacts', description: 'Naviguer vers la page Contacts' },
       { id: '2', action: 'click', target: 'button:has-text("Nouveau contact")', description: 'Cliquer sur Nouveau contact' },
       { id: '3', action: 'fill', target: 'input[name="firstName"]', value: 'Jane', description: 'Remplir le prénom' },
       { id: '4', action: 'fill', target: 'input[name="lastName"]', value: 'Smith', description: 'Remplir le nom' },
@@ -95,7 +95,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'applications',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/applications', description: 'Naviguer vers les candidatures' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce/applications', description: 'Naviguer vers les candidatures' },
       { id: '2', action: 'click', target: 'button:has-text("Nouvelle candidature")', description: 'Cliquer sur Nouvelle candidature' },
       { id: '3', action: 'fill', target: 'input[name="position"]', value: 'Développeur Full Stack', description: 'Remplir le poste' },
       { id: '4', action: 'fill', target: 'input[placeholder*="entreprise"]', value: 'Tech Corp', description: 'Remplir l\'entreprise' },
@@ -110,7 +110,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'followups',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/followups', description: 'Naviguer vers les relances' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce/followups', description: 'Naviguer vers les relances' },
       { id: '2', action: 'click', target: 'button:has-text("Nouvelle relance")', description: 'Cliquer sur Nouvelle relance' },
       { id: '3', action: 'select', target: 'select[name="applicationId"]', value: '1', description: 'Sélectionner une candidature' },
       { id: '4', action: 'fill', target: 'input[name="subject"]', value: 'Relance candidature', description: 'Remplir le sujet' },
@@ -125,7 +125,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'sync',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice', description: 'Naviguer vers le dashboard' },
+      { id: '1', action: 'navigate', target: '/b4ck0ff1ce', description: 'Naviguer vers le dashboard' },
       { id: '2', action: 'click', target: 'button[aria-label*="Synchroniser"]', description: 'Cliquer sur synchroniser' },
       { id: '3', action: 'waitFor', target: 'text=Synchronisation terminée', description: 'Vérifier la synchronisation' }
     ]
@@ -247,7 +247,7 @@ export default function PlaywrightTestsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (data.reportId) {
-        window.open(`/backoffice/test-reports?open=${encodeURIComponent(data.reportId)}`, '_blank');
+        window.open(`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(data.reportId)}`, '_blank');
         alert(`Rapport généré : ${data.reportId}. Ouvert dans un nouvel onglet.`);
       } else if (!res.ok) {
         alert(data.error || 'Erreur lors du lancement de la suite Playwright.');

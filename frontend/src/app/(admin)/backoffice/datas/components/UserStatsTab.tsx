@@ -113,7 +113,7 @@ export default function UserStatsTab() {
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
               Vue détaillée (graphiques, pages, appareils) :{' '}
-              <Link href="/backoffice/user-analytics" className="text-blue-600 dark:text-blue-400 underline">
+              <Link href="/b4ck0ff1ce/user-analytics" className="text-blue-600 dark:text-blue-400 underline">
                 Analytics utilisateur
               </Link>
             </p>
@@ -125,7 +125,7 @@ export default function UserStatsTab() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <p className="text-gray-600 dark:text-gray-400">Aucune statistique enregistrée pour le moment.</p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-            <Link href="/backoffice/user-analytics" className="text-blue-600 dark:text-blue-400 underline">Analytics utilisateur</Link> pour plus de détails.
+            <Link href="/b4ck0ff1ce/user-analytics" className="text-blue-600 dark:text-blue-400 underline">Analytics utilisateur</Link> pour plus de détails.
           </p>
         </div>
       )}

@@ -86,7 +86,7 @@ export default function CompanyDetailView() {
     if (!confirm('Supprimer cette entreprise ? Les candidatures liées seront affectées.')) return;
     try {
       await companyService.delete(companyId);
-      router.push('/backoffice/companies');
+      router.push('/b4ck0ff1ce/companies');
     } catch (error) {
       console.error('Erreur suppression:', error);
       alert('Erreur lors de la suppression');
@@ -108,7 +108,7 @@ export default function CompanyDetailView() {
       <AdminLayout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Entreprise non trouvée</h2>
-          <button onClick={() => router.push('/backoffice/companies')} className="text-blue-600 dark:text-blue-400">
+          <button onClick={() => router.push('/b4ck0ff1ce/companies')} className="text-blue-600 dark:text-blue-400">
             ← Retour à la liste
           </button>
         </div>
@@ -122,7 +122,7 @@ export default function CompanyDetailView() {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/backoffice/companies')} className="text-gray-600 dark:text-gray-400">
+              <button onClick={() => router.push('/b4ck0ff1ce/companies')} className="text-gray-600 dark:text-gray-400">
                 ← Retour
               </button>
               <div>
@@ -210,7 +210,7 @@ export default function CompanyDetailView() {
               ) : (
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {applications.map((app) => (
-                    <div key={app.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => router.push(`/backoffice/applications/${app.id}`)}>
+                    <div key={app.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => router.push(`/b4ck0ff1ce/applications/${app.id}`)}>
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">{app.position}</h3>
                       <span className="text-sm text-gray-600 dark:text-gray-400">📅 {new Date(app.applicationDate || app.createdAt).toLocaleDateString('fr-FR')}</span>
                     </div>

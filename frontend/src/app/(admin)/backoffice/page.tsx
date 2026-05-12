@@ -179,7 +179,7 @@ export default function BackofficePage() {
       description: 'Gestion des utilisateurs et authentification',
       icon: '🔐',
       status: 'running',
-      route: '/backoffice/services/auth-service'
+      route: '/b4ck0ff1ce/services/auth-service'
     },
     {
       id: 'application-service',
@@ -187,7 +187,7 @@ export default function BackofficePage() {
       description: 'Gestion des candidatures et processus',
       icon: '📝',
       status: 'running',
-      route: '/backoffice/services/application-service'
+      route: '/b4ck0ff1ce/services/application-service'
     },
     {
       id: 'company-service',
@@ -195,7 +195,7 @@ export default function BackofficePage() {
       description: 'Gestion des entreprises et recrutement',
       icon: '🏢',
       status: 'running',
-      route: '/backoffice/services/company-service'
+      route: '/b4ck0ff1ce/services/company-service'
     },
     {
       id: 'contact-service',
@@ -203,7 +203,7 @@ export default function BackofficePage() {
       description: 'Gestion des contacts et réseaux',
       icon: '👥',
       status: 'running',
-      route: '/backoffice/services/contact-service'
+      route: '/b4ck0ff1ce/services/contact-service'
     },
     {
       id: 'interview-service',
@@ -211,7 +211,7 @@ export default function BackofficePage() {
       description: 'Gestion des entretiens et calendrier',
       icon: '📅',
       status: 'running',
-      route: '/backoffice/services/interview-service'
+      route: '/b4ck0ff1ce/services/interview-service'
     },
     {
       id: 'call-service',
@@ -219,7 +219,7 @@ export default function BackofficePage() {
       description: 'Gestion des appels et communications',
       icon: '📞',
       status: 'running',
-      route: '/backoffice/services/call-service'
+      route: '/b4ck0ff1ce/services/call-service'
     },
     {
       id: 'notification-service',
@@ -227,7 +227,7 @@ export default function BackofficePage() {
       description: 'Gestion des notifications et alertes',
       icon: '🔔',
       status: 'running',
-      route: '/backoffice/services/notification-service'
+      route: '/b4ck0ff1ce/services/notification-service'
     },
     {
       id: 'dashboard-service',
@@ -235,7 +235,7 @@ export default function BackofficePage() {
       description: 'Gestion des métriques et analytics',
       icon: '📊',
       status: 'running',
-      route: '/backoffice/services/dashboard-service'
+      route: '/b4ck0ff1ce/services/dashboard-service'
     },
     {
       id: 'workflow-service',
@@ -243,7 +243,7 @@ export default function BackofficePage() {
       description: 'Gestion des workflows automatisés',
       icon: '⚙️',
       status: 'running',
-      route: '/backoffice/services/workflow-service'
+      route: '/b4ck0ff1ce/services/workflow-service'
     },
     {
       id: 'event-service',
@@ -251,7 +251,7 @@ export default function BackofficePage() {
       description: 'Gestion des événements et rappels',
       icon: '🎯',
       status: 'running',
-      route: '/backoffice/services/event-service'
+      route: '/b4ck0ff1ce/services/event-service'
     },
     {
       id: 'followup-service',
@@ -259,7 +259,7 @@ export default function BackofficePage() {
       description: 'Gestion des relances automatiques',
       icon: '📧',
       status: 'running',
-      route: '/backoffice/services/followup-service'
+      route: '/b4ck0ff1ce/services/followup-service'
     },
     {
       id: 'profile-service',
@@ -267,7 +267,7 @@ export default function BackofficePage() {
       description: 'Gestion des profils utilisateurs',
       icon: '👤',
       status: 'running',
-      route: '/backoffice/services/profile-service'
+      route: '/b4ck0ff1ce/services/profile-service'
     }
   ]
 
@@ -910,7 +910,7 @@ export default function BackofficePage() {
               subtitle={`${stats.totalUsers || 0} utilisateurs`}
               icon={<Users className="h-6 w-6" />}
               color="green"
-              href="/backoffice/users"
+              href="/b4ck0ff1ce/users"
             />
             <MetricCard
               title="Signaux sécurité"
@@ -918,7 +918,7 @@ export default function BackofficePage() {
               subtitle="Événements sécurité récents"
               icon={<Shield className="h-6 w-6" />}
               color="red"
-              href="/backoffice/security"
+              href="/b4ck0ff1ce/security"
             />
             <MetricCard
               title="Santé système"
@@ -991,7 +991,7 @@ export default function BackofficePage() {
                 Conteneurs JobbingTrack — CPU &amp; mémoire (instantané)
               </h2>
               <Link
-                href="/backoffice/performances/containers"
+                href="/b4ck0ff1ce/performances/containers"
                 className="text-xs font-medium text-indigo-700 underline hover:no-underline dark:text-indigo-300"
               >
                 Graphiques &amp; historique →
@@ -1418,7 +1418,7 @@ export default function BackofficePage() {
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push('/backoffice/services');
+                  router.push('/b4ck0ff1ce/services');
                 }}
                 className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
               >
@@ -1453,7 +1453,7 @@ export default function BackofficePage() {
                 </h3>
               </div>
               <Link
-                href="/backoffice/services/logs"
+                href="/b4ck0ff1ce/services/logs"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
               >
                 Services &amp; logs →
@@ -1464,31 +1464,31 @@ export default function BackofficePage() {
               aria-label="Raccourcis Performances"
             >
               <Link
-                href="/backoffice/performances"
+                href="/b4ck0ff1ce/performances"
                 className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Synthèse
               </Link>
               <Link
-                href="/backoffice/performances/latency"
+                href="/b4ck0ff1ce/performances/latency"
                 className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Latence
               </Link>
               <Link
-                href="/backoffice/performances/containers"
+                href="/b4ck0ff1ce/performances/containers"
                 className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Conteneurs
               </Link>
               <Link
-                href="/backoffice/performances/disk"
+                href="/b4ck0ff1ce/performances/disk"
                 className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Disque
               </Link>
               <Link
-                href="/backoffice/performances/network"
+                href="/b4ck0ff1ce/performances/network"
                 className="rounded-md bg-gray-100 px-2 py-1 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Réseau
@@ -1774,7 +1774,7 @@ export default function BackofficePage() {
                     <button
                       onClick={() => {
                         setShowServicesPopup(false);
-                        router.push('/backoffice/services');
+                        router.push('/b4ck0ff1ce/services');
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                     >

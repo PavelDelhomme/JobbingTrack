@@ -135,7 +135,7 @@ export default function StatisticsAppDataPage() {
             )}
 
             <Link
-              href="/backoffice/statistics"
+              href="/b4ck0ff1ce/statistics"
               className="inline-flex text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               ← Vue d’ensemble Statistiques

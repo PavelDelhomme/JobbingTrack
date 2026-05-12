@@ -157,13 +157,13 @@ export default function PerformancesDiskStubPage() {
         )}
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/backoffice/performances"
+            href="/b4ck0ff1ce/performances"
             className="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800"
           >
             Retour synthèse Performances
           </Link>
           <Link
-            href="/backoffice/services/backoffice"
+            href="/b4ck0ff1ce/services/b4ck0ff1ce"
             className="inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500"
           >
             Détail service (Block I/O)

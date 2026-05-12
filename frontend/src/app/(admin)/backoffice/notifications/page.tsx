@@ -92,7 +92,7 @@ export default function NotificationsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez les notifications système et utilisateur</p>
           </div>
           <button
-            onClick={() => router.push('/backoffice/notifications/new')}
+            onClick={() => router.push('/b4ck0ff1ce/notifications/new')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="h-5 w-5" />
@@ -174,7 +174,7 @@ export default function NotificationsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
-                        onClick={() => router.push(`/backoffice/notifications/${notification.id}`)}
+                        onClick={() => router.push(`/b4ck0ff1ce/notifications/${notification.id}`)}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400"
                       >
                         <Edit className="h-5 w-5" />

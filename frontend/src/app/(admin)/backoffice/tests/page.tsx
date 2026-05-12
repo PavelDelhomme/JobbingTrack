@@ -44,7 +44,7 @@ const CATEGORIES = [
     id: 'api',
     name: 'Tests API',
     description: 'Lancer les tests API et consulter les rapports',
-    href: '/backoffice/tests-api',
+    href: '/b4ck0ff1ce/tests-api',
     icon: Server,
     color: 'blue',
     bgClass: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
@@ -55,7 +55,7 @@ const CATEGORIES = [
     id: 'backend',
     name: 'Tests Backend',
     description: 'Tests des services backend (auth, companies, applications, etc.)',
-    href: '/backoffice/tests-backend',
+    href: '/b4ck0ff1ce/tests-backend',
     icon: Server,
     color: 'purple',
     bgClass: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
@@ -66,7 +66,7 @@ const CATEGORIES = [
     id: 'frontend',
     name: 'Tests Frontend',
     description: 'Tests unitaires des composants et du frontend',
-    href: '/backoffice/tests-frontend',
+    href: '/b4ck0ff1ce/tests-frontend',
     icon: Monitor,
     color: 'green',
     bgClass: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
@@ -77,7 +77,7 @@ const CATEGORIES = [
     id: 'backoffice',
     name: 'Tests Backoffice',
     description: 'Tests E2E de l\'interface d\'administration',
-    href: '/backoffice/tests-backoffice',
+    href: '/b4ck0ff1ce/tests-backoffice',
     icon: Shield,
     color: 'indigo',
     bgClass: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
@@ -88,7 +88,7 @@ const CATEGORIES = [
     id: 'backoffice-only',
     name: 'Backoffice uniquement',
     description: 'Uniquement le spec backoffice.spec.ts (rapide)',
-    href: '/backoffice/tests-backoffice',
+    href: '/b4ck0ff1ce/tests-backoffice',
     icon: Shield,
     color: 'indigo',
     bgClass: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
@@ -99,7 +99,7 @@ const CATEGORIES = [
     id: 'database',
     name: 'Tests BDD',
     description: 'Tests base de données (connexion, enums, relations)',
-    href: '/backoffice/tests-backend',
+    href: '/b4ck0ff1ce/tests-backend',
     icon: Database,
     color: 'violet',
     bgClass: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800',
@@ -110,7 +110,7 @@ const CATEGORIES = [
     id: 'security',
     name: 'Tests Sécurité',
     description: 'WAF, authentification, injection, en-têtes',
-    href: '/backoffice/tests-security',
+    href: '/b4ck0ff1ce/tests-security',
     icon: Shield,
     color: 'red',
     bgClass: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
@@ -121,7 +121,7 @@ const CATEGORIES = [
     id: 'performance',
     name: 'Tests Performance',
     description: 'Métriques de charge et temps de réponse',
-    href: '/backoffice/performance-tests',
+    href: '/b4ck0ff1ce/performance-tests',
     icon: Zap,
     color: 'amber',
     bgClass: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
@@ -132,7 +132,7 @@ const CATEGORIES = [
     id: 'playwright',
     name: 'Tests Playwright',
     description: 'Tests E2E Playwright (scénarios complets)',
-    href: '/backoffice/playwright-tests',
+    href: '/b4ck0ff1ce/playwright-tests',
     icon: Play,
     color: 'cyan',
     bgClass: 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800',
@@ -143,7 +143,7 @@ const CATEGORIES = [
     id: 'emails',
     name: 'Tests Emails',
     description: 'Tests d\'envoi et de délivrabilité des emails',
-    href: '/backoffice/tests-emails',
+    href: '/b4ck0ff1ce/tests-emails',
     icon: Mail,
     color: 'pink',
     bgClass: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
@@ -154,7 +154,7 @@ const CATEGORIES = [
     id: 'emails-mailhog',
     name: 'Tests Emails MailHog',
     description: 'E2E : envoi email, réception MailHog, ouverture et clic liens (reset, etc.)',
-    href: '/backoffice/tests-emails',
+    href: '/b4ck0ff1ce/tests-emails',
     icon: Mail,
     color: 'pink',
     bgClass: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
@@ -165,7 +165,7 @@ const CATEGORIES = [
     id: 'schedule',
     name: 'Programmer tests',
     description: 'Planifier l\'exécution automatique des tests',
-    href: '/backoffice/performance-tests/schedule',
+    href: '/b4ck0ff1ce/performance-tests/schedule',
     icon: Calendar,
     color: 'slate',
     bgClass: 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-700',
@@ -176,7 +176,7 @@ const CATEGORIES = [
     id: 'reports',
     name: 'Rapports de tests',
     description: 'Consulter tous les rapports générés (API, backend, frontend, E2E, etc.)',
-    href: '/backoffice/test-reports',
+    href: '/b4ck0ff1ce/test-reports',
     icon: FileText,
     color: 'emerald',
     bgClass: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800',
@@ -412,14 +412,14 @@ export default function TestsHubPage() {
             <Circle className="w-4 h-4" />
             Tout décocher
           </Button>
-          <Link href="/backoffice/test-reports">
+          <Link href="/b4ck0ff1ce/test-reports">
             <Button variant="outline" className="gap-2">
               <BarChart3 className="w-4 h-4" />
               Voir tous les rapports
             </Button>
           </Link>
           {lastReportId && (
-            <Link href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}>
+            <Link href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(lastReportId)}`}>
               <Button variant="outline" size="sm" className="gap-2 text-emerald-600 border-emerald-300">
                 <FileText className="w-4 h-4" />
                 Dernier rapport

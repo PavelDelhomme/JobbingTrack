@@ -12,7 +12,7 @@ export default function ApplicationActivityPage() {
     <AdminLayout>
       <div className="p-6 mx-auto max-w-3xl space-y-6">
         <Link
-          href="/backoffice/analytics"
+          href="/b4ck0ff1ce/analytics"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
         >
           <span aria-hidden>←</span>

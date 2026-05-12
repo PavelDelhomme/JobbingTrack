@@ -126,7 +126,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   }
 
   const handleViewProfile = () => {
-    router.push('/backoffice/profile')
+    router.push('/b4ck0ff1ce/profile')
     onClose()
   }
 

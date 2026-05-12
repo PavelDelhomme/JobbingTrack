@@ -313,13 +313,13 @@ export default function InterviewsPage() {
           onClose={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/backoffice/interviews');
+              router.push('/b4ck0ff1ce/interviews');
             }
           }}
           onSuccess={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/backoffice/interviews');
+              router.push('/b4ck0ff1ce/interviews');
             }
             loadInterviews();
           }}

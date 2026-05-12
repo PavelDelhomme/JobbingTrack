@@ -500,7 +500,7 @@ export default function NetworkStatsPage() {
                       </td>
                       <td className="p-3">
                         <Link
-                          href={`/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`}
+                          href={`/b4ck0ff1ce/security/threats?sourceIp=${encodeURIComponent(ip)}`}
                           className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           Voir menaces

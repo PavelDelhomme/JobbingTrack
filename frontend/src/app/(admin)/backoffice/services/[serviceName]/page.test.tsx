@@ -217,7 +217,7 @@ describe('ServiceDetailPage', () => {
       })
 
       const backButton = screen.getByTitle(/Retour à la liste des services/i)
-      expect(backButton).toHaveAttribute('href', '/backoffice/services')
+      expect(backButton).toHaveAttribute('href', '/b4ck0ff1ce/services')
       // Pas de click : jsdom déclencherait une navigation non implémentée sur <a href>.
     })
 

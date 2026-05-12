@@ -373,7 +373,7 @@ export default function ServicesPage() {
     .filter(s => s.responseTime && typeof s.responseTime === 'number')
     .reduce((acc, s) => acc + (s.responseTime as number), 0) / (services.filter(s => s.responseTime && typeof s.responseTime === 'number').length || 1)
 
-  // Logs réels Docker via metrics-aggregator (même API que /backoffice/services/logs — lot A2)
+  // Logs réels Docker via metrics-aggregator (même API que /b4ck0ff1ce/services/logs — lot A2)
   const fetchServiceLogs = async (service: ServiceStatus) => {
     try {
       const dockerName = SERVICE_TYPE_DOCKER[service.serviceType || '']

@@ -417,7 +417,7 @@ export default function SecurityAnalysisPage() {
                   📋 Logs de Sécurité Récents
                 </h3>
                 <a
-                  href="/backoffice/security-logs"
+                  href="/b4ck0ff1ce/security-logs"
                   className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
                 >
                   Voir tous les logs

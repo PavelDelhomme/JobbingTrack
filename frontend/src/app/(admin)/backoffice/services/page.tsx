@@ -378,7 +378,7 @@ export default function ServicesPage() {
           <div className="flex items-center gap-3">
             {/* ✅ NOUVEAU : Lien vers Services & Logs */}
             <Link
-              href="/backoffice/services/logs"
+              href="/b4ck0ff1ce/services/logs"
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <FileText className="w-4 h-4" />
@@ -564,7 +564,7 @@ export default function ServicesPage() {
                     key={service.name} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                     title={SERVICE_ROW_DETAIL_HINT}
-                    onClick={() => router.push(`/backoffice/services/${service.name.replace('jobbingtrack-', '')}`)}
+                    onClick={() => router.push(`/b4ck0ff1ce/services/${service.name.replace('jobbingtrack-', '')}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -645,7 +645,7 @@ export default function ServicesPage() {
                       <div className="flex items-center gap-2">
                         {/* ✅ NOUVEAU : Bouton "Voir les logs" */}
                         <Link
-                          href={`/backoffice/services/logs?service=${encodeURIComponent(service.name.replace('jobbingtrack-', ''))}`}
+                          href={`/b4ck0ff1ce/services/logs?service=${encodeURIComponent(service.name.replace('jobbingtrack-', ''))}`}
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >

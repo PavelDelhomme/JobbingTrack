@@ -210,7 +210,7 @@ export default function EmailsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-2">
               Dashboard de gestion et monitoring des emails envoyés. 
               <span className="ml-2 text-sm">
-                <a href="/backoffice/email-monitor" className="text-blue-600 dark:text-blue-400 hover:underline">
+                <a href="/b4ck0ff1ce/email-monitor" className="text-blue-600 dark:text-blue-400 hover:underline">
                   📈 Voir Email Monitor pour le suivi détaillé
                 </a>
               </span>

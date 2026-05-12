@@ -111,7 +111,7 @@ export async function loginAsAdmin(page: import('@playwright/test').Page): Promi
   await page.locator('input[type="email"]').fill(creds.email);
   await page.locator('input[type="password"]').fill(creds.password);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL('**/backoffice**', { timeout: 15000 }).catch(() => {});
+  await page.waitForURL('**/b4ck0ff1ce**', { timeout: 15000 }).catch(() => {});
 }
 
 /**

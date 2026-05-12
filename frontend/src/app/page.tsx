@@ -13,7 +13,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        router.push('/backoffice')
+        router.push('/b4ck0ff1ce')
       } else {
         router.push('/login')
       }

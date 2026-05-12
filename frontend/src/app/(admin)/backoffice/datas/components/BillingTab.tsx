@@ -14,7 +14,7 @@ export default function BillingTab({ userId }: BillingTabProps) {
         <div className="mb-4 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Vous consultez l&apos;abonnement pour l&apos;utilisateur <code className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">{userId}</code>.
-            <Link href={`/backoffice/users/${userId}`} className="ml-2 text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href={`/b4ck0ff1ce/users/${userId}`} className="ml-2 text-blue-600 dark:text-blue-400 hover:underline">
               Voir la fiche utilisateur
             </Link>
           </p>

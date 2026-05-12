@@ -65,7 +65,7 @@ export default function DocsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/backoffice/user-journey">
+            <Link href="/b4ck0ff1ce/user-journey">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour

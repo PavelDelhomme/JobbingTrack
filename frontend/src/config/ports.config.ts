@@ -37,9 +37,31 @@ const getHost = () => {
   return process.env.NEXT_PUBLIC_HOST || 'localhost';
 };
 
+const isBrowserLocalHttp = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.location.protocol === 'http:' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  );
+};
+
+const getApiUrl = () => {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+
+  if (
+    configured &&
+    isBrowserLocalHttp() &&
+    configured.startsWith('https://api.jobbingtrack.localhost')
+  ) {
+    return `http://127.0.0.1:${EXTERNAL_PORTS.API_GATEWAY}`;
+  }
+
+  return configured || `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.API_GATEWAY}`;
+};
+
 export const FRONTEND_URLS = {
   base: `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.FRONTEND}`,
-  api: process.env.NEXT_PUBLIC_API_URL || `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.API_GATEWAY}`,
+  api: getApiUrl(),
   metrics: process.env.NEXT_PUBLIC_METRICS_URL || `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.METRICS_AGGREGATOR}`,
   auth: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.AUTH_SERVICE}`,
 } as const;
