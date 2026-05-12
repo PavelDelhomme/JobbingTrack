@@ -32,6 +32,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **WAF gateway** : **`${WAF_ENABLED:-true}`** ; **`.env.example`** utilise **`WAF_ENABLED=true`** (comportement proche prod). Pour diagnostiquer des blocages WAF en local uniquement : **`make waf-disable`**, puis **`make waf-enable`** après test ; `make waf-status` affiche l’état local.
 - **WAF derrière reverse proxy** : un proxy Docker/local peut avoir une IP interne. Correctif 12/05 : les requêtes avec `X-Forwarded-*` restent inspectées par le WAF sauf `X-Internal-Secret` valide. Vérifier avec `make security-waf-lab` après `make dev-https-up`.
 - **HTTPS dev** : le navigateur doit passer par `https://jobbingtrack.localhost:5443` / `https://api.jobbingtrack.localhost:5443`. Si une erreur certificat réapparaît après changement de profil navigateur, relancer `make dev-https-install-ca`; les certificats vivent hors Git dans `.local/dev-certs/`. Ne pas activer HSTS strict sur `*.localhost`.
+- **Metrics auth runtime** : si `/api/metrics-aggregator/*` répond `500` avec `METRICS_API_KEY manquant côté serveur frontend`, ou si `GET :5004/api/v1/docker/services/all` répond `200` sans clé, recréer les services concernés. Correctif 12/05 : `METRICS_API_KEY` est injectée côté `frontend` et `api-gateway`, `ENABLE_METRICS_AUTH=true` côté aggregator, et les tests réels attendus sont `401` sans clé, `200` avec clé ou via proxy serveur.
 
 ## Sécurité — trous d’investigation à ne pas interpréter comme absence d’attaque
 

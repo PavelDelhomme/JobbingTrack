@@ -66,6 +66,7 @@ services:
       - INTRUSION_DETECTION_ENABLED=${INTRUSION_DETECTION_ENABLED:-true}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_SECRET=${JWT_SECRET}
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=${NODE_ENV:-development}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
@@ -116,6 +117,7 @@ services:
       - FRONTEND_PORT=${FRONTEND_PORT:-5003}
       - HOST_IP=${HOST_IP:-localhost}
       - HOSTNAME=0.0.0.0
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
       - NEXT_DIST_DIR=/tmp/.next-local
