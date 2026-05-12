@@ -137,6 +137,17 @@ function main() {
     }
   }
 
+  if (isTruthy(values.get('DEPENDABOT_ALERTS_ENABLED'))) {
+    for (const key of ['DEPENDABOT_ALERTS_REPOSITORY']) {
+      if (!values.has(key) || !/^[^/\s]+\/[^/\s]+$/.test(String(values.get(key) || '').trim())) {
+        errors.push(`${key} doit être renseigné au format owner/repo pour importer les alertes Dependabot`);
+      }
+    }
+    if (!hasAny(values, ['DEPENDABOT_ALERTS_TOKEN', 'GITHUB_TOKEN'])) {
+      errors.push('DEPENDABOT_ALERTS_TOKEN ou GITHUB_TOKEN est requis quand DEPENDABOT_ALERTS_ENABLED=true');
+    }
+  }
+
   for (const [key, value] of values.entries()) {
     if (key.startsWith('NEXT_PUBLIC_') && SECRET_NAME_PATTERN.test(key)) {
       const message = `${key} expose une valeur sensible potentielle côté navigateur`;

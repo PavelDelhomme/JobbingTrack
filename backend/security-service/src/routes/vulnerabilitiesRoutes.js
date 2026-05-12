@@ -78,6 +78,29 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Importer les alertes Dependabot GitHub côté serveur uniquement
+router.post('/dependabot/import', async (req, res) => {
+  try {
+    const result = await securityService.analyzeDependabotAlerts({
+      repository: req.body?.repository,
+      state: req.body?.state,
+      maxPages: req.body?.maxPages,
+      perPage: req.body?.perPage
+    });
+
+    res.status(result.scanned ? 200 : 202).json({
+      success: result.scanned,
+      data: result
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'import Dependabot:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'import Dependabot'
+    });
+  }
+});
+
 // Mettre à jour une vulnérabilité
 router.patch('/:id', async (req, res) => {
   try {
