@@ -22,6 +22,8 @@
 
 **WAF / metrics via reverse proxy (12/05)** : le bypass WAF interne ne s’applique plus au trafic portant `X-Forwarded-*` sauf si `X-Internal-Secret` est correct. Objectif : un proxy Docker/local peut terminer HTTPS sans transformer tout trafic navigateur en trafic interne non inspecté. Test réel : payload XSS externe via proxy `403`, même payload avec secret interne valide `200`. Metrics auth vérifiée runtime après recréation : direct sans clé `401`, direct avec `X-API-Key` `200`, proxy Next `/api/metrics-aggregator/docker/services/all` `200`, gateway `/api/v1/metrics` `200`. Nouveau test borné : `make security-waf-lab`.
 
+**CI sécurité GitHub (12/05)** : correction du workflow `security-audit.yml` après échec GitHub Actions `Unable to resolve action aquasecurity/trivy-action@0.28.0`. Les refs Trivy utilisent désormais le tag existant `v0.36.0`; les actions officielles passent sur versions Node 24 (`checkout` v6, `setup-node` v6, `upload-artifact` v7), `gitleaks-action` est épinglé sur `v2.3.9` et le workflow force `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`. À vérifier côté GitHub au prochain run.
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.

@@ -57,6 +57,7 @@ make scripts-inventory
 ```
 
 La commande est non destructive : elle liste les scripts peu ou pas référencés pour audit manuel.
+Elle affiche aussi le nombre de scripts encore à la racine et une cible de rangement probable. Les déplacements doivent rester progressifs : déplacer le script métier, garder un wrapper si l'ancien chemin est appelé par `make`, la CI ou une documentation, puis supprimer le wrapper seulement après migration des références.
 
 ## Catégories
 

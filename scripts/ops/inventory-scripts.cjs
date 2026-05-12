@@ -40,6 +40,16 @@ const TEXT_EXTENSIONS = new Set([
   '.yaml',
   ''
 ]);
+const ROOT_SCRIPT_TARGETS = [
+  { pattern: /playwright|test|verify-user-journey|test-api|test-enums|test-relations|start-tests/, target: 'scripts/testing/' },
+  { pattern: /report|benchmark|performance/, target: 'scripts/reports/ ou scripts/monitoring/' },
+  { pattern: /docker|compose/, target: 'scripts/docker/' },
+  { pattern: /env/, target: 'scripts/env/' },
+  { pattern: /logs|color-logs|status-watch/, target: 'scripts/ops/' },
+  { pattern: /prisma|schema|table|migration|seed|backup/, target: 'scripts/db/ ou scripts/database/' },
+  { pattern: /setup|install/, target: 'scripts/setup/' },
+  { pattern: /security|firewall|waf|jwt|cve|secrets|ports/, target: 'scripts/security/' }
+];
 
 function walk(dir, predicate, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -79,8 +89,15 @@ function inferCategory(relPath) {
   return 'racine';
 }
 
+function suggestedTarget(relPath) {
+  if (inferCategory(relPath) !== 'racine') return '';
+  const baseName = path.basename(relPath);
+  const match = ROOT_SCRIPT_TARGETS.find(({ pattern }) => pattern.test(baseName));
+  return match ? match.target : 'à classer';
+}
+
 function statusFor(relPath, references) {
-  if (references.some((ref) => ref.startsWith('makefiles/') || ref === '.github/workflows/ci.yml')) {
+  if (references.some((ref) => ref.startsWith('makefiles/') || ref.startsWith('.github/workflows/'))) {
     return 'actif';
   }
   if (references.some((ref) => ref.startsWith('docs/') || ref === 'scripts/README.md' || ref === 'TODOS.md')) {
@@ -112,12 +129,19 @@ function main() {
       script: rel,
       category: inferCategory(rel),
       status: statusFor(rel, refs),
+      suggestedTarget: suggestedTarget(rel),
       references: refs
     };
   });
 
   const byStatus = rows.reduce((acc, row) => {
     acc[row.status] = (acc[row.status] || 0) + 1;
+    return acc;
+  }, {});
+  const rootRows = rows.filter((row) => row.category === 'racine');
+  const rootByTarget = rootRows.reduce((acc, row) => {
+    const target = row.suggestedTarget || 'déjà classé';
+    acc[target] = (acc[target] || 0) + 1;
     return acc;
   }, {});
   const weakRefs = rows.filter((row) => row.status === 'non-reference').slice(0, 40);
@@ -129,7 +153,16 @@ function main() {
   for (const [status, count] of Object.entries(byStatus).sort()) {
     console.log(`  ${status.padEnd(18)} ${count}`);
   }
+  console.log(`  racine             ${rootRows.length}`);
   console.log('');
+
+  if (rootRows.length) {
+    console.log('  Scripts encore à la racine (déplacer par lots avec wrapper si nécessaire) :');
+    for (const [target, count] of Object.entries(rootByTarget).sort()) {
+      console.log(`    - ${target.padEnd(38)} ${count}`);
+    }
+    console.log('');
+  }
 
   if (weakRefs.length) {
     console.log('  Scripts sans référence détectée (à auditer avant suppression) :');
