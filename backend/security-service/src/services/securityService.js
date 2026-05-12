@@ -5,6 +5,7 @@ const { prisma } = require('../config/database');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const dataGenerator = require('./dataGenerator');
 const securityAlertEmailNotifier = require('./securityAlertEmailNotifier');
+const { lookupGeoIp } = require('../utils/geoipProvider');
 
 const CVE_SCAN_RELATIVE_PATH = path.join('scripts', 'security', 'cve-scan.py');
 const CVE_SCAN_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -593,7 +594,7 @@ class SecurityService {
         blockReason
       } = attemptData;
 
-      const geo = require('geoip-lite').lookup(sourceIP);
+      const geo = lookupGeoIp(sourceIP);
 
       const attempt = await prisma.intrusionAttempt.create({
         data: {
@@ -659,7 +660,7 @@ class SecurityService {
       // Récupérer les pays pour chaque IP
       const countries = [];
       for (const ip of sourceIPs) {
-        const geo = require('geoip-lite').lookup(ip);
+        const geo = lookupGeoIp(ip);
         if (geo && geo.country) {
           countries.push(geo.country);
         }

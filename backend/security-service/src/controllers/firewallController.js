@@ -3,11 +3,11 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const geoip = require('geoip-lite');
 const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('../services/securityService');
+const { lookupGeoIp } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
 const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
@@ -120,7 +120,7 @@ function mapNetworkConnectionToThreatConnection(conn) {
 function buildThreatInvestigation(threat, related) {
   const enriched = enrichThreatForApi(threat);
   const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
-  const geo = geoip.lookup(enriched.sourceIp);
+  const geo = lookupGeoIp(enriched.sourceIp);
   const logsSummary = summarizeSecurityLogs(related.securityLogs);
   const persistedConnections = Array.isArray(related.networkConnections)
     ? related.networkConnections.map(mapNetworkConnectionToThreatConnection)

@@ -24,7 +24,7 @@ describe('Auth Service - Tests de base', () => {
         email: 'redacted@example.invalid',
         password: 'password123',
         firstName: 'Test',
-        lastName: 'User'
+        lastName: ''
       })
       .expect(400); // 400 car validation échoue sans tous les champs requis
 
