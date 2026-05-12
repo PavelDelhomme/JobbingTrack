@@ -20,6 +20,8 @@
 
 **HTTPS dev (12/05)** : le flux navigateur local passe désormais par `docker-compose.https.yml` et `production/nginx/dev-https/default.conf`. `make dev-https-install-ca` génère une CA locale hors Git (`.local/dev-certs/`) et l’installe dans les magasins NSS disponibles ; `make dev-https-up` expose le front et la gateway sur `https://jobbingtrack.localhost:5443` et `https://api.jobbingtrack.localhost:5443`. Vérifié avec `curl --cacert` sur `/health` frontend et gateway. HSTS strict reste réservé aux vrais domaines préprod/prod.
 
+**WAF via reverse proxy (12/05)** : le bypass WAF interne ne s’applique plus au trafic portant `X-Forwarded-*` sauf si `X-Internal-Secret` est correct. Objectif : un proxy Docker/local peut terminer HTTPS sans transformer tout trafic navigateur en trafic interne non inspecté. Nouveau test borné : `make security-waf-lab`.
+
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
 - **Nouveau lot B15** : les protections attendues ne se limitent pas au WAF/CVE. Le périmètre à couvrir inclut énumération URL/endpoints, injections paramètres, SQL/NoSQL, XSS, command injection, auth/JWT/IDOR, CORS, rate abuse, scans massifs, secrets, Docker/réseau, TLS, spoofing IP/headers, protections DB et préparation mobile/reverse engineering.

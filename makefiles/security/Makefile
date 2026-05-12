@@ -3,7 +3,7 @@
 # ============================================================================
 
 .PHONY: security-audit security-scan-secrets security-scan-images security-scan-ports \
-        security-scan-jwt security-zap-active security-report
+        security-scan-jwt security-waf-lab security-zap-active security-report
 
 security-audit: ## Audit sécurité passif : secrets + CVE + ports compose prod (pas de scan actif)
 	@echo "🔒 Audit sécurité passif JobbingTrack"
@@ -24,6 +24,9 @@ security-scan-ports: ## Analyse exposition compose prod fusionné (profiles full
 
 security-scan-jwt: ## Audit JWT statique + jwt_tool si JWT_AUDIT_TOKEN est défini
 	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" ./scripts/security/jwt-audit.sh
+
+security-waf-lab: ## Test WAF borné via proxy HTTPS dev, sans blocage IP admin persistant
+	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" ./scripts/security/waf-lab-check.sh
 
 security-zap-active: ## OWASP ZAP active scan local/test. Requiert SECURITY_ACTIVE_SCAN=1
 	@cd "$(ROOT_DIR)" && PROJECT_ROOT="$(ROOT_DIR)" ./scripts/security/zap-active-scan.sh

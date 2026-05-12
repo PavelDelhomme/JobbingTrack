@@ -204,8 +204,25 @@ function getObservedClientIp(req) {
   return normalizeIp(req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress);
 }
 
+function hasTrustedInternalSecret(req) {
+  const expected = process.env.SECURITY_INTERNAL_SECRET;
+  if (!expected) return false;
+  return String(req.get('X-Internal-Secret') || '') === String(expected);
+}
+
+function hasForwardedEdgeHeaders(req) {
+  return Boolean(
+    req.get('X-Forwarded-For') ||
+    req.get('X-Forwarded-Host') ||
+    req.get('X-Forwarded-Proto')
+  );
+}
+
 function isInternalWafBypassRequest(req) {
   if (String(process.env.WAF_INTERNAL_BYPASS_ENABLED || 'true').toLowerCase() === 'false') return false;
+  // Un reverse proxy Docker a une IP interne, mais il transporte du trafic navigateur externe.
+  // Sans secret machine, ce trafic doit rester inspecté par le WAF.
+  if (hasForwardedEdgeHeaders(req) && !hasTrustedInternalSecret(req)) return false;
   const clientIp = getObservedClientIp(req);
   return getInternalBypassCidrs().some((cidr) => isIpInCidr(clientIp, cidr));
 }
