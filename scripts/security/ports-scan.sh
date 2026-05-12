@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -euo pipefail
 
 ROOT_DIR="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 DEFAULT_COMPOSE_FILES="$ROOT_DIR/docker-compose.yml:$ROOT_DIR/docker-compose.prod.yml"

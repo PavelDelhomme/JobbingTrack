@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -euo pipefail
 
 ROOT_DIR="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
@@ -37,6 +37,7 @@ fi
 if command -v trufflehog >/dev/null 2>&1; then
   echo "Running trufflehog against git history..."
   if trufflehog git "file://$ROOT_DIR" --json > "$OUT_DIR/trufflehog.json"; then
+    chmod 600 "$OUT_DIR/trufflehog.json" 2>/dev/null || true
     echo "- trufflehog: ok" >> "$SUMMARY"
   else
     STATUS=1

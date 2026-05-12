@@ -12,9 +12,11 @@ scripts/
 ├── database/      # Scripts Node de migration/seed historiques
 ├── db/            # Scripts shell PostgreSQL / Prisma / métriques DB
 ├── docker/        # Vérifications et nettoyage Docker
+├── env/           # Documentation/outillage de configuration runtime
 ├── fixes/         # Correctifs ponctuels encore utiles
 ├── health/        # Vérifications .env et services
 ├── monitoring/    # Monitoring, métriques, budget ressources
+├── ops/           # Diagnostics et inventaires opérationnels
 ├── security/      # Firewall, WAF, CVE, menaces de test
 ├── setup/         # Installation machine/outillage
 ├── testing/       # Helpers de tests
@@ -29,6 +31,8 @@ scripts/
 | `scripts/db/db-push-all.sh` | Synchronisation Prisma multi-services, utilisé par `make db-push-all`. |
 | `scripts/db/seed.sh` | Wrapper stable vers `make seed-auth`, utilisé par `make db-seed`. |
 | `scripts/db/backup.sh` | Backup PostgreSQL vers `backups/database/`, utilisé par `make db-backup`. |
+| `scripts/ops/dev-https-certs.sh` | Génération et installation navigateur de la CA HTTPS dev, utilisé par `make dev-https-*`. |
+| `scripts/ops/inventory-scripts.cjs` | Inventaire des scripts et références, utilisé par `make scripts-inventory`. |
 | `scripts/health/check-env.sh` | Validation `.env`. |
 | `scripts/health/check-services.sh` | Inspection des conteneurs JobbingTrack. |
 | `scripts/docker/diagnose-network.sh` | Diagnostic réseau Docker local (`veth`, `bridge`, `overlay`) quand les conteneurs ne peuvent plus se connecter. |
@@ -42,6 +46,16 @@ scripts/
 | `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
 | `scripts/test-enums.js` | Validation des enums Prisma. |
 | `scripts/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
+
+## Inventaire
+
+L'inventaire maintenable vit dans `docs/scripts/SCRIPTS_INVENTORY.md`.
+
+```bash
+make scripts-inventory
+```
+
+La commande est non destructive : elle liste les scripts peu ou pas référencés pour audit manuel.
 
 ## Catégories
 
