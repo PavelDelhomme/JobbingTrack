@@ -8,18 +8,8 @@ import { Button } from '@/components/ui/button';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { ArrowLeft, Download, ExternalLink } from '@/lib/icons';
 import Link from 'next/link';
-// Import dynamique pour éviter les erreurs si les dépendances ne sont pas installées
-let ReactMarkdown: any;
-let remarkGfm: any;
-
-try {
-  ReactMarkdown = require('react-markdown').default;
-  remarkGfm = require('remark-gfm').default;
-} catch (e) {
-  // Fallback si les dépendances ne sont pas installées
-  ReactMarkdown = ({ children }: any) => <pre className="whitespace-pre-wrap">{children}</pre>;
-  remarkGfm = null;
-}
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function DocsPage() {
   const params = useParams();
@@ -132,7 +122,7 @@ export default function DocsPage() {
             {!loading && !error && content && (
               <div className="prose prose-lg dark:prose-invert max-w-none">
                 <ReactMarkdown
-                  remarkPlugins={remarkGfm ? [remarkGfm] : []}
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     h1: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h1'>) => (
                       <h1 className="text-4xl font-bold mb-4 mt-8 border-b-2 border-blue-500 pb-2" {...props} />

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import { Activity, Server, Network, TrendingUp, RefreshCw } from 'lucide-react';
 import axios from 'axios';
@@ -33,6 +34,21 @@ interface NetworkStats {
 
 const SUSPICIOUS_PORTS = new Set(['21', '22', '23', '3389', '5900', '1433', '3306']);
 
+function getIpNature(ip: string): string {
+  if (ip === '::1' || ip.startsWith('127.')) return 'localhost';
+  if (ip.startsWith('10.') || ip.startsWith('192.168.')) return 'privée / Docker';
+  const secondOctet = Number(ip.split('.')[1]);
+  if (ip.startsWith('172.') && secondOctet >= 16 && secondOctet <= 31) return 'privée / Docker';
+  if (ip.startsWith('169.254.')) return 'link-local';
+  return 'publique ou NAT';
+}
+
+function getIpMonitoringReason(ip: string, count: number, suspiciousIpThreshold: number): string {
+  if (count >= suspiciousIpThreshold) return `volume >= seuil ${suspiciousIpThreshold}`;
+  if (getIpNature(ip) !== 'publique ou NAT') return 'trafic interne visible';
+  return 'top source observée';
+}
+
 export default function NetworkStatsPage() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,8 +57,12 @@ export default function NetworkStatsPage() {
   const [minConnectionsAlert, setMinConnectionsAlert] = useState<number>(100);
   const [suspiciousIpThreshold, setSuspiciousIpThreshold] = useState<number>(20);
   const [showOnlySuspicious, setShowOnlySuspicious] = useState(false);
+  const refreshInFlightRef = useRef(false);
 
   const loadStats = useCallback(async () => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+
     try {
       setLoading(true);
       setError(null);
@@ -62,6 +82,7 @@ export default function NetworkStatsPage() {
       setStats(null);
       setError(err.response?.data?.error || 'Erreur lors du chargement des statistiques');
     } finally {
+      refreshInFlightRef.current = false;
       setLoading(false);
     }
   }, []);
@@ -86,6 +107,22 @@ export default function NetworkStatsPage() {
   const suspiciousIps = stats?.topSourceIps
     ? Object.entries(stats.topSourceIps).filter(([ip, count]) => count >= suspiciousIpThreshold || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('192.168.')).sort((a, b) => b[1] - a[1]).slice(0, 10)
     : [];
+  const totalConnections = stats?.totalConnections ?? 0;
+  const monitoredSourceIps = useMemo(
+    () =>
+      stats?.topSourceIps
+        ? Object.entries(stats.topSourceIps)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 10)
+            .map(([ip, count]) => ({
+              ip,
+              count,
+              nature: getIpNature(ip),
+              reason: getIpMonitoringReason(ip, count, suspiciousIpThreshold),
+            }))
+        : [],
+    [stats?.topSourceIps, suspiciousIpThreshold]
+  );
 
   const securityAlerts = [
     stats?.totalConnections && stats.totalConnections > minConnectionsAlert
@@ -327,12 +364,12 @@ export default function NetworkStatsPage() {
                             <div
                               className="bg-blue-600 h-2 rounded-full"
                               style={{
-                                width: `${stats.totalConnections ? (count / stats.totalConnections) * 100 : 0}%`
+                                width: `${stats?.totalConnections ? (count / stats.totalConnections) * 100 : 0}%`
                               }}
                             />
                           </div>
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {stats.totalConnections ? 
+                            {stats?.totalConnections ?
                               Math.round((count / stats.totalConnections) * 100) : 0}%
                           </span>
                         </div>
@@ -382,13 +419,13 @@ export default function NetworkStatsPage() {
                             <div
                               className="bg-green-600 h-2 rounded-full"
                               style={{
-                                width: `${stats.totalConnections ? (count / stats.totalConnections) * 100 : 0}%`
+                                width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`
                               }}
                             />
                           </div>
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {stats.totalConnections ? 
-                              Math.round((count / stats.totalConnections) * 100) : 0}%
+                            {totalConnections ?
+                              Math.round((count / totalConnections) * 100) : 0}%
                           </span>
                         </div>
                       </td>
@@ -421,37 +458,53 @@ export default function NetworkStatsPage() {
 
         {/* Top IPs Sources */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Top 10 IPs Sources</h2>
-          {stats?.topSourceIps && Object.keys(stats.topSourceIps).length > 0 ? (
+          <h2 className="text-xl font-semibold mb-2">IPs sources surveillées</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Liste actionnable des IPs observées côté ingress/gateway: nature réseau, motif de surveillance et filtre direct vers les menaces.
+          </p>
+          {monitoredSourceIps.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left p-3">IP Source</th>
+                    <th className="text-left p-3">Nature</th>
                     <th className="text-left p-3">Connexions</th>
+                    <th className="text-left p-3">Motif</th>
                     <th className="text-left p-3">Pourcentage</th>
+                    <th className="text-left p-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {getTopItems(stats.topSourceIps, 10).map(([ip, count]) => (
+                  {monitoredSourceIps.map(({ ip, count, nature, reason }) => (
                     <tr key={ip} className="border-b border-gray-200 dark:border-gray-700">
                       <td className="p-3 font-mono text-sm">{ip}</td>
+                      <td className="p-3 text-sm">{nature}</td>
                       <td className="p-3">{count}</td>
+                      <td className="p-3 text-sm text-gray-600 dark:text-gray-300">{reason}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
                               className="bg-orange-600 h-2 rounded-full"
                               style={{
-                                width: `${stats.totalConnections ? (count / stats.totalConnections) * 100 : 0}%`
+                                width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`
                               }}
                             />
                           </div>
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {stats.totalConnections ? 
-                              Math.round((count / stats.totalConnections) * 100) : 0}%
+                            {totalConnections ?
+                              Math.round((count / totalConnections) * 100) : 0}%
                           </span>
                         </div>
+                      </td>
+                      <td className="p-3">
+                        <Link
+                          href={`/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Voir menaces
+                        </Link>
                       </td>
                     </tr>
                   ))}

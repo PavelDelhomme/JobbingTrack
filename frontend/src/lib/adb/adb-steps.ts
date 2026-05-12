@@ -43,7 +43,7 @@ function sanitizeEmailForInput(email: string): string {
 
 /** Normalise l'email avant envoi au contrôleur : trim, non-printables, espaces, zero-width, chiffres en fin. */
 function normalizeEmailForTyping(email: string): string {
-  let s = String(email)
+  const s = String(email)
     .replace(/[\u200B\u200C\u200D\uFEFF\u00A0]/g, '')
     .replace(/[^\x20-\x7E]/g, '')
     .trim()

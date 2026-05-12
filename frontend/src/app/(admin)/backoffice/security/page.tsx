@@ -111,6 +111,7 @@ export default function SecurityOverviewPage() {
   const [serviceError, setServiceError] = useState<string | null>(null)
   const [newThreatSignal, setNewThreatSignal] = useState(0)
   const previousTopThreatRef = useRef<string | null>(null)
+  const refreshInFlightRef = useRef(false)
   const [weights, setWeights] = useState<SecurityWeights>({
     threats: 2,
     logsNoise: 1,
@@ -142,30 +143,46 @@ export default function SecurityOverviewPage() {
   }
 
   const load = useCallback(async () => {
+    if (refreshInFlightRef.current) return
+    refreshInFlightRef.current = true
+
     const mounted = true
     const token = localStorage.getItem('token')
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
 
-    const fetchJson = async (endpoint: string) => {
-      const res = await fetch(`${API_URL}${endpoint}`, { headers })
-      if (!res.ok) return null
-      return res.json().catch(() => null)
+    const fetchFailures: string[] = []
+    const fetchJson = async (endpoint: string, label: string) => {
+      try {
+        const res = await fetch(`${API_URL}${endpoint}`, { headers })
+        if (!res.ok) {
+          fetchFailures.push(`${label} (${res.status})`)
+          return null
+        }
+        return res.json().catch(() => null)
+      } catch {
+        fetchFailures.push(label)
+        return null
+      }
     }
 
     try {
       setServiceError(null)
       const logSince = encodeURIComponent(new Date(Date.now() - LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString())
       const [logs, threats, blockedIps, wafConfig, firewallRules, metrics, crashes] = await Promise.all([
-          fetchJson(`/api/v1/security/logs?limit=${SECURITY_LOGS_FETCH_LIMIT}&startDate=${logSince}`),
-          fetchJson('/api/v1/security/firewall/threats?limit=200'),
-          fetchJson('/api/v1/security/firewall/blocked-ips'),
-          fetchJson('/api/v1/security/waf/config'),
-          fetchJson('/api/v1/security/firewall/rules'),
-          fetchJson('/api/v1/metrics'),
-          fetchJson('/api/v1/crashes?limit=100'),
+          fetchJson(`/api/v1/security/logs?limit=${SECURITY_LOGS_FETCH_LIMIT}&startDate=${logSince}`, 'logs sécurité'),
+          fetchJson('/api/v1/security/firewall/threats?limit=200', 'menaces'),
+          fetchJson('/api/v1/security/firewall/blocked-ips', 'IPs bloquées'),
+          fetchJson('/api/v1/security/waf/config', 'configuration WAF'),
+          fetchJson('/api/v1/security/firewall/rules', 'règles firewall'),
+          fetchJson('/api/v1/metrics', 'métriques'),
+          fetchJson('/api/v1/crashes?limit=100', 'crashes mobile'),
         ])
 
       if (!mounted) return
+
+      if (fetchFailures.length > 0) {
+        setServiceError(`Données partielles: ${fetchFailures.join(', ')} indisponible(s). Vérifiez la gateway et les services concernés.`)
+      }
 
       const logsArray = logs?.data || logs?.logs || []
       const threatsArray = threats?.data || threats?.threats || []
@@ -189,7 +206,7 @@ export default function SecurityOverviewPage() {
       const detectionsCount =
         logDetectionsNoNetworkRow + sqlT + xssT + otherT + ddosT
 
-      if (!Array.isArray(logsArray) && !Array.isArray(threatsArray)) {
+      if (fetchFailures.length === 0 && !Array.isArray(logsArray) && !Array.isArray(threatsArray)) {
         setServiceError('Services sécurité indisponibles ou réponse invalide.')
       }
 
@@ -290,6 +307,7 @@ export default function SecurityOverviewPage() {
           mobileCrashesCount: crashList.length,
         })
     } finally {
+      refreshInFlightRef.current = false
       if (mounted) setLoading(false)
     }
   }, [])

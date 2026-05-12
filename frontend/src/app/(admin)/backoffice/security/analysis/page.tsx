@@ -32,24 +32,35 @@ export default function SecurityAnalysisPage() {
       const logSince = encodeURIComponent(
         new Date(Date.now() - ANALYSIS_LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
       );
-      const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.all([
+      const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.allSettled([
         axios.get(`${API_URL}/api/v1/security/stats?days=1`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/logs?limit=${ANALYSIS_LOGS_FETCH_LIMIT}&startDate=${logSince}`, { headers, timeout: 7000 }),
         axios.get(`${API_URL}/api/v1/security/firewall/threats?limit=200`, { headers, timeout: 7000 }),
       ]);
 
-      const stats = statsRes.data?.success ? (statsRes.data?.data || {}) : {};
-      const blockedRaw = blockedRes.data?.success && Array.isArray(blockedRes.data?.data) ? blockedRes.data.data : [];
+      const statsData = statsRes.status === 'fulfilled' ? statsRes.value.data : null;
+      const blockedData = blockedRes.status === 'fulfilled' ? blockedRes.value.data : null;
+      const logsData = logsRes.status === 'fulfilled' ? logsRes.value.data : null;
+      const threatsData = threatsRes.status === 'fulfilled' ? threatsRes.value.data : null;
+      const failedSources = [
+        statsRes.status === 'rejected' ? 'statistiques' : null,
+        blockedRes.status === 'rejected' ? 'IPs bloquées' : null,
+        logsRes.status === 'rejected' ? 'logs' : null,
+        threatsRes.status === 'rejected' ? 'menaces' : null,
+      ].filter(Boolean);
+
+      const stats = statsData?.success ? (statsData?.data || {}) : {};
+      const blockedRaw = blockedData?.success && Array.isArray(blockedData?.data) ? blockedData.data : [];
       const blockedIPItems = blockedRaw
         .map(
           (x: string | { ip?: string; reason?: string; blockedAt?: string; blockOrigin?: string; threatId?: string }) =>
             typeof x === 'string' ? { ip: x, reason: 'Blocage actif', blockedAt: undefined } : { ...x }
         )
         .filter((x: any) => !!x?.ip);
-      const blockedIpsMeta = blockedRes.data?.meta && typeof blockedRes.data.meta === 'object' ? blockedRes.data.meta : null;
-      const logs = Array.isArray(logsRes.data?.data) ? logsRes.data.data : [];
-      const threats = Array.isArray(threatsRes.data?.data) ? threatsRes.data.data : [];
+      const blockedIpsMeta = blockedData?.meta && typeof blockedData.meta === 'object' ? blockedData.meta : null;
+      const logs = Array.isArray(logsData?.data) ? logsData.data : [];
+      const threats = Array.isArray(threatsData?.data) ? threatsData.data : [];
 
       const sqlEventsLogs = logs.filter((l: any) =>
         hasToken(l?.eventType, ['sql_injection', 'sql injection']) ||
@@ -111,7 +122,11 @@ export default function SecurityAnalysisPage() {
         totalThreatsLive: threats.length,
         totalLogsLive: logs.length,
       });
-      setServiceError(null);
+      setServiceError(
+        failedSources.length > 0
+          ? `Données partielles: ${failedSources.join(', ')} indisponible(s).`
+          : null
+      );
     } catch (error) {
       console.error('Erreur chargement analyse:', error);
       setServiceError('Impossible de charger les données de sécurité en temps réel.');

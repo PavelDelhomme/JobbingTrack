@@ -61,8 +61,7 @@ export function isOptionalEndpoint(endpoint: string): boolean {
  * @param version - La nouvelle version (ex: 'v2', 'v3')
  */
 export function setApiVersion(version: string): void {
-  // @ts-ignore - On modifie volontairement une constante pour les tests
-  API_CONFIG.VERSION = version
+  ;(API_CONFIG as { VERSION: string }).VERSION = version
 }
 
 export default API_CONFIG

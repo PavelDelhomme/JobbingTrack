@@ -25,7 +25,9 @@ describe('Security Service - Tests de base', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('success', true);
-    expect(response.body).toHaveProperty('logs');
+    expect(response.body).toHaveProperty('data');
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body).toHaveProperty('pagination');
   });
 
   test('OPTIONS /api/v1/security/logs devrait retourner 204 pour CORS', async () => {

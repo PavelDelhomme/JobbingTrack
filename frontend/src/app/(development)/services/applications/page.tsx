@@ -171,20 +171,7 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<ServiceStatus | null>(null)
   const [serviceLogs, setServiceLogs] = useState<string[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
-
-  // Vérification d'authentification
-  if (!token || !user) {
-    return (
-      <AdminLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
-            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
-          </div>
-        </div>
-      </AdminLayout>
-    )
-  }
+  const [prometheusMetrics, setPrometheusMetrics] = useState<{[serviceName: string]: any}>({})
 
   useEffect(() => {
     // Test automatique au chargement de la page
@@ -526,9 +513,6 @@ export default function ServicesPage() {
     return service.serviceType ? maintenances[service.serviceType] : undefined
   }
 
-  // État pour les métriques Prometheus
-  const [prometheusMetrics, setPrometheusMetrics] = useState<{[serviceName: string]: any}>({})
-
   // Fonction pour récupérer les métriques Prometheus via l'API Gateway
   const fetchPrometheusMetrics = async (serviceName: string) => {
     try {
@@ -676,6 +660,20 @@ export default function ServicesPage() {
     }
 
     return null
+  }
+
+  // Vérification d'authentification après les hooks pour respecter les règles React.
+  if (!token || !user) {
+    return (
+      <AdminLayout>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
+            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   return (

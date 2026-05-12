@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 11 mai 2026 — **sécurité B11/B15** : alertes email critiques backend branchées mais dépendantes de la config SMTP/interne ; tests sécurité offensifs cadrés et partiellement outillés ; cible compose prod désormais scannable via merge `docker-compose.yml + docker-compose.prod.yml` avec profile `full`, mais le rapport ports montre encore trop de ports publiés en `0.0.0.0` pour une production. Historique actif : **6–7 mai** dette sécurité Compose/runtime (**B14**), analyse run `make tests` `tests/results/20260505-113157`, corrélation/logs/console ; **24 avril** `/health` frontend ; **7 avril** `type-check` / journal `tsc` ; **22 avril** `security/STATS.md`.
+**Dernière mise à jour** : 12 mai 2026 — **sécurité B11/B15** : alertes email critiques backend branchées mais dépendantes de la config SMTP/interne ; alertes disponibilité `SERVICE_DOWN` ajoutées via metrics-aggregator avec dédup anti-flap ; tests sécurité offensifs cadrés et partiellement outillés ; cible compose prod désormais scannable via merge `docker-compose.yml + docker-compose.prod.yml` avec profile `full`, mais le rapport ports montre encore trop de ports publiés en `0.0.0.0` pour une production. **12/05** : les suites ciblées et applicatives liées au chantier sécurité/backoffice sont vertes (`security-service` 15/15, frontend Jest 86/86, Playwright sécurité 16/16, lint/type-check OK) ; tests ciblés disponibilité sécurité **10/10**. Historique actif : **6–7 mai** dette sécurité Compose/runtime (**B14**), analyse run `make tests` `tests/results/20260505-113157`, corrélation/logs/console ; **24 avril** `/health` frontend ; **7 avril** `type-check` / journal `tsc` ; **22 avril** `security/STATS.md`.
 
 Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUTIONS.md**.
 
@@ -8,7 +8,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–H** + **B14/B15** infra/sécurité), **`TODOS.md`**, **`security/STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** et **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**.
 
-**Alertes email sécurité (11/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe, mais l’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
+**Alertes email sécurité (11/05 + 12/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe et les indisponibilités de services critiques peuvent maintenant créer des alertes `availability/SERVICE_DOWN` depuis la santé metrics-aggregator. L’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
 
 **Tests sécurité offensifs (11/05)** : l’absence actuelle de rapport `sqlmap` / ZAP / `ffuf` / `gitleaks` / `trivy` / TLS / IDOR ne prouve pas l’absence de faille. Le périmètre est cadré dans **`docs/security/SECURITY_TESTING_MATRIX.md`** et **`PLAN.md` B15** ; exécuter uniquement sur environnement autorisé, avec limites anti-DoS et rapports horodatés.
 
@@ -17,6 +17,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 **Scans P0 bruts (11/05)** : `gitleaks` a trouvé **717 occurrences** dans l’historique (majoritairement JWT/headers/clefs génériques dans artefacts de tests) et Trivy/CVE remonte de nombreux `critical/high` sur dépendances Node et images Docker. À ce stade, ce sont des **findings non triés** : ne pas les ignorer, mais ne pas les présenter comme failles exploitables avant classification secret réel/faux positif/dev-only/prod-exposé.
 
 **Fluidité backoffice (11/05)** : il ne faut pas assimiler “page affichée finalement” à “navigation fluide”. Les pages admin lourdes (monitoring, sécurité, tests, rapports, analytics) doivent avoir un rendu immédiat, des fetchs/polling bornés, des charts lazy-loadés et des loaders honnêtes. Tout changement touchant `/backoffice/**` doit être validé côté frontend.
+
+**Validation tests 12/05 — résolu localement** : `frontend/tests/e2e/security-e2e.spec.ts` passe **16/16** avec l’app sur `5003` et la gateway sur `5002`. La suite Jest frontend repasse **86/86** et `security-service` repasse **15/15**. Cause racine du faux rouge Postgres : le conteneur `jobbingtrack-postgres` publie `5432` sur le port hôte `5000`, alors que `tests/setup.js` forçait `localhost:5432`. Cause racine du faux rouge service-detail : test encore aligné sur un encart “Réutilisation monitoring” retiré de l’UI ; l’encart a été restauré avec un texte utile.
 
 ---
 
@@ -29,7 +31,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 ## Sécurité — trous d’investigation à ne pas interpréter comme absence d’attaque
 
-- **Fiche menace avec métadonnées pauvres** : si une menace contient seulement `{ test: true, packetsPerSec: ... }`, les champs destination/services/logs peuvent être vides si aucune corrélation `network_connections` / `security_logs.metadata.*` n’existe dans la fenêtre. Correctif en cours : fallback sur `network_connections` et recherche logs via `metadata.sourceIp` / `metadata.threatId`.
+- **Fiche menace avec métadonnées pauvres** : si une menace contient seulement `{ test: true, packetsPerSec: ... }`, les champs destination/services/logs restent dépendants de la présence réelle de données corrélables dans `network_connections` / `security_logs.metadata.*`. Correctif 12/05 : fallback `network_connections`, recherche logs via `metadata.sourceIp` / `metadata.threatId`, affichage des connexions issues de `investigation.network.connectionDetails`.
 - **VPN/proxy/Tor/ASN = N/A** : ce n’est pas une preuve que l’attaquant n’utilise pas de VPN/proxy. Cela signifie qu’aucun provider threat-intel/GeoIP ASN n’est encore branché.
 - **WAF désactivé en dev** : normal pour certains tests locaux, mais les scénarios de validation doivent couvrir explicitement WAF `on` et `off` pour vérifier détection, blocage et absence de faux positifs.
 
