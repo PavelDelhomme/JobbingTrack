@@ -7,8 +7,8 @@ import { test, expect } from '@playwright/test';
 import { e2eGatewayBaseUrl } from '../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 test.describe('Gestion Utilisateurs (admin CRUD)', () => {
   let authToken: string;

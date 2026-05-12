@@ -50,19 +50,8 @@ router.put('/admin/test/time-travel', [
   body('daysBack').isInt({ min: 1, max: 365 }).withMessage('daysBack requis (1-365)')
 ], controller.timeTravelEntity);
 
-// Routes par ID (après les routes nommées)
-router.get('/:id', idValidation, controller.getApplication);
-router.put('/:id', updateValidation, controller.updateApplication);
-router.delete('/:id', idValidation, controller.deleteApplication);
-router.post('/:id/archive', [
-  idValidation,
-  body('reason').optional().isString()
-], archiveController.archiveApplication);
-router.post('/:id/unarchive', idValidation, archiveController.restoreApplication);
-router.post('/:id/restore', idValidation, archiveController.restoreFromTrash);
-router.delete('/:id/permanent', idValidation, archiveController.permanentDeleteFromTrash);
-
-// NOUVELLES ROUTES - Historique des statuts
+// Routes spécifiques par ID avant /:id pour éviter qu'Express capture
+// "status", "status-history" ou "suggestion-reject" comme un simple ID.
 router.put('/:id/status', [
   idValidation,
   body('status').isIn([
@@ -83,5 +72,17 @@ router.post('/:id/thank-you-sent', idValidation, controller.markThankYouSent);
 
 // NOUVELLES ROUTES - Contacts liés aux candidatures
 router.get('/:id/contacts', idValidation, controller.getApplicationContacts);
+
+// Routes génériques par ID (après toutes les sous-routes nommées)
+router.get('/:id', idValidation, controller.getApplication);
+router.put('/:id', updateValidation, controller.updateApplication);
+router.delete('/:id', idValidation, controller.deleteApplication);
+router.post('/:id/archive', [
+  idValidation,
+  body('reason').optional().isString()
+], archiveController.archiveApplication);
+router.post('/:id/unarchive', idValidation, archiveController.restoreApplication);
+router.post('/:id/restore', idValidation, archiveController.restoreFromTrash);
+router.delete('/:id/permanent', idValidation, archiveController.permanentDeleteFromTrash);
 
 module.exports = router;

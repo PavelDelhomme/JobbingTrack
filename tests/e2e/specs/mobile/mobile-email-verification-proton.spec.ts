@@ -13,7 +13,10 @@ const TEST_PASSWORD = process.env.TEST_VERIFICATION_PASSWORD || 'SecureP@ss123!'
 
 async function loginAdmin(request: any): Promise<string> {
   const res = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
-    data: { email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com', password: process.env.TEST_ADMIN_PASSWORD || 'password123' },
+    data: {
+      email: process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com',
+      password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123'
+    },
   });
   expect(res.status()).toBe(200);
   const body = await res.json();

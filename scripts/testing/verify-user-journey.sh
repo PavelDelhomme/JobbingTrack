@@ -132,7 +132,9 @@ fi
 
 # 3) Login admin (pour fallback ou tests SUPER_ADMIN)
 ADMIN_TOKEN=""
-ADMIN_LOGIN_DATA="{\"email\":\"admin@jobbingtrack.com\",\"password\":\"password123\"}"
+ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-${ADMIN_EMAIL:-admin@jobbingtrack.com}}"
+ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD:-${ADMIN_PASSWORD:-password123}}"
+ADMIN_LOGIN_DATA="{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}"
 test_endpoint "Login admin" "$API_URL/api/v1/auth/login" "POST" "$ADMIN_LOGIN_DATA" "200"
 if [ -f /tmp/response.txt ]; then
     ADMIN_TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")

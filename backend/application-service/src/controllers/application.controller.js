@@ -51,6 +51,33 @@ function mapRawApplicationRow(row) {
   };
 }
 
+function looksLikeStatusCode(value) {
+  return typeof value === 'string' && /^[A-Z][A-Z0-9_]+$/.test(value);
+}
+
+async function enrichApplicationStatus(application) {
+  if (!application) return application;
+  if (application.status && typeof application.status === 'object') return application;
+
+  const statusId = application.statusId || (looksLikeStatusCode(application.status) ? null : application.status);
+  if (!statusId) return application;
+
+  try {
+    const status = await prisma.applicationStatus.findUnique({ where: { id: statusId } });
+    if (status) {
+      return {
+        ...application,
+        statusId: application.statusId || status.id,
+        status
+      };
+    }
+  } catch (error) {
+    logger.warn('Enrichissement statut candidature ignoré:', error.message);
+  }
+
+  return application;
+}
+
 async function findApplicationRawById(id, userId, options = {}) {
   const { excludeDeleted = true } = options;
   try {
@@ -577,7 +604,7 @@ const getApplication = async (req, res, next) => {
       });
     }
 
-    return res.json({ success: true, application });
+    return res.json({ success: true, application: await enrichApplicationStatus(application) });
   } catch (error) {
     if (isLegacyApplicationSchemaError(error)) {
       try {
@@ -591,7 +618,7 @@ const getApplication = async (req, res, next) => {
           return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
         }
         const application = mapRawApplicationRow(row);
-        return res.json({ success: true, application });
+        return res.json({ success: true, application: await enrichApplicationStatus(application) });
       } catch (rawErr) {
         logger.warn('Fallback getApplication (archived) failed:', rawErr.message);
       }
@@ -849,7 +876,7 @@ const updateApplicationStatus = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Statut de la candidature mis à jour',
-      application,
+      application: await enrichApplicationStatus(application),
       statusHistory
     });
 

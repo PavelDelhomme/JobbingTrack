@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { e2eGatewayBaseUrl } from '../../../tests/e2e/helpers/gatewayUrl';
 
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 const API_GATEWAY_URL = e2eGatewayBaseUrl();
 
 export const AUTH_FILE = path.join(__dirname, '.auth', 'admin.json');

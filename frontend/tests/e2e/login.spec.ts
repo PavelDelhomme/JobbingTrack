@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 /** Desactive les tests UI sensibles au timing auth (CI lent ou cookie sans localStorage). API reste couverte par api-e2e.spec.ts */
 const skipLoginUi =
