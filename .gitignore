@@ -35,6 +35,7 @@ reports/env-audit/*
 dist/
 build/
 target/
+*.tsbuildinfo
 
 # Database
 *.sqlite
