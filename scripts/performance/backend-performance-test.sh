@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 REPORT_DIR="${PROJECT_DIR}/backend-performance-reports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="${REPORT_DIR}/backend_performance_${TIMESTAMP}.json"
@@ -216,8 +216,8 @@ EOF
     # ✅ Générer automatiquement un rapport HTML
     if [ -f "$REPORT_FILE" ]; then
         HTML_REPORT="${REPORT_FILE%.json}.html"
-        if [ -f "scripts/generate-html-report.sh" ]; then
-            bash scripts/generate-html-report.sh "$REPORT_FILE" "$HTML_REPORT"
+        if [ -f "scripts/reports/generate-html-report.sh" ]; then
+            bash scripts/reports/generate-html-report.sh "$REPORT_FILE" "$HTML_REPORT"
             echo -e "${GREEN}✅ Rapport HTML généré: $HTML_REPORT${NC}"
         fi
     fi

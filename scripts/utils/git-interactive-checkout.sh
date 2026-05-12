@@ -2,7 +2,7 @@
 # =============================================================================
 # Outil de navigation Git interactive - JobbingTrack
 # Permet de revenir à un commit ou une branche de manière claire et visuelle.
-# Usage: ./scripts/git-interactive-checkout.sh  ou  make git-checkout
+# Usage: ./scripts/utils/git-interactive-checkout.sh  ou  make git-checkout
 # =============================================================================
 
 set -e

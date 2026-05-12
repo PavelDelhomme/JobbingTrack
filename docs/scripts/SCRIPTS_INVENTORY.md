@@ -10,7 +10,7 @@ La commande ne supprime rien. Elle classe les scripts selon les références tro
 
 ## Dernier Contrôle
 
-Contrôle local du 12/05/2026 : `make scripts-inventory` OK, **124 scripts** détectés, dont **58 actifs**, **24 sans référence automatique** et **9 encore à la racine**. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
+Contrôle local du 12/05/2026 : `make scripts-inventory` OK, **121 scripts** détectés, dont **58 actifs**, **21 sans référence automatique** et **0 encore à la racine**. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
 
 Suite du 12/05 : la logique des anciens scripts d'environnement racine `sync-env.js`, `verify-env-usage.js` et `generate-env-example.sh` vit maintenant sous `scripts/env/`; les chemins racine restent des wrappers de compatibilité.
 
@@ -18,7 +18,9 @@ Suite du 12/05 soir : premiers déplacements sans wrapper racine quand les réf�
 
 Suite du 12/05 tard : scripts rapports/performance/ops déplacés avec références Make mises à jour : `scripts/reports/compress-old-reports.sh`, `scripts/reports/clean-empty-reports.sh`, `scripts/performance/*benchmark*.sh`, `scripts/ops/{logs-watch,color-logs,status-watch-loop,timed-make,make-menu}.sh`.
 
-État d'usage : le dossier reste utilisable parce que les entrées contractuelles Make/CI sont détectées, mais il n'est pas encore propre. Le prochain lot sûr doit déplacer les gros points d'entrée de tests à destination évidente (`testing` / `reports`) avec migration prudente des routes frontend/API qui les appellent. Les **24** scripts `non-reference` ne doivent pas être supprimés avant audit manuel : certains peuvent être des outils de dépannage utilisés ponctuellement.
+Suite finale du 12/05 : les scripts maintenance/diagnostic/performance restants ont été rangés (`scripts/health/verify-system.sh`, `scripts/utils/git-interactive-checkout.sh`, `scripts/ops/fix-all.sh`, `scripts/db/diagnostic-prisma.sh`, `scripts/docker/get-docker-node-version.sh`, `scripts/reports/generate-html-report.sh`, `scripts/performance/backend-performance-test.sh`, `scripts/performance/run-performance-*.sh`, `scripts/testing/verify-user-journey.sh`). Les références Make, CI, routes de test et docs principales ont été migrées.
+
+État d'usage : le dossier n'a plus de script classé `racine`. Le prochain lot n'est plus un déplacement racine mais un audit de fond des **21** scripts `non-reference` avant archivage ou suppression : certains peuvent être des outils de dépannage utilisés ponctuellement.
 
 ## Statuts
 

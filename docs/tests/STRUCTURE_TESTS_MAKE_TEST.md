@@ -31,7 +31,7 @@ Le script **run-all-tests-with-reports.sh** lance automatiquement le **seed auth
 
 | Catégorie | Ce qui est exécuté | Nombre typique | Note |
 |-----------|--------------------|----------------|------|
-| **User Journey (API)** | `scripts/verify-user-journey.sh` | 1 bloc | Parcours API |
+| **User Journey (API)** | `scripts/testing/verify-user-journey.sh` | 1 bloc | Parcours API |
 | **Relations BDD** | `scripts/test-relations.js` | Plusieurs assertions par relation | Tables de jonction many-to-many (exécuté dans le contexte auth-service / Prisma disponible) |
 | **Enums** | `scripts/test-enums.js` | Plusieurs assertions par enum | Schéma Prisma (auth-service) |
 | **Email Logs** | Requêtes SQL / logs | 1 bloc | Table EmailLog |

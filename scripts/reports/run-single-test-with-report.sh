@@ -4,6 +4,9 @@
 # Ne pas quitter en cas d'erreur
 set +e
 
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT_DIR"
+
 # Couleurs
 RED='\033[0;31m'
 GREEN='\033[0;32m'

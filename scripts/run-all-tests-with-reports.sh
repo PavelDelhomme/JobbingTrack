@@ -519,7 +519,7 @@ fi
 
 # 1. Test User Journey (API) — utilisateur classique
 run_test "User Journey (API)" \
-    "bash scripts/verify-user-journey.sh" \
+    "bash scripts/testing/verify-user-journey.sh" \
     "$REPORT_DIR/user-journey.json" \
     "user"
 

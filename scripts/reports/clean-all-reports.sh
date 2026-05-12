@@ -9,7 +9,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULTS_DIR="$PROJECT_ROOT/tests/results"
 PERF_BACKEND_DIR="$PROJECT_ROOT/backend-performance-reports"
 PERF_FRONTEND_DIR="$PROJECT_ROOT/frontend/performance-reports"

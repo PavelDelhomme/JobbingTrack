@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Répertoire de travail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPORT_DIR="$PROJECT_ROOT/diagnostic-reports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="$REPORT_DIR/diagnostic_${TIMESTAMP}.txt"

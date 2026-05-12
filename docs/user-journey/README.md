@@ -18,7 +18,7 @@ Documentation complète sur les tests de parcours utilisateur dans JobbingTrack.
   - Utilisation dans user-journey
 
 ### 🧪 Tests
-- **[../../scripts/verify-user-journey.sh](../../scripts/verify-user-journey.sh)** - Script de vérification automatique
+- **[../../scripts/testing/verify-user-journey.sh](../../scripts/testing/verify-user-journey.sh)** - Script de vérification automatique
 - **[Page User Journey](http://localhost:8080/backoffice/user-journey)** - Interface de test
 
 ---
@@ -44,7 +44,7 @@ http://localhost:8080/backoffice/user-journey
 
 ### Option 3 : Vérification Automatique
 ```bash
-bash scripts/verify-user-journey.sh
+bash scripts/testing/verify-user-journey.sh
 ```
 
 ---
@@ -127,7 +127,7 @@ Voir [TOKEN_TEST_PERMANENT.md](./TOKEN_TEST_PERMANENT.md) pour plus de détails.
 ./START_TESTS.sh
 
 # Vérifier automatiquement
-bash scripts/verify-user-journey.sh
+bash scripts/testing/verify-user-journey.sh
 
 # État des services
 make status

@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -119,7 +119,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -495,7 +495,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -633,7 +633,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -837,7 +837,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -998,7 +998,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -1103,7 +1103,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)
@@ -1276,7 +1276,7 @@ jobs:
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
           # Capture seulement la dernière ligne (la version) et ignore le reste
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          NODE_VERSION=$(./scripts/docker/get-docker-node-version.sh | tail -n 1)
           echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
           # Validation du format (proposition de GitHub Copilot)

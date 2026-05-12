@@ -41,7 +41,7 @@ Le script :
    - À chaque étape et à la fin, le script revient au répertoire **racine du projet** pour ne pas laisser le shell dans `tests/`.
 
 2. **Catégorie 1 – Backend / BDD**
-   - **User Journey (API)** : `scripts/verify-user-journey.sh`.
+   - **User Journey (API)** : `scripts/testing/verify-user-journey.sh`.
    - **Relations BDD** : si `auth-service` tourne, exécution de `scripts/test-relations.js` dans le conteneur auth.
    - **Enums** : si `auth-service` tourne, exécution de `scripts/test-enums.js` dans le conteneur auth.
    - **Email Logs** : si la table `EmailLog` existe, requête SQL (derniers logs) dans Postgres.

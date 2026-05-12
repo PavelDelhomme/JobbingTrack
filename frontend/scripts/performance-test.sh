@@ -281,13 +281,13 @@ main() {
     echo -e "${BLUE}📁 Rapports disponibles dans: ${REPORT_DIR}${NC}"
     
     # ✅ Générer automatiquement des rapports HTML pour tous les JSON
-    if [ -f "../../scripts/generate-html-report.sh" ]; then
+    if [ -f "../../scripts/reports/generate-html-report.sh" ]; then
         echo ""
         echo -e "${BLUE}📄 Génération des rapports HTML...${NC}"
         for json_file in "${REPORT_DIR}"/*_${TIMESTAMP}.json; do
             if [ -f "$json_file" ]; then
                 html_file="${json_file%.json}.html"
-                bash ../../scripts/generate-html-report.sh "$json_file" "$html_file"
+                bash ../../scripts/reports/generate-html-report.sh "$json_file" "$html_file"
             fi
         done
         echo -e "${GREEN}✅ Rapports HTML générés !${NC}"
