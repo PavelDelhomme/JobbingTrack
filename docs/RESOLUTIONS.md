@@ -164,7 +164,7 @@
 
 ### log-collector-c — port d’écoute **3019** dans le conteneur (hôte **5099** inchangé)
 - **Problème** : mappage **5099:5099** prêtait à confusion avec la convention **50xx hôte → 30xx interne** des services Node.
-- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/verify-system.sh`** ; **`scripts/setup/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
+- **Changement** : **`docker-compose.monitoring.yml`** `5099:${LOG_COLLECTOR_C_INTERNAL_PORT:-3019}` + **`command`** pour passer le port au binaire ; **`log-collector-c`** défaut **3019** (`collector.c`, `http_server.c`, **Dockerfile**) ; **`metrics-aggregator`** `KNOWN_SERVICES` ; **`.env.example`** `LOG_COLLECTOR_C_INTERNAL_PORT` + **`LOG_COLLECTOR_C_URL`** ; **`scripts/health/verify-system.sh`** ; **`scripts/setup/setup-ports.sh`** ; légende **`make status`** (`makefiles/services/Makefile`).
 
 ---
 
@@ -677,8 +677,8 @@
   - `tests/security/test-security.js` : URLs corrigees vers `/api/v1/...`, base URL via `API_GATEWAY_URL`, headers manquants en `⚠️` au lieu de `❌`, endpoint auth bypass corrige
   - `tests/performance/test-performance.js` : reecrit – teste 12 vrais endpoints API (applications, companies, contacts, etc.), test de charge (65 requetes paralleles), metriques via metrics-aggregator (port 5004)
   - `tests/integration/test-full-system.js` : reecrit – utilise HTTP vers metrics-aggregator (port 5004), teste health, metriques systeme, Docker services, persistance
-  - `scripts/run-performance-backend-in-container.sh` : reecrit – 17 tests (health + 8 endpoints API + 3 metriques + charge + temps de reponse)
-  - `scripts/backend-performance-test.sh` : ajout `test_api_endpoints()` avec 10 endpoints reels
+  - `scripts/performance/run-performance-backend-in-container.sh` : reecrit – 17 tests (health + 8 endpoints API + 3 metriques + charge + temps de reponse)
+  - `scripts/performance/backend-performance-test.sh` : ajout `test_api_endpoints()` avec 10 endpoints reels
   - `frontend/scripts/performance-test.sh` : fix mode non-interactif (bloquait sur `read -r`)
   - `scripts/security/test-firewall.sh` : `❌` conditionnel uniquement si echecs > 0
   - Timeout Playwright augmente de 300s a 900s (213 tests au lieu de 93)

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const perfCommand = inContainer
-      ? 'sh /app/scripts/run-performance-backend-in-container.sh'
+      ? 'sh /app/scripts/performance/run-performance-backend-in-container.sh'
       : 'make test-performance-backend'
     const command = `cd "${projectRoot}" && sh "${scriptPath}" performance-backend "${perfCommand}" "${testName}"`
     let stdout = ''

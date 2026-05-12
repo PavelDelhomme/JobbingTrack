@@ -28,7 +28,7 @@
 
 **Dependabot alerts → BDD sécurité (12/05)** : import GitHub branché côté `security-service` sans exposition frontend. `analyzeDependabotAlerts()` récupère `/repos/:owner/:repo/dependabot/alerts`, normalise vers `Vulnerability`, conserve `ghsaId`/`cveId`/manifest/path/range dans `metadata`, et crée une `SecurityAlert` seulement pour une nouvelle alerte `critical/high` encore `open`. Endpoint manuel : `POST /api/v1/vulnerabilities/dependabot/import`. Job cron optionnel : `DEPENDABOT_ALERTS_ENABLED=true` + `DEPENDABOT_ALERTS_TOKEN` ou `GITHUB_TOKEN`; désactivé par défaut. Validation ciblée : `backend/security-service npm test -- --runInBand tests/security-cve-alerts.test.js` = **5/5**.
 
-**Scripts — restructuration progressive (12/05)** : plusieurs lots sûrs déplacent les scripts racine vers des dossiers métier sans casser les commandes Make : `env/`, `setup/`, `db/`, `reports/`, `performance/`, `ops/`. Validations : `bash -n` sur les scripts déplacés, `make -n setup-ports`, `make -n test-mobile-report`, `make -n status-watch`, `make -n logs-watch`, `make -n menu`, puis `make scripts-inventory`. État actuel : **124 scripts**, **58 actifs**, **9 encore à la racine**, **24 sans référence automatique**.
+**Scripts — restructuration progressive (12/05)** : plusieurs lots sûrs déplacent les scripts racine vers des dossiers métier sans casser les commandes Make/CI/routes : `env/`, `setup/`, `db/`, `docker/`, `reports/`, `performance/`, `ops/`, `health/`, `testing/`, `utils/`. Validations : `bash -n` sur les scripts déplacés, `make -n setup-ports`, `make -n test-mobile-report`, `make -n status-watch`, `make -n logs-watch`, `make -n menu`, `make -n fix-all`, `make -n git-checkout`, `make -n test-performance-backend`, puis `make scripts-inventory`. État actuel : **121 scripts**, **58 actifs**, **0 à la racine**, **21 sans référence automatique**.
 
 ### 11 mai 2026 — cadrage tests sécurité offensifs contrôlés
 
@@ -129,7 +129,7 @@
 
 - **`application-service`** : fallback legacy renforcé dans `application.controller.js` (détection dérive schéma Prisma/BDD, fallback SQL brut sur `create/get/update/delete`, insert avec cast enums Postgres + gestion `createdAt/updatedAt`).
 - **Validation ciblée** :
-  - `bash scripts/verify-user-journey.sh` : `Create Application` repasse **201** (corrigé).
+  - `bash scripts/testing/verify-user-journey.sh` : `Create Application` repasse **201** (corrigé).
   - `bash scripts/test-api-specific.sh` : les échecs CRUD candidature sont levés ; reste des **503** sur bloc Dashboard/Analytics quand `dashboard-service` est indisponible (`ENOTFOUND dashboard-service:3000`).
 - **Conclusion** : cause racine “candidatures 500 Prisma” traitée ; prochain verrou test = disponibilité/chaînage `dashboard-service` pendant `make tests` + stabilisation suites Playwright/Jest déjà listées.
 
@@ -151,7 +151,7 @@
   - skip `UNAUTHORIZED_ACCESS` quand un header `Authorization` est présent.
 - **Validation ciblée post-fix** :
   - `scripts/test-api-specific.sh` : 51/51,
-  - `scripts/verify-user-journey.sh` : 14/14.
+  - `scripts/testing/verify-user-journey.sh` : 14/14.
 
 ### 07/05/2026 — exécution demandée A) puis B)
 

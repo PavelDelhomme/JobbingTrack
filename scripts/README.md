@@ -52,14 +52,20 @@ scripts/
 | `scripts/reports/show-mobile-report.sh` | Ouverture du rapport HTML mobile, utilisé par `make test-mobile-report`. |
 | `scripts/reports/compress-old-reports.sh` | Compression des anciens rapports de tests. |
 | `scripts/reports/clean-empty-reports.sh` | Nettoyage des rapports vides ou invalides. |
+| `scripts/reports/clean-all-reports.sh` | Nettoyage interactif de tous les rapports. |
 | `scripts/reports/clean-all-reports-docker.sh` | Nettoyage manuel des rapports dans le conteneur frontend. |
+| `scripts/reports/generate-html-report.sh` | Génération HTML depuis un JSON de performance. |
+| `scripts/reports/run-single-test-with-report.sh` | Exécution ponctuelle d'un test avec rapport. |
 | `scripts/performance/performance-benchmark.sh` | Benchmark before/after léger. |
 | `scripts/performance/benchmark-all-backoffice.sh` | Benchmark complet des pages backoffice. |
+| `scripts/performance/backend-performance-test.sh` | Test de performance backend, utilisé par `make test-performance-backend`. |
+| `scripts/performance/run-performance-backend-in-container.sh` | Test performance backend depuis le conteneur frontend. |
+| `scripts/performance/run-performance-frontend-in-container.sh` | Test performance frontend depuis le conteneur frontend. |
 | `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
-| `scripts/verify-user-journey.sh` | Parcours API utilisateur. |
+| `scripts/testing/verify-user-journey.sh` | Parcours API utilisateur. |
 | `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
 | `scripts/test-enums.js` | Validation des enums Prisma. |
-| `scripts/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
+| `scripts/docker/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
 
 ## Inventaire
 

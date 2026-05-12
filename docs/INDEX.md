@@ -56,7 +56,7 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 - **[README.md](tests/README.md)** - Stratégie tests, commandes, structure make test
 
 **Scripts** :
-- `scripts/verify-user-journey.sh` - Vérification automatique des endpoints
+- `scripts/testing/verify-user-journey.sh` - Vérification automatique des endpoints
 - `START_TESTS.sh` - Démarrage rapide des tests
 
 ---
@@ -190,7 +190,7 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 - **[README.md](scripts/)** - Documentation des scripts
 
 **Scripts Principaux** :
-- `scripts/verify-user-journey.sh` - Vérification automatique
+- `scripts/testing/verify-user-journey.sh` - Vérification automatique
 - `START_TESTS.sh` - Démarrage rapide des tests
 - `scripts/monitoring/` - Scripts de monitoring
 

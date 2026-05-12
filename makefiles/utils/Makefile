@@ -66,8 +66,8 @@ setup-port: setup-ports ## Alias : même chose que setup-ports
 # ============================================================================
 
 git-checkout: ## Revenir à un commit ou une branche de manière interactive
-	@chmod +x $(ROOT_DIR)/scripts/git-interactive-checkout.sh 2>/dev/null || true
-	@$(ROOT_DIR)/scripts/git-interactive-checkout.sh
+	@chmod +x $(ROOT_DIR)/scripts/utils/git-interactive-checkout.sh 2>/dev/null || true
+	@$(ROOT_DIR)/scripts/utils/git-interactive-checkout.sh
 
 # ============================================================================
 # ACCÈS RAPIDE MONITORING

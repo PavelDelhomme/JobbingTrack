@@ -154,8 +154,8 @@ metrics-rebuild: ## Rebuild et redémarrer metrics-aggregator
 
 fix-all: ## Fix complet (frontend + metrics-aggregator)
 	@echo "🔧 Fix complet en cours..."
-	@chmod +x scripts/fix-all.sh
-	@./scripts/fix-all.sh
+	@chmod +x scripts/ops/fix-all.sh
+	@./scripts/ops/fix-all.sh
 
 monitoring-full: ## Démarrer JobbingTrack + Monitoring (propre)
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -374,8 +374,8 @@ monitor: ## Tableau live des conteneurs JobbingTrack (ports, CPU, mémoire, éta
 
 test-performance-backend: ## Tests de performance backend
 	@echo "🔍 Tests de performance backend..."
-	@chmod +x scripts/backend-performance-test.sh
-	@./scripts/backend-performance-test.sh
+	@chmod +x scripts/performance/backend-performance-test.sh
+	@./scripts/performance/backend-performance-test.sh
 
 check-memory-backend: ## Vérifier la consommation mémoire des services backend
 	@echo "💾 Vérification mémoire backend..."

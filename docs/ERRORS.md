@@ -408,7 +408,7 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
   - fallback SQL brut sur `create/get/update/delete`,
   - cast explicite des enums PostgreSQL (`ContractType`, `WorkMode`, `ApplicationType`) sur l'insert raw,
   - prise en charge `createdAt/updatedAt` pour les schemas qui l'exigent.
-- Validation : `scripts/verify-user-journey.sh` repasse `Create Application` en `201`.
+- Validation : `scripts/testing/verify-user-journey.sh` repasse `Create Application` en `201`.
 
 ### Reste a traiter
 - Echecs `503` sur statistiques/dashboard/analytics quand `dashboard-service` est indisponible (`ENOTFOUND dashboard-service:3000`) pendant les scripts agregés.

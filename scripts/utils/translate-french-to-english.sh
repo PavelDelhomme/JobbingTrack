@@ -3,6 +3,9 @@
 # Script to translate French text to English in codebase
 # This script uses sed to replace common French phrases with English equivalents
 
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT_DIR"
+
 echo "🔄 Starting translation of French text to English..."
 
 # Function to translate a file

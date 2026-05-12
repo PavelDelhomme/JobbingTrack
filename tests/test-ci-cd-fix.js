@@ -8,7 +8,7 @@ console.log('================================');
 
 // Test 1: Capture de la version avec tail -n 1
 try {
-    const version = execSync('./scripts/get-docker-node-version.sh | tail -n 1', { encoding: 'utf8' }).trim();
+    const version = execSync('./scripts/docker/get-docker-node-version.sh | tail -n 1', { encoding: 'utf8' }).trim();
     console.log(`✅ Version capturée: ${version}`);
     
     // Test 2: Validation regex
