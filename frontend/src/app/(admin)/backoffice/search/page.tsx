@@ -21,8 +21,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import Link from 'next/link';
+import { FRONTEND_URLS } from '@/config/ports.config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = FRONTEND_URLS.api;
 
 /** Neutralise les payloads XSS dans le texte affiché (ex. onerror=, onload=) sans casser la recherche. */
 function sanitizeDisplayQuery(q: string): string {

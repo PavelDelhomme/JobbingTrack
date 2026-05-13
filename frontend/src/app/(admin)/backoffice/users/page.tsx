@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
 import { formatLocalDate } from '@/lib/utils/date';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import {
   Users, Search, Plus, Edit, Trash2, Shield,
   Mail, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2, TestTube
@@ -13,7 +14,7 @@ import axios from 'axios';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 interface User {
   id: string;

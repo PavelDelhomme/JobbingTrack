@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FRONTEND_URLS } from '@/config/ports.config'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Mail, 
@@ -23,7 +24,7 @@ import {
 } from '@/lib/icons'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface EmailStats {
   global: {

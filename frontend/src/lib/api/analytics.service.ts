@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from 'axios';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { normalizeMetricTimestampToIso } from '@/lib/utils/date';
 
 /** Base des routes `/api/v1/...` de l’agrégateur (hôte direct ou proxy Next). */
@@ -81,7 +82,7 @@ export function normalizeMetricRows(rows: unknown[]): Record<string, unknown>[] 
     return out;
   });
 }
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 function persistenceContainerSegment(containerName: string): string {
   return encodeURIComponent(String(containerName || '').replace(/^\//, '').trim());

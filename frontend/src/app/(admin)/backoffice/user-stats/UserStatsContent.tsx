@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { PieChart, Users, Building2, User, ChevronDown, ChevronRight } from '@/lib/icons'
 import Link from 'next/link'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface UserStatsData {
   totalSessions?: number

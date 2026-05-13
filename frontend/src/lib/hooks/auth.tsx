@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { authService } from '../api'
 
 interface User {
@@ -191,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Vérifier que l'URL de l'API est définie
-    if (!process.env.NEXT_PUBLIC_API_URL) {
+    if (!FRONTEND_URLS.api) {
       console.error('API URL not defined');
       clearAuthData();
       return;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FRONTEND_URLS } from '@/config/ports.config';
 
 export interface CustomizationSettings {
   // Thème général
@@ -101,7 +102,7 @@ export function useCustomization() {
         const token = localStorage.getItem('token');
         if (token) {
           try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = FRONTEND_URLS.api;
             const response = await fetch(`${apiUrl}/api/v1/users/customization`, {
               headers: {
                 'Authorization': `Bearer ${token}`,

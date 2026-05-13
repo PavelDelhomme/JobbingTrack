@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { 
   Play, TrendingUp, Zap, Activity, Clock, Target, 
   Layers, Server, Cpu, HardDrive, Wifi, AlertCircle,
@@ -10,7 +11,7 @@ import {
   Loader2, XCircle, RefreshCw
 } from '@/lib/icons';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 interface PerformanceMetric {
   name: string;

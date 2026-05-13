@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import axios from 'axios'
 
 interface Service {
@@ -29,7 +30,7 @@ interface Maintenance {
   updatedAt: string
 }
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_GATEWAY_URL = FRONTEND_URLS.api
 
 export default function MaintenancePage() {
   const { token, user } = useAuth()

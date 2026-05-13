@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 
 function VerifyEmailContent() {
@@ -30,7 +31,7 @@ function VerifyEmailContent() {
     try {
       setStatus('loading');
       
-      const apiBase = process.env.NEXT_PUBLIC_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+      const apiBase = FRONTEND_URLS.api;
       const response = await fetch(`${apiBase}/api/v1/auth/verify-email/${verificationToken}`, {
         method: 'GET',
         headers: {

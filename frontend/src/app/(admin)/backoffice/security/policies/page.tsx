@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 interface WafConfig {
   enabled: boolean;

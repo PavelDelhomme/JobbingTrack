@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { Users, Search, Plus, Edit, Trash2, Mail, Phone, Building2, RefreshCw, X } from 'lucide-react';
 import { contactService, companyService } from '@/lib/api';
 import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 interface Contact {
   id: string;

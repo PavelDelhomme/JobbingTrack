@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
 import { formatLocalDateTime } from '@/lib/utils/date'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import {
   countDetectionLikeLogs,
   isDdosThreat,
@@ -11,7 +12,7 @@ import {
   isXssThreat,
 } from '@/lib/security/threatSignals'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 /** Extrait le temps de réponse agrégé (agrégateur expose souvent `responseTime` à la racine). */
 function pickResponseTimeMs(metrics: Record<string, unknown> | null | undefined): number | null {

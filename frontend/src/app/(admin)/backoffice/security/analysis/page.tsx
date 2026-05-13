@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { formatLocalDateTime } from '@/lib/utils/date';
 import {
   countDetectionLikeLogs,
@@ -14,7 +15,7 @@ import {
 import { Shield, AlertTriangle, Lock, Eye, Activity } from '@/lib/icons';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 const ANALYSIS_LOGS_WINDOW_DAYS = 30;
 const ANALYSIS_LOGS_FETCH_LIMIT = 2000;
 

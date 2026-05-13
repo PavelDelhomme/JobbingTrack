@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { 
   ArrowLeft, Mail, Phone, Calendar, UserCheck, UserX, 
   Shield, Edit, Save, X, Trash2, Key, Lock, Unlock,
@@ -12,7 +13,7 @@ import {
 import Link from 'next/link';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
 

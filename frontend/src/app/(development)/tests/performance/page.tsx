@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import {
   Play,
   Square,
@@ -119,7 +120,7 @@ import { Switch } from '@/components/ui';
 import { Separator } from '@/components/ui';
 import { Progress } from '@/components/ui';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 // Types pour l'interface des tests de performance
 interface PerformanceTest {

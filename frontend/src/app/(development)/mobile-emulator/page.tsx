@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { FRONTEND_URLS } from '@/config/ports.config'
 
 // Styles CSS personnalisés pour l'émulateur mobile
 const mobileEmulatorStyles = `
@@ -245,7 +246,7 @@ const DEVICES: Device[] = [
   { id: 'ipad', name: 'iPad Pro 11"', width: 834, height: 1194, icon: '📱', os: 'Tablet' }
 ]
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_URL = FRONTEND_URLS.api
 
 export default function MobileEmulatorPage() {
   // ✅ HOOKS - Tous les hooks doivent être déclarés en premier

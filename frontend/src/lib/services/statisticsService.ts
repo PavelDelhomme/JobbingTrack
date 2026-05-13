@@ -2,7 +2,9 @@
  * Service pour récupérer les statistiques applicatives
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+import { FRONTEND_URLS } from '@/config/ports.config';
+
+const API_URL = FRONTEND_URLS.api;
 
 export interface ApplicationStatistics {
   applications: {

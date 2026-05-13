@@ -10,11 +10,12 @@ import { GlobalSearch } from './GlobalSearch'
 import { OfflineActions } from './OfflineActions'
 import { SettingsPopup } from './SettingsPopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
+import { FRONTEND_URLS } from '@/config/ports.config'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from '@/lib/icons'
 import { FlaskConical, Eraser } from 'lucide-react'
 
-const BACKOFFICE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const BACKOFFICE_API_URL = FRONTEND_URLS.api
 
 interface AdminLayoutProps {
   children: ReactNode

@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { Settings, Activity, AlertCircle } from 'lucide-react';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import axios from 'axios';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 export default function ServicesManagementPage() {
   const router = useRouter();

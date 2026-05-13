@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { 
   CheckCircle, 
   AlertCircle, 
@@ -21,7 +22,7 @@ import {
 } from 'lucide-react'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface DNSTestResult {
   domain: string

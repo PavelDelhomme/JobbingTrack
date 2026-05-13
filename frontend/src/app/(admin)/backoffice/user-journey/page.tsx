@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Users, 
@@ -32,7 +33,7 @@ import {
   FileDown
 } from '@/lib/icons';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 // Types pour les étapes du parcours
 type JourneyStep = {

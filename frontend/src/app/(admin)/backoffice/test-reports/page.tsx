@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare, Image } from 'lucide-react'
 import axios from 'axios'
 import { ReportIframe } from './ReportIframe'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface CompareReportData {
   id: string

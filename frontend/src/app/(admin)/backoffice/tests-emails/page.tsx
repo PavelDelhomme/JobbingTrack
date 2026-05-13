@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { Mail, Send, CheckCircle, XCircle, RefreshCw, TestTube, KeyRound, CheckCircle2, ArrowRight } from 'lucide-react'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 type EmailTestType = 'test' | 'reset' | 'verification'
 
