@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import axios from 'axios'
 
 interface APITest {
@@ -74,7 +75,7 @@ interface CollectionRequest {
   tests?: TestScript[]
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_URL = FRONTEND_URLS.api
 
 export default function APITesterPage() {
   const [service, setService] = useState('applications')

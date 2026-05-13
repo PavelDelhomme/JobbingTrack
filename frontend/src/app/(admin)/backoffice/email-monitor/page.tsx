@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatLocalDateTime } from '@/lib/utils/date';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import {
   Mail,
   Send,
@@ -63,7 +64,7 @@ export default function EmailMonitorPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadEmailsRef = useRef<(silent?: boolean) => Promise<void>>(() => Promise.resolve());
 
-  const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+  const API_URL = FRONTEND_URLS.api;
   const POLL_INTERVAL_MS = 3000; // 3 s pour un vrai suivi temps réel
 
   // Charger les emails depuis l'API

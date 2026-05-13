@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import AdminLayout from '@/components/features/AdminLayout'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { 
   BarChart3, 
   MousePointer, 
@@ -113,7 +114,7 @@ export default function UserAnalyticsPage() {
       const token = localStorage.getItem('token')
       const headers = { Authorization: `Bearer ${token}` }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+      const apiUrl = FRONTEND_URLS.api
       const q = rangeQuery
       // Promise.allSettled pour ne pas faire échouer tout le chargement si une requête est bloquée (ex. uBlock sur /analytics/events)
       const results = await Promise.allSettled([

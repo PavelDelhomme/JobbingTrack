@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import axios from 'axios'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { TestTube, RefreshCw, Tag, Trash2, AlertCircle } from '@/lib/icons'
 import { useAuth } from '@/lib/hooks/auth'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 type SummaryCounts = {
   usersTest: number

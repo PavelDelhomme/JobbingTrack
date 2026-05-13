@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import {
   Smartphone,
   RefreshCw,
@@ -25,9 +26,7 @@ const CONTROLLER_URL_DEFAULT =
     ? (process.env.NEXT_PUBLIC_EMULATOR_CONTROLLER_URL || 'http://localhost:5055')
     : 'http://localhost:5055';
 
-const API_GATEWAY_URL = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002')
-  : 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 type Avd = { name: string };
 type Device = { id: string; status: string };
@@ -1098,7 +1097,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
     }
 
     // Nettoyage utilisateur de test (uniquement si option activée et scénario inscription + vérif email)
-    const apiBase = process.env.NEXT_PUBLIC_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+    const apiBase = FRONTEND_URLS.api;
     if (VERIFICATION_EMAIL_SCENARIO_KEYS.includes(selected) && cleanUserBetweenScenarios && authToken) {
       const emailMap: Record<string, string> = {
         mobile_register_verify_gmail: VERIFICATION_EMAIL_ACCOUNTS.gmail.email,
@@ -1216,7 +1215,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJour
     setE2eSuccess(null);
     try {
       const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5003';
-      const apiURL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
+      const apiURL = FRONTEND_URLS.api;
       const res = await fetch('/api/test/run-playwright-mobile-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

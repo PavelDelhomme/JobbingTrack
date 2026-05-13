@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { 
   Calendar, Clock, Play, Pause, Trash2, Edit, Plus, 
   CheckCircle, XCircle, RefreshCw, Settings, Zap
 } from '@/lib/icons'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface TestSchedule {
   id: string

@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { 
   Download, Upload, Database, Trash2, 
   AlertTriangle, CheckCircle, RefreshCw, FileDown, FileUp 
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = FRONTEND_URLS.api;
 
 export default function DataManagementPage() {
   const { token } = useAuth();

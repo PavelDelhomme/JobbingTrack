@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from '@/lib/icons';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 export default function NotificationsPage() {
   const router = useRouter();

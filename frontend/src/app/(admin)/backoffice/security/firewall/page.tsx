@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { formatLocalDateTime } from '@/lib/utils/date';
 import { Shield, Plus, Trash2, Edit, AlertTriangle, CheckCircle, XCircle, RefreshCw, Settings } from 'lucide-react';
 import axios from 'axios';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 /** Bandeau : vérifie Gateway + proxy /api/v1/security/* (GET firewall/rules : moins sensible au WAF que /waf/stats). */
 function SecurityBackendStatusStrip() {

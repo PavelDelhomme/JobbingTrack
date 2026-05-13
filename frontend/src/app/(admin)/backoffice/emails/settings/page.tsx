@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/features/AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { Settings, CheckCircle, AlertCircle, RefreshCw, XCircle } from 'lucide-react'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_URL = FRONTEND_URLS.api
 
 export default function EmailSettingsPage() {
   const [smtpStatus, setSmtpStatus] = useState<{ success: boolean; message: string; data?: any } | null>(null)

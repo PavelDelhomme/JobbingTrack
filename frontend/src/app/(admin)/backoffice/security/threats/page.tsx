@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { formatLocalDateTime } from '@/lib/utils/date';
 import { AlertTriangle, Ban, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 function normalizeFirewallListedIp(ip: string) {
   const s = String(ip || '').trim();

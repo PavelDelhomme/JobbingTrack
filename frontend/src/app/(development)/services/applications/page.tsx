@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { useMetrics } from '@/lib/hooks/useMetrics'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import axios from 'axios'
 
 interface ServiceStatus {
@@ -19,7 +20,7 @@ interface ServiceStatus {
   serviceType?: string
 }
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_GATEWAY_URL = FRONTEND_URLS.api
 
 /** Conteneur Docker pour logs réels (metrics-aggregator) — aligné lot A2 */
 const METRICS_FOR_LOGS =
@@ -568,7 +569,7 @@ export default function ServicesPage() {
   // Fonction pour récupérer les métriques détaillées d'un service depuis Prometheus via API Gateway
   const fetchServiceDetailedMetrics = async (service: ServiceStatus) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const apiUrl = FRONTEND_URLS.api
 
       // Utiliser le service centralisé pour les métriques
       const cpuMetrics = await centralMetricsService.getSystemMetrics()

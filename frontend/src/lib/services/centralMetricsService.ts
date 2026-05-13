@@ -13,6 +13,7 @@ import {
 import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
 import { normalizeMetricTimestampToIso } from '@/lib/utils/date'
 import { cacheManager } from '@/lib/cache/cacheManager'
+import { FRONTEND_URLS } from '@/config/ports.config'
 
 class CentralMetricsService {
   private apiUrl: string
@@ -31,7 +32,7 @@ class CentralMetricsService {
   private static readonly AGGREGATOR_BACKOFF_MS = 30000 // 30 secondes
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+    this.apiUrl = FRONTEND_URLS.api
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
     // Une seule source : metrics-aggregator (récupère les données depuis monitoring-c, persiste en BDD, expose au frontend).
     this.metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || (typeof window !== 'undefined' ? 'http://localhost:5004' : 'http://jobbingtrack-metrics-aggregator:3014')

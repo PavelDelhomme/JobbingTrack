@@ -5,8 +5,9 @@ import { AdminLayout } from '@/components/features';
 import { Play, Terminal, Copy, Check, Settings, History, Save, Download, Upload, X, Plus, Trash2, Clock, ChevronDown, ChevronUp, Info, RotateCcw } from '@/lib/icons';
 import axios from 'axios';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
+const API_GATEWAY_URL = FRONTEND_URLS.api;
 
 interface QueryParam {
   key: string;

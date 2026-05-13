@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { formatLocalDateTime } from '@/lib/utils/date'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import axios from 'axios'
 
 // Même base que le reste du backoffice (API Gateway, pas un port inventé)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface SecurityMetrics {
   totalLogs: number
@@ -224,7 +225,7 @@ export default function SecurityAnalysisPage() {
                 <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Mode démonstration</h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
                   Impossible de joindre l&apos;API Gateway sur <code className="text-xs bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">{API_URL}</code>.
-                  Vérifiez <code className="text-xs">NEXT_PUBLIC_API_URL</code> (ex. <code className="text-xs">http://localhost:5002</code>) et que les services Docker tournent.
+                  Vérifiez la configuration API centralisée et que les services Docker tournent.
                 </p>
               </div>
             </div>

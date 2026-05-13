@@ -3,6 +3,8 @@
  * Collecte automatique des événements, erreurs et métriques de performance
  */
 
+import { FRONTEND_URLS } from '@/config/ports.config';
+
 interface DeviceInfo {
   deviceId: string;
   platform: 'web' | 'ios' | 'android';
@@ -48,7 +50,7 @@ class UserTracking {
   private maxConsecutiveFailures: number = 3;
 
   private constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+    this.apiUrl = FRONTEND_URLS.api;
     this.init();
   }
 

@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { Database, Play, AlertCircle, CheckCircle, Trash2, RefreshCw, Settings, Zap, Users, Building2, FileText, Calendar, Phone, Mail, Clock, Tag } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 interface Preset {
   name: string;

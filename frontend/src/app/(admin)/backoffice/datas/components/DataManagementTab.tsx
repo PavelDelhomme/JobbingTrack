@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/auth'
+import { FRONTEND_URLS } from '@/config/ports.config'
 import { 
   Download, Upload, Database, Trash2, 
   AlertTriangle, CheckCircle, FileDown, FileUp,
@@ -11,7 +12,7 @@ import {
 import axios from 'axios'
 import { statisticsService } from '@/lib/services/statisticsService'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 interface DataStats {
   applications: number

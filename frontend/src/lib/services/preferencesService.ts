@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { buildApiUrl, isOptionalEndpoint } from '@/config/api.config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+const API_URL = FRONTEND_URLS.api;
 
 export interface RefreshIntervals {
   logs: number;

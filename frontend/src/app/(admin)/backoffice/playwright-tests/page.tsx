@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/features';
 import { useAuth } from '@/lib/hooks/auth';
+import { FRONTEND_URLS } from '@/config/ports.config';
 import { 
   Play, CheckCircle, XCircle, Clock, Plus, Edit, Trash2, Save, 
   FileText, Code, Zap, Settings, RefreshCw, Download, Upload,
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = FRONTEND_URLS.api;
 
 interface TestStep {
   id: string;
