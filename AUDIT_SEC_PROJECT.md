@@ -36,6 +36,7 @@ Etat :
 - `gitleaks` historique complet a ete lance : 717 findings bruts notes dans `docs/STATUS.md`.
 - Trivy/CVE images compose prod fusionne a ete lance : resultats critiques/hauts notes dans `docs/security/STATS.md`.
 - Les rapports dates sont non versionnes, ce qui est correct pour eviter de publier des chemins locaux ou extraits sensibles.
+- Au 13/05, les rapports dates bruts ne sont pas presents dans le workspace courant ; `docs/security/STATS.md` contient donc un tri initial priorise, pas un tri finding par finding.
 
 Risque :
 
