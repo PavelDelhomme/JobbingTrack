@@ -121,7 +121,7 @@ Action :
 
 ## Risques moyens
 
-### Forensics menaces : clarifier le vocabulaire
+### Forensics menaces : preuves techniques avant enrichissement reseau
 
 Le terme "provider IP intelligence ASN/VPN/proxy/Tor" signifie :
 
@@ -129,7 +129,7 @@ Le terme "provider IP intelligence ASN/VPN/proxy/Tor" signifie :
 - VPN/proxy/Tor : indication que l'IP semble venir d'un relais anonymisant ou d'une infrastructure partagee.
 - IP intelligence : enrichissement externe ou local qui ajoute ces informations a partir d'une base maintenue.
 
-Ce n'est pas de la forensic a lui seul. C'est seulement un enrichissement reseau. La forensic utile doit aussi contenir :
+Ce n'est pas une preuve d'attaque a lui seul. C'est seulement un enrichissement reseau optionnel. Une fiche menace exploitable doit d'abord contenir :
 
 - requete brute ou echantillon redige ;
 - payload dangereux ;
@@ -138,12 +138,14 @@ Ce n'est pas de la forensic a lui seul. C'est seulement un enrichissement reseau
 - `requestId` / `correlationId` ;
 - logs applicatifs correles ;
 - action prise par WAF/firewall ;
+- decision WAF/firewall ;
 - preuve exportable et horodatee.
 
 Action :
 
-- Renommer la tache en "Forensics menaces : preuves techniques + enrichissement reseau".
-- Ne pas presenter ASN/VPN/proxy/Tor comme preuve d'attaque.
+- Garder le libelle "preuves techniques + enrichissement reseau".
+- Ne jamais presenter ASN/VPN/proxy/Tor comme preuve d'attaque.
+- Brancher ensuite ces preuves dans les fiches menaces, puis dans l'export horodate.
 
 ### Monitoring et alertes service down
 
