@@ -67,7 +67,8 @@ async function applyDbPushAllCompatibilityFixes() {
   const sqlFiles = [
     'scripts/db/fix-application-isarchived.sql',
     'scripts/db/fix-application-isTestData.sql',
-    'scripts/db/fix-application-thankyou-sent.sql'
+    'scripts/db/fix-application-thankyou-sent.sql',
+    'scripts/db/init-key-tables.sql'
   ];
 
   await withClient(databaseUrlFor(TEST_DATABASE), async (client) => {
@@ -103,7 +104,8 @@ async function assertDatabaseShape() {
       'security_logs',
       'firewall_rules',
       'deployments',
-      'system_metrics_snapshots'
+      'system_metrics_snapshots',
+      'log_collector_logs'
     ];
     for (const tableName of criticalTables) {
       const exists = await client.query('SELECT to_regclass($1) IS NOT NULL AS exists', [`public."${tableName}"`]);

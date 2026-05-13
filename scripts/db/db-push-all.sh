@@ -224,7 +224,8 @@ WITH required(name) AS (
     ('security_metrics'),
     ('system_metrics_snapshots'),
     ('container_metrics_snapshots'),
-    ('service_availability_history')
+    ('service_availability_history'),
+    ('log_collector_logs')
 )
 SELECT r.name
 FROM required r
@@ -237,7 +238,7 @@ if [ -n "${MISSING_TABLES}" ]; then
   echo "  ❌ db-push-all incomplet (corrigez les scripts SQL ou permissions DB)"
   exit 1
 else
-  echo "  ✅ Tables critiques présentes (security + firewall + metrics)"
+  echo "  ✅ Tables critiques présentes (security + firewall + metrics + log collector)"
 fi
 echo ""
 

@@ -106,6 +106,7 @@ backups/
 *.backup
 *.bak
 *.sql
+!scripts/db/*.sql
 
 # Mobile specific (React Native)
 mobile/ios/Pods/
