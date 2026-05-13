@@ -83,9 +83,20 @@ Thumbs.db
 coverage/
 .nyc_output/
 **/tests/e2e/.auth/
+/test-results/
+frontend/test-results/
+frontend/test-results.*
+tests/test-results/
+tests/e2e/test-results/
 tests/results/security/cve-*/
 reports/security/*
 !reports/security/README.md
+
+# Generated reports (keep README/index files only when explicitly added)
+reports/performance/backend/
+reports/diagnostics/*.json
+reports/diagnostics/*.txt
+reports/diagnostics/legacy/
 
 # Uploads (le volume Docker gère cela)
 uploads/

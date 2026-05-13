@@ -137,9 +137,9 @@
 ## 📊 Rapports de Performance
 
 ### Backend
-- `backend-performance-reports/backend_performance_20251218_193252.json` (avant streaming)
-- `backend-performance-reports/backend_performance_20251218_193512.json` (après streaming)
-- `backend-performance-reports/COMPARISON.md` : Comparaison détaillée
+- `reports/performance/backend/backend_performance_20251218_193252.json` (avant streaming)
+- `reports/performance/backend/backend_performance_20251218_193512.json` (après streaming)
+- `reports/performance/backend/COMPARISON.md` : Comparaison détaillée
 
 ### Frontend
 - `frontend/performance-reports/performance_20251218_200201.json` (dernier rapport)
@@ -169,7 +169,7 @@
 
 1. `PERFORMANCE_OPTIMIZATIONS_SUMMARY.md` : Résumé global des optimisations
 2. `FIXES_AND_OPTIMIZATIONS.md` : Corrections et optimisations récentes
-3. `backend-performance-reports/COMPARISON.md` : Comparaison backend avant/après
+3. `reports/performance/backend/COMPARISON.md` : Comparaison backend avant/après
 4. `docs/performance/FRONTEND_REPORTS_SUMMARY.md` : Résumé frontend
 5. `docs/performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md` : Analyse finale frontend
 6. `FINAL_PERFORMANCE_REPORT.md` : Ce document (rapport final)

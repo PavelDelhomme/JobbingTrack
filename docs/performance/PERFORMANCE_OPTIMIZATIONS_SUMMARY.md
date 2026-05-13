@@ -149,7 +149,7 @@
 ### Documentation
 - `docs/performance/FRONTEND_REPORTS_SUMMARY.md` : Résumé des optimisations frontend
 - `docs/performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md` : Analyse finale détaillée
-- `backend-performance-reports/COMPARISON.md` : Comparaison backend avant/après
+- `reports/performance/backend/COMPARISON.md` : Comparaison backend avant/après
 - `PERFORMANCE_OPTIMIZATIONS_SUMMARY.md` : Ce document (résumé global)
 
 ---

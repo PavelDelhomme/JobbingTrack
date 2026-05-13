@@ -11,7 +11,7 @@ NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULTS_DIR="$PROJECT_ROOT/tests/results"
-PERF_BACKEND_DIR="$PROJECT_ROOT/backend-performance-reports"
+PERF_BACKEND_DIR="$PROJECT_ROOT/reports/performance/backend"
 PERF_FRONTEND_DIR="$PROJECT_ROOT/frontend/performance-reports"
 PLAYWRIGHT_DIR="$PROJECT_ROOT/frontend/playwright-report"
 
@@ -108,7 +108,7 @@ if [ -d "$PERF_BACKEND_DIR" ]; then
                 chmod 777 "$file" 2>/dev/null || true
                 rm -f "$file" 2>/dev/null || {
                     if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$" 2>/dev/null; then
-                        docker_path="/app/backend-performance-reports/$(basename "$file")"
+                        docker_path="/app/reports/performance/backend/$(basename "$file")"
                         docker exec jobbingtrack-frontend rm -f "$docker_path" 2>/dev/null || true
                     fi
                     sudo rm -f "$file" 2>/dev/null || true
