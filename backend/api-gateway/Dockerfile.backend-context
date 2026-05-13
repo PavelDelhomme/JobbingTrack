@@ -15,7 +15,7 @@ RUN npm install
 # Code api-gateway + script génération données + schéma Prisma
 COPY api-gateway/ ./
 COPY prisma/ ./prisma/
-COPY generate-test-data.js ./
+COPY scripts/testing/generate-test-data.js ./generate-test-data.js
 
 # Générer le client Prisma pour le script generate-test-data.js
 RUN npx prisma generate --schema=./prisma/schema.prisma

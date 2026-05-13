@@ -401,18 +401,29 @@ Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, 
 
 - [x] **Structure source (13/05)** : scripts racine non contractuels rangés par rôle — `tests/runners/` (`run-tests`, ancien runner complet), `tests/system/` (`setup`, `verify`), `tests/ci/` (checks CI/CD ponctuels), `tests/email/` (test Gmail manuel). Les configs contractuelles restent à la racine (`package.json`, `jest.config.js`, `jest.setup.js`, `playwright.config.ts`, `docker-compose.test.yml`).
 - [x] **Tests email auth-service (13/05)** : les scripts manuels `test-email-diagnostic.js`, `test-email-python.js`, `test-email-verification.js` ne vivent plus dans `backend/auth-service/tests/email`; ils sont centralisés sous `tests/email/auth-service/`. Le conteneur `auth-service` monte ce dossier sur `/app/tests/email` pour garder les commandes `make test-email-*` compatibles.
+- [x] **Legacy test runner supprimé (13/05)** : l’ancien `backend/test-runner-service.js` n’était référencé par aucun compose/CI/route et devenait ambigu avec `tests/services/`; il est retiré du suivi Git.
+- [x] **Test d’intégration ad hoc rangé (13/05)** : `backend/scripts/test-new-features.js` est déplacé vers `tests/integration/test-new-features.js`.
 - [x] **Anomalie `tests/tests/`** : ancien rapport sécurité déplacé vers `tests/results/security-report-20260224-160806.json`, suppression du dossier imbriqué.
 - [ ] **Tests Jest colocés services** : les vrais tests unitaires/intégration `backend/*-service/tests/*.test.js` restent temporairement colocés car `npm test` de chaque service dépend de son `jest.config.js` local. Migration possible ensuite vers `tests/backend/<service>/` avec mise à jour des configs Jest service par service.
 - [ ] **Artefacts historiques** : `tests/results/` et `tests/performance-benchmark/` contiennent beaucoup de rapports suivis Git ; ne pas supprimer en vrac. Prochaine étape : décider archive externe, conservation limitée ou purge contrôlée avec accord.
 
 ### H3 — Dossier racine **`services/`** (microservices Python FastAPI)
 
-- [ ] **Rôle** : services Python **hors** dossier `backend/*-service` (ex. **`services/application-service`**, **`services/dashboard-service`**) — vérifier quels conteneurs **`docker-compose`** les montent encore ; croiser **`docs/core/services/README.md`**.
-- [ ] **Doc** : si un service n’est plus déployé, marquer **déprécié** + cible de retrait ou fusion vers équivalent Node.
+- [x] **Audit + archivage contrôlé (13/05)** : les anciens services Python de statistiques ne sont pas référencés par le compose/gateway actifs et ne contiennent pas d’app complète ; ils sont sortis de la racine vers `docs/archive/legacy-python-services/services/`. Le backend actif reste `backend/*-service`.
+- [ ] **Suite** : décider si ces endpoints Python legacy doivent être supprimés définitivement ou réécrits côté services Node actifs avant suppression de l’archive.
 
-### H4 — **`mobile-native-app/`** (actuellement **un seul `Dockerfile`**)
+### H4 — **`docs/archive/mobile/mobile-native-app/`** (ancien `mobile-native-app/`)
 
-- [ ] **Décision** : emplacement réservé build natif / image slim ; si **non utilisé** dans la CI ni le compose principal — documenter **« placeholder »** ou supprimer après backup (voir aussi **`docs/getting-started/GUIDE_STRUCTURE.md`** § dossiers mobile).
+- [x] **Archivage contrôlé (13/05)** : le dossier racine `mobile-native-app/` ne contenait qu’un Dockerfile React Native sans app associée ; il est archivé sous `docs/archive/mobile/mobile-native-app/`.
+- [ ] **Suite** : statuer séparément sur `flutter-mobile-app/` versus `mobile/` avant fusion/suppression, car `frontend/scripts/test-mobile.sh` pointe encore vers `flutter-mobile-app`.
+
+### H4 bis — Racine `backend/src/`
+
+- [x] **Archivage contrôlé (13/05)** : `backend/src/services/cache.service.js` était le seul fichier sous `backend/src/`, non importé, avec références internes obsolètes ; il est archivé sous `docs/archive/legacy-backend-root-src/services/cache.service.js`.
+
+### H4 ter — Scripts sensibles legacy
+
+- [x] **Suppression contrôlée (13/05)** : l’ancien `backend/scripts/database/create-admin-user.sh` contenait un compte personnel et un mot de passe faible codés en dur ; il est supprimé du suivi Git. La cible `create-admin-user` reste neutralisée et renvoie vers `create-admin-user` avec `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
 ### H5 — Application Flutter **`mobile/lib/screens/`**
 

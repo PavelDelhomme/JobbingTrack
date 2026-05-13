@@ -388,7 +388,7 @@
 
 ### Solution
 1. **Alias route** : ajout de `POST /clear-test-data` (même handler que `test-data/clear`) dans `backend/api-gateway/src/routes/admin.routes.js`.
-2. **Script** : dans `backend/generate-test-data.js`, ajout de `isTestData: true` sur les Company (EMPLOYER et TEMP_AGENCY) et sur les Application.
+2. **Script** : dans `backend/scripts/testing/generate-test-data.js`, ajout de `isTestData: true` sur les Company (EMPLOYER et TEMP_AGENCY) et sur les Application.
 3. **Nettoyage users** : dans `backend/api-gateway/src/controllers/testdata.controller.js`, suppression des users uniquement avec `where: { isTestData: true }` (dans les deux branches onlyTestData et else).
 
 ---
@@ -399,7 +399,7 @@
 - Depuis le backoffice (Actions → Générer données de test), l’appel à `generate-test-data.js` échouait avec `Unknown argument isTestData` sur `prisma.company.create` lorsque l’image Docker de l’api-gateway avait été construite avant l’ajout du champ `isTestData` dans le schéma partagé.
 
 ### Solution
-- Dans `backend/generate-test-data.js` : détection de l’erreur Prisma « Unknown argument isTestData » ; au premier échec, passage en mode fallback (création Company, Application, Contact, Interview, FollowUp, Call, Event sans `isTestData`) et message d’avertissement. La génération réussit donc même avec une ancienne image. Un message en fin de script indique de rebuilder l’api-gateway pour que « Revenir à la base propre » supprime bien les données générées.
+- Dans `backend/scripts/testing/generate-test-data.js` : détection de l’erreur Prisma « Unknown argument isTestData » ; au premier échec, passage en mode fallback (création Company, Application, Contact, Interview, FollowUp, Call, Event sans `isTestData`) et message d’avertissement. La génération réussit donc même avec une ancienne image. Un message en fin de script indique de rebuilder l’api-gateway pour que « Revenir à la base propre » supprime bien les données générées.
 
 ---
 
