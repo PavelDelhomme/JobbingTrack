@@ -10,7 +10,7 @@ La commande ne supprime rien. Elle classe les scripts selon les références tro
 
 ## Dernier Contrôle
 
-Contrôle local du 12/05/2026 : `make scripts-inventory` OK, **121 scripts** détectés, dont **58 actifs**, **21 sans référence automatique** et **0 encore à la racine**. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
+Contrôle local du 13/05/2026 : `make scripts-inventory` OK, **121 scripts** détectés, dont **58 actifs**, **0 sans référence automatique** et **0 encore à la racine** après audit documentaire des 21 scripts auparavant non référencés dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
 
 Suite du 12/05 : la logique des anciens scripts d'environnement racine `sync-env.js`, `verify-env-usage.js` et `generate-env-example.sh` vit maintenant sous `scripts/env/`; les chemins racine restent des wrappers de compatibilité.
 
@@ -20,7 +20,7 @@ Suite du 12/05 tard : scripts rapports/performance/ops déplacés avec référen
 
 Suite finale du 12/05 : les scripts maintenance/diagnostic/performance restants ont été rangés (`scripts/health/verify-system.sh`, `scripts/utils/git-interactive-checkout.sh`, `scripts/ops/fix-all.sh`, `scripts/db/diagnostic-prisma.sh`, `scripts/docker/get-docker-node-version.sh`, `scripts/reports/generate-html-report.sh`, `scripts/performance/backend-performance-test.sh`, `scripts/performance/run-performance-*.sh`, `scripts/testing/verify-user-journey.sh`). Les références Make, CI, routes de test et docs principales ont été migrées.
 
-État d'usage : le dossier n'a plus de script classé `racine`. Le prochain lot n'est plus un déplacement racine mais un audit de fond des **21** scripts `non-reference` avant archivage ou suppression : certains peuvent être des outils de dépannage utilisés ponctuellement.
+État d'usage : le dossier n'a plus de script classé `racine` ni de script totalement non référencé. Le prochain lot n'est plus un déplacement racine mais une décision d'archivage/suppression progressive des scripts classés legacy dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`, sans supprimer les outils de dépannage ponctuels encore utiles.
 
 ## Statuts
 

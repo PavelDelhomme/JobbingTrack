@@ -70,6 +70,7 @@ scripts/
 ## Inventaire
 
 L'inventaire maintenable vit dans `docs/scripts/SCRIPTS_INVENTORY.md`.
+L'audit des anciens scripts sans référence automatique vit dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`.
 
 ```bash
 make scripts-inventory
