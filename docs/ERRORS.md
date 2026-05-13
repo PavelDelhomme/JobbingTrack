@@ -8,6 +8,8 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 
 **Chantier backoffice / sécurité / doc** : **`PLAN.md`** (lots **A–H** + **B14/B15** infra/sécurité), **`TODOS.md`**, **`security/STATS.md`** (suivi **CVE** / dépendances — à remplir après audits), **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`**, **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**. **Préprod / prod (manuel)** : **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`** et **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**.
 
+**Reset password via gateway (13/05)** : corrigé. Le contrôleur auth appelait `prisma.passwordResetToken` alors que le schéma courant stocke le reset dans `User.resetToken` / `User.resetTokenExpiry`; fallback ajouté, test réel `scripts/testing/test-reset-password.sh admin@jobbingtrack.test` OK, token présent en base, Jest auth-service **18/18**.
+
 **Alertes email sécurité (11/05 + 12/05)** : le socle `SecurityAlert` `critical/high` → `notification-service` existe et les indisponibilités de services critiques peuvent maintenant créer des alertes `availability/SERVICE_DOWN` depuis la santé metrics-aggregator. L’absence de `SECURITY_ALERT_EMAIL(S)` ou de `CRASH_REPORT_EMAIL`, de `NOTIFICATION_SERVICE_URL`, ou de `SECURITY_INTERNAL_SECRET` désactive l’envoi réel. Ce n’est pas une preuve d’absence d’incident : vérifier MailHog/SMTP et les logs `EmailLog`.
 
 **Tests sécurité offensifs (11/05)** : l’absence actuelle de rapport `sqlmap` / ZAP / `ffuf` / `gitleaks` / `trivy` / TLS / IDOR ne prouve pas l’absence de faille. Le périmètre est cadré dans **`docs/security/SECURITY_TESTING_MATRIX.md`** et **`PLAN.md` B15** ; exécuter uniquement sur environnement autorisé, avec limites anti-DoS et rapports horodatés.

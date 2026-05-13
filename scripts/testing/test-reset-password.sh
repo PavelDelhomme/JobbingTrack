@@ -9,6 +9,7 @@ set -e
 API_URL="${API_GATEWAY_URL:-${API_URL:-http://127.0.0.1:${API_GATEWAY_PORT:-5002}}}"
 METRICS_URL="${METRICS_URL:-http://127.0.0.1:${METRICS_AGGREGATOR_PORT:-5004}}"
 EMAIL="${1:redacted@example.invalid}"
+FAILED=0
 
 echo "🧪 Test du système de reset de mot de passe"
 echo "============================================"
@@ -57,8 +58,9 @@ echo "Réponse: ${RESPONSE}"
 if echo "$RESPONSE" | grep -q "success.*true"; then
     echo -e "${GREEN}✅ Email de reset envoyé avec succès${NC}"
 else
-    echo -e "${YELLOW}⚠️  Vérifiez la configuration SMTP${NC}"
+    echo -e "${RED}❌ Demande de reset échouée${NC}"
     echo "Réponse complète: ${RESPONSE}"
+    FAILED=1
 fi
 
 echo ""
@@ -84,10 +86,14 @@ if curl -sf "${metrics_curl_args[@]}" "${METRICS_URL}/health" > /dev/null 2>&1 |
    curl -sf "${metrics_curl_args[@]}" "${METRICS_URL}/api/v1/health" > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Service metrics opérationnel${NC}"
 
-    # Stats globales
-    echo ""
-    echo "📈 Statistiques de persistance:"
-    curl -s "${metrics_curl_args[@]}" "${METRICS_URL}/api/v1/persistence/stats" | sed 's/,/\n/g' | sed -n '1,10p' || true
+    if [ -n "${METRICS_API_KEY:-}" ]; then
+        # Stats globales
+        echo ""
+        echo "📈 Statistiques de persistance:"
+        curl -s "${metrics_curl_args[@]}" "${METRICS_URL}/api/v1/persistence/stats" | sed 's/,/\n/g' | sed -n '1,10p' || true
+    else
+        echo -e "${YELLOW}⚠️  Stats metrics ignorées: METRICS_API_KEY non fournie${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️  Service metrics non accessible ou clé absente (${METRICS_URL})${NC}"
 fi
@@ -105,4 +111,8 @@ echo ""
 echo "📚 Documentation complète:"
 echo "  - Configuration SMTP: docs/emails/SMTP_CONFIGURATION.md"
 echo "  - Endpoints API: docs/api/endpoints/README.md"
+
+if [ "$FAILED" -ne 0 ]; then
+    exit 1
+fi
 

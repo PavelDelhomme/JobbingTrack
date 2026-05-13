@@ -855,6 +855,84 @@ const cleanTestUsers = async (req, res, next) => {
 };
 
 // Fonctionnalités de réinitialisation de mot de passe
+const hasPasswordResetTokenTable = () => Boolean(prisma.passwordResetToken);
+
+const storePasswordResetToken = async (userId, hashedToken, expiresAt) => {
+  if (hasPasswordResetTokenTable()) {
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId }
+    });
+    await prisma.passwordResetToken.create({
+      data: {
+        userId,
+        token: hashedToken,
+        expiresAt
+      }
+    });
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      resetToken: hashedToken,
+      resetTokenExpiry: expiresAt
+    }
+  });
+};
+
+const findValidPasswordResetToken = async (hashedToken, includeFullUser = false) => {
+  if (hasPasswordResetTokenTable()) {
+    return prisma.passwordResetToken.findFirst({
+      where: {
+        token: hashedToken,
+        used: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: includeFullUser
+          ? true
+          : {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true
+              }
+            }
+      }
+    });
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      resetToken: hashedToken,
+      resetTokenExpiry: {
+        gt: new Date()
+      }
+    }
+  });
+
+  if (!user) return null;
+
+  return {
+    id: `user-reset-token:${user.id}`,
+    userId: user.id,
+    user
+  };
+};
+
+const markPasswordResetTokenUsed = async (resetToken) => {
+  if (hasPasswordResetTokenTable()) {
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true }
+    });
+  }
+};
+
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -904,35 +982,7 @@ const forgotPassword = async (req, res, next) => {
     // Définir l'expiration (1 heure)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Supprimer les anciens tokens de cet utilisateur
-    try {
-      await prisma.passwordResetToken.deleteMany({
-        where: { userId: user.id }
-      });
-    } catch (dbError) {
-      // Ignorer si la table n'existe pas (P2021)
-      if (dbError.code !== 'P2021') {
-        logger.warn('Erreur suppression anciens tokens:', dbError.message);
-      }
-    }
-
-    // Créer le nouveau token
-    try {
-      await prisma.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          token: hashedToken,
-          expiresAt
-        }
-      });
-    } catch (dbError) {
-      // Si la table n'existe pas (P2021), continuer quand même
-      if (dbError.code === 'P2021') {
-        logger.warn('Table PasswordResetToken non trouvée, email sera envoyé sans token en DB');
-      } else {
-        throw dbError;
-      }
-    }
+    await storePasswordResetToken(user.id, hashedToken, expiresAt);
 
     // Envoyer l'email avec le token non hashé
     // Le service attend maintenant un resetToken, pas une URL complète
@@ -998,25 +1048,7 @@ const verifyResetToken = async (req, res, next) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     // Trouver le token dans la base de données
-    const resetToken = await prisma.passwordResetToken.findFirst({
-      where: {
-        token: hashedToken,
-        used: false,
-        expiresAt: {
-          gt: new Date()
-        }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true
-          }
-        }
-      }
-    });
+    const resetToken = await findValidPasswordResetToken(hashedToken);
 
     if (!resetToken) {
       return res.status(400).json({
@@ -1074,29 +1106,7 @@ const sendPasswordResetForUser = async (req, res, next) => {
     // Définir l'expiration (1 heure)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Supprimer les anciens tokens de cet utilisateur
-    await prisma.passwordResetToken.deleteMany({
-      where: { userId: user.id }
-    }).catch(() => {
-      // Ignorer si la table n'existe pas
-    });
-
-    // Créer le nouveau token
-    try {
-      await prisma.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          token: hashedToken,
-          expiresAt
-        }
-      });
-    } catch (dbError) {
-      if (dbError.code === 'P2021') {
-        logger.warn('Table PasswordResetToken non trouvée, email sera envoyé sans token en DB');
-      } else {
-        throw dbError;
-      }
-    }
+    await storePasswordResetToken(user.id, hashedToken, expiresAt);
 
     // Envoyer l'email avec le token non hashé
     try {
@@ -1146,18 +1156,7 @@ const resetPassword = async (req, res, next) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     // Trouver le token valide
-    const resetToken = await prisma.passwordResetToken.findFirst({
-      where: {
-        token: hashedToken,
-        used: false,
-        expiresAt: {
-          gt: new Date()
-        }
-      },
-      include: {
-        user: true
-      }
-    });
+    const resetToken = await findValidPasswordResetToken(hashedToken, true);
 
     if (!resetToken) {
       return res.status(400).json({
@@ -1180,11 +1179,9 @@ const resetPassword = async (req, res, next) => {
       }
     });
 
-    // Marquer le token comme utilisé
-    await prisma.passwordResetToken.update({
-      where: { id: resetToken.id },
-      data: { used: true }
-    });
+    // Marquer le token comme utilisé si une table dédiée existe.
+    // Sinon, les colonnes User.resetToken/resetTokenExpiry sont déjà nettoyées ci-dessus.
+    await markPasswordResetTokenUsed(resetToken);
 
     // Envoyer un email de confirmation de changement de mot de passe
     emailService.sendPasswordChangedEmail(resetToken.user).catch(error => {
