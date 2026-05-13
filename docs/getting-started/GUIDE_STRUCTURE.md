@@ -38,7 +38,7 @@
 #### 1. **Dossiers Redondants ou Confus**
 ```
 ❌ backend/ + services/ (doublons Python ?)
-❌ mobile/ + flutter-mobile-app/ + mobile-native-app/ (3 dossiers mobile)
+❌ mobile/ + flutter-mobile-app/ + docs/archive/mobile/mobile-native-app/ (3 dossiers mobile)
 ❌ makefiles/ avec fichiers sans extension (peu clair)
 ❌ trash_files/ (devrait être nettoyé ou ignoré)
 ```
@@ -67,7 +67,7 @@
 AVANT:
 ├── mobile/                    # Flutter principal
 ├── flutter-mobile-app/        # Duplication ?
-└── mobile-native-app/         # Duplication ?
+└── mobile-native-app/          # Ancien placeholder Dockerfile seul
 
 APRÈS:
 ├── mobile/                    # Un seul dossier mobile
@@ -77,7 +77,7 @@ APRÈS:
 │   └── native/                # Code natif si nécessaire
 ```
 
-**Action** : Analyser les différences et fusionner dans `mobile/`
+**Action** : `mobile-native-app/` est archivé sous `docs/archive/mobile/mobile-native-app/`. Reste à décider séparément de la fusion/suppression de `flutter-mobile-app/`, car un script frontend y fait encore référence.
 
 #### 1.2 Nettoyer `services/` vs `backend/`
 ```
@@ -85,15 +85,15 @@ AVANT:
 ├── backend/
 │   └── [services-nodejs]/     # Services Node.js
 └── services/
-    └── [services-python]/     # Services Python ?
+    └── [services-python]/     # Anciens endpoints statistiques Python
 
 APRÈS:
 ├── backend/
 │   └── [services-nodejs]/     # Tous les services backend
-└── (supprimer services/ si doublons)
+└── docs/archive/legacy-python-services/services/ # Archive legacy, non runtime
 ```
 
-**Action** : Vérifier si `services/` contient du code actif ou des tests
+**Action** : fait le 13/05. Les fichiers Python de `services/` ne sont pas montés par le compose/gateway actifs et ont été archivés. Le backend à maintenir est `backend/*-service`.
 
 #### 1.3 Organiser `makefiles/`
 ```

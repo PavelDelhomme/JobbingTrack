@@ -311,14 +311,10 @@ recreate-admin-user: ## Supprimer et recréer l'utilisateur administrateur
 	@echo "✅ Utilisateur existant supprimé"
 	@$(MAKE) create-admin-user
 
-create-pavel-user: ## Créer l'utilisateur Pavel avec rôle SUPER_ADMIN
-	@echo "👤 Création de l'utilisateur Pavel..."
-	@chmod +x backend/scripts/database/create-pavel-user.sh
-	@./backend/scripts/database/create-pavel-user.sh
-	@echo ""
-	@echo "✅ Utilisateur Pavel créé !"
-	@echo "📧 Email: pavel@jobbingtrack.com"
-	@echo "🔑 Password: valeur fournie au script (masquée)"
+create-pavel-user: ## OBSOLETE: utiliser create-admin-user avec ADMIN_EMAIL/ADMIN_PASSWORD
+	@echo "❌ Target obsolète : l'ancien script créait un compte personnel avec mot de passe codé en dur."
+	@echo "✅ Utilisez create-admin-user avec ADMIN_EMAIL et ADMIN_PASSWORD dans .env."
+	@exit 1
 
 db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@echo "🗑️  Suppression des volumes JobbingTrack..."

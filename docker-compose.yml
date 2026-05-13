@@ -47,7 +47,7 @@ services:
       - jobbingtrack-network
     restart: unless-stopped
 
-  # API Gateway (coeur du système). Contexte backend pour inclure generate-test-data.js + prisma.
+  # API Gateway (coeur du système). Contexte backend pour inclure scripts/testing/generate-test-data.js + prisma.
   api-gateway:
     image: jobbingtrack-api-gateway
     build:
@@ -81,7 +81,7 @@ services:
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/package.json:/app/package.json:ro
       # Script génération données de test (route admin generate-test-data)
-      - ./backend/generate-test-data.js:/app/generate-test-data.js:ro
+      - ./backend/scripts/testing/generate-test-data.js:/app/generate-test-data.js:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network

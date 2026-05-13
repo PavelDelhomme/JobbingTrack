@@ -42,11 +42,11 @@ const generateTestData = async (req, res) => {
     let scriptPath = process.env.GENERATE_TEST_DATA_SCRIPT;
     if (!scriptPath) {
       const inApp = '/app/generate-test-data.js';
-      const relative = path.resolve(__dirname, '../../..', 'generate-test-data.js');
+      const relative = path.resolve(__dirname, '../../..', 'scripts/testing/generate-test-data.js');
       scriptPath = fs.existsSync(inApp) ? inApp : relative;
     }
     if (!fs.existsSync(scriptPath)) {
-      logger.error('Script generate-test-data.js introuvable. Tente: /app/generate-test-data.js et ' + path.resolve(__dirname, '../../..', 'generate-test-data.js'));
+      logger.error('Script generate-test-data.js introuvable. Tente: /app/generate-test-data.js et ' + path.resolve(__dirname, '../../..', 'scripts/testing/generate-test-data.js'));
       return res.status(500).json({
         success: false,
         error: `Script introuvable (cherche: /app/generate-test-data.js). Rebuild l'image api-gateway (make rebuild-service SERVICE=api-gateway).`
