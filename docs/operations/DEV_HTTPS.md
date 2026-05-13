@@ -51,6 +51,19 @@ Les fichiers générés ne sont pas versionnés :
 
 Le certificat contient les SAN `jobbingtrack.localhost`, `api.jobbingtrack.localhost`, `localhost`, `127.0.0.1` et `::1`.
 
+## Diagnostic navigateur
+
+Si le login fonctionne mais que le backoffice affiche ensuite `ERR_CERT_AUTHORITY_INVALID` sur `https://api.jobbingtrack.localhost:5443`, le problème n'est pas un échec d'authentification : le navigateur ne fait pas encore confiance à la CA locale.
+
+La correction attendue est de réinstaller ou réimporter la CA locale dans le magasin utilisé par le navigateur, puis de relancer le proxy HTTPS dev. Il ne faut pas corriger ce cas par :
+
+- un fallback HTTP silencieux côté frontend ;
+- une désactivation de TLS ;
+- un contournement des contrôles auth, WAF, CORS ou cookies ;
+- une exception dangereuse en préprod/prod.
+
+Pour la production et la préproduction, utiliser uniquement des certificats publics réels et conserver les URLs publiques HTTPS.
+
 ## HSTS
 
 Ne pas activer HSTS strict sur `localhost` ou `*.localhost`. HSTS strict reste réservé aux domaines HTTPS réels de préprod/prod, après validation TLS complète.

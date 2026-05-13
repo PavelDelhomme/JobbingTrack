@@ -11,12 +11,13 @@ import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { cacheManager } from '@/lib/cache/cacheManager'
 import { preferencesService } from '@/lib/services/preferencesService'
+import { FRONTEND_URLS } from '@/config/ports.config'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server, Wifi } from '@/lib/icons'
 import axios from 'axios'
 import { useTracking } from '@/components/tracking/TrackingProvider'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+const API_URL = FRONTEND_URLS.api
 
 // ✅ Fonction utilitaire pour formater les nombres en toute sécurité
 const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A'): string => {
@@ -125,7 +126,7 @@ export default function BackofficePage() {
   const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000) // Valeur par défaut, sera remplacée par les préférences
   const [servicesRefreshInterval, setServicesRefreshInterval] = useState(60000) // Valeur par défaut
 
-  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+  const API_GATEWAY_URL = API_URL
 
   // Charger les maintenances
   const loadMaintenances = async () => {
