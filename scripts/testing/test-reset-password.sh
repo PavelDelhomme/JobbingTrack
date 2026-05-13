@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# Script de test du système de reset de mot de passe
-# Usage: ./scripts/test-reset-password.sh <email>
+# Script manuel de test du système de reset de mot de passe.
+# Usage:
+#   API_GATEWAY_URL=http://127.0.0.1:5002 METRICS_API_KEY=... scripts/testing/test-reset-password.sh <email>
 
 set -e
 
-API_URL="${API_URL:-http://localhost:3001}"
+API_URL="${API_GATEWAY_URL:-${API_URL:-http://127.0.0.1:${API_GATEWAY_PORT:-5002}}}"
+METRICS_URL="${METRICS_URL:-http://127.0.0.1:${METRICS_AGGREGATOR_PORT:-5004}}"
 EMAIL="${1:redacted@example.invalid}"
 
 echo "🧪 Test du système de reset de mot de passe"
@@ -18,12 +20,26 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 1. Tester la santé du service auth
-echo "📡 Test 1: Vérification du service auth..."
+curl_json() {
+    local url="$1"
+    shift
+    curl -sS "$url" "$@"
+}
+
+metrics_curl_args=()
+if [ -n "${METRICS_API_KEY:-}" ]; then
+    metrics_curl_args=(-H "X-API-Key: ${METRICS_API_KEY}")
+fi
+
+# 1. Tester la santé de la gateway/auth
+echo "📡 Test 1: Vérification gateway/auth (${API_URL})..."
 if curl -sf "${API_URL}/health" > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Service auth opérationnel${NC}"
+    echo -e "${GREEN}✅ Gateway opérationnelle${NC}"
+elif curl -sf "${API_URL}/api/v1/auth/health" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Service auth opérationnel via gateway${NC}"
 else
-    echo -e "${RED}❌ Service auth non accessible${NC}"
+    echo -e "${RED}❌ Gateway/auth non accessible${NC}"
+    echo "   Vérifiez: make up-full, puis API_GATEWAY_URL=${API_URL}"
     exit 1
 fi
 
@@ -31,7 +47,8 @@ echo ""
 
 # 2. Demander un reset de mot de passe
 echo "📧 Test 2: Demande de reset de mot de passe pour ${EMAIL}..."
-RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/auth/forgot-password" \
+RESPONSE=$(curl_json "${API_URL}/api/v1/auth/forgot-password" \
+  -X POST \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"${EMAIL}\"}")
 
@@ -60,19 +77,19 @@ echo "  2. Cherchez un email de JobbingTrack"
 echo "  3. Cliquez sur le lien de réinitialisation"
 echo ""
 
-# 4. Test des métriques de persistance
+# 4. Test des métriques de persistance (optionnel)
 echo "📊 Test 4: Vérification des métriques de persistance..."
-METRICS_URL="${METRICS_URL:-http://localhost:3014}"
 
-if curl -sf "${METRICS_URL}/api/v1/health" > /dev/null 2>&1; then
+if curl -sf "${metrics_curl_args[@]}" "${METRICS_URL}/health" > /dev/null 2>&1 || \
+   curl -sf "${metrics_curl_args[@]}" "${METRICS_URL}/api/v1/health" > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Service metrics opérationnel${NC}"
-    
+
     # Stats globales
     echo ""
     echo "📈 Statistiques de persistance:"
-    curl -s "${METRICS_URL}/api/v1/persistence/stats" | grep -o '"[^"]*":[^,}]*' | head -10 || true
+    curl -s "${metrics_curl_args[@]}" "${METRICS_URL}/api/v1/persistence/stats" | sed 's/,/\n/g' | sed -n '1,10p' || true
 else
-    echo -e "${RED}❌ Service metrics non accessible${NC}"
+    echo -e "${YELLOW}⚠️  Service metrics non accessible ou clé absente (${METRICS_URL})${NC}"
 fi
 
 echo ""
@@ -86,6 +103,6 @@ echo "  3. Saisir un nouveau mot de passe"
 echo "  4. Se connecter avec le nouveau mot de passe"
 echo ""
 echo "📚 Documentation complète:"
-echo "  - Configuration SMTP: backend/auth-service/SMTP_CONFIGURATION.md"
-echo "  - Guide complet: AMELIORATIONS_METRIQUES_ET_RESET_PASSWORD.md"
+echo "  - Configuration SMTP: docs/emails/SMTP_CONFIGURATION.md"
+echo "  - Endpoints API: docs/api/endpoints/README.md"
 
