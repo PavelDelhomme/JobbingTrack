@@ -1,0 +1,16 @@
+-- Seed des templates d'email par défaut (EmailTemplate).
+-- À exécuter après init-key-tables (qui crée EmailLog + EmailTemplate).
+-- Utilise ON CONFLICT (type) DO UPDATE pour mettre à jour si déjà présents (permet d'éditer puis garder les modifs).
+
+INSERT INTO "EmailTemplate" (id, type, name, subject, "htmlContent", "textContent", variables, "isActive", version, "createdAt", "updatedAt")
+VALUES
+  (gen_random_uuid()::text, 'WELCOME', 'Email de Bienvenue', '🎉 Bienvenue sur JobbingTrack !',
+   '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><div style="text-align: center; margin-bottom: 30px;"><h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1><p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d''emploi</p></div><h2 style="color: #1f2937;">Bienvenue {{firstName}} ! 🎉</h2><p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p><div style="text-align: center; margin: 30px 0;"><a href="{{frontendUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Commencer maintenant</a></div></div>',
+   NULL, ARRAY['firstName', 'lastName', 'frontendUrl'], true, 1, NOW(), NOW()),
+  (gen_random_uuid()::text, 'VERIFICATION', 'Email de Vérification', '✅ Vérifiez votre adresse email - JobbingTrack',
+   '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><div style="text-align: center; margin-bottom: 30px;"><h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1><p style="color: #6b7280; margin: 5px 0;">Vérification de votre adresse email</p></div><h2 style="color: #1f2937;">Bonjour {{firstName}} ! 👋</h2><p>Bienvenue sur JobbingTrack ! Pour activer votre compte, veuillez vérifier votre adresse email.</p><div style="text-align: center; margin: 30px 0;"><a href="{{verificationUrl}}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">✓ Vérifier mon adresse email</a></div><p style="color: #6b7280; font-size: 14px;">Ce lien expire dans 24 heures.</p></div>',
+   NULL, ARRAY['firstName', 'verificationUrl'], true, 1, NOW(), NOW()),
+  (gen_random_uuid()::text, 'RESET_PASSWORD', 'Réinitialisation de Mot de Passe', '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+   '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><div style="text-align: center; margin-bottom: 30px;"><h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1><p style="color: #6b7280; margin: 5px 0;">Réinitialisation de mot de passe</p></div><h2 style="color: #1f2937;">Bonjour {{firstName}},</h2><p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte JobbingTrack.</p><div style="text-align: center; margin: 30px 0;"><a href="{{resetUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Réinitialiser mon mot de passe</a></div><p style="color: #6b7280; font-size: 14px;">Ce lien est valide pendant 1 heure.</p></div>',
+   NULL, ARRAY['firstName', 'resetUrl'], true, 1, NOW(), NOW())
+ON CONFLICT (type) DO NOTHING;
