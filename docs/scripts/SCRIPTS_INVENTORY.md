@@ -10,7 +10,7 @@ La commande ne supprime rien. Elle classe les scripts selon les références tro
 
 ## Dernier Contrôle
 
-Contrôle local du 13/05/2026 : `make scripts-inventory` OK, **121 scripts** détectés, dont **58 actifs**, **0 sans référence automatique** et **0 encore à la racine** après audit documentaire des 21 scripts auparavant non référencés dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin.
+Contrôle local du 13/05/2026 : `make scripts-inventory` OK, **121 scripts** détectés, dont **58 actifs**, **0 sans référence automatique** et **0 encore à la racine** après audit documentaire des 21 scripts auparavant non référencés dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin. Suite du 13/05 : `scripts/testing/verify-all-metrics.sh` modernisé et validé en réel (**52/52**) ; il reste manuel/documenté, pas un script CI.
 
 Suite du 12/05 : la logique des anciens scripts d'environnement racine `sync-env.js`, `verify-env-usage.js` et `generate-env-example.sh` vit maintenant sous `scripts/env/`; les chemins racine restent des wrappers de compatibilité.
 

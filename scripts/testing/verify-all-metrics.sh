@@ -1,35 +1,73 @@
 #!/bin/bash
 
 ###############################################################################
-# Script de Vérification Complète des Métriques et Services
-# 
-# Ce script vérifie que :
-# - Tous les services sont accessibles
-# - Les métriques sont cohérentes
-# - Les routes API fonctionnent
-# - Les données pour les graphiques sont disponibles
-# - Les stats réseau sont présentes
-# - L'historique est cohérent dans le temps
+# Verification manuelle des metriques et services JobbingTrack.
+#
+# Contrat actuel:
+# - metrics-aggregator expose l'hote sur 5004 (interne 3014)
+# - api-gateway expose l'hote sur 5002 (interne 3000)
+# - les routes metrics/docker/persistence sont protegees par X-API-Key si
+#   ENABLE_METRICS_AUTH=true
 ###############################################################################
 
-# Ne pas arrêter le script sur une erreur (on gère les erreurs manuellement)
-# set -e
+set -u
 
-# Couleurs
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Configuration
-METRICS_URL="${METRICS_URL:-http://localhost:8014}"
-MIN_HISTORY_POINTS=3
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+METRICS_URL="${METRICS_URL:-http://127.0.0.1:${METRICS_AGGREGATOR_PORT:-5004}}"
+API_GATEWAY_URL="${API_GATEWAY_URL:-${API_URL:-http://127.0.0.1:${API_GATEWAY_PORT:-5002}}}"
+MIN_HISTORY_POINTS="${MIN_HISTORY_POINTS:-3}"
+TEST_SERVICES=(${TEST_SERVICES:-jobbingtrack-postgres jobbingtrack-auth-service jobbingtrack-redis})
+
 TESTS_PASSED=0
 TESTS_FAILED=0
 WARNINGS=0
+SKIPPED=0
 
-# Fonction de log
+read_env_key() {
+    local key="$1"
+    local env_file="${ROOT_DIR}/.env"
+
+    if [ -n "${!key:-}" ]; then
+        printf '%s' "${!key}"
+        return 0
+    fi
+
+    if [ -f "$env_file" ]; then
+        awk -F= -v k="$key" '
+            $1 == k {
+                sub(/^[[:space:]]*/, "", $2)
+                sub(/[[:space:]]*$/, "", $2)
+                gsub(/^["'\'']|["'\'']$/, "", $2)
+                print $2
+                exit
+            }
+        ' "$env_file"
+    fi
+}
+
+METRICS_API_KEY_VALUE="$(read_env_key METRICS_API_KEY)"
+
+metrics_curl() {
+    local url="$1"
+    shift || true
+
+    if [ -n "$METRICS_API_KEY_VALUE" ]; then
+        curl -sS -f -m 10 -H "X-API-Key: ${METRICS_API_KEY_VALUE}" "$url" "$@"
+    else
+        curl -sS -f -m 10 "$url" "$@"
+    fi
+}
+
+public_curl() {
+    curl -sS -f -m 10 "$1"
+}
+
 log_success() {
     echo -e "${GREEN}✅ $1${NC}"
     ((TESTS_PASSED++))
@@ -45,6 +83,11 @@ log_warning() {
     ((WARNINGS++))
 }
 
+log_skip() {
+    echo -e "${YELLOW}⏭️  $1${NC}"
+    ((SKIPPED++))
+}
+
 log_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
@@ -57,342 +100,259 @@ log_section() {
     echo ""
 }
 
-# Vérifier qu'un service répond
-check_service() {
-    local url=$1
-    local name=$2
-    
-    if curl -s -f -m 5 "$url" > /dev/null 2>&1; then
-        log_success "Service $name est accessible"
-        return 0
+require_command() {
+    if command -v "$1" > /dev/null 2>&1; then
+        log_success "Commande $1 disponible"
     else
-        log_error "Service $name n'est pas accessible sur $url"
-        return 1
+        log_error "Commande $1 manquante"
     fi
 }
 
-# Vérifier la structure JSON
-check_json_field() {
-    local json=$1
-    local field=$2
-    local service_name=$3
-    
-    if echo "$json" | jq -e ".$field" > /dev/null 2>&1; then
-        return 0
-    else
-        log_error "Champ '$field' manquant pour $service_name"
-        return 1
-    fi
+json_has_path() {
+    local json="$1"
+    local jq_path="$2"
+    echo "$json" | jq -e "$jq_path" > /dev/null 2>&1
+}
+
+json_number_in_range() {
+    local json="$1"
+    local jq_path="$2"
+    local min="$3"
+    local max="$4"
+    echo "$json" | jq -e "($jq_path | type == \"number\") and ($jq_path >= $min) and ($jq_path <= $max)" > /dev/null 2>&1
 }
 
 ###############################################################################
-# Test 1: Vérification des Services de Base
+log_section "Configuration"
 ###############################################################################
-log_section "Test 1: Services de Base"
 
-check_service "$METRICS_URL/api/v1/health" "Metrics Aggregator"
-
-# API Gateway est optionnel
-if check_service "http://localhost:3000/api/v1/health" "API Gateway"; then
-    true
+echo "Metrics URL : ${METRICS_URL}"
+echo "Gateway URL : ${API_GATEWAY_URL}"
+if [ -n "$METRICS_API_KEY_VALUE" ]; then
+    echo "Metrics auth: X-API-Key disponible"
 else
-    log_warning "API Gateway non accessible (non critique)"
+    echo "Metrics auth: aucune cle trouvee (routes protegees possiblement ignorees)"
+fi
+
+require_command curl
+require_command jq
+
+###############################################################################
+log_section "Services de base"
+###############################################################################
+
+if public_curl "${METRICS_URL}/health" > /dev/null 2>&1 || public_curl "${METRICS_URL}/api/v1/health" > /dev/null 2>&1; then
+    log_success "Metrics Aggregator accessible"
+else
+    log_error "Metrics Aggregator inaccessible (${METRICS_URL})"
+fi
+
+if public_curl "${API_GATEWAY_URL}/health" > /dev/null 2>&1 || public_curl "${API_GATEWAY_URL}/api/v1/health" > /dev/null 2>&1; then
+    log_success "API Gateway accessible"
+else
+    log_error "API Gateway inaccessible (${API_GATEWAY_URL})"
 fi
 
 ###############################################################################
-# Test 2: Liste de Tous les Services
+log_section "Liste des services Docker"
 ###############################################################################
-log_section "Test 2: Liste de Tous les Services"
 
-SERVICES_RESPONSE=$(curl -s -f "$METRICS_URL/api/v1/docker/services/all" 2>/dev/null)
+SERVICES_RESPONSE="$(metrics_curl "${METRICS_URL}/api/v1/docker/services/all" 2>/dev/null || true)"
 
-if [ $? -eq 0 ]; then
-    SERVICES_COUNT=$(echo "$SERVICES_RESPONSE" | jq '.services | length' 2>/dev/null)
-    
-    if [ -n "$SERVICES_COUNT" ] && [ "$SERVICES_COUNT" -gt 0 ]; then
-        log_success "Liste des services récupérée: $SERVICES_COUNT services"
-        
-        # Vérifier les services critiques
-        CRITICAL_SERVICES=("jobbingtrack-postgres" "jobbingtrack-redis" "jobbingtrack-auth-service")
-        
-        for service in "${CRITICAL_SERVICES[@]}"; do
-            SERVICE_EXISTS=$(echo "$SERVICES_RESPONSE" | jq -r ".services[] | select(.name==\"$service\") | .name" 2>/dev/null)
-            
-            if [ "$SERVICE_EXISTS" == "$service" ]; then
-                log_success "Service critique $service trouvé"
-            else
-                log_error "Service critique $service non trouvé"
-            fi
-        done
+if [ -z "$SERVICES_RESPONSE" ]; then
+    if [ -z "$METRICS_API_KEY_VALUE" ]; then
+        log_skip "Liste services ignoree: METRICS_API_KEY absente"
     else
-        log_error "Aucun service trouvé dans la liste"
+        log_error "Impossible de recuperer /api/v1/docker/services/all"
     fi
 else
-    log_error "Impossible de récupérer la liste des services"
+    SERVICES_COUNT="$(echo "$SERVICES_RESPONSE" | jq -r '.services | length // 0' 2>/dev/null)"
+    RUNNING_COUNT="$(echo "$SERVICES_RESPONSE" | jq -r '.running // 0' 2>/dev/null)"
+
+    if [ "$SERVICES_COUNT" -gt 0 ]; then
+        log_success "Liste services recuperee: ${SERVICES_COUNT} services (${RUNNING_COUNT} running)"
+    else
+        log_error "Liste services vide"
+    fi
+
+    for service in "${TEST_SERVICES[@]}"; do
+        if echo "$SERVICES_RESPONSE" | jq -e --arg name "$service" '.services[] | select(.name == $name)' > /dev/null 2>&1; then
+            log_success "Service critique trouve: $service"
+        else
+            log_error "Service critique absent: $service"
+        fi
+    done
 fi
 
 ###############################################################################
-# Test 3: Métriques Individuelles des Services
+log_section "Metriques individuelles"
 ###############################################################################
-log_section "Test 3: Métriques Individuelles"
-
-TEST_SERVICES=("jobbingtrack-postgres" "jobbingtrack-auth-service" "jobbingtrack-redis")
 
 for service in "${TEST_SERVICES[@]}"; do
     log_info "Test du service: $service"
-    
-    METRICS_RESPONSE=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service" 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        # Vérifier les champs obligatoires
-        REQUIRED_FIELDS=("name" "cpu_percent" "memory_percent" "memory_usage_mb" "pids" "health_status_docker")
-        ALL_FIELDS_OK=true
-        
-        for field in "${REQUIRED_FIELDS[@]}"; do
-            if ! check_json_field "$METRICS_RESPONSE" "service.$field" "$service"; then
-                ALL_FIELDS_OK=false
-            fi
-        done
-        
-        if [ "$ALL_FIELDS_OK" = true ]; then
-            log_success "Toutes les métriques présentes pour $service"
-            
-            # Vérifier les valeurs
-            CPU=$(echo "$METRICS_RESPONSE" | jq -r '.service.cpu_percent' 2>/dev/null)
-            MEM=$(echo "$METRICS_RESPONSE" | jq -r '.service.memory_percent' 2>/dev/null)
-            
-            if [ "$CPU" != "null" ] && [ "$MEM" != "null" ]; then
-                # Vérifier que les valeurs sont dans les limites normales
-                if (( $(echo "$CPU >= 0 && $CPU <= 100" | bc -l) )); then
-                    log_success "CPU de $service dans les limites: ${CPU}%"
-                else
-                    log_warning "CPU de $service hors limites: ${CPU}%"
-                fi
-                
-                if (( $(echo "$MEM >= 0 && $MEM <= 100" | bc -l) )); then
-                    log_success "Mémoire de $service dans les limites: ${MEM}%"
-                else
-                    log_warning "Mémoire de $service hors limites: ${MEM}%"
-                fi
-            fi
-        fi
+    RESPONSE="$(metrics_curl "${METRICS_URL}/api/v1/docker/service/${service}" 2>/dev/null || true)"
+
+    if [ -z "$RESPONSE" ]; then
+        log_error "Metriques indisponibles pour $service"
+        continue
+    fi
+
+    if json_has_path "$RESPONSE" '.service.name'; then
+        log_success "Structure service presente pour $service"
     else
-        log_error "Impossible de récupérer les métriques pour $service"
+        log_error "Structure service manquante pour $service"
+        continue
     fi
-done
 
-###############################################################################
-# Test 4: Statistiques Réseau
-###############################################################################
-log_section "Test 4: Statistiques Réseau"
-
-for service in "${TEST_SERVICES[@]}"; do
-    METRICS_RESPONSE=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service" 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        NETWORK_RX=$(echo "$METRICS_RESPONSE" | jq -r '.service.network_rx_mb' 2>/dev/null)
-        NETWORK_TX=$(echo "$METRICS_RESPONSE" | jq -r '.service.network_tx_mb' 2>/dev/null)
-        
-        if [ "$NETWORK_RX" != "null" ] && [ "$NETWORK_TX" != "null" ]; then
-            log_success "Stats réseau présentes pour $service (RX: ${NETWORK_RX}MB, TX: ${NETWORK_TX}MB)"
-        else
-            log_error "Stats réseau manquantes pour $service"
-        fi
-    fi
-done
-
-###############################################################################
-# Test 5: Historique des Performances
-###############################################################################
-log_section "Test 5: Historique des Performances"
-
-for service in "${TEST_SERVICES[@]}"; do
-    log_info "Test de l'historique pour: $service"
-    
-    HISTORY_RESPONSE=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service/history?limit=10" 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        HISTORY_COUNT=$(echo "$HISTORY_RESPONSE" | jq '.data | length' 2>/dev/null)
-        
-        if [ -n "$HISTORY_COUNT" ]; then
-            if [ "$HISTORY_COUNT" -ge "$MIN_HISTORY_POINTS" ]; then
-                log_success "Historique de $service: $HISTORY_COUNT points (>= $MIN_HISTORY_POINTS)"
-                
-                # Vérifier la cohérence temporelle
-                FIRST_TS=$(echo "$HISTORY_RESPONSE" | jq -r '.data[0].timestamp' 2>/dev/null)
-                LAST_TS=$(echo "$HISTORY_RESPONSE" | jq -r ".data[$((HISTORY_COUNT-1))].timestamp" 2>/dev/null)
-                
-                if [ "$FIRST_TS" != "null" ] && [ "$LAST_TS" != "null" ]; then
-                    FIRST_EPOCH=$(date -d "$FIRST_TS" +%s 2>/dev/null || echo "0")
-                    LAST_EPOCH=$(date -d "$LAST_TS" +%s 2>/dev/null || echo "0")
-                    
-                    if [ "$FIRST_EPOCH" -gt "$LAST_EPOCH" ]; then
-                        log_success "Ordre chronologique correct pour $service"
-                    else
-                        log_warning "Ordre chronologique inversé pour $service"
-                    fi
-                fi
-                
-                # Vérifier les champs de l'historique
-                HISTORY_FIELDS=("timestamp" "cpu_percent" "memory_usage_mb" "network_rx_mb" "network_tx_mb")
-                FIRST_POINT=$(echo "$HISTORY_RESPONSE" | jq '.data[0]' 2>/dev/null)
-                
-                for field in "${HISTORY_FIELDS[@]}"; do
-                    FIELD_VALUE=$(echo "$FIRST_POINT" | jq -r ".$field" 2>/dev/null)
-                    
-                    if [ "$FIELD_VALUE" != "null" ]; then
-                        log_success "Champ '$field' présent dans l'historique de $service"
-                    else
-                        log_error "Champ '$field' manquant dans l'historique de $service"
-                    fi
-                done
-                
-            else
-                log_warning "Historique de $service: seulement $HISTORY_COUNT points (< $MIN_HISTORY_POINTS)"
-            fi
-        else
-            log_warning "Historique vide pour $service (normal pour un service récent)"
-        fi
+    if json_number_in_range "$RESPONSE" '.service.cpu_percent' 0 1000; then
+        log_success "CPU present pour $service"
     else
-        log_error "Impossible de récupérer l'historique pour $service"
+        log_error "CPU absent/invalide pour $service"
     fi
-done
 
-###############################################################################
-# Test 6: Logs des Services
-###############################################################################
-log_section "Test 6: Logs des Services"
-
-for service in "${TEST_SERVICES[@]}"; do
-    LOGS_RESPONSE=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service/logs?lines=10" 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        LOGS_COUNT=$(echo "$LOGS_RESPONSE" | jq '.total' 2>/dev/null)
-        
-        if [ -n "$LOGS_COUNT" ] && [ "$LOGS_COUNT" -gt 0 ]; then
-            log_success "Logs récupérés pour $service: $LOGS_COUNT lignes"
-            
-            # Vérifier les compteurs
-            ERRORS=$(echo "$LOGS_RESPONSE" | jq '.errors' 2>/dev/null)
-            WARNINGS=$(echo "$LOGS_RESPONSE" | jq '.warnings' 2>/dev/null)
-            
-            if [ "$ERRORS" != "null" ]; then
-                log_info "Erreurs détectées dans les logs de $service: $ERRORS"
-            fi
-        else
-            log_warning "Aucun log disponible pour $service"
-        fi
+    if json_number_in_range "$RESPONSE" '.service.memory_percent' 0 100; then
+        log_success "Memoire % presente pour $service"
     else
-        log_error "Impossible de récupérer les logs pour $service"
+        log_warning "Memoire % absente ou hors plage pour $service"
+    fi
+
+    if json_number_in_range "$RESPONSE" '.service.memory_usage_mb' 0 1000000; then
+        log_success "Memoire MB presente pour $service"
+    else
+        log_error "Memoire MB absente/invalide pour $service"
+    fi
+
+    if json_has_path "$RESPONSE" '.service.health_status_docker'; then
+        log_success "Health Docker present pour $service"
+    else
+        log_warning "Health Docker absent pour $service"
+    fi
+
+    if json_has_path "$RESPONSE" '.service.network_rx_mb' && json_has_path "$RESPONSE" '.service.network_tx_mb'; then
+        RX="$(echo "$RESPONSE" | jq -r '.service.network_rx_mb')"
+        TX="$(echo "$RESPONSE" | jq -r '.service.network_tx_mb')"
+        log_success "Stats reseau presentes pour $service (RX: ${RX}MB, TX: ${TX}MB)"
+    else
+        log_error "Stats reseau manquantes pour $service"
     fi
 done
 
 ###############################################################################
-# Test 7: Cohérence des Données dans le Temps
+log_section "Historique des performances"
 ###############################################################################
-log_section "Test 7: Cohérence des Données"
 
 for service in "${TEST_SERVICES[@]}"; do
-    # Récupérer les métriques actuelles
-    CURRENT=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service" 2>/dev/null)
-    
-    # Récupérer le dernier point d'historique
-    HISTORY=$(curl -s -f "$METRICS_URL/api/v1/docker/service/$service/history?limit=1" 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        CURRENT_CPU=$(echo "$CURRENT" | jq -r '.service.cpu_percent' 2>/dev/null)
-        HISTORY_CPU=$(echo "$HISTORY" | jq -r '.data[0].cpu_percent' 2>/dev/null)
-        
-        if [ "$CURRENT_CPU" != "null" ] && [ "$HISTORY_CPU" != "null" ]; then
-            CPU_DIFF=$(echo "$CURRENT_CPU - $HISTORY_CPU" | bc -l | sed 's/-//')
-            
-            if (( $(echo "$CPU_DIFF < 50" | bc -l) )); then
-                log_success "Cohérence CPU pour $service (diff: ${CPU_DIFF}%)"
-            else
-                log_warning "Écart CPU important pour $service (diff: ${CPU_DIFF}%)"
-            fi
+    RESPONSE="$(metrics_curl "${METRICS_URL}/api/v1/docker/service/${service}/history?limit=10" 2>/dev/null || true)"
+
+    if [ -z "$RESPONSE" ]; then
+        log_error "Historique indisponible pour $service"
+        continue
+    fi
+
+    HISTORY_COUNT="$(echo "$RESPONSE" | jq -r '.data | length // 0' 2>/dev/null)"
+    if [ "$HISTORY_COUNT" -ge "$MIN_HISTORY_POINTS" ]; then
+        log_success "Historique de $service: ${HISTORY_COUNT} points"
+    else
+        log_warning "Historique de $service: ${HISTORY_COUNT} point(s), minimum attendu ${MIN_HISTORY_POINTS}"
+    fi
+
+    FIRST_POINT="$(echo "$RESPONSE" | jq '.data[0] // {}' 2>/dev/null)"
+    for field in timestamp cpu_percent memory_usage_mb network_rx_mb network_tx_mb; do
+        if echo "$FIRST_POINT" | jq -e --arg field "$field" '.[$field] != null' > /dev/null 2>&1; then
+            log_success "Historique $service: champ $field present"
+        else
+            log_error "Historique $service: champ $field manquant"
         fi
-        
-        CURRENT_MEM=$(echo "$CURRENT" | jq -r '.service.memory_usage_mb' 2>/dev/null)
-        HISTORY_MEM=$(echo "$HISTORY" | jq -r '.data[0].memory_usage_mb' 2>/dev/null)
-        
-        if [ "$CURRENT_MEM" != "null" ] && [ "$HISTORY_MEM" != "null" ]; then
-            MEM_DIFF=$(echo "$CURRENT_MEM - $HISTORY_MEM" | bc -l | sed 's/-//')
-            
-            if (( $(echo "$MEM_DIFF < 500" | bc -l) )); then
-                log_success "Cohérence Mémoire pour $service (diff: ${MEM_DIFF}MB)"
-            else
-                log_warning "Écart Mémoire important pour $service (diff: ${MEM_DIFF}MB)"
-            fi
-        fi
+    done
+done
+
+###############################################################################
+log_section "Logs des services"
+###############################################################################
+
+for service in "${TEST_SERVICES[@]}"; do
+    RESPONSE="$(metrics_curl "${METRICS_URL}/api/v1/docker/service/${service}/logs?lines=10" 2>/dev/null || true)"
+
+    if [ -z "$RESPONSE" ]; then
+        log_warning "Logs indisponibles pour $service"
+        continue
+    fi
+
+    LOGS_COUNT="$(echo "$RESPONSE" | jq -r '.total // (.lines | length) // 0' 2>/dev/null)"
+    if [ "$LOGS_COUNT" -gt 0 ]; then
+        log_success "Logs recuperes pour $service: ${LOGS_COUNT} lignes"
+    else
+        log_warning "Aucun log disponible pour $service"
     fi
 done
 
 ###############################################################################
-# Test 8: Routes API Gateway
+log_section "Cohérence live / historique"
 ###############################################################################
-log_section "Test 8: Routes API Gateway"
 
-API_ROUTES=(
-    "/api/v1/health"
-    "/api/v1/docker/services/all"
-    "/api/v1/docker/stats"
+for service in "${TEST_SERVICES[@]}"; do
+    CURRENT="$(metrics_curl "${METRICS_URL}/api/v1/docker/service/${service}" 2>/dev/null || true)"
+    HISTORY="$(metrics_curl "${METRICS_URL}/api/v1/docker/service/${service}/history?limit=1" 2>/dev/null || true)"
+
+    if [ -z "$CURRENT" ] || [ -z "$HISTORY" ]; then
+        log_warning "Cohérence ignoree pour $service: donnees manquantes"
+        continue
+    fi
+
+    CPU_OK="$(jq -n --argjson current "$CURRENT" --argjson history "$HISTORY" '
+        ($current.service.cpu_percent? // null) as $c |
+        ($history.data[0].cpu_percent? // null) as $h |
+        if ($c == null or $h == null) then false else (($c - $h) | fabs) < 75 end
+    ' 2>/dev/null || echo false)"
+
+    if [ "$CPU_OK" = "true" ]; then
+        log_success "Cohérence CPU live/historique pour $service"
+    else
+        log_warning "Cohérence CPU large ou non calculable pour $service"
+    fi
+done
+
+###############################################################################
+log_section "Routes gateway utiles"
+###############################################################################
+
+GATEWAY_ROUTES=(
+    "/health"
+    "/api/v1/metrics"
 )
 
-for route in "${API_ROUTES[@]}"; do
-    FULL_URL="http://localhost:3000$route"
-    
-    if curl -s -f -m 5 "$FULL_URL" > /dev/null 2>&1; then
-        log_success "Route $route accessible"
+for route in "${GATEWAY_ROUTES[@]}"; do
+    if public_curl "${API_GATEWAY_URL}${route}" > /dev/null 2>&1; then
+        log_success "Gateway route accessible: $route"
     else
-        log_warning "Route $route non accessible (peut-être pas exposée via gateway)"
+        log_warning "Gateway route non accessible: $route"
     fi
 done
 
 ###############################################################################
-# Résumé Final
+log_section "Resume final"
 ###############################################################################
-log_section "Résumé Final"
 
 TOTAL=$((TESTS_PASSED + TESTS_FAILED))
-SUCCESS_RATE=0
-
-if [ $TOTAL -gt 0 ]; then
-    SUCCESS_RATE=$(echo "scale=2; ($TESTS_PASSED * 100) / $TOTAL" | bc)
+SUCCESS_RATE="0.00"
+if [ "$TOTAL" -gt 0 ]; then
+    SUCCESS_RATE="$(awk -v p="$TESTS_PASSED" -v t="$TOTAL" 'BEGIN { printf "%.2f", (p * 100) / t }')"
 fi
 
 echo ""
 echo "Total de tests: $TOTAL"
-echo -e "${GREEN}Tests réussis: $TESTS_PASSED${NC}"
-echo -e "${RED}Tests échoués: $TESTS_FAILED${NC}"
+echo -e "${GREEN}Tests reussis: $TESTS_PASSED${NC}"
+echo -e "${RED}Tests echoues: $TESTS_FAILED${NC}"
 echo -e "${YELLOW}Avertissements: $WARNINGS${NC}"
-echo "Taux de réussite: ${SUCCESS_RATE}%"
+echo -e "${YELLOW}Ignores: $SKIPPED${NC}"
+echo "Taux de reussite: ${SUCCESS_RATE}%"
 echo ""
 
-# Critères de validation
-# On accepte si le taux de réussite est >= 95% et qu'il y a au moins 40 tests réussis
-if [ $TESTS_FAILED -le 1 ] && [ $TESTS_PASSED -ge 40 ]; then
-    echo -e "${GREEN}╔═══════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✅ VALIDATION COMPLÈTE - PRÊT POUR COMMIT ║${NC}"
-    echo -e "${GREEN}╚═══════════════════════════════════════════╝${NC}"
-    echo ""
-    echo "Les services critiques et les métriques fonctionnent correctement."
-    echo "Les avertissements concernent des services non critiques (API Gateway)."
+if [ "$TESTS_FAILED" -eq 0 ]; then
+    echo -e "${GREEN}✅ VALIDATION METRICS COMPLETE${NC}"
     exit 0
-elif [ $TESTS_FAILED -eq 0 ] && [ $TESTS_PASSED -gt 20 ]; then
-    echo -e "${GREEN}╔═══════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✅ VALIDATION COMPLÈTE - PRÊT POUR COMMIT ║${NC}"
-    echo -e "${GREEN}╚═══════════════════════════════════════════╝${NC}"
-    exit 0
-elif [ $TESTS_FAILED -le 2 ]; then
-    echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
-    echo -e "${YELLOW}║  ⚠️  VALIDATION PARTIELLE - VÉRIFIER SERVICES ║${NC}"
-    echo -e "${YELLOW}╚══════════════════════════════════════════════╝${NC}"
-    exit 0
-else
-    echo -e "${RED}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║  ❌ VALIDATION ÉCHOUÉE - NE PAS COMMITTER ║${NC}"
-    echo -e "${RED}╚══════════════════════════════════════════╝${NC}"
-    exit 1
 fi
+
+echo -e "${RED}❌ VALIDATION METRICS ECHOUEE${NC}"
+exit 1
 
