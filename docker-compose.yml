@@ -354,9 +354,8 @@ services:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/auth-service/src:/app/src
       - ./backend/auth-service/package.json:/app/package.json:ro
-      # ✅ Monter les scripts de test
-      - ./backend/auth-service/test-email-python.js:/app/test-email-python.js:ro
-      - ./backend/auth-service/test-email-diagnostic.js:/app/test-email-diagnostic.js:ro
+      # ✅ Monter les tests email centralisés pour auth-service
+      - ./tests/email/auth-service:/app/tests/email:ro
     command: npm run dev
     environment:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}

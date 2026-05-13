@@ -33,6 +33,7 @@ scripts/
 | `scripts/db/seed.sh` | Wrapper stable vers `make seed-auth`, utilisé par `make db-seed`. |
 | `scripts/db/backup.sh` | Backup PostgreSQL vers `backups/database/`, utilisé par `make db-backup`. |
 | `scripts/db/create-prisma-tables-safe.sh` | Reconstruction Prisma manuelle en préservant les tables monitoring-c. |
+| `scripts/env-get-key.cjs` | Lecture silencieuse d'une clé `.env` pour Make/scripts, sans sourcer le fichier. |
 | `scripts/ops/dev-https-certs.sh` | Génération et installation navigateur de la CA HTTPS dev, utilisé par `make dev-https-*`. |
 | `scripts/ops/inventory-scripts.cjs` | Inventaire des scripts et références, utilisé par `make scripts-inventory`. |
 | `scripts/ops/color-logs.sh` | Coloration des logs Docker. |
@@ -54,18 +55,27 @@ scripts/
 | `scripts/reports/clean-empty-reports.sh` | Nettoyage des rapports vides ou invalides. |
 | `scripts/reports/clean-all-reports.sh` | Nettoyage interactif de tous les rapports. |
 | `scripts/reports/clean-all-reports-docker.sh` | Nettoyage manuel des rapports dans le conteneur frontend. |
+| `scripts/reports/generate-test-report.sh` | Génération de rapport depuis les routes de test backoffice. |
 | `scripts/reports/generate-html-report.sh` | Génération HTML depuis un JSON de performance. |
 | `scripts/reports/run-single-test-with-report.sh` | Exécution ponctuelle d'un test avec rapport. |
 | `scripts/performance/performance-benchmark.sh` | Benchmark before/after léger. |
 | `scripts/performance/benchmark-all-backoffice.sh` | Benchmark complet des pages backoffice. |
 | `scripts/performance/backend-performance-test.sh` | Test de performance backend, utilisé par `make test-performance-backend`. |
+| `scripts/performance/test-performance.js` | Test performance API/backoffice léger. |
 | `scripts/performance/run-performance-backend-in-container.sh` | Test performance backend depuis le conteneur frontend. |
 | `scripts/performance/run-performance-frontend-in-container.sh` | Test performance frontend depuis le conteneur frontend. |
 | `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
+| `scripts/testing/test-api-specific.sh` | Smoke API backend via gateway. |
 | `scripts/testing/verify-user-journey.sh` | Parcours API utilisateur. |
 | `scripts/testing/verify-all-metrics.sh` | Vérification manuelle metrics/services/historique sur stack active. |
-| `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
-| `scripts/test-enums.js` | Validation des enums Prisma. |
+| `scripts/testing/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
+| `scripts/testing/test-enums.js` | Validation des enums Prisma. |
+| `scripts/testing/playwright-frontend-e2e.sh` | Wrapper Playwright frontend smoke/full. |
+| `scripts/testing/playwright-mobile-e2e.sh` | Wrapper Playwright mobile smoke/full. |
+| `scripts/testing/playwright-tests-dir.sh` | Wrapper Playwright depuis le dossier `tests/`. |
+| `scripts/monitoring/test-backoffice-metrics.sh` | Smoke métriques backoffice. |
+| `scripts/monitoring/test-metrics-persistence.sh` | Vérification persistance métriques. |
+| `scripts/monitoring/test-monitoring-system.sh` | Test système monitoring. |
 | `scripts/docker/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
 
 ## Inventaire
@@ -139,7 +149,7 @@ Si `modprobe veth` échoue après une mise à jour kernel, redémarrer sur le ke
 
 ### Tests
 
-Les gros orchestrateurs restent à la racine quand ils sont appelés par plusieurs Makefiles ou rapports historiques. Les helpers secondaires sont dans `scripts/testing/`.
+L'orchestrateur global `scripts/run-all-tests-with-reports.sh` reste à la racine car il agrège plusieurs domaines. Les wrappers et helpers de test sont dans `scripts/testing/`, les tests de monitoring dans `scripts/monitoring/` et les tests de performance dans `scripts/performance/`.
 
 Commandes utiles :
 

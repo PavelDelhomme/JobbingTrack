@@ -488,7 +488,7 @@ execute_command() {
         if echo "$output" | grep -q "Executable doesn't exist\|npx playwright install"; then
             echo ""
             echo -e "${CYAN}💡 Solution: Installez les navigateurs Playwright${NC}"
-            echo -e "${CYAN}   → ./scripts/setup-playwright.sh${NC}"
+            echo -e "${CYAN}   → ./scripts/setup/setup-playwright.sh${NC}"
         fi
     fi
     

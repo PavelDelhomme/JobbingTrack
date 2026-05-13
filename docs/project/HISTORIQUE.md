@@ -87,7 +87,7 @@
 
 **Fichiers modifiés** :
 - `STATUS.md` - Section 0.1 complètement réorganisée avec graphique
-- `scripts/test-relations.js` - Commentaires ajoutés sur relations non prévues
+- `scripts/testing/test-relations.js` - Commentaires ajoutés sur relations non prévues
 - `.github/workflows/ci-cd.yml` - Correction tests tables de jonction
 
 **Impact** :
@@ -102,15 +102,15 @@
 **Statut** : ✅ **TERMINÉ**
 
 **Réalisations** :
-- ✅ Création scripts de test des relations many-to-many (`scripts/test-relations.js`)
-- ✅ Création scripts de validation des enums (`scripts/test-enums.js`)
+- ✅ Création scripts de test des relations many-to-many (`scripts/testing/test-relations.js`)
+- ✅ Création scripts de validation des enums (`scripts/testing/test-enums.js`)
 - ✅ Ajout commandes Makefile `make test-relations` et `make test-enums`
 - ✅ Documentation complète de la structure de la base de données
 - ✅ Graphique ASCII de toutes les relations (1:N et M:N)
 
 **Fichiers créés** :
-- `scripts/test-relations.js` - Test de toutes les relations many-to-many
-- `scripts/test-enums.js` - Validation de tous les enums Prisma
+- `scripts/testing/test-relations.js` - Test de toutes les relations many-to-many
+- `scripts/testing/test-enums.js` - Validation de tous les enums Prisma
 - `makefiles/tests/Makefile` - Commandes de test
 
 **Relations testées** :
@@ -127,7 +127,7 @@
 
 **Réalisations** :
 - ✅ Résolution erreurs 404/500 sur `/api/v1/auth/users/:id` et `/api/v1/preferences`
-- ✅ Création utilisateur admin : `admin@jobbingtrack.com` / `password123`
+- ✅ Création utilisateur admin : `ADMIN_EMAIL` / `ADMIN_PASSWORD` via `.env`
 - ✅ Ajout route `/api/v1/auth/users/:id` dans `auth.routes.js`
 - ✅ Correction problème préférences : Vérification robuste de `prisma.userCustomization`
 - ✅ Désactivation route catch-all `authRoutes` qui interceptait `/api/v1/emails/*`

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script pour tester des endpoints API spécifiques
-# Usage: ./scripts/test-api-specific.sh <test_type> [endpoint1] [endpoint2] ...
+# Usage: ./scripts/testing/test-api-specific.sh <test_type> [endpoint1] [endpoint2] ...
 # Pas de set -e : on exécute tous les tests même si certains échouent, pour un rapport complet (total / réussis / échoués).
 #
 # Smoke / joignabilité : le 5ᵉ argument de test_endpoint peut être une liste de codes acceptés

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script générique pour générer un rapport de test automatiquement
-# Usage: ./scripts/generate-test-report.sh <test_type> <test_command> [test_name]
+# Usage: ./scripts/reports/generate-test-report.sh <test_type> <test_command> [test_name]
 
 set -e
 
@@ -23,7 +23,7 @@ if [ -z "$TEST_COMMAND" ]; then
 fi
 
 # Répertoires (en Docker : TESTS_RESULTS_DIR peut être /tmp/tests/results pour éviter Permission denied sur /app)
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 if [ -n "$TESTS_RESULTS_DIR" ]; then
   RESULTS_DIR="$TESTS_RESULTS_DIR"
 else

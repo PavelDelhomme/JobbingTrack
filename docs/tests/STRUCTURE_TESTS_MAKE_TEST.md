@@ -8,14 +8,14 @@ Ce document décrit la structure réelle de la suite de tests, les prérequis (d
 
 Les tests API, User Journey et Playwright E2E utilisent un **compte admin** et un **compte utilisateur test** qui doivent avoir **email vérifié** (`emailVerified: true`). Sinon le login renvoie **401 "Veuillez vérifier votre email avant de vous connecter"** (code `EMAIL_NOT_VERIFIED`).
 
-- **Admin** : `admin@jobbingtrack.com` / `password123` (ou `ADMIN_EMAIL` / `ADMIN_PASSWORD`)
+- **Admin** : `ADMIN_EMAIL` / `ADMIN_PASSWORD` depuis `.env`
 - **Utilisateur test** : `testuser@jobbingtrack.test` / `TestPassword123!` (ou `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`)
 
 Le script **run-all-tests-with-reports.sh** lance automatiquement le **seed auth** au début (si le conteneur `jobbingtrack-auth-service` tourne) pour mettre à jour ces comptes avec `emailVerified: true`. Si les tests échouent encore en 401 :
 
 1. Vérifier que la stack est up : `make up-full`
 2. Lancer le seed à la main :  
-   `docker exec -e ADMIN_EMAIL=admin@jobbingtrack.com -e ADMIN_PASSWORD=password123 jobbingtrack-auth-service npx prisma db seed`
+   `make seed-auth`
 
 ---
 
@@ -32,12 +32,12 @@ Le script **run-all-tests-with-reports.sh** lance automatiquement le **seed auth
 | Catégorie | Ce qui est exécuté | Nombre typique | Note |
 |-----------|--------------------|----------------|------|
 | **User Journey (API)** | `scripts/testing/verify-user-journey.sh` | 1 bloc | Parcours API |
-| **Relations BDD** | `scripts/test-relations.js` | Plusieurs assertions par relation | Tables de jonction many-to-many (exécuté dans le contexte auth-service / Prisma disponible) |
-| **Enums** | `scripts/test-enums.js` | Plusieurs assertions par enum | Schéma Prisma (auth-service) |
+| **Relations BDD** | `scripts/testing/test-relations.js` | Plusieurs assertions par relation | Tables de jonction many-to-many (exécuté dans le contexte auth-service / Prisma disponible) |
+| **Enums** | `scripts/testing/test-enums.js` | Plusieurs assertions par enum | Schéma Prisma (auth-service) |
 | **Email Logs** | Requêtes SQL / logs | 1 bloc | Table EmailLog |
 | **Tests API Complets (Jest)** | `tests/api/*.test.js` (Jest) | **Nombre élevé** (plusieurs dizaines) | Chaque `it()` = 1 test |
 | **Tests Backend Services (Jest)** | `tests/backend/*` (Jest) | Plusieurs tests par service | Health, logique métier |
-| **Tests API Backend (script)** | `scripts/test-api-specific.sh` | **~62** | **1 test = 1 appel HTTP** (health, auth, companies, applications, etc.) |
+| **Tests API Backend (script)** | `scripts/testing/test-api-specific.sh` | **~62** | **1 test = 1 appel HTTP** (health, auth, companies, applications, etc.) |
 | **Playwright E2E Frontend** | `frontend/tests/e2e/*.spec.ts` | **~270+** | 1 test = 1 `test()` Playwright |
 | **Playwright MailHog / Email Workflows** | Specs emails | Variable | Dépend de MailHog / config |
 | **Tests Frontend Jest** | `frontend` Jest | Variable | Unitaires composants |

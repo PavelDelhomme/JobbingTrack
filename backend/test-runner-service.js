@@ -199,7 +199,7 @@ app.post('/api/test/run-mobile-tests', authenticate, async (req, res) => {
 // Endpoint pour exécuter tous les tests
 app.post('/api/test/run-all-tests', authenticate, async (req, res) => {
   try {
-    const testProcess = exec('node tests/run-tests.js', {
+    const testProcess = exec('node tests/runners/run-tests.js', {
       cwd: path.join(__dirname, '..'),
       timeout: 900000 // 15 minutes pour tous les tests
     });

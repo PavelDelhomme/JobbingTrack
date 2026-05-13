@@ -42,12 +42,12 @@ Le script :
 
 2. **Catégorie 1 – Backend / BDD**
    - **User Journey (API)** : `scripts/testing/verify-user-journey.sh`.
-   - **Relations BDD** : si `auth-service` tourne, exécution de `scripts/test-relations.js` dans le conteneur auth.
-   - **Enums** : si `auth-service` tourne, exécution de `scripts/test-enums.js` dans le conteneur auth.
+   - **Relations BDD** : si `auth-service` tourne, exécution de `scripts/testing/test-relations.js` dans le conteneur auth.
+   - **Enums** : si `auth-service` tourne, exécution de `scripts/testing/test-enums.js` dans le conteneur auth.
    - **Email Logs** : si la table `EmailLog` existe, requête SQL (derniers logs) dans Postgres.
    - **Tests API Complets (Jest)** : Jest dans le conteneur frontend (ou en local) sur `tests/api/`.
    - **Tests Backend Services (Jest)** : Jest sur `tests/backend/`.
-   - **Tests API Backend (script)** : `scripts/test-api-specific.sh` avec `API_URL` / `API_GATEWAY_URL` (environ **62 appels** : health, auth, companies, applications, contacts, etc. – 1 test = 1 endpoint).
+   - **Tests API Backend (script)** : `scripts/testing/test-api-specific.sh` avec `API_URL` / `API_GATEWAY_URL` (environ **62 appels** : health, auth, companies, applications, contacts, etc. – 1 test = 1 endpoint).
 
 3. **Catégorie 2 – Frontend (E2E)**
    - **Vérification Playwright** : `npx playwright install` (timeout 3 min) pour installer les navigateurs si besoin (Docker ou local).

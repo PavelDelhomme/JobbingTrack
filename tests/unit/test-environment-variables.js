@@ -206,7 +206,7 @@ async function testEnvironmentVariables() {
         console.log('💡 Utilisation:');
         console.log('   # Développement');
         console.log('   export ADMIN_EMAIL=admin@jobbingtrack.com');
-        console.log('   export ADMIN_PASSWORD=password123');
+        console.log('   export ADMIN_PASSWORD=$(openssl rand -base64 32)');
         console.log('   make up-full');
         console.log('');
         console.log('   # Production');

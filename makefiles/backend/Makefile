@@ -302,9 +302,9 @@ test-metrics: ## Test complet du système de métriques (monitoring-c + persista
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "4️⃣  TEST DES MÉTRIQUES (Système)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@if [ -f "scripts/test-monitoring-system.sh" ]; then \
-		chmod +x scripts/test-monitoring-system.sh; \
-		./scripts/test-monitoring-system.sh || echo "⚠️  Certains tests ont échoué"; \
+	@if [ -f "scripts/monitoring/test-monitoring-system.sh" ]; then \
+		chmod +x scripts/monitoring/test-monitoring-system.sh; \
+		./scripts/monitoring/test-monitoring-system.sh || echo "⚠️  Certains tests ont échoué"; \
 	else \
 		echo "❌ Script test-monitoring-system.sh non trouvé"; \
 	fi
@@ -312,9 +312,9 @@ test-metrics: ## Test complet du système de métriques (monitoring-c + persista
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "5️⃣  TEST DES MÉTRIQUES (Backoffice)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@if [ -f "scripts/test-backoffice-metrics.sh" ]; then \
-		chmod +x scripts/test-backoffice-metrics.sh; \
-		./scripts/test-backoffice-metrics.sh || echo "⚠️  Certains tests ont échoué"; \
+	@if [ -f "scripts/monitoring/test-backoffice-metrics.sh" ]; then \
+		chmod +x scripts/monitoring/test-backoffice-metrics.sh; \
+		./scripts/monitoring/test-backoffice-metrics.sh || echo "⚠️  Certains tests ont échoué"; \
 	else \
 		echo "❌ Script test-backoffice-metrics.sh non trouvé"; \
 	fi
@@ -322,9 +322,9 @@ test-metrics: ## Test complet du système de métriques (monitoring-c + persista
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "6️⃣  TEST DE LA PERSISTANCE POSTGRESQL"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@if [ -f "scripts/test-metrics-persistence.sh" ]; then \
-		chmod +x scripts/test-metrics-persistence.sh; \
-		./scripts/test-metrics-persistence.sh || echo "⚠️  Tests de persistance échoués (peut être normal si PostgreSQL non accessible)"; \
+	@if [ -f "scripts/monitoring/test-metrics-persistence.sh" ]; then \
+		chmod +x scripts/monitoring/test-metrics-persistence.sh; \
+		./scripts/monitoring/test-metrics-persistence.sh || echo "⚠️  Tests de persistance échoués (peut être normal si PostgreSQL non accessible)"; \
 	else \
 		echo "❌ Script test-metrics-persistence.sh non trouvé"; \
 		echo "ℹ️  Vérification manuelle de la persistance:"; \

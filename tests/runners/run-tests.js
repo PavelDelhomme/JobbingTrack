@@ -298,7 +298,7 @@ async function main() {
       case '--help':
       case '-h':
         console.log(`
-Usage: node run-tests.js [options]
+Usage: node tests/runners/run-tests.js [options]
 
 Options:
   --no-database     Skip database tests
@@ -314,9 +314,9 @@ Options:
   --help, -h        Show this help
 
 Examples:
-  node run-tests.js                    # Run all tests except E2E
-  node run-tests.js --e2e             # Run all tests including E2E
-  node run-tests.js --no-database     # Skip database tests
+  node tests/runners/run-tests.js                    # Run all tests except E2E
+  node tests/runners/run-tests.js --e2e             # Run all tests including E2E
+  node tests/runners/run-tests.js --no-database     # Skip database tests
         `);
         process.exit(0);
     }
