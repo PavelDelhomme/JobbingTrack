@@ -37,25 +37,8 @@ const getHost = () => {
   return process.env.NEXT_PUBLIC_HOST || 'localhost';
 };
 
-const isBrowserLocalHttp = () => {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.location.protocol === 'http:' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  );
-};
-
 const getApiUrl = () => {
   const configured = process.env.NEXT_PUBLIC_API_URL;
-
-  if (
-    configured &&
-    isBrowserLocalHttp() &&
-    configured.startsWith('https://api.jobbingtrack.localhost')
-  ) {
-    return `http://127.0.0.1:${EXTERNAL_PORTS.API_GATEWAY}`;
-  }
-
   return configured || `${getProtocol()}://${getHost()}:${EXTERNAL_PORTS.API_GATEWAY}`;
 };
 
