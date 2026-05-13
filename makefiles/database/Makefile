@@ -52,9 +52,10 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make up-staging            - DB staging"
 	@echo "  make db-replicate-schema-to-test - Copier le schéma (sans données) de la base principale vers la base de test"
 	@echo ""
-	@echo "🔑 Identifiants Admin par défaut:"
-	@echo "  📧 Email:    admin@jobbingtrack.test"
-	@echo "  🔑 Password: password123"
+	@echo "🔑 Identifiants Admin:"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "  📧 Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "  🔑 Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 	@echo "💡 Personnalisation: Modifier les variables dans le fichier .env"
 
@@ -180,8 +181,20 @@ seed-auth: ## Créer ou mettre à jour l'admin (emailVerified=true) pour pouvoir
 	@echo "🌱 Seed auth : création/mise à jour de l'utilisateur admin (emailVerified=true)..."
 	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full'." && exit 1)
 	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
-		docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>&1 && echo "✅ Admin prêt (admin@jobbingtrack.test / password123). Vous pouvez vous connecter." || \
-		(echo "⚠️  Seed auth échoué. Vérifiez que backend/auth-service/package.json contient \"prisma\":{\"seed\":\"node prisma/seed.js\"}."; exit 1); \
+		ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		ADMIN_PASSWORD="$$(node scripts/env-get-key.cjs ADMIN_PASSWORD)"; \
+		ADMIN_FIRST_NAME="$$(node scripts/env-get-key.cjs ADMIN_FIRST_NAME)"; \
+		ADMIN_LAST_NAME="$$(node scripts/env-get-key.cjs ADMIN_LAST_NAME)"; \
+		TEST_USER_EMAIL="$$(node scripts/env-get-key.cjs TEST_USER_EMAIL)"; \
+		TEST_USER_PASSWORD="$$(node scripts/env-get-key.cjs TEST_USER_PASSWORD)"; \
+		ADMIN_EMAIL="$${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		ADMIN_FIRST_NAME="$${ADMIN_FIRST_NAME:-Admin}"; \
+		ADMIN_LAST_NAME="$${ADMIN_LAST_NAME:-JobbingTrack}"; \
+		TEST_USER_EMAIL="$${TEST_USER_EMAIL:-testuser@jobbingtrack.test}"; \
+		TEST_USER_PASSWORD="$${TEST_USER_PASSWORD:-TestPassword123!}"; \
+		if [ -z "$${ADMIN_PASSWORD:-}" ]; then echo "❌ ADMIN_PASSWORD absent de l'environnement/.env"; exit 1; fi; \
+		docker exec -e ADMIN_EMAIL="$${ADMIN_EMAIL}" -e ADMIN_PASSWORD="$${ADMIN_PASSWORD}" -e ADMIN_FIRST_NAME="$${ADMIN_FIRST_NAME}" -e ADMIN_LAST_NAME="$${ADMIN_LAST_NAME}" -e TEST_USER_EMAIL="$${TEST_USER_EMAIL}" -e TEST_USER_PASSWORD="$${TEST_USER_PASSWORD}" jobbingtrack-auth-service node -e 'const { PrismaClient } = require("@prisma/client"); const bcrypt = require("bcryptjs"); const prisma = new PrismaClient(); (async () => { const adminEmail = process.env.ADMIN_EMAIL; const adminPassword = process.env.ADMIN_PASSWORD; const adminFirstName = process.env.ADMIN_FIRST_NAME || "Admin"; const adminLastName = process.env.ADMIN_LAST_NAME || "JobbingTrack"; const adminHash = await bcrypt.hash(adminPassword, 10); await prisma.user.upsert({ where: { email: adminEmail }, update: { password: adminHash, firstName: adminFirstName, lastName: adminLastName, role: "SUPER_ADMIN", isActive: true, emailVerified: true, emailVerifiedAt: new Date() }, create: { email: adminEmail, password: adminHash, firstName: adminFirstName, lastName: adminLastName, phone: "+33123456789", role: "SUPER_ADMIN", isActive: true, emailVerified: true, emailVerifiedAt: new Date() } }); const testEmail = process.env.TEST_USER_EMAIL || "testuser@jobbingtrack.test"; const testPassword = process.env.TEST_USER_PASSWORD || "TestPassword123!"; const testHash = await bcrypt.hash(testPassword, 10); await prisma.user.upsert({ where: { email: testEmail }, update: { password: testHash, firstName: "TestUser", lastName: "Fonctionnel", role: "USER", isActive: true, emailVerified: true, emailVerifiedAt: new Date(), isTestData: true }, create: { email: testEmail, password: testHash, firstName: "TestUser", lastName: "Fonctionnel", phone: "+33600000000", role: "USER", isActive: true, emailVerified: true, emailVerifiedAt: new Date(), isTestData: true } }); console.log(`✅ Admin prêt: $${adminEmail} (mot de passe .env masqué)`); console.log(`✅ Utilisateur test prêt: $${testEmail} (mot de passe masqué)`); })().catch((error) => { console.error("❌ Seed auth échoué:", error.message); process.exit(1); }).finally(async () => { await prisma.$$disconnect(); });' || \
+		(echo "⚠️  Seed auth échoué."; exit 1); \
 	else \
 		echo "⚠️  Conteneur jobbingtrack-auth-service non démarré. Lancez 'make up-full' (profil full) puis réessayez."; \
 		exit 1; \
@@ -281,8 +294,9 @@ create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 	if [ $$EXIT_CODE -eq 0 ]; then \
 		echo ""; \
 		echo "✅ Utilisateur créé/vérifié !"; \
-		echo "📧 Email: admin@jobbingtrack.test"; \
-		echo "🔑 Password: password123"; \
+		ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "📧 Email: $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "🔑 Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"; \
 	else \
 		echo ""; \
 		echo "⚠️  Code de sortie: $$EXIT_CODE"; \
@@ -304,7 +318,7 @@ create-admin-user: ## Créer l'utilisateur Admin avec rôle SUPER_ADMIN
 	@echo ""
 	@echo "✅ Utilisateur Admin créé !"
 	@echo "📧 Email: admin@jobbingtrack.test"
-	@echo "🔑 Password: password123"
+	@echo "🔑 Password: valeur fournie au script (masquée)"
 
 db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@echo "🗑️  Suppression des volumes JobbingTrack..."

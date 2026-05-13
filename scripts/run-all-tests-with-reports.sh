@@ -119,10 +119,7 @@ ensure_dashboard_service_ready
 # ---- Seed auth (admin + testuser avec emailVerified) pour éviter 401 "email not verified" ----
 if command -v docker >/dev/null 2>&1 && docker ps 2>/dev/null | grep -q jobbingtrack-auth-service; then
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser emailVerified)...${NC}"
-    docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.test}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
-        -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
-        jobbingtrack-auth-service npx prisma db seed 2>/dev/null \
-        | sed -E 's/(Mot de passe: ).*/\1[masqué]/' \
+    make seed-auth \
         && echo -e "${GREEN}   ✅ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré (déjà à jour ou erreur)${NC}"
     echo ""
 fi
@@ -548,10 +545,7 @@ echo ""
 # 0. Seed auth (admin + testuser avec emailVerified: true) pour éviter 401 "email not verified"
 if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q .; then
     echo -e "${BLUE}🌱 Vérification seed auth (admin + testuser email vérifié)...${NC}"
-    docker exec -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@jobbingtrack.test}" -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-password123}" \
-        -e TEST_USER_EMAIL="${TEST_USER_EMAIL:-testuser@jobbingtrack.test}" -e TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}" \
-        jobbingtrack-auth-service npx prisma db seed 2>/dev/null \
-        | sed -E 's/(Mot de passe: ).*/\1[masqué]/' \
+    make seed-auth \
         && echo -e "${GREEN}   ✓ Seed auth OK${NC}" || echo -e "${YELLOW}   ⚠ Seed ignoré ou déjà à jour${NC}"
     echo ""
 fi
@@ -565,7 +559,7 @@ run_test "User Journey (API)" \
 # 2. Test Relations BDD (détection conteneur auth: name exact ou partiel)
 if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Relations BDD" \
-        "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js" \
+        "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/testing/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js" \
         "$REPORT_DIR/relations.json" \
         "system"
 else
@@ -584,7 +578,7 @@ fi
 # 3. Test Enums (détection conteneur auth: name exact ou partiel)
 if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Enums" \
-        "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-enums-temp.js' < scripts/test-enums.js && docker exec -w /app jobbingtrack-auth-service node test-enums-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-enums-temp.js" \
+        "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-enums-temp.js' < scripts/testing/test-enums.js && docker exec -w /app jobbingtrack-auth-service node test-enums-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-enums-temp.js" \
         "$REPORT_DIR/enums.json" \
         "system"
 else
@@ -660,7 +654,7 @@ fi
 # 6b. Tests API Backend (script complet : auth, users, companies, applications, contacts, interviews, calls, events, followups, profile, notifications, metrics, dashboard, emails, workflow, security)
 API_BASE_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 run_test "Tests API Backend (script - tous services)" \
-    "API_URL='$API_BASE_URL' API_GATEWAY_URL='$API_BASE_URL' bash scripts/test-api-specific.sh" \
+    "API_URL='$API_BASE_URL' API_GATEWAY_URL='$API_BASE_URL' bash scripts/testing/test-api-specific.sh" \
     "$REPORT_DIR/api-backend-script.json" \
     "user"
 
@@ -706,12 +700,12 @@ export API_GATEWAY_URL="$API_E2E_URL"
 export PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-2}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
-        "PLAYWRIGHT_FRONTEND_MODE=\"$PLAYWRIGHT_FRONTEND_MODE\" timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-frontend-e2e.sh\" 2>&1" \
+        "PLAYWRIGHT_FRONTEND_MODE=\"$PLAYWRIGHT_FRONTEND_MODE\" timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/testing/playwright-frontend-e2e.sh\" 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 elif [ -d "frontend/tests/e2e" ]; then
     run_test "Playwright E2E Frontend" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-frontend-e2e.sh\" 2>&1" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash \"$ROOT_DIR/scripts/testing/playwright-frontend-e2e.sh\" 2>&1" \
         "$REPORT_DIR/playwright-e2e.json" \
         "admin"
 else
@@ -727,7 +721,7 @@ if [ -f "tests/e2e/specs/admin-emails-mailhog.spec.ts" ]; then
     : "${MAILHOG_WEB_URL:=http://localhost:8025}"
     export MAILHOG_WEB_URL
     run_test "Playwright Emails MailHog" \
-        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/testing/playwright-tests-dir.sh\" test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-mailhog.json" \
         "admin"
 fi
@@ -737,7 +731,7 @@ if [ -f "tests/e2e/specs/email-workflows.spec.ts" ]; then
     : "${MAILHOG_WEB_URL:=http://localhost:8025}"
     export MAILHOG_WEB_URL
     run_test "Playwright Email Workflows" \
-        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/testing/playwright-tests-dir.sh\" test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-email-workflows.json" \
         "user"
 fi
@@ -745,7 +739,7 @@ fi
 # 7d. Tests CRUD données complet (admin)
 if [ -f "tests/e2e/specs/admin-data-crud.spec.ts" ]; then
     run_test "Playwright CRUD Données (admin)" \
-        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/testing/playwright-tests-dir.sh\" test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-data-crud.json" \
         "admin"
 fi
@@ -753,7 +747,7 @@ fi
 # 7e. Tests CRUD utilisateurs (admin)
 if [ -f "tests/e2e/specs/admin-users-crud.spec.ts" ]; then
     run_test "Playwright CRUD Utilisateurs (admin)" \
-        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/testing/playwright-tests-dir.sh\" test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-users-crud.json" \
         "admin"
 fi
@@ -761,7 +755,7 @@ fi
 # 7f. Tests Sécurité Backoffice complets (admin)
 if [ -f "tests/e2e/specs/admin-security-complete.spec.ts" ]; then
     run_test "Playwright Sécurité Backoffice (admin)" \
-        "timeout 120 bash \"$ROOT_DIR/scripts/playwright-tests-dir.sh\" test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
+        "timeout 120 bash \"$ROOT_DIR/scripts/testing/playwright-tests-dir.sh\" test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1" \
         "$REPORT_DIR/playwright-security-complete.json" \
         "admin"
 fi
@@ -781,7 +775,7 @@ if [ "$PLAYWRIGHT_MOBILE_FORCE" = "1" ] || [ "$PLAYWRIGHT_MOBILE_ADB" = "1" ]; t
     if [ -f "$ROOT_DIR/frontend/playwright.mobile.config.ts" ] && [ -d "$ROOT_DIR/frontend/tests/e2e/mobile" ]; then
         echo -e "${BLUE}📱 Playwright Mobile (peripherique detecte ou RUN_PLAYWRIGHT_MOBILE=1)...${NC}"
         run_test "Playwright Mobile E2E" \
-            "PLAYWRIGHT_MOBILE_MODE=\"$PLAYWRIGHT_MOBILE_MODE\" timeout $PLAYWRIGHT_MOBILE_TIMEOUT bash \"$ROOT_DIR/scripts/playwright-mobile-e2e.sh\" 2>&1" \
+            "PLAYWRIGHT_MOBILE_MODE=\"$PLAYWRIGHT_MOBILE_MODE\" timeout $PLAYWRIGHT_MOBILE_TIMEOUT bash \"$ROOT_DIR/scripts/testing/playwright-mobile-e2e.sh\" 2>&1" \
             "$REPORT_DIR/playwright-mobile.json" \
             "system"
     else

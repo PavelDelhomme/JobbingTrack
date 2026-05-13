@@ -4,7 +4,7 @@
 
 ### 🔍 Explication du Problème
 
-Lors de la réinitialisation de la base de données ou lors du premier démarrage, la table `User` n'existe pas encore. Cela causait une erreur 500 lors de la tentative de connexion avec `admin@jobbingtrack.test` / `password123`.
+Lors de la réinitialisation de la base de données ou lors du premier démarrage, la table `User` n'existe pas encore. Cela causait une erreur 500 lors de la tentative de connexion avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` depuis `.env`.
 
 ### ✅ Solution Implémentée
 
@@ -19,14 +19,14 @@ if (!prisma.user || typeof prisma.user.findUnique !== 'function') {
   user = {
     id: 'dev_user_1',
     email: 'admin@jobbingtrack.test',
-    password: 'password123', // Accepté directement (pas de hash bcrypt)
+    password: '<ADMIN_PASSWORD>', // ne pas coder de mot de passe en dur
     role: 'SUPER_ADMIN',
     // ...
   };
 }
 
-// Pour l'utilisateur mock, accepter directement 'password123'
-if (user.id === 'dev_user_1' && password === 'password123') {
+// Ancien comportement dev à ne plus reproduire : ne pas accepter de mot de passe en dur
+if (false) {
   // Authentification réussie
 }
 ```
@@ -78,7 +78,7 @@ docker logs jobbingtrack-auth-service --tail 50
 
 - **Mode Développement Uniquement** : Les fallbacks utilisateur mock ne fonctionnent qu'en mode développement (`NODE_ENV !== 'production'`)
 - **Email Spécifique** : L'utilisateur mock n'est créé que pour `admin@jobbingtrack.test`
-- **Mot de Passe Direct** : Pour l'utilisateur mock, le mot de passe `password123` est accepté directement (pas de vérification bcrypt)
+- **Mot de Passe Direct** : Pour l'utilisateur mock, un ancien mot de passe en dur était accepté directement ; ce comportement est déprécié et ne doit pas être réintroduit
 
 ### 🔄 Workflow Recommandé
 

@@ -35,4 +35,4 @@ make test-email-python-verification TEST_EMAIL=redacted@example.invalid
 ## Documentation technique
 
 - Service email : `backend/auth-service/src/services/email/README.md`
-- Script de test : `backend/auth-service/test-email-python.js`
+- Script de test : `tests/email/auth-service/test-email-python.js`

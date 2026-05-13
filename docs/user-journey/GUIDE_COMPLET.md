@@ -70,7 +70,7 @@ URL : http://localhost:8080/backoffice/user-journey
 
 Identifiants :
 - Email: admin@jobbingtrack.test
-- Password: password123
+- Password: valeur `ADMIN_PASSWORD` dans `.env`
 ```
 
 ---
@@ -806,7 +806,7 @@ Puis ouvrez : `http://localhost:8080/backoffice/user-journey`
 ### Identifiants
 
 - **Email** : `admin@jobbingtrack.test`
-- **Password** : `password123`
+- **Password** : valeur `ADMIN_PASSWORD` dans `.env`
 
 ### Ce Qui Fonctionne
 

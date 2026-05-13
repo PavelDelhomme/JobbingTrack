@@ -74,10 +74,10 @@ test.describe('🔐 Authentification - Page de connexion', () => {
     await expect(themeButton).toBeVisible();
   });
 
-  test('devrait afficher la section des informations de compte de test', async ({ page }) => {
-    await expect(page.getByText('Compte de test')).toBeVisible();
-    await expect(page.getByText('admin@jobbingtrack.test')).toBeVisible();
-    await expect(page.getByText('password123')).toBeVisible();
+  test('ne doit pas exposer de compte de test sur la page login', async ({ page }) => {
+    await expect(page.getByText('Compte de test')).toHaveCount(0);
+    await expect(page.getByText('password123')).toHaveCount(0);
+    await expect(page.getByText('Les champs sont pré-remplis')).toHaveCount(0);
   });
 
   test('devrait permettre la connexion avec des identifiants valides', async ({ page }) => {

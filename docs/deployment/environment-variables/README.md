@@ -139,7 +139,7 @@ JWT_REFRESH_SECRET=fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654
 
 # Utilisateur administrateur
 ADMIN_EMAIL=admin@jobbingtrack.test
-ADMIN_PASSWORD=password123
+ADMIN_PASSWORD=change-me-generate-a-strong-admin-password
 ADMIN_FIRST_NAME=Admin
 ADMIN_LAST_NAME=JobbingTrack
 

@@ -113,7 +113,7 @@ tests-help:
 	@echo "  ✓ Redémarre les services de test (make up-for-tests)"
 	@echo "  ✓ Attend 15 secondes que tout démarre"
 	@echo "  ✓ Crée toutes les tables (prisma db push)"
-	@echo "  ✓ Crée l'utilisateur admin (admin@jobbingtrack.test / password123)"
+	@echo "  ✓ Crée/met à jour l'utilisateur admin depuis ADMIN_EMAIL / ADMIN_PASSWORD (.env, mot de passe masqué)"
 	@echo "  ✓ Prêt pour les tests !"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -170,15 +170,8 @@ tests-reset:
 		 echo "Essayez: make rebuild && make tests-reset" && exit 1)
 	@echo "✅ Table User existe"
 	@echo ""
-	@echo "👤 5/5 - Création/mise à jour utilisateur admin (emailVerified=true)..."
-	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
-		echo "✅ Admin créé ou mis à jour (seed auth)." || \
-		(echo "⚠️  Seed auth non exécuté, fallback INSERT SQL..."; \
-		 docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
-			"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\") \
-			VALUES (gen_random_uuid(), 'admin@jobbingtrack.test', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
-			'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW()) \
-			ON CONFLICT (email) DO UPDATE SET \"emailVerified\"=true, \"emailVerifiedAt\"=NOW(), \"updatedAt\"=NOW();")
+	@echo "👤 5/5 - Création/mise à jour utilisateur admin depuis .env (emailVerified=true)..."
+	@$(MAKE) seed-auth
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║              ✅ SYSTÈME PRÊT POUR LES TESTS !          ║"
@@ -194,8 +187,9 @@ tests-reset:
 	@echo "    Puis ouvrir : http://localhost:8080/backoffice/user-journey"
 	@echo ""
 	@echo "🔑 Identifiants :"
-	@echo "   Email:    admin@jobbingtrack.test"
-	@echo "   Password: password123"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 
 tests-clean: tests-reset ## Alias pratique (équivalent tests-reset)
@@ -234,7 +228,7 @@ tests-interface-web:
 	@echo ""
 	@echo "🚀 Lancement de l'interface web de test..."
 	@echo ""
-	@bash scripts/start-tests.sh
+	@bash scripts/testing/start-tests.sh
 
 # ================================================================
 # 📧 EMAIL VERIFICATION - Test système vérification email
@@ -258,7 +252,7 @@ test-email-verification:
 	@echo ""
 	@echo "🚀 Lancement du test..."
 	@echo ""
-	@docker exec jobbingtrack-auth-service node test-email-verification.js
+	@docker exec jobbingtrack-auth-service node /app/tests/email/test-email-verification.js
 
 # 📧 TEST SERVICE PYTHON EMAIL - Test du service Python d'envoi d'emails
 test-email-diagnostic: ## Diagnostic du service Python email (vérifie Python, MailHog, config)
@@ -266,7 +260,7 @@ test-email-diagnostic: ## Diagnostic du service Python email (vérifie Python, M
 	@echo "║     🔧 DIAGNOSTIC SERVICE PYTHON EMAIL - JobbingTrack         ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@docker exec jobbingtrack-auth-service node /app/test-email-diagnostic.js || \
+	@docker exec jobbingtrack-auth-service node /app/tests/email/test-email-diagnostic.js || \
 		(echo ""; \
 		 echo "❌ Erreur lors du diagnostic"; \
 		 exit 1)
@@ -280,7 +274,7 @@ test-email-python: ## Test du service Python d'envoi d'emails (connexion SMTP)
 	@echo ""
 	@echo "🔍 Test de connexion SMTP..."
 	@echo ""
-	@docker exec jobbingtrack-auth-service node /app/test-email-python.js test_connection || \
+	@docker exec jobbingtrack-auth-service node /app/tests/email/test-email-python.js test_connection || \
 		(echo ""; \
 		 echo "❌ Erreur lors du test de connexion SMTP"; \
 		 echo "💡 Exécutez 'make test-email-diagnostic' pour diagnostiquer le problème"; \
@@ -298,7 +292,7 @@ test-email-python-reset: ## Test d'envoi d'email de réinitialisation (service P
 		echo "   Pour spécifier un email : TEST_EMAIL=redacted@example.invalid make test-email-python-reset"; \
 		echo ""; \
 	fi
-	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/test-email-python.js test_reset || \
+	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/tests/email/test-email-python.js test_reset || \
 		(echo ""; \
 		 echo "❌ Erreur : Le service Python n'est pas disponible."; \
 		 echo "💡 Solution : Reconstruire le conteneur avec 'make rebuild auth-service'"; \
@@ -335,7 +329,7 @@ test-email-python-verification: ## Test d'envoi d'email de vérification (servic
 		echo "   Pour spécifier un email : TEST_EMAIL=redacted@example.invalid make test-email-python-verification"; \
 		echo ""; \
 	fi
-	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/test-email-python.js test_verification || \
+	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/tests/email/test-email-python.js test_verification || \
 		(echo ""; \
 		 echo "❌ Erreur : Le service Python n'est pas disponible."; \
 		 echo "💡 Solution : Reconstruire le conteneur avec 'make rebuild auth-service'"; \
@@ -370,7 +364,7 @@ test-relations: ## Teste toutes les relations many-to-many de la base de donnée
 	@echo ""
 	@echo "🚀 Lancement du test..."
 	@echo ""
-	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-relations.js" < scripts/test-relations.js && \
+	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-relations.js" < scripts/testing/test-relations.js && \
 		docker exec -w /app jobbingtrack-auth-service node /tmp/test-relations.js
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -399,7 +393,7 @@ test-enums: ## Valide tous les enums du schéma Prisma
 	@echo ""
 	@echo "🚀 Lancement du test..."
 	@echo ""
-	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-enums.js" < scripts/test-enums.js && \
+	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-enums.js" < scripts/testing/test-enums.js && \
 		docker exec -w /app jobbingtrack-auth-service node /tmp/test-enums.js
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -545,9 +539,7 @@ define test_full_steps
 	@$(MAKE) db-push-all
 	@echo ""
 	@echo "3b/5 Seed auth (admin emailVerified pour les tests)..."
-	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
-		echo "   ✅ Seed auth OK." || \
-		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+	@$(MAKE) seed-auth
 	@echo ""
 	@echo "4/5 Vérification des services (make status)..."
 	@$(MAKE) status
@@ -577,9 +569,7 @@ test-full: ## Rebuild (--no-cache, lourd) + up-full + db-push-all + seed + statu
 	@$(MAKE) db-push-all
 	@echo ""
 	@echo "3b/6 Seed auth (admin emailVerified pour les tests)..."
-	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
-		echo "   ✅ Seed auth OK." || \
-		(echo "   ⚠️  Seed auth ignoré ou échoué."; echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
+	@$(MAKE) seed-auth
 	@echo ""
 	@echo "4/6 Vérification des services (make status)..."
 	@$(MAKE) status

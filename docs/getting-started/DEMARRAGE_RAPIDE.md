@@ -19,11 +19,11 @@ Cette commande va automatiquement :
 - ✅ Proposer d'installer les polices d'emojis (recommandé)
 - ✅ Démarrer tous les services Docker
 - ✅ Appliquer les migrations Prisma
-- ✅ Créer l'utilisateur administrateur
+- ✅ Synchroniser l'utilisateur administrateur depuis `.env`
 
-**Identifiants par défaut** :
-- 📧 Email : `admin@jobbingtrack.test`
-- 🔑 Password : `password123`
+**Identifiants admin** :
+- 📧 Email : valeur `ADMIN_EMAIL` dans `.env`
+- 🔑 Password : valeur `ADMIN_PASSWORD` dans `.env` (masquée dans les logs)
 
 ### Option 2 : Installation Manuelle (Étape par étape)
 
@@ -43,8 +43,8 @@ make up-full
 # 5. Appliquer les migrations Prisma
 make db-push-all
 
-# 6. Créer l'utilisateur admin
-make create-admin-user
+# 6. Créer ou mettre à jour l'utilisateur admin depuis .env
+make seed-auth
 ```
 
 ---
@@ -70,7 +70,7 @@ make up-full
 
 **Frontend Web** :
 - 🌐 URL : http://localhost:8080
-- 🔐 Admin : `admin@jobbingtrack.test` / `password123`
+- 🔐 Admin : `ADMIN_EMAIL` / `ADMIN_PASSWORD` depuis `.env`
 
 **API Gateway** :
 - 🌐 URL : http://localhost:3000

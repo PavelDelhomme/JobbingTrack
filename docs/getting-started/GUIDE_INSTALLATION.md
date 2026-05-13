@@ -218,7 +218,7 @@ Créer un fichier `.env` à la racine si nécessaire :
 ```bash
 # .env (exemple)
 ADMIN_EMAIL=admin@jobbingtrack.test
-ADMIN_PASSWORD=password123
+ADMIN_PASSWORD=change-me-generate-a-strong-admin-password
 DATABASE_URL=postgresql://jobbingtrack:jobbingtrack@postgres:5432/jobbingtrack
 REDIS_URL=redis://redis:6379
 ```

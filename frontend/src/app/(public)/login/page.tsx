@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const currentYear = new Date().getFullYear();
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
   const { actualTheme, toggleTheme } = useTheme();
@@ -197,29 +198,12 @@ export default function LoginPage() {
                 </span>
               )}
             </button>
-
-            {/* Info compte de test - Card améliorée */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl sm:rounded-2xl p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl sm:text-3xl">🧪</span>
-                <div className="flex-1 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
-                  <p className="font-bold mb-2 text-sm sm:text-base">Compte de test :</p>
-                  <div className="space-y-1">
-                    <p><strong>Email:</strong> admin@jobbingtrack.test</p>
-                    <p><strong>Mot de passe:</strong> password123</p>
-                  </div>
-                  <p className="mt-3 text-xs text-blue-700 dark:text-blue-300 italic">
-                    💡 Les champs sont pré-remplis pour faciliter les tests
-                  </p>
-                </div>
-              </div>
-            </div>
           </form>
 
           {/* Footer */}
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 text-center">
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              © 2025 JobbingTrack • Version 1.0.0
+              © {currentYear} JobbingTrack • Version 1.0.0
             </p>
           </div>
         </div>

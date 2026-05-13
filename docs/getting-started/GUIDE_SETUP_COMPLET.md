@@ -96,11 +96,19 @@ Cette commande va automatiquement :
 2. ✅ Proposer d'installer les emojis
 3. ✅ Démarrer tous les services
 4. ✅ Appliquer les migrations Prisma (`make db-push-all`)
-5. ✅ Créer l'utilisateur administrateur
+5. ✅ Synchroniser l'utilisateur administrateur depuis `.env`
 
-**Identifiants créés** :
-- 📧 Email : `admin@jobbingtrack.test`
-- 🔑 Password : `password123`
+**Identifiants admin** :
+- 📧 Email : valeur `ADMIN_EMAIL` dans `.env`
+- 🔑 Password : valeur `ADMIN_PASSWORD` dans `.env` (jamais affichée dans les logs)
+
+Si vous modifiez `ADMIN_PASSWORD`, relancez :
+
+```bash
+make seed-auth
+```
+
+Cette commande met à jour le hash du compte admin existant et vérifie l'email.
 
 ### Étape 4 : Configuration Initiale (Optionnel - Si setup automatique non utilisé)
 

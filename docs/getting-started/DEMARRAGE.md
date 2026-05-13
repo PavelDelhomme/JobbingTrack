@@ -3,7 +3,7 @@
 ## Premier lancement (ou reprise)
 
 ```bash
-make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status
+make up-full && make db-push-all && make build && make up-full && make seed-auth && make status
 ```
 
 | Étape | Commande | Rôle |
@@ -12,18 +12,18 @@ make up-full && make db-push-all && make build && make up-full && make create-ad
 | 2 | `make db-push-all` | Prisma push (9 services) + init-system-metrics + init-key-tables + seed statuts. |
 | 3 | `make build` | Rebuild des images Docker. |
 | 4 | `make up-full` | Redémarre la stack avec les images à jour. |
-| 5 | `make create-admin-user` | Crée ou met à jour l'admin (admin@jobbingtrack.test / password123, rôle SUPER_ADMIN). |
+| 5 | `make seed-auth` | Crée ou met à jour l'admin depuis `ADMIN_EMAIL` / `ADMIN_PASSWORD` dans `.env` (rôle `SUPER_ADMIN`, email vérifié, mot de passe masqué). |
 | 6 | `make status` | Affiche l'état des services. |
 
 ## Repartir à zéro
 
 ```bash
-make down && make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status
+make down && make up-full && make db-push-all && make build && make up-full && make seed-auth && make status
 ```
 
 ## Après le démarrage
 
-1. **Backoffice** : http://localhost:5003 → admin@jobbingtrack.test / password123.
+1. **Backoffice** : http://localhost:5003 → utiliser `ADMIN_EMAIL` et `ADMIN_PASSWORD` définis dans `.env`.
 2. **Tests API** : Backoffice → Tests → Tests API → Lancer (36/36 doivent passer).
 3. **Émulateur mobile** (optionnel) : `make emulator-controller` (2e terminal), puis http://localhost:5003/backoffice/mobile-emulator.
 
@@ -31,7 +31,7 @@ make down && make up-full && make db-push-all && make build && make up-full && m
 
 Si le backoffice affiche « Accès Refusé – Votre rôle actuel : USER » :
 ```bash
-make create-admin-user
+make seed-auth
 ```
 Puis se déconnecter et se reconnecter.
 

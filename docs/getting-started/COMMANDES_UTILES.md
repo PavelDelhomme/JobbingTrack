@@ -46,10 +46,11 @@ Voir aussi : **docs/development/makefile-commands/README.md** pour le détail de
 ## Base de données et admin
 
 - `make db-push-all` — Créer/synchroniser toutes les tables (auth + monitoring + sécurité). À lancer après `make up-full` si tables manquantes.
-- `make create-admin-user` — Créer ou mettre à jour l’admin (idempotent). Inutile si `make up-full` a déjà affiché « Utilisateur administrateur existe » ou « Création automatique de l’admin ».
+- `make seed-auth` — Créer ou mettre à jour l’admin depuis `ADMIN_EMAIL` / `ADMIN_PASSWORD` dans `.env` (idempotent, mot de passe masqué).
+- `make create-admin-user` — Script legacy de création admin ; préférer `make seed-auth` pour réaligner le hash avec `.env`.
 - `make recreate-admin-user` — Supprimer et recréer l’admin
 
-Identifiants admin : `admin@jobbingtrack.test` / `password123`
+Identifiants admin : `ADMIN_EMAIL` / `ADMIN_PASSWORD` dans `.env`. Ne pas utiliser ni documenter de mot de passe par défaut.
 
 ---
 

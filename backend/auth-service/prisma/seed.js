@@ -12,7 +12,7 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Début du peuplement de la base de données Auth Service...')
 
-  // Créer un utilisateur de test (ou le mettre à jour s'il existe)
+  // Créer ou mettre à jour l'administrateur depuis l'environnement.
   const adminEmail = process.env.ADMIN_EMAIL
   const adminPassword = process.env.ADMIN_PASSWORD
   const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin'
@@ -50,10 +50,10 @@ async function main() {
     }
   })
 
-  console.log('✅ Utilisateur de test créé:', testUser.email)
+  console.log('✅ Administrateur créé/mis à jour:', testUser.email)
   console.log('✅ Rôle:', testUser.role)
   console.log('')
-  console.log('🔐 Compte de test:')
+  console.log('🔐 Compte administrateur:')
   console.log(`   Email: ${adminEmail}`)
   console.log('   Mot de passe: valeur ADMIN_PASSWORD chargée depuis l’environnement (masquée)')
 

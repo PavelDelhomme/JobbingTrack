@@ -21,7 +21,7 @@ setup: ## Setup complet du projet (installation initiale)
 	@echo "  3. Configuration permissions"
 	@echo "  4. Démarrage services"
 	@echo "  5. Migrations base de données"
-	@echo "  6. Création utilisateur admin"
+	@echo "  6. Synchronisation admin depuis .env"
 	@echo ""
 	@echo "⏳ Démarrage du setup..."
 	@echo ""
@@ -80,10 +80,10 @@ setup: ## Setup complet du projet (installation initiale)
 	@echo "⏳ Attente supplémentaire pour que les tables soient créées (5s)..."
 	@sleep 5
 	
-	# Créer admin
+	# Créer ou mettre à jour l'admin depuis .env
 	@echo ""
-	@echo "👤 Création de l'utilisateur administrateur..."
-	$(MAKE) create-admin-user || echo "⚠️  Utilisateur admin existe déjà"
+	@echo "👤 Synchronisation de l'utilisateur administrateur depuis .env..."
+	$(MAKE) seed-auth
 	
 	@echo ""
 	@echo "✅ Setup terminé !"
@@ -93,8 +93,9 @@ setup: ## Setup complet du projet (installation initiale)
 	@echo "  - API Gateway: http://localhost:5002"
 	@echo ""
 	@echo "🔑 Identifiants Admin :"
-	@echo "  Email:    admin@jobbingtrack.test"
-	@echo "  Password: password123"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "  Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "  Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 	@echo "📖 Documentation: docs/getting-started/GUIDE_SETUP_COMPLET.md"
 
@@ -281,8 +282,9 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   Metrics:            http://localhost:5004"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@echo "   Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
-	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
 	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
@@ -377,8 +379,9 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "   📊 Statistiques  : http://localhost:5003/backoffice"
 	@echo ""
 	@echo "🔑 Identifiants :"
-	@echo "   Email:    admin@jobbingtrack.test"
-	@echo "   Password: password123"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 	@echo "⏱️  Attendez 10-15 secondes que tous les services soient prêts..."
 	@echo ""
@@ -452,8 +455,9 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   - OU utilisez l'émulateur intégré dans le backoffice"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@echo "   Email:    admin@jobbingtrack.test"
-	@echo "   Password: password123"
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
+		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
 	@echo "🧪 Tests disponibles :"
 	@echo "   make test                  # Tous les tests"
@@ -578,11 +582,13 @@ _up-full-internal:
 				echo ""; \
 				echo "💡 Pour créer l'admin: make create-admin-user"; \
 				echo "   (désactiver auto-création: CREATE_ADMIN_IF_MISSING=0 make up-full)"; \
-				echo "🔑 Identifiants: admin@jobbingtrack.test / password123"; \
+				ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+				echo "🔑 Identifiants: $${ADMIN_EMAIL:-admin@jobbingtrack.test} / mot de passe .env masqué"; \
 			fi; \
 		else \
 			echo "✅ Utilisateur administrateur existe"; \
-			echo "   🔑 admin@jobbingtrack.test / password123"; \
+			ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+			echo "   🔑 $${ADMIN_EMAIL:-admin@jobbingtrack.test} / mot de passe .env masqué"; \
 		fi; \
 	else \
 		echo "⚠️  Conteneur PostgreSQL non trouvé"; \
