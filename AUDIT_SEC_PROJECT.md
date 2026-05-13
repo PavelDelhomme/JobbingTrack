@@ -53,15 +53,14 @@ Etat :
 
 - Le backoffice liste deja plusieurs rapports via les routes `frontend/src/app/api/test-reports/*`.
 - `reports/security/README.md` existe, mais les rapports dates securite sont ignores par Git.
-- La route de liste des rapports couvre surtout `reports/performance/backend`, `frontend/performance-reports`, `frontend/playwright-report`, `tests/results`, `tests/reports`, `coverage`, `user-journey` et `analytics`.
+- La route de liste des rapports couvre aussi, depuis le 13/05, `reports/security/**` et `tests/results/security/**` quand un dossier contient `summary.md`, `summary.json` ou `report.html`.
 
 Risque :
 
-- L'utilisateur peut croire que les rapports securite sont recuperables depuis le backoffice alors que ce n'est pas encore prouve ou branche explicitement.
+- Le branchement existe, mais il doit encore etre prouve en navigateur par le porteur sur de vrais rapports locaux/preprod.
 
 Action :
 
-- Ajouter une categorie `security` aux routes `frontend/src/app/api/test-reports/*`.
 - Verifier que les rapports `reports/security/**/summary.md` et `tests/results/security/**/summary.md` sont listables, telechargeables et lisibles dans le backoffice.
 - Ajouter un test de lecture ou un smoke API route pour eviter une regression.
 

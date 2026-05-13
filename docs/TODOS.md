@@ -4,7 +4,7 @@
 
 ## Priorités à faire maintenant
 
-- [ ] **Rapports sécurité backoffice** : brancher explicitement `reports/security/**/summary.md` et `tests/results/security/**/summary.md` dans les routes `frontend/src/app/api/test-reports/*`, puis valider liste, vue et téléchargement depuis le backoffice.
+- [ ] **Validation porteur rapports sécurité backoffice** : vérifier en navigateur que `/backoffice/test-reports` liste la catégorie `Sécurité`, affiche les `summary.md`/`summary.json` et télécharge un fichier lisible depuis `reports/security/**` et `tests/results/security/**`.
 - [ ] **Tri P0 sécurité** : classer les findings `critical/high` des scans `gitleaks` et Trivy/CVE, justifier les faux positifs, créer les tâches correctives et reporter la synthèse dans `docs/security/STATS.md` + `STATUS.md`.
 - [ ] **Forensics menaces compréhensible** : reformuler la tâche en "preuves techniques + enrichissement réseau" ; ne pas présenter ASN/VPN/proxy/Tor comme preuve d'attaque, mais comme contexte IP optionnel.
 - [ ] **Monitoring Rust — benchmark long post-bascule** : refaire un contrôle CPU/RAM/IO p95 40-60 min dans le gate tests complets/préprod avec `monitoring-agent-rs` et `log-collector-rs`; conserver `monitoring-c` uniquement comme baseline historique.
@@ -27,6 +27,7 @@
 - [x] **CI `npm ci` backend réparé** : `backend/package-lock.json` resynchronisé avec `backend/package.json` pour inclure les dépendances ESLint manquantes ; validation locale `/usr/bin/npm ci --dry-run` OK.
 - [x] **Suite complète stabilisée sans exécution directe de Make par l'agent** : orchestration via script de tests avec gateway locale, Playwright smoke et `PERF_LIGHT=1` ; résultat **436/436 réussis**, **1 ignoré**.
 - [x] **Scripts metrics modernisés** : `scripts/testing/verify-all-metrics.sh` lit les ports depuis `.env`, normalise les hostnames Docker vers les ports hôte quand lancé localement, lit `METRICS_API_KEY` sans exposer le secret et reste validé sur stack active.
+- [x] **Rapports sécurité branchés au backoffice** : les routes `frontend/src/app/api/test-reports/*` scannent maintenant `reports/security/**/summary.md|summary.json|report.html` et `tests/results/security/**/summary.md|summary.json|report.html`; la page `/backoffice/test-reports` accepte le type `security` pour consulter, télécharger et supprimer ces rapports. Reste validation porteur navigateur.
 - [x] **Connexion backoffice sécurisée côté technique** : `/login` n'affiche plus d'identifiants de test ni `password123`, l'année du footer est dynamique, l'admin est synchronisé depuis `.env` sans afficher le mot de passe, et le login gateway répond **200** avec rôle `SUPER_ADMIN`.
 - [x] **Monitoring Rust restructuré** : les crates `monitoring-agent`, `log-collector` et `metrics-aggregator` ont des `main.rs` minimalistes et des modules dédiés ; `cargo fmt --all` et `cargo check --workspace` OK.
 

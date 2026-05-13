@@ -21,6 +21,8 @@ const REPORT_DIRS = {
   'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
   'user-journey-fallback': IS_DOCKER ? '/tmp/journey-reports' : '',
   'analytics': join(PROJECT_ROOT, 'tests', 'analytics-reports'),
+  'security-reports': join(PROJECT_ROOT, 'reports', 'security'),
+  'security-results': join(PROJECT_ROOT, 'tests', 'results', 'security'),
 }
 
 interface TestReport {
@@ -45,7 +47,7 @@ interface TestReport {
   skipped?: number
   status?: 'success' | 'failed' | 'partial' | 'unknown'
   size?: number
-  type: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'other'
+  type: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'security' | 'other'
 }
 
 /**
@@ -564,23 +566,89 @@ async function scanPlaywrightReports(dir: string): Promise<TestReport[]> {
   return reports
 }
 
+async function scanSecurityReports(dir: string, source: 'reports' | 'tests'): Promise<TestReport[]> {
+  const reports: TestReport[] = []
+
+  if (!existsSync(dir)) return reports
+
+  try {
+    const entries = await readdir(dir, { withFileTypes: true })
+    const reportDirs = entries
+      .filter(entry => entry.isDirectory())
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .reverse()
+
+    for (const dirEntry of reportDirs) {
+      const dirPath = join(dir, dirEntry.name)
+      const candidates = ['summary.md', 'summary.json', 'report.html']
+      let reportFile = ''
+
+      for (const candidate of candidates) {
+        const candidatePath = join(dirPath, candidate)
+        try {
+          await stat(candidatePath)
+          reportFile = candidate
+          break
+        } catch {
+          // Essayer le candidat suivant
+        }
+      }
+
+      if (!reportFile) continue
+
+      const filePath = join(dirPath, reportFile)
+      const stats = await stat(filePath)
+      const timestampMatch = dirEntry.name.match(/(\d{8})[-_]?(\d{6})/)
+      const dateObj = stats.mtime
+      const date = timestampMatch
+        ? `${timestampMatch[1].substring(0, 4)}-${timestampMatch[1].substring(4, 6)}-${timestampMatch[1].substring(6, 8)}`
+        : dateObj.toISOString().split('T')[0]
+      const time = timestampMatch
+        ? `${timestampMatch[2].substring(0, 2)}:${timestampMatch[2].substring(2, 4)}:${timestampMatch[2].substring(4, 6)}`
+        : dateObj.toTimeString().split(' ')[0]
+      const idPrefix = source === 'reports' ? 'security-reports' : 'security-results'
+
+      reports.push({
+        id: `${idPrefix}-${dirEntry.name}`,
+        category: 'Sécurité',
+        name: `Rapport sécurité - ${dirEntry.name}`,
+        timestamp: dirEntry.name,
+        date,
+        time,
+        path: filePath,
+        summaryPath: filePath,
+        jsonPath: reportFile.endsWith('.json') ? reportFile : undefined,
+        type: 'security',
+        status: 'partial',
+        size: stats.size
+      })
+    }
+  } catch (error) {
+    console.error('Erreur scan rapports sécurité:', error)
+  }
+
+  return reports
+}
+
 export async function GET(request: NextRequest) {
   try {
     const allReports: TestReport[] = []
     
     // Scanner tous les types de rapports
-    const [perfBackend, perfFrontend, testsResults, testsResultsTmp, playwright, userJourney, analytics] = await Promise.all([
+    const [perfBackend, perfFrontend, testsResults, testsResultsTmp, playwright, userJourney, analytics, securityReports, securityResults] = await Promise.all([
       scanPerformanceBackend(REPORT_DIRS['performance-backend']),
       scanPerformanceFrontend(REPORT_DIRS['performance-frontend']),
       scanTestsResults(REPORT_DIRS['tests-results']),
       REPORT_DIRS['tests-results-tmp'] ? scanTestsResults(REPORT_DIRS['tests-results-tmp']) : Promise.resolve([]),
       scanPlaywrightReports(REPORT_DIRS['playwright']),
       scanUserJourneyReports(REPORT_DIRS['user-journey']),
-      scanAnalyticsReports(REPORT_DIRS['analytics'])
+      scanAnalyticsReports(REPORT_DIRS['analytics']),
+      scanSecurityReports(REPORT_DIRS['security-reports'], 'reports'),
+      scanSecurityReports(REPORT_DIRS['security-results'], 'tests')
     ])
     
     // Combiner tous les rapports
-    allReports.push(...perfBackend, ...perfFrontend, ...testsResults, ...testsResultsTmp, ...playwright, ...userJourney, ...analytics)
+    allReports.push(...perfBackend, ...perfFrontend, ...testsResults, ...testsResultsTmp, ...playwright, ...userJourney, ...analytics, ...securityReports, ...securityResults)
     
     // Dédupliquer les rapports par ID (si les deux dossiers contiennent les mêmes)
     const seen = new Set<string>()
