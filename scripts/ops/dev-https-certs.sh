@@ -38,6 +38,7 @@ install_nss_ca() {
     if [ ! -f "$db/cert9.db" ]; then
       certutil -N -d "sql:$db" --empty-password >/dev/null 2>&1 || true
     fi
+    certutil -D -d "sql:$db" -n "JobbingTrack Local Dev Root CA" >/dev/null 2>&1 || true
     if certutil -A -d "sql:$db" -t "C,," -n "JobbingTrack Local Dev Root CA" -i "$CA_CERT" >/dev/null 2>&1; then
       echo "CA locale installée dans NSS: $db"
       installed=0
@@ -64,10 +65,26 @@ else
   else
     echo "mkcert non installé: génération OpenSSL avec CA locale JobbingTrack."
     if [ ! -s "$CA_CERT" ] || [ ! -s "$CA_KEY" ] || [ "${FORCE:-0}" = "1" ]; then
+      CA_OPENSSL_CONF="$CA_DIR/openssl-ca.cnf"
+      cat > "$CA_OPENSSL_CONF" <<'CONF'
+[req]
+distinguished_name=req_distinguished_name
+x509_extensions=v3_ca
+prompt=no
+
+[req_distinguished_name]
+CN=JobbingTrack Local Dev Root CA
+
+[v3_ca]
+basicConstraints=critical,CA:true,pathlen:0
+keyUsage=critical,keyCertSign,cRLSign
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer
+CONF
       openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
         -keyout "$CA_KEY" \
         -out "$CA_CERT" \
-        -subj "/CN=JobbingTrack Local Dev Root CA" >/dev/null 2>&1
+        -config "$CA_OPENSSL_CONF" >/dev/null 2>&1
     fi
 
     OPENSSL_CONF="$CERT_DIR/openssl-san.cnf"
