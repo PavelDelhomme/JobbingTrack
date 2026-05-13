@@ -46,6 +46,7 @@ Pour chaque ligne :
 | Backoffice liste les rapports securite | Categorie `Securite` visible dans `/backoffice/test-reports` apres generation d'au moins un rapport | local/preprod | [ ] | |
 | Lecture rapport securite | Bouton `Voir` ouvre le contenu de `summary.md`, `summary.json` ou `report.html` sans erreur 404/500 | local/preprod | [ ] | |
 | Telechargement rapport securite | Fichier telechargeable depuis `/api/test-reports/download` et lisible hors backoffice | local/preprod | [ ] | |
+| Artefacts P0 recuperes ou regeneres | Dossiers dates `reports/security/*` et `tests/results/security/*` presents avec `summary.md`/`summary.json` | local/preprod/GitHub | [ ] | |
 | Findings `critical/high` tries | Faux positifs justifies, vrais risques convertis en taches | preprod | [ ] | |
 
 ## Monitoring et performance

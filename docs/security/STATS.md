@@ -49,7 +49,23 @@ Rapports locaux générés et **non versionnés** :
 - `reports/security/secrets-20260511-142026/summary.md` : `gitleaks` historique complet, **859 commits**, **717 findings** ; `truffleHog` absent. Répartition brute : `jwt` 441, `generic-api-key` 221, `curl-auth-header` 55. Les principaux fichiers sont des artefacts de tests Playwright / résultats de tests ; à confirmer et nettoyer/ignorer proprement sans masquer de vrais secrets.
 - `tests/results/security/cve-20260511-162025/summary.md` : scan Node/Rust/Flutter + Trivy images compose prod fusionné. Résultats bruts critiques/hauts à trier : racine Node (3 critical / 2 high), `backend` (1 critical / 11 high), `frontend` (2 critical / 6 high), API/services Node surtout `axios`, `express`/`path-to-regexp`, `jws`, `lodash`; images Docker avec vulnérabilités de base image, notamment `jobbingtrack-deployment-service` très élevé (190 critical / 1526 high), `mailhog/mailhog:latest` élevé (109 critical / 1145 high), `postgres:15`, `redis:7-alpine`, `frontend` et `api-gateway`.
 
-Statut : **à traiter**, pas encore accepté comme vulnérabilités exploitables. Priorités de tri : secrets réels vs artefacts de tests, images exposées publiquement, dépendances gateway/auth/security/frontend, puis images dev-only comme MailHog.
+Statut : **tri final bloqué tant que les rapports bruts ne sont pas présents localement ou récupérés depuis les artefacts CI**. Au 13/05, le workspace ne contient plus les dossiers datés `reports/security/secrets-20260511-142026/` ni `tests/results/security/cve-20260511-162025/` ; seul `reports/security/README.md` est versionné, ce qui est normal pour éviter de publier des extraits sensibles. Les chiffres ci-dessus restent une trace synthétique, pas une preuve suffisante finding par finding.
+
+### 13 mai 2026 — tri P0 initial sans rapports bruts
+
+Ce tri ne remplace pas la revue finding par finding. Il sert à ordonner le travail dès maintenant, sans relancer de scan lourd ni inventer des conclusions.
+
+| Lot P0 | Décision initiale | Justification | Suite obligatoire |
+|--------|-------------------|---------------|-------------------|
+| `gitleaks` historique — JWT / API keys / headers dans artefacts | **Priorité 1 : confirmer secrets réels vs artefacts** | Les 717 findings bruts semblent majoritairement venir de rapports/tests, mais un seul secret réel historique suffit à imposer rotation/suppression. | Récupérer ou régénérer le rapport, classer par fichier, supprimer/rédiger les artefacts sensibles, ouvrir une tâche de rotation si un secret réel est confirmé. |
+| Dépendances Node racine/backend/frontend | **Priorité 2 : revalider après corrections Dependabot** | Une partie des CVE listées le 11/05 peut être déjà corrigée par les mises à jour npm du 12/05 ; il faut éviter de traiter un état obsolète. | Relancer le scan CVE sur base à jour, reporter les `critical/high` restants par package et surface exposée. |
+| `api-gateway`, `auth-service`, `security-service`, `frontend` | **Priorité 3 : surfaces exposées** | Ce sont les surfaces les plus sensibles côté auth, entrée publique, sécurité et backoffice. | Traiter avant services internes/dev-only si des CVE `critical/high` restent confirmées. |
+| Images Docker prod (`frontend`, `api-gateway`, `postgres`, `redis`) | **Priorité 4 : image et exposition réelle** | Une CVE image n'a pas le même risque selon port publié, privilèges, user, filesystem et disponibilité d'un tag corrigé. | Croiser Trivy avec `docker-compose.prod.yml`, durcissement ports et tags d'images. |
+| `jobbingtrack-deployment-service` | **Priorité 5 : très gros volume CVE à qualifier** | Le volume annoncé est très élevé ; il faut savoir si l'image est buildée/exposée en prod ou seulement dev/interne. | Vérifier Dockerfile/base image, usage prod, ports publiés, puis reconstruire sur base plus récente si actif. |
+| `mailhog/mailhog:latest` | **Priorité dev-only à isoler** | MailHog ne doit pas être exposé en prod ; ses CVE sont critiques surtout si l'image est présente hors dev. | Confirmer absence préprod/prod ou remplacer par image maintenue si utilisée en environnement partagé. |
+| `nmap`, `jwt_tool`, ZAP actif, `truffleHog` | **Non terminé** | Ces contrôles n'ont pas encore produit de rapport exploitable. | Exécuter uniquement en environnement autorisé, puis ajouter leurs rapports dans `reports/security/` ou `tests/results/security/`. |
+
+Critère de sortie du P0 : chaque finding `critical/high` confirmé doit avoir une ligne avec outil, date, commit, environnement, surface, décision (`vrai risque`, `faux positif`, `dev-only`, `déjà corrigé`, `non exploitable`), justification et tâche corrective.
 
 ---
 
