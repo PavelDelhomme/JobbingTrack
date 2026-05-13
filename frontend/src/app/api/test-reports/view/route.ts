@@ -19,8 +19,8 @@ const PROJECT_ROOT_VIEW = IS_DOCKER
 // Dossiers de rapports
 const REPORT_DIRS = {
   'performance-backend': IS_DOCKER 
-    ? '/app/backend-performance-reports'
-    : join(PROJECT_ROOT_VIEW, 'backend-performance-reports'),
+    ? '/app/reports/performance/backend'
+    : join(PROJECT_ROOT_VIEW, 'reports/performance/backend'),
   'performance-frontend': IS_DOCKER
     ? '/app/frontend/performance-reports'
     : join(PROJECT_ROOT_VIEW, 'frontend', 'performance-reports'),

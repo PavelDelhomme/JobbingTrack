@@ -11,7 +11,7 @@ NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULTS_DIR="$PROJECT_ROOT/tests/results"
-PERF_BACKEND_DIR="$PROJECT_ROOT/backend-performance-reports"
+PERF_BACKEND_DIR="$PROJECT_ROOT/reports/performance/backend"
 PERF_FRONTEND_DIR="$PROJECT_ROOT/frontend/performance-reports"
 
 echo -e "${BLUE}🧹 Nettoyage des rapports vides ou obsolètes...${NC}"

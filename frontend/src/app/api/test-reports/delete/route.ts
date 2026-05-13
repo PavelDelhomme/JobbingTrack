@@ -17,8 +17,8 @@ const PROJECT_ROOT = IS_DOCKER
 // Dossiers de rapports
 const REPORT_DIRS = {
   'performance-backend': IS_DOCKER 
-    ? '/app/backend-performance-reports'
-    : join(PROJECT_ROOT, 'backend-performance-reports'),
+    ? '/app/reports/performance/backend'
+    : join(PROJECT_ROOT, 'reports/performance/backend'),
   'performance-frontend': IS_DOCKER
     ? '/app/frontend/performance-reports'
     : join(PROJECT_ROOT, 'frontend', 'performance-reports'),
@@ -209,12 +209,12 @@ export async function DELETE(request: NextRequest) {
                 await rm(filePath, { force: true })
                 try {
                   await stat(filePath)
-                  errors.push(`backend-performance-reports/${file}`)
+                  errors.push(`reports/performance/backend/${file}`)
                 } catch {
                   totalDeleted++
                 }
               } catch {
-                errors.push(`backend-performance-reports/${file}`)
+                errors.push(`reports/performance/backend/${file}`)
               }
             }
           }

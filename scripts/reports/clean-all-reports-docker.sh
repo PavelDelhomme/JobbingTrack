@@ -25,8 +25,8 @@ echo -e "${YELLOW}  Suppression: tests/results/*${NC}"
 docker exec ${CONTAINER_NAME} sh -c "cd /app/tests/results && ls -d 20* 2>/dev/null | while read dir; do chmod -R 777 \"\$dir\" 2>/dev/null; rm -rf \"\$dir\" 2>/dev/null; done" || true
 docker exec -u root ${CONTAINER_NAME} sh -c "cd /app/tests/results && rm -rf 20* 2>/dev/null || true" || true
 
-echo -e "${YELLOW}  Suppression: backend-performance-reports/*${NC}"
-docker exec ${CONTAINER_NAME} sh -c "cd /app/backend-performance-reports && chmod 777 *.json *.html 2>/dev/null && rm -f *.json *.html 2>/dev/null || true" || true
+echo -e "${YELLOW}  Suppression: reports/performance/backend/*${NC}"
+docker exec ${CONTAINER_NAME} sh -c "cd /app/reports/performance/backend && chmod 777 *.json *.html 2>/dev/null && rm -f *.json *.html 2>/dev/null || true" || true
 
 echo -e "${YELLOW}  Suppression: frontend/performance-reports/*${NC}"
 docker exec ${CONTAINER_NAME} sh -c "cd /app/frontend/performance-reports && chmod 777 *.json *.html 2>/dev/null && rm -f *.json *.html 2>/dev/null || true" || true

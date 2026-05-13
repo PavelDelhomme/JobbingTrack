@@ -10,7 +10,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-REPORT_DIR="${PROJECT_DIR}/backend-performance-reports"
+REPORT_DIR="${PROJECT_DIR}/reports/performance/backend"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="${REPORT_DIR}/backend_performance_${TIMESTAMP}.json"
 
