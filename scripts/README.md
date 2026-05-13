@@ -63,6 +63,7 @@ scripts/
 | `scripts/performance/run-performance-frontend-in-container.sh` | Test performance frontend depuis le conteneur frontend. |
 | `scripts/run-all-tests-with-reports.sh` | Orchestration complète des tests avec rapports. |
 | `scripts/testing/verify-user-journey.sh` | Parcours API utilisateur. |
+| `scripts/testing/verify-all-metrics.sh` | Vérification manuelle metrics/services/historique sur stack active. |
 | `scripts/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
 | `scripts/test-enums.js` | Validation des enums Prisma. |
 | `scripts/docker/get-docker-node-version.sh` | Détection version Node Docker pour la CI. |
@@ -146,6 +147,7 @@ Commandes utiles :
 make test
 make test-all
 make tests-user-journey
+METRICS_URL=http://127.0.0.1:5004 API_GATEWAY_URL=http://127.0.0.1:5002 scripts/testing/verify-all-metrics.sh
 ```
 
 ## Scripts supprimés
