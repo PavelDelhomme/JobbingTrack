@@ -1,0 +1,12 @@
+---
+description: Avoid direct Make command execution by agents
+alwaysApply: true
+---
+
+# Command Validation
+
+- Do not run `make ...` commands directly unless the user explicitly asks for that exact command.
+- Prefer the underlying script, package command, Cargo command, or direct tool command for validation.
+- When documenting a Make target, write it as a target reference, not as a command to execute.
+- If a Make target must be validated, use a dry-run or equivalent only after confirming it will not be interpreted by Cursor as a file-open action.
+- Before reporting validation, state whether it was run through the underlying script or a direct command instead of Make.

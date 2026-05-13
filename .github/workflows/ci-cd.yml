@@ -543,7 +543,7 @@ jobs:
         run: |
           echo "🧹 Linting frontend avec ESLint..."
           cd frontend
-          npm run lint || echo "⚠️ Linting terminé avec des erreurs"
+          npm run lint
           echo "✅ Linting frontend terminé"
 
       - name: 🧽 Nettoyage caches frontend
@@ -556,7 +556,7 @@ jobs:
         run: |
           echo "🎨 Vérification du formatage avec Prettier..."
           cd frontend
-          npx prettier --check "src/**/*.{ts,tsx,js,css,md}" "public/**/*.{html,js,css}" "*.{js,json,md,ts}" || echo "⚠️ Formatage à vérifier"
+          npx prettier --check "src/**/*.{ts,tsx,js,css,md}" "public/**/*.{html,js,css}" "*.{js,json,md,ts}"
           echo "✅ Vérification du formatage terminée"
 
       - name: 🔍 Vérification des types TypeScript
@@ -564,7 +564,7 @@ jobs:
           echo "🔍 Vérification des types TypeScript..."
           cd frontend
           rm -rf .next || true
-          npm run type-check || echo "⚠️ Erreurs de types TypeScript"
+          npm run type-check
           echo "✅ Vérification des types terminée"
 
       - name: 📊 Analyse de la qualité du code backend
@@ -576,7 +576,7 @@ jobs:
               cd "$service"
               # Installation ESLint si disponible
               if npm list eslint > /dev/null 2>&1; then
-                npx eslint src/ --ext .js,.ts || echo "⚠️ ESLint échoué pour $(basename $service)"
+                npx eslint src/ --ext .js,.ts
               fi
               cd - > /dev/null
             fi
@@ -726,18 +726,20 @@ jobs:
       - name: 🧪 Tests unitaires des services backend
         run: |
           echo "🧪 Exécution des tests unitaires backend..."
-          # Utiliser le Makefile pour les tests backend
-          make test-backend || echo "⚠️ Tests backend échoués"
+          cd tests
+          npm run test:backend -- --runInBand --passWithNoTests
 
       - name: 🔗 Tests d'intégration backend
         run: |
           echo "🔗 Exécution des tests d'intégration..."
-          make test-integration || echo "⚠️ Tests d'intégration échoués"
+          cd tests
+          npm run test:integration -- --runInBand --passWithNoTests
 
       - name: 🗄️ Tests de base de données
         run: |
           echo "🗄️ Exécution des tests de base de données..."
-          make test-database || echo "⚠️ Tests de base de données échoués"
+          cd tests
+          DATABASE_URL=${DATABASE_URL:-postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test} npm run test:database
 
       - name: 🆕 Tests des nouvelles fonctionnalités
         run: |
@@ -883,7 +885,7 @@ jobs:
         run: |
           echo "🧪 Exécution des tests unitaires avec Jest..."
           cd frontend
-          npm run test:ci || echo "⚠️ Tests unitaires échoués"
+          npm run test:ci
           echo "✅ Tests unitaires terminés"
 
       - name: 🔍 Vérification du coverage des tests
@@ -939,7 +941,7 @@ jobs:
         run: |
           echo "🏗️ Build de production..."
           cd frontend
-          npm run build || echo "⚠️ Build échoué"
+          npm run build
           echo "✅ Build de production terminé"
 
       - name: 📊 Tests de performance du build
@@ -1036,19 +1038,22 @@ jobs:
       - name: 🏥 Tests de santé système complet
         run: |
           echo "🏥 Tests de santé système complet..."
-          make health || echo "⚠️ Tests de santé système échoués"
+          cd tests
+          npm run verify
           echo "✅ Tests de santé système terminés"
 
       - name: 🔄 Tests d'intégration complète
         run: |
           echo "🔄 Tests d'intégration complète..."
-          make test-integration || echo "⚠️ Tests d'intégration complète échoués"
+          cd tests
+          npm run test:integration -- --runInBand --passWithNoTests
           echo "✅ Tests d'intégration complète terminés"
 
       - name: 🧪 Tests système avancés
         run: |
           echo "🧪 Tests système avancés..."
-          make test-all || echo "⚠️ Tests système avancés échoués"
+          cd tests
+          npm run test:api -- --runInBand --passWithNoTests
           echo "✅ Tests système avancés terminés"
 
       - name: 📊 Rapport des tests d'intégration système
@@ -1184,7 +1189,7 @@ jobs:
           echo "🛑 Les services temporaires seront arrêtés après les tests"
 
           # Exécuter les tests avec la nouvelle approche adaptative
-          node tests/performance/test-performance.js || echo "⚠️ Tests de performance échoués"
+          /usr/bin/node tests/performance/test-performance.js
           echo "✅ Tests de performance adaptatifs terminés"
 
       - name: 📊 Validation du système de tests adaptatifs
