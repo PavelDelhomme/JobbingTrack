@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, stat } from 'fs/promises'
-import { join, resolve } from 'path'
+import { isAbsolute, join, relative, resolve } from 'path'
 import { existsSync } from 'fs'
 
 // Chemin vers la racine du projet
@@ -35,6 +35,36 @@ const REPORT_DIRS = {
   'analytics': IS_DOCKER
     ? '/app/tests/analytics-reports'
     : join(PROJECT_ROOT_VIEW, 'tests', 'analytics-reports'),
+  'security-reports': join(PROJECT_ROOT_VIEW, 'reports', 'security'),
+  'security-results': join(PROJECT_ROOT_VIEW, 'tests', 'results', 'security'),
+}
+
+async function firstExistingReportFile(dir: string): Promise<string | null> {
+  for (const fileName of ['summary.md', 'summary.json', 'report.html']) {
+    const filePath = join(dir, fileName)
+    try {
+      await stat(filePath)
+      return filePath
+    } catch {
+      // Essayer le fichier suivant
+    }
+  }
+
+  return null
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function isWithinDirectory(baseDir: string, targetPath: string): boolean {
+  const relativePath = relative(resolve(baseDir), resolve(targetPath))
+  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
 }
 
 export async function GET(request: NextRequest) {
@@ -74,6 +104,42 @@ export async function GET(request: NextRequest) {
         // Rapport parcours utilisateur (JSON)
         const suffix = id.replace('user-journey-', '')
         fullPath = join(REPORT_DIRS['user-journey'], `user-journey-${suffix}.json`)
+      } else if (id.startsWith('security-reports-')) {
+        const suffix = id.replace('security-reports-', '')
+        const reportDir = join(REPORT_DIRS['security-reports'], suffix)
+        if (!isWithinDirectory(REPORT_DIRS['security-reports'], reportDir)) {
+          return NextResponse.json(
+            { success: false, error: 'Chemin non autorisé' },
+            { status: 403 }
+          )
+        }
+
+        const reportPath = await firstExistingReportFile(reportDir)
+        if (!reportPath) {
+          return NextResponse.json(
+            { success: false, error: 'Rapport sécurité non trouvé' },
+            { status: 404 }
+          )
+        }
+        fullPath = reportPath
+      } else if (id.startsWith('security-results-')) {
+        const suffix = id.replace('security-results-', '')
+        const reportDir = join(REPORT_DIRS['security-results'], suffix)
+        if (!isWithinDirectory(REPORT_DIRS['security-results'], reportDir)) {
+          return NextResponse.json(
+            { success: false, error: 'Chemin non autorisé' },
+            { status: 403 }
+          )
+        }
+
+        const reportPath = await firstExistingReportFile(reportDir)
+        if (!reportPath) {
+          return NextResponse.json(
+            { success: false, error: 'Rapport sécurité non trouvé' },
+            { status: 404 }
+          )
+        }
+        fullPath = reportPath
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         if (playwrightReport) {
@@ -151,8 +217,10 @@ export async function GET(request: NextRequest) {
         content = generateHTMLFromJSON(jsonData, id || 'report')
       } catch {
         // Si erreur de parsing, retourner le JSON brut
-        content = `<pre>${content}</pre>`
+        content = `<pre>${escapeHtml(content)}</pre>`
       }
+    } else if (fullPath.endsWith('.md')) {
+      content = `<pre>${escapeHtml(content)}</pre>`
     }
     
     // Ajouter viewport meta tag si absent

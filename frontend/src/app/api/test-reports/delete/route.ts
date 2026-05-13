@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rm, stat, readdir } from 'fs/promises'
-import { join, resolve } from 'path'
+import { isAbsolute, join, relative, resolve } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
@@ -32,6 +32,13 @@ const REPORT_DIRS = {
   'analytics': IS_DOCKER
     ? '/app/tests/analytics-reports'
     : join(PROJECT_ROOT, 'tests', 'analytics-reports'),
+  'security-reports': join(PROJECT_ROOT, 'reports', 'security'),
+  'security-results': join(PROJECT_ROOT, 'tests', 'results', 'security'),
+}
+
+function isWithinDirectory(baseDir: string, targetPath: string): boolean {
+  const relativePath = relative(resolve(baseDir), resolve(targetPath))
+  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
 }
 
 /**
@@ -263,6 +270,37 @@ export async function DELETE(request: NextRequest) {
         console.error('Erreur suppression perf frontend:', error.message)
       }
 
+      for (const [label, securityDir] of [
+        ['reports/security', REPORT_DIRS['security-reports']],
+        ['tests/results/security', REPORT_DIRS['security-results']]
+      ] as const) {
+        try {
+          const resolvedSecurityDir = resolve(securityDir)
+          try {
+            await stat(resolvedSecurityDir)
+            const entries = await readdir(resolvedSecurityDir, { withFileTypes: true })
+            const reportDirs = entries.filter(entry => entry.isDirectory())
+
+            for (const dir of reportDirs) {
+              const dirPath = join(resolvedSecurityDir, dir.name)
+              const resolvedPath = resolve(dirPath)
+              if (!resolvedPath.startsWith(resolvedSecurityDir)) continue
+
+              const success = await safeRemove(resolvedPath, true)
+              if (success) {
+                totalDeleted++
+              } else {
+                errors.push(`${label}/${dir.name}`)
+              }
+            }
+          } catch {
+            // Le répertoire n'existe pas, c'est OK
+          }
+        } catch (error: any) {
+          console.error(`Erreur suppression ${label}:`, error.message)
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: `${totalDeleted} rapport(s) supprimé(s)${errors.length > 0 ? `, ${errors.length} erreur(s)` : ''}`,
@@ -303,6 +341,44 @@ export async function DELETE(request: NextRequest) {
         // Pour Playwright, on ne supprime pas le dossier complet, juste le rapport
         // (car il peut être régénéré)
         deleted = true // On considère que c'est fait
+      } else if (id.startsWith('security-reports-')) {
+        const suffix = id.replace('security-reports-', '')
+        const reportPath = join(REPORT_DIRS['security-reports'], suffix)
+        const resolvedPath = resolve(reportPath)
+
+        if (!isWithinDirectory(REPORT_DIRS['security-reports'], resolvedPath)) {
+          return NextResponse.json(
+            { success: false, error: 'Chemin non autorisé' },
+            { status: 403 }
+          )
+        }
+
+        try {
+          await stat(resolvedPath)
+          deleted = await safeRemove(resolvedPath, true)
+          if (!deleted) error = 'Impossible de supprimer le rapport sécurité'
+        } catch (e: any) {
+          error = e.message
+        }
+      } else if (id.startsWith('security-results-')) {
+        const suffix = id.replace('security-results-', '')
+        const reportPath = join(REPORT_DIRS['security-results'], suffix)
+        const resolvedPath = resolve(reportPath)
+
+        if (!isWithinDirectory(REPORT_DIRS['security-results'], resolvedPath)) {
+          return NextResponse.json(
+            { success: false, error: 'Chemin non autorisé' },
+            { status: 403 }
+          )
+        }
+
+        try {
+          await stat(resolvedPath)
+          deleted = await safeRemove(resolvedPath, true)
+          if (!deleted) error = 'Impossible de supprimer le rapport sécurité'
+        } catch (e: any) {
+          error = e.message
+        }
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         const reportPath = join(REPORT_DIRS['tests-results'], id)

@@ -96,7 +96,7 @@ interface TestReport {
   /** Résumé JSON (ex. rapports sécurité imbriqués) */
   summary?: unknown
   status?: 'success' | 'failed' | 'partial' | 'unknown'
-  type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'other'
+  type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'security' | 'other'
   size?: number
 }
 
@@ -800,7 +800,7 @@ export default function TestReportsPage() {
                           </div>
                         </div>
                         {/* Détail sécurité (CRITIQUES, HAUTES, etc.) pour les rapports Tests Sécurité */}
-                        {(report.category === 'Tests Sécurité' && (report.summary as any)?.summary?.security) && (() => {
+                        {((report.category === 'Tests Sécurité' || report.category === 'Sécurité') && (report.summary as any)?.summary?.security) && (() => {
                           const sec = (report.summary as any).summary.security as { critical?: number; high?: number; medium?: number; low?: number; secure?: number }
                           return (
                             <div className="grid grid-cols-2 xs:grid-cols-5 gap-1.5 text-xs pt-1 border-t border-gray-200 dark:border-gray-600">
@@ -816,6 +816,10 @@ export default function TestReportsPage() {
                     ) : report.type === 'performance-backend' || report.type === 'performance-frontend' ? (
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         📊 Rapport de performance - Consultez le rapport pour les détails
+                      </div>
+                    ) : report.type === 'security' ? (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        Rapport sécurité - Consultez ou téléchargez le résumé pour le tri P0.
                       </div>
                     ) : null}
 

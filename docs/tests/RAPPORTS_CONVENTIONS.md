@@ -5,7 +5,9 @@
 | Type | Emplacement | Fichiers |
 |------|-------------|----------|
 | Tests API | `tests/results/<timestamp>/` | `api.json`, `summary.json`, `report.html` |
-| Tests Sécurité | `tests/results/<timestamp>/` | `security-report.json` |
+| Tests Sécurité agrégés | `tests/results/<timestamp>/` | `security-report.json` |
+| Rapports sécurité P0 | `reports/security/<outil>-<timestamp>/` | `summary.md`, `summary.json` ou `report.html` |
+| Résultats sécurité P0 | `tests/results/security/<outil>-<timestamp>/` | `summary.md`, `summary.json` ou `report.html` |
 | Parcours utilisateur | `tests/user-journey-reports/` | `user-journey-<nom>-<date>_<heure>.json` |
 | Suite CLI | `tests/results/<timestamp>/` | `summary.json` (category: "Suite CLI"), `report.html` |
 | Playwright | `tests/results/<timestamp>/` | `playwright-report/index.html` |
@@ -23,6 +25,8 @@ Le scanner `test-reports/all` cherche dans :
 - `/app/tests/results` (volume read-only monté depuis l'hôte)
 - `TESTS_RESULTS_DIR` (path `/tmp/tests/results` en écriture dans Docker)
 - `USER_JOURNEY_REPORTS_DIR` (path `/tmp/tests/user-journey-reports`)
+- `reports/security/**` pour les rapports sécurité locaux.
+- `tests/results/security/**` pour les résultats sécurité datés.
 
 Déduplication automatique par ID de rapport.
 

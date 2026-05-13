@@ -43,8 +43,9 @@ Pour chaque ligne :
 |------------|-----------------|---------------|----------------|----------------|
 | Rapports `reports/security/**/summary.md` generes | Rapport horodate avec outil, commit, environnement | local/preprod | [ ] | |
 | Rapports `tests/results/security/**/summary.md` generes | Rapport CVE lisible | local/preprod | [ ] | |
-| Backoffice liste les rapports securite | Categorie securite visible dans rapports de tests | local/preprod | [ ] | |
-| Telechargement rapport securite | Fichier telechargeable et lisible hors backoffice | local/preprod | [ ] | |
+| Backoffice liste les rapports securite | Categorie `Securite` visible dans `/backoffice/test-reports` apres generation d'au moins un rapport | local/preprod | [ ] | |
+| Lecture rapport securite | Bouton `Voir` ouvre le contenu de `summary.md`, `summary.json` ou `report.html` sans erreur 404/500 | local/preprod | [ ] | |
+| Telechargement rapport securite | Fichier telechargeable depuis `/api/test-reports/download` et lisible hors backoffice | local/preprod | [ ] | |
 | Findings `critical/high` tries | Faux positifs justifies, vrais risques convertis en taches | preprod | [ ] | |
 
 ## Monitoring et performance
