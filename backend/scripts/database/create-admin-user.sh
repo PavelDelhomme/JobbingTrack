@@ -13,18 +13,49 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-DB_HOST=${DB_HOST:-localhost}
-DB_PORT=${DB_PORT:-5432}
-DB_NAME=${DB_NAME:-jobbingtrack}
-DB_USER=${DB_USER:-jobbingtrack}
-DB_PASSWORD=${DB_PASSWORD:-jobbingtrack123}
+ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 
-# Informations de l'administrateur à créer
+read_env_key() {
+    local key="$1"
+    if [ -f "$ENV_FILE" ]; then
+        awk -F= -v k="$key" '
+            $1 == k {
+                sub(/^[[:space:]]*/, "", $2)
+                sub(/[[:space:]]*$/, "", $2)
+                gsub(/^["'\'']|["'\'']$/, "", $2)
+                print $2
+                exit
+            }
+        ' "$ENV_FILE"
+    fi
+}
+
+# Configuration : privilégie les variables exportées, puis .env, puis les valeurs dev historiques.
+DB_HOST=${DB_HOST:-${POSTGRES_HOST:-$(read_env_key POSTGRES_HOST)}}
+DB_HOST=${DB_HOST:-localhost}
+DB_PORT=${DB_PORT:-${POSTGRES_PORT:-$(read_env_key POSTGRES_PORT)}}
+DB_PORT=${DB_PORT:-5432}
+DB_NAME=${DB_NAME:-${POSTGRES_DB:-$(read_env_key POSTGRES_DB)}}
+DB_NAME=${DB_NAME:-jobbingtrack}
+DB_USER=${DB_USER:-${POSTGRES_USER:-$(read_env_key POSTGRES_USER)}}
+DB_USER=${DB_USER:-jobbingtrack}
+DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-$(read_env_key POSTGRES_PASSWORD)}}
+
+# Informations de l'administrateur à créer.
+ADMIN_EMAIL=${ADMIN_EMAIL:-$(read_env_key ADMIN_EMAIL)}
 ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
-ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-$(read_env_key ADMIN_PASSWORD)}
+ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-$(read_env_key ADMIN_FIRST_NAME)}
 ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Admin}
+ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-$(read_env_key ADMIN_LAST_NAME)}
 ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-JobbingTrack}
+
+if [ -z "$ADMIN_PASSWORD" ]; then
+    echo -e "${RED}❌ ADMIN_PASSWORD est obligatoire pour créer ou mettre à jour l'admin${NC}"
+    echo -e "${YELLOW}💡 Définissez ADMIN_PASSWORD dans .env ou exportez-le avant de lancer ce script.${NC}"
+    exit 1
+fi
 
 echo -e "${YELLOW}👤 Création de l'utilisateur administrateur...${NC}"
 
@@ -96,6 +127,7 @@ if command -v docker &> /dev/null; then
                     const user = await prisma.user.upsert({
                         where: { email: '$ADMIN_EMAIL' },
                         update: {
+                            password: hashedPassword,
                             firstName: '$ADMIN_FIRST_NAME',
                             lastName: '$ADMIN_LAST_NAME',
                             role: 'SUPER_ADMIN',
@@ -149,7 +181,7 @@ if command -v docker &> /dev/null; then
                     await prisma.user.upsert({
                         where: { email: '$ADMIN_EMAIL' },
                         create: { email: '$ADMIN_EMAIL', password: hashedPassword, firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true, emailVerified: true, emailVerifiedAt: new Date() },
-                        update: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true, emailVerified: true, emailVerifiedAt: new Date() }
+                        update: { password: hashedPassword, firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true, emailVerified: true, emailVerifiedAt: new Date() }
                     });
                     console.log('OK');
                 } finally { await prisma.\$disconnect(); }
@@ -198,8 +230,18 @@ if command -v docker &> /dev/null; then
         fi
     else
         echo "🔄 Utilisateur déjà existant, mise à jour..."
+        AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-auth-service 2>/dev/null)
+        if [ -n "$AUTH_CONTAINER" ]; then
+            BCRYPT_HASH="$(docker exec $AUTH_CONTAINER node -e "console.log(require('bcryptjs').hashSync('$ADMIN_PASSWORD', 10))" 2>/dev/null || true)"
+        fi
+        if [ -z "${BCRYPT_HASH:-}" ]; then
+            echo -e "${RED}❌ Impossible de hasher ADMIN_PASSWORD : auth-service indisponible ou bcryptjs manquant${NC}"
+            exit 1
+        fi
+        BCRYPT_ESC=$(echo "$BCRYPT_HASH" | sed 's/\$/\\$/g')
         UPDATE_RESULT=$(docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
         UPDATE \"User\" SET
+            password = '$BCRYPT_ESC',
             \"firstName\" = '$ADMIN_FIRST_NAME',
             \"lastName\" = '$ADMIN_LAST_NAME',
             role = 'SUPER_ADMIN',
@@ -226,6 +268,15 @@ else
     # Tentative de connexion directe (si PostgreSQL est accessible localement)
     if command -v psql &> /dev/null; then
         echo "🔧 Création de l'utilisateur administrateur (connexion directe)..."
+        BCRYPT_HASH="$(
+            cd "$ROOT_DIR/backend/auth-service" && ADMIN_PASSWORD="$ADMIN_PASSWORD" node -e "console.log(require('bcryptjs').hashSync(process.env.ADMIN_PASSWORD, 10))" 2>/dev/null || true
+        )"
+        if [ -z "$BCRYPT_HASH" ]; then
+            echo -e "${RED}❌ Impossible de hasher ADMIN_PASSWORD en connexion directe${NC}"
+            echo -e "${YELLOW}💡 Lancez avec le conteneur auth-service démarré ou installez les dépendances backend/auth-service.${NC}"
+            exit 1
+        fi
+        BCRYPT_ESC=$(echo "$BCRYPT_HASH" | sed 's/\$/\\$/g')
 
         # Vérifier si l'utilisateur existe déjà (trim)
         EXISTS=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$ADMIN_EMAIL';" 2>/dev/null | tr -d ' \n\r\t' || echo "0")
@@ -233,7 +284,7 @@ else
         if [ -z "$EXISTS" ] || [ "$EXISTS" = "0" ]; then
             PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
             INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
-            VALUES ('c' || substr(md5(random()::text || now()::text), 1, 24), '$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW());
+            VALUES ('c' || substr(md5(random()::text || now()::text), 1, 24), '$ADMIN_EMAIL', '$BCRYPT_ESC', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW());
             " 2>/dev/null || {
                 echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
                 exit 1
@@ -241,6 +292,7 @@ else
         else
             PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
             UPDATE \"User\" SET
+                password = '$BCRYPT_ESC',
                 \"firstName\" = '$ADMIN_FIRST_NAME',
                 \"lastName\" = '$ADMIN_LAST_NAME',
                 role = 'SUPER_ADMIN',
@@ -277,12 +329,13 @@ if [ "$USER_COUNT" -gt 0 ]; then
     echo ""
     echo "🔑 Informations de connexion:"
     echo "   Email:    $ADMIN_EMAIL"
-    echo "   Mot de passe: $ADMIN_PASSWORD"
+    echo "   Mot de passe: valeur ADMIN_PASSWORD chargée depuis .env ou l'environnement (masquée)"
     echo "   Rôle:     SUPER_ADMIN"
     echo ""
     echo "🌐 Accédez à l'application:"
-    echo "   Frontend: http://localhost:8080"
-    echo "   API:      http://localhost:3000"
+    echo "   Frontend: http://localhost:5003/login"
+    echo "   Admin:    http://localhost:5003/b4ck0ff1ce"
+    echo "   API:      http://127.0.0.1:5002"
     exit 0
 else
     echo -e "${YELLOW}⚠️  Utilisateur non trouvé après création, mais ce n'est pas forcément une erreur${NC}"

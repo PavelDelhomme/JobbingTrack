@@ -103,7 +103,7 @@ Variables optionnelles : `MAILHOG_WEB_URL` (défaut http://localhost:8025), `MAI
 ## 7. Tests et développement (suite)
 
 - **Tests API** : `tests/api/test-email-endpoints.test.js` (logs, test-smtp, stats, envoi test).
-- **Script global** : `scripts/test-api-specific.sh` inclut déjà les appels emails (logs, stats).
+- **Script global** : `scripts/testing/test-api-specific.sh` inclut déjà les appels emails (logs, stats).
 - **Parcours utilisateur** : `frontend/src/app/(admin)/backoffice/user-journey` — appels à `/api/v1/emails/test` (générique, reset, vérification) ; à garder et valider.
 - **Données de test** : prévoir des utilisateurs avec email pour tester reset password et vérification (inscription).
 - **Intégration** : exécuter les tests mail dans le run de dev (make ou script de tests) et vérifier que le parcours utilisateur et les stats backoffice reflètent bien les envois.

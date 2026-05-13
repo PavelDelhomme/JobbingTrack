@@ -52,18 +52,18 @@ Cette commande effectue une réinitialisation complète du projet :
 ### Commandes Admin
 
 ```bash
-# Créer l'utilisateur administrateur
-make create-admin-user
+# Créer ou mettre à jour l'utilisateur administrateur depuis .env
+make seed-auth
 
 # Recréer l'utilisateur administrateur (supprime et recrée)
 make recreate-admin-user
 ```
 
-### Identifiants par Défaut
+### Identifiants Admin
 
 ```
-📧 Email:    admin@jobbingtrack.com
-🔑 Password: password123
+📧 Email:    valeur ADMIN_EMAIL dans .env
+🔑 Password: valeur ADMIN_PASSWORD dans .env
 👤 Prénom:   Admin
 👤 Nom:      JobbingTrack
 🎖️  Rôle:     SUPER_ADMIN
@@ -73,7 +73,7 @@ Ces identifiants peuvent être personnalisés dans le fichier `.env` :
 
 ```bash
 ADMIN_EMAIL=admin@jobbingtrack.com
-ADMIN_PASSWORD=password123
+ADMIN_PASSWORD=change-me-generate-a-strong-admin-password
 ADMIN_FIRST_NAME=Admin
 ADMIN_LAST_NAME=JobbingTrack
 ```

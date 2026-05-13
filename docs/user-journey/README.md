@@ -58,7 +58,7 @@ Pour éviter les erreurs "Token expiré" :
 curl http://localhost:8080/api/v1/auth/login \
   -X POST \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@jobbingtrack.com","password":"password123"}'
+  -d '{"email":"<ADMIN_EMAIL>","password":"<ADMIN_PASSWORD>"}'
 
 # 2. Utilisez le token reçu pour générer un token permanent
 curl http://localhost:8080/api/v1/auth/generate-test-token \

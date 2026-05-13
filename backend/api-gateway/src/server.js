@@ -46,6 +46,25 @@ function metricsServiceHeaders(req) {
   };
 }
 
+function proxyRequestHeaders(req) {
+  const headers = {
+    ...req.headers,
+    ...forwardCorrelationHeaders(req),
+    'X-Forwarded-For': req.ip,
+    'X-Forwarded-Proto': req.protocol,
+    'X-Forwarded-Host': req.get('host')
+  };
+
+  // Axios re-sérialise req.body. Garder l'ancien Content-Length peut bloquer
+  // l'upstream, qui attend alors plus d'octets que le nouveau payload.
+  delete headers.host;
+  delete headers.connection;
+  delete headers['content-length'];
+  delete headers['transfer-encoding'];
+
+  return headers;
+}
+
 function parseCsv(value) {
   return String(value || '')
     .split(',')
@@ -824,13 +843,7 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
         method: req.method,
         url: targetUrl,
         data: req.body,
-        headers: {
-          ...req.headers,
-          ...forwardCorrelationHeaders(req),
-          'X-Forwarded-For': req.ip,
-          'X-Forwarded-Proto': req.protocol,
-          'X-Forwarded-Host': req.get('host')
-        },
+        headers: proxyRequestHeaders(req),
         timeout: 30000, // Increase timeout to 30 seconds for DNS tests
         validateStatus: () => true
       });
@@ -870,13 +883,7 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
               method: req.method,
               url: fallbackUrl,
               data: req.body,
-              headers: {
-                ...req.headers,
-                ...forwardCorrelationHeaders(req),
-                'X-Forwarded-For': req.ip,
-                'X-Forwarded-Proto': req.protocol,
-                'X-Forwarded-Host': req.get('host')
-              },
+              headers: proxyRequestHeaders(req),
               timeout: 30000,
               validateStatus: () => true
             });

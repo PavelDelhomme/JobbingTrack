@@ -28,10 +28,11 @@ Copier le fichier d'environnement exemple :
 cp .env.example .env
 ```
 
-**⚠️ IMPORTANT:** Modifiez les valeurs sensibles dans `.env` :
+**⚠️ IMPORTANT:** Modifiez les valeurs sensibles dans `.env` avant de créer l'admin :
 - `POSTGRES_PASSWORD` - Mot de passe PostgreSQL
 - `JWT_SECRET` et `JWT_REFRESH_SECRET` - Clés JWT
-- `ADMIN_PASSWORD` - Mot de passe admin (par défaut: `password123`)
+- `ADMIN_EMAIL` - Email administrateur
+- `ADMIN_PASSWORD` - Mot de passe administrateur fort, sans valeur par défaut publique
 
 ### 3️⃣ Démarrer l'Application
 
@@ -55,8 +56,10 @@ make db-migrate
 ### 5️⃣ Créer l'Utilisateur Administrateur (si nécessaire)
 
 ```bash
-make create-admin-user
+make seed-auth
 ```
+
+`make seed-auth` lit `ADMIN_EMAIL` / `ADMIN_PASSWORD` depuis `.env`, crée ou met à jour le compte `SUPER_ADMIN`, vérifie l'email et masque le mot de passe dans la sortie.
 
 ### 6️⃣ Accéder à l'Application
 
@@ -67,10 +70,10 @@ Ouvrez votre navigateur :
 📡 API Gateway: http://localhost:3000
 ```
 
-**Identifiants par défaut :**
+**Identifiants admin :**
 ```
-📧 Email:    admin@jobbingtrack.com
-🔑 Password: password123
+📧 Email:    valeur ADMIN_EMAIL dans .env
+🔑 Password: valeur ADMIN_PASSWORD dans .env
 ```
 
 ## 🔄 Commandes Essentielles
