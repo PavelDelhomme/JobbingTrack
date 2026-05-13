@@ -7,7 +7,7 @@
  * 3. Renvoi d'email
  * 
  * Usage:
- *   node test-email-verification.js
+ *   node tests/email/auth-service/test-email-verification.js
  * 
  * Utilise fetch natif de Node.js 18+ (pas de dépendance externe)
  */

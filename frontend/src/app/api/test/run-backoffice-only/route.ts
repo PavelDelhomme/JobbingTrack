@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Backoffice uniquement (E2E)'
     const projectRoot = getProjectRoot()
-    const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+    const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const testCommand = inContainer
       ? 'npx playwright test tests/e2e/b4ck0ff1ce.spec.ts'

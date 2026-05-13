@@ -10,7 +10,7 @@ const path = require('path');
 
 class TestVerifier {
   constructor() {
-    this.testsDir = __dirname;
+    this.testsDir = path.resolve(__dirname, '..');
     this.checks = [];
   }
 
@@ -98,7 +98,7 @@ class TestVerifier {
     if (fs.existsSync(configPath)) {
       const config = fs.readFileSync(configPath, 'utf8');
 
-      if (config.includes('localhost:8080') && config.includes('projects')) {
+      if (config.includes('baseURL') && config.includes('projects')) {
         this.log('Configuration Playwright: OK', 'success');
         this.checks.push({ name: 'Playwright config', status: 'success' });
       } else {
@@ -191,8 +191,8 @@ class TestVerifier {
     this.checkFile('jest.config.js', 'Configuration Jest');
     this.checkFile('jest.setup.js', 'Setup Jest');
     this.checkFile('playwright.config.ts', 'Configuration Playwright');
-    this.checkFile('run-tests.js', 'Script principal');
-    this.checkFile('setup.js', 'Script setup');
+    this.checkFile('runners/run-tests.js', 'Script principal');
+    this.checkFile('system/setup.js', 'Script setup');
     this.checkFile('README.md', 'Documentation');
 
     // Tests principaux

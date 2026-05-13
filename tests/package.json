@@ -19,9 +19,11 @@
     "test:ci": "jest --config jest.config.js --ci --coverage --watchAll=false",
     "test:playwright": "playwright test --headed",
     "test:playwright:ui": "playwright test --ui",
-    "test:inscription-gmail": "node run-inscription-gmail-email-check.js",
+    "test:inscription-gmail": "node email/run-inscription-gmail-email-check.js",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "setup": "node system/setup.js",
+    "verify": "node system/verify.js"
   },
   "dependencies": {
     "axios": "^1.16.0",

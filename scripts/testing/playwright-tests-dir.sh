@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Exécute npx playwright depuis le dossier tests/ du dépôt (configs MailHog, etc.).
-# Usage : scripts/playwright-tests-dir.sh test <args playwright...>
+# Usage : scripts/testing/playwright-tests-dir.sh test <args playwright...>
 # Variables optionnelles (héritées si exportées) : MAILHOG_WEB_URL, API_URL, API_GATEWAY_URL
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

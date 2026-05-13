@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Sécurité'
     const projectRoot = getProjectRoot()
-    const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+    const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const testCommand = inContainer
       ? 'cd /app/tests && node security/test-security.js'

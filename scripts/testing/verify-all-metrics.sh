@@ -19,16 +19,6 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-METRICS_URL="${METRICS_URL:-http://127.0.0.1:${METRICS_AGGREGATOR_PORT:-5004}}"
-API_GATEWAY_URL="${API_GATEWAY_URL:-${API_URL:-http://127.0.0.1:${API_GATEWAY_PORT:-5002}}}"
-MIN_HISTORY_POINTS="${MIN_HISTORY_POINTS:-3}"
-TEST_SERVICES=(${TEST_SERVICES:-jobbingtrack-postgres jobbingtrack-auth-service jobbingtrack-redis})
-
-TESTS_PASSED=0
-TESTS_FAILED=0
-WARNINGS=0
-SKIPPED=0
-
 read_env_key() {
     local key="$1"
     local env_file="${ROOT_DIR}/.env"
@@ -50,6 +40,53 @@ read_env_key() {
         ' "$env_file"
     fi
 }
+
+env_or_file() {
+    local key="$1"
+    local default_value="${2:-}"
+    local file_value
+
+    if [ -n "${!key:-}" ]; then
+        printf '%s' "${!key}"
+        return 0
+    fi
+
+    file_value="$(read_env_key "$key")"
+    if [ -n "$file_value" ]; then
+        printf '%s' "$file_value"
+        return 0
+    fi
+
+    printf '%s' "$default_value"
+}
+
+METRICS_AGGREGATOR_PORT_VALUE="$(env_or_file METRICS_AGGREGATOR_PORT 5004)"
+API_GATEWAY_PORT_VALUE="$(env_or_file API_GATEWAY_PORT 5002)"
+METRICS_URL="${METRICS_URL:-$(read_env_key METRICS_URL)}"
+METRICS_URL="${METRICS_URL:-http://127.0.0.1:${METRICS_AGGREGATOR_PORT_VALUE}}"
+API_GATEWAY_URL="${API_GATEWAY_URL:-$(read_env_key API_GATEWAY_URL)}"
+API_GATEWAY_URL="${API_GATEWAY_URL:-$(read_env_key API_URL)}"
+API_GATEWAY_URL="${API_GATEWAY_URL:-http://127.0.0.1:${API_GATEWAY_PORT_VALUE}}"
+
+case "$METRICS_URL" in
+    *jobbingtrack-metrics-aggregator*|*metrics-aggregator*)
+        METRICS_URL="http://127.0.0.1:${METRICS_AGGREGATOR_PORT_VALUE}"
+        ;;
+esac
+
+case "$API_GATEWAY_URL" in
+    *jobbingtrack-api-gateway*|*api-gateway*)
+        API_GATEWAY_URL="http://127.0.0.1:${API_GATEWAY_PORT_VALUE}"
+        ;;
+esac
+
+MIN_HISTORY_POINTS="${MIN_HISTORY_POINTS:-3}"
+TEST_SERVICES=(${TEST_SERVICES:-jobbingtrack-postgres jobbingtrack-auth-service jobbingtrack-redis})
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+WARNINGS=0
+SKIPPED=0
 
 METRICS_API_KEY_VALUE="$(read_env_key METRICS_API_KEY)"
 

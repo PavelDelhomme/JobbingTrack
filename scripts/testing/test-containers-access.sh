@@ -14,7 +14,7 @@ YELLOW='\033[1;33m'
 PURPLE='\033[0;35m'
 NC='\033[0m'
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo -e "${PURPLE}"

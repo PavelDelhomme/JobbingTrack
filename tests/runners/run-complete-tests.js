@@ -79,7 +79,9 @@ async function main() {
   console.log();
 
   // Créer le répertoire de rapports
-  const reportsDir = path.join(__dirname, 'reports');
+  const testsDir = path.resolve(__dirname, '..');
+  const projectRoot = path.resolve(__dirname, '../..');
+  const reportsDir = path.join(testsDir, 'reports');
   if (!fs.existsSync(reportsDir)) {
     fs.mkdirSync(reportsDir, { recursive: true });
   }
@@ -88,17 +90,17 @@ async function main() {
     {
       name: 'Connexion de base',
       file: 'e2e/specs/login.spec.ts',
-      cwd: path.join(__dirname, '..', 'tests'),
+      cwd: testsDir,
     },
     {
       name: 'Backoffice administrateur',
       file: 'e2e/specs/admin-backoffice.spec.ts',
-      cwd: path.join(__dirname, '..', 'tests'),
+      cwd: testsDir,
     },
     {
       name: 'Parcours utilisateur complet',
       file: 'tests/e2e/complete-user-journey.spec.ts',
-      cwd: path.join(__dirname, '..', 'frontend'),
+      cwd: path.join(projectRoot, 'frontend'),
     },
   ];
 
@@ -110,7 +112,7 @@ async function main() {
     log(`\nTest ${i + 1}/${tests.length}: ${test.name}`, 'blue');
     
     const result = execCommand(`npx playwright test ${test.file} --reporter=line`, {
-      cwd: test.cwd || __dirname,
+      cwd: test.cwd || testsDir,
     });
     
     if (result.success) {

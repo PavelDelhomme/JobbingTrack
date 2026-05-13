@@ -201,7 +201,7 @@
 1. **`tests/helpers/dockerHostUrl.js`** : normalisation **`api-gateway`**, **`monitoring-c`** (port hôte **`MONITORING_C_PORT`**), **`jobbingtrack-metrics-aggregator`** ; **`auth.helper`** s’appuie dessus.
 2. **`tests/api/test-monitoring-c-endpoints.test.js`** : URLs normalisées ; **`load_score`** non bloquant.
 3. **`tests/performance/test-performance.js`** : URLs + auth service ; icône charge si 0 succès ; **`process.exit(1)`** si API ou charge en échec.
-4. **`scripts/test-api-specific.sh`** : **`mktemp`** par appel **`test_endpoint`** ; normalisation **`api-gateway`** ; **`curl`** sans **`eval`**.
+4. **`scripts/testing/test-api-specific.sh`** : **`mktemp`** par appel **`test_endpoint`** ; normalisation **`api-gateway`** ; **`curl`** sans **`eval`**.
 5. **`scripts/run-all-tests-with-reports.sh`** : après **`.env`**, normalisation **`API_GATEWAY_URL`** / **`METRICS_AGGREGATOR_URL`** ; health gateway = **`curl -sf …/health`** seul (timeout 15 s) ; firewall : **`API_GATEWAY_URL`** exportée correctement.
 6. **`tests/api/test-bdd-relations.test.js`** : messages d’erreur explicites si pas de token / chaîne BDD incomplète.
 
@@ -519,12 +519,12 @@
 
 ### Probleme
 - **Page Analytics utilisateur** : la requete `GET /api/v1/analytics/events?limit=50` etait bloquee par uBlock Origin (ou erreur reseau), ce qui faisait echouer tout le `Promise.all` et affichait en console `[ANALYTICS] Erreur chargement donnees: Network Error`. La page ne chargeait pas les autres donnees (stats, errors, versions).
-- **Test Enums** : le script `scripts/test-enums.js` attendait 6 valeurs pour `NotificationType` alors que le schema Prisma en contient 9 (ajout de CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE) → echec « Valeurs manquantes ou incorrectes ».
+- **Test Enums** : le script `scripts/testing/test-enums.js` attendait 6 valeurs pour `NotificationType` alors que le schema Prisma en contient 9 (ajout de CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE) → echec « Valeurs manquantes ou incorrectes ».
 - **Test CRUD Donnees (admin)** : « creer une entreprise » envoyait `size: '11-50'` alors que l’enum `CompanySize` n’accepte que STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE → reponse 500.
 
 ### Solution
 1. **`frontend/src/app/(admin)/backoffice/user-analytics/page.tsx`** : remplacement de `Promise.all` par `Promise.allSettled` pour que l’echec d’une requete (ex. events bloquee par uBlock) n’empêche pas le chargement des autres. Ajout d’un state `eventsLoadError` et affichage d’un message explicite sur l’onglet « Evenements » en cas d’echec (« Evenements non disponibles (requete bloquee par une extension ou erreur reseau)... »).
-2. **`scripts/test-enums.js`** : mise a jour de la liste attendue pour `NotificationType` pour inclure `CRASH_REPORT`, `ERROR_REPORT`, `STATUS_CHANGE`.
+2. **`scripts/testing/test-enums.js`** : mise a jour de la liste attendue pour `NotificationType` pour inclure `CRASH_REPORT`, `ERROR_REPORT`, `STATUS_CHANGE`.
 3. **`tests/e2e/specs/admin-data-crud.spec.ts`** : creation entreprise avec `size: 'SMALL'` au lieu de `'11-50'` pour respecter l’enum CompanySize.
 
 ### Non corrige (a investiguer si besoin)

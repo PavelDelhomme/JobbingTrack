@@ -3,7 +3,7 @@
  * Test automatisé : Inscription Gmail (redacted@example.invalid) via API
  * puis vérification que l'email de vérification est bien loggé et envoyé à la bonne adresse.
  *
- * Usage: node tests/run-inscription-gmail-email-check.js
+ * Usage: node tests/email/run-inscription-gmail-email-check.js
  * Prérequis: API gateway + auth-service démarrés (ex: make up-full ou docker-compose up -d)
  */
 

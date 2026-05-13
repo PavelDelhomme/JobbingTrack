@@ -5,6 +5,8 @@
 
 set -e  # Arrêter en cas d'erreur
 
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+
 # Couleurs pour les messages
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -35,21 +37,23 @@ check_service() {
 # Vérifier le frontend
 if ! check_service "http://localhost:3000" "Frontend"; then
     echo -e "${YELLOW}⚠️  Démarrage du frontend...${NC}"
-    cd ../frontend
+    cd "$ROOT_DIR/frontend"
     npm run dev &
     FRONTEND_PID=$!
     sleep 10
-    cd ../tests
+    cd "$ROOT_DIR/tests"
 fi
 
 # Vérifier l'API Gateway
 if ! check_service "http://localhost:3000/api/v1/auth/health" "API Gateway"; then
     echo -e "${YELLOW}⚠️  Démarrage des services backend...${NC}"
-    cd ../backend
+    cd "$ROOT_DIR/backend"
     docker-compose up -d
     sleep 15
-    cd ../tests
+    cd "$ROOT_DIR/tests"
 fi
+
+cd "$ROOT_DIR/tests"
 
 echo -e "\n${BLUE}=================================================${NC}"
 echo -e "${BLUE}   EXÉCUTION DES TESTS E2E${NC}"
@@ -77,9 +81,9 @@ npx playwright test e2e/specs/admin-backoffice.spec.ts --reporter=line
 
 # Test 3: Parcours utilisateur complet
 echo -e "\n${BLUE}Test 3/5: Parcours utilisateur complet${NC}"
-cd ../frontend
+cd "$ROOT_DIR/frontend"
 npx playwright test tests/e2e/complete-user-journey.spec.ts --reporter=line
-cd ../tests
+cd "$ROOT_DIR/tests"
 
 # Test 4: Tests de sécurité
 echo -e "\n${BLUE}Test 4/5: Tests de sécurité${NC}"

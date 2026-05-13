@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Performance Frontend'
     const projectRoot = getProjectRoot()
-    const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+    const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const perfCommand = inContainer
       ? 'sh /app/scripts/performance/run-performance-frontend-in-container.sh'

@@ -274,7 +274,7 @@ TOTAL ESTIMÉ                   : ~2-6 MB
 - **Impact attendu** : UI plus fluide, pas de blocage lors des rafraîchissements
 
 ### 5. **Script de test de performance**
-- ✅ Script `scripts/test-performance.js` créé
+- ✅ Script `scripts/performance/test-performance.js` créé
 - ✅ Analyse automatique des optimisations appliquées
 - ✅ Recommandations automatiques
 

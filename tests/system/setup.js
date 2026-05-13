@@ -11,8 +11,8 @@ const { execSync } = require('child_process');
 
 class TestSetup {
   constructor() {
-    this.rootDir = path.resolve(__dirname, '..');
-    this.testsDir = __dirname;
+    this.rootDir = path.resolve(__dirname, '../..');
+    this.testsDir = path.resolve(__dirname, '..');
   }
 
   log(message, type = 'info') {
@@ -84,11 +84,11 @@ class TestSetup {
     this.log('📁 Création des répertoires...');
 
     const directories = [
-      'tests/reports',
-      'tests/e2e/results',
-      'tests/coverage',
-      'tests/temp',
-      'tests/fixtures'
+      'reports',
+      'e2e/results',
+      'coverage',
+      'temp',
+      'fixtures'
     ];
 
     for (const dir of directories) {
@@ -265,30 +265,34 @@ networks:
 
     const gitignoreContent = `
 # Tests
-tests/reports/
-tests/coverage/
-tests/temp/
-tests/*.log
-tests/test-results/
-tests/playwright-report/
-tests/e2e/results/
-tests/node_modules/
+reports/
+coverage/
+temp/
+*.log
+test-results/
+playwright-report/
+e2e/results/
+node_modules/
+results/
+performance-benchmark/
+user-journey-reports/
+
 
 # Environment de test
-tests/.env.test.local
-tests/*.env
+.env.test.local
+*.env
 
 # Cache
-tests/.cache/
-tests/.nyc_output/
+.cache/
+.nyc_output/
 
 # IDE
-tests/.vscode/
-tests/.idea/
+.vscode/
+.idea/
 
 # OS
-tests/.DS_Store
-tests/Thumbs.db
+.DS_Store
+Thumbs.db
 `;
 
     const gitignorePath = path.join(this.testsDir, '.gitignore');

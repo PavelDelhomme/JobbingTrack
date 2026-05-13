@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Backoffice (E2E)'
     const projectRoot = getProjectRoot()
-    const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+    const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const testCommand = inContainer ? 'npm run test:e2e' : 'make test-e2e'
     const command = `cd "${projectRoot}" && sh "${scriptPath}" backoffice "${testCommand}" "${testName}"`

@@ -1,6 +1,9 @@
 #!/bin/bash
 # Script de nettoyage pour les tests
 
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT_DIR"
+
 echo "🧹 Nettoyage des tests..."
 
 # Arrêter les services de test

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Script de test pour le service Python d'envoi d'emails
- * Usage: node test-email-python.js [action]
+ * Usage: node tests/email/auth-service/test-email-python.js [action]
  * 
  * Actions:
  *   - test_connection : Tester la connexion SMTP
@@ -9,7 +9,14 @@
  *   - test_verification : Tester l'envoi d'un email de vérification
  */
 
-const PythonEmailService = require('./src/services/email/pythonEmailService');
+const path = require('path');
+
+const authServiceRoot = process.env.AUTH_SERVICE_ROOT || (
+  process.cwd() === '/app'
+    ? '/app'
+    : path.resolve(__dirname, '../../../backend/auth-service')
+);
+const PythonEmailService = require(path.join(authServiceRoot, 'src/services/email/pythonEmailService'));
 
 async function main() {
   const action = process.argv[2] || 'test_connection';
@@ -113,9 +120,9 @@ async function main() {
         console.log('  - test_verification : Tester l\'envoi d\'un email de vérification');
         console.log();
         console.log('Usage:');
-        console.log('  node test-email-python.js test_connection');
-        console.log('  node test-email-python.js test_reset');
-        console.log('  node test-email-python.js test_verification');
+        console.log('  node tests/email/auth-service/test-email-python.js test_connection');
+        console.log('  node tests/email/auth-service/test-email-python.js test_reset');
+        console.log('  node tests/email/auth-service/test-email-python.js test_verification');
         process.exit(1);
     }
   } catch (error) {

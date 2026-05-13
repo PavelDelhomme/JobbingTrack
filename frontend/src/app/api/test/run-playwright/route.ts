@@ -16,7 +16,7 @@ function extractReportId(stdout: string): string | null {
 /** Lance la suite Playwright complète (même pattern que run-backoffice) et retourne le reportId. */
 async function runFullPlaywrightSuite(): Promise<{ success: boolean; reportId?: string; error?: string }> {
   const projectRoot = getProjectRoot()
-  const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+  const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`
   const inContainer = isRunningInFrontendContainer()
   const testCommand = inContainer ? 'npm run test:e2e' : 'make test-e2e'
   const command = `cd "${projectRoot}" && sh "${scriptPath}" playwright "${testCommand}" "Tests Playwright"`

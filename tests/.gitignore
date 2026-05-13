@@ -1,26 +1,29 @@
 
 # Tests
-tests/reports/
-tests/coverage/
-tests/temp/
-tests/*.log
-tests/test-results/
-tests/playwright-report/
-tests/e2e/results/
-tests/node_modules/
+reports/
+results/
+performance-benchmark/
+coverage/
+temp/
+*.log
+test-results/
+user-journey-reports/
+playwright-report/
+e2e/results/
+node_modules/
 
 # Environment de test
-tests/.env.test.local
-tests/*.env
+.env.test.local
+*.env
 
 # Cache
-tests/.cache/
-tests/.nyc_output/
+.cache/
+.nyc_output/
 
 # IDE
-tests/.vscode/
-tests/.idea/
+.vscode/
+.idea/
 
 # OS
-tests/.DS_Store
-tests/Thumbs.db
+.DS_Store
+Thumbs.db

@@ -38,10 +38,10 @@ check-services-mobile: ## Vérifie que les services sont démarrés pour les tes
 	@echo "$(CYAN)🔍 Vérification Playwright (dans conteneur Docker)...$(NC)"
 	@docker exec $(DOCKER_CONTAINER) npx playwright --version > /dev/null 2>&1 && echo "$(GREEN)✅ Playwright installé dans le conteneur$(NC)" || echo "$(YELLOW)⚠️  Playwright non installé dans le conteneur (tests utiliseront le conteneur)$(NC)"
 
-test-mobile-install: ## Installe Playwright et les navigateurs (utilise scripts/setup-playwright.sh)
+test-mobile-install: ## Installe Playwright et les navigateurs (utilise scripts/setup/setup-playwright.sh)
 	@echo "$(CYAN)📦 Installation Playwright via script spécialisé...$(NC)"
-	@echo "$(YELLOW)💡 Utilisation de scripts/setup-playwright.sh pour l'installation${NC}"
-	@./scripts/setup-playwright.sh
+	@echo "$(YELLOW)💡 Utilisation de scripts/setup/setup-playwright.sh pour l'installation${NC}"
+	@./scripts/setup/setup-playwright.sh
 
 test-mobile: check-services-mobile ## Lance tous les tests mobile (iPhone 13 Pro) dans le conteneur Docker
 	@echo "$(CYAN)🧪 Lancement des tests mobile (dans conteneur Docker)...$(NC)"

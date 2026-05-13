@@ -13,23 +13,25 @@ tests/
 ├── jest.config.js               # Configuration Jest
 ├── jest.setup.js                # Setup global Jest
 ├── playwright.config.ts         # Configuration Playwright
-├── run-tests.js                 # Script principal d'exécution
-├── setup.js                     # Script de configuration
-├── verify.js                    # Script de vérification
-├── cleanup.sh                   # Script de nettoyage
+├── runners/                    # Orchestrateurs de tests
+│   ├── run-tests.js             # Script principal d'exécution
+│   └── run-complete-tests.js    # Ancien runner E2E manuel
+├── system/                     # Setup et vérification de la suite tests
+│   ├── setup.js                 # Script de configuration
+│   └── verify.js                # Script de vérification
+├── ci/                         # Checks CI/CD ponctuels
+├── email/                      # Tests manuels email/Gmail
+│   ├── auth-service/           # Diagnostics SMTP/Python et vérification email auth-service
+│   └── run-inscription-gmail-email-check.js
 ├── docker-compose.test.yml     # Services de test
 ├── .env.test                    # Variables d'environnement
 ├── .gitignore                   # Fichiers à ignorer
 ├── docker/                      # Tests Docker et déploiement
 │   ├── test-docker-images.js    # Tests des noms d'images Docker
 │   └── test-make-down-clean.js  # Tests de la commande make down
-├── system/                      # Tests système et vérification
-│   └── verify-test-system.js    # Vérification complète du système
-├── coverage/                    # Rapports de couverture
-├── temp/                        # Fichiers temporaires
-├── results/                     # Résultats de tests
-├── screenshots/                 # Captures d'écran de tests
-├── videos/                      # Vidéos de tests
+├── reports/                    # Rapports générés locaux (ignorés)
+├── results/                    # Historique de résultats générés
+├── performance-benchmark/      # Artefacts benchmark historiques
 ├── fixtures/                    # Données de test
 │   ├── users.json               # Utilisateurs de test
 │   ├── companies.json           # Entreprises de test
@@ -82,7 +84,7 @@ tests/
 
 ## 🎯 Scripts Principaux
 
-### 🔧 run-tests.js
+### 🔧 runners/run-tests.js
 **Script principal d'orchestration des tests**
 - Orchestre tous les types de tests (unit, integration, e2e, etc.)
 - Exécution en séquence ou parallèle selon les options
@@ -91,16 +93,16 @@ tests/
 
 ```bash
 # Tous les tests sauf E2E
-node run-tests.js
+node tests/runners/run-tests.js
 
 # Tous les tests incluant E2E
-node run-tests.js --e2e
+node tests/runners/run-tests.js --e2e
 
 # Tests spécifiques
-node run-tests.js --no-database --no-frontend
+node tests/runners/run-tests.js --no-database --no-frontend
 ```
 
-### ⚙️ setup.js
+### ⚙️ system/setup.js
 **Script de configuration initiale**
 - Vérification des prérequis (Node.js, Docker, etc.)
 - Installation des dépendances
@@ -110,13 +112,13 @@ node run-tests.js --no-database --no-frontend
 
 ```bash
 # Configuration complète
-node setup.js
+node tests/system/setup.js
 
 # Ou via Makefile
 make test-setup
 ```
 
-### 🔍 verify.js
+### 🔍 system/verify.js
 **Script de vérification de la configuration**
 - Vérification de tous les fichiers de configuration
 - Tests des dépendances et scripts npm
@@ -125,7 +127,7 @@ make test-setup
 
 ```bash
 # Vérification complète
-node verify.js
+node tests/system/verify.js
 
 # Ou via Makefile
 make test-verify
@@ -396,9 +398,9 @@ make db-status
 ### 🔧 Scripts et Outils
 
 #### Scripts Principaux
-- 🔧 [run-tests.js](#-run-testsjs) - Orchestration de tous les tests
-- ⚙️ [setup.js](#️-setupjs) - Configuration initiale complète
-- 🔍 [verify.js](#-verifyjs) - Vérification de la configuration
+- 🔧 [runners/run-tests.js](#-run-testsjs) - Orchestration de tous les tests
+- ⚙️ [system/setup.js](#️-setupjs) - Configuration initiale complète
+- 🔍 [system/verify.js](#-verifyjs) - Vérification de la configuration
 
 #### Scripts Spécialisés (Réorganisés)
 - 🐳 [test-docker-images.js](../docker/test-docker-images.js) - Tests des images Docker
