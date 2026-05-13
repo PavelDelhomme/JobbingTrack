@@ -22,7 +22,7 @@ Objectif : ne pas supprimer de script de depannage sans decision explicite. Les 
 | `scripts/monitoring/test-metrics.sh` | Tests d'anciens endpoints metrics sur `localhost:3014`. | Legacy tests. | Faible : couvert par `tests/services/test-metrics-aggregator.js`. | Remplacer par le smoke service actuel avant suppression. |
 | `scripts/testing/run-complete-tests.sh` | Ancien orchestrateur E2E Playwright/backend. | Legacy tests. | Faible/moyen : flux remplace par `scripts/run-all-tests-with-reports.sh`. | Ne pas raccorder ; supprimer apres confirmation qu'aucun scenario unique n'y reste. |
 | `scripts/testing/test-containers-access.sh` | Diagnostic manuel des acces conteneurs vers Postgres et reseau. | Manuel/documente. | Moyen : utile pour diagnostiquer les erreurs Docker/DB. | Garder manuel ; ne pas afficher de secrets en clair si script repris plus tard. |
-| `scripts/testing/test-reset-password.sh` | Test manuel reset password + MailHog/SMTP. | Manuel a moderniser. | Moyen : utile pour QA mail, mais URL par defaut ancienne. | Garder non raccorde ; moderniser vers gateway `API_GATEWAY_URL` avant usage regulier. |
+| `scripts/testing/test-reset-password.sh` | Test manuel reset password + MailHog/SMTP. | Manuel/documente. | Moyen : utile pour QA mail. | Modernise le 13/05 : defaut gateway `API_GATEWAY_URL`/`API_GATEWAY_PORT`, metrics `METRICS_URL`/`METRICS_API_KEY` optionnelle ; garder non raccorde a Make. |
 | `scripts/testing/verify-all-metrics.sh` | Verification large de metrics/services/historique. | Manuel a moderniser. | Moyen : utile pour QA A5, mais defaults anciens. | Garder pour reference ; preferer les smokes `tests/services/` tant qu'il n'est pas modernise. |
 | `scripts/utils/debug-tables.sh` | Debug direct des tables Postgres. | Legacy DB debug. | Faible : remplace par `make test-database` et requetes SQL ciblees. | Archiver apres migration des notes de depannage utiles. |
 | `scripts/utils/rebuild-all.sh` | Rebuild Docker complet no-cache. | Manuel dangereux. | Moyen : utile en dernier recours, mais couteux/destructif pour images. | Garder non raccorde ; documenter comme operation manuelle explicite. |
@@ -35,4 +35,4 @@ Objectif : ne pas supprimer de script de depannage sans decision explicite. Les 
 1. Garder les scripts `manuel/documente` en l'etat tant qu'ils rendent un service de diagnostic ponctuel.
 2. Ne raccorder aucun script legacy a Make sans modernisation et test reel.
 3. Pour le prochain lot, deplacer les scripts `legacy` dans un dossier d'archive ou les supprimer un par un apres validation explicite.
-4. Pour les scripts modernisables (`test-reset-password.sh`, `verify-all-metrics.sh`), aligner d'abord les URLs sur `API_GATEWAY_URL`, `METRICS_URL` et les ports exposes actuels.
+4. Pour le script modernisable restant (`verify-all-metrics.sh`), aligner d'abord les URLs sur `METRICS_URL` et les ports exposes actuels.
