@@ -1,294 +1,185 @@
-# 📚 Documentation JobbingTrack
+# Documentation JobbingTrack
 
-[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📑 Index](INDEX.md)
+[Retour au README principal](../README.md) | [Navigation](navigation.md) | [Index](INDEX.md)
 
-**Racine du projet** : seul `README.md` reste à la racine. Dans `docs/`, la racine garde les fichiers de pilotage : **[STATUS.md](STATUS.md)**, **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[ERRORS.md](ERRORS.md)**, **[BACKLOG.md](BACKLOG.md)** et **[RESOLUTIONS.md](RESOLUTIONS.md)**. Les documents de contenu sont rangés par domaine : **[project/FONCTIONNALITES.md](project/FONCTIONNALITES.md)**, **[security/STATS.md](security/STATS.md)**, **[project/STRUCTURE_DOCUMENTATION.md](project/STRUCTURE_DOCUMENTATION.md)**.
+Derniere mise a jour : 13 mai 2026
 
-## **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
+Ce dossier centralise la documentation projet. Les fichiers de pilotage restent a la racine de `docs/`; les documents de fond sont ranges par domaine.
 
-## 🎯 Vue d'ensemble
+## A lire en premier
 
-Documentation complète et organisée du projet **JobbingTrack v4.1** - Système de suivi de candidatures avec architecture microservices, dashboard administrateur et applications mobiles.
+- [Getting started](getting-started/README.md) : installation, demarrage et acces utiles.
+- [STATUS.md](STATUS.md) : etat courant reel du projet.
+- [TODOS.md](TODOS.md) : prochaines actions, avec les taches a faire en premier.
+- [PLAN.md](PLAN.md) : plan d'execution par lots.
+- [BACKLOG.md](BACKLOG.md) : sujets reportes ou larges.
+- [ERRORS.md](ERRORS.md) : erreurs connues et risques suivis.
+- [RESOLUTIONS.md](RESOLUTIONS.md) : correctifs et decisions deja appliques.
 
-### 🧭 Navigation
-- **[Navigation complète](./navigation.md)** - Guide de navigation dans toute la documentation
-- **[Index Documentation](./INDEX.md)** - Index complet de la documentation
+## Validation avant production
 
-## 📋 Structure de la documentation
+Les cases cochees dans `TODOS.md` signifient surtout "fait dans le depot" ou "procedure disponible". Elles ne remplacent pas une validation produit.
 
-```
+- [A valider / verifier](../A_VALIDER_VERIFIER.md) : registre de validation porteur avant preprod/prod.
+- [Audit securite projet](../AUDIT_SEC_PROJECT.md) : risques securite, P0, rapports et suites attendues.
+- [Branches et commits](../BRANCHES.md) : conventions de branches et commits.
+- [Release preprod / production](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md) : chemin vers preprod, beta, prod, RGPD et release.
+- [Checklist preprod / production](operations/PREPROD_PRODUCTION_CHECKLIST.md) : controles operationnels.
+
+## Structure actuelle
+
+```text
 docs/
-├── 📖 README.md                        # Ce fichier - index principal
-├── 📑 INDEX.md                         # Index rapide
-├── 🧭 navigation.md                    # Navigation complète
-├── 📌 STATUS.md                        # État courant et priorités
-├── 🗺️ PLAN.md                          # Plan d’exécution
-├── ✅ TODOS.md                         # Checklist opérationnelle
-├── 🐛 ERRORS.md                        # Erreurs connues
-├── 📦 BACKLOG.md                       # Backlog large
-├── 🛠️ RESOLUTIONS.md                   # Correctifs appliqués
-├── 📁 project/                         # Vision produit, historique, récapitulatifs
-│   ├── FONCTIONNALITES.md              # Vision fonctionnelle
-│   ├── STRUCTURE_DOCUMENTATION.md      # Carte et réorganisation docs
-│   ├── CHANTIER_SECURITE_DATA_DOCS.md  # Index chantier sécurité/data/docs
-│   ├── HISTORIQUE.md
-│   └── RECAPITULATIF_PROJET_COMPLET.md
-├── 🏗️ core/                            # Documentation technique de base
-│   ├── architecture/README.md          # Architecture microservices
-│   └── services/README.md              # Détail des microservices
-├── 🏗️ architecture/                    # Architecture détaillée
-│   └── metrics/                        # Système de métriques
-│       ├── README.md                   # Architecture métriques
-│       └── troubleshooting/README.md   # Dépannage métriques
-├── 💾 database/                        # Base de données
-│   ├── README.md                       # Documentation BDD
-│   ├── DATABASE_VERIFICATION.md        # ⭐ Vérification BDD et état actuel
-│   ├── analysis/                        # Analyses et audits
-│   │   ├── README.md                   # Index analyses
-│   │   ├── comprehensive-project-audit/
-│   │   ├── data-structure-analysis/
-│   │   └── data-structure-comparison/
-│   └── architecture/database/README.md # Architecture PostgreSQL
-├── 📡 api/                             # Documentation API
-│   ├── README.md                        # Index API
-│   ├── api-reference/README.md         # Guide API complet
-│   └── endpoints/README.md             # Liste des endpoints
-├── 🚀 deployment/                      # Guides de déploiement
-│   ├── getting-started/README.md       # Démarrage rapide
-│   ├── production/README.md            # Déploiement production
-│   ├── security/README.md              # Sécurité déploiement
-│   └── configuration/                  # Configuration
-│       └── CONFIGURATION_PORTS.md     # Configuration des ports
-├── 🧭 operations/                      # Runbooks et gates opérationnels
-│   ├── DOCUMENTATION_AUDIT_PLAN.md     # Audit/restructuration docs par domaine
-│   ├── PREPROD_PRODUCTION_CHECKLIST.md # Checklist préprod / production
-│   └── RELEASE_PREPROD_PRODUCTION_PLAN.md # Release, licences, RGPD, déploiements
-├── 💻 development/                     # Guides développement
-│   └── makefile/                       # Makefile et commandes
-│       ├── README.md                   # Guide Makefile complet
-│       └── makefile-commands.md        # Aide commandes
-├── 📊 monitoring/                      # Monitoring système
-│   ├── README.md                       # Stack monitoring
-│   ├── metrics-flow.md                 # Flux métriques
-│   ├── METRICS_DB_README.md            # BDD métriques
-│   ├── MONITORING_GUIDE.md             # Guide monitoring
-│   └── PERFORMANCE_OPTIMIZATION.md     # Optimisation metrics-aggregator
-├── 📧 emails/                          # Documentation emails
-│   ├── README.md                       # Index emails
-│   ├── SMTP_CONFIGURATION.md           # Config SMTP
-│   ├── PYTHON_EMAIL_SETUP.md           # Service Python
-│   └── MAIL.md                         # Détails config
-├── 🖥️ frontend/                        # Guide frontend
-│   ├── README.md                        # Index frontend
-│   ├── GUIDE_ENREGISTREMENT_AUTOMATIQUE.md     # Enregistrement auto
-│   ├── GUIDE_PREFERENCES_UTILISATEUR.md        # Préférences utilisateur
-│   └── GUIDE_PAGE_DETAIL_SERVICE.md            # Page détail service
-├── 📱 mobile/guide/README.md           # Guide mobile
-├── 🔧 administration/                  # Guide administration
-│   ├── README.md                        # Index administration
-│   └── GUIDE_GESTION_UTILISATEURS.md   # Gestion utilisateurs
-├── 🐛 troubleshooting/                 # Dépannage
-│   ├── README.md                        # Index dépannage
-│   ├── POSTGRES_MONITORING.md           # PostgreSQL et monitoring
-│   └── TROUBLESHOOTING_LOGIN.md        # Dépannage login
-├── 📋 changelog/                        # Historique
-│   └── README.md                        # Pointe vers docs/STATUS.md, docs/RESOLUTIONS.md
-├── ⚡ performance/guide/README.md      # Optimisation
-├── 🔒 security/                        # Sécurité
-│   ├── README.md                        # Index sécurité
-│   ├── STATS.md                         # CVE, dépendances, supply-chain
-│   ├── ARCHITECTURE_SECURITY_SERVICE.md # Périmètre security-service
-│   ├── SYSTEME_SECURITE_README.md      # Système sécurité
-│   ├── SECURITY_AUDIT.md                # ⭐ Audit sécurité
-│   └── DEMARRAGE_SERVICES_SECURITE.md  # Démarrage services
-├── 🧪 tests/                           # Tests
-│   ├── README.md                        # Stratégie tests
-│   ├── STRUCTURE_TESTS_MAKE_TEST.md    # Structure make test
-│   ├── COMMANDES_TESTS.md              # Commandes
-│   ├── TESTS_END.md                     # Fin de suite
-│   ├── BACKOFFICE_TESTS_COVERAGE.md    # Couverture backoffice
-│   └── RAPPORTS_CONVENTIONS.md         # Conventions rapports
-└── 📄 pdfs/                            # PDFs générés
-    └── documentation-complete.pdf      # PDF global
+├── README.md
+├── INDEX.md
+├── navigation.md
+├── STATUS.md
+├── PLAN.md
+├── TODOS.md
+├── BACKLOG.md
+├── ERRORS.md
+├── RESOLUTIONS.md
+├── administration/
+├── api/
+├── architecture/
+├── archive/
+├── changelog/
+├── ci-cd/
+├── configuration/
+├── core/
+├── database/
+├── deployment/
+├── development/
+├── emails/
+├── features/
+├── frontend/
+├── getting-started/
+├── mobile/
+├── monitoring/
+├── operations/
+├── performance/
+├── project/
+├── scripts/
+├── security/
+├── tests/
+├── todo/
+├── troubleshooting/
+└── user-journey/
 ```
 
-## 📚 Documentation principale
+Les dossiers `archive/` et certains rapports PDF sont historiques ou generes. Ne pas les utiliser comme source de verite sans verifier `STATUS.md`, `TODOS.md` et les documents de domaine recents.
 
-### 🏗️ Architecture et Infrastructure
-- **[Architecture Microservices](core/architecture/README.md)** - Vue complète de l'architecture
-- **[Architecture Métriques](architecture/metrics/README.md)** - Système de collecte de métriques
-- **[Base de Données](database/README.md)** - Schema PostgreSQL et relations
-- **[Analyses BDD](database/analysis/README.md)** - Analyses comparatives et audits
-- **[Monitoring](monitoring/README.md)** - Système de monitoring complet
+## Domaines principaux
 
-### 📡 API et Intégration
-- **[API Reference](api/api-reference/README.md)** - Documentation complète des APIs
-- **[Endpoints](api/endpoints/README.md)** - Liste exhaustive des endpoints
+### Produit et pilotage
 
-### 🚀 Déploiement
-- **[Démarrage Rapide](deployment/getting-started/README.md)** - Installation et configuration
-- **[Production](deployment/production/README.md)** - Déploiement en production
-- **[Sécurité](deployment/security/README.md)** - Configuration sécurité
+- [Fonctionnalites](project/FONCTIONNALITES.md)
+- [Historique](project/HISTORIQUE.md)
+- [Recapitulatif projet](project/RECAPITULATIF_PROJET_COMPLET.md)
+- [Structure documentation](project/STRUCTURE_DOCUMENTATION.md)
+- [Chantier securite / data / docs](project/CHANTIER_SECURITE_DATA_DOCS.md)
 
-### 💻 Développement
-- **[Makefile](development/makefile/README.md)** - Guide Makefile et commandes
+### Architecture et API
 
-### 🖥️ Frontend
-- **[Guide Frontend](frontend/README.md)** - Guide complet développement frontend Next.js
-- **[Enregistrement Automatique](frontend/GUIDE_ENREGISTREMENT_AUTOMATIQUE.md)** - Système d'enregistrement automatique
-- **[Préférences Utilisateur](frontend/GUIDE_PREFERENCES_UTILISATEUR.md)** - Gestion des préférences
-- **[Page Détail Service](frontend/GUIDE_PAGE_DETAIL_SERVICE.md)** - Page de détail des services
+- [Architecture microservices](core/architecture/README.md)
+- [Services backend](core/services/README.md)
+- [Decisions architecture](architecture/decisions/README.md)
+- [Architecture metriques](architecture/metrics/README.md)
+- [API](api/README.md)
+- [Reference API](api/api-reference/README.md)
+- [Endpoints](api/endpoints/README.md)
 
-### 🔧 Administration
-- **[Guide Administration](administration/README.md)** - Dashboard administrateur complet
-- **[Gestion Utilisateurs](administration/GUIDE_GESTION_UTILISATEURS.md)** - Gestion complète des utilisateurs
+### Base de donnees
 
-### 📊 Monitoring
-- **[Système Monitoring](monitoring/README.md)** - Stack monitoring complète
-- **[Quick Start](monitoring/QUICK_START_MONITORING.md)** - 🚀 Démarrage rapide
-- **[Guide Services](monitoring/GUIDE_MONITORING_SERVICES.md)** - Monitoring des services
-- **[Tendances Métriques](monitoring/GUIDE_TENDANCES_METRIQUES.md)** - Analyse des tendances
-- **[Commandes](monitoring/MONITORING_COMMANDS.md)** - Commandes monitoring
-- **[Statistiques](monitoring/SYSTEME_STATISTIQUES_APPLICATIVES.md)** - Statistiques applicatives
+- [Database README](database/README.md)
+- [Verification BDD](database/DATABASE_VERIFICATION.md)
+- [Relations](database/relations.md)
+- [Migration](database/migration/README.md)
+- [Analyses BDD](database/analysis/README.md)
+- [Schema](database/schema/README.md)
 
-### 🐛 Dépannage
-- **[Guide Dépannage](troubleshooting/README.md)** - Solutions aux problèmes courants
-- **[Corrections Analytics](troubleshooting/CORRECTIONS_ANALYTICS_DASHBOARD.md)** - Dashboard analytics
-- **[Corrections 404/Timeouts](troubleshooting/CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Erreurs HTTP
-- **[Corrections Session](troubleshooting/CORRECTIONS_FINALES_SESSION.md)** - Gestion des sessions
-- **[Corrections Graphiques](troubleshooting/CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Graphiques analytics
-- **[Dépannage Login](troubleshooting/TROUBLESHOOTING_LOGIN.md)** - Dépannage problèmes de connexion
+### Securite
 
-### 🔒 Sécurité
-- **[Guide Sécurité](security/README.md)** - Bonnes pratiques de sécurité
-- **[Système Sécurité](security/SYSTEME_SECURITE_README.md)** - Architecture sécurité complète
-- **[Services Sécurité](security/DEMARRAGE_SERVICES_SECURITE.md)** - Démarrage et configuration
-- **[Audit Sécurité](security/SECURITY_AUDIT.md)** - ⭐ Audit complet de sécurité avec recommandations
+- [Security README](security/README.md)
+- [Stats CVE / supply chain](security/STATS.md)
+- [Matrice tests securite](security/SECURITY_TESTING_MATRIX.md)
+- [Monitoring CVE continu](security/CVE_CONTINUOUS_MONITORING.md)
+- [Dependabot alerts](security/DEPENDABOT_ALERTS_INTEGRATION.md)
+- [Architecture security-service](security/ARCHITECTURE_SECURITY_SERVICE.md)
+- [Compose runtime hardening](security/COMPOSE_RUNTIME_HARDENING.md)
 
-### 📧 Emails
-- **[Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
-- **[État du Système](emails/EMAIL_STATUS.md)** - État complet du système email
-- **[Configuration OVH](emails/OVH_EMAIL_SETUP.md)** - Configuration complète OVH
-- **[Configuration Production](emails/CONFIGURATION_PRODUCTION_EMAIL.md)** - Configuration pour la production
-- **[Tests](emails/TEST_EMAIL_DEVELOPPEMENT.md)** - Guide de test en développement
-- **[Prochaines Étapes](emails/PROCHAINES_ETAPES_EMAIL.md)** - Prochaines étapes après configuration
+### Frontend et backoffice
 
-### 🧪 Tests
-- **[Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
-- **[Rapport Tests Complets](tests/TESTS_COMPLETS_RAPPORT.md)** - ⭐ Rapport détaillé des tests système
-- **[Résumé Tests](tests/RESUME_TESTS_COMPLETS.md)** - ⭐ Résumé exécutif des tests (100% réussis)
-- **[Tests Page Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
+- [Frontend README](frontend/README.md)
+- [Optimisations frontend](frontend/PERFORMANCE_OPTIMIZATION.md)
+- [Preferences utilisateur](frontend/GUIDE_PREFERENCES_UTILISATEUR.md)
+- [Page detail service](frontend/GUIDE_PAGE_DETAIL_SERVICE.md)
+- [Administration](administration/README.md)
+- [Gestion utilisateurs](administration/GUIDE_GESTION_UTILISATEURS.md)
 
-## 🆕 Nouveautés v4.1
+Points actifs a suivre dans `TODOS.md` :
 
-### ⭐ Système Makefile Avancé
-**Chaque module dispose maintenant d'une aide contextuelle complète !**
+- HTTPS local backoffice et confiance CA dev.
+- Navigation `/b4ck0ff1ce/performances` et cout du premier chargement.
+- Audit des pages admin qui lisent encore directement `NEXT_PUBLIC_API_URL`.
 
-```bash
-# Aide par module
-make help-services        # Services (up, down, restart)
-make help-frontend        # Frontend Next.js
-make help-backend         # Backend/monitoring
-make help-database        # Base de données
-make help-compilation     # Build/rebuild
-make help-diagnostic      # Diagnostic et corrections
-make help-tests           # Tous les tests
-make help-utils           # Utilitaires monitoring
+### Monitoring et performance
 
-# Aide générale depuis la racine
-make help                 # Aide complète
-make help-up              # Aide détaillée 'make up'
-make help-monitoring-up   # Aide monitoring
-```
+- [Monitoring README](monitoring/README.md)
+- [Guide monitoring](monitoring/MONITORING_GUIDE.md)
+- [Flux metriques](monitoring/metrics-flow.md)
+- [Commandes monitoring](monitoring/MONITORING_COMMANDS.md)
+- [Rapport monitoring Rust / C](../monitoring/RAPPORT_MONITORING_GOOD_PRACTICE_GO_AND_C.md)
+- [Performance README](performance/README.md)
+- [Rapport performance](performance/RAPPORT_PERFORMANCE.md)
+- [TODO performance](todo/TODO_PERFORMANCE.md)
 
-📖 **[Guide complet Makefile](development/makefile/README.md)**
+### Deploiement, operations et configuration
 
-### ✅ Base de données étendue
-- **Historique des statuts** : Suivi complet des changements de statut des candidatures
-- **Système de notifications** : Multi-canaux avec métadonnées et liens vers entités
-- **Calendrier intégré** : Événements polymorphes liés à tous les modules
-- **Synchronisation mobile** : Queue pour la fonctionnalité offline
-- **Relations many-to-many** : Contacts multi-entreprises et multi-candidatures
+- [Deployment getting started](deployment/getting-started/README.md)
+- [Production](deployment/production/README.md)
+- [Securite deployment](deployment/security/README.md)
+- [Portainer](deployment/portainer/README.md)
+- [Variables d'environnement](deployment/environment-variables/README.md)
+- [Configuration ports](configuration/CONFIGURATION_PORTS.md)
+- [HTTPS local dev](operations/DEV_HTTPS.md)
+- [Convention Docker Compose / env](operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
+- [CI/CD](ci-cd/README.md)
 
-### ✅ Nouveaux modèles
-- `ApplicationStatusHistory` - Historique des changements de statut
-- `Notification` - Système de notifications
-- `Event` - Calendrier avec relations polymorphes
-- `SyncQueue` - Synchronisation mobile/offline
+### Tests, scripts et rapports
 
-### ✅ Nouvelles relations
-- Contact ↔ Entreprise (many-to-many)
-- Contact ↔ Candidature (many-to-many)
-- Contact ↔ Relance (many-to-many)
-- Contact ↔ Entretien (many-to-many)
-- Contact ↔ Événement (many-to-many)
+- [Tests README](tests/README.md)
+- [Structure tests](tests/STRUCTURE_TESTS_MAKE_TEST.md)
+- [Commandes tests](tests/COMMANDES_TESTS.md)
+- [Couverture backoffice](tests/BACKOFFICE_TESTS_COVERAGE.md)
+- [Conventions rapports](tests/RAPPORTS_CONVENTIONS.md)
+- [Scripts README](scripts/README.md)
+- [Inventaire scripts](scripts/SCRIPTS_INVENTORY.md)
+- [Audit scripts non references](scripts/NON_REFERENCED_SCRIPTS_AUDIT.md)
 
-## 🚀 Démarrage rapide
+### Emails, mobile et parcours utilisateur
 
-1. **Consulter l'architecture** : [core/architecture/README.md](core/architecture/README.md)
-2. **Comprendre la base de données** : [database/README.md](database/README.md)
-3. **Explorer les APIs** : [api/api-reference/README.md](api/api-reference/README.md)
-4. **Configurer le développement** : [development/setup/README.md](development/setup/README.md)
+- [Emails README](emails/README.md)
+- [SMTP](emails/SMTP_CONFIGURATION.md)
+- [Mail](emails/MAIL.md)
+- [Mobile README](mobile/README.md)
+- [Analytics mobile](mobile/analytics/README.md)
+- [User journey README](user-journey/README.md)
+- [Guide complet parcours utilisateur](user-journey/GUIDE_COMPLET.md)
+- [Parcours metier](user-journey/PARCOURS_METIER.md)
 
-## 🔧 Services disponibles
+### Depannage
 
-### Services Backend (18+)
-- **API Gateway** - Point d'entrée unique (Port: 3000)
-- **Auth Service** - Authentification et autorisation (Port: 3001)
-- **Application Service** - Gestion des candidatures (Port: 3002)
-- **Company Service** - Gestion des entreprises (Port: 3003)
-- **Contact Service** - Gestion des contacts (Port: 3004)
-- **Interview Service** - Gestion des entretiens (Port: 3005)
-- **Call Service** - Gestion des appels (Port: 3006)
-- **Event Service** - Gestion des événements (Port: 3007)
-- **Followup Service** - Gestion du suivi (Port: 3008)
-- **Profile Service** - Gestion des profils (Port: 3009)
-- **Notification Service** - Système de notifications (Port: 3010)
-- **Workflow Service** - Gestion des workflows (Port: 3011)
-- **Dashboard Service** - Dashboard administrateur (Port: 3012)
-- **Security Service** - Service de sécurité (Port: 3013)
-- **Metrics Service** - Métriques système (Port: 3014)
-- **Deployment Service** - Service de déploiement (Port: 3015)
-- **Docker Stats Service** - Statistiques Docker (Port: 3016)
-- **Scheduler Service** - Planification (Port: 3017)
+- [Troubleshooting README](troubleshooting/README.md)
+- [Depannage login](troubleshooting/TROUBLESHOOTING_LOGIN.md)
+- [Postgres monitoring](troubleshooting/POSTGRES_MONITORING.md)
+- [Changelog](changelog/README.md)
 
-### Services Infrastructure
-- **PostgreSQL** - Base de données principale (Port: 5432)
-- **Redis** - Cache et sessions (Port: 6379)
-- **Prometheus** - Monitoring et métriques
-- **Grafana** - Visualisation des métriques
-- **cAdvisor** - Monitoring containers (Port: 8081)
+## Regles de maintenance
 
-## 📱 Applications
-
-### Frontend
-- **Next.js** - Interface web moderne (Port: 8080)
-- **Admin Dashboard** - Interface d'administration complète
-- **Responsive Design** - Compatible mobile et desktop
-
-### Mobile
-- **Flutter** - Application mobile cross-platform
-- **Offline Support** - Fonctionnement hors ligne
-- **Synchronisation** - Sync bidirectionnelle avec le backend
-
-## 🔄 Migration depuis v4.0
-
-Les utilisateurs de la version 4.0 doivent :
-
-1. **Sauvegarder** leur base de données actuelle
-2. **Appliquer la migration** : `cd backend && npx prisma migrate dev`
-3. **Mettre à jour** les services backend pour utiliser les nouvelles relations
-4. **Tester** les nouvelles fonctionnalités
-
-## 📞 Support
-
-- **Issues** : Créer une issue sur GitHub
-- **Documentation** : Toutes les mises à jour sont synchronisées avec les PDFs
-- **Migration** : Guide de migration disponible dans chaque document
-- **PDF Complet** : [documentation-complete.pdf](pdfs/documentation-complete.pdf)
-
----
-
-**Version** : 4.1 - Base de données étendue
-**Dernière mise à jour** : $(date +%Y-%m-%d)
-**Équipe** : JobbingTrack Development Team
+- Mettre les prochaines actions dans `TODOS.md`, pas dans ce README.
+- Mettre les validations porteur dans `../A_VALIDER_VERIFIER.md`.
+- Ne pas versionner de secrets, rapports generes sensibles ou artefacts locaux.
+- Ne pas documenter un contournement HTTP/TLS comme solution de securite.
+- Quand un dossier est archive ou legacy, le dire explicitement au lieu de le presenter comme actif.
+- Si un lien devient faux apres deplacement, corriger ce fichier dans le meme lot.
