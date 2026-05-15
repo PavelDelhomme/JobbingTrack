@@ -102,3 +102,89 @@ describe('WAF - trafic interne vs externe', () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 });
+
+describe('WAF - contournement dev/test par jeton secret', () => {
+  const originalEnv = process.env;
+  const token = `jtbypass1-${'a'.repeat(32)}`;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...originalEnv };
+    process.env.NODE_ENV = 'development';
+    process.env.WAF_INTERNAL_BYPASS_ENABLED = 'false';
+    process.env.DEV_TEST_BYPASS_TOKEN = token;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  function reqWithToken(ip, headerValue) {
+    return {
+      ip,
+      connection: {},
+      socket: {},
+      method: 'GET',
+      url: '/api/v1/companies?search=union+select+*+from+users',
+      headers: {},
+      body: {},
+      get: jest.fn((name) => {
+        if (name === 'User-Agent') return 'curl/8.0';
+        if (name === 'X-JobbingTrack-Dev-Test-Token') return headerValue;
+        if (name === 'x-jobbingtrack-dev-test-token') return headerValue;
+        return undefined;
+      })
+    };
+  }
+
+  test('autorise une requête externe malveillante si le jeton en-tête est correct', async () => {
+    const { wafCheck } = require('../src/middleware/waf');
+    const req = reqWithToken('8.8.8.8', token);
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.headers['X-WAF-Status']).toBe('DEV_TEST_BYPASS');
+  });
+
+  test('bloque une requête externe si le jeton en-tête est incorrect', async () => {
+    const { wafCheck } = require('../src/middleware/waf');
+    const req = reqWithToken('8.8.8.8', `jtbypass1-${'y'.repeat(32)}`);
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  test('sans préfixe versionné, le secret .env ne permet pas le bypass', async () => {
+    process.env.DEV_TEST_BYPASS_TOKEN = `${'z'.repeat(48)}`;
+    jest.resetModules();
+    const { wafCheck } = require('../src/middleware/waf');
+    const req = reqWithToken('8.8.8.8', `${'z'.repeat(48)}`);
+    const res = mockResponse();
+    const next = jest.fn();
+    await wafCheck(req, res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  test('ignore le jeton en production', async () => {
+    process.env.NODE_ENV = 'production';
+    jest.resetModules();
+    const { wafCheck } = require('../src/middleware/waf');
+    const req = reqWithToken('8.8.8.8', token);
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+});

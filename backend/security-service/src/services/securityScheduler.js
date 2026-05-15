@@ -359,7 +359,7 @@ class SecurityScheduler {
 
   getCriticalServiceNames() {
     const raw = process.env.SECURITY_CRITICAL_SERVICES ||
-      'jobbingtrack-api-gateway,jobbingtrack-auth-service,jobbingtrack-frontend,jobbingtrack-postgres,jobbingtrack-redis,jobbingtrack-metrics-aggregator,jobbingtrack-security-service';
+      'jobbingtrack-api-gateway,jobbingtrack-auth-service,jobbingtrack-frontend,jobbingtrack-postgres,jobbingtrack-redis,jobbingtrack-metrics-aggregator,jobbingtrack-security-service,jobbingtrack-monitoring-agent-rs,jobbingtrack-log-collector-rs';
     return new Set(
       raw
         .split(',')

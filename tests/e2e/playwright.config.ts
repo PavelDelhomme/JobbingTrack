@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { devBypassExtraHeaders } from '../../frontend/tests/e2e/envDevBypass'
 
 export default defineConfig({
   testDir: './specs',
@@ -19,6 +20,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    extraHTTPHeaders: devBypassExtraHeaders(),
   },
 
   projects: [

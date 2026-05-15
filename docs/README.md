@@ -2,7 +2,7 @@
 
 [Retour au README principal](../README.md) | [Navigation](navigation.md) | [Index](INDEX.md)
 
-Derniere mise a jour : 13 mai 2026
+Dernière mise à jour : 15 mai 2026
 
 Ce dossier centralise la documentation projet. Les fichiers de pilotage restent a la racine de `docs/`; les documents de fond sont ranges par domaine.
 
@@ -21,7 +21,7 @@ Ce dossier centralise la documentation projet. Les fichiers de pilotage restent 
 Les cases cochees dans `TODOS.md` signifient surtout "fait dans le depot" ou "procedure disponible". Elles ne remplacent pas une validation produit.
 
 - [A valider / verifier](../A_VALIDER_VERIFIER.md) : registre de validation porteur avant preprod/prod.
-- [Audit securite projet](../AUDIT_SEC_PROJECT.md) : risques securite, P0, rapports et suites attendues.
+- [Audit sécurité projet](security/AUDIT_SEC_PROJECT.md) : risques sécurité, P0, rapports et suites attendues.
 - [Branches et commits](../BRANCHES.md) : conventions de branches et commits.
 - [Release preprod / production](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md) : chemin vers preprod, beta, prod, RGPD et release.
 - [Checklist preprod / production](operations/PREPROD_PRODUCTION_CHECKLIST.md) : controles operationnels.

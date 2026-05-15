@@ -157,7 +157,7 @@ dev-https-certs: ## Générer les certificats HTTPS locaux (hors Git)
 dev-https-install-ca: ## Générer les certificats et installer la CA locale si l'outil système le permet
 	@DEV_HTTPS_INSTALL_CA=1 bash "$(ROOT_DIR)/scripts/ops/dev-https-certs.sh"
 
-dev-https-up: dev-https-certs ## Démarrer le proxy HTTPS dev (https://jobbingtrack.localhost:5443)
+dev-https-up: dev-https-certs ## Démarrer le proxy HTTPS dev (déjà fait par défaut après make up-full)
 	@echo "🔐 Démarrage du proxy HTTPS dev..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) -f docker-compose.https.yml --profile https up -d dev-https-proxy)
 	@printf '%s\n' up-https > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
@@ -204,7 +204,7 @@ help-services: ## Afficher l'aide services
 	@echo "  make dev-https-certs       - Générer les certificats HTTPS dev locaux"
 	@echo "  make dev-https-install-ca  - Générer + installer la CA locale si possible"
 	@echo "  make up-no-check           - Sans vérification Docker"
-	@echo "  make up-full               - TOUS les services (avec vérification Docker)"
+	@echo "  make up-full               - TOUS les services + proxy HTTPS dev (UP_FULL_HTTPS=0 pour désactiver)"
 	@echo "  make up-full-mickdevil    - TOUS les services (SANS vérification Docker)"
 	@echo "  make up-profile PROFILE=x  - Par profil (auth, applications, companies, etc.)"
 	@echo "  make up-monitoring         - Postgres + monitoring-c + metrics-aggregator (stack monitoring seul)"
@@ -245,7 +245,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "💡 EXEMPLES:"
 	@echo "  make up                              # Essentiels"
-	@echo "  make up-full                         # Tous les services + monitoring"
+	@echo "  make up-full                         # Tous les services + monitoring + HTTPS dev (5443)"
 	@echo "  make up-profile PROFILE=applications # + Candidatures"
 	@echo "  make logs-service SERVICE=api-gateway # Logs gateway"
 	@echo ""
@@ -536,18 +536,31 @@ _up-full-internal:
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
+	# TLS local : le service est dans docker-compose.https.yml (pas dans docker-compose.yml seul).
+	# Désactiver : UP_FULL_HTTPS=0 make up-full
+	@if [ "$${UP_FULL_HTTPS:-1}" != "0" ]; then \
+		echo "🔐 Certificats + proxy HTTPS dev (désactiver: UP_FULL_HTTPS=0)…"; \
+		if $(MAKE) dev-https-up; then \
+			echo "   ✅ HTTPS : https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443} — navigateur : make dev-https-install-ca (une fois si avertissement TLS)"; \
+		else \
+			echo "   ⚠️  HTTPS dev indisponible (certificats ou port $${DEV_HTTPS_PORT:-5443}). HTTP : http://localhost:5003"; \
+		fi; \
+	else \
+		echo "⏭️  Proxy HTTPS dev ignoré (UP_FULL_HTTPS=0)."; \
+	fi
+
 	# Attendre que tous les conteneurs soient démarrés
 	@echo "⏳ Attente que tous les services soient démarrés (8s)..."
 	@sleep 8
 	
 	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
 	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_WITH_LOCAL_HTTPS) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
 	@echo "✅ Monitoring démarré (collecteur C + API agrégateur)"
 
 	# Optionnel : log-collector-c
 	@echo "📋 Démarrage du collecteur de logs (optionnel)..."
-	@$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
+	@$(call docker_compose, $(COMPOSE_FILES_FULL_WITH_LOCAL_HTTPS) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
 	
 	@echo "⏳ Attente finalisation (3s)..."
 	@sleep 3
@@ -557,7 +570,9 @@ _up-full-internal:
 	@echo ""
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:5003"
+	@echo "  - Frontend (TLS dev): https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443} (si UP_FULL_HTTPS≠0)"
 	@echo "  - API Gateway:        http://localhost:5002"
+	@echo "  - API (TLS dev):      https://api.jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
 	@echo "  - Monitoring C:       http://localhost:5098 (collecteur C)"
 	@echo "  - Metrics Aggregator: http://localhost:5004 (API backoffice)"
 	@echo "  - Log Collector C:    http://localhost:5099 (optionnel)"
@@ -599,7 +614,7 @@ _up-full-internal:
 	@printf '%s\n' up-full > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
 # Démarrer TOUS les services (AVEC vérification Docker)
-up-full: ## Démarrer TOUS les services avec tous les profils (avec vérification Docker)
+up-full: ## Démarrer TOUS les services + proxy HTTPS dev (UP_FULL_HTTPS=0 pour désactiver le proxy TLS)
 	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
 	@echo "🚀 Tous les services avec métriques complètes"
 	

@@ -46,7 +46,8 @@
     ".next/types/**/*.ts",
     "src/**/*",
     ".next-local/types/**/*.ts",
-    ".next-local/dev/types/**/*.ts"
+    ".next-local/dev/types/**/*.ts",
+    "/tmp/.next-local/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

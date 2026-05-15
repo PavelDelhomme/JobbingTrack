@@ -12,7 +12,7 @@ scripts/
 ├── database/      # Scripts Node de migration/seed historiques
 ├── db/            # Scripts shell PostgreSQL / Prisma / métriques DB
 ├── docker/        # Vérifications et nettoyage Docker
-├── env/           # Documentation/outillage de configuration runtime
+├── env/           # Configuration runtime, validation stricte, secrets, bypass tests WAF (voir `scripts/env/README.md`)
 ├── fixes/         # Correctifs ponctuels encore utiles
 ├── health/        # Vérifications .env et services
 ├── monitoring/    # Monitoring, métriques, budget ressources

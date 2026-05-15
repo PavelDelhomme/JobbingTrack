@@ -15,6 +15,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const ENV_PATH = path.join(ROOT, '.env');
 const EXAMPLE_PATH = path.join(ROOT, '.env.example');
 const PRODUCTION_EXAMPLE_PATH = path.join(ROOT, '.env.production.example');
+const { JT_ENV_INCOMPLETE, isIncomplete } = require(path.join(ROOT, 'config', 'jt-env-policy.cjs'));
 
 const SECRET_NAME_PATTERN = /(PASSWORD|PASS|SECRET|TOKEN|KEY|API_KEY)/i;
 const DEV_WEAK_CHECK_KEYS = new Set([
@@ -41,6 +42,7 @@ const PROD_WEAK_CHECK_KEYS = new Set([
 ]);
 const WEAK_VALUE_PATTERNS = [
   /^$/,
+  new RegExp(`^${JT_ENV_INCOMPLETE}$`),
   /change-?me/i,
   /your-.*(secret|key|password|token)/i,
   /password123/i,
@@ -124,8 +126,11 @@ function main() {
   ];
 
   for (const key of required) {
-    if (!values.has(key) || String(values.get(key) || '').trim() === '') {
-      errors.push(`${key} est requis et ne doit pas être vide`);
+    const val = values.get(key);
+    if (!values.has(key) || String(val || '').trim() === '' || isIncomplete(val)) {
+      errors.push(
+        `${key} est requis, ne doit pas être vide et ne doit pas être la sentinelle ${JT_ENV_INCOMPLETE}`
+      );
     }
   }
 

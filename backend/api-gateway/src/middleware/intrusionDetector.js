@@ -1,6 +1,7 @@
 const Redis = require('ioredis');
 const axios = require('axios');
 const logger = require('../utils/logger');
+const { isDevTestBypassRequest } = require('../utils/devTestBypassRequest');
 const { forwardCorrelationHeaders } = require('./requestCorrelation');
 
 // Configuration Redis pour le stockage des données d'intrusion
@@ -14,9 +15,15 @@ const redis = new Redis({
   lazyConnect: true
 });
 
-// Gestionnaire d'erreurs Redis
+// Gestionnaire d'erreurs Redis (shutdown stack / Redis pas prêt : bruit réduit, le middleware continue)
 redis.on('error', (err) => {
-  logger.error('Erreur de connexion Redis (intrusion detector):', err);
+  const code = err && err.code;
+  const transient = code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ECONNRESET' || code === 'ETIMEDOUT';
+  if (transient) {
+    logger.warn('Redis intrusion detector indisponible (reconnexion automatique ioredis):', err.message || err);
+  } else {
+    logger.error('Erreur de connexion Redis (intrusion detector):', err);
+  }
 });
 
 // Patterns d'intrusion avancés
@@ -152,14 +159,8 @@ class IntrusionDetector {
       if (process.env.NODE_ENV === 'test') {
         return next();
       }
-      // Ne pas casser les suites E2E / scripts internes (faux positifs path traversal, etc.)
-      const rawUserAgent = String(req.get('User-Agent') || '');
-      const ua = rawUserAgent.toLowerCase();
-      if (
-        req.get('X-Test-Mode') === 'true' ||
-        rawUserAgent.includes('Playwright') ||
-        ua.includes('headlesschrome')
-      ) {
+      // Contournement réservé au non-prod : jeton secret (voir DEV_TEST_BYPASS_TOKEN).
+      if (isDevTestBypassRequest(req)) {
         return next();
       }
 

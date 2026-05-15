@@ -5,8 +5,12 @@
  * des utilisateurs de test et exécuter des tests fonctionne correctement
  */
 
+const path = require('path');
+const { devTestBypassFetchHeaders } = require('../../scripts/env/dev-test-bypass-fetch.cjs');
+
 const API_BASE_URL = 'http://localhost:3000';
 const FRONTEND_URL = 'http://localhost:8080';
+const bypassHeaders = () => devTestBypassFetchHeaders(path.join(__dirname, '..', '..'));
 
 async function testPlaywrightAdminInterface() {
     console.log('🧪 Test de l\'interface d\'administration Playwright...\n');
@@ -29,7 +33,7 @@ async function testPlaywrightAdminInterface() {
         const listResponse = await fetch(`${API_BASE_URL}/api/v1/admin/test-users`, {
             headers: {
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             }
         });
 
@@ -51,7 +55,7 @@ async function testPlaywrightAdminInterface() {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             },
             body: JSON.stringify({
                 email: newUserEmail,
@@ -86,7 +90,7 @@ async function testPlaywrightAdminInterface() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             },
             body: JSON.stringify({
                 email: newUserEmail,
@@ -108,7 +112,7 @@ async function testPlaywrightAdminInterface() {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             }
         });
 

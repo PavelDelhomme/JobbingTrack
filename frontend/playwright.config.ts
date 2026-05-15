@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { findFreePort, killProcessOnPort } from './tests/utils/portUtils';
 import path from 'path';
+import { devBypassExtraHeaders } from './tests/e2e/envDevBypass';
 
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || '';
@@ -47,6 +48,9 @@ export default defineConfig({
 
     /* Record video on failure */
     video: 'retain-on-failure',
+
+    /* WAF / intrusion en dev : même jeton que la gateway (`.env` racine, DEV_TEST_BYPASS_TOKEN). */
+    extraHTTPHeaders: devBypassExtraHeaders(),
   },
 
   /* Configure projects for major browsers */

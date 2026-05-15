@@ -6,6 +6,8 @@
 
 **JobbingTrack utilise exclusivement des variables d'environnement** pour la configuration. Aucune valeur sensible n'est hardcodée dans les fichiers de configuration.
 
+**PostgreSQL / `DATABASE_URL`** : la ligne `DATABASE_URL` du `.env` sert surtout aux **outils sur l’hôte** (Prisma, scripts) ; les **conteneurs** reçoivent en général une URL `...@postgres:5432/...` via `docker-compose`. Détail et prod / NPM : **[`../VPS_PORTAINER_NPM_OVH.md`](../VPS_PORTAINER_NPM_OVH.md)** § 2.2.
+
 ---
 
 ## 📋 Variables d'environnement principales

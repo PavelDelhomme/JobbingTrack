@@ -1,4 +1,9 @@
 require('dotenv').config();
+const path = require('path');
+const policy = require(path.join(__dirname, '../../../config/jt-env-policy.cjs'));
+const { assertGatewayEnvOrThrow } = require('./bootstrap/strictGatewayEnv');
+assertGatewayEnvOrThrow();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,7 +11,6 @@ const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
-const path = require('path');
 const logger = require('./utils/logger');
 const { normalizeDockerLogsQuery } = require('./utils/dockerLogsQuery');
 const {
@@ -21,12 +25,41 @@ const { wafCheck } = require('./middleware/waf');
 const { intrusionDetection } = require('./middleware/intrusionDetector');
 const { authRateLimiter, adminRateLimiter } = require('./middleware/rateLimiter');
 const MaintenanceController = require('./controllers/maintenance.controller');
+const { isDevTestBypassRequest } = require('./utils/devTestBypassRequest');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+function resolveListenPort() {
+  if (policy.isStrictEnvSkipped()) {
+    const p = parseInt(process.env.PORT || '3000', 10);
+    return Number.isFinite(p) && p > 0 ? p : 3000;
+  }
+  const raw = policy.requireEnv('PORT');
+  const p = parseInt(raw, 10);
+  if (!Number.isFinite(p) || p <= 0) {
+    throw new Error(`PORT invalide [${policy.PUBLIC_ERROR_CODE}]`);
+  }
+  return p;
+}
+const PORT = resolveListenPort();
 // Nombre de proxies devant la gateway (Docker / LB) — évite `true` (rejeté par express-rate-limit v7).
-app.set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS || '1', 10) || 1);
-const SECURITY_SERVICE_URL = (process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017').replace(/\/$/, '');
+function resolveTrustProxyHops() {
+  if (policy.isStrictEnvSkipped()) {
+    const n = parseInt(process.env.TRUST_PROXY_HOPS || '1', 10);
+    return Number.isFinite(n) && n >= 0 ? n : 1;
+  }
+  const raw = policy.requireEnv('TRUST_PROXY_HOPS');
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error(`TRUST_PROXY_HOPS invalide [${policy.PUBLIC_ERROR_CODE}]`);
+  }
+  return n;
+}
+app.set('trust proxy', resolveTrustProxyHops());
+const SECURITY_SERVICE_URL = (
+  policy.isStrictEnvSkipped()
+    ? String(process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017')
+    : policy.requireEnv('SECURITY_SERVICE_URL')
+).replace(/\/$/, '');
 
 function effectiveSecurityInternalSecret() {
   return process.env.SECURITY_INTERNAL_SECRET;
@@ -192,6 +225,7 @@ app.use(cors({
     'X-Custom-Header',
     'X-Request-Id',
     'X-Correlation-Id',
+    'X-JobbingTrack-Dev-Test-Token',
   ],
   exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
   optionsSuccessStatus: 200 // Support pour legacy browsers
@@ -208,7 +242,7 @@ app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
 // ✅ Détection d’intrusion (après body parser pour analyser le corps ; avant WAF)
-// Désactiver : INTRUSION_DETECTION_ENABLED=false — ignoré si User-Agent Playwright ou X-Test-Mode: true
+// Désactiver : INTRUSION_DETECTION_ENABLED=false — contournement réservé au non-prod via DEV_TEST_BYPASS_TOKEN + en-tête X-JobbingTrack-Dev-Test-Token (voir utils/devTestBypassRequest.js).
 app.use(intrusionDetection);
 
 app.use((err, req, res, next) => {
@@ -255,12 +289,13 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // ✅ Désactiver complètement en mode développement
     if (process.env.NODE_ENV === 'development') {
       return true;
     }
-    // Ignorer le rate limiting pour les tests
-    return req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright');
+    if (process.env.NODE_ENV === 'test') {
+      return true;
+    }
+    return isDevTestBypassRequest(req);
   },
   handler: (req, res) => {
     logger.warn('Rate limit général dépassé', {

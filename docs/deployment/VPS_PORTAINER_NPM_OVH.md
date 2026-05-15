@@ -17,11 +17,38 @@ Objectif : déployer **API (gateway + services)**, **frontend Next.js** et **bui
 ## 2. Nginx Proxy Manager (NPM)
 
 - Créer un **Proxy Host** par service exposé :
-  - **Frontend** → cible `http://<réseau-docker>:3000` (ou port publié du conteneur frontend, selon votre stack).
-  - **API Gateway** → cible `http://...:5002` (adapter au port interne réel du projet).
+  - **Frontend** → cible `http://<nom-conteneur-frontend>:<port-interne>` (ex. port **3000** dans le conteneur, pas le port publié sur l’hôte si NPM est sur le même réseau bridge).
+  - **API Gateway** → cible `http://<nom-conteneur-gateway>:<port-interne>` (dans ce dépôt, port applicatif gateway typiquement **3000** *dans* le conteneur ; le **5002** est le mapping *hôte* — depuis NPM sur le réseau Docker, utiliser le **port d’écoute interne** du service).
 - Activer **SSL** (Let’s Encrypt dans NPM) une fois le DNS résolu.
 - **Websocket / headers** : si le frontend ou des routes longues en nécessitent, activer les options NPM adaptées (support WS, tailles upload, timeouts).
 - **CORS / origines** : aligner les variables `NEXT_PUBLIC_*` et URLs côté API avec les **FQDN** HTTPS choisis (pas de mélange `http://localhost` en prod).
+- **Confiance reverse proxy** : derrière NPM, la gateway voit l’IP du conteneur NPM, pas celle du client ; vérifier **`TRUST_PROXY_HOPS`** (et la doc WAF / `X-Forwarded-For`) pour ne pas classer tout le trafic public comme « interne » par erreur.
+
+### 2.1 Réseaux Docker multiples (NPM sur un bridge, stack sur un autre)
+
+Docker **ne résout pas les noms DNS** entre conteneurs sur des **réseaux différents** (sauf routage explicite hors sujet ici). Si NPM est sur `nginx-proxy-manager_npm-network` et votre stack JobbingTrack sur un autre bridge, deux approches courantes :
+
+1. **Recommandé** : attacher les services exposés (au minimum `frontend`, `api-gateway`) **aussi** au réseau externe de NPM (dans Compose : `networks:` avec `external: true` + `name: <nom_du_réseau_npm>`), en conservant le réseau applicatif pour Postgres/Redis/etc.
+2. **Alternative** : laisser NPM pointer vers **`http://<IP_du_bridge_de_la_stack>:<port_publié>`** — fragile (IP peut changer) et moins lisible ; préférer le nom de conteneur sur un réseau commun.
+
+Ne pas versionner dans le dépôt une **liste d’inventaire** (IPs, stacks tierces, captures Portainer) : gardez-la dans un coffre / runbook privé.
+
+### 2.2 `DATABASE_URL` dans `.env` — dev machine vs production
+
+Ce n’est **pas** une astuce « super sécurisée » à elle seule : c’est un **découpage de rôles**.
+
+| Où ? | Rôle de `DATABASE_URL` |
+|------|-------------------------|
+| **Conteneurs** (api-gateway, services…) | Dans le `docker-compose` du dépôt, l’URL utilisée en runtime est en pratique **`...@postgres:5432/...`** (réseau Docker interne). Le mot de passe vient des variables d’environnement de la stack, **pas** de la nécessité d’aligner la ligne `DATABASE_URL` du fichier `.env` sur le disque du VPS pour ces conteneurs. |
+| **Hôte / CI / Prisma** | La ligne `DATABASE_URL` du `.env` (souvent `localhost` + port publié Postgres) sert aux **outils lancés sur la machine** (migrations, scripts). |
+
+En **production sur VPS**, vous pouvez :
+
+- soit **ne pas** utiliser Prisma depuis l’hôte et tout faire **depuis un conteneur** (`docker compose exec …`) ;
+- soit définir une `DATABASE_URL` « admin » **uniquement** sur l’hôte / dans Portainer (hors Git), avec un utilisateur SQL aux droits limités si possible ;
+- idéalement : **secrets Portainer** / fichier env **non versionné** + rotation, pas de mot de passe prod dans le dépôt.
+
+Le fait que Compose **remplace** l’URL pour les services **évite une classe d’erreurs** (mauvais host) ; la sécurité repose surtout sur **mots de passe forts**, **réseau privé**, **pas d’exposition Postgres sur Internet**, **TLS côté NPM**, et **WAF / règles** sur l’entrée publique.
 
 ## 3. Portainer — stack
 

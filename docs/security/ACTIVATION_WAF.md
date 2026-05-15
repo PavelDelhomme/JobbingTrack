@@ -5,6 +5,25 @@
 
 ---
 
+## Architecture (où s’exécute le WAF ?)
+
+| Couche | Rôle |
+|--------|------|
+| **API Gateway** (`backend/api-gateway/src/middleware/waf.js`) | **Filtrage HTTP** des requêtes entrantes (patterns OWASP, liste noire, bypass interne contrôlé). C’est le seul composant qui **bloque** ou **laisse passer** le trafic applicatif sur le chemin actuel. |
+| **security-service** | **Pilotage** : API REST de configuration / statistiques / toggles WAF (`/api/v1/security/waf/*`), alignée sur les mêmes familles de règles pour la cohérence métier — **pas** un reverse-proxy devant le trafic. |
+| **Nginx (prod)** | Dans `production/docker-compose.production.yml`, un volume `./nginx/waf` peut accueillir des règles **complémentaires** côté edge ; ce n’est pas le même code que le middleware Node. |
+
+Une évolution possible (hors périmètre actuel) : **reverse-proxy WAF dédié** (ModSecurity / Coraza / sidecar Envoy / WAF managé) **devant** la gateway, pour inspecter le trafic avant Node ; le dépôt ne fournit pas encore ce conteneur. Chantier cadré dans **`docs/TODOS.md`** (priorité env stricte / WAF edge) et ci-dessous.
+
+#### Chantier « WAF edge » (prochaine étape possible)
+
+1. Choisir la brique (ex. Nginx + ModSecurity, Traefik + plugin, Coraza en sidecar).
+2. Ajouter un service Compose sur le chemin public (443/80 ou `dev-https-proxy` → WAF → `api-gateway`).
+3. Propager `X-Forwarded-For`, `X-Request-Id`, limites de corps ; aligner les CIDR bypass avec `WAF_INTERNAL_BYPASS_*`.
+4. Tests : mêmes jeux de requêtes malveillantes qu’aujourd’hui sur `waf.js`, plus non-régression latence et WebSockets si concernés.
+
+---
+
 ## 🎯 Qu'est-ce que le WAF ?
 
 Le WAF protège votre application contre :
@@ -228,17 +247,24 @@ X-OWASP-Protection: ENABLED
 
 ---
 
-## 🔧 Mode Test / Développement
+## 🔧 Mode test / développement (contournement WAF)
 
-Le WAF ignore automatiquement :
-- Les tests Playwright
-- Les requêtes avec header `X-Test-Mode: true`
+En **non-production**, si `DEV_TEST_BYPASS_TOKEN` est défini dans l’environnement de la gateway **et** respecte le format **`jtbypass1-` + au moins 32 caractères** parmi `[A-Za-z0-9_-]` (voir `config/dev-test-bypass-format.cjs`), une requête peut transmettre le **même** secret dans l’en-tête **`X-JobbingTrack-Dev-Test-Token`**. Le WAF, la détection d’intrusion et le rate-limit ignorent alors la requête **uniquement** si le jeton correspond octet pour octet (comparaison résistante au timing).
+
+Un mot de passe métier, une URL ou une phrase « plausible » **ne peut pas** activer le bypass par erreur : le préfixe versionné est obligatoire ; génération recommandée via `node scripts/env/env-generate-secrets.cjs --write`.
+
+Ce mécanisme **remplace** d’anciens contournements basés sur `X-Test-Mode` ou sur un User-Agent « Playwright », trop faciles à falsifier.
 
 ```bash
-# Bypass WAF pour les tests
-curl -H "X-Test-Mode: true" http://localhost:3000/api/v1/users
+# Générer les secrets (dont DEV_TEST_BYPASS_TOKEN) :
+# node scripts/env/env-generate-secrets.cjs --write
+
+# Exemple (remplacer YOUR_TOKEN par la valeur de .env) :
+curl -H "X-JobbingTrack-Dev-Test-Token: YOUR_TOKEN" \
+  "http://localhost:3000/api/v1/companies?search=test"
 ```
 
+En **production**, `isDevTestBypassRequest` est toujours désactivé (`NODE_ENV=production`).
 ---
 
 ## ⚠️ Considérations Importantes

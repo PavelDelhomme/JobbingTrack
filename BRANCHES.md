@@ -85,3 +85,13 @@ Exemples :
 Certains workflows se declenchent selon les chemins modifies, les branches ou les evenements GitHub. Il est normal qu'un commit de documentation ne declenche pas exactement les memes jobs qu'un commit CI/backend/frontend.
 
 Action a faire : documenter dans `docs/ci-cd/README.md` la matrice exacte des triggers par workflow.
+
+## Integration sur `dev`
+
+Ordre conseille pour remettre le travail sur la branche principale de developpement :
+
+1. Terminer la correction sur une branche prefixee (`fix/...`, `feat/...`, `docs/...`, etc.), pousser, ouvrir une PR vers **`dev`** (ou merger localement apres rebase sur `dev` si vous travaillez seul).
+2. Une branche secondaire (ex. `docs/security-p0-triage`, `fix/dev-https-api-centralization`) se merge dans **`dev`** quand le sujet est clos ; eviter de melanger deux chantiers sans lien sur la meme branche (voir regles de commits ci-dessus).
+3. Apres merge, supprimer la branche distante si elle ne sert plus, et tirer `dev` a jour sur les postes de travail.
+
+Les noms de branches historiques ou experimentaux ne remplacent pas ce schema : tout finit sur **`dev`** par merge ou PR, sauf politique equipe differente documentee ailleurs.

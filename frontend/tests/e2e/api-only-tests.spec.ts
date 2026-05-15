@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import config from './test-config.js';
+import { devBypassExtraHeaders } from './envDevBypass';
 
-// Headers de test pour identifier les requêtes de test
+// UA de test (diagnostic) + jeton secret aligné sur la gateway (voir DEV_TEST_BYPASS_TOKEN).
 const testHeaders = {
   'User-Agent': 'Playwright-Test/1.0',
-  'X-Test-Mode': 'true'
+  ...devBypassExtraHeaders()
 };
 
 // Tests API fonctionnels — utilise un utilisateur classique (rôle USER)
