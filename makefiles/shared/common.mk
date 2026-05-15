@@ -229,6 +229,11 @@ COMPOSE_FILES_ESSENTIAL := -f docker-compose.yml
 # Fichiers pour tous les services (sans backend/docker-compose.yml qui peut redéfinir les contextes)
 COMPOSE_FILES_FULL := -f docker-compose.yml -f docker-compose.monitoring.yml
 
+# Essentiel + définition du proxy TLS local (évite WARN « orphan » sur jobbingtrack-dev-https-proxy après dev-https-up)
+COMPOSE_FILES_WITH_LOCAL_HTTPS := $(COMPOSE_FILES_ESSENTIAL) -f docker-compose.https.yml
+# Monitoring + même définition HTTPS (conteneur au profil https uniquement, non démarré par --profile monitoring)
+COMPOSE_FILES_FULL_WITH_LOCAL_HTTPS := $(COMPOSE_FILES_FULL) -f docker-compose.https.yml
+
 # Afficher la commande Docker Compose détectée
 DOCKER_COMPOSE_INFO := $(shell echo "🐳 Commande Docker Compose: $(DOCKER_COMPOSE_CMD)")
 

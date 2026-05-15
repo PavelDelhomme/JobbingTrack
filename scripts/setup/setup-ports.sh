@@ -55,7 +55,7 @@ update_env_var "DEPLOYMENT_SERVICE_PORT" "5018"
 update_env_var "FLUTTER_MOBILE_PORT" "5019"
 update_env_var "MONITORING_C_PORT" "5098"
 update_env_var "LOG_COLLECTOR_C_LEGACY_PORT" "5109"
-update_env_var "LOG_COLLECTOR_C_PORT" "5099"
+update_env_var "LOG_COLLECTOR_C_PORT" "5109"
 update_env_var "LOG_COLLECTOR_C_INTERNAL_PORT" "3019"
 update_env_var "LOG_COLLECTOR_RS_PORT" "5099"
 

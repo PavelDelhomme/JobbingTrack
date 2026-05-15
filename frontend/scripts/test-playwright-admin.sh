@@ -9,6 +9,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# shellcheck source=/dev/null
+source "$REPO_ROOT/scripts/env/dev-test-bypass-curl.inc.sh"
+jt_refresh_dev_bypass_curl_args
+
 # Couleurs pour les messages
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -97,7 +103,7 @@ if curl -s http://localhost:3000/health > /dev/null; then
     CREATE_RESPONSE=$(curl -s -X POST http://localhost:3000/api/v1/admin/test-users \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer mock-jwt-token-test" \
-        -H "X-Test-Mode: true" \
+        "${jt_dev_bypass_curl_args[@]}" \
         -d "{\"email\":\"$USER_EMAIL\",\"password\":\"testpass123\",\"firstName\":\"Test\",\"lastName\":\"Admin\",\"role\":\"ADMIN\"}")
 
     if echo "$CREATE_RESPONSE" | grep -q "success"; then
@@ -109,7 +115,7 @@ if curl -s http://localhost:3000/health > /dev/null; then
     # Test de liste des utilisateurs
     LIST_RESPONSE=$(curl -s http://localhost:3000/api/v1/admin/test-users \
         -H "Authorization: Bearer mock-jwt-token-test" \
-        -H "X-Test-Mode: true")
+        "${jt_dev_bypass_curl_args[@]}")
 
     if echo "$LIST_RESPONSE" | grep -q "success"; then
         echo -e "${GREEN}✅ Liste des utilisateurs accessible${NC}"
@@ -120,7 +126,7 @@ if curl -s http://localhost:3000/health > /dev/null; then
     # Test de suppression de l'utilisateur
     DELETE_RESPONSE=$(curl -s -X DELETE http://localhost:3000/api/v1/admin/test-users/$USER_EMAIL \
         -H "Authorization: Bearer mock-jwt-token-test" \
-        -H "X-Test-Mode: true")
+        "${jt_dev_bypass_curl_args[@]}")
 
     if echo "$DELETE_RESPONSE" | grep -q "success"; then
         echo -e "${GREEN}✅ Utilisateur supprimé via API${NC}"

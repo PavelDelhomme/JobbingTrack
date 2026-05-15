@@ -11,6 +11,7 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 ## 📚 Guides Disponibles
 
 ### 🔐 Sécurité des Services
+- **[Audit sécurité projet](AUDIT_SEC_PROJECT.md)** — synthèse risques P0, rapports, suites attendues.
 - **[Architecture security-service](ARCHITECTURE_SECURITY_SERVICE.md)** – Périmètre, base dédiée, accès API.
 - **[Monitoring CVE continu](CVE_CONTINUOUS_MONITORING.md)** – Scan CVE multi-technologies, alertes mail critiques, score sécurité et protection des logs.
 - **[Intégration Dependabot Alerts](DEPENDABOT_ALERTS_INTEGRATION.md)** – Mapping GitHub Dependabot vers la table `vulnerabilities` et alertes supply-chain.
@@ -33,10 +34,17 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 - Audit logging
 
 ### Protection des Données
-- Chiffrement au repos
+- Chiffrement au repos (voir ci-dessous : disque hôte / cloud, pas une option magique « par volume Docker »)
 - Chiffrement en transit (TLS/SSL)
 - Hashage des mots de passe (bcrypt)
 - Sanitization des inputs
+
+#### Volumes Docker et chiffrement au repos
+
+Les **volumes nommés** (`postgres_data`, etc.) sont stockés par le moteur Docker sur le **système de fichiers de l’hôte** (souvent sous `/var/lib/docker/volumes/`). Docker Community ne propose pas un interrupteur du type « chiffrer ce volume seul » : la protection **au repos** des données sur disque relève du **chiffrement du disque ou du volume managé** (LUKS sur machine, disque chiffré chez le cloud provider, politique de la VM).
+
+- **Développement local** : en pratique, un **disque portable chiffré** (ou équivalent) suffit souvent ; pas besoin d’un développement spécifique « chiffrement volume Docker » dans le dépôt.
+- **Production** : activer le **chiffrement côté hébergeur** pour les volumes/disques qui portent PostgreSQL et Redis ; traiter à part les **sauvegardes** (dumps chiffrés, intégrité) — trajectoire **lot G** dans `docs/PLAN.md` et entrées associées dans `docs/TODOS.md`.
 
 ### Sécurité Infrastructure
 - Firewall et règles réseau
@@ -47,4 +55,4 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 ---
 
 **Version**: 4.1 - Guide sécurité
-**Dernière mise à jour** : Mars 2026
+**Dernière mise à jour** : mai 2026

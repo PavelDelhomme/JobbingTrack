@@ -5,7 +5,11 @@
  * pour les tests Playwright
  */
 
+const path = require('path');
+const { devTestBypassFetchHeaders } = require('../../scripts/env/dev-test-bypass-fetch.cjs');
+
 const API_BASE_URL = 'http://localhost:3000';
+const bypassHeaders = () => devTestBypassFetchHeaders(path.join(__dirname, '..', '..'));
 
 async function testUserCreation() {
     console.log('👤 Test de la création d\'utilisateurs de test...\n');
@@ -26,7 +30,7 @@ async function testUserCreation() {
         const listResponse = await fetch(`${API_BASE_URL}/api/v1/admin/test-users`, {
             headers: {
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             }
         });
 
@@ -48,7 +52,7 @@ async function testUserCreation() {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             },
             body: JSON.stringify({
                 email: newUserEmail,
@@ -72,7 +76,7 @@ async function testUserCreation() {
         const verifyResponse = await fetch(`${API_BASE_URL}/api/v1/admin/test-users`, {
             headers: {
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             }
         });
 
@@ -92,7 +96,7 @@ async function testUserCreation() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             },
             body: JSON.stringify({
                 email: newUserEmail,
@@ -114,7 +118,7 @@ async function testUserCreation() {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer mock-jwt-token-test',
-                'X-Test-Mode': 'true'
+                ...bypassHeaders()
             }
         });
 

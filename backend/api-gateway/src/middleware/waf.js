@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const { isDevTestBypassRequest } = require('../utils/devTestBypassRequest');
 
 // Configuration des règles WAF OWASP
 const WAF_RULES = {
@@ -254,12 +255,12 @@ const detectAttack = (input, rules) => {
 // Fonction principale de vérification WAF
 const wafCheck = async (req, res, next) => {
   try {
-    // Vérifier si c'est un test - ignorer le WAF pour les tests
-    if (req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright')) {
+    // Contournement WAF réservé au non-prod : en-tête secret (jamais X-Test-Mode / User-Agent Playwright).
+    if (isDevTestBypassRequest(req)) {
       res.set({
-        'X-WAF-Status': 'TEST_MODE',
+        'X-WAF-Status': 'DEV_TEST_BYPASS',
         'X-Protected-By': 'JobbingTrack-WAF',
-        'X-OWASP-Protection': 'DISABLED_FOR_TESTS'
+        'X-OWASP-Protection': 'DISABLED_FOR_DEV_TEST_TOKEN'
       });
       return next();
     }

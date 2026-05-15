@@ -85,7 +85,7 @@ Pour chaque ligne :
 | `TODOS.md` | Les taches a faire sont en premier et les realises n'encombrent pas la priorite | [ ] | |
 | `STATUS.md` | Le statut explique l'etat reel sans sur-vendre | [ ] | |
 | `PLAN.md` | La colonne "Valide porteur" est a jour | [ ] | |
-| `AUDIT_SEC_PROJECT.md` | Les risques securite sont comprehensibles | [ ] | |
+| `docs/security/AUDIT_SEC_PROJECT.md` | Les risques sécurité sont compréhensibles | [ ] | |
 | `monitoring/RAPPORT_MONITORING_GOOD_PRACTICE_GO_AND_C.md` | La strategie C/Rust est claire | [ ] | |
 | `BRANCHES.md` | Les conventions sont acceptables | [ ] | |
 

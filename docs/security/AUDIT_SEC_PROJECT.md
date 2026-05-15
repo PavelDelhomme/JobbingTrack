@@ -151,8 +151,8 @@ Action :
 
 Etat :
 
-- `monitoring-agent-rs` et `log-collector-rs` sont actifs par defaut.
-- `monitoring-c` reste fallback legacy.
+- `monitoring-agent-rs` et `log-collector-rs` sont la trajectoire courante (profils Compose `full` / `monitoring`).
+- `monitoring-c` reste fallback legacy (profil `monitoring-c`).
 - Des alertes `service down` existent partiellement via `security-service`.
 
 Risque :

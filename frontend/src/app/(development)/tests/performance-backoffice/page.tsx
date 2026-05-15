@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { FRONTEND_URLS } from '@/config/ports.config';
 import {
   Play,
   Square,
@@ -117,7 +116,7 @@ import { Switch } from '@/components/ui';
 import { Separator } from '@/components/ui';
 import { Progress } from '@/components/ui';
 
-const API_GATEWAY_URL = FRONTEND_URLS.api;
+// Appels API via le même hôte que la page → Next.js rewrite vers api-gateway.
 
 // Types pour l'interface des tests de performance
 interface PerformanceTest {
@@ -201,11 +200,10 @@ export default function PerformanceTestsPage() {
   // Charger les services disponibles
   const loadAvailableServices = async () => {
     try {
-      const response = await fetch(`${API_GATEWAY_URL}/api/v1/services`, {
+      const response = await fetch('/api/v1/services', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -228,11 +226,10 @@ export default function PerformanceTestsPage() {
   // Charger l'historique des tests
   const loadTestHistory = async () => {
     try {
-      const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/history`, {
+      const response = await fetch('/api/v1/admin/performance/history', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -265,12 +262,11 @@ export default function PerformanceTestsPage() {
     addLog(`👥 Utilisateurs concurrents: ${testConfig.concurrentUsers}`);
 
     try {
-      const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/run`, {
+      const response = await fetch('/api/v1/admin/performance/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           testType: testConfig.type,
@@ -293,11 +289,10 @@ export default function PerformanceTestsPage() {
       // Suivre la progression
       const progressInterval = setInterval(async () => {
         try {
-          const statusResponse = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/status/${executionId}`, {
+          const statusResponse = await fetch(`/api/v1/admin/performance/status/${executionId}`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Test-Mode': 'true'
-            }
+              Authorization: `Bearer ${token}`,
+            },
           });
 
           if (statusResponse.ok) {
@@ -347,11 +342,10 @@ export default function PerformanceTestsPage() {
     if (!testResults) return;
 
     try {
-      const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/report`, {
+      const response = await fetch('/api/v1/admin/performance/report', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
