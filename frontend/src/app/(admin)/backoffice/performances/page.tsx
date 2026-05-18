@@ -59,7 +59,7 @@ const SystemCpuMemoryAreaCharts = dynamic(
 
 const SystemCpuNetworkCorrelationChart = dynamic(
   () =>
-    import("@/components/charts/SystemCpuNetworkCorrelationChart").then(
+    import("@/components/charts/performancesHeavyCharts").then(
       (m) => m.SystemCpuNetworkCorrelationChart,
     ),
   { ssr: false, loading: chartHeavyLoading },

@@ -293,3 +293,5 @@ export function PerformancesLiveEndpointsBarChart({
     </ResponsiveContainer>
   );
 }
+
+export { SystemCpuNetworkCorrelationChart } from "./SystemCpuNetworkCorrelationChart";

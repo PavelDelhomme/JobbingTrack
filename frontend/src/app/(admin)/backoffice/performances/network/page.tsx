@@ -7,7 +7,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { PerformancesSubNav } from "../PerformancesSubNav";
@@ -51,21 +50,7 @@ import {
   systemNetworkRateAxisMax,
   type SystemNetworkMbRow,
 } from "@/lib/charts/systemMetricsSeriesModel";
-
-const SystemCpuNetworkCorrelationChart = dynamic(
-  () =>
-    import("@/components/charts/SystemCpuNetworkCorrelationChart").then(
-      (m) => m.SystemCpuNetworkCorrelationChart,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-400">
-        Chargement du graphique de corrélation…
-      </div>
-    ),
-  },
-);
+import { SystemCpuNetworkCorrelationChart } from "@/components/charts/SystemCpuNetworkCorrelationChart";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const TARGET_POINTS = 200;
