@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JobbingTrack — Service indisponible</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --accent:#fbbf24; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text);
+      display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+    main { max-width:32rem; background:var(--card); border-radius:12px; padding:2rem; border:1px solid #334155; }
+    h1 { font-size:1.25rem; margin:0 0 0.5rem; font-weight:600; }
+    p { color:var(--muted); line-height:1.55; margin:0.75rem 0 0; font-size:0.95rem; }
+    code { font-size:0.85rem; background:#0f172a; padding:0.15rem 0.4rem; border-radius:4px; color:var(--accent); }
+    .badge { display:inline-block; font-size:0.75rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); margin-bottom:0.75rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">503 Service Unavailable</span>
+    <h1>Service momentanément saturé ou en maintenance</h1>
+    <p>Réessayez dans quelques instants. Si le problème persiste, consultez <code>make status</code> et les logs des conteneurs JobbingTrack.</p>
+  </main>
+</body>
+</html>

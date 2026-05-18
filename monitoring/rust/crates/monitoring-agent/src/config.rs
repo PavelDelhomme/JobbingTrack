@@ -28,9 +28,31 @@ impl Config {
 }
 
 fn database_url_from_env() -> String {
+    if let Some(url) = url_from_postgres_parts() {
+        return normalize_postgres_url(&url);
+    }
     env::var("DATABASE_URL")
         .map(|value| normalize_postgres_url(&value))
-        .unwrap_or_else(|_| fallback_database_url())
+        .unwrap_or_else(|_| normalize_postgres_url(&fallback_database_url()))
+}
+
+/// Si `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` sont tous définis, on reconstruit
+/// l’URL avec encodage userinfo (Compose interpolait souvent `DATABASE_URL` sans `%`-encoding).
+fn url_from_postgres_parts() -> Option<String> {
+    let user = env::var("POSTGRES_USER").ok()?;
+    let password = env::var("POSTGRES_PASSWORD").ok()?;
+    let db = env::var("POSTGRES_DB").ok()?;
+    if user.is_empty() || db.is_empty() {
+        return None;
+    }
+    let host = env::var("POSTGRES_HOST").unwrap_or_else(|_| DEFAULT_POSTGRES_HOST.to_string());
+    let port = env::var("POSTGRES_PORT").unwrap_or_else(|_| DEFAULT_POSTGRES_PORT.to_string());
+    Some(format!(
+        "postgresql://{}:{}@{host}:{port}/{}",
+        encode_pg_component(&user),
+        encode_pg_component(&password),
+        encode_pg_component(&db),
+    ))
 }
 
 fn fallback_database_url() -> String {
@@ -40,7 +62,26 @@ fn fallback_database_url() -> String {
     let user = env::var("POSTGRES_USER").unwrap_or_else(|_| DEFAULT_POSTGRES_USER.to_string());
     let password =
         env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| DEFAULT_POSTGRES_PASSWORD.to_string());
-    format!("postgresql://{user}:{password}@{host}:{port}/{db}")
+    format!(
+        "postgresql://{}:{}@{host}:{port}/{}",
+        encode_pg_component(&user),
+        encode_pg_component(&password),
+        encode_pg_component(&db),
+    )
+}
+
+/// Encodage « userinfo » (octets UTF-8), pour mots de passe avec `@ : # + %` etc.
+fn encode_pg_component(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for &b in s.as_bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char);
+            }
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
 }
 
 fn normalize_postgres_url(raw: &str) -> String {

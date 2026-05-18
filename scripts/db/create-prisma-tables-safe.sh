@@ -52,10 +52,12 @@ docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack < moni
 echo "✅ Tables de monitoring-c recréées"
 echo ""
 
-echo "4️⃣  Redémarrage de monitoring-c..."
-docker restart jobbingtrack-monitoring-c > /dev/null 2>&1
+echo "4️⃣  Redémarrage du collecteur monitoring (Rust si présent, sinon legacy C)…"
+docker restart jobbingtrack-monitoring-agent-rs > /dev/null 2>&1 || true
+docker restart jobbingtrack-log-collector-rs > /dev/null 2>&1 || true
+docker restart jobbingtrack-monitoring-c > /dev/null 2>&1 || true
 sleep 3
-echo "✅ monitoring-c redémarré"
+echo "✅ Collecteur(s) redémarré(s) si les conteneurs existaient"
 echo ""
 
 echo "5️⃣  Vérification..."

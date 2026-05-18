@@ -67,8 +67,8 @@ SERVICES=(
     "jobbingtrack-workflow-service:5016"
     "jobbingtrack-security-service:5017"
     "jobbingtrack-deployment-service:5018"
-    "jobbingtrack-monitoring-c:5098"
-    "jobbingtrack-log-collector-c:3019"
+    "jobbingtrack-monitoring-agent-rs:5118"
+    "jobbingtrack-log-collector-rs:5099"
 )
 
 for service_port in "${SERVICES[@]}"; do
@@ -107,7 +107,7 @@ check_endpoint() {
 check_endpoint "http://localhost:5002/health" "API Gateway"
 check_endpoint "http://localhost:5003" "Frontend"
 check_endpoint "http://localhost:5005/api/v1/auth/health" "Auth Service"
-check_endpoint "http://localhost:5098/api/v1/metrics" "Monitoring-C"
+check_endpoint "http://localhost:5118/api/v1/metrics" "Monitoring agent Rust"
 
 # 4. Vérifier les logs d'erreurs
 echo "📋 Vérification des logs d'erreurs..."

@@ -82,6 +82,7 @@ services:
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
+      - ./config:/app/config:ro
       - ./backend/api-gateway/package.json:/app/package.json:ro
       # Script génération données de test (route admin generate-test-data)
       - ./backend/scripts/testing/generate-test-data.js:/app/generate-test-data.js:ro
@@ -123,7 +124,7 @@ services:
       - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_AGGREGATOR_INTERNAL_URL=http://jobbingtrack-metrics-aggregator:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}
       - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
-      - NEXT_DIST_DIR=/tmp/.next-local
+      - NEXT_DIST_DIR=.next-local
       - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
@@ -152,7 +153,6 @@ services:
       - ./tests:/app/tests:ro
       - ./tests/user-journey-reports:/tmp/tests/user-journey-reports
       - /app/node_modules
-      - /app/.next
     # Aligner l'utilisateur conteneur sur l'utilisateur hôte (pactivisme=1000)
     # pour éviter EACCES sur /app/tsconfig.json et autres fichiers bind-mount.
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
@@ -285,7 +285,7 @@ services:
       - full
       - monitoring
 
-  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-agent-rs, fallback C puis Node)
+  # Metrics Aggregator – API unique pour le backoffice (monitoring-agent-rs par défaut ; C optionnel via MONITORING_C_URL)
   jobbingtrack-metrics-aggregator:
     image: jobbingtrack-metrics-aggregator
     build:
@@ -306,6 +306,12 @@ services:
       - AGGREGATOR_PERSIST_INTERVAL_MS=${AGGREGATOR_PERSIST_INTERVAL_MS:-60000}
       - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # Variables discrètes : le metrics-aggregator reconstruit DATABASE_URL avec encodage URL (mots de passe spéciaux).
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
       - DOCKER_FALLBACK_INTERVAL_MS=${DOCKER_FALLBACK_INTERVAL_MS:-0}
       - DOCKER_SERVICES_ALL_CACHE_TTL_MS=${DOCKER_SERVICES_ALL_CACHE_TTL_MS:-60000}
       - ENABLE_DOCKER_LOGS_COLLECTION=${ENABLE_DOCKER_LOGS_COLLECTION:-false}
@@ -317,7 +323,8 @@ services:
       - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-30}
       - MONITORING_AGENT_URL=${MONITORING_AGENT_URL:-http://monitoring-agent-rs:8015}
-      - MONITORING_C_URL=${MONITORING_C_URL:-http://monitoring-c:8015}
+      # Collecteur C : uniquement si vous lancez explicitement `monitoring-c` (profil monitoring-c) et pointez l’URL ici.
+      - MONITORING_C_URL=${MONITORING_C_URL:-}
       - NODE_ENV=development
       - PORT=3014
       - POSTGRES_SYSTEM_METRICS_TZ=${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
@@ -336,8 +343,11 @@ services:
         condition: service_healthy
       monitoring-agent-rs:
         condition: service_started
+      log-collector-rs:
+        condition: service_started
     restart: unless-stopped
     profiles:
+      - full
       - monitoring
 
   # =====================================
@@ -356,34 +366,36 @@ services:
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/auth-service/src:/app/src
+      - ./config:/app/config:ro
       - ./backend/auth-service/package.json:/app/package.json:ro
       # ✅ Monter les tests email centralisés pour auth-service
       - ./tests/email/auth-service:/app/tests/email:ro
     command: npm run dev
     environment:
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.test}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-      - APP_URL=${APP_URL:-http://localhost:5003}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
-      - HOST_IP=${HOST_IP:-localhost}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
-      - NODE_ENV=${NODE_ENV:-development}
-      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
-      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:-http://security-service:3017}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_HOST=${SMTP_HOST:-ssl0.ovh.net}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_PORT=${SMTP_PORT:-465}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS in .env}
+      - APP_URL=${APP_URL:?set APP_URL in .env}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}?schema=public
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:?set EMAIL_PROVIDER in .env}
+      - FRONTEND_URL=${FRONTEND_URL:?set FRONTEND_URL in .env}
+      - HOST_IP=${HOST_IP:?set HOST_IP in .env}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in .env}
+      - NODE_ENV=${NODE_ENV:?set NODE_ENV in .env}
+      - PORT=3001
+      - REDIS_URL=redis://${REDIS_HOST:?set REDIS_HOST}:${REDIS_INTERNAL_PORT:?set REDIS_INTERNAL_PORT}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:?set SECURITY_INTERNAL_SECRET in .env}
+      - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:?set SECURITY_SERVICE_URL in .env}
+      - SMTP_FROM=${SMTP_FROM:?set SMTP_FROM in .env}
+      - SMTP_HOST=${SMTP_HOST:?set SMTP_HOST in .env}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_PORT=${SMTP_PORT:?set SMTP_PORT in .env}
       - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
-      - SMTP_SECURE=${SMTP_SECURE:-false}
-      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
-      - SMTP_USER=${SMTP_USER}
+      - SMTP_SECURE=${SMTP_SECURE:?set SMTP_SECURE in .env}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:?set SMTP_USE_SSL in .env}
+      - SMTP_USER=${SMTP_USER:?set SMTP_USER in .env}
     networks:
       - jobbingtrack-network
     depends_on:

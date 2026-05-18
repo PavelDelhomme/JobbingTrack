@@ -1,5 +1,6 @@
-# Configuration pour le nouveau système de monitoring en C
-# Remplace progressivement metrics-aggregator-service et Loki
+# Fichier additionnel pour le legacy C (profil monitoring-c uniquement).
+# Le parcours par défaut (full / monitoring) utilise monitoring-agent-rs + log-collector-rs
+# définis dans docker-compose.yml.
 
 networks:
   jobbingtrack-network:
@@ -8,43 +9,7 @@ networks:
     # Utiliser le même réseau que docker-compose.yml principal
 
 services:
-  # Nouveau système de monitoring en C (ultra-léger)
-  monitoring-c:
-    build:
-      context: ./monitoring/monitoring-c
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-monitoring-c
-    user: "0:0"
-    ports:
-      - "5098:8015"
-    environment:
-      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-30}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - jobbingtrack-network
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "monitoring-c"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    profiles:
-      - monitoring-c
-      - full
-
-  # Collecteur de logs C legacy (fallback pendant la migration Rust).
+  # Collecteur de logs C legacy — uniquement avec `make monitoring-c-up` / profil monitoring-c.
   log-collector-c:
     build:
       context: ./monitoring/log-collector-c
@@ -79,4 +44,3 @@ services:
     restart: unless-stopped
     profiles:
       - monitoring-c
-
