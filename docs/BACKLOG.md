@@ -6,6 +6,14 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Méta (11/05/2026)** : la racine ne garde que `README.md`; les fichiers de pilotage sont sous `docs/`. Revue **BDD** avant campagne de tests, interprétation des **logs gateway sécurité** et suite sécurité — voir **`docs/TODOS.md`** et **`docs/STATUS.md`**.
 
+**Statistics & monitoring global (18/05/2026)** : KPI services et graphes erreur/disponibilité sur **`/backoffice/statistics`** + vue d’ensemble **`/backoffice`** — chantier planifié **`PLAN.md` A1h** et cases détaillées **`TODOS.md`** § **Chantier Statistiques & backoffice** (ne pas dupliquer ici).
+
+**Sécurité — libellés & navigation (18/05/2026)** : pages **`/b4ck0ff1ce/security/**`** (policies, logs, etc.) — reprendre noms/titres/sous-nav (**`SecuritySubNav`**, FR, fallbacks) — **`PLAN.md` B10** + priorité rapide **`TODOS.md`**.
+
+**WAF faux positif `consolidated=true` (18/05/2026)** : logs gateway **XSS** sur `blocked-ips?consolidated=true` — analyse **`TODOS.md`** § WAF ; correctif après validation porteur.
+
+**Vision DHT / réseau décentralisé (fin de projet)** : idée annuaire éclaté + relais chiffrés — **`TODOS.md`** bas de fichier ; **pas** dans le scope actuel.
+
 ---
 
 ## Terminé récemment
