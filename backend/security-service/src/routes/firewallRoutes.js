@@ -31,6 +31,7 @@ router.get('/network/containers/:containerId', firewallController.getContainerSt
 router.post('/block-ip', firewallController.blockIp);
 router.post('/unblock-ip', firewallController.unblockIp);
 router.get('/blocked-ips', firewallController.getBlockedIps);
+router.post('/lab/sample-threat', firewallController.createLabSampleThreat);
 
 module.exports = router;
 
