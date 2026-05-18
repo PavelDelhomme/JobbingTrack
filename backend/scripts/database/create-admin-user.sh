@@ -57,6 +57,68 @@ if [ -z "$ADMIN_PASSWORD" ]; then
     exit 1
 fi
 
+# Hash / upsert via variables d'environnement (évite la casse du mot de passe avec $, ', ", etc. dans node -e '…').
+upsert_admin_via_auth_service() {
+    local auth_container="$1"
+    if [ -z "$auth_container" ]; then
+        return 1
+    fi
+    docker exec \
+        -e "ADMIN_EMAIL=$ADMIN_EMAIL" \
+        -e "ADMIN_PASSWORD=$ADMIN_PASSWORD" \
+        -e "ADMIN_FIRST_NAME=$ADMIN_FIRST_NAME" \
+        -e "ADMIN_LAST_NAME=$ADMIN_LAST_NAME" \
+        "$auth_container" node -e '
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+(async () => {
+  const email = process.env.ADMIN_EMAIL;
+  const plain = process.env.ADMIN_PASSWORD;
+  const firstName = process.env.ADMIN_FIRST_NAME || "Admin";
+  const lastName = process.env.ADMIN_LAST_NAME || "JobbingTrack";
+  if (!email || !plain) {
+    console.error("ADMIN_EMAIL ou ADMIN_PASSWORD manquant");
+    process.exit(1);
+  }
+  const prisma = new PrismaClient();
+  const hashedPassword = await bcrypt.hash(plain, 10);
+  await prisma.user.upsert({
+    where: { email },
+    update: {
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role: "SUPER_ADMIN",
+      isActive: true,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    },
+    create: {
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role: "SUPER_ADMIN",
+      isActive: true,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    },
+  });
+  const user = await prisma.user.findUnique({ where: { email } });
+  const verify = await bcrypt.compare(plain, user.password);
+  if (!verify) {
+    console.error("VERIFY_FAILED");
+    process.exit(1);
+  }
+  console.log("OK");
+  await prisma.$disconnect();
+})().catch((err) => {
+  console.error(err.message || err);
+  process.exit(1);
+});
+' 2>/dev/null | grep -q OK
+}
+
 echo -e "${YELLOW}👤 Création de l'utilisateur administrateur...${NC}"
 
 # Vérifier si Docker est disponible
@@ -231,34 +293,11 @@ if command -v docker &> /dev/null; then
     else
         echo "🔄 Utilisateur déjà existant, mise à jour..."
         AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-auth-service 2>/dev/null)
-        if [ -n "$AUTH_CONTAINER" ]; then
-            BCRYPT_HASH="$(docker exec $AUTH_CONTAINER node -e "console.log(require('bcryptjs').hashSync('$ADMIN_PASSWORD', 10))" 2>/dev/null || true)"
-        fi
-        if [ -z "${BCRYPT_HASH:-}" ]; then
-            echo -e "${RED}❌ Impossible de hasher ADMIN_PASSWORD : auth-service indisponible ou bcryptjs manquant${NC}"
-            exit 1
-        fi
-        BCRYPT_ESC=$(echo "$BCRYPT_HASH" | sed 's/\$/\\$/g')
-        UPDATE_RESULT=$(docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
-        UPDATE \"User\" SET
-            password = '$BCRYPT_ESC',
-            \"firstName\" = '$ADMIN_FIRST_NAME',
-            \"lastName\" = '$ADMIN_LAST_NAME',
-            role = 'SUPER_ADMIN',
-            \"isActive\" = true,
-            \"emailVerified\" = true,
-            \"emailVerifiedAt\" = NOW(),
-            \"updatedAt\" = NOW()
-        WHERE email = '$ADMIN_EMAIL';
-        " 2>&1)
-        
-        # UPDATE peut retourner "UPDATE 0" si rien n'a changé, ce n'est pas une erreur
-        if echo "$UPDATE_RESULT" | grep -q "ERROR"; then
-            echo -e "${RED}❌ Erreur lors de la mise à jour de l'utilisateur${NC}"
-            echo "$UPDATE_RESULT"
-            exit 1
+        if [ -n "$AUTH_CONTAINER" ] && upsert_admin_via_auth_service "$AUTH_CONTAINER"; then
+            echo "✅ Utilisateur vérifié/mis à jour (Prisma + bcrypt, mot de passe aligné sur ADMIN_PASSWORD)"
         else
-            echo "✅ Utilisateur vérifié/mis à jour"
+            echo -e "${RED}❌ Impossible de mettre à jour l'admin : auth-service indisponible ou vérification bcrypt échouée${NC}"
+            exit 1
         fi
     fi
 
