@@ -6,6 +6,7 @@ import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { Pagination } from "@/components/ui/Pagination";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
@@ -106,7 +107,7 @@ export default function ThreatsPage() {
           }),
           axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`, {
             headers,
-            params: { consolidated: true },
+            params: { all: true },
             timeout: 5000,
           }),
         ]);
@@ -316,7 +317,7 @@ export default function ThreatsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* En-tête */}
+        <SecuritySubNav />
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">

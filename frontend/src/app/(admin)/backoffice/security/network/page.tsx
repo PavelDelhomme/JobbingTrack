@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
 import axios from "axios";
@@ -183,7 +184,7 @@ export default function NetworkStatsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* En-tête */}
+        <SecuritySubNav />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">

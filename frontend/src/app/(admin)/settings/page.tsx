@@ -14,6 +14,7 @@ import {
   Calendar,
   Wifi,
 } from "lucide-react";
+import { SecurityAlertEmailSettings } from "@/components/security/SecurityAlertEmailSettings";
 import { AdminLayout } from "@/components/features";
 import { useCustomization } from "@/hooks/useCustomization";
 import { useTranslation } from "@/lib/hooks/useTranslation";
@@ -473,6 +474,8 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <SecurityAlertEmailSettings />
           </TabsContent>
 
           {/* Onglet Accessibilité */}

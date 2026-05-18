@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import axios from "axios";
 
@@ -294,6 +295,7 @@ export default function SecurityPoliciesPage() {
   return (
     <AdminLayout>
       <div className="space-y-8">
+        <SecuritySubNav />
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             Politiques de sécurité

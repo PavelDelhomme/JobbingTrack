@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../SecuritySubNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
@@ -25,6 +27,8 @@ const LOGS_PAGE_SIZE = 25;
 const DEFAULT_LOG_WINDOW_DAYS = 30;
 
 export default function SecurityLogsPage() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight") || "";
   const [logs, setLogs] = useState<SecurityLog[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -217,15 +221,16 @@ export default function SecurityLogsPage() {
 
   return (
     <AdminLayout>
-      <div>
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="space-y-6">
+        <SecuritySubNav />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              📋 Security Logs
+              📋 Logs de sécurité
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Monitor security events in real time (auto-refresh every 15
-              seconds)
+              Événements de sécurité en temps réel (actualisation automatique
+              toutes les 15 secondes, page conservée dans l’URL)
             </p>
           </div>
           <div className="flex gap-2">
@@ -347,7 +352,12 @@ export default function SecurityLogsPage() {
                 {paginatedLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    id={log.id === highlightId ? "log-highlight" : undefined}
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      log.id === highlightId
+                        ? "ring-2 ring-red-500 bg-red-50/50 dark:bg-red-950/30"
+                        : ""
+                    }`}
                   >
                     <td className="px-6 py-4">
                       <span
