@@ -117,16 +117,29 @@ function mapNetworkConnectionToThreatConnection(conn) {
   };
 }
 
-function buildThreatInvestigation(threat, related) {
+function enrichConnectionDetailForInvestigation(conn, detectedAtIso) {
+  return {
+    ...conn,
+    serviceLabel: resolveContainerLabel(conn),
+    observedAt: conn.observedAt || conn.createdAt || detectedAtIso || null
+  };
+}
+
+async function buildThreatInvestigation(threat, related) {
   const enriched = enrichThreatForApi(threat);
   const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
-  const geo = lookupGeoIp(enriched.sourceIp);
+  const geo = await lookupGeoIp(enriched.sourceIp);
   const logsSummary = summarizeSecurityLogs(related.securityLogs);
   const persistedConnections = Array.isArray(related.networkConnections)
     ? related.networkConnections.map(mapNetworkConnectionToThreatConnection)
     : [];
   const metadataConnections = Array.isArray(meta.connectionDetails) ? meta.connectionDetails : [];
-  const connectionDetails = metadataConnections.length > 0 ? metadataConnections : persistedConnections;
+  const detectedAtIso = enriched.detectedAt || meta.detectedAt || null;
+  const connectionDetailsRaw =
+    metadataConnections.length > 0 ? metadataConnections : persistedConnections;
+  const connectionDetails = connectionDetailsRaw.map((conn) =>
+    enrichConnectionDetailForInvestigation(conn, detectedAtIso)
+  );
   const ports = Array.isArray(meta.ports) && meta.ports.length > 0
     ? meta.ports
     : [...new Set(persistedConnections.map((conn) => conn.localPort).filter(Boolean))];
@@ -146,25 +159,44 @@ function buildThreatInvestigation(threat, related) {
   }
 
   const missingTelemetry = [];
-  if (!geo) missingTelemetry.push('GeoIP/ASN public indisponible pour cette IP');
-  if (!meta.proxy && !meta.vpn && !meta.asn) missingTelemetry.push('Détection VPN/proxy/ASN non branchée à un provider threat-intel');
+  const privateIp = isPrivateIp(enriched.sourceIp);
+  if (privateIp) {
+    missingTelemetry.push(
+      'IP privée (Docker/LAN) — géolocalisation publique et réputation ASN/VPN non applicables'
+    );
+  } else if (!geo) {
+    missingTelemetry.push('GeoIP/ASN public indisponible pour cette IP');
+  }
+  if (
+    !privateIp &&
+    meta.proxy == null &&
+    meta.vpn == null &&
+    meta.asn == null &&
+    geo?.proxy == null &&
+    geo?.asn == null
+  ) {
+    missingTelemetry.push(
+      'Détection VPN/proxy/ASN non confirmée (provider indisponible ou métadonnées absentes)'
+    );
+  }
   if (connectionDetails.length === 0) missingTelemetry.push('Aucun détail de connexion réseau brut conservé');
   if (related.securityLogs.length === 0) missingTelemetry.push('Aucun log sécurité corrélé à cette IP ou menace');
 
   return {
     attacker: {
       ip: enriched.sourceIp,
-      isPrivateIp: isPrivateIp(enriched.sourceIp),
+      isPrivateIp: privateIp,
       country: geo?.country || null,
       city: geo?.city || null,
       region: geo?.region || null,
       timezone: geo?.timezone || null,
       ll: geo?.ll || null,
-      proxy: meta.proxy ?? null,
-      vpn: meta.vpn ?? null,
-      tor: meta.tor ?? null,
-      asn: meta.asn ?? null,
-      organization: meta.organization ?? null
+      locationNote: geo?.note || null,
+      proxy: meta.proxy ?? geo?.proxy ?? null,
+      vpn: meta.vpn ?? geo?.vpn ?? null,
+      tor: meta.tor ?? geo?.tor ?? null,
+      asn: meta.asn ?? geo?.asn ?? null,
+      organization: meta.organization ?? geo?.organization ?? null
     },
     target: {
       ip: destIpFallback,
@@ -175,7 +207,7 @@ function buildThreatInvestigation(threat, related) {
     },
     application: {
       logs: logsSummary,
-      recentEvents: related.securityLogs.slice(0, 10).map((log) => ({
+      recentEvents: related.securityLogs.slice(0, 25).map((log) => ({
         id: log.id,
         timestamp: log.timestamp,
         level: log.level,
@@ -187,7 +219,11 @@ function buildThreatInvestigation(threat, related) {
         responseTime: log.responseTime,
         riskScore: log.riskScore,
         isBlocked: log.isBlocked,
-        message: log.message
+        message: log.message,
+        sourceIP: log.sourceIP,
+        userId: log.userId,
+        metadata:
+          log.metadata && typeof log.metadata === 'object' ? log.metadata : null
       }))
     },
     network: {
@@ -331,7 +367,7 @@ const PORT_SERVICE_HINTS = {
   3005: 'port-3005 (interviews)',
   3006: 'port-3006 (notifications)',
   3007: 'port-3007 (dashboard)',
-  3008: 'port-3008 (calls)',
+  3008: 'port-3008 (calls / notification — interne Docker)',
   3009: 'port-3009 (profile)',
   3011: 'port-3011 (events)',
   3012: 'port-3012 (followups)',
@@ -350,9 +386,12 @@ function resolveContainerLabel(conn = {}) {
   const localIp = String(conn.localIp || '');
   if (localIp.startsWith('127.') || localIp === '::1') return 'host-local';
   if (localIp.startsWith('172.') || localIp.startsWith('10.') || localIp.startsWith('192.168.')) return 'host-network';
+  const rp = Number(conn.remotePort);
+  if (rp && PORT_SERVICE_HINTS[rp]) return PORT_SERVICE_HINTS[rp];
   const lp = Number(conn.localPort);
   if (lp && PORT_SERVICE_HINTS[lp]) return PORT_SERVICE_HINTS[lp];
-  if (lp) return `port:${lp} (non mappé Docker)`;
+  if (rp) return `port distant ${rp} (non mappé)`;
+  if (lp) return `port local ${lp} (non mappé Docker)`;
   return 'unmapped';
 }
 
@@ -1186,7 +1225,7 @@ async function getThreatDetails(req, res) {
             destPort: enriched.destPort || (related.networkConnections.length === 1 ? fallbackConnection?.destPort : null)
           };
         })(),
-        investigation: buildThreatInvestigation(threat, related)
+        investigation: await buildThreatInvestigation(threat, related)
       }
     });
   } catch (error) {
@@ -1679,6 +1718,83 @@ async function getBlockedIps(req, res) {
   }
 }
 
+/**
+ * POST /api/v1/security/firewall/lab/sample-threat
+ * Crée une menace de démo (validation porteur / forensics) — désactivé en production.
+ */
+async function createLabSampleThreat(req, res) {
+  try {
+    if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') {
+      return res.status(403).json({
+        success: false,
+        error: 'Endpoint lab indisponible en production'
+      });
+    }
+
+    const sourceIp = String(req.body?.sourceIp || '198.51.100.42').trim();
+    const threatType = String(req.body?.threatType || 'BRUTE_FORCE').trim();
+    const severity = String(req.body?.severity || 'HIGH').trim();
+
+    const threat = await prisma.networkThreat.create({
+      data: {
+        threatType,
+        sourceIp,
+        destIp: '172.20.0.10',
+        destPort: 3017,
+        severity,
+        blocked: false,
+        metadata: {
+          message: `Menace lab de démonstration depuis ${sourceIp}`,
+          count: 12,
+          detectedAt: new Date().toISOString(),
+          lab: true,
+          ports: [3017],
+          protocols: ['TCP'],
+          states: ['ESTABLISHED'],
+          totalConnections: 12,
+          connectionDetails: [
+            {
+              localIp: '172.20.0.10',
+              localPort: 3017,
+              remotePort: 44321,
+              protocol: 'TCP',
+              state: 'ESTABLISHED',
+              containerName: 'jobbingtrack-security-service'
+            }
+          ],
+          containerInfo: {
+            containerName: 'jobbingtrack-security-service',
+            containerId: 'lab-sample'
+          }
+        }
+      }
+    });
+
+    await securityService.createSecurityLog({
+      level: severity === 'CRITICAL' ? 'critical' : 'error',
+      category: 'network',
+      eventType: 'network_threat_detected',
+      message: `Menace lab: ${threatType} depuis ${sourceIp}`,
+      sourceIP: sourceIp,
+      riskScore: severity === 'CRITICAL' ? 95 : 75,
+      metadata: { threatId: threat.id, threatType, lab: true }
+    }).catch(() => {});
+
+    res.status(201).json({
+      success: true,
+      data: enrichThreatForApi(threat),
+      message: 'Menace lab créée — ouvrez la fiche depuis Incidents ou Menaces'
+    });
+  } catch (error) {
+    logger.error('Erreur création menace lab:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Impossible de créer la menace lab',
+      message: error.message
+    });
+  }
+}
+
 module.exports = {
   getFirewallRules,
   createFirewallRule,
@@ -1694,6 +1810,7 @@ module.exports = {
   purgeThreats,
   blockIp,
   unblockIp,
-  getBlockedIps
+  getBlockedIps,
+  createLabSampleThreat
 };
 
