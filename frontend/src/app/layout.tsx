@@ -1,47 +1,12 @@
-'use client'
-
 import './globals.css'
 import '@/styles/customization.css'
 import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/lib/hooks/auth'
-import { ThemeProvider, applyTheme, getSystemTheme } from '@/lib/hooks/theme'
-import { OfflineNotification } from '@/components/widgets'
-import ErrorBoundary from '@/components/ErrorBoundary'
-import { TrackingProvider } from '@/components/tracking/TrackingProvider'
-import { setupBrowserExtensionCleanup } from '@/utils/cleanBrowserExtensions'
-import { useEffect } from 'react'
-
-// Composant pour nettoyer les attributs d'extensions de navigateur
-function HydrationFix() {
-  useEffect(() => {
-    return setupBrowserExtensionCleanup()
-  }, [])
-
-  return null
-}
-
-// Composant pour appliquer le thème avant le rendu
-function ThemeScript() {
-  useEffect(() => {
-    try {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      const storedTheme = localStorage.getItem('theme') || 'dark'
-      const actualTheme = storedTheme === 'system' ? systemTheme : storedTheme
-      document.documentElement.classList.add(actualTheme)
-      document.body.classList.add(actualTheme)
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#ffffff')
-      }
-    } catch (e) {
-      console.error('Theme initialization error:', e)
-    }
-  }, [])
-
-  return null
-}
+import { AppProviders } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
+
+/** Applique light/dark avant le premier paint (évite flash + bouton thème inutile si le JS client plante). */
+const themeInitScript = `(function(){try{var d=document.documentElement,b=document.body,s=localStorage.getItem('theme')||'dark';if(s==='system'){s=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}d.classList.remove('light','dark');b.classList.remove('light','dark');d.classList.add(s);b.classList.add(s);var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('content',s==='dark'?'#111827':'#ffffff');}}catch(e){}})();`
 
 export default function RootLayout({
   children,
@@ -54,22 +19,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="JobbingTrack - Plateforme de gestion des candidatures" />
         <meta name="theme-color" content="#111827" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeScript />
-        <HydrationFix />
-        <ErrorBoundary>
-          <ThemeProvider>
-            <AuthProvider>
-              <TrackingProvider>
-                <div className="min-h-screen bg-gray-50 dark:bg-gray-950" suppressHydrationWarning>
-                  {children}
-                  {/* OfflineNotification temporairement désactivé pour éviter boucle infinie */}
-                </div>
-              </TrackingProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </ErrorBoundary>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   )
