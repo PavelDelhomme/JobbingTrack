@@ -7,6 +7,11 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import {
+  buildStatisticsServicesFromDocker,
+  filterMetricsListToActive,
+  type DockerServiceRow,
+} from "@/lib/metrics/serviceHealthOverview";
 import { preferencesService } from "@/lib/services/preferencesService";
 import {
   statisticsService,
@@ -572,30 +577,38 @@ export default function StatisticsPage() {
         ),
       };
 
-      // Formater les services
-      const servicesArray: Statistics["services"] = [];
-      if (metrics?.servicesList && Array.isArray(metrics.servicesList)) {
-        metrics.servicesList.forEach((service: any) => {
-          servicesArray.push({
-            name: service.rawName || service.name,
-            displayName: service.displayName || service.name,
-            status: service.status || "unknown",
-            cpu: parseFloat(service.metrics?.cpu?.percentage || "0"),
-            memory: parseFloat(service.metrics?.memory?.percentage || "0"),
-            responseTime:
-              typeof service.responseTimeMs === "number"
-                ? service.responseTimeMs
-                : 0,
-            errorRate: parseFloat(service.errorRatePerMin || "0"),
-            requests: 0, // TODO: ajouter si disponible
-            availability:
-              service.status === "healthy"
-                ? 100
-                : service.status === "degraded"
-                  ? 50
-                  : 0,
-          });
-        });
+      // Services : source unique docker/services/all (aligné /backoffice/services)
+      const metricsListActive = filterMetricsListToActive(
+        (metrics?.servicesList as any[]) || [],
+      );
+      let servicesArray: Statistics["services"] = [];
+      const dockerList = await centralMetricsService.getAllServices();
+      if (dockerList && dockerList.length > 0) {
+        servicesArray = buildStatisticsServicesFromDocker(
+          dockerList as DockerServiceRow[],
+          metricsListActive,
+        ) as Statistics["services"];
+      } else if (metricsListActive.length > 0) {
+        servicesArray = buildStatisticsServicesFromDocker(
+          metricsListActive.map((s: any) => ({
+            name: s.rawName || s.name,
+            is_running: true,
+            is_healthy: s.status === "healthy",
+            health_status:
+              s.status === "healthy"
+                ? "healthy"
+                : s.status === "degraded" || s.status === "unhealthy"
+                  ? "unhealthy"
+                  : "unknown",
+            metrics: s.metrics
+              ? {
+                  cpu_percent: Number(s.metrics?.cpu?.percentage) || 0,
+                  memory_percent: Number(s.metrics?.memory?.percentage) || 0,
+                }
+              : null,
+          })),
+          metricsListActive,
+        ) as Statistics["services"];
       }
 
       // ✅ Récupérer les vraies statistiques applicatives avec cache
@@ -2380,10 +2393,8 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
               </span>
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {
-                  stats.services.filter(
-                    (s: any) =>
-                      s.status === "offline" || s.status === "unknown",
-                  ).length
+                  stats.services.filter((s: any) => s.status === "offline")
+                    .length
                 }
               </span>
             </div>
@@ -2411,8 +2422,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   {
                     name: "Hors ligne",
                     value: stats.services.filter(
-                      (s: any) =>
-                        s.status === "offline" || s.status === "unknown",
+                      (s: any) => s.status === "offline",
                     ).length,
                   },
                 ]}
