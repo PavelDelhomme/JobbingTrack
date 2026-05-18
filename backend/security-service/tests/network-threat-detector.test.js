@@ -149,10 +149,12 @@ describe('NetworkThreatDetector - détection et blocage réel simulé', () => {
         sourceIP: '203.0.113.200',
         riskScore: 90,
         isBlocked: false,
-        metadata: {
+        endpoint: '/internal/network-threat-detector',
+        method: 'DETECT',
+        metadata: expect.objectContaining({
           threatId: 'threat-ddos-critical',
           threatType: 'DDOS'
-        }
+        })
       })
     );
     expect(mockPrisma.networkConnection.create).toHaveBeenCalledTimes(2);

@@ -1770,14 +1770,26 @@ async function createLabSampleThreat(req, res) {
       }
     });
 
+    const { buildThreatSecurityLogContext } = require('../utils/threatSecurityLog');
+    const logCtx = buildThreatSecurityLogContext(req, {
+      endpoint: '/api/v1/security/firewall/lab/sample-threat',
+      method: 'POST',
+      statusCode: 201
+    });
     await securityService.createSecurityLog({
       level: severity === 'CRITICAL' ? 'critical' : 'error',
       category: 'network',
       eventType: 'network_threat_detected',
       message: `Menace lab: ${threatType} depuis ${sourceIp}`,
       sourceIP: sourceIp,
+      ...logCtx,
       riskScore: severity === 'CRITICAL' ? 95 : 75,
-      metadata: { threatId: threat.id, threatType, lab: true }
+      metadata: {
+        threatId: threat.id,
+        threatType,
+        lab: true,
+        requestId: logCtx.requestId
+      }
     }).catch(() => {});
 
     res.status(201).json({

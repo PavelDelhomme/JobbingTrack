@@ -198,15 +198,26 @@ async function handleAnomaly(anomaly, metrics) {
     });
 
     // Écrire dans security_logs pour affichage dans « Logs de sécurité » backoffice
+    const crypto = require('crypto');
+    const requestId =
+      typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : null;
     await securityService.createSecurityLog({
       level: anomaly.severity === 'CRITICAL' ? 'critical' : anomaly.severity === 'HIGH' ? 'error' : 'warning',
       category: 'network',
       eventType: 'network_threat_detected',
       message: `Menace détectée: ${anomaly.type} depuis ${anomaly.sourceIp} - ${anomaly.message}`,
       sourceIP: anomaly.sourceIp,
+      endpoint: '/internal/network-threat-detector',
+      method: 'DETECT',
+      requestId,
       riskScore: anomaly.severity === 'CRITICAL' ? 90 : anomaly.severity === 'HIGH' ? 70 : 50,
       isBlocked: false,
-      metadata: { threatId: threat.id, threatType: anomaly.type }
+      metadata: {
+        threatId: threat.id,
+        threatType: anomaly.type,
+        requestId,
+        destPort: anomaly.destPort ?? threat.destPort ?? null
+      }
     }).catch(() => {});
   } catch (error) {
     logger.error('Erreur gestion anomalie:', error);
