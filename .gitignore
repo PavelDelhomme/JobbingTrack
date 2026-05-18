@@ -165,6 +165,7 @@ mobile/android/fastlane/test_output
 .turbo/
 .vercel/
 .next/
+frontend/.next-local/
 out/
 .nuxt/
 dist-ssr/

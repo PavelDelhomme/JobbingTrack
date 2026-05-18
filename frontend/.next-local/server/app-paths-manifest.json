@@ -1,5 +1,0 @@
-{
-  "/(public)/login/page": "app/(public)/login/page.js",
-  "/(admin)/backoffice/page": "app/(admin)/backoffice/page.js",
-  "/(admin)/backoffice/suivi-interim/page": "app/(admin)/backoffice/suivi-interim/page.js"
-}
