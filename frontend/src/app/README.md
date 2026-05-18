@@ -5,7 +5,9 @@ Cette structure utilise les **Route Groups** de Next.js (dossiers entre parenth�
 ## 🗂️ Organisation
 
 ### `(public)/` - Pages Publiques
+
 Pages accessibles sans authentification :
+
 - `/login` - Connexion
 - `/register` - Inscription
 - `/forgot-password` - Mot de passe oublié
@@ -13,7 +15,9 @@ Pages accessibles sans authentification :
 - `/access-denied` - Accès refusé
 
 ### `(dashboard)/` - Dashboard Utilisateur
+
 Pages principales de l'application (authentification requise) :
+
 - `/` - Page d'accueil dashboard
 - `/applications` - Gestion des candidatures
   - `/applications/applications` - Liste des candidatures
@@ -28,7 +32,9 @@ Pages principales de l'application (authentification requise) :
   - `/entities/users` - Utilisateurs
 
 ### `(admin)/` - Administration
+
 Pages d'administration système (rôle admin requis) :
+
 - `/b4ck0ff1ce` - Vue d'ensemble administration
   - `/b4ck0ff1ce/analytics` - Analyses admin
 - `/analytics` - Métriques et analyses système
@@ -44,7 +50,9 @@ Pages d'administration système (rôle admin requis) :
 - `/test-data` - Données de test
 
 ### `(security)/` - Sécurité
+
 Pages de sécurité (rôles admin/security requis) :
+
 - `/alerts` - Alertes de sécurité
 - `/analysis` - Analyse de sécurité
 - `/logs` - Logs de sécurité
@@ -54,7 +62,9 @@ Pages de sécurité (rôles admin/security requis) :
 - `/data-generator` - Générateur de données de test
 
 ### `(development)/` - Outils Développement
+
 Outils de développement (mode dev uniquement, rôle admin requis) :
+
 - `/tests/api-tester` - Testeur d'API
 - `/tests/performance` - Tests de performance
 - `/tests/playwright` - Tests Playwright
@@ -63,7 +73,9 @@ Outils de développement (mode dev uniquement, rôle admin requis) :
 - `/services/b4ck0ff1ce` - Services backoffice
 
 ### `api/` - API Routes
+
 Routes API Next.js :
+
 - `/api/health` - Health check
 - `/api/cadvisor` - Proxy cAdvisor
 - `/api/middleware-test` - Test middleware
@@ -80,6 +92,7 @@ Routes API Next.js :
 ## 🔐 Sécurité
 
 Chaque groupe a son propre `layout.tsx` qui gère :
+
 - **(public)** : Aucune auth requise
 - **(dashboard)** : Auth requise
 - **(admin)** : Auth + rôle admin requis

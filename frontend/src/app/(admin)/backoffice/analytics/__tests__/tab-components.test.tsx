@@ -2,35 +2,35 @@
  * Vérifie que la page Analytics (hub) expose bien les entrées attendues.
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
-describe('Analytics page.tsx — structure source', () => {
-  const pagePath = join(__dirname, '../page.tsx');
+describe("Analytics page.tsx — structure source", () => {
+  const pagePath = join(__dirname, "../page.tsx");
 
-  it('existe et exporte une page client', () => {
+  it("existe et exporte une page client", () => {
     expect(existsSync(pagePath)).toBe(true);
-    const src = readFileSync(pagePath, 'utf8');
+    const src = readFileSync(pagePath, "utf8");
     expect(src).toMatch(/'use client'/);
     expect(src).toMatch(/export default function AnalyticsPage/);
   });
 
-  it('présente le hub métier (application + utilisateurs)', () => {
-    const src = readFileSync(pagePath, 'utf8');
+  it("présente le hub métier (application + utilisateurs)", () => {
+    const src = readFileSync(pagePath, "utf8");
     expect(src).toMatch(/Hub Analytics/);
     expect(src).toMatch(/title:\s*'Application'/);
     expect(src).toMatch(/title:\s*'Utilisateurs'/);
   });
 
-  it('redirige les métriques infra vers Performances', () => {
-    const src = readFileSync(pagePath, 'utf8');
+  it("redirige les métriques infra vers Performances", () => {
+    const src = readFileSync(pagePath, "utf8");
     expect(src).toMatch(/title:\s*'Performances \(infra\)'/);
     expect(src).toMatch(/href:\s*'\/b4ck0ff1ce\/performances'/);
     expect(src).toMatch(/métriques machine/i);
   });
 
-  it('propose un lien vers Statistiques', () => {
-    const src = readFileSync(pagePath, 'utf8');
+  it("propose un lien vers Statistiques", () => {
+    const src = readFileSync(pagePath, "utf8");
     expect(src).toMatch(/\/b4ck0ff1ce\/statistics/);
     expect(src).toMatch(/Statistiques agrégées/);
   });

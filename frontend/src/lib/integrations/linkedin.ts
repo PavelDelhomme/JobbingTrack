@@ -1,12 +1,16 @@
 // Service LinkedIn pour JobbingTrack
-import axios from 'axios';
+import axios from "axios";
 
-const LINKEDIN_CLIENT_ID = process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID || 'your-linkedin-client-id';
-const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || 'your-linkedin-client-secret';
-const LINKEDIN_REDIRECT_URI = process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI || 'http://localhost:3000/api/auth/linkedin/callback';
+const LINKEDIN_CLIENT_ID =
+  process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID || "your-linkedin-client-id";
+const LINKEDIN_CLIENT_SECRET =
+  process.env.LINKEDIN_CLIENT_SECRET || "your-linkedin-client-secret";
+const LINKEDIN_REDIRECT_URI =
+  process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI ||
+  "http://localhost:3000/api/auth/linkedin/callback";
 
 // Configuration de l'API LinkedIn
-const LINKEDIN_API_BASE = 'https://api.linkedin.com/v2';
+const LINKEDIN_API_BASE = "https://api.linkedin.com/v2";
 
 interface LinkedInProfile {
   id: string;
@@ -67,15 +71,18 @@ export class LinkedInService {
     }
 
     // Charger depuis localStorage si disponible
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('linkedin-tokens');
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("linkedin-tokens");
       if (stored) {
         try {
           const tokens = JSON.parse(stored);
           this.accessToken = tokens.accessToken;
           this.refreshToken = tokens.refreshToken;
         } catch (error) {
-          console.error('Erreur lors du chargement des tokens LinkedIn:', error);
+          console.error(
+            "Erreur lors du chargement des tokens LinkedIn:",
+            error,
+          );
         }
       }
     }
@@ -84,30 +91,37 @@ export class LinkedInService {
   // Générer l'URL d'autorisation OAuth
   getAuthorizationUrl(state?: string): string {
     const params = new URLSearchParams({
-      response_type: 'code',
+      response_type: "code",
       client_id: LINKEDIN_CLIENT_ID,
       redirect_uri: LINKEDIN_REDIRECT_URI,
-      scope: 'r_liteprofile r_emailaddress w_member_social r_organization_social w_organization_social rw_organization_admin',
-      state: state || 'linkedin_auth'
+      scope:
+        "r_liteprofile r_emailaddress w_member_social r_organization_social w_organization_social rw_organization_admin",
+      state: state || "linkedin_auth",
     });
 
     return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
   }
 
   // Échanger le code d'autorisation contre des tokens
-  async exchangeCodeForTokens(code: string): Promise<{ accessToken: string; refreshToken?: string }> {
+  async exchangeCodeForTokens(
+    code: string,
+  ): Promise<{ accessToken: string; refreshToken?: string }> {
     try {
-      const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
-        grant_type: 'authorization_code',
-        code,
-        client_id: LINKEDIN_CLIENT_ID,
-        client_secret: LINKEDIN_CLIENT_SECRET,
-        redirect_uri: LINKEDIN_REDIRECT_URI
-      }, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
+      const response = await axios.post(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        {
+          grant_type: "authorization_code",
+          code,
+          client_id: LINKEDIN_CLIENT_ID,
+          client_secret: LINKEDIN_CLIENT_SECRET,
+          redirect_uri: LINKEDIN_REDIRECT_URI,
+        },
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        },
+      );
 
       const { access_token, refresh_token } = response.data;
 
@@ -117,37 +131,44 @@ export class LinkedInService {
       }
 
       // Sauvegarder les tokens
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('linkedin-tokens', JSON.stringify({
-          accessToken: access_token,
-          refreshToken: refresh_token
-        }));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "linkedin-tokens",
+          JSON.stringify({
+            accessToken: access_token,
+            refreshToken: refresh_token,
+          }),
+        );
       }
 
       return { accessToken: access_token, refreshToken: refresh_token };
     } catch (error) {
-      console.error('Erreur lors de l\'échange LinkedIn:', error);
-      throw new Error('Impossible d\'échanger le code LinkedIn');
+      console.error("Erreur lors de l'échange LinkedIn:", error);
+      throw new Error("Impossible d'échanger le code LinkedIn");
     }
   }
 
   // Rafraîchir le token d'accès
   async refreshAccessToken(): Promise<string> {
     if (!this.refreshToken) {
-      throw new Error('Refresh token non disponible');
+      throw new Error("Refresh token non disponible");
     }
 
     try {
-      const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
-        grant_type: 'refresh_token',
-        refresh_token: this.refreshToken,
-        client_id: LINKEDIN_CLIENT_ID,
-        client_secret: LINKEDIN_CLIENT_SECRET
-      }, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
+      const response = await axios.post(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        {
+          grant_type: "refresh_token",
+          refresh_token: this.refreshToken,
+          client_id: LINKEDIN_CLIENT_ID,
+          client_secret: LINKEDIN_CLIENT_SECRET,
+        },
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        },
+      );
 
       const { access_token, refresh_token } = response.data;
 
@@ -157,17 +178,20 @@ export class LinkedInService {
       }
 
       // Mettre à jour le stockage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('linkedin-tokens', JSON.stringify({
-          accessToken: access_token,
-          refreshToken: refresh_token || this.refreshToken
-        }));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "linkedin-tokens",
+          JSON.stringify({
+            accessToken: access_token,
+            refreshToken: refresh_token || this.refreshToken,
+          }),
+        );
       }
 
       return access_token;
     } catch (error) {
-      console.error('Erreur lors du rafraîchissement LinkedIn:', error);
-      throw new Error('Impossible de rafraîchir le token LinkedIn');
+      console.error("Erreur lors du rafraîchissement LinkedIn:", error);
+      throw new Error("Impossible de rafraîchir le token LinkedIn");
     }
   }
 
@@ -181,22 +205,25 @@ export class LinkedInService {
     this.accessToken = null;
     this.refreshToken = null;
 
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('linkedin-tokens');
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("linkedin-tokens");
     }
   }
 
   // Effectuer une requête API LinkedIn avec gestion automatique du token
-  private async apiRequest(endpoint: string, options: RequestInit & { body?: unknown } = {}): Promise<any> {
+  private async apiRequest(
+    endpoint: string,
+    options: RequestInit & { body?: unknown } = {},
+  ): Promise<any> {
     if (!this.accessToken) {
-      throw new Error('Non authentifié sur LinkedIn');
+      throw new Error("Non authentifié sur LinkedIn");
     }
 
     try {
       // Convertir les headers RequestInit vers un objet simple compatible avec axios
       const headers: Record<string, string> = {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": "application/json",
       };
 
       // Ajouter les headers personnalisés en les convertissant
@@ -205,7 +232,7 @@ export class LinkedInService {
           options.headers.forEach((value, key) => {
             headers[key] = value;
           });
-        } else if (typeof options.headers === 'object') {
+        } else if (typeof options.headers === "object") {
           Object.assign(headers, options.headers);
         }
       }
@@ -213,8 +240,8 @@ export class LinkedInService {
       const response = await axios({
         url: `${LINKEDIN_API_BASE}${endpoint}`,
         headers,
-        method: options.method || 'GET',
-        data: options.body ? JSON.stringify(options.body as any) : undefined
+        method: options.method || "GET",
+        data: options.body ? JSON.stringify(options.body as any) : undefined,
       });
 
       return response.data;
@@ -227,7 +254,7 @@ export class LinkedInService {
           return this.apiRequest(endpoint, options);
         } catch (refreshError) {
           this.logout();
-          throw new Error('Session LinkedIn expirée');
+          throw new Error("Session LinkedIn expirée");
         }
       }
       throw error;
@@ -236,35 +263,54 @@ export class LinkedInService {
 
   // Récupérer le profil utilisateur
   async getProfile(): Promise<LinkedInProfile> {
-    const profile = await this.apiRequest('/people/~:(id,firstName,lastName,headline,profilePicture(displayImage~:playableStreams),location,publicProfileUrl)');
+    const profile = await this.apiRequest(
+      "/people/~:(id,firstName,lastName,headline,profilePicture(displayImage~:playableStreams),location,publicProfileUrl)",
+    );
 
     return {
       id: profile.id,
-      firstName: profile.firstName?.localized?.fr_FR || profile.firstName?.localized?.en_US || profile.firstName,
-      lastName: profile.lastName?.localized?.fr_FR || profile.lastName?.localized?.en_US || profile.lastName,
-      headline: profile.headline?.localized?.fr_FR || profile.headline?.localized?.en_US || profile.headline,
-      profilePicture: profile.profilePicture?.displayImage?.elements?.[0]?.identifiers?.[0]?.identifier,
-      location: profile.location ? {
-        countryCode: profile.location.countryCode,
-        name: profile.location.name
-      } : undefined,
-      publicProfileUrl: profile.publicProfileUrl
+      firstName:
+        profile.firstName?.localized?.fr_FR ||
+        profile.firstName?.localized?.en_US ||
+        profile.firstName,
+      lastName:
+        profile.lastName?.localized?.fr_FR ||
+        profile.lastName?.localized?.en_US ||
+        profile.lastName,
+      headline:
+        profile.headline?.localized?.fr_FR ||
+        profile.headline?.localized?.en_US ||
+        profile.headline,
+      profilePicture:
+        profile.profilePicture?.displayImage?.elements?.[0]?.identifiers?.[0]
+          ?.identifier,
+      location: profile.location
+        ? {
+            countryCode: profile.location.countryCode,
+            name: profile.location.name,
+          }
+        : undefined,
+      publicProfileUrl: profile.publicProfileUrl,
     };
   }
 
   // Rechercher des entreprises
   async searchCompanies(query: string, limit = 10): Promise<LinkedInCompany[]> {
-    const response = await this.apiRequest(`/organizationalEntityAcf?keywords=${encodeURIComponent(query)}&count=${limit}`);
+    const response = await this.apiRequest(
+      `/organizationalEntityAcf?keywords=${encodeURIComponent(query)}&count=${limit}`,
+    );
 
-    return response.elements?.map((company: any) => ({
-      id: company.id,
-      name: company.name,
-      description: company.description,
-      websiteUrl: company.websiteUrl,
-      industry: company.industry,
-      employeeCountRange: company.employeeCountRange,
-      logoUrl: company.logoUrl
-    })) || [];
+    return (
+      response.elements?.map((company: any) => ({
+        id: company.id,
+        name: company.name,
+        description: company.description,
+        websiteUrl: company.websiteUrl,
+        industry: company.industry,
+        employeeCountRange: company.employeeCountRange,
+        logoUrl: company.logoUrl,
+      })) || []
+    );
   }
 
   // Récupérer les détails d'une entreprise
@@ -278,69 +324,81 @@ export class LinkedInService {
       websiteUrl: company.websiteUrl,
       industry: company.industry,
       employeeCountRange: company.employeeCountRange,
-      logoUrl: company.logoUrl
+      logoUrl: company.logoUrl,
     };
   }
 
   // Récupérer l'expérience professionnelle
   async getExperience(): Promise<LinkedInJob[]> {
-    const experience = await this.apiRequest('/people/~/positions');
+    const experience = await this.apiRequest("/people/~/positions");
 
-    return experience.values?.map((job: any) => ({
-      id: job.id,
-      title: job.title,
-      companyName: job.company?.name || job.companyName,
-      location: job.location?.name,
-      description: job.summary,
-      employmentStatus: job.isCurrent ? 'current' : 'past',
-      dateRange: {
-        start: {
-          month: job.startDate?.month,
-          year: job.startDate?.year
+    return (
+      experience.values?.map((job: any) => ({
+        id: job.id,
+        title: job.title,
+        companyName: job.company?.name || job.companyName,
+        location: job.location?.name,
+        description: job.summary,
+        employmentStatus: job.isCurrent ? "current" : "past",
+        dateRange: {
+          start: {
+            month: job.startDate?.month,
+            year: job.startDate?.year,
+          },
+          end: job.endDate
+            ? {
+                month: job.endDate.month,
+                year: job.endDate.year,
+              }
+            : undefined,
         },
-        end: job.endDate ? {
-          month: job.endDate.month,
-          year: job.endDate.year
-        } : undefined
-      }
-    })) || [];
+      })) || []
+    );
   }
 
   // Partager une mise à jour (post)
-  async shareUpdate(text: string, options?: {
-    visibility?: 'PUBLIC' | 'CONNECTIONS';
-    shareMediaCategory?: string;
-    shareUrl?: string;
-  }): Promise<any> {
+  async shareUpdate(
+    text: string,
+    options?: {
+      visibility?: "PUBLIC" | "CONNECTIONS";
+      shareMediaCategory?: string;
+      shareUrl?: string;
+    },
+  ): Promise<any> {
     const payload = {
       author: `urn:li:person:${await this.getPersonId()}`,
-      lifecycleState: 'PUBLISHED',
+      lifecycleState: "PUBLISHED",
       specificContent: {
-        'com.linkedin.ugc.ShareContent': {
+        "com.linkedin.ugc.ShareContent": {
           shareCommentary: {
-            text
+            text,
           },
-          shareMediaCategory: options?.shareMediaCategory || 'NONE',
-          media: options?.shareUrl ? [{
-            status: 'READY',
-            description: {
-              text: 'Partage depuis JobbingTrack'
-            },
-            originalUrl: options.shareUrl,
-            title: {
-              text: 'Lien partagé'
-            }
-          }] : []
-        }
+          shareMediaCategory: options?.shareMediaCategory || "NONE",
+          media: options?.shareUrl
+            ? [
+                {
+                  status: "READY",
+                  description: {
+                    text: "Partage depuis JobbingTrack",
+                  },
+                  originalUrl: options.shareUrl,
+                  title: {
+                    text: "Lien partagé",
+                  },
+                },
+              ]
+            : [],
+        },
       },
       visibility: {
-        'com.linkedin.ugc.MemberNetworkVisibility': options?.visibility || 'CONNECTIONS'
-      }
+        "com.linkedin.ugc.MemberNetworkVisibility":
+          options?.visibility || "CONNECTIONS",
+      },
     };
 
-    return this.apiRequest('/ugcPosts', {
-      method: 'POST',
-      body: payload as any
+    return this.apiRequest("/ugcPosts", {
+      method: "POST",
+      body: payload as any,
     });
   }
 
@@ -352,16 +410,22 @@ export class LinkedInService {
 
   // Rechercher des personnes (pour le networking)
   async searchPeople(query: string, limit = 10): Promise<any[]> {
-    const response = await this.apiRequest(`/people?q=${encodeURIComponent(query)}&count=${limit}`);
+    const response = await this.apiRequest(
+      `/people?q=${encodeURIComponent(query)}&count=${limit}`,
+    );
 
-    return response.elements?.map((person: any) => ({
-      id: person.id,
-      firstName: person.firstName,
-      lastName: person.lastName,
-      headline: person.headline,
-      location: person.location,
-      profilePicture: person.profilePicture?.displayImage?.elements?.[0]?.identifiers?.[0]?.identifier
-    })) || [];
+    return (
+      response.elements?.map((person: any) => ({
+        id: person.id,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        headline: person.headline,
+        location: person.location,
+        profilePicture:
+          person.profilePicture?.displayImage?.elements?.[0]?.identifiers?.[0]
+            ?.identifier,
+      })) || []
+    );
   }
 
   // Envoyer une invitation de connexion
@@ -369,45 +433,49 @@ export class LinkedInService {
     const payload = {
       invitee: `urn:li:person:${personId}`,
       inviter: `urn:li:person:${await this.getPersonId()}`,
-      message: message || 'Bonjour, je suis intéressé par une opportunité professionnelle.',
-      subject: 'Invitation à se connecter'
+      message:
+        message ||
+        "Bonjour, je suis intéressé par une opportunité professionnelle.",
+      subject: "Invitation à se connecter",
     };
 
-    return this.apiRequest('/people/invites', {
-      method: 'POST',
-      body: payload as any
+    return this.apiRequest("/people/invites", {
+      method: "POST",
+      body: payload as any,
     });
   }
 
   // Récupérer les invitations reçues
   async getReceivedInvites(): Promise<any[]> {
-    const invites = await this.apiRequest('/people/invites?q=received');
+    const invites = await this.apiRequest("/people/invites?q=received");
 
-    return invites.elements?.map((invite: any) => ({
-      id: invite.id,
-      from: {
-        id: invite.inviter.id,
-        firstName: invite.inviter.firstName,
-        lastName: invite.inviter.lastName
-      },
-      message: invite.message,
-      sentAt: invite.sentAt
-    })) || [];
+    return (
+      invites.elements?.map((invite: any) => ({
+        id: invite.id,
+        from: {
+          id: invite.inviter.id,
+          firstName: invite.inviter.firstName,
+          lastName: invite.inviter.lastName,
+        },
+        message: invite.message,
+        sentAt: invite.sentAt,
+      })) || []
+    );
   }
 
   // Accepter une invitation
   async acceptInvite(inviteId: string): Promise<any> {
     return this.apiRequest(`/people/invites/${inviteId}`, {
-      method: 'PATCH',
-      body: { status: 'ACCEPTED' } as any
+      method: "PATCH",
+      body: { status: "ACCEPTED" } as any,
     });
   }
 
   // Refuser une invitation
   async declineInvite(inviteId: string): Promise<any> {
     return this.apiRequest(`/people/invites/${inviteId}`, {
-      method: 'PATCH',
-      body: { status: 'DECLINED' } as any
+      method: "PATCH",
+      body: { status: "DECLINED" } as any,
     });
   }
 }

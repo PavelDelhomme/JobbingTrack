@@ -8,5 +8,5 @@ export function CalendarIntegration() {
         Intégration calendrier en cours de développement.
       </p>
     </div>
-  )
+  );
 }

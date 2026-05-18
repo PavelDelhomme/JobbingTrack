@@ -9,5 +9,5 @@ export default function Breadcrumb() {
         </li>
       </ol>
     </nav>
-  )
+  );
 }

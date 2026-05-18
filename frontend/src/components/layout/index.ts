@@ -1,2 +1,2 @@
-export { default as DashboardGrid } from './DashboardGrid'
-export { default as DashboardSection } from './DashboardSection'
+export { default as DashboardGrid } from "./DashboardGrid";
+export { default as DashboardSection } from "./DashboardSection";

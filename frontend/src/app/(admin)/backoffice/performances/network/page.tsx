@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { AdminLayout } from '@/components/features';
-import { PerformancesSubNav } from '../PerformancesSubNav';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   ChartPeriodCaption,
@@ -13,20 +19,20 @@ import {
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
-} from '@/components/analytics';
+} from "@/components/analytics";
 import {
   getPeriodMs,
   formatRangeLabel,
   formatCustomRangeLabel,
   localCalendarDayBounds,
-} from '@/components/analytics/timeRangeUtils';
+} from "@/components/analytics/timeRangeUtils";
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
   metricRowToTimeMs,
   metricTimestampToMs,
   normalizeMetricTimestampToIso,
-} from '@/lib/utils/date';
+} from "@/lib/utils/date";
 import {
   LineChart,
   Line,
@@ -36,20 +42,20 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { analyticsService } from '@/lib/api/analytics.service';
-import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme';
-import { pickSystemResponseTimeAvgMsFromRow } from '@/lib/metrics/pickSystemResponseTimeFromRow';
+} from "recharts";
+import { analyticsService } from "@/lib/api/analytics.service";
+import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
 import {
   buildSystemNetworkMbRateRows,
   systemNetworkRateAxisMax,
   type SystemNetworkMbRow,
-} from '@/lib/charts/systemMetricsSeriesModel';
+} from "@/lib/charts/systemMetricsSeriesModel";
 
 const SystemCpuNetworkCorrelationChart = dynamic(
   () =>
-    import('@/components/charts/SystemCpuNetworkCorrelationChart').then(
-      (m) => m.SystemCpuNetworkCorrelationChart
+    import("@/components/charts/SystemCpuNetworkCorrelationChart").then(
+      (m) => m.SystemCpuNetworkCorrelationChart,
     ),
   {
     ssr: false,
@@ -58,7 +64,7 @@ const SystemCpuNetworkCorrelationChart = dynamic(
         Chargement du graphique de corrélation…
       </div>
     ),
-  }
+  },
 );
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
@@ -77,7 +83,7 @@ interface RawNetPoint {
 function compressData<T extends { timestamp: string }>(
   data: T[],
   targetMax: number,
-  valueKeys: (keyof T)[]
+  valueKeys: (keyof T)[],
 ): T[] {
   if (data.length <= targetMax) return data;
   const step = data.length / targetMax;
@@ -93,7 +99,7 @@ function compressData<T extends { timestamp: string }>(
       const key = String(k);
       const nums = slice
         .map((s) => (s as Record<string, unknown>)[key] as number | undefined)
-        .filter((n): n is number => typeof n === 'number' && !Number.isNaN(n));
+        .filter((n): n is number => typeof n === "number" && !Number.isNaN(n));
       if (nums.length) avg[key] = nums.reduce((a, b) => a + b, 0) / nums.length;
     });
     out.push({ ...mid, ...avg } as T);
@@ -116,7 +122,7 @@ type NetworkSeriesPoint = {
 export default function NetworkPerformancePage() {
   const [series, setSeries] = useState<NetworkSeriesPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
@@ -149,10 +155,18 @@ export default function NetworkPerformancePage() {
       const { start, end } = localCalendarDayBounds(customStart, customEnd);
       const durationMs = Math.max(0, end.getTime() - start.getTime());
       const limit = Math.min(Math.ceil(durationMs / (60 * 1000)), 43200);
-      return { startDate: start.toISOString(), endDate: end.toISOString(), limit };
+      return {
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        limit,
+      };
     }
     const { start, end, limit } = getPeriodMs(timeRange, windowEnd);
-    return { startDate: start.toISOString(), endDate: end.toISOString(), limit };
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      limit,
+    };
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const load = useCallback(
@@ -171,9 +185,9 @@ export default function NetworkPerformancePage() {
           .filter((d: { timestamp?: string }) => d.timestamp)
           .map((d: Record<string, unknown>) => {
             const rawTs =
-              typeof d.timestamp === 'string'
+              typeof d.timestamp === "string"
                 ? d.timestamp
-                : (d.timestamp as Date)?.toISOString?.() ?? '';
+                : ((d.timestamp as Date)?.toISOString?.() ?? "");
             const ts = normalizeMetricTimestampToIso(rawTs);
             const timeMs = metricRowToTimeMs(d, ts);
             const rxRaw =
@@ -200,32 +214,45 @@ export default function NetworkPerformancePage() {
             return {
               timestamp: ts,
               ...(timeMs != null ? { timeMs } : {}),
-              rxMb: rxRaw != null && !Number.isNaN(rxRaw) ? rxRaw / (1024 * 1024) : undefined,
-              txMb: txRaw != null && !Number.isNaN(txRaw) ? txRaw / (1024 * 1024) : undefined,
+              rxMb:
+                rxRaw != null && !Number.isNaN(rxRaw)
+                  ? rxRaw / (1024 * 1024)
+                  : undefined,
+              txMb:
+                txRaw != null && !Number.isNaN(txRaw)
+                  ? txRaw / (1024 * 1024)
+                  : undefined,
               cpu: cpuRaw != null && !Number.isNaN(cpuRaw) ? cpuRaw : undefined,
-              memory: memRaw != null && !Number.isNaN(memRaw) ? memRaw : undefined,
+              memory:
+                memRaw != null && !Number.isNaN(memRaw) ? memRaw : undefined,
               responseTimeMs: rt,
             };
           })
           .sort(
             (a: RawNetPoint, b: RawNetPoint) =>
               (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
-              (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
+              (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0),
           );
         const withGaps = injectMetricTimeGaps(sorted, METRIC_GAP_MS, [
-          'rxMb',
-          'txMb',
-          'cpu',
-          'memory',
-          'responseTimeMs',
+          "rxMb",
+          "txMb",
+          "cpu",
+          "memory",
+          "responseTimeMs",
         ]);
-        const keys: (keyof RawNetPoint)[] = ['rxMb', 'txMb', 'cpu', 'memory', 'responseTimeMs'];
+        const keys: (keyof RawNetPoint)[] = [
+          "rxMb",
+          "txMb",
+          "cpu",
+          "memory",
+          "responseTimeMs",
+        ];
         const compressed = compressData(withGaps, TARGET_POINTS, keys);
         setSeries(
           compressed
             .map((p) => {
               const timeMs =
-                typeof p.timeMs === 'number' && Number.isFinite(p.timeMs)
+                typeof p.timeMs === "number" && Number.isFinite(p.timeMs)
                   ? p.timeMs
                   : (metricTimestampToMs(p.timestamp) ?? NaN);
               return {
@@ -233,17 +260,25 @@ export default function NetworkPerformancePage() {
                 timestamp: p.timestamp,
                 time: formatLocalChartAxisTick(timeMs, { withDate: false }),
                 datetime: formatLocalDateTime(p.timestamp),
-                rxMb: p.rxMb != null && !Number.isNaN(p.rxMb) ? Math.round(p.rxMb * 100) / 100 : null,
-                txMb: p.txMb != null && !Number.isNaN(p.txMb) ? Math.round(p.txMb * 100) / 100 : null,
+                rxMb:
+                  p.rxMb != null && !Number.isNaN(p.rxMb)
+                    ? Math.round(p.rxMb * 100) / 100
+                    : null,
+                txMb:
+                  p.txMb != null && !Number.isNaN(p.txMb)
+                    ? Math.round(p.txMb * 100) / 100
+                    : null,
                 cpu: p.cpu != null && !Number.isNaN(p.cpu) ? p.cpu : null,
-                memory: p.memory != null && !Number.isNaN(p.memory) ? p.memory : null,
+                memory:
+                  p.memory != null && !Number.isNaN(p.memory) ? p.memory : null,
                 responseTimeMs:
-                  p.responseTimeMs != null && Number.isFinite(Number(p.responseTimeMs))
+                  p.responseTimeMs != null &&
+                  Number.isFinite(Number(p.responseTimeMs))
                     ? Number(p.responseTimeMs)
                     : null,
               };
             })
-            .filter((row) => Number.isFinite(row.timeMs))
+            .filter((row) => Number.isFinite(row.timeMs)),
         );
       } catch (e) {
         console.error(e);
@@ -251,7 +286,7 @@ export default function NetworkPerformancePage() {
         if (!silent) setLoading(false);
       }
     },
-    [getParams]
+    [getParams],
   );
 
   useEffect(() => {
@@ -295,8 +330,14 @@ export default function NetworkPerformancePage() {
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() - days);
       const ne = new Date(re);
@@ -306,7 +347,7 @@ export default function NetworkPerformancePage() {
       return;
     }
     setFollowLive(false);
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() - 1);
       setWindowEnd(d);
@@ -319,8 +360,14 @@ export default function NetworkPerformancePage() {
 
   const goNext = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() + days);
       const ne = new Date(re);
@@ -328,7 +375,9 @@ export default function NetworkPerformancePage() {
       const today = ymdLocal();
       if (ymdLocal(ne) > today) {
         setCustomEnd(today);
-        setCustomStart(ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
+        setCustomStart(
+          ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)),
+        );
       } else {
         setCustomStart(ymdLocal(ns));
         setCustomEnd(ymdLocal(ne));
@@ -337,7 +386,7 @@ export default function NetworkPerformancePage() {
     }
     setFollowLive(false);
     const now = new Date();
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() + 1);
       if (d <= now) setWindowEnd(d);
@@ -355,8 +404,10 @@ export default function NetworkPerformancePage() {
       return customEnd < ymdLocal();
     }
     const now = new Date();
-    if (timeRange === 'today')
-      return windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10);
+    if (timeRange === "today")
+      return (
+        windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10)
+      );
     return windowEnd.getTime() < now.getTime();
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
@@ -379,21 +430,33 @@ export default function NetworkPerformancePage() {
         networkRxMb: s.rxMb,
         networkTxMb: s.txMb,
       })),
-    [series]
+    [series],
   );
 
-  const networkRateRows = useMemo(() => buildSystemNetworkMbRateRows(mbRows), [mbRows]);
-  const networkRateYMax = useMemo(() => systemNetworkRateAxisMax(networkRateRows), [networkRateRows]);
+  const networkRateRows = useMemo(
+    () => buildSystemNetworkMbRateRows(mbRows),
+    [mbRows],
+  );
+  const networkRateYMax = useMemo(
+    () => systemNetworkRateAxisMax(networkRateRows),
+    [networkRateRows],
+  );
 
   const showCpuNetworkCorrelation = useMemo(() => {
     const hasNet = series.some((d) => d.rxMb != null || d.txMb != null);
-    const hasCpu = series.some((d) => d.cpu != null && Number.isFinite(Number(d.cpu)));
+    const hasCpu = series.some(
+      (d) => d.cpu != null && Number.isFinite(Number(d.cpu)),
+    );
     return hasNet && hasCpu;
   }, [series]);
 
   const showResponseTime = useMemo(
-    () => series.some((d) => d.responseTimeMs != null && Number.isFinite(Number(d.responseTimeMs))),
-    [series]
+    () =>
+      series.some(
+        (d) =>
+          d.responseTimeMs != null && Number.isFinite(Number(d.responseTimeMs)),
+      ),
+    [series],
   );
 
   return (
@@ -413,8 +476,8 @@ export default function NetworkPerformancePage() {
               Performances réseau
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-              Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU et temps de réponse agrégé quand la
-              persistance les fournit.
+              Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU
+              et temps de réponse agrégé quand la persistance les fournit.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -441,8 +504,8 @@ export default function NetworkPerformancePage() {
           </div>
         ) : series.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucune donnée réseau disponible. Vérifiez que le metrics-aggregator enregistre les métriques
-            système.
+            Aucune donnée réseau disponible. Vérifiez que le metrics-aggregator
+            enregistre les métriques système.
           </div>
         ) : (
           <div className="space-y-8">
@@ -453,8 +516,14 @@ export default function NetworkPerformancePage() {
               <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[240px] sm:min-h-[360px]">
                 <ResponsiveContainer width="100%" height={360} minHeight={240}>
-                  <LineChart data={series} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <LineChart
+                    data={series}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
                     <XAxis
                       dataKey="timeMs"
                       type="number"
@@ -463,22 +532,33 @@ export default function NetworkPerformancePage() {
                       textAnchor="end"
                       height={networkAxisShowDate ? 72 : 60}
                       minTickGap={networkAxisShowDate ? 32 : 22}
-                      tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: networkAxisShowDate })}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: networkAxisShowDate,
+                        })
+                      }
                       tick={{ fontSize: 12 }}
                     />
-                    <YAxis tickFormatter={(v) => `${v} Mo`} tick={{ fontSize: 12 }} />
+                    <YAxis
+                      tickFormatter={(v) => `${v} Mo`}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip
                       {...rechartsTooltipProps}
                       labelFormatter={(_, payload: unknown) => {
-                        const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
-                          ?.timestamp;
-                        return ts != null ? formatLocalDateTime(ts) : '—';
+                        const ts = (
+                          payload as Array<{ payload?: { timestamp?: string } }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
                       }}
                       formatter={(value, name) => {
-                        const n = typeof value === 'number' ? value : Number(value);
-                        const label = name === 'rxMb' ? 'RX (Mo)' : 'TX (Mo)';
+                        const n =
+                          typeof value === "number" ? value : Number(value);
+                        const label = name === "rxMb" ? "RX (Mo)" : "TX (Mo)";
                         return [
-                          value != null && value !== '' && !Number.isNaN(n) ? `${n.toFixed(2)} Mo` : '—',
+                          value != null && value !== "" && !Number.isNaN(n)
+                            ? `${n.toFixed(2)} Mo`
+                            : "—",
                           label,
                         ];
                       }}
@@ -514,8 +594,14 @@ export default function NetworkPerformancePage() {
               <ChartPeriodCaption label={rangeLabel} />
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
-                  <LineChart data={networkRateRows} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <LineChart
+                    data={networkRateRows}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
                     <XAxis
                       dataKey="timeMs"
                       type="number"
@@ -524,26 +610,41 @@ export default function NetworkPerformancePage() {
                       textAnchor="end"
                       height={networkAxisShowDate ? 72 : 60}
                       minTickGap={networkAxisShowDate ? 32 : 22}
-                      tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: networkAxisShowDate })}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: networkAxisShowDate,
+                        })
+                      }
                       tick={{ fontSize: 12 }}
                     />
                     <YAxis
                       domain={[0, networkRateYMax]}
                       tickFormatter={(v) => `${Number(v).toFixed(3)}`}
                       tick={{ fontSize: 11 }}
-                      label={{ value: 'Mo/min', angle: -90, position: 'insideLeft', fill: '#9CA3AF', fontSize: 11 }}
+                      label={{
+                        value: "Mo/min",
+                        angle: -90,
+                        position: "insideLeft",
+                        fill: "#9CA3AF",
+                        fontSize: 11,
+                      }}
                     />
                     <Tooltip
                       {...rechartsTooltipProps}
                       labelFormatter={(_, payload: unknown) => {
-                        const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
-                          ?.timestamp;
-                        return ts != null ? formatLocalDateTime(ts) : '—';
+                        const ts = (
+                          payload as Array<{ payload?: { timestamp?: string } }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
                       }}
-                      formatter={((value: number, name: string) => [
-                        `${Number(value).toFixed(4)} Mo/min`,
-                        name === 'networkRxMbPerMin' ? 'RX (débit)' : 'TX (débit)',
-                      ]) as (value: number, name: string) => [string, string]}
+                      formatter={
+                        ((value: number, name: string) => [
+                          `${Number(value).toFixed(4)} Mo/min`,
+                          name === "networkRxMbPerMin"
+                            ? "RX (débit)"
+                            : "TX (débit)",
+                        ]) as (value: number, name: string) => [string, string]
+                      }
                     />
                     <Legend />
                     <Line
@@ -576,9 +677,19 @@ export default function NetworkPerformancePage() {
                 </h2>
                 <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[220px] sm:min-h-[280px]">
-                  <ResponsiveContainer width="100%" height={280} minHeight={220}>
-                    <LineChart data={series} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <ResponsiveContainer
+                    width="100%"
+                    height={280}
+                    minHeight={220}
+                  >
+                    <LineChart
+                      data={series}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="opacity-50"
+                      />
                       <XAxis
                         dataKey="timeMs"
                         type="number"
@@ -587,23 +698,35 @@ export default function NetworkPerformancePage() {
                         textAnchor="end"
                         height={networkAxisShowDate ? 72 : 60}
                         minTickGap={networkAxisShowDate ? 32 : 22}
-                        tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: networkAxisShowDate })}
+                        tickFormatter={(ms) =>
+                          formatLocalChartAxisTick(ms, {
+                            withDate: networkAxisShowDate,
+                          })
+                        }
                         tick={{ fontSize: 12 }}
                       />
-                      <YAxis tickFormatter={(v) => `${Math.round(Number(v))} ms`} tick={{ fontSize: 12 }} />
+                      <YAxis
+                        tickFormatter={(v) => `${Math.round(Number(v))} ms`}
+                        tick={{ fontSize: 12 }}
+                      />
                       <Tooltip
                         {...rechartsTooltipProps}
                         labelFormatter={(_, payload: unknown) => {
-                          const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload
-                            ?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : '—';
+                          const ts = (
+                            payload as Array<{
+                              payload?: { timestamp?: string };
+                            }>
+                          )?.[0]?.payload?.timestamp;
+                          return ts != null ? formatLocalDateTime(ts) : "—";
                         }}
-                        formatter={((value: number) => [
-                          value != null && Number.isFinite(Number(value))
-                            ? `${Number(value).toFixed(1)} ms`
-                            : '—',
-                          'Temps de réponse',
-                        ]) as (value: number) => [string, string]}
+                        formatter={
+                          ((value: number) => [
+                            value != null && Number.isFinite(Number(value))
+                              ? `${Number(value).toFixed(1)} ms`
+                              : "—",
+                            "Temps de réponse",
+                          ]) as (value: number) => [string, string]
+                        }
                       />
                       <Legend />
                       <Line
@@ -639,7 +762,8 @@ export default function NetworkPerformancePage() {
             ) : null}
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {series.length} points affichés après compression (max {TARGET_POINTS}) pour lisibilité.
+              {series.length} points affichés après compression (max{" "}
+              {TARGET_POINTS}) pour lisibilité.
             </p>
           </div>
         )}

@@ -1,50 +1,62 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/auth'
-import userTracking from '@/lib/tracking/userTracking'
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import userTracking from "@/lib/tracking/userTracking";
 
 /**
  * Provider de tracking qui initialise le système de tracking
  * et track automatiquement les événements utilisateur
  */
 export function TrackingProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
-  const pathname = usePathname()
+  const { user } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Le tracking s'initialise automatiquement via le singleton
     // Vérifier si on est sur mobile avant d'initialiser
-    if (typeof window !== 'undefined') {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-      const isBackoffice = pathname?.startsWith('/b4ck0ff1ce');
-      
+    if (typeof window !== "undefined") {
+      const userAgent =
+        navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile =
+        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          userAgent.toLowerCase(),
+        );
+      const isBackoffice = pathname?.startsWith("/b4ck0ff1ce");
+
       // Le tracking est uniquement pour mobile et pas dans le backoffice
       if (isMobile && !isBackoffice) {
-        console.log('[TRACKING] Système de tracking initialisé (mobile uniquement)')
+        console.log(
+          "[TRACKING] Système de tracking initialisé (mobile uniquement)",
+        );
       } else {
-        console.log('[TRACKING] Tracking désactivé - plateforme web/b4ck0ff1ce')
+        console.log(
+          "[TRACKING] Tracking désactivé - plateforme web/b4ck0ff1ce",
+        );
       }
     }
-  }, [])
+  }, []);
 
   // Tracker les changements de page uniquement sur mobile
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-      const isBackoffice = pathname?.startsWith('/b4ck0ff1ce');
-      
+    if (typeof window !== "undefined") {
+      const userAgent =
+        navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile =
+        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          userAgent.toLowerCase(),
+        );
+      const isBackoffice = pathname?.startsWith("/b4ck0ff1ce");
+
       // Tracker uniquement sur mobile et pas dans le backoffice
       if (isMobile && !isBackoffice) {
-        userTracking.trackPageView()
+        userTracking.trackPageView();
       }
     }
-  }, [pathname])
+  }, [pathname]);
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 
 /**
@@ -52,40 +64,39 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
  */
 export function useTracking() {
   const trackClick = (element: HTMLElement, eventName?: string) => {
-    userTracking.trackClick(element, eventName)
-  }
+    userTracking.trackClick(element, eventName);
+  };
 
   const trackEvent = (
     eventName: string,
-    eventType: string = 'click',
+    eventType: string = "click",
     category?: string,
-    properties?: Record<string, any>
+    properties?: Record<string, any>,
   ) => {
-    userTracking.trackEvent(eventName, eventType, category, properties)
-  }
+    userTracking.trackEvent(eventName, eventType, category, properties);
+  };
 
   const trackError = (
     error: Error | string,
-    errorType: string = 'javascript',
-    severity: 'error' | 'warning' | 'critical' = 'error'
+    errorType: string = "javascript",
+    severity: "error" | "warning" | "critical" = "error",
   ) => {
-    userTracking.trackError(error, errorType, severity)
-  }
+    userTracking.trackError(error, errorType, severity);
+  };
 
   const trackPerformance = (
     metricName: string,
     metricType: string,
     value?: number,
-    duration?: number
+    duration?: number,
   ) => {
-    userTracking.trackPerformance(metricName, metricType, value, duration)
-  }
+    userTracking.trackPerformance(metricName, metricType, value, duration);
+  };
 
   return {
     trackClick,
     trackEvent,
     trackError,
-    trackPerformance
-  }
+    trackPerformance,
+  };
 }
-

@@ -1,18 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { formatLocalDate } from '@/lib/utils/date';
-import { FRONTEND_URLS } from '@/config/ports.config';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import { formatLocalDate } from "@/lib/utils/date";
+import { FRONTEND_URLS } from "@/config/ports.config";
 import {
-  Users, Search, Plus, Edit, Trash2, Shield,
-  Mail, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2, TestTube
-} from 'lucide-react';
-import axios from 'axios';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+  Users,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Shield,
+  Mail,
+  Calendar,
+  UserCheck,
+  UserX,
+  RefreshCw,
+  KeyRound,
+  CheckCircle2,
+  TestTube,
+} from "lucide-react";
+import axios from "axios";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -33,46 +45,52 @@ export default function UsersManagementPage() {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [selectedTestFilter, setSelectedTestFilter] = useState<'all' | 'test' | 'nottest'>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [selectedTestFilter, setSelectedTestFilter] = useState<
+    "all" | "test" | "nottest"
+  >("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [cleaningTest, setCleaningTest] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       if (!token) {
-        console.warn('[USERS] ⚠️ Aucun token trouvé, impossible de charger les utilisateurs');
+        console.warn(
+          "[USERS] ⚠️ Aucun token trouvé, impossible de charger les utilisateurs",
+        );
         setUsers([]);
         setLoading(false);
         return;
       }
 
       // ✅ OPTIMISATION : Utiliser le cache
-      const cacheKey = `users_list_${token.substring(0, 10)}_${selectedTestFilter}`
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = `users_list_${token.substring(0, 10)}_${selectedTestFilter}`;
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setUsers(Array.isArray(cached) ? (cached as User[]) : [])
-        setLoading(false)
+        setUsers(Array.isArray(cached) ? (cached as User[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter).catch(() => {}) // Ignorer les erreurs
-        return
+        loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter).catch(
+          () => {},
+        ); // Ignorer les erreurs
+        return;
       }
-      
-      await loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter)
+
+      await loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter);
     } catch (error: any) {
-      console.error('[USERS] ❌ Erreur chargement utilisateurs:', error);
+      console.error("[USERS] ❌ Erreur chargement utilisateurs:", error);
       if (error.response) {
-        console.error('[USERS] Status:', error.response.status);
-        console.error('[USERS] Data:', error.response.data);
-        
+        console.error("[USERS] Status:", error.response.status);
+        console.error("[USERS] Data:", error.response.data);
+
         // Si erreur 401/403, le token est invalide
         if (error.response.status === 401 || error.response.status === 403) {
-          console.warn('[USERS] Token invalide ou expiré');
+          console.warn("[USERS] Token invalide ou expiré");
         }
       }
       setUsers([]);
@@ -80,29 +98,34 @@ export default function UsersManagementPage() {
       setLoading(false);
     }
   }, [token, selectedTestFilter]);
-  
+
   // ✅ OPTIMISATION : Fonction séparée pour le chargement frais
-  const loadUsersFresh = async (token: string, cacheKey: string, cacheManager: any, testFilter: 'all' | 'test' | 'nottest' = 'all') => {
+  const loadUsersFresh = async (
+    token: string,
+    cacheKey: string,
+    cacheManager: any,
+    testFilter: "all" | "test" | "nottest" = "all",
+  ) => {
     const params: Record<string, string | number> = { limit: 100 };
-    if (testFilter === 'test') params.isTestData = 'true';
-    else if (testFilter === 'nottest') params.isTestData = 'false';
+    if (testFilter === "test") params.isTestData = "true";
+    else if (testFilter === "nottest") params.isTestData = "false";
 
     let response;
     try {
       response = await axios.get(`${API_URL}/api/v1/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
         params,
-        validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
+        validateStatus: (status) => status < 500, // Accepter 401, 403, 404 mais pas 500
       });
     } catch (error: any) {
       // Si erreur réseau, essayer le fallback
-      if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-        console.warn('[USERS] Tentative avec /api/v1/users...');
+      if (error.code === "ECONNREFUSED" || error.code === "ETIMEDOUT") {
+        console.warn("[USERS] Tentative avec /api/v1/users...");
         try {
           response = await axios.get(`${API_URL}/api/v1/users`, {
             headers: { Authorization: `Bearer ${token}` },
             params,
-            validateStatus: (status) => status < 500
+            validateStatus: (status) => status < 500,
           });
         } catch (fallbackError: any) {
           throw fallbackError;
@@ -111,13 +134,18 @@ export default function UsersManagementPage() {
         throw error;
       }
     }
-    
+
     // Gérer les erreurs d'authentification
     if (response.status === 401 || response.status === 403) {
-      console.warn(`[USERS] ⚠️ Erreur d'authentification (${response.status}):`, response.data.error);
+      console.warn(
+        `[USERS] ⚠️ Erreur d'authentification (${response.status}):`,
+        response.data.error,
+      );
       // Si token invalide, essayer de recharger le token ou rediriger vers login
       if (response.status === 401) {
-        console.warn('[USERS] Token invalide ou expiré, redirection vers la page de connexion...');
+        console.warn(
+          "[USERS] Token invalide ou expiré, redirection vers la page de connexion...",
+        );
         // Optionnel: window.location.href = '/login'
       }
       setUsers([]);
@@ -127,19 +155,21 @@ export default function UsersManagementPage() {
 
     // Gérer les erreurs 404
     if (response.status === 404) {
-      console.warn('[USERS] ⚠️ Route non trouvée (404), vérification du service...');
+      console.warn(
+        "[USERS] ⚠️ Route non trouvée (404), vérification du service...",
+      );
       setUsers([]);
       setLoading(false);
       return;
     }
-    
+
     if (response.data.success) {
       const usersList = response.data.users || [];
       console.log(`[USERS] ✅ ${usersList.length} utilisateurs chargés`);
       setUsers(usersList);
       await cacheManager.set(cacheKey, usersList, { ttl: 30000 });
     } else {
-      console.error('[USERS] ⚠️ Réponse API invalide:', response.data);
+      console.error("[USERS] ⚠️ Réponse API invalide:", response.data);
       setUsers([]);
     }
   };
@@ -150,13 +180,15 @@ export default function UsersManagementPage() {
     }
   }, [token, loadUsers]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    
+      `${user.firstName} ${user.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesRole = selectedRole === "all" || user.role === selectedRole;
+
     return matchesSearch && matchesRole;
   });
 
@@ -172,98 +204,130 @@ export default function UsersManagementPage() {
       await axios.put(
         `${API_URL}/api/v1/auth/users/${userId}/status`,
         { isActive: !isActive },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       loadUsers();
     } catch (error) {
-      console.error('Erreur mise à jour utilisateur:', error);
+      console.error("Erreur mise à jour utilisateur:", error);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?"))
+      return;
+
     try {
       await axios.delete(`${API_URL}/api/v1/auth/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       loadUsers();
     } catch (error) {
-      console.error('Erreur suppression utilisateur:', error);
+      console.error("Erreur suppression utilisateur:", error);
     }
   };
 
   const handleSendPasswordReset = async (userId: string, userEmail: string) => {
-    if (!confirm(`Envoyer un email de réinitialisation de mot de passe à ${userEmail} ?`)) return;
-    
+    if (
+      !confirm(
+        `Envoyer un email de réinitialisation de mot de passe à ${userEmail} ?`,
+      )
+    )
+      return;
+
     try {
       const response = await axios.post(
         `${API_URL}/api/v1/auth/users/${userId}/send-password-reset`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       if (response.data.success) {
-        alert(`✅ ${response.data.message || 'Email de réinitialisation envoyé avec succès'}`);
+        alert(
+          `✅ ${response.data.message || "Email de réinitialisation envoyé avec succès"}`,
+        );
       } else {
-        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
+        alert(
+          `❌ Erreur: ${response.data.error || "Erreur lors de l'envoi de l'email"}`,
+        );
       }
     } catch (error: any) {
-      console.error('Erreur envoi email reset password:', error);
-      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
+      console.error("Erreur envoi email reset password:", error);
+      alert(
+        `❌ Erreur: ${error.response?.data?.error || error.message || "Erreur lors de l'envoi de l'email"}`,
+      );
     }
   };
 
   const handleSendVerification = async (userId: string, userEmail: string) => {
     if (!confirm(`Envoyer un email de vérification à ${userEmail} ?`)) return;
-    
+
     try {
       const response = await axios.post(
         `${API_URL}/api/v1/auth/users/${userId}/send-verification`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       if (response.data.success) {
-        alert(`✅ ${response.data.message || 'Email de vérification envoyé avec succès'}`);
+        alert(
+          `✅ ${response.data.message || "Email de vérification envoyé avec succès"}`,
+        );
       } else {
-        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
+        alert(
+          `❌ Erreur: ${response.data.error || "Erreur lors de l'envoi de l'email"}`,
+        );
       }
     } catch (error: any) {
-      console.error('Erreur envoi email vérification:', error);
-      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
+      console.error("Erreur envoi email vérification:", error);
+      alert(
+        `❌ Erreur: ${error.response?.data?.error || error.message || "Erreur lors de l'envoi de l'email"}`,
+      );
     }
   };
 
   const handleCleanTestUsers = async () => {
-    const testUsers = users.filter(u => u.id !== currentUser?.id && (u.isTestData === true || u.email?.toLowerCase().endsWith('@jobbingtrack.test')));
+    const testUsers = users.filter(
+      (u) =>
+        u.id !== currentUser?.id &&
+        (u.isTestData === true ||
+          u.email?.toLowerCase().endsWith("@jobbingtrack.test")),
+    );
     const count = testUsers.length;
     if (count === 0) {
-      alert('Aucun utilisateur de test à supprimer.');
+      alert("Aucun utilisateur de test à supprimer.");
       return;
     }
-    if (!confirm(`Supprimer définitivement ${count} utilisateur(s) de test (E2E, données de test) ? Cette action est irréversible.`)) return;
+    if (
+      !confirm(
+        `Supprimer définitivement ${count} utilisateur(s) de test (E2E, données de test) ? Cette action est irréversible.`,
+      )
+    )
+      return;
     try {
       setCleaningTest(true);
       const response = await axios.post(
         `${API_URL}/api/v1/auth/users/clean-test-users`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response.data?.success) {
         const deleted = response.data.deletedCount ?? count;
         alert(`✅ ${deleted} utilisateur(s) de test supprimé(s).`);
-        const { cacheManager } = await import('@/lib/cache/cacheManager');
+        const { cacheManager } = await import("@/lib/cache/cacheManager");
         await cacheManager.delete(`users_list_${token?.substring(0, 10)}_all`);
         await cacheManager.delete(`users_list_${token?.substring(0, 10)}_test`);
-        await cacheManager.delete(`users_list_${token?.substring(0, 10)}_nottest`);
+        await cacheManager.delete(
+          `users_list_${token?.substring(0, 10)}_nottest`,
+        );
         loadUsers();
       } else {
-        alert(`❌ ${response.data?.error || 'Erreur lors du nettoyage'}`);
+        alert(`❌ ${response.data?.error || "Erreur lors du nettoyage"}`);
       }
     } catch (error: any) {
-      console.error('Erreur nettoyage utilisateurs de test:', error);
-      alert(`❌ ${error.response?.data?.error || error.message || 'Erreur lors du nettoyage'}`);
+      console.error("Erreur nettoyage utilisateurs de test:", error);
+      alert(
+        `❌ ${error.response?.data?.error || error.message || "Erreur lors du nettoyage"}`,
+      );
     } finally {
       setCleaningTest(false);
     }
@@ -293,7 +357,7 @@ export default function UsersManagementPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push('/b4ck0ff1ce/users/new')}
+            onClick={() => router.push("/b4ck0ff1ce/users/new")}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-5 w-5" />
@@ -306,7 +370,9 @@ export default function UsersManagementPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Total
+                </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {users.length}
                 </p>
@@ -318,9 +384,11 @@ export default function UsersManagementPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Actifs</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Actifs
+                </p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {users.filter(u => u.isActive).length}
+                  {users.filter((u) => u.isActive).length}
                 </p>
               </div>
               <UserCheck className="h-10 w-10 text-green-500" />
@@ -330,9 +398,11 @@ export default function UsersManagementPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Inactifs</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Inactifs
+                </p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-                  {users.filter(u => !u.isActive).length}
+                  {users.filter((u) => !u.isActive).length}
                 </p>
               </div>
               <UserX className="h-10 w-10 text-red-500" />
@@ -342,9 +412,15 @@ export default function UsersManagementPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Admins</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Admins
+                </p>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                  {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length}
+                  {
+                    users.filter(
+                      (u) => u.role === "ADMIN" || u.role === "SUPER_ADMIN",
+                    ).length
+                  }
                 </p>
               </div>
               <Shield className="h-10 w-10 text-purple-500" />
@@ -382,7 +458,11 @@ export default function UsersManagementPage() {
 
             <select
               value={selectedTestFilter}
-              onChange={(e) => setSelectedTestFilter(e.target.value as 'all' | 'test' | 'nottest')}
+              onChange={(e) =>
+                setSelectedTestFilter(
+                  e.target.value as "all" | "test" | "nottest",
+                )
+              }
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               title="Filtrer par origine (test E2E / données de test)"
             >
@@ -393,12 +473,22 @@ export default function UsersManagementPage() {
 
             <button
               onClick={handleCleanTestUsers}
-              disabled={cleaningTest || !users.some(u => u.id !== currentUser?.id && (u.isTestData === true || u.email?.toLowerCase().endsWith('@jobbingtrack.test')))}
+              disabled={
+                cleaningTest ||
+                !users.some(
+                  (u) =>
+                    u.id !== currentUser?.id &&
+                    (u.isTestData === true ||
+                      u.email?.toLowerCase().endsWith("@jobbingtrack.test")),
+                )
+              }
               className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Supprimer les utilisateurs créés par les tests E2E / données de test (isTestData ou @jobbingtrack.test)"
             >
               <TestTube className="h-5 w-5" />
-              {cleaningTest ? 'Nettoyage...' : 'Nettoyer les utilisateurs de test'}
+              {cleaningTest
+                ? "Nettoyage..."
+                : "Nettoyer les utilisateurs de test"}
             </button>
 
             <button
@@ -449,7 +539,8 @@ export default function UsersManagementPage() {
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                           <span className="text-blue-600 dark:text-blue-300 font-semibold">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
+                            {user.firstName?.[0]}
+                            {user.lastName?.[0]}
                           </span>
                         </div>
                         <div className="ml-4">
@@ -458,7 +549,8 @@ export default function UsersManagementPage() {
                           </div>
                           {user.lastLogin && (
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Dernière connexion: {formatLocalDate(user.lastLogin)}
+                              Dernière connexion:{" "}
+                              {formatLocalDate(user.lastLogin)}
                             </div>
                           )}
                         </div>
@@ -471,38 +563,53 @@ export default function UsersManagementPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === 'SUPER_ADMIN'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : user.role === 'ADMIN' 
-                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                          : user.role === 'USER'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {user.role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : user.role}
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          user.role === "SUPER_ADMIN"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : user.role === "ADMIN"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                              : user.role === "USER"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        }`}
+                      >
+                        {user.role === "SUPER_ADMIN"
+                          ? "SUPER ADMIN"
+                          : user.role}
                       </span>
                       {user.isTestData && (
-                        <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Utilisateur créé par les tests (E2E, données de test)">
+                        <span
+                          className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                          title="Utilisateur créé par les tests (E2E, données de test)"
+                        >
                           Test
                         </span>
                       )}
-                      {!user.isTestData && user.email?.toLowerCase().endsWith('@jobbingtrack.test') && (
-                        <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Email de test (@jobbingtrack.test)">
-                          Test
-                        </span>
-                      )}
+                      {!user.isTestData &&
+                        user.email
+                          ?.toLowerCase()
+                          .endsWith("@jobbingtrack.test") && (
+                          <span
+                            className="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            title="Email de test (@jobbingtrack.test)"
+                          >
+                            Test
+                          </span>
+                        )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleToggleActive(user.id, user.isActive)}
+                        onClick={() =>
+                          handleToggleActive(user.id, user.isActive)
+                        }
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           user.isActive
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         } hover:opacity-75 transition-opacity cursor-pointer`}
                       >
-                        {user.isActive ? 'Actif' : 'Inactif'}
+                        {user.isActive ? "Actif" : "Inactif"}
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -511,24 +618,33 @@ export default function UsersManagementPage() {
                         {formatLocalDate(user.createdAt)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => router.push(`/b4ck0ff1ce/users/${user.id}`)}
+                          onClick={() =>
+                            router.push(`/b4ck0ff1ce/users/${user.id}`)
+                          }
                           className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                           title="Modifier"
                         >
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleSendPasswordReset(user.id, user.email)}
+                          onClick={() =>
+                            handleSendPasswordReset(user.id, user.email)
+                          }
                           className="p-2 text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
                           title="Envoyer email de réinitialisation de mot de passe"
                         >
                           <KeyRound className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleSendVerification(user.id, user.email)}
+                          onClick={() =>
+                            handleSendVerification(user.id, user.email)
+                          }
                           className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                           title="Envoyer email de vérification"
                         >
@@ -549,16 +665,26 @@ export default function UsersManagementPage() {
                 ))}
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
                       <p>Aucun utilisateur trouvé</p>
-                      <p className="text-sm mt-1">Après un <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">make up-full</code>, la base peut être vide : créez un compte admin si besoin.</p>
+                      <p className="text-sm mt-1">
+                        Après un{" "}
+                        <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">
+                          make up-full
+                        </code>
+                        , la base peut être vide : créez un compte admin si
+                        besoin.
+                      </p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           {/* ✅ OPTIMISATION : Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -582,4 +708,3 @@ export default function UsersManagementPage() {
     </AdminLayout>
   );
 }
-

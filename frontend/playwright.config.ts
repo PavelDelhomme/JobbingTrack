@@ -1,24 +1,38 @@
-import { defineConfig, devices } from '@playwright/test';
-import { findFreePort, killProcessOnPort } from './tests/utils/portUtils';
-import path from 'path';
-import { devBypassExtraHeaders } from './tests/e2e/envDevBypass';
+import { defineConfig, devices } from "@playwright/test";
+import { findFreePort, killProcessOnPort } from "./tests/utils/portUtils";
+import path from "path";
+import { devBypassExtraHeaders } from "./tests/e2e/envDevBypass";
 
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
-const reportDir = process.env.REPORT_DIR || '';
-const inDocker = !!(reportDir || process.env.TESTS_RESULTS_DIR || process.env.DOCKER);
+const reportDir = process.env.REPORT_DIR || "";
+const inDocker = !!(
+  reportDir ||
+  process.env.TESTS_RESULTS_DIR ||
+  process.env.DOCKER
+);
 // Cibler le frontend Docker (port 5003) quand PLAYWRIGHT_BASE_URL est défini (ex. make restart-service SERVICE=frontend puis tests)
 const baseURLFromEnv = process.env.PLAYWRIGHT_BASE_URL;
-const baseURL = baseURLFromEnv || (inDocker ? 'http://localhost:3000' : 'http://localhost:3000');
-const outputDir = reportDir ? path.join(reportDir, 'test-results') : 'test-results';
-const htmlReportDir = reportDir ? path.join(reportDir, 'playwright-report') : 'playwright-report';
-const jsonReportPath = reportDir ? path.join(reportDir, 'test-results.json') : 'test-results.json';
-const junitReportPath = reportDir ? path.join(reportDir, 'test-results.xml') : 'test-results.xml';
+const baseURL =
+  baseURLFromEnv ||
+  (inDocker ? "http://localhost:3000" : "http://localhost:3000");
+const outputDir = reportDir
+  ? path.join(reportDir, "test-results")
+  : "test-results";
+const htmlReportDir = reportDir
+  ? path.join(reportDir, "playwright-report")
+  : "playwright-report";
+const jsonReportPath = reportDir
+  ? path.join(reportDir, "test-results.json")
+  : "test-results.json";
+const junitReportPath = reportDir
+  ? path.join(reportDir, "test-results.xml")
+  : "test-results.xml";
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   outputDir,
   /* Run tests in files in parallel */
   fullyParallel: true,
@@ -30,10 +44,10 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: htmlReportDir }],
-    ['json', { outputFile: jsonReportPath }],
-    ['junit', { outputFile: junitReportPath }],
-    process.env.CI ? ['github'] : ['list']
+    ["html", { outputFolder: htmlReportDir }],
+    ["json", { outputFile: jsonReportPath }],
+    ["junit", { outputFile: junitReportPath }],
+    process.env.CI ? ["github"] : ["list"],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -41,13 +55,13 @@ export default defineConfig({
     baseURL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
 
     /* Take screenshot on failure */
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     /* Record video on failure */
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
 
     /* WAF / intrusion en dev : même jeton que la gateway (`.env` racine, DEV_TEST_BYPASS_TOKEN). */
     extraHTTPHeaders: devBypassExtraHeaders(),
@@ -56,22 +70,22 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'setup',
+      name: "setup",
       testMatch: /auth\.setup\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'no-auth',
+      name: "no-auth",
       testMatch: [/login\.spec\.ts/, /accessibility\.spec\.ts/],
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'chromium',
+      name: "chromium",
       use: {
-        ...devices['Desktop Chrome'],
-        storageState: path.join(__dirname, 'tests/e2e/.auth/admin.json'),
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/admin.json"),
       },
-      dependencies: ['setup'],
+      dependencies: ["setup"],
       testIgnore: [
         /auth\.setup\.ts/,
         /login\.spec\.ts/,
@@ -99,40 +113,49 @@ export default defineConfig({
   /* Run your local dev server before starting the tests. En Docker, réutiliser le serveur déjà sur 3000 (évite EADDRINUSE). */
   /* Si PLAYWRIGHT_BASE_URL est défini (ex. http://localhost:5003), on réutilise ce serveur sans en lancer un. */
   webServer: baseURLFromEnv
-    ? [{ command: 'echo', url: baseURLFromEnv, reuseExistingServer: true, timeout: 10_000 }]
-    : inDocker
     ? [
         {
-          command: 'echo',
-          url: 'http://localhost:3000',
+          command: "echo",
+          url: baseURLFromEnv,
           reuseExistingServer: true,
           timeout: 10_000,
         },
       ]
-    : [
-        {
-          command: 'npm run dev',
-          url: 'http://localhost:3000',
-          reuseExistingServer: true,
-          timeout: 120 * 1000,
-          env: {
-            WAF_ENABLED: 'false',
-            RATE_LIMIT_ENABLED: 'false',
-            NEXT_PUBLIC_API_URL: 'http://localhost:5002',
-            NEXT_PUBLIC_AUTH_SERVICE_URL: 'http://localhost:5002',
-          },
-        },
-        ...(process.env.CI ? [] : [
+    : inDocker
+      ? [
           {
-            command: 'npm run dev:mobile',
-            url: 'http://localhost:8090',
+            command: "echo",
+            url: "http://localhost:3000",
+            reuseExistingServer: true,
+            timeout: 10_000,
+          },
+        ]
+      : [
+          {
+            command: "npm run dev",
+            url: "http://localhost:3000",
             reuseExistingServer: true,
             timeout: 120 * 1000,
+            env: {
+              WAF_ENABLED: "false",
+              RATE_LIMIT_ENABLED: "false",
+              NEXT_PUBLIC_API_URL: "http://localhost:5002",
+              NEXT_PUBLIC_AUTH_SERVICE_URL: "http://localhost:5002",
+            },
           },
-        ]),
-      ],
+          ...(process.env.CI
+            ? []
+            : [
+                {
+                  command: "npm run dev:mobile",
+                  url: "http://localhost:8090",
+                  reuseExistingServer: true,
+                  timeout: 120 * 1000,
+                },
+              ]),
+        ],
 
   /* Global setup and teardown */
-  globalSetup: './tests/e2e/global-setup.ts',
-  globalTeardown: './tests/e2e/global-teardown.ts',
+  globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
 });

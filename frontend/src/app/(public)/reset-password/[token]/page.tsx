@@ -1,11 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import axios from 'axios';
-import { FRONTEND_URLS } from '@/config/ports.config';
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import axios from "axios";
+import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Lock, CheckCircle, XCircle, Eye, EyeOff, AlertCircle } from '@/lib/icons';
+import {
+  Lock,
+  CheckCircle,
+  XCircle,
+  Eye,
+  EyeOff,
+  AlertCircle,
+} from "@/lib/icons";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -14,14 +21,14 @@ export default function ResetPasswordPage() {
   const params = useParams();
   const token = params.token as string;
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   // Vérifier la validité du token au chargement
@@ -30,21 +37,21 @@ export default function ResetPasswordPage() {
       try {
         setVerifying(true);
         const response = await axios.get(
-          `${API_URL}/api/v1/auth/reset-password/${token}`
+          `${API_URL}/api/v1/auth/reset-password/${token}`,
         );
 
         if (response.data.success && response.data.valid) {
           setTokenValid(true);
         } else {
           setTokenValid(false);
-          setError('Ce lien de réinitialisation est invalide ou a expiré.');
+          setError("Ce lien de réinitialisation est invalide ou a expiré.");
         }
       } catch (err: any) {
-        console.error('Erreur vérification token:', err);
+        console.error("Erreur vérification token:", err);
         setTokenValid(false);
         setError(
           err.response?.data?.error ||
-            'Ce lien de réinitialisation est invalide ou a expiré.'
+            "Ce lien de réinitialisation est invalide ou a expiré.",
         );
       } finally {
         setVerifying(false);
@@ -58,16 +65,16 @@ export default function ResetPasswordPage() {
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 6) {
-      return 'Le mot de passe doit contenir au moins 6 caractères';
+      return "Le mot de passe doit contenir au moins 6 caractères";
     }
     if (!/[A-Z]/.test(pwd)) {
-      return 'Le mot de passe doit contenir au moins une majuscule';
+      return "Le mot de passe doit contenir au moins une majuscule";
     }
     if (!/[a-z]/.test(pwd)) {
-      return 'Le mot de passe doit contenir au moins une minuscule';
+      return "Le mot de passe doit contenir au moins une minuscule";
     }
     if (!/[0-9]/.test(pwd)) {
-      return 'Le mot de passe doit contenir au moins un chiffre';
+      return "Le mot de passe doit contenir au moins un chiffre";
     }
     return null;
   };
@@ -77,7 +84,7 @@ export default function ResetPasswordPage() {
 
     // Validation
     if (!password || !confirmPassword) {
-      setError('Veuillez remplir tous les champs');
+      setError("Veuillez remplir tous les champs");
       return;
     }
 
@@ -88,17 +95,17 @@ export default function ResetPasswordPage() {
     }
 
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError("Les mots de passe ne correspondent pas");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       const response = await axios.post(
         `${API_URL}/api/v1/auth/reset-password/${token}`,
-        { password }
+        { password },
       );
 
       if (response.data.success) {
@@ -106,17 +113,19 @@ export default function ResetPasswordPage() {
 
         // Rediriger vers la page de connexion après 3 secondes
         setTimeout(() => {
-          router.push('/login?reset=success');
+          router.push("/login?reset=success");
         }, 3000);
       } else {
         setError(
-          response.data.error || 'Une erreur est survenue lors de la réinitialisation'
+          response.data.error ||
+            "Une erreur est survenue lors de la réinitialisation",
         );
       }
     } catch (err: any) {
-      console.error('Erreur reset password:', err);
+      console.error("Erreur reset password:", err);
       setError(
-        err.response?.data?.error || 'Une erreur est survenue lors de la réinitialisation'
+        err.response?.data?.error ||
+          "Une erreur est survenue lors de la réinitialisation",
       );
     } finally {
       setLoading(false);
@@ -152,8 +161,8 @@ export default function ResetPasswordPage() {
               Mot de passe réinitialisé !
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Votre mot de passe a été réinitialisé avec succès.
-              Vous allez être redirigé vers la page de connexion...
+              Votre mot de passe a été réinitialisé avec succès. Vous allez être
+              redirigé vers la page de connexion...
             </p>
             <div className="animate-pulse text-blue-600 dark:text-blue-400">
               Redirection en cours...
@@ -177,14 +186,14 @@ export default function ResetPasswordPage() {
               Lien invalide ou expiré
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {error || 'Ce lien de réinitialisation est invalide ou a expiré.'}
+              {error || "Ce lien de réinitialisation est invalide ou a expiré."}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Les liens de réinitialisation sont valides pendant 1 heure.
               Veuillez demander un nouveau lien.
             </p>
             <button
-              onClick={() => router.push('/forgot-password')}
+              onClick={() => router.push("/forgot-password")}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Demander un nouveau lien
@@ -229,7 +238,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
@@ -249,16 +258,24 @@ export default function ResetPasswordPage() {
               </button>
             </div>
             <div className="mt-2 space-y-1">
-              <p className={`text-xs ${password.length >= 6 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+              <p
+                className={`text-xs ${password.length >= 6 ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}
+              >
                 ✓ Au moins 6 caractères
               </p>
-              <p className={`text-xs ${/[A-Z]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+              <p
+                className={`text-xs ${/[A-Z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}
+              >
                 ✓ Une lettre majuscule
               </p>
-              <p className={`text-xs ${/[a-z]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+              <p
+                className={`text-xs ${/[a-z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}
+              >
                 ✓ Une lettre minuscule
               </p>
-              <p className={`text-xs ${/[0-9]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+              <p
+                className={`text-xs ${/[0-9]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}
+              >
                 ✓ Un chiffre
               </p>
             </div>
@@ -274,7 +291,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
@@ -326,7 +343,7 @@ export default function ResetPasswordPage() {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => router.push('/login')}
+            onClick={() => router.push("/login")}
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             Retour à la connexion

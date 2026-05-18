@@ -1,50 +1,58 @@
-'use client'
+"use client";
 
-import React from 'react'
+import React from "react";
 
 interface ErrorBoundaryState {
-  hasError: boolean
-  error?: Error
+  hasError: boolean;
+  error?: Error;
 }
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode
-  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>
+  children: React.ReactNode;
+  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
-    super(props)
-    this.state = { hasError: false }
+    super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     // Mettre à jour l'état pour afficher l'interface de fallback
-    return { hasError: true, error }
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Logger l'erreur pour le debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
 
     // Reporter l'erreur à un service de monitoring si disponible
-    if (typeof window !== 'undefined' && window.console) {
-      console.error('🔥 Runtime Error:', error.message)
-      console.error('📍 Error Stack:', error.stack)
-      console.error('📋 Component Stack:', errorInfo.componentStack)
+    if (typeof window !== "undefined" && window.console) {
+      console.error("🔥 Runtime Error:", error.message);
+      console.error("📍 Error Stack:", error.stack);
+      console.error("📋 Component Stack:", errorInfo.componentStack);
     }
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: undefined })
-  }
+    this.setState({ hasError: false, error: undefined });
+  };
 
   render() {
     if (this.state.hasError) {
       // Rendu du fallback personnalisé ou par défaut
       if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback
-        return <FallbackComponent error={this.state.error} resetError={this.resetError} />
+        const FallbackComponent = this.props.fallback;
+        return (
+          <FallbackComponent
+            error={this.state.error}
+            resetError={this.resetError}
+          />
+        );
       }
 
       // Fallback par défaut
@@ -56,9 +64,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               Une erreur inattendue s'est produite
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Le système a rencontré un problème. Cette erreur a été automatiquement signalée.
+              Le système a rencontré un problème. Cette erreur a été
+              automatiquement signalée.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="text-left bg-gray-100 dark:bg-gray-700 p-3 rounded mb-4">
                 <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
                   Détails de l'erreur (développement)
@@ -85,11 +94,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             </div>
           </div>
         </div>
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }
 
-export default ErrorBoundary
+export default ErrorBoundary;

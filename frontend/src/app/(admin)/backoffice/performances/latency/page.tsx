@@ -1,30 +1,30 @@
-'use client'
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AdminLayout } from '@/components/features'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
   ymdLocal,
   type TimeRangeOption,
-} from '@/components/analytics'
+} from "@/components/analytics";
 import {
   getPeriodMs,
   formatRangeLabel,
   formatCustomRangeLabel,
   localCalendarDayBounds,
-} from '@/components/analytics/timeRangeUtils'
+} from "@/components/analytics/timeRangeUtils";
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
   metricRowToTimeMs,
   normalizeMetricTimestampToIso,
-} from '@/lib/utils/date'
-import { analyticsService } from '@/lib/api/analytics.service'
-import { centralMetricsService } from '@/lib/services/centralMetricsService'
-import { pickSystemResponseTimeAvgMsFromRow } from '@/lib/metrics/pickSystemResponseTimeFromRow'
-import type { MetricsData } from '@/lib/interfaces'
+} from "@/lib/utils/date";
+import { analyticsService } from "@/lib/api/analytics.service";
+import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
+import type { MetricsData } from "@/lib/interfaces";
 import {
   ResponsiveContainer,
   LineChart,
@@ -37,40 +37,43 @@ import {
   BarChart,
   Bar,
   Brush,
-} from 'recharts'
-import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
-import { chartXDomainFromDataRange } from '@/lib/charts/chartTimeDomain'
+} from "recharts";
+import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 
 type LatencyRow = {
-  timestamp: string
-  timeMs: number
-  responseTimeMs: number | null
-}
+  timestamp: string;
+  timeMs: number;
+  responseTimeMs: number | null;
+};
 
 type LiveEndpointRow = {
-  name: string
-  ms: number | null
-  status?: string
-}
+  name: string;
+  ms: number | null;
+  status?: string;
+};
 
 export default function PerformancesLatencyPage() {
-  const [rows, setRows] = useState<LatencyRow[]>([])
-  const [loadingHistory, setLoadingHistory] = useState(true)
-  const [loadingLive, setLoadingLive] = useState(true)
-  const [liveMetrics, setLiveMetrics] = useState<MetricsData | null>(null)
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h')
-  const [windowEnd, setWindowEnd] = useState<Date>(() => new Date())
-  const [followLive, setFollowLive] = useState(true)
-  const [softTick, setSoftTick] = useState(0)
-  const [useCustomRange, setUseCustomRange] = useState(false)
+  const [rows, setRows] = useState<LatencyRow[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingLive, setLoadingLive] = useState(true);
+  const [liveMetrics, setLiveMetrics] = useState<MetricsData | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
+  const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
+  const [followLive, setFollowLive] = useState(true);
+  const [softTick, setSoftTick] = useState(0);
+  const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 7)
-    return ymdLocal(d)
-  })
-  const [customEnd, setCustomEnd] = useState(() => ymdLocal())
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
-  const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return ymdLocal(d);
+  });
+  const [customEnd, setCustomEnd] = useState(() => ymdLocal());
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [brushRange, setBrushRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   usePersistedSharedAnalyticsRange({
     timeRange,
@@ -85,35 +88,35 @@ export default function PerformancesLatencyPage() {
     setWindowEnd,
     followLive,
     setFollowLive,
-  })
+  });
 
   const getParams = useCallback(() => {
     if (useCustomRange) {
-      const { start, end } = localCalendarDayBounds(customStart, customEnd)
-      const durationMs = Math.max(0, end.getTime() - start.getTime())
-      const limit = Math.min(Math.ceil(durationMs / (60 * 1000)), 43200)
+      const { start, end } = localCalendarDayBounds(customStart, customEnd);
+      const durationMs = Math.max(0, end.getTime() - start.getTime());
+      const limit = Math.min(Math.ceil(durationMs / (60 * 1000)), 43200);
       return {
         startDate: start.toISOString(),
         endDate: end.toISOString(),
         limit,
         rangeStart: start,
         rangeEnd: end,
-      }
+      };
     }
-    const { start, end, limit } = getPeriodMs(timeRange, windowEnd)
+    const { start, end, limit } = getPeriodMs(timeRange, windowEnd);
     return {
       startDate: start.toISOString(),
       endDate: end.toISOString(),
       limit,
       rangeStart: start,
       rangeEnd: end,
-    }
-  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd])
+    };
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const fetchData = useCallback(async () => {
-    const { startDate, endDate, limit } = getParams()
-    setLoadingHistory(true)
-    setLoadingLive(true)
+    const { startDate, endDate, limit } = getParams();
+    setLoadingHistory(true);
+    setLoadingLive(true);
     try {
       const [history, live] = await Promise.all([
         analyticsService.getSystemMetricsHistory({
@@ -123,14 +126,16 @@ export default function PerformancesLatencyPage() {
           offset: 0,
         }),
         centralMetricsService.getAggregatorMetrics(),
-      ])
-      setLiveMetrics(live)
+      ]);
+      setLiveMetrics(live);
       const normalized = (history || [])
         .map((r: Record<string, unknown>) => {
-          const timestamp = normalizeMetricTimestampToIso(r.timestamp as string)
-          const timeMs = metricRowToTimeMs(r, timestamp)
-          const responseTimeMs = pickSystemResponseTimeAvgMsFromRow(r)
-          if (!timestamp || timeMs == null) return null
+          const timestamp = normalizeMetricTimestampToIso(
+            r.timestamp as string,
+          );
+          const timeMs = metricRowToTimeMs(r, timestamp);
+          const responseTimeMs = pickSystemResponseTimeAvgMsFromRow(r);
+          if (!timestamp || timeMs == null) return null;
           return {
             timestamp,
             timeMs,
@@ -138,35 +143,35 @@ export default function PerformancesLatencyPage() {
               responseTimeMs != null && Number.isFinite(Number(responseTimeMs))
                 ? Number(responseTimeMs)
                 : null,
-          }
+          };
         })
         .filter((x): x is LatencyRow => x != null)
-        .sort((a, b) => a.timeMs - b.timeMs)
-      setRows(normalized)
+        .sort((a, b) => a.timeMs - b.timeMs);
+      setRows(normalized);
     } finally {
-      setLoadingHistory(false)
-      setLoadingLive(false)
+      setLoadingHistory(false);
+      setLoadingLive(false);
     }
-  }, [getParams])
+  }, [getParams]);
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData, softTick])
+    void fetchData();
+  }, [fetchData, softTick]);
 
   useEffect(() => {
     if (rows.length === 0) {
-      setBrushRange(null)
-      return
+      setBrushRange(null);
+      return;
     }
-    setBrushRange({ start: 0, end: rows.length - 1 })
-  }, [rows])
+    setBrushRange({ start: 0, end: rows.length - 1 });
+  }, [rows]);
 
   const bumpWindowEndToNow = useCallback(() => {
-    setWindowEnd(new Date())
-  }, [])
+    setWindowEnd(new Date());
+  }, []);
   const bumpSoftRefresh = useCallback(() => {
-    setSoftTick((t) => t + 1)
-  }, [])
+    setSoftTick((t) => t + 1);
+  }, []);
 
   useAnalyticsAutoRefresh({
     followLive,
@@ -174,102 +179,130 @@ export default function PerformancesLatencyPage() {
     customEnd,
     bumpWindowEndToNow,
     bumpSoftRefresh,
-  })
+  });
 
-  const { rangeStart, rangeEnd } = getParams()
+  const { rangeStart, rangeEnd } = getParams();
   const rangeLabel = useCustomRange
     ? formatCustomRangeLabel(customStart, customEnd)
-    : formatRangeLabel(rangeStart, rangeEnd, timeRange)
-  const chartXDomainMin = rangeStart.getTime()
-  const chartXDomainMax = rangeEnd.getTime()
+    : formatRangeLabel(rangeStart, rangeEnd, timeRange);
+  const chartXDomainMin = rangeStart.getTime();
+  const chartXDomainMax = rangeEnd.getTime();
   const [chartXEffMin, chartXEffMax] = useMemo(
-    () => chartXDomainFromDataRange(chartXDomainMin, chartXDomainMax, rows.map((r) => r.timeMs)),
-    [chartXDomainMin, chartXDomainMax, rows]
-  )
-  const axisShowDate = chartXEffMax - chartXEffMin > 24 * 60 * 60 * 1000
+    () =>
+      chartXDomainFromDataRange(
+        chartXDomainMin,
+        chartXDomainMax,
+        rows.map((r) => r.timeMs),
+      ),
+    [chartXDomainMin, chartXDomainMax, rows],
+  );
+  const axisShowDate = chartXEffMax - chartXEffMin > 24 * 60 * 60 * 1000;
 
   const brushAvgMs = useMemo(() => {
-    if (!brushRange || rows.length === 0) return null
-    const s = Math.max(0, Math.min(brushRange.start, brushRange.end))
-    const e = Math.min(rows.length - 1, Math.max(brushRange.start, brushRange.end))
+    if (!brushRange || rows.length === 0) return null;
+    const s = Math.max(0, Math.min(brushRange.start, brushRange.end));
+    const e = Math.min(
+      rows.length - 1,
+      Math.max(brushRange.start, brushRange.end),
+    );
     const slice = rows
       .slice(s, e + 1)
-      .filter((r) => r.responseTimeMs != null && Number.isFinite(Number(r.responseTimeMs)))
-    if (slice.length === 0) return null
-    return slice.reduce((acc, r) => acc + Number(r.responseTimeMs), 0) / slice.length
-  }, [brushRange, rows])
+      .filter(
+        (r) =>
+          r.responseTimeMs != null && Number.isFinite(Number(r.responseTimeMs)),
+      );
+    if (slice.length === 0) return null;
+    return (
+      slice.reduce((acc, r) => acc + Number(r.responseTimeMs), 0) / slice.length
+    );
+  }, [brushRange, rows]);
 
   const goPrev = useCallback(() => {
-    setFollowLive(false)
-    if (useCustomRange) return
-    const { start } = getPeriodMs(timeRange, windowEnd)
-    const period = windowEnd.getTime() - start.getTime()
-    setWindowEnd(new Date(windowEnd.getTime() - period))
-  }, [timeRange, windowEnd, useCustomRange])
+    setFollowLive(false);
+    if (useCustomRange) return;
+    const { start } = getPeriodMs(timeRange, windowEnd);
+    const period = windowEnd.getTime() - start.getTime();
+    setWindowEnd(new Date(windowEnd.getTime() - period));
+  }, [timeRange, windowEnd, useCustomRange]);
 
   const goNext = useCallback(() => {
-    setFollowLive(false)
-    if (useCustomRange) return
-    const now = new Date()
-    const { start } = getPeriodMs(timeRange, windowEnd)
-    const period = windowEnd.getTime() - start.getTime()
-    const nextEnd = new Date(windowEnd.getTime() + period)
-    setWindowEnd(nextEnd <= now ? nextEnd : now)
-  }, [timeRange, windowEnd, useCustomRange])
+    setFollowLive(false);
+    if (useCustomRange) return;
+    const now = new Date();
+    const { start } = getPeriodMs(timeRange, windowEnd);
+    const period = windowEnd.getTime() - start.getTime();
+    const nextEnd = new Date(windowEnd.getTime() + period);
+    setWindowEnd(nextEnd <= now ? nextEnd : now);
+  }, [timeRange, windowEnd, useCustomRange]);
 
-  const canGoNext = useMemo(() => windowEnd.getTime() < Date.now(), [windowEnd])
+  const canGoNext = useMemo(
+    () => windowEnd.getTime() < Date.now(),
+    [windowEnd],
+  );
 
   const liveEndpointRows = useMemo(() => {
     const parseMs = (v: unknown): number | null => {
-      if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v
-      if (typeof v === 'string') {
-        const n = parseFloat(v.replace(/[^\d.]/g, ''))
-        return Number.isFinite(n) && n > 0 ? n : null
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
+      if (typeof v === "string") {
+        const n = parseFloat(v.replace(/[^\d.]/g, ""));
+        return Number.isFinite(n) && n > 0 ? n : null;
       }
-      return null
-    }
-    const list = liveMetrics?.servicesList ?? []
+      return null;
+    };
+    const list = liveMetrics?.servicesList ?? [];
     return list
       .map((s) => {
-        const ms = parseMs(s.responseTimeMs) ?? parseMs(s.responseTime) ?? parseMs(s.health?.responseTime)
+        const ms =
+          parseMs(s.responseTimeMs) ??
+          parseMs(s.responseTime) ??
+          parseMs(s.health?.responseTime);
         return {
-          name: (s.displayName || s.name || 'service').slice(0, 48),
+          name: (s.displayName || s.name || "service").slice(0, 48),
           ms,
           status: s.status ?? s.health?.status,
-        }
+        };
       })
-      .sort((a, b) => (b.ms ?? -1) - (a.ms ?? -1))
-  }, [liveMetrics])
+      .sort((a, b) => (b.ms ?? -1) - (a.ms ?? -1));
+  }, [liveMetrics]);
 
   const measuredRows = useMemo(
     () =>
       liveEndpointRows
         .filter((r) => r.ms != null)
         .map((r) => ({ ...r, ms: r.ms as number })),
-    [liveEndpointRows]
-  )
-  const missingRows = useMemo(() => liveEndpointRows.filter((r) => r.ms == null), [liveEndpointRows])
-  const measuredServiceNames = useMemo(() => measuredRows.map((r) => r.name), [measuredRows])
+    [liveEndpointRows],
+  );
+  const missingRows = useMemo(
+    () => liveEndpointRows.filter((r) => r.ms == null),
+    [liveEndpointRows],
+  );
+  const measuredServiceNames = useMemo(
+    () => measuredRows.map((r) => r.name),
+    [measuredRows],
+  );
 
   useEffect(() => {
     setSelectedServices((prev) => {
-      if (prev.length === 0) return measuredServiceNames
-      return prev.filter((name) => measuredServiceNames.includes(name))
-    })
-  }, [measuredServiceNames])
+      if (prev.length === 0) return measuredServiceNames;
+      return prev.filter((name) => measuredServiceNames.includes(name));
+    });
+  }, [measuredServiceNames]);
 
   const filteredMeasuredRows = useMemo(() => {
-    if (selectedServices.length === 0) return measuredRows
-    return measuredRows.filter((r) => selectedServices.includes(r.name))
-  }, [measuredRows, selectedServices])
+    if (selectedServices.length === 0) return measuredRows;
+    return measuredRows.filter((r) => selectedServices.includes(r.name));
+  }, [measuredRows, selectedServices]);
 
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 w-full">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Temps de réponse</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Temps de réponse
+          </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Vue détaillée latence : historique agrégé + instantané par endpoint/service.
+            Vue détaillée latence : historique agrégé + instantané par
+            endpoint/service.
           </p>
         </div>
 
@@ -288,31 +321,40 @@ export default function PerformancesLatencyPage() {
             goNext={goNext}
             canGoNext={canGoNext}
             onPeriodNow={() => {
-              setUseCustomRange(false)
-              setFollowLive(true)
-              setWindowEnd(new Date())
+              setUseCustomRange(false);
+              setFollowLive(true);
+              setWindowEnd(new Date());
             }}
             showNavigationHint={false}
           />
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Historique agrégé (ms)</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Historique agrégé (ms)
+          </h2>
           {rows.length > 0 && (
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               {brushAvgMs != null
                 ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
-                : 'Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus.'}
+                : "Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus."}
             </p>
           )}
           {loadingHistory && rows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Chargement…</p>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Chargement…
+            </p>
           ) : rows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Aucune donnée sur la période.</p>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Aucune donnée sur la période.
+            </p>
           ) : (
             <div className="mt-4 w-full min-h-[260px]">
               <ResponsiveContainer width="100%" height={380}>
-                <LineChart data={rows} margin={{ top: 8, right: 20, left: 8, bottom: 8 }}>
+                <LineChart
+                  data={rows}
+                  margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
                   <XAxis
                     dataKey="timeMs"
@@ -322,17 +364,27 @@ export default function PerformancesLatencyPage() {
                     textAnchor="end"
                     height={axisShowDate ? 72 : 60}
                     minTickGap={axisShowDate ? 32 : 22}
-                    tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: axisShowDate })}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms, { withDate: axisShowDate })
+                    }
                     tick={{ fontSize: 12 }}
                   />
-                  <YAxis tickFormatter={(v) => `${Math.round(Number(v))} ms`} tick={{ fontSize: 12 }} />
+                  <YAxis
+                    tickFormatter={(v) => `${Math.round(Number(v))} ms`}
+                    tick={{ fontSize: 12 }}
+                  />
                   <Tooltip
                     {...rechartsTooltipProps}
                     labelFormatter={(_, payload: unknown) => {
-                      const ts = (payload as Array<{ payload?: { timestamp?: string } }>)?.[0]?.payload?.timestamp
-                      return ts ? formatLocalDateTime(ts) : '—'
+                      const ts = (
+                        payload as Array<{ payload?: { timestamp?: string } }>
+                      )?.[0]?.payload?.timestamp;
+                      return ts ? formatLocalDateTime(ts) : "—";
                     }}
-                    formatter={(value: number) => [`${Number(value).toFixed(1)} ms`, 'Temps de réponse']}
+                    formatter={(value: number) => [
+                      `${Number(value).toFixed(1)} ms`,
+                      "Temps de réponse",
+                    ]}
                   />
                   <Legend />
                   <Line
@@ -350,10 +402,16 @@ export default function PerformancesLatencyPage() {
                     stroke="#64748b"
                     fill="rgba(100, 116, 139, 0.12)"
                     travellerWidth={10}
-                    tickFormatter={(v) => formatLocalChartAxisTick(Number(v), { withDate: axisShowDate })}
-                    onChange={(e: { startIndex?: number; endIndex?: number } | undefined) => {
-                      if (e?.startIndex == null || e?.endIndex == null) return
-                      setBrushRange({ start: e.startIndex, end: e.endIndex })
+                    tickFormatter={(v) =>
+                      formatLocalChartAxisTick(Number(v), {
+                        withDate: axisShowDate,
+                      })
+                    }
+                    onChange={(
+                      e: { startIndex?: number; endIndex?: number } | undefined,
+                    ) => {
+                      if (e?.startIndex == null || e?.endIndex == null) return;
+                      setBrushRange({ start: e.startIndex, end: e.endIndex });
                     }}
                   />
                 </LineChart>
@@ -363,7 +421,9 @@ export default function PerformancesLatencyPage() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Instantané par service</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Instantané par service
+          </h2>
           {measuredRows.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -379,55 +439,88 @@ export default function PerformancesLatencyPage() {
                 Tout désélectionner
               </button>
               {measuredRows.map((row) => {
-                const active = selectedServices.includes(row.name)
+                const active = selectedServices.includes(row.name);
                 return (
                   <button
                     key={row.name}
                     onClick={() =>
                       setSelectedServices((prev) =>
-                        active ? prev.filter((x) => x !== row.name) : [...prev, row.name]
+                        active
+                          ? prev.filter((x) => x !== row.name)
+                          : [...prev, row.name],
                       )
                     }
                     className={`rounded px-2 py-1 text-xs border ${
                       active
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200'
-                        : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200"
+                        : "border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300"
                     }`}
                   >
                     {row.name}
                   </button>
-                )
+                );
               })}
             </div>
           )}
           {loadingLive && liveEndpointRows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Chargement…</p>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Chargement…
+            </p>
           ) : filteredMeasuredRows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Aucune mesure instantanée exploitable.</p>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Aucune mesure instantanée exploitable.
+            </p>
           ) : (
             <div className="mt-4 w-full min-h-[240px]">
-              <ResponsiveContainer width="100%" height={Math.max(240, filteredMeasuredRows.length * 28)}>
-                <BarChart layout="vertical" data={filteredMeasuredRows} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-40" horizontal={false} />
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(240, filteredMeasuredRows.length * 28)}
+              >
+                <BarChart
+                  layout="vertical"
+                  data={filteredMeasuredRows}
+                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="opacity-40"
+                    horizontal={false}
+                  />
                   <XAxis type="number" tick={{ fontSize: 11 }} unit=" ms" />
-                  <YAxis type="category" dataKey="name" width={170} tick={{ fontSize: 11 }} interval={0} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={170}
+                    tick={{ fontSize: 11 }}
+                    interval={0}
+                  />
                   <Tooltip
                     {...rechartsTooltipProps}
-                    formatter={(value: number) => [`${Number(value).toFixed(1)} ms`, 'Réponse']}
+                    formatter={(value: number) => [
+                      `${Number(value).toFixed(1)} ms`,
+                      "Réponse",
+                    ]}
                   />
-                  <Bar dataKey="ms" name="ms" fill="#0d9488" radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="ms"
+                    name="ms"
+                    fill="#0d9488"
+                    radius={[0, 4, 4, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
           {missingRows.length > 0 && (
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
-              <span className="font-medium">Services sans mesure instantanée :</span>{' '}
-              {missingRows.map((r) => r.name).join(', ')}
+              <span className="font-medium">
+                Services sans mesure instantanée :
+              </span>{" "}
+              {missingRows.map((r) => r.name).join(", ")}
             </div>
           )}
         </div>
       </div>
     </AdminLayout>
-  )
+  );
 }

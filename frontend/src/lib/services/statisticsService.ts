@@ -2,7 +2,7 @@
  * Service pour récupérer les statistiques applicatives
  */
 
-import { FRONTEND_URLS } from '@/config/ports.config';
+import { FRONTEND_URLS } from "@/config/ports.config";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -85,10 +85,10 @@ export interface StatisticsTimelineEntry {
 
 class StatisticsService {
   private getAuthHeaders(): HeadersInit {
-    if (typeof window === 'undefined') return {};
-    
-    const token = localStorage.getItem('token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    if (typeof window === "undefined") return {};
+
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   /**
@@ -113,30 +113,35 @@ class StatisticsService {
       }
 
       const data = await response.json();
-      
+
       // Le backend retourne { success: true, statistics: {...} }
       if (data.statistics) {
         return data.statistics as ApplicationStatistics;
       }
-      
+
       // Fallback pour les anciens formats
       if (data.data?.statistics) {
         return data.data.statistics as ApplicationStatistics;
       }
-      
+
       if (data.data) {
         return data.data as ApplicationStatistics;
       }
 
-      console.warn('[STATISTICS] Format de réponse inattendu:', data);
+      console.warn("[STATISTICS] Format de réponse inattendu:", data);
       return null;
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.error('[STATISTICS] Timeout lors de la récupération des statistiques');
-      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_RESET')) {
-        console.error('[STATISTICS] Erreur de connexion:', error.message);
+      if (error.name === "AbortError") {
+        console.error(
+          "[STATISTICS] Timeout lors de la récupération des statistiques",
+        );
+      } else if (
+        error.message?.includes("Failed to fetch") ||
+        error.message?.includes("ERR_CONNECTION_RESET")
+      ) {
+        console.error("[STATISTICS] Erreur de connexion:", error.message);
       } else {
-        console.error('[STATISTICS] Erreur:', error);
+        console.error("[STATISTICS] Erreur:", error);
       }
       return null;
     }
@@ -146,25 +151,25 @@ class StatisticsService {
    * Récupère l'historique des statistiques (timeline)
    */
   async getStatisticsTimeline(
-    timeRange: string = '24h',
-    limit: number = 1000
+    timeRange: string = "24h",
+    limit: number = 1000,
   ): Promise<StatisticsTimelineEntry[]> {
     try {
       const response = await fetch(
         `${API_URL}/api/v1/statistics/timeline?time_range=${timeRange}&limit=${limit}`,
         {
           headers: this.getAuthHeaders(),
-        }
+        },
       );
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de la timeline');
+        throw new Error("Erreur lors de la récupération de la timeline");
       }
 
       const data = await response.json();
       return data.timeline as StatisticsTimelineEntry[];
     } catch (error) {
-      console.error('[STATISTICS] Erreur timeline:', error);
+      console.error("[STATISTICS] Erreur timeline:", error);
       return [];
     }
   }
@@ -179,13 +184,13 @@ class StatisticsService {
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération du résumé');
+        throw new Error("Erreur lors de la récupération du résumé");
       }
 
       const data = await response.json();
       return data.summary;
     } catch (error) {
-      console.error('[STATISTICS] Erreur résumé:', error);
+      console.error("[STATISTICS] Erreur résumé:", error);
       return null;
     }
   }
@@ -196,17 +201,17 @@ class StatisticsService {
   async collectStatistics(): Promise<boolean> {
     try {
       const response = await fetch(`${API_URL}/api/v1/statistics/collect`, {
-        method: 'POST',
+        method: "POST",
         headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la collecte des statistiques');
+        throw new Error("Erreur lors de la collecte des statistiques");
       }
 
       return true;
     } catch (error) {
-      console.error('[STATISTICS] Erreur collecte:', error);
+      console.error("[STATISTICS] Erreur collecte:", error);
       return false;
     }
   }
@@ -220,21 +225,22 @@ class StatisticsService {
         `${process.env.NEXT_PUBLIC_APPLICATION_SERVICE_URL || API_URL}/api/v1/statistics/applications/timeline?days=${days}`,
         {
           headers: this.getAuthHeaders(),
-        }
+        },
       );
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de la timeline des candidatures');
+        throw new Error(
+          "Erreur lors de la récupération de la timeline des candidatures",
+        );
       }
 
       const data = await response.json();
       return data.timeline || [];
     } catch (error) {
-      console.error('[STATISTICS] Erreur timeline candidatures:', error);
+      console.error("[STATISTICS] Erreur timeline candidatures:", error);
       return [];
     }
   }
 }
 
 export const statisticsService = new StatisticsService();
-

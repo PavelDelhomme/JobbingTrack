@@ -1,37 +1,45 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertTriangle, X } from '@/lib/icons';
-import { useOfflineSync } from '@/hooks/useOfflineSyncSimple';
-import { Button } from '@/components/ui';
-import { Card, CardContent } from '@/components/ui';
-import { Badge } from '@/components/ui';
-import { Alert, AlertDescription } from '@/components/ui';
+import {
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  CheckCircle,
+  AlertTriangle,
+  X,
+} from "@/lib/icons";
+import { useOfflineSync } from "@/hooks/useOfflineSyncSimple";
+import { Button } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { Alert, AlertDescription } from "@/components/ui";
 
 interface OfflineNotificationProps {
   className?: string;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   autoHide?: boolean;
   autoHideDelay?: number;
 }
 
 export function OfflineNotification({
-  className = '',
-  position = 'top-right',
+  className = "",
+  position = "top-right",
   autoHide = true,
-  autoHideDelay = 5000
+  autoHideDelay = 5000,
 }: OfflineNotificationProps) {
-  const { isOnline, pendingOperations, isSyncing, syncPendingOperations } = useOfflineSync();
+  const { isOnline, pendingOperations, isSyncing, syncPendingOperations } =
+    useOfflineSync();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
   // Positionnement CSS
   const positionClasses = {
-    'top-right': 'fixed top-4 right-4 z-50',
-    'top-left': 'fixed top-4 left-4 z-50',
-    'bottom-right': 'fixed bottom-4 right-4 z-50',
-    'bottom-left': 'fixed bottom-4 left-4 z-50'
+    "top-right": "fixed top-4 right-4 z-50",
+    "top-left": "fixed top-4 left-4 z-50",
+    "bottom-right": "fixed bottom-4 right-4 z-50",
+    "bottom-left": "fixed bottom-4 left-4 z-50",
   };
 
   // Déterminer quand afficher la notification
@@ -71,14 +79,18 @@ export function OfflineNotification({
     try {
       await syncPendingOperations();
     } catch (error) {
-      console.error('Erreur lors de la synchronisation:', error);
+      console.error("Erreur lors de la synchronisation:", error);
     }
   };
 
   return (
-    <Card className={`${positionClasses[position]} ${className} shadow-lg border-2 ${
-      !isOnline ? 'border-orange-300 bg-orange-50' : 'border-blue-300 bg-blue-50'
-    }`}>
+    <Card
+      className={`${positionClasses[position]} ${className} shadow-lg border-2 ${
+        !isOnline
+          ? "border-orange-300 bg-orange-50"
+          : "border-blue-300 bg-blue-50"
+      }`}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           {/* Icône d'état */}
@@ -98,32 +110,45 @@ export function OfflineNotification({
           {/* Contenu de la notification */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className={`font-medium text-sm ${
-                !isOnline ? 'text-orange-900' : 'text-blue-900'
-              }`}>
-                {!isOnline ? 'Mode hors ligne' : 'Synchronisation disponible'}
+              <h4
+                className={`font-medium text-sm ${
+                  !isOnline ? "text-orange-900" : "text-blue-900"
+                }`}
+              >
+                {!isOnline ? "Mode hors ligne" : "Synchronisation disponible"}
               </h4>
-              <Badge variant={!isOnline ? "destructive" : "default"} className="text-xs">
-                {!isOnline ? 'Hors ligne' : `${pendingOperations.length} en attente`}
+              <Badge
+                variant={!isOnline ? "destructive" : "default"}
+                className="text-xs"
+              >
+                {!isOnline
+                  ? "Hors ligne"
+                  : `${pendingOperations.length} en attente`}
               </Badge>
             </div>
 
-            <p className={`text-sm ${
-              !isOnline ? 'text-orange-700' : 'text-blue-700'
-            }`}>
+            <p
+              className={`text-sm ${
+                !isOnline ? "text-orange-700" : "text-blue-700"
+              }`}
+            >
               {!isOnline
-                ? 'Vos modifications sont sauvegardées localement et seront synchronisées au retour de la connexion.'
-                : `${pendingOperations.length} modification${pendingOperations.length > 1 ? 's' : ''} en attente de synchronisation.`
-              }
+                ? "Vos modifications sont sauvegardées localement et seront synchronisées au retour de la connexion."
+                : `${pendingOperations.length} modification${pendingOperations.length > 1 ? "s" : ""} en attente de synchronisation.`}
             </p>
 
             {/* Barre de progression pour la synchronisation */}
             {isSyncing && (
               <div className="mt-2">
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                  <div
+                    className="bg-blue-600 h-2 rounded-full animate-pulse"
+                    style={{ width: "100%" }}
+                  ></div>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">Synchronisation en cours...</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Synchronisation en cours...
+                </p>
               </div>
             )}
           </div>
@@ -137,7 +162,9 @@ export function OfflineNotification({
                 disabled={isSyncing}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <RefreshCw className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-3 w-3 mr-1 ${isSyncing ? "animate-spin" : ""}`}
+                />
                 Sync
               </Button>
             )}

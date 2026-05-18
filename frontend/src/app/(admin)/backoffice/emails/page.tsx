@@ -1,187 +1,227 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import AdminLayout from '@/components/features/AdminLayout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FRONTEND_URLS } from '@/config/ports.config'
+import { useState, useEffect, useMemo, useCallback } from "react";
+import AdminLayout from "@/components/features/AdminLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { 
-  Mail, 
-  Send, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  Mail,
+  Send,
+  CheckCircle,
+  XCircle,
+  Clock,
   TrendingUp,
   BarChart3,
   RefreshCw,
   AlertCircle,
-  TestTube
-} from '@/lib/icons'
-import axios from 'axios'
+  TestTube,
+} from "@/lib/icons";
+import axios from "axios";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 interface EmailStats {
   global: {
-    total: number
-    sent: number
-    failed: number
-    pending: number
-    bounced?: number
-    successRate: number
-  }
+    total: number;
+    sent: number;
+    failed: number;
+    pending: number;
+    bounced?: number;
+    successRate: number;
+  };
   recent: {
-    days: number
-    total: number
-    sent: number
-    failed: number
-    pending?: number
-    bounced?: number
-    successRate: number
-    deliveryRate?: number
-    evolution?: number
-  }
-  byType: Array<{ type: string; count: number }>
-  byStatus: Array<{ status: string; count: number }>
+    days: number;
+    total: number;
+    sent: number;
+    failed: number;
+    pending?: number;
+    bounced?: number;
+    successRate: number;
+    deliveryRate?: number;
+    evolution?: number;
+  };
+  byType: Array<{ type: string; count: number }>;
+  byStatus: Array<{ status: string; count: number }>;
   dailyStats?: Array<{
-    date: string
-    total: number
-    sent: number
-    failed: number
-    pending: number
-  }>
+    date: string;
+    total: number;
+    sent: number;
+    failed: number;
+    pending: number;
+  }>;
   topRecipients?: Array<{
-    email: string
-    count: number
-  }>
+    email: string;
+    count: number;
+  }>;
 }
 
 export default function EmailsPage() {
-  const [stats, setStats] = useState<EmailStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [testEmail, setTestEmail] = useState({ to: '', subject: 'Test Email - JobbingTrack', content: '' })
-  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [stats, setStats] = useState<EmailStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [testEmail, setTestEmail] = useState({
+    to: "",
+    subject: "Test Email - JobbingTrack",
+    content: "",
+  });
+  const [sendResult, setSendResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       if (!token) {
-        console.warn('⚠️ Aucun token trouvé, impossible de récupérer les statistiques')
-        setLoading(false)
-        return
+        console.warn(
+          "⚠️ Aucun token trouvé, impossible de récupérer les statistiques",
+        );
+        setLoading(false);
+        return;
       }
 
-      const response = await axios.get(`${API_URL}/api/v1/emails/stats?days=30`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
+      const response = await axios.get(
+        `${API_URL}/api/v1/emails/stats?days=30`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       if (response.data.success) {
-        setStats(response.data.data)
+        setStats(response.data.data);
       } else {
-        console.error('Erreur récupération stats:', response.data.error)
+        console.error("Erreur récupération stats:", response.data.error);
       }
     } catch (error: any) {
-      console.error('Erreur récupération stats:', error)
+      console.error("Erreur récupération stats:", error);
       // Si erreur 401/403, le token est invalide ou expiré
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.warn('Token invalide ou expiré, redirection vers la page de connexion...')
+        console.warn(
+          "Token invalide ou expiré, redirection vers la page de connexion...",
+        );
         // Optionnel: rediriger vers la page de connexion
         // window.location.href = '/login'
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStats()
+    fetchStats();
     // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchStats, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSendTestEmail = async () => {
     if (!testEmail.to) {
-      setSendResult({ success: false, message: 'Veuillez entrer une adresse email' })
-      return
+      setSendResult({
+        success: false,
+        message: "Veuillez entrer une adresse email",
+      });
+      return;
     }
 
-    setSending(true)
-    setSendResult(null)
+    setSending(true);
+    setSendResult(null);
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${API_URL}/api/v1/emails/test`,
         {
           to: testEmail.to,
           subject: testEmail.subject,
-          content: testEmail.content
+          content: testEmail.content,
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (response.data.success) {
-        setSendResult({ success: true, message: `Email de test envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
-        setTestEmail({ to: '', subject: 'Test Email - JobbingTrack', content: '' })
+        setSendResult({
+          success: true,
+          message: `Email de test envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).`,
+        });
+        setTestEmail({
+          to: "",
+          subject: "Test Email - JobbingTrack",
+          content: "",
+        });
         // Rafraîchir les stats
-        setTimeout(fetchStats, 1000)
+        setTimeout(fetchStats, 1000);
       } else {
-        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
+        setSendResult({
+          success: false,
+          message: response.data.error || "Erreur lors de l'envoi",
+        });
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email de test'
-      })
+        message:
+          error.response?.data?.error ||
+          "Erreur lors de l'envoi de l'email de test",
+      });
     } finally {
-      setSending(false)
+      setSending(false);
     }
-  }
+  };
 
   const handleTestPasswordReset = async () => {
     if (!testEmail.to) {
-      setSendResult({ success: false, message: 'Veuillez entrer une adresse email' })
-      return
+      setSendResult({
+        success: false,
+        message: "Veuillez entrer une adresse email",
+      });
+      return;
     }
 
-    setSending(true)
-    setSendResult(null)
+    setSending(true);
+    setSendResult(null);
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       // Utiliser l'endpoint forgot-password
       const response = await axios.post(
         `${API_URL}/api/v1/auth/forgot-password`,
         { email: testEmail.to },
         {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (response.data.success) {
-        setSendResult({ success: true, message: `Email de réinitialisation de mot de passe envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
-        setTimeout(fetchStats, 1000)
+        setSendResult({
+          success: true,
+          message: `Email de réinitialisation de mot de passe envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).`,
+        });
+        setTimeout(fetchStats, 1000);
       } else {
-        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
+        setSendResult({
+          success: false,
+          message: response.data.error || "Erreur lors de l'envoi",
+        });
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email de réinitialisation'
-      })
+        message:
+          error.response?.data?.error ||
+          "Erreur lors de l'envoi de l'email de réinitialisation",
+      });
     } finally {
-      setSending(false)
+      setSending(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -195,7 +235,7 @@ export default function EmailsPage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -209,9 +249,12 @@ export default function EmailsPage() {
               Gestion des Emails
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Dashboard de gestion et monitoring des emails envoyés. 
+              Dashboard de gestion et monitoring des emails envoyés.
               <span className="ml-2 text-sm">
-                <a href="/b4ck0ff1ce/email-monitor" className="text-blue-600 dark:text-blue-400 hover:underline">
+                <a
+                  href="/b4ck0ff1ce/email-monitor"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
                   📈 Voir Email Monitor pour le suivi détaillé
                 </a>
               </span>
@@ -228,7 +271,9 @@ export default function EmailsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Emails</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Emails
+                </CardTitle>
                 <Mail className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -245,7 +290,9 @@ export default function EmailsPage() {
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.global.sent}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.global.sent}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Taux de succès: {stats.global.successRate}%
                 </p>
@@ -258,20 +305,32 @@ export default function EmailsPage() {
                 <XCircle className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.global.failed}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.global.failed}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {stats.global.total > 0 ? ((stats.global.failed / stats.global.total) * 100).toFixed(1) : 0}% d'échecs
+                  {stats.global.total > 0
+                    ? (
+                        (stats.global.failed / stats.global.total) *
+                        100
+                      ).toFixed(1)
+                    : 0}
+                  % d'échecs
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">En Attente</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  En Attente
+                </CardTitle>
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.global.pending}</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.global.pending}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Emails en cours d'envoi
                 </p>
@@ -288,8 +347,14 @@ export default function EmailsPage() {
                 <TrendingUp className="w-5 h-5" />
                 Statistiques des {stats.recent.days} derniers jours
                 {stats.recent.evolution !== undefined && (
-                  <Badge variant={stats.recent.evolution >= 0 ? "default" : "destructive"} className="ml-2">
-                    {stats.recent.evolution >= 0 ? '+' : ''}{stats.recent.evolution}%
+                  <Badge
+                    variant={
+                      stats.recent.evolution >= 0 ? "default" : "destructive"
+                    }
+                    className="ml-2"
+                  >
+                    {stats.recent.evolution >= 0 ? "+" : ""}
+                    {stats.recent.evolution}%
                   </Badge>
                 )}
               </CardTitle>
@@ -302,32 +367,48 @@ export default function EmailsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Envoyés</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.recent.sent}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats.recent.sent}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Échoués</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.recent.failed}</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {stats.recent.failed}
+                  </p>
                 </div>
                 {stats.recent.bounced !== undefined && (
                   <div>
                     <p className="text-sm text-muted-foreground">Rejetés</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.recent.bounced}</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {stats.recent.bounced}
+                    </p>
                   </div>
                 )}
                 {stats.recent.pending !== undefined && (
                   <div>
                     <p className="text-sm text-muted-foreground">En attente</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.recent.pending}</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {stats.recent.pending}
+                    </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground">Taux de succès</p>
-                  <p className="text-2xl font-bold">{stats.recent.successRate}%</p>
+                  <p className="text-sm text-muted-foreground">
+                    Taux de succès
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {stats.recent.successRate}%
+                  </p>
                 </div>
                 {stats.recent.deliveryRate !== undefined && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Taux de livraison</p>
-                    <p className="text-2xl font-bold">{stats.recent.deliveryRate}%</p>
+                    <p className="text-sm text-muted-foreground">
+                      Taux de livraison
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {stats.recent.deliveryRate}%
+                    </p>
                   </div>
                 )}
               </div>
@@ -347,12 +428,19 @@ export default function EmailsPage() {
             <CardContent>
               <div className="space-y-2">
                 {stats.topRecipients.map((recipient, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 border rounded">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 border rounded"
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                      <span className="text-sm font-medium text-gray-500">
+                        #{index + 1}
+                      </span>
                       <span className="text-sm">{recipient.email}</span>
                     </div>
-                    <Badge variant="outline">{recipient.count} email{recipient.count > 1 ? 's' : ''}</Badge>
+                    <Badge variant="outline">
+                      {recipient.count} email{recipient.count > 1 ? "s" : ""}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -374,7 +462,7 @@ export default function EmailsPage() {
                 <TabsTrigger value="test">Email de Test</TabsTrigger>
                 <TabsTrigger value="reset">Reset Password</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="test" className="space-y-4">
                 <div className="space-y-4">
                   <div>
@@ -384,7 +472,9 @@ export default function EmailsPage() {
                       type="email"
                       placeholder="exemple@email.com"
                       value={testEmail.to}
-                      onChange={(e) => setTestEmail({ ...testEmail, to: e.target.value })}
+                      onChange={(e) =>
+                        setTestEmail({ ...testEmail, to: e.target.value })
+                      }
                     />
                   </div>
                   <div>
@@ -392,7 +482,9 @@ export default function EmailsPage() {
                     <Input
                       id="test-subject"
                       value={testEmail.subject}
-                      onChange={(e) => setTestEmail({ ...testEmail, subject: e.target.value })}
+                      onChange={(e) =>
+                        setTestEmail({ ...testEmail, subject: e.target.value })
+                      }
                     />
                   </div>
                   <div>
@@ -402,11 +494,13 @@ export default function EmailsPage() {
                       className="w-full min-h-[100px] p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Contenu HTML de l'email (optionnel)"
                       value={testEmail.content}
-                      onChange={(e) => setTestEmail({ ...testEmail, content: e.target.value })}
+                      onChange={(e) =>
+                        setTestEmail({ ...testEmail, content: e.target.value })
+                      }
                     />
                   </div>
-                  <Button 
-                    onClick={handleSendTestEmail} 
+                  <Button
+                    onClick={handleSendTestEmail}
                     disabled={sending || !testEmail.to}
                     className="w-full"
                   >
@@ -430,8 +524,9 @@ export default function EmailsPage() {
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       <AlertCircle className="w-4 h-4 inline mr-2" />
-                      Cette fonctionnalité envoie un email de réinitialisation de mot de passe à l'adresse spécifiée.
-                      L'email contiendra un lien de réinitialisation valide pendant 1 heure.
+                      Cette fonctionnalité envoie un email de réinitialisation
+                      de mot de passe à l'adresse spécifiée. L'email contiendra
+                      un lien de réinitialisation valide pendant 1 heure.
                     </p>
                   </div>
                   <div>
@@ -441,11 +536,13 @@ export default function EmailsPage() {
                       type="email"
                       placeholder="exemple@email.com"
                       value={testEmail.to}
-                      onChange={(e) => setTestEmail({ ...testEmail, to: e.target.value })}
+                      onChange={(e) =>
+                        setTestEmail({ ...testEmail, to: e.target.value })
+                      }
                     />
                   </div>
-                  <Button 
-                    onClick={handleTestPasswordReset} 
+                  <Button
+                    onClick={handleTestPasswordReset}
                     disabled={sending || !testEmail.to}
                     className="w-full"
                     variant="outline"
@@ -467,24 +564,33 @@ export default function EmailsPage() {
             </Tabs>
 
             {sendResult && (
-              <div className={`mt-4 p-4 rounded-lg ${
-                sendResult.success 
-                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
-                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-              }`}>
+              <div
+                className={`mt-4 p-4 rounded-lg ${
+                  sendResult.success
+                    ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                    : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                }`}
+              >
                 <div className="flex items-center gap-2">
                   {sendResult.success ? (
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   ) : (
                     <XCircle className="w-5 h-5 text-red-600" />
                   )}
-                  <p className={sendResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}>
+                  <p
+                    className={
+                      sendResult.success
+                        ? "text-green-800 dark:text-green-200"
+                        : "text-red-800 dark:text-red-200"
+                    }
+                  >
                     {sendResult.message}
                   </p>
                 </div>
                 {sendResult.success && (
                   <p className="text-sm text-green-700 dark:text-green-300 mt-2 ml-7">
-                    💡 Vérifiez votre boîte mail (et les spams) pour confirmer la réception de l'email.
+                    💡 Vérifiez votre boîte mail (et les spams) pour confirmer
+                    la réception de l'email.
                   </p>
                 )}
               </div>
@@ -504,7 +610,10 @@ export default function EmailsPage() {
             <CardContent>
               <div className="space-y-2">
                 {stats.byType.map((item) => (
-                  <div key={item.type} className="flex items-center justify-between">
+                  <div
+                    key={item.type}
+                    className="flex items-center justify-between"
+                  >
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{item.type}</Badge>
                     </div>
@@ -517,6 +626,5 @@ export default function EmailsPage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
-

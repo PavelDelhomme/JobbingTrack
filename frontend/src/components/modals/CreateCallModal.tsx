@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui';
-import { Input } from '@/components/ui';
-import { Label } from '@/components/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
-import { Select, SelectOption } from '@/components/ui';
-import { Textarea } from '@/components/ui';
-import { applicationService, contactService, callService } from '@/lib/api';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui";
+import { Input } from "@/components/ui";
+import { Label } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui";
+import { Select, SelectOption } from "@/components/ui";
+import { Textarea } from "@/components/ui";
+import { applicationService, contactService, callService } from "@/lib/api";
 
 interface Application {
   id: string;
@@ -36,7 +42,11 @@ interface CreateCallModalProps {
   onCallCreated: () => void;
 }
 
-export default function CreateCallModal({ isOpen, onClose, onCallCreated }: CreateCallModalProps) {
+export default function CreateCallModal({
+  isOpen,
+  onClose,
+  onCallCreated,
+}: CreateCallModalProps) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,17 +54,17 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
 
   // Formulaire
   const [formData, setFormData] = useState({
-    applicationId: '',
-    contactId: '',
-    type: 'OUTGOING',
-    scheduledDate: '',
-    callDate: '',
-    duration: '',
-    status: 'SCHEDULED',
-    notes: '',
-    outcome: '',
+    applicationId: "",
+    contactId: "",
+    type: "OUTGOING",
+    scheduledDate: "",
+    callDate: "",
+    duration: "",
+    status: "SCHEDULED",
+    notes: "",
+    outcome: "",
     followUpNeeded: false,
-    phoneNumber: ''
+    phoneNumber: "",
   });
 
   useEffect(() => {
@@ -68,13 +78,13 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
     try {
       const [appsResponse, contactsResponse] = await Promise.all([
         applicationService.getAll(),
-        contactService.getAll()
+        contactService.getAll(),
       ]);
 
       setApplications(appsResponse.data.applications || []);
       setContacts(contactsResponse.data.contacts || []);
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error("Erreur chargement données:", error);
     } finally {
       setLoading(false);
     }
@@ -84,7 +94,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
     e.preventDefault();
 
     if (!formData.applicationId) {
-      alert('Veuillez sélectionner une candidature');
+      alert("Veuillez sélectionner une candidature");
       return;
     }
 
@@ -93,15 +103,15 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
       const callData = {
         ...formData,
         duration: formData.duration ? parseInt(formData.duration) : undefined,
-        followUpNeeded: formData.followUpNeeded
+        followUpNeeded: formData.followUpNeeded,
       };
 
       await callService.create(callData);
       onCallCreated();
       handleClose();
     } catch (error) {
-      console.error('Erreur création appel:', error);
-      alert('Erreur lors de la création de l\'appel');
+      console.error("Erreur création appel:", error);
+      alert("Erreur lors de la création de l'appel");
     } finally {
       setSaving(false);
     }
@@ -109,17 +119,17 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
 
   const handleClose = () => {
     setFormData({
-      applicationId: '',
-      contactId: '',
-      type: 'OUTGOING',
-      scheduledDate: '',
-      callDate: '',
-      duration: '',
-      status: 'SCHEDULED',
-      notes: '',
-      outcome: '',
+      applicationId: "",
+      contactId: "",
+      type: "OUTGOING",
+      scheduledDate: "",
+      callDate: "",
+      duration: "",
+      status: "SCHEDULED",
+      notes: "",
+      outcome: "",
       followUpNeeded: false,
-      phoneNumber: ''
+      phoneNumber: "",
     });
     onClose();
   };
@@ -147,7 +157,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
               <Label htmlFor="application">Candidature *</Label>
               <Select
                 value={formData.applicationId}
-                onChange={(e) => setFormData({ ...formData, applicationId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, applicationId: e.target.value })
+                }
               >
                 <option value="">Sélectionner une candidature</option>
                 {applications.map((app) => (
@@ -163,7 +175,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
               <Label htmlFor="contact">Contact (optionnel)</Label>
               <Select
                 value={formData.contactId}
-                onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, contactId: e.target.value })
+                }
               >
                 <option value="">Sélectionner un contact</option>
                 <option value="">Aucun contact</option>
@@ -183,7 +197,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                 <Label htmlFor="type">Type d'appel</Label>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
                 >
                   <option value="OUTGOING">📞 Appel sortant</option>
                   <option value="INCOMING">📱 Appel entrant</option>
@@ -198,7 +214,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                 <Label htmlFor="status">Statut</Label>
                 <Select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value })
+                  }
                 >
                   <option value="SCHEDULED">📅 Planifié</option>
                   <option value="COMPLETED">✅ Terminé</option>
@@ -215,7 +233,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                   id="scheduledDate"
                   type="datetime-local"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, scheduledDate: e.target.value })
+                  }
                 />
               </div>
 
@@ -225,7 +245,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                   id="callDate"
                   type="datetime-local"
                   value={formData.callDate}
-                  onChange={(e) => setFormData({ ...formData, callDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, callDate: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -239,7 +261,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                   type="number"
                   placeholder="30"
                   value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, duration: e.target.value })
+                  }
                 />
               </div>
 
@@ -250,7 +274,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                   type="tel"
                   placeholder="+33 1 23 45 67 89"
                   value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phoneNumber: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -262,7 +288,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                 id="notes"
                 placeholder="Notes de l'appel, points discutés, prochaines étapes..."
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 rows={3}
               />
             </div>
@@ -271,7 +299,9 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
               <Label htmlFor="outcome">Résultat</Label>
               <Select
                 value={formData.outcome}
-                onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, outcome: e.target.value })
+                }
               >
                 <option value="">Sélectionner le résultat</option>
                 <option value="">Non spécifié</option>
@@ -286,11 +316,19 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
 
             {/* Actions */}
             <div className="modal-footer">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={saving}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={saving}
+              >
                 Annuler
               </Button>
-              <Button type="submit" disabled={saving || !formData.applicationId}>
-                {saving ? 'Création...' : 'Créer l\'appel'}
+              <Button
+                type="submit"
+                disabled={saving || !formData.applicationId}
+              >
+                {saving ? "Création..." : "Créer l'appel"}
               </Button>
             </div>
           </form>

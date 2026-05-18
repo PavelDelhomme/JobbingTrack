@@ -1,3 +1,3 @@
-'use client';
+"use client";
 
-export { default } from './CompanyDetailView';
+export { default } from "./CompanyDetailView";

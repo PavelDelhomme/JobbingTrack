@@ -1,15 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Clock, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, AlertCircle, Mail } from '@/lib/icons';
-import { followUpService, applicationService } from '@/lib/api';
-import { formatLocalDateTime } from '@/lib/utils/date';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+import {
+  Clock,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  RefreshCw,
+  X,
+  AlertCircle,
+  Mail,
+} from "@/lib/icons";
+import { followUpService, applicationService } from "@/lib/api";
+import { formatLocalDateTime } from "@/lib/utils/date";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface FollowUp {
   id: string;
@@ -37,11 +48,13 @@ export default function FollowupsPage() {
   const { token } = useAuth();
   const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedFollowup, setSelectedFollowup] = useState<FollowUp | null>(null);
-  const applicationIdFromUrl = searchParams.get('applicationId');
+  const [selectedFollowup, setSelectedFollowup] = useState<FollowUp | null>(
+    null,
+  );
+  const applicationIdFromUrl = searchParams.get("applicationId");
 
   useEffect(() => {
     if (token) {
@@ -56,31 +69,34 @@ export default function FollowupsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'followups_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "followups_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : [])
-        setLoading(false)
+        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        followUpService.getAll({ limit: 100 }).then(response => {
-          const followups = response.data.followups || response.data || []
-          cacheManager.set(cacheKey, followups, { ttl: 30000 })
-          setFollowups(followups)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        followUpService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const followups = response.data.followups || response.data || [];
+            cacheManager.set(cacheKey, followups, { ttl: 30000 });
+            setFollowups(followups);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 relances par défaut
-      const response = await followUpService.getAll({ limit: 100 })
-      const followups = response.data.followups || response.data || []
-      setFollowups(followups)
-      
+      const response = await followUpService.getAll({ limit: 100 });
+      const followups = response.data.followups || response.data || [];
+      setFollowups(followups);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, followups, { ttl: 30000 })
+      await cacheManager.set(cacheKey, followups, { ttl: 30000 });
     } catch (error: any) {
-      console.error('Erreur chargement relances:', error);
+      console.error("Erreur chargement relances:", error);
       setFollowups([]);
     } finally {
       setLoading(false);
@@ -88,21 +104,24 @@ export default function FollowupsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette relance ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette relance ?")) return;
+
     try {
       await followUpService.delete(id);
       loadFollowups();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      alert('Erreur lors de la suppression');
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
   };
 
-  const filteredFollowups = followups.filter(followup =>
-    followup.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    followup.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    followup.applicationTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredFollowups = followups.filter(
+    (followup) =>
+      followup.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      followup.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      followup.applicationTitle
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()),
   );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
@@ -150,15 +169,20 @@ export default function FollowupsPage() {
               Règle importante
             </p>
             <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-              Une relance doit être créée depuis une candidature. L'entreprise sera automatiquement récupérée de la candidature.
+              Une relance doit être créée depuis une candidature. L'entreprise
+              sera automatiquement récupérée de la candidature.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Relances</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{followups.length}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Total Relances
+            </p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {followups.length}
+            </p>
           </div>
         </div>
 
@@ -188,31 +212,50 @@ export default function FollowupsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Relance</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Candidature</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Méthode</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Relance
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Candidature
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Méthode
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {pagination.paginatedItems.map((followup) => (
-                  <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={followup.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{followup.subject || 'Relance'}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {followup.subject || "Relance"}
+                      </div>
                       {followup.companyName && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{followup.companyName}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {followup.companyName}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {followup.applicationTitle && (
-                        <div className="text-sm text-gray-900 dark:text-gray-100">{followup.applicationTitle}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {followup.applicationTitle}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-{followup.sentAt
+                        {followup.sentAt
                           ? formatLocalDateTime(followup.sentAt)
                           : formatLocalDateTime(followup.createdAt)}
                       </div>
@@ -220,7 +263,7 @@ export default function FollowupsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                         <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                        {followup.method || 'Email'}
+                        {followup.method || "Email"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -246,15 +289,20 @@ export default function FollowupsPage() {
                 ))}
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {followups.length === 0 ? 'Aucune relance trouvée' : 'Aucun résultat pour votre recherche'}
+                    <td
+                      colSpan={5}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {followups.length === 0
+                        ? "Aucune relance trouvée"
+                        : "Aucun résultat pour votre recherche"}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           {/* ✅ OPTIMISATION : Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -282,13 +330,13 @@ export default function FollowupsPage() {
           onClose={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/b4ck0ff1ce/followups');
+              router.push("/b4ck0ff1ce/followups");
             }
           }}
           onSuccess={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/b4ck0ff1ce/followups');
+              router.push("/b4ck0ff1ce/followups");
             }
             loadFollowups();
           }}
@@ -313,35 +361,38 @@ export default function FollowupsPage() {
   );
 }
 
-function FollowupFormModal({ 
-  followup, 
+function FollowupFormModal({
+  followup,
   applicationId,
-  onClose, 
-  onSuccess 
-}: { 
+  onClose,
+  onSuccess,
+}: {
   followup?: FollowUp;
   applicationId?: string | null;
-  onClose: () => void; 
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    subject: followup?.subject || '',
-    sentAt: followup?.sentAt ? new Date(followup.sentAt).toISOString().slice(0, 16) : '',
-    type: followup?.type || 'followup',
-    method: followup?.method || 'email',
-    notes: '',
-    applicationId: followup?.applicationId || applicationId || '',
+    subject: followup?.subject || "",
+    sentAt: followup?.sentAt
+      ? new Date(followup.sentAt).toISOString().slice(0, 16)
+      : "",
+    type: followup?.type || "followup",
+    method: followup?.method || "email",
+    notes: "",
+    applicationId: followup?.applicationId || applicationId || "",
   });
   const [loading, setLoading] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
 
   useEffect(() => {
     loadApplications();
     if (applicationId || followup?.applicationId) {
-      loadApplicationDetails(applicationId || followup?.applicationId || '');
+      loadApplicationDetails(applicationId || followup?.applicationId || "");
     }
   }, []);
 
@@ -351,16 +402,19 @@ function FollowupFormModal({
       const response = await applicationService.getAll();
       const apps = response.data.applications || response.data || [];
       setApplications(apps);
-      
+
       if (applicationId || followup?.applicationId) {
-        const app = apps.find((a: Application) => a.id === (applicationId || followup?.applicationId));
+        const app = apps.find(
+          (a: Application) =>
+            a.id === (applicationId || followup?.applicationId),
+        );
         if (app) {
           setSelectedApplication(app);
-          setFormData(prev => ({ ...prev, applicationId: app.id }));
+          setFormData((prev) => ({ ...prev, applicationId: app.id }));
         }
       }
     } catch (error) {
-      console.error('Erreur chargement candidatures:', error);
+      console.error("Erreur chargement candidatures:", error);
       setApplications([]);
     } finally {
       setLoadingApplications(false);
@@ -373,28 +427,28 @@ function FollowupFormModal({
       const app = response.data.application || response.data;
       setSelectedApplication(app);
     } catch (error) {
-      console.error('Erreur chargement candidature:', error);
+      console.error("Erreur chargement candidature:", error);
     }
   };
 
   const handleApplicationSelect = (appId: string) => {
-    const app = applications.find(a => a.id === appId);
+    const app = applications.find((a) => a.id === appId);
     if (app) {
       setSelectedApplication(app);
-      setFormData(prev => ({ ...prev, applicationId: app.id }));
+      setFormData((prev) => ({ ...prev, applicationId: app.id }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.applicationId) {
-      alert('Vous devez sélectionner une candidature');
+      alert("Vous devez sélectionner une candidature");
       return;
     }
 
     if (!formData.subject) {
-      alert('Le sujet est obligatoire');
+      alert("Le sujet est obligatoire");
       return;
     }
 
@@ -407,7 +461,9 @@ function FollowupFormModal({
         method: formData.method,
         notes: formData.notes || undefined,
         applicationId: formData.applicationId,
-        sentAt: formData.sentAt ? new Date(formData.sentAt).toISOString() : undefined,
+        sentAt: formData.sentAt
+          ? new Date(formData.sentAt).toISOString()
+          : undefined,
       };
 
       if (followup) {
@@ -418,8 +474,11 @@ function FollowupFormModal({
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur création/modification relance:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de la relance');
+      console.error("Erreur création/modification relance:", error);
+      alert(
+        error.response?.data?.error ||
+          "Erreur lors de la création/modification de la relance",
+      );
     } finally {
       setLoading(false);
     }
@@ -430,7 +489,7 @@ function FollowupFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {followup ? 'Modifier la relance' : 'Nouvelle relance'}
+            {followup ? "Modifier la relance" : "Nouvelle relance"}
           </h2>
           <button
             onClick={onClose}
@@ -458,7 +517,7 @@ function FollowupFormModal({
                     type="button"
                     onClick={() => {
                       setSelectedApplication(null);
-                      setFormData(prev => ({ ...prev, applicationId: '' }));
+                      setFormData((prev) => ({ ...prev, applicationId: "" }));
                     }}
                     className="text-xs text-blue-600 dark:text-blue-400 mt-2 hover:underline"
                   >
@@ -483,7 +542,9 @@ function FollowupFormModal({
               </select>
             )}
             {loadingApplications && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Chargement des candidatures...</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Chargement des candidatures...
+              </p>
             )}
           </div>
 
@@ -495,7 +556,9 @@ function FollowupFormModal({
               type="text"
               required
               value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, subject: e.target.value })
+              }
               placeholder="Ex: Relance suite à candidature..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -508,7 +571,9 @@ function FollowupFormModal({
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="followup">Relance</option>
@@ -524,7 +589,9 @@ function FollowupFormModal({
               </label>
               <select
                 value={formData.method}
-                onChange={(e) => setFormData({ ...formData, method: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, method: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="email">Email</option>
@@ -542,7 +609,9 @@ function FollowupFormModal({
             <input
               type="datetime-local"
               value={formData.sentAt}
-              onChange={(e) => setFormData({ ...formData, sentAt: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, sentAt: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -560,7 +629,7 @@ function FollowupFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : followup ? 'Modifier' : 'Créer'}
+              {loading ? "Enregistrement..." : followup ? "Modifier" : "Créer"}
             </button>
           </div>
         </form>

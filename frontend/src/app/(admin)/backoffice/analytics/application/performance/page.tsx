@@ -1,30 +1,38 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import Link from 'next/link';
-import { AdminLayout } from '@/components/features';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
   ChartPeriodCaption,
   useAnalyticsAutoRefresh,
   ymdLocal,
   type TimeRangeOption,
-} from '@/components/analytics';
+} from "@/components/analytics";
 import {
   getPeriodMs,
   formatRangeLabel,
   formatCustomRangeLabel,
   localCalendarDayBounds,
-} from '@/components/analytics/timeRangeUtils';
-import { centralMetricsService } from '@/lib/services/centralMetricsService';
-import { statisticsService } from '@/lib/services/statisticsService';
-import { ApplicationSubNav } from '../ApplicationSubNav';
+} from "@/components/analytics/timeRangeUtils";
+import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import { statisticsService } from "@/lib/services/statisticsService";
+import { ApplicationSubNav } from "../ApplicationSubNav";
 
 export default function ApplicationPerformancePage() {
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
-  const [appStats, setAppStats] = useState<Record<string, unknown> | null>(null);
+  const [appStats, setAppStats] = useState<Record<string, unknown> | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
@@ -49,8 +57,14 @@ export default function ApplicationPerformancePage() {
           statisticsService.getCurrentStatistics().catch(() => null),
         ]);
         if (!cancelled) {
-          setMetrics(metricsRes ? (metricsRes as unknown as Record<string, unknown>) : null);
-          setAppStats(statsRes ? (statsRes as unknown as Record<string, unknown>) : null);
+          setMetrics(
+            metricsRes
+              ? (metricsRes as unknown as Record<string, unknown>)
+              : null,
+          );
+          setAppStats(
+            statsRes ? (statsRes as unknown as Record<string, unknown>) : null,
+          );
         }
       } catch (e) {
         console.error(e);
@@ -97,8 +111,14 @@ export default function ApplicationPerformancePage() {
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() - days);
       const ne = new Date(re);
@@ -108,7 +128,7 @@ export default function ApplicationPerformancePage() {
       return;
     }
     setFollowLive(false);
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() - 1);
       setWindowEnd(d);
@@ -121,8 +141,14 @@ export default function ApplicationPerformancePage() {
 
   const goNext = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() + days);
       const ne = new Date(re);
@@ -130,7 +156,9 @@ export default function ApplicationPerformancePage() {
       const today = ymdLocal();
       if (ymdLocal(ne) > today) {
         setCustomEnd(today);
-        setCustomStart(ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
+        setCustomStart(
+          ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)),
+        );
       } else {
         setCustomStart(ymdLocal(ns));
         setCustomEnd(ymdLocal(ne));
@@ -139,7 +167,7 @@ export default function ApplicationPerformancePage() {
     }
     setFollowLive(false);
     const now = new Date();
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() + 1);
       if (d <= now) setWindowEnd(d);
@@ -155,7 +183,10 @@ export default function ApplicationPerformancePage() {
   const canGoNext = useMemo(() => {
     if (useCustomRange) return customEnd < ymdLocal();
     const now = new Date();
-    if (timeRange === 'today') return windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10);
+    if (timeRange === "today")
+      return (
+        windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10)
+      );
     return windowEnd.getTime() < now.getTime();
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
@@ -189,7 +220,8 @@ export default function ApplicationPerformancePage() {
               Application — performances live
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-              Indicateurs issus de l&apos;application utilisateur et des services (temps de réponse, disponibilité, statistiques).
+              Indicateurs issus de l&apos;application utilisateur et des
+              services (temps de réponse, disponibilité, statistiques).
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -212,44 +244,83 @@ export default function ApplicationPerformancePage() {
         </div>
         <ChartPeriodCaption label={rangeLabel} />
         {loading && !metrics && !appStats ? (
-          <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">Chargement…</div>
+          <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">
+            Chargement…
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {perf?.averageResponseTime != null && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Temps de réponse moyen</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{Number(perf.averageResponseTime).toFixed(0)} ms</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Temps de réponse moyen
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {Number(perf.averageResponseTime).toFixed(0)} ms
+                </p>
               </div>
             )}
             {health?.availability_percent != null && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Disponibilité</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{Number(health.availability_percent).toFixed(1)} %</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Disponibilité
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {Number(health.availability_percent).toFixed(1)} %
+                </p>
               </div>
             )}
-            {system?.cpu != null && typeof system.cpu === 'object' && (system.cpu as Record<string, unknown>).usage != null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">CPU (système projet)</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{Number((system.cpu as Record<string, unknown>).usage).toFixed(1)} %</p>
-              </div>
-            )}
-            {appStats?.users != null && typeof appStats.users === 'object' && (appStats.users as Record<string, unknown>).total != null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Utilisateurs total</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{(appStats.users as Record<string, unknown>).total as number}</p>
-              </div>
-            )}
-            {appStats?.applications != null && typeof appStats.applications === 'object' && (appStats.applications as Record<string, unknown>).total != null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Candidatures total</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{(appStats.applications as Record<string, unknown>).total as number}</p>
-              </div>
-            )}
+            {system?.cpu != null &&
+              typeof system.cpu === "object" &&
+              (system.cpu as Record<string, unknown>).usage != null && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    CPU (système projet)
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {Number(
+                      (system.cpu as Record<string, unknown>).usage,
+                    ).toFixed(1)}{" "}
+                    %
+                  </p>
+                </div>
+              )}
+            {appStats?.users != null &&
+              typeof appStats.users === "object" &&
+              (appStats.users as Record<string, unknown>).total != null && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Utilisateurs total
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {
+                      (appStats.users as Record<string, unknown>)
+                        .total as number
+                    }
+                  </p>
+                </div>
+              )}
+            {appStats?.applications != null &&
+              typeof appStats.applications === "object" &&
+              (appStats.applications as Record<string, unknown>).total !=
+                null && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Candidatures total
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {
+                      (appStats.applications as Record<string, unknown>)
+                        .total as number
+                    }
+                  </p>
+                </div>
+              )}
           </div>
         )}
         {!loading && !metrics && !appStats && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucune donnée de performances applicatives disponible. Vérifiez que le dashboard et les statistiques sont accessibles.
+            Aucune donnée de performances applicatives disponible. Vérifiez que
+            le dashboard et les statistiques sont accessibles.
           </div>
         )}
       </div>

@@ -1,412 +1,509 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { FRONTEND_URLS } from '@/config/ports.config'
-import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare, Image } from 'lucide-react'
-import axios from 'axios'
-import { ReportIframe } from './ReportIframe'
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  FileText,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  Download,
+  Eye,
+  RefreshCw,
+  Trash2,
+  Search,
+  Filter,
+  X,
+  GitCompare,
+  Image,
+} from "lucide-react";
+import axios from "axios";
+import { ReportIframe } from "./ReportIframe";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 interface CompareReportData {
-  id: string
-  name: string
-  date: string
-  time: string
+  id: string;
+  name: string;
+  date: string;
+  time: string;
   /** ISO UTC pour affichage cohérent (optionnel) */
-  generatedAtISO?: string
-  category: string
-  summary: { total: number; passed: number; failed: number; skipped: number }
-  tests: Array<{ num: number; name: string; status: 'pass' | 'fail'; expected: string; actual: string }>
+  generatedAtISO?: string;
+  category: string;
+  summary: { total: number; passed: number; failed: number; skipped: number };
+  tests: Array<{
+    num: number;
+    name: string;
+    status: "pass" | "fail";
+    expected: string;
+    actual: string;
+  }>;
 }
 
 interface CompareResult {
-  success: boolean
-  reports?: CompareReportData[]
+  success: boolean;
+  reports?: CompareReportData[];
   comparison?: {
     byTest: Array<{
-      testName: string
-      results: Record<string, 'pass' | 'fail' | 'skip'>
-      details?: Record<string, { expected?: string; actual?: string; response?: string }>
-      diff?: string
-    }>
-    sameCategory: string | null
-  }
-  error?: string
+      testName: string;
+      results: Record<string, "pass" | "fail" | "skip">;
+      details?: Record<
+        string,
+        { expected?: string; actual?: string; response?: string }
+      >;
+      diff?: string;
+    }>;
+    sameCategory: string | null;
+  };
+  error?: string;
 }
 
 /** Affiche date/heure du rapport en heure locale du navigateur. Si generatedAtISO est fourni (UTC), on l’utilise pour un affichage cohérent. */
-function formatReportDateLocal(date: string, time: string, generatedAtISO?: string): string {
+function formatReportDateLocal(
+  date: string,
+  time: string,
+  generatedAtISO?: string,
+): string {
   if (generatedAtISO) {
     try {
-      const d = new Date(generatedAtISO)
-      if (!Number.isNaN(d.getTime())) return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+      const d = new Date(generatedAtISO);
+      if (!Number.isNaN(d.getTime()))
+        return d.toLocaleString(undefined, {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
     } catch {
       // fallback
     }
   }
-  if (!date || !time) return `${date || ''} ${time || ''}`.trim()
-  const timeNorm = /^\d{2}:\d{2}/.test(time) ? time : `${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6) || '00'}`
+  if (!date || !time) return `${date || ""} ${time || ""}`.trim();
+  const timeNorm = /^\d{2}:\d{2}/.test(time)
+    ? time
+    : `${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6) || "00"}`;
   try {
-    const [y, m, d] = date.split('-')
-    const [h, min] = timeNorm.split(':')
-    if (!y || !m || !d) return `${date} ${timeNorm}`
-    const dObj = new Date(Number(y), Number(m) - 1, Number(d), Number(h ?? 0), Number(min ?? 0), 0, 0)
-    if (Number.isNaN(dObj.getTime())) return `${date} ${timeNorm}`
-    return dObj.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+    const [y, m, d] = date.split("-");
+    const [h, min] = timeNorm.split(":");
+    if (!y || !m || !d) return `${date} ${timeNorm}`;
+    const dObj = new Date(
+      Number(y),
+      Number(m) - 1,
+      Number(d),
+      Number(h ?? 0),
+      Number(min ?? 0),
+      0,
+      0,
+    );
+    if (Number.isNaN(dObj.getTime())) return `${date} ${timeNorm}`;
+    return dObj.toLocaleString(undefined, {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
   } catch {
-    return `${date} ${timeNorm}`
+    return `${date} ${timeNorm}`;
   }
 }
 
 /** Retourne les lignes où les résultats diffèrent entre les rapports (régression ou amélioration). */
 function getDifferencesOnly(
-  byTest: Array<{ testName: string; results: Record<string, 'pass' | 'fail' | 'skip'>; diff?: string }>,
-  reportIds: string[]
+  byTest: Array<{
+    testName: string;
+    results: Record<string, "pass" | "fail" | "skip">;
+    diff?: string;
+  }>,
+  reportIds: string[],
 ) {
-  if (!byTest.length || reportIds.length < 2) return []
+  if (!byTest.length || reportIds.length < 2) return [];
   return byTest.filter((row) => {
-    const statuses = reportIds.map((id) => row.results[id]).filter((s) => s !== 'skip')
-    if (statuses.length < 2) return false
-    const first = statuses[0]
-    return statuses.some((s) => s !== first)
-  })
+    const statuses = reportIds
+      .map((id) => row.results[id])
+      .filter((s) => s !== "skip");
+    if (statuses.length < 2) return false;
+    const first = statuses[0];
+    return statuses.some((s) => s !== first);
+  });
 }
 
 interface TestReport {
-  id: string
-  category?: string
-  name?: string
-  timestamp: string
-  date: string
-  time: string
+  id: string;
+  category?: string;
+  name?: string;
+  timestamp: string;
+  date: string;
+  time: string;
   /** ISO UTC pour affichage en heure locale */
-  generatedAtISO?: string
-  path: string
-  summaryPath?: string
-  htmlPath?: string
-  pdfPath?: string
-  jsonPath?: string
-  totalTests?: number
-  passed?: number
-  failed?: number
-  skipped?: number
+  generatedAtISO?: string;
+  path: string;
+  summaryPath?: string;
+  htmlPath?: string;
+  pdfPath?: string;
+  jsonPath?: string;
+  totalTests?: number;
+  passed?: number;
+  failed?: number;
+  skipped?: number;
   /** Résumé JSON (ex. rapports sécurité imbriqués) */
-  summary?: unknown
-  status?: 'success' | 'failed' | 'partial' | 'unknown'
-  type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'security' | 'other'
-  size?: number
+  summary?: unknown;
+  status?: "success" | "failed" | "partial" | "unknown";
+  type?:
+    | "performance-backend"
+    | "performance-frontend"
+    | "playwright"
+    | "unitaire"
+    | "e2e"
+    | "coverage"
+    | "security"
+    | "other";
+  size?: number;
 }
 
 export default function TestReportsPage() {
-  const searchParams = useSearchParams()
-  const openReportId = searchParams.get('open')
-  const hasOpenedRef = useRef(false)
-  const { user, loading: authLoading, isAuthenticated, token } = useAuth()
-  const [reports, setReports] = useState<TestReport[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedReport, setSelectedReport] = useState<string | null>(null)
-  const [reportContent, setReportContent] = useState<string | null>(null)
-  const [loadingReport, setLoadingReport] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'date' | 'tests' | 'passed' | 'failed'>('date')
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [categories, setCategories] = useState<string[]>([])
-  const [compareMode, setCompareMode] = useState(false)
-  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([])
-  const [compareResult, setCompareResult] = useState<CompareResult | null>(null)
-  const [loadingCompare, setLoadingCompare] = useState(false)
+  const searchParams = useSearchParams();
+  const openReportId = searchParams.get("open");
+  const hasOpenedRef = useRef(false);
+  const { user, loading: authLoading, isAuthenticated, token } = useAuth();
+  const [reports, setReports] = useState<TestReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [reportContent, setReportContent] = useState<string | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"date" | "tests" | "passed" | "failed">(
+    "date",
+  );
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(
+    null,
+  );
+  const [loadingCompare, setLoadingCompare] = useState(false);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      loadReports()
+      loadReports();
     }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated]);
 
   // Ouvrir automatiquement le rapport si ?open=ID est dans l'URL
   useEffect(() => {
-    if (!openReportId || reports.length === 0 || hasOpenedRef.current) return
-    const found = reports.some(r => r.id === openReportId)
+    if (!openReportId || reports.length === 0 || hasOpenedRef.current) return;
+    const found = reports.some((r) => r.id === openReportId);
     if (found) {
-      hasOpenedRef.current = true
-      loadReportContent(openReportId)
+      hasOpenedRef.current = true;
+      loadReportContent(openReportId);
     }
-  }, [openReportId, reports])
+  }, [openReportId, reports]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false)
-    }
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+    };
     if (isFullscreen) {
-      window.addEventListener('keydown', handleEscape)
-      return () => window.removeEventListener('keydown', handleEscape)
+      window.addEventListener("keydown", handleEscape);
+      return () => window.removeEventListener("keydown", handleEscape);
     }
-  }, [isFullscreen])
+  }, [isFullscreen]);
 
   const loadReports = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // ✅ NOUVEAU: Utiliser l'API unifiée qui scanne tous les types de rapports
-      const response = await fetch('/api/test-reports/all', {
-        method: 'GET'
-      })
-      
+      const response = await fetch("/api/test-reports/all", {
+        method: "GET",
+      });
+
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.success) {
-          setReports(data.reports || [])
+          setReports(data.reports || []);
           // ✅ Stocker les catégories pour le filtre
           if (data.categories && Array.isArray(data.categories)) {
-            setCategories(data.categories)
+            setCategories(data.categories);
           }
         } else {
-          console.error('Erreur API chargement rapports:', data.error)
-          setReports([])
+          console.error("Erreur API chargement rapports:", data.error);
+          setReports([]);
         }
       } else {
-        console.error('Erreur HTTP chargement rapports:', response.status)
-        setReports([])
+        console.error("Erreur HTTP chargement rapports:", response.status);
+        setReports([]);
       }
     } catch (error) {
-      console.error('Erreur chargement rapports:', error)
-      setReports([])
+      console.error("Erreur chargement rapports:", error);
+      setReports([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
+  };
 
   const loadReportContent = async (reportId: string) => {
     try {
-      setLoadingReport(true)
-      const report = reports.find(r => r.id === reportId)
-      if (!report) return
+      setLoadingReport(true);
+      const report = reports.find((r) => r.id === reportId);
+      if (!report) return;
 
       // Utiliser l'ID du rapport directement
-      const response = await fetch(`/api/test-reports/view?id=${encodeURIComponent(reportId)}`)
+      const response = await fetch(
+        `/api/test-reports/view?id=${encodeURIComponent(reportId)}`,
+      );
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.success) {
-          setReportContent(data.content)
-          setSelectedReport(reportId)
+          setReportContent(data.content);
+          setSelectedReport(reportId);
         } else {
-          console.error('Erreur API affichage rapport:', data.error)
-          alert(`Erreur: ${data.error}`)
+          console.error("Erreur API affichage rapport:", data.error);
+          alert(`Erreur: ${data.error}`);
         }
       } else if (response.status === 404) {
-        const errorData = await response.json().catch(() => ({ error: 'Fichier non trouvé' }))
-        console.error('Rapport non trouvé:', reportId, errorData.error)
-        setReportContent(null)
-        setSelectedReport(null)
-        alert(`Rapport introuvable. Le fichier a peut-être été supprimé ou déplacé.\n\nID : ${reportId}\n\nRafraîchissez la liste pour ne voir que les rapports disponibles.`)
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Fichier non trouvé" }));
+        console.error("Rapport non trouvé:", reportId, errorData.error);
+        setReportContent(null);
+        setSelectedReport(null);
+        alert(
+          `Rapport introuvable. Le fichier a peut-être été supprimé ou déplacé.\n\nID : ${reportId}\n\nRafraîchissez la liste pour ne voir que les rapports disponibles.`,
+        );
       } else {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        console.error('Erreur chargement rapport:', errorData.error)
-        alert(`Erreur: ${errorData.error || response.statusText}`)
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: response.statusText }));
+        console.error("Erreur chargement rapport:", errorData.error);
+        alert(`Erreur: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
-      console.error('Erreur chargement contenu rapport:', error)
+      console.error("Erreur chargement contenu rapport:", error);
     } finally {
-      setLoadingReport(false)
+      setLoadingReport(false);
     }
-  }
+  };
 
   const getStatusIcon = (status?: string) => {
     switch (status) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />
-      case 'partial':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />
+      case "success":
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case "failed":
+        return <XCircle className="w-5 h-5 text-red-500" />;
+      case "partial":
+        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
       default:
-        return <Clock className="w-5 h-5 text-gray-500" />
+        return <Clock className="w-5 h-5 text-gray-500" />;
     }
-  }
+  };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'success':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'partial':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+      case "success":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "failed":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "partial":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
-  }
+  };
 
   /** Statut effectif pour couleur (success | failed | partial), déduit si unknown */
-  const getEffectiveStatus = (report: { status?: string; failed?: number; passed?: number }) => {
-    const s = report.status
-    if (s === 'success' || s === 'failed' || s === 'partial') return s
-    const failed = report.failed ?? 0
-    const passed = report.passed ?? 0
-    if (failed > 0) return 'failed'
-    if (passed > 0) return 'success'
-    return 'partial'
-  }
+  const getEffectiveStatus = (report: {
+    status?: string;
+    failed?: number;
+    passed?: number;
+  }) => {
+    const s = report.status;
+    if (s === "success" || s === "failed" || s === "partial") return s;
+    const failed = report.failed ?? 0;
+    const passed = report.passed ?? 0;
+    if (failed > 0) return "failed";
+    if (passed > 0) return "success";
+    return "partial";
+  };
   /** Libellé affiché pour le statut (éviter "unknown") */
-  const getStatusLabel = (report: { status?: string; failed?: number; passed?: number }) => {
-    const s = getEffectiveStatus(report)
-    if (s === 'success') return 'SUCCÈS'
-    if (s === 'failed') return 'ÉCHEC'
-    return 'PARTIEL'
-  }
+  const getStatusLabel = (report: {
+    status?: string;
+    failed?: number;
+    passed?: number;
+  }) => {
+    const s = getEffectiveStatus(report);
+    if (s === "success") return "SUCCÈS";
+    if (s === "failed") return "ÉCHEC";
+    return "PARTIEL";
+  };
 
   const deleteReport = async (reportId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce rapport ?")) {
+      return;
     }
 
     try {
-      setDeleting(reportId)
-      const response = await fetch(`/api/test-reports/delete?id=${encodeURIComponent(reportId)}`, {
-        method: 'DELETE'
-      })
+      setDeleting(reportId);
+      const response = await fetch(
+        `/api/test-reports/delete?id=${encodeURIComponent(reportId)}`,
+        {
+          method: "DELETE",
+        },
+      );
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         // Recharger la liste
-        await loadReports()
+        await loadReports();
         // Si le rapport supprimé était sélectionné, le désélectionner
         if (selectedReport === reportId) {
-          setSelectedReport(null)
-          setReportContent(null)
+          setSelectedReport(null);
+          setReportContent(null);
         }
       } else {
-        alert(`Erreur: ${data.error}`)
+        alert(`Erreur: ${data.error}`);
       }
     } catch (error) {
-      console.error('Erreur suppression rapport:', error)
-      alert('Erreur lors de la suppression du rapport')
+      console.error("Erreur suppression rapport:", error);
+      alert("Erreur lors de la suppression du rapport");
     } finally {
-      setDeleting(null)
+      setDeleting(null);
     }
-  }
+  };
 
   const runCompare = async () => {
     if (selectedForCompare.length < 2) {
-      alert('Sélectionnez au moins 2 rapports de la même catégorie pour comparer.')
-      return
+      alert(
+        "Sélectionnez au moins 2 rapports de la même catégorie pour comparer.",
+      );
+      return;
     }
-    setLoadingCompare(true)
-    setCompareResult(null)
+    setLoadingCompare(true);
+    setCompareResult(null);
     try {
-      const res = await fetch(`/api/test-reports/compare?ids=${selectedForCompare.join(',')}`)
-      const data = await res.json()
+      const res = await fetch(
+        `/api/test-reports/compare?ids=${selectedForCompare.join(",")}`,
+      );
+      const data = await res.json();
       if (data.success) {
-        setCompareResult(data)
+        setCompareResult(data);
       } else {
-        setCompareResult({ success: false, error: data.error || 'Erreur comparaison' })
+        setCompareResult({
+          success: false,
+          error: data.error || "Erreur comparaison",
+        });
       }
     } catch (e: any) {
-      setCompareResult({ success: false, error: e.message || 'Erreur réseau' })
+      setCompareResult({ success: false, error: e.message || "Erreur réseau" });
     } finally {
-      setLoadingCompare(false)
+      setLoadingCompare(false);
     }
-  }
+  };
 
   const toggleCompareSelection = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    const report = reports.find((r) => r.id === id)
-    if (!report) return
+    e.stopPropagation();
+    const report = reports.find((r) => r.id === id);
+    if (!report) return;
     setSelectedForCompare((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
       // Au plus 2 rapports, et même catégorie
-      if (prev.length >= 2) return prev
-      const firstId = prev[0]
-      const firstReport = reports.find((r) => r.id === firstId)
-      const firstCat = firstReport?.category || ''
-      const thisCat = report.category || ''
+      if (prev.length >= 2) return prev;
+      const firstId = prev[0];
+      const firstReport = reports.find((r) => r.id === firstId);
+      const firstCat = firstReport?.category || "";
+      const thisCat = report.category || "";
       if (firstCat && thisCat && firstCat !== thisCat) {
-        alert(`Sélectionnez uniquement des rapports de la même catégorie. « ${firstCat } » ≠ « ${thisCat } ».`)
-        return prev
+        alert(
+          `Sélectionnez uniquement des rapports de la même catégorie. « ${firstCat} » ≠ « ${thisCat} ».`,
+        );
+        return prev;
       }
-      return [...prev, id]
-    })
-  }
+      return [...prev, id];
+    });
+  };
 
   const deleteAllReports = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer TOUS les rapports ? Cette action est irréversible.')) {
-      return
+    if (
+      !confirm(
+        "Êtes-vous sûr de vouloir supprimer TOUS les rapports ? Cette action est irréversible.",
+      )
+    ) {
+      return;
     }
 
     try {
-      setDeleting('all')
-      const response = await fetch('/api/test-reports/delete?all=true', {
-        method: 'DELETE'
-      })
+      setDeleting("all");
+      const response = await fetch("/api/test-reports/delete?all=true", {
+        method: "DELETE",
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
-        alert(`${data.deleted} rapport(s) supprimé(s)`)
-        await loadReports()
-        setSelectedReport(null)
-        setReportContent(null)
+        alert(`${data.deleted} rapport(s) supprimé(s)`);
+        await loadReports();
+        setSelectedReport(null);
+        setReportContent(null);
       } else {
-        alert(`Erreur: ${data.error}`)
+        alert(`Erreur: ${data.error}`);
       }
     } catch (error) {
-      console.error('Erreur suppression rapports:', error)
-      alert('Erreur lors de la suppression des rapports')
+      console.error("Erreur suppression rapports:", error);
+      alert("Erreur lors de la suppression des rapports");
     } finally {
-      setDeleting(null)
+      setDeleting(null);
     }
-  }
+  };
 
   // Filtrer et trier les rapports
   const filteredReports = reports
-    .filter(report => {
+    .filter((report) => {
       // Filtre par recherche
       if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesSearch = 
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
           report.date.toLowerCase().includes(query) ||
           report.time.toLowerCase().includes(query) ||
           report.id.toLowerCase().includes(query) ||
           (report.name && report.name.toLowerCase().includes(query)) ||
-          (report.category && report.category.toLowerCase().includes(query))
-        if (!matchesSearch) return false
+          (report.category && report.category.toLowerCase().includes(query));
+        if (!matchesSearch) return false;
       }
 
       // Filtre par statut (utiliser le statut effectif pour inclure les rapports "unknown" déductibles)
-      if (filterStatus !== 'all') {
-        if (getEffectiveStatus(report) !== filterStatus) return false
+      if (filterStatus !== "all") {
+        if (getEffectiveStatus(report) !== filterStatus) return false;
       }
 
       // ✅ Filtre par catégorie
-      if (filterCategory !== 'all') {
-        if (report.category !== filterCategory) return false
+      if (filterCategory !== "all") {
+        if (report.category !== filterCategory) return false;
       }
 
-      return true
+      return true;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'date': {
-          const da = new Date(`${a.date}T${a.time || '00:00:00'}`).getTime() || 0
-          const db = new Date(`${b.date}T${b.time || '00:00:00'}`).getTime() || 0
-          return db - da
+        case "date": {
+          const da =
+            new Date(`${a.date}T${a.time || "00:00:00"}`).getTime() || 0;
+          const db =
+            new Date(`${b.date}T${b.time || "00:00:00"}`).getTime() || 0;
+          return db - da;
         }
-        case 'tests':
-          return (b.totalTests || 0) - (a.totalTests || 0)
-        case 'passed':
-          return (b.passed || 0) - (a.passed || 0)
-        case 'failed':
-          return (b.failed || 0) - (a.failed || 0)
+        case "tests":
+          return (b.totalTests || 0) - (a.totalTests || 0);
+        case "passed":
+          return (b.passed || 0) - (a.passed || 0);
+        case "failed":
+          return (b.failed || 0) - (a.failed || 0);
         default:
-          return 0
+          return 0;
       }
-    })
+    });
 
   if (authLoading || loading) {
     return (
@@ -415,12 +512,14 @@ export default function TestReportsPage() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Chargement des rapports...</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                Chargement des rapports...
+              </p>
             </div>
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (!isAuthenticated) {
@@ -428,11 +527,13 @@ export default function TestReportsPage() {
       <AdminLayout>
         <div className="p-6">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">Vous devez être connecté pour accéder aux rapports de tests.</p>
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Vous devez être connecté pour accéder aux rapports de tests.
+            </p>
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -445,16 +546,34 @@ export default function TestReportsPage() {
                 📊 Rapports de Tests
               </h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Consultez tous les rapports HTML générés par les tests (hub ou ligne de commande). Les rapports <strong>Suite CLI</strong> proviennent de <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">make test-all</code> ou <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">run-all-tests-with-reports.sh</code>.
+                Consultez tous les rapports HTML générés par les tests (hub ou
+                ligne de commande). Les rapports <strong>Suite CLI</strong>{" "}
+                proviennent de{" "}
+                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">
+                  make test-all
+                </code>{" "}
+                ou{" "}
+                <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">
+                  run-all-tests-with-reports.sh
+                </code>
+                .
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <button
-                onClick={() => { setCompareMode((m) => !m); setCompareResult(null); setSelectedForCompare([]); }}
-                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${compareMode ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                onClick={() => {
+                  setCompareMode((m) => !m);
+                  setCompareResult(null);
+                  setSelectedForCompare([]);
+                }}
+                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${compareMode ? "bg-gray-600 text-white hover:bg-gray-700" : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"}`}
               >
                 <GitCompare className="w-4 h-4" />
-                <span className="sm:inline">{compareMode ? 'Annuler comparaison' : 'Comparer des rapports'}</span>
+                <span className="sm:inline">
+                  {compareMode
+                    ? "Annuler comparaison"
+                    : "Comparer des rapports"}
+                </span>
               </button>
               <button
                 onClick={loadReports}
@@ -466,11 +585,13 @@ export default function TestReportsPage() {
               {reports.length > 0 && (
                 <button
                   onClick={deleteAllReports}
-                  disabled={deleting === 'all'}
+                  disabled={deleting === "all"}
                   className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span className="sm:inline">{deleting === 'all' ? 'Suppression...' : 'Tout supprimer'}</span>
+                  <span className="sm:inline">
+                    {deleting === "all" ? "Suppression..." : "Tout supprimer"}
+                  </span>
                 </button>
               )}
             </div>
@@ -501,8 +622,10 @@ export default function TestReportsPage() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
                   >
                     <option value="all">Toutes les catégories</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -543,109 +666,231 @@ export default function TestReportsPage() {
         {compareResult && (
           <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Comparaison de rapports</h2>
-              <button onClick={() => setCompareResult(null)} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Comparaison de rapports
+              </h2>
+              <button
+                onClick={() => setCompareResult(null)}
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4">
               {!compareResult.success && (
-                <p className="text-red-600 dark:text-red-400">{compareResult.error}</p>
+                <p className="text-red-600 dark:text-red-400">
+                  {compareResult.error}
+                </p>
               )}
               {compareResult.success && compareResult.reports && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {compareResult.reports.map((r) => (
-                      <div key={r.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                        <div className="font-medium text-gray-900 dark:text-white mb-2">{r.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</div>
+                      <div
+                        key={r.id}
+                        className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4"
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white mb-2">
+                          {r.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          {formatReportDateLocal(
+                            r.date,
+                            r.time,
+                            r.generatedAtISO,
+                          )}
+                        </div>
                         <div className="grid grid-cols-4 gap-2 text-center text-sm">
-                          <div><span className="font-semibold text-gray-900 dark:text-white">{r.summary.total}</span><br /><span className="text-gray-500">Total</span></div>
-                          <div><span className="font-semibold text-green-600">{r.summary.passed}</span><br /><span className="text-gray-500">Réussis</span></div>
-                          <div><span className="font-semibold text-red-600">{r.summary.failed}</span><br /><span className="text-gray-500">Échoués</span></div>
-                          <div><span className="font-semibold text-yellow-600">{r.summary.skipped}</span><br /><span className="text-gray-500">Ignorés</span></div>
+                          <div>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              {r.summary.total}
+                            </span>
+                            <br />
+                            <span className="text-gray-500">Total</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-green-600">
+                              {r.summary.passed}
+                            </span>
+                            <br />
+                            <span className="text-gray-500">Réussis</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-red-600">
+                              {r.summary.failed}
+                            </span>
+                            <br />
+                            <span className="text-gray-500">Échoués</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-yellow-600">
+                              {r.summary.skipped}
+                            </span>
+                            <br />
+                            <span className="text-gray-500">Ignorés</span>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length > 0 && (() => {
-                    const reportIds = compareResult.reports!.map((r) => r.id)
-                    const differencesOnly = getDifferencesOnly(compareResult.comparison.byTest, reportIds)
-                    return (
-                      <>
-                        {differencesOnly.length > 0 && (
-                          <div className="mb-6">
-                            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                              🔍 Tests qui diffèrent ({differencesOnly.length})
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                              Ces tests n'ont pas le même résultat entre les deux rapports (régression ou amélioration).
-                            </p>
-                            <div className="overflow-x-auto rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
-                              <table className="w-full text-sm border-collapse">
-                                <thead>
-                                  <tr className="border-b border-amber-200 dark:border-amber-800 bg-amber-100/50 dark:bg-amber-900/20">
-                                    <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
-                                    {compareResult.reports!.map((r) => (
-                                      <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</th>
+                  {compareResult.comparison?.byTest &&
+                    compareResult.comparison.byTest.length > 0 &&
+                    (() => {
+                      const reportIds = compareResult.reports!.map((r) => r.id);
+                      const differencesOnly = getDifferencesOnly(
+                        compareResult.comparison.byTest,
+                        reportIds,
+                      );
+                      return (
+                        <>
+                          {differencesOnly.length > 0 && (
+                            <div className="mb-6">
+                              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                                🔍 Tests qui diffèrent ({differencesOnly.length}
+                                )
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                                Ces tests n'ont pas le même résultat entre les
+                                deux rapports (régression ou amélioration).
+                              </p>
+                              <div className="overflow-x-auto rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+                                <table className="w-full text-sm border-collapse">
+                                  <thead>
+                                    <tr className="border-b border-amber-200 dark:border-amber-800 bg-amber-100/50 dark:bg-amber-900/20">
+                                      <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">
+                                        Test
+                                      </th>
+                                      {compareResult.reports!.map((r) => (
+                                        <th
+                                          key={r.id}
+                                          className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300"
+                                        >
+                                          {formatReportDateLocal(
+                                            r.date,
+                                            r.time,
+                                            r.generatedAtISO,
+                                          )}
+                                        </th>
+                                      ))}
+                                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">
+                                        Écart
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {differencesOnly.map((row, idx) => (
+                                      <tr
+                                        key={idx}
+                                        className="border-b border-amber-100 dark:border-amber-800/50"
+                                      >
+                                        <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">
+                                          {row.testName}
+                                        </td>
+                                        {compareResult.reports!.map((r) => (
+                                          <td key={r.id} className="py-2 px-3">
+                                            {row.results[r.id] === "pass" && (
+                                              <span className="text-green-600 font-medium">
+                                                ✓ Réussi
+                                              </span>
+                                            )}
+                                            {row.results[r.id] === "fail" && (
+                                              <span className="text-red-600 font-medium">
+                                                ✗ Échoué
+                                              </span>
+                                            )}
+                                            {row.results[r.id] === "skip" && (
+                                              <span className="text-gray-400">
+                                                —
+                                              </span>
+                                            )}
+                                          </td>
+                                        ))}
+                                        <td className="py-2 px-3 text-amber-700 dark:text-amber-300">
+                                          {row.diff ??
+                                            "Régression ou amélioration"}
+                                        </td>
+                                      </tr>
                                     ))}
-                                    <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Écart</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {differencesOnly.map((row, idx) => (
-                                    <tr key={idx} className="border-b border-amber-100 dark:border-amber-800/50">
-                                      <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">{row.testName}</td>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                            Tous les tests
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm border-collapse">
+                              <thead>
+                                <tr className="border-b border-gray-200 dark:border-gray-700">
+                                  <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">
+                                    Test
+                                  </th>
+                                  {compareResult.reports.map((r) => (
+                                    <th
+                                      key={r.id}
+                                      className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                      {formatReportDateLocal(
+                                        r.date,
+                                        r.time,
+                                        r.generatedAtISO,
+                                      )}
+                                    </th>
+                                  ))}
+                                  <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">
+                                    Résumé
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {compareResult.comparison.byTest.map(
+                                  (row, idx) => (
+                                    <tr
+                                      key={idx}
+                                      className="border-b border-gray-100 dark:border-gray-700"
+                                    >
+                                      <td className="py-2 px-3 text-gray-900 dark:text-white">
+                                        {row.testName}
+                                      </td>
                                       {compareResult.reports!.map((r) => (
                                         <td key={r.id} className="py-2 px-3">
-                                          {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
-                                          {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
-                                          {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
+                                          {row.results[r.id] === "pass" && (
+                                            <span className="text-green-600 font-medium">
+                                              ✓ Réussi
+                                            </span>
+                                          )}
+                                          {row.results[r.id] === "fail" && (
+                                            <span className="text-red-600 font-medium">
+                                              ✗ Échoué
+                                            </span>
+                                          )}
+                                          {row.results[r.id] === "skip" && (
+                                            <span className="text-gray-400">
+                                              —
+                                            </span>
+                                          )}
                                         </td>
                                       ))}
-                                      <td className="py-2 px-3 text-amber-700 dark:text-amber-300">{row.diff ?? 'Régression ou amélioration'}</td>
+                                      <td className="py-2 px-3 text-gray-600 dark:text-gray-400">
+                                        {row.diff ?? "—"}
+                                      </td>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                                  ),
+                                )}
+                              </tbody>
+                            </table>
                           </div>
-                        )}
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Tous les tests</h3>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border-collapse">
-                            <thead>
-                              <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
-                                {compareResult.reports.map((r) => (
-                                  <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</th>
-                                ))}
-                                <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Résumé</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {compareResult.comparison.byTest.map((row, idx) => (
-                                <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                                  <td className="py-2 px-3 text-gray-900 dark:text-white">{row.testName}</td>
-                                  {compareResult.reports!.map((r) => (
-                                    <td key={r.id} className="py-2 px-3">
-                                      {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
-                                      {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
-                                      {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
-                                    </td>
-                                  ))}
-                                  <td className="py-2 px-3 text-gray-600 dark:text-gray-400">{row.diff ?? '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    )
-                  })()}
-                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length === 0 && (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Aucun détail par test disponible (fichiers test-results.txt absents).</p>
-                  )}
+                        </>
+                      );
+                    })()}
+                  {compareResult.comparison?.byTest &&
+                    compareResult.comparison.byTest.length === 0 && (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        Aucun détail par test disponible (fichiers
+                        test-results.txt absents).
+                      </p>
+                    )}
                 </>
               )}
             </div>
@@ -662,20 +907,34 @@ export default function TestReportsPage() {
               Aucun rapport de test n'a été généré pour le moment.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500">
-              Exécutez <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">make test-all</code> pour générer des rapports.
+              Exécutez{" "}
+              <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">
+                make test-all
+              </code>{" "}
+              pour générer des rapports.
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-600 mt-2">
-              Accès : <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">http://localhost:5003/b4ck0ff1ce/test-reports</code>
+              Accès :{" "}
+              <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">
+                http://localhost:5003/b4ck0ff1ce/test-reports
+              </code>
             </p>
           </div>
         ) : (
-          <div className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`} style={{ minHeight: 'calc(100vh - 250px)' }}>
+          <div
+            className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}
+            style={{ minHeight: "calc(100vh - 250px)" }}
+          >
             {/* Liste des rapports */}
             {!isFullscreen && (
-              <div className="space-y-4 flex flex-col" style={{ minHeight: 'calc(100vh - 250px)' }}>
+              <div
+                className="space-y-4 flex flex-col"
+                style={{ minHeight: "calc(100vh - 250px)" }}
+              >
                 <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Rapports Disponibles ({filteredReports.length} / {reports.length})
+                    Rapports Disponibles ({filteredReports.length} /{" "}
+                    {reports.length})
                   </h2>
                   {compareMode && selectedForCompare.length >= 2 && (
                     <button
@@ -684,182 +943,306 @@ export default function TestReportsPage() {
                       className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
                     >
                       <GitCompare className="w-4 h-4" />
-                      {loadingCompare ? 'Chargement...' : `Comparer ${selectedForCompare.length} rapports`}
+                      {loadingCompare
+                        ? "Chargement..."
+                        : `Comparer ${selectedForCompare.length} rapports`}
                     </button>
                   )}
                 </div>
                 {compareMode && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    Cliquez sur <strong>« Sélectionner pour comparer »</strong> sur un rapport, puis sur un second rapport de la <strong>même catégorie</strong>. Ensuite cliquez sur le bouton <strong>« Comparer 2 rapports »</strong>.
+                    Cliquez sur <strong>« Sélectionner pour comparer »</strong>{" "}
+                    sur un rapport, puis sur un second rapport de la{" "}
+                    <strong>même catégorie</strong>. Ensuite cliquez sur le
+                    bouton <strong>« Comparer 2 rapports »</strong>.
                   </p>
                 )}
-                
-                <div className="space-y-3 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
-                {filteredReports.length === 0 ? (
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Aucun rapport ne correspond aux critères de recherche
-                    </p>
-                  </div>
-                ) : (
-                  filteredReports.map((report) => {
-                    const selectedForCompareCount = selectedForCompare.length
-                    const firstSelectedId = selectedForCompareCount ? selectedForCompare[0] : null
-                    const firstReport = firstSelectedId ? reports.find((r) => r.id === firstSelectedId) : null
-                    const firstCategory = firstReport?.category || ''
-                    const reportCategory = report.category || ''
-                    const canSelectForCompare = compareMode && (
-                      selectedForCompareCount === 0 ||
-                      (selectedForCompareCount === 1 && firstCategory && reportCategory === firstCategory) ||
-                      selectedForCompare.includes(report.id)
-                    )
-                    const isSelectedForCompare = selectedForCompare.includes(report.id)
-                    return (
-                  <div
-                    key={report.id}
-                    className={`bg-white dark:bg-gray-800 rounded-lg border-2 p-3 sm:p-4 transition-all hover:shadow-lg ${
-                      compareMode ? (isSelectedForCompare ? 'border-indigo-500 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700') : 'cursor-pointer'
-                    } ${!compareMode && selectedReport === report.id ? 'border-blue-500 shadow-md' : ''}`}
-                    onClick={() => !compareMode && loadReportContent(report.id)}
-                  >
-                    {compareMode && (
-                      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
-                        <button
-                          type="button"
-                          onClick={(e) => toggleCompareSelection(e, report.id)}
-                          disabled={!canSelectForCompare && !isSelectedForCompare}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                            isSelectedForCompare
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                              : canSelectForCompare
-                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/30'
-                                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                          }`}
+
+                <div
+                  className="space-y-3 overflow-y-auto flex-1"
+                  style={{ maxHeight: "calc(100vh - 350px)" }}
+                >
+                  {filteredReports.length === 0 ? (
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Aucun rapport ne correspond aux critères de recherche
+                      </p>
+                    </div>
+                  ) : (
+                    filteredReports.map((report) => {
+                      const selectedForCompareCount = selectedForCompare.length;
+                      const firstSelectedId = selectedForCompareCount
+                        ? selectedForCompare[0]
+                        : null;
+                      const firstReport = firstSelectedId
+                        ? reports.find((r) => r.id === firstSelectedId)
+                        : null;
+                      const firstCategory = firstReport?.category || "";
+                      const reportCategory = report.category || "";
+                      const canSelectForCompare =
+                        compareMode &&
+                        (selectedForCompareCount === 0 ||
+                          (selectedForCompareCount === 1 &&
+                            firstCategory &&
+                            reportCategory === firstCategory) ||
+                          selectedForCompare.includes(report.id));
+                      const isSelectedForCompare = selectedForCompare.includes(
+                        report.id,
+                      );
+                      return (
+                        <div
+                          key={report.id}
+                          className={`bg-white dark:bg-gray-800 rounded-lg border-2 p-3 sm:p-4 transition-all hover:shadow-lg ${
+                            compareMode
+                              ? isSelectedForCompare
+                                ? "border-indigo-500 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800"
+                                : "border-gray-200 dark:border-gray-700"
+                              : "cursor-pointer"
+                          } ${!compareMode && selectedReport === report.id ? "border-blue-500 shadow-md" : ""}`}
+                          onClick={() =>
+                            !compareMode && loadReportContent(report.id)
+                          }
                         >
-                          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelectedForCompare ? 'bg-indigo-600 border-indigo-600' : 'border-gray-400'}`}>
-                            {isSelectedForCompare && <span className="text-white text-xs">✓</span>}
-                          </span>
-                          {isSelectedForCompare ? 'Sélectionné pour comparaison' : canSelectForCompare ? 'Sélectionner pour comparer' : 'Même catégorie requise'}
-                        </button>
-                      </div>
-                    )}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {getStatusIcon(getEffectiveStatus(report))}
-                        <div className="flex-1 min-w-0">
-                          {report.category && (
-                            <span className="inline-block text-xs font-medium px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mb-1">
-                              {report.category}
-                            </span>
-                          )}
-                          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                            {report.name || `Rapport du ${formatReportDateLocal(report.date, report.time, report.generatedAtISO)}`}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-sm text-gray-500 dark:text-gray-400" title={`UTC: ${report.date} ${report.time}`}>
-                              {formatReportDateLocal(report.date, report.time, report.generatedAtISO)}
-                            </p>
-                            {report.category && (
-                              <>
-                                <span className="text-gray-300 dark:text-gray-600">•</span>
-                                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
-                                  {report.category}
+                          {compareMode && (
+                            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                              <button
+                                type="button"
+                                onClick={(e) =>
+                                  toggleCompareSelection(e, report.id)
+                                }
+                                disabled={
+                                  !canSelectForCompare && !isSelectedForCompare
+                                }
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                  isSelectedForCompare
+                                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                                    : canSelectForCompare
+                                      ? "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
+                                      : "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                                }`}
+                              >
+                                <span
+                                  className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelectedForCompare ? "bg-indigo-600 border-indigo-600" : "border-gray-400"}`}
+                                >
+                                  {isSelectedForCompare && (
+                                    <span className="text-white text-xs">
+                                      ✓
+                                    </span>
+                                  )}
                                 </span>
-                              </>
+                                {isSelectedForCompare
+                                  ? "Sélectionné pour comparaison"
+                                  : canSelectForCompare
+                                    ? "Sélectionner pour comparer"
+                                    : "Même catégorie requise"}
+                              </button>
+                            </div>
+                          )}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {getStatusIcon(getEffectiveStatus(report))}
+                              <div className="flex-1 min-w-0">
+                                {report.category && (
+                                  <span className="inline-block text-xs font-medium px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mb-1">
+                                    {report.category}
+                                  </span>
+                                )}
+                                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                                  {report.name ||
+                                    `Rapport du ${formatReportDateLocal(report.date, report.time, report.generatedAtISO)}`}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p
+                                    className="text-sm text-gray-500 dark:text-gray-400"
+                                    title={`UTC: ${report.date} ${report.time}`}
+                                  >
+                                    {formatReportDateLocal(
+                                      report.date,
+                                      report.time,
+                                      report.generatedAtISO,
+                                    )}
+                                  </p>
+                                  {report.category && (
+                                    <>
+                                      <span className="text-gray-300 dark:text-gray-600">
+                                        •
+                                      </span>
+                                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                                        {report.category}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {(report.status ||
+                              report.failed !== undefined ||
+                              report.passed !== undefined) && (
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${getStatusColor(getEffectiveStatus(report))}`}
+                              >
+                                {getStatusLabel(report)}
+                              </span>
                             )}
                           </div>
-                        </div>
-                      </div>
-                      {(report.status || report.failed !== undefined || report.passed !== undefined) && (
-                        <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${getStatusColor(getEffectiveStatus(report))}`}>
-                          {getStatusLabel(report)}
-                        </span>
-                      )}
-                    </div>
 
-                    {/* ✅ Toujours afficher les statistiques si disponibles */}
-                    {(report.totalTests !== undefined && report.totalTests > 0) || 
-                     (report.passed !== undefined && report.passed > 0) || 
-                     (report.failed !== undefined && report.failed > 0) ? (
-                      <div className="mt-2 space-y-2">
-                        <div className="grid grid-cols-4 gap-2 text-sm">
-                          <div className="text-center">
-                            <div className="font-semibold text-gray-900 dark:text-white">{report.totalTests || 0}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-green-600 dark:text-green-400">{report.passed || 0}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Réussis</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-red-600 dark:text-red-400">{report.failed || 0}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Échoués</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-yellow-600 dark:text-yellow-400">{report.skipped || 0}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Ignorés</div>
-                          </div>
-                        </div>
-                        {/* Détail sécurité (CRITIQUES, HAUTES, etc.) pour les rapports Tests Sécurité */}
-                        {((report.category === 'Tests Sécurité' || report.category === 'Sécurité') && (report.summary as any)?.summary?.security) && (() => {
-                          const sec = (report.summary as any).summary.security as { critical?: number; high?: number; medium?: number; low?: number; secure?: number }
-                          return (
-                            <div className="grid grid-cols-2 xs:grid-cols-5 gap-1.5 text-xs pt-1 border-t border-gray-200 dark:border-gray-600">
-                              <div className="text-center"><span className="font-medium text-red-700 dark:text-red-400">🚨 {sec.critical ?? 0}</span><br /><span className="text-gray-500">Critiques</span></div>
-                              <div className="text-center"><span className="font-medium text-orange-600 dark:text-orange-400">🔴 {sec.high ?? 0}</span><br /><span className="text-gray-500">Hautes</span></div>
-                              <div className="text-center"><span className="font-medium text-yellow-600 dark:text-yellow-400">🟡 {sec.medium ?? 0}</span><br /><span className="text-gray-500">Moyennes</span></div>
-                              <div className="text-center"><span className="font-medium text-green-600 dark:text-green-400">🟢 {sec.low ?? 0}</span><br /><span className="text-gray-500">Basses</span></div>
-                              <div className="text-center"><span className="font-medium text-emerald-600 dark:text-emerald-400">✅ {sec.secure ?? 0}</span><br /><span className="text-gray-500">Sécurisées</span></div>
+                          {/* ✅ Toujours afficher les statistiques si disponibles */}
+                          {(report.totalTests !== undefined &&
+                            report.totalTests > 0) ||
+                          (report.passed !== undefined && report.passed > 0) ||
+                          (report.failed !== undefined && report.failed > 0) ? (
+                            <div className="mt-2 space-y-2">
+                              <div className="grid grid-cols-4 gap-2 text-sm">
+                                <div className="text-center">
+                                  <div className="font-semibold text-gray-900 dark:text-white">
+                                    {report.totalTests || 0}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Total
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-green-600 dark:text-green-400">
+                                    {report.passed || 0}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Réussis
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-red-600 dark:text-red-400">
+                                    {report.failed || 0}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Échoués
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-yellow-600 dark:text-yellow-400">
+                                    {report.skipped || 0}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Ignorés
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Détail sécurité (CRITIQUES, HAUTES, etc.) pour les rapports Tests Sécurité */}
+                              {(report.category === "Tests Sécurité" ||
+                                report.category === "Sécurité") &&
+                                (report.summary as any)?.summary?.security &&
+                                (() => {
+                                  const sec = (report.summary as any).summary
+                                    .security as {
+                                    critical?: number;
+                                    high?: number;
+                                    medium?: number;
+                                    low?: number;
+                                    secure?: number;
+                                  };
+                                  return (
+                                    <div className="grid grid-cols-2 xs:grid-cols-5 gap-1.5 text-xs pt-1 border-t border-gray-200 dark:border-gray-600">
+                                      <div className="text-center">
+                                        <span className="font-medium text-red-700 dark:text-red-400">
+                                          🚨 {sec.critical ?? 0}
+                                        </span>
+                                        <br />
+                                        <span className="text-gray-500">
+                                          Critiques
+                                        </span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="font-medium text-orange-600 dark:text-orange-400">
+                                          🔴 {sec.high ?? 0}
+                                        </span>
+                                        <br />
+                                        <span className="text-gray-500">
+                                          Hautes
+                                        </span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                                          🟡 {sec.medium ?? 0}
+                                        </span>
+                                        <br />
+                                        <span className="text-gray-500">
+                                          Moyennes
+                                        </span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="font-medium text-green-600 dark:text-green-400">
+                                          🟢 {sec.low ?? 0}
+                                        </span>
+                                        <br />
+                                        <span className="text-gray-500">
+                                          Basses
+                                        </span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                          ✅ {sec.secure ?? 0}
+                                        </span>
+                                        <br />
+                                        <span className="text-gray-500">
+                                          Sécurisées
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                             </div>
-                          )
-                        })()}
-                      </div>
-                    ) : report.type === 'performance-backend' || report.type === 'performance-frontend' ? (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        📊 Rapport de performance - Consultez le rapport pour les détails
-                      </div>
-                    ) : report.type === 'security' ? (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Rapport sécurité - Consultez ou téléchargez le résumé pour le tri P0.
-                      </div>
-                    ) : null}
+                          ) : report.type === "performance-backend" ||
+                            report.type === "performance-frontend" ? (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                              📊 Rapport de performance - Consultez le rapport
+                              pour les détails
+                            </div>
+                          ) : report.type === "security" ? (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                              Rapport sécurité - Consultez ou téléchargez le
+                              résumé pour le tri P0.
+                            </div>
+                          ) : null}
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          loadReportContent(report.id)
-                        }}
-                        className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex-1 sm:flex-initial min-w-[80px] justify-center"
-                      >
-                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">Voir</span>
-                      </button>
-                      <a
-                        href={`/api/test-reports/download?id=${encodeURIComponent(report.id)}`}
-                        download
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-600 text-white rounded hover:bg-gray-700 flex-1 sm:flex-initial min-w-[80px] justify-center"
-                      >
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">Télécharger</span>
-                      </a>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteReport(report.id)
-                        }}
-                        disabled={deleting === report.id}
-                        className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial min-w-[80px] justify-center"
-                      >
-                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">{deleting === report.id ? '...' : 'Supprimer'}</span>
-                      </button>
-                    </div>
-                  </div>
-                  )
-                  })
-                )}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadReportContent(report.id);
+                              }}
+                              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex-1 sm:flex-initial min-w-[80px] justify-center"
+                            >
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Voir</span>
+                            </button>
+                            <a
+                              href={`/api/test-reports/download?id=${encodeURIComponent(report.id)}`}
+                              download
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-600 text-white rounded hover:bg-gray-700 flex-1 sm:flex-initial min-w-[80px] justify-center"
+                            >
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">
+                                Télécharger
+                              </span>
+                            </a>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteReport(report.id);
+                              }}
+                              disabled={deleting === report.id}
+                              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial min-w-[80px] justify-center"
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">
+                                {deleting === report.id ? "..." : "Supprimer"}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -869,17 +1252,34 @@ export default function TestReportsPage() {
               {loadingReport ? (
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
                   <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">Chargement du rapport...</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Chargement du rapport...
+                  </p>
                 </div>
               ) : selectedReport && reportContent ? (
-                <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? 'fixed inset-2 sm:inset-4 z-50' : ''}`}>
+                <div
+                  className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? "fixed inset-2 sm:inset-4 z-50" : ""}`}
+                >
                   <div className="p-2 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
-                        {isFullscreen ? `REPORT-${selectedReport}` : 'Aperçu du Rapport'}
+                        {isFullscreen
+                          ? `REPORT-${selectedReport}`
+                          : "Aperçu du Rapport"}
                       </h2>
                       <p className="font-medium text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {(() => { const r = reports.find(x => x.id === selectedReport); return r ? formatReportDateLocal(r.date, r.time, r.generatedAtISO) : ''; })()}
+                        {(() => {
+                          const r = reports.find(
+                            (x) => x.id === selectedReport,
+                          );
+                          return r
+                            ? formatReportDateLocal(
+                                r.date,
+                                r.time,
+                                r.generatedAtISO,
+                              )
+                            : "";
+                        })()}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-wrap sm:flex-nowrap">
@@ -906,9 +1306,9 @@ export default function TestReportsPage() {
                         <>
                           <button
                             onClick={() => {
-                              setSelectedReport(null)
-                              setReportContent(null)
-                              setIsFullscreen(false)
+                              setSelectedReport(null);
+                              setReportContent(null);
+                              setIsFullscreen(false);
                             }}
                             className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
                             title="Fermer l'aperçu"
@@ -921,7 +1321,9 @@ export default function TestReportsPage() {
                             className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
                             title="Afficher en plein écran"
                           >
-                            <span className="hidden xs:inline">Plein écran</span>
+                            <span className="hidden xs:inline">
+                              Plein écran
+                            </span>
                             <span className="xs:hidden">⛶</span>
                           </button>
                         </>
@@ -935,37 +1337,53 @@ export default function TestReportsPage() {
                         <span className="hidden xs:inline">Télécharger</span>
                       </a>
                       {(() => {
-                        const r = reports.find(x => x.id === selectedReport)
-                        const isE2eOrPlaywright = r && (r.type === 'e2e' || r.category?.includes('Playwright') || r.category?.includes('Backoffice'))
-                        if (!isE2eOrPlaywright) return null
+                        const r = reports.find((x) => x.id === selectedReport);
+                        const isE2eOrPlaywright =
+                          r &&
+                          (r.type === "e2e" ||
+                            r.category?.includes("Playwright") ||
+                            r.category?.includes("Backoffice"));
+                        if (!isE2eOrPlaywright) return null;
                         return (
                           <button
                             type="button"
                             onClick={async () => {
                               try {
-                                const res = await fetch(`/api/test-reports/view?id=${encodeURIComponent(selectedReport!)}&playwright=1`)
-                                const data = await res.json()
+                                const res = await fetch(
+                                  `/api/test-reports/view?id=${encodeURIComponent(selectedReport!)}&playwright=1`,
+                                );
+                                const data = await res.json();
                                 if (data.success && data.content) {
-                                  setReportContent(data.content)
+                                  setReportContent(data.content);
                                 } else {
-                                  alert(data.error || 'Rapport Playwright non disponible pour ce run.')
+                                  alert(
+                                    data.error ||
+                                      "Rapport Playwright non disponible pour ce run.",
+                                  );
                                 }
                               } catch (e) {
-                                alert('Erreur chargement rapport Playwright.')
+                                alert("Erreur chargement rapport Playwright.");
                               }
                             }}
                             className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-cyan-600 text-white rounded hover:bg-cyan-700"
                             title="Afficher le rapport Playwright détaillé (captures d&#39;écran)"
                           >
                             <Image className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="hidden xs:inline">Captures Playwright</span>
+                            <span className="hidden xs:inline">
+                              Captures Playwright
+                            </span>
                           </button>
-                        )
+                        );
                       })()}
                     </div>
                   </div>
-                  <div className={`p-2 sm:p-4 ${isFullscreen ? 'h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]' : ''}`}>
-                    <ReportIframe content={reportContent} isFullscreen={isFullscreen} />
+                  <div
+                    className={`p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]" : ""}`}
+                  >
+                    <ReportIframe
+                      content={reportContent}
+                      isFullscreen={isFullscreen}
+                    />
                   </div>
                 </div>
               ) : (
@@ -981,6 +1399,5 @@ export default function TestReportsPage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
-

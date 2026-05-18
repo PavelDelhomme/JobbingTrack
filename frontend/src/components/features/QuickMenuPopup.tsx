@@ -1,76 +1,82 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Settings, User, X, Copy, Check, Key } from '@/lib/icons'
+import { Settings, User, X, Copy, Check, Key } from "@/lib/icons";
 
 interface QuickMenuPopupProps {
-  isOpen: boolean
-  onClose: () => void
-  onSelectProfile: () => void
-  onSelectSettings: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProfile: () => void;
+  onSelectSettings: () => void;
 }
 
-export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSettings }: QuickMenuPopupProps) {
-  const [token, setToken] = useState<string | null>(null)
-  const [tokenCopied, setTokenCopied] = useState(false)
-  const [showToken, setShowToken] = useState(false)
+export function QuickMenuPopup({
+  isOpen,
+  onClose,
+  onSelectProfile,
+  onSelectSettings,
+}: QuickMenuPopupProps) {
+  const [token, setToken] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [showToken, setShowToken] = useState(false);
 
   // Récupérer le token depuis localStorage
   useEffect(() => {
     if (isOpen) {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('authToken')
-      setToken(storedToken)
+      const storedToken =
+        localStorage.getItem("token") || localStorage.getItem("authToken");
+      setToken(storedToken);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   // Copier le token dans le presse-papier
   const handleCopyToken = async () => {
     if (token) {
       try {
-        await navigator.clipboard.writeText(token)
-        setTokenCopied(true)
-        setTimeout(() => setTokenCopied(false), 2000)
+        await navigator.clipboard.writeText(token);
+        setTokenCopied(true);
+        setTimeout(() => setTokenCopied(false), 2000);
       } catch (err) {
-        console.error('Erreur lors de la copie:', err)
+        console.error("Erreur lors de la copie:", err);
         // Fallback pour les navigateurs qui ne supportent pas clipboard API
-        const textArea = document.createElement('textarea')
-        textArea.value = token
-        textArea.style.position = 'fixed'
-        textArea.style.opacity = '0'
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-        setTokenCopied(true)
-        setTimeout(() => setTokenCopied(false), 2000)
+        const textArea = document.createElement("textarea");
+        textArea.value = token;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setTokenCopied(true);
+        setTimeout(() => setTokenCopied(false), 2000);
       }
     }
-  }
+  };
 
   // Fermer la popup avec la touche Échap
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
+      if (e.key === "Escape") {
+        onClose();
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
+      document.addEventListener("keydown", handleEscape);
       // Empêcher le scroll du body
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, onClose])
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen, onClose]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -100,8 +106,8 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
           {/* Option Profil */}
           <button
             onClick={() => {
-              onSelectProfile()
-              onClose()
+              onSelectProfile();
+              onClose();
             }}
             className="w-full flex items-center gap-3 p-3 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
           >
@@ -121,8 +127,8 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
           {/* Option Paramètres */}
           <button
             onClick={() => {
-              onSelectSettings()
-              onClose()
+              onSelectSettings();
+              onClose();
             }}
             className="w-full flex items-center gap-3 p-3 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
           >
@@ -154,7 +160,7 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
                     onClick={() => setShowToken(!showToken)}
                     className="flex-1 text-left text-xs font-mono bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   >
-                    {showToken ? token : '••••••••••••••••••••••••••••••••'}
+                    {showToken ? token : "••••••••••••••••••••••••••••••••"}
                   </button>
                   <button
                     onClick={handleCopyToken}
@@ -175,7 +181,7 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Cliquez pour {showToken ? 'masquer' : 'afficher'} le token
+                  Cliquez pour {showToken ? "masquer" : "afficher"} le token
                 </p>
               </div>
             </div>
@@ -183,5 +189,5 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
         </div>
       </div>
     </div>
-  )
+  );
 }

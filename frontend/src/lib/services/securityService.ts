@@ -1,12 +1,12 @@
-import axios from 'axios';
-import { FRONTEND_URLS } from '@/config/ports.config';
+import axios from "axios";
+import { FRONTEND_URLS } from "@/config/ports.config";
 
 const API_URL = FRONTEND_URLS.api;
 
 export interface SecurityLog {
   id: string;
   timestamp: string;
-  level: 'info' | 'warning' | 'error' | 'critical';
+  level: "info" | "warning" | "error" | "critical";
   category: string;
   eventType: string;
   message: string;
@@ -66,25 +66,26 @@ class SecurityService {
   }): Promise<SecurityLog[]> {
     try {
       const queryParams = new URLSearchParams();
-      
-      if (params?.startDate) queryParams.append('startDate', params.startDate);
-      if (params?.endDate) queryParams.append('endDate', params.endDate);
-      if (params?.level) queryParams.append('level', params.level);
-      if (params?.category) queryParams.append('category', params.category);
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
-      if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+      if (params?.startDate) queryParams.append("startDate", params.startDate);
+      if (params?.endDate) queryParams.append("endDate", params.endDate);
+      if (params?.level) queryParams.append("level", params.level);
+      if (params?.category) queryParams.append("category", params.category);
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+      if (params?.offset)
+        queryParams.append("offset", params.offset.toString());
 
       const response = await axios.get<SecurityLogsResponse>(
-        `${API_URL}/api/v1/security/logs?${queryParams.toString()}`
+        `${API_URL}/api/v1/security/logs?${queryParams.toString()}`,
       );
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la récupération des logs');
+      throw new Error("Erreur lors de la récupération des logs");
     } catch (error) {
-      console.error('Erreur getSecurityLogs:', error);
+      console.error("Erreur getSecurityLogs:", error);
       throw error;
     }
   }
@@ -94,17 +95,18 @@ class SecurityService {
    */
   async getSecurityMetrics(days: number = 7): Promise<SecurityMetrics> {
     try {
-      const response = await axios.get<{ success: boolean; data: SecurityMetrics }>(
-        `${API_URL}/api/v1/security/metrics?days=${days}`
-      );
+      const response = await axios.get<{
+        success: boolean;
+        data: SecurityMetrics;
+      }>(`${API_URL}/api/v1/security/metrics?days=${days}`);
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la récupération des métriques');
+      throw new Error("Erreur lors de la récupération des métriques");
     } catch (error) {
-      console.error('Erreur getSecurityMetrics:', error);
+      console.error("Erreur getSecurityMetrics:", error);
       throw error;
     }
   }
@@ -115,20 +117,20 @@ class SecurityService {
   async getSecurityAlerts(level?: string, limit: number = 20): Promise<any[]> {
     try {
       const queryParams = new URLSearchParams();
-      if (level) queryParams.append('level', level);
-      queryParams.append('limit', limit.toString());
+      if (level) queryParams.append("level", level);
+      queryParams.append("limit", limit.toString());
 
       const response = await axios.get<{ success: boolean; data: any[] }>(
-        `${API_URL}/api/v1/security/alerts?${queryParams.toString()}`
+        `${API_URL}/api/v1/security/alerts?${queryParams.toString()}`,
       );
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la récupération des alertes');
+      throw new Error("Erreur lors de la récupération des alertes");
     } catch (error) {
-      console.error('Erreur getSecurityAlerts:', error);
+      console.error("Erreur getSecurityAlerts:", error);
       throw error;
     }
   }
@@ -139,16 +141,16 @@ class SecurityService {
   async getSecurityStats(days: number = 7): Promise<any> {
     try {
       const response = await axios.get<{ success: boolean; data: any }>(
-        `${API_URL}/api/v1/security/stats?days=${days}`
+        `${API_URL}/api/v1/security/stats?days=${days}`,
       );
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la récupération des statistiques');
+      throw new Error("Erreur lors de la récupération des statistiques");
     } catch (error) {
-      console.error('Erreur getSecurityStats:', error);
+      console.error("Erreur getSecurityStats:", error);
       throw error;
     }
   }
@@ -159,16 +161,16 @@ class SecurityService {
   async getSecurityTrends(hours: number = 24): Promise<any[]> {
     try {
       const response = await axios.get<{ success: boolean; data: any[] }>(
-        `${API_URL}/api/v1/security/trends?hours=${hours}`
+        `${API_URL}/api/v1/security/trends?hours=${hours}`,
       );
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la récupération des tendances');
+      throw new Error("Erreur lors de la récupération des tendances");
     } catch (error) {
-      console.error('Erreur getSecurityTrends:', error);
+      console.error("Erreur getSecurityTrends:", error);
       throw error;
     }
   }
@@ -178,18 +180,18 @@ class SecurityService {
    */
   async createSecurityLog(logData: Partial<SecurityLog>): Promise<SecurityLog> {
     try {
-      const response = await axios.post<{ success: boolean; data: SecurityLog }>(
-        `${API_URL}/api/v1/security/logs`,
-        logData
-      );
+      const response = await axios.post<{
+        success: boolean;
+        data: SecurityLog;
+      }>(`${API_URL}/api/v1/security/logs`, logData);
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors de la création du log');
+      throw new Error("Erreur lors de la création du log");
     } catch (error) {
-      console.error('Erreur createSecurityLog:', error);
+      console.error("Erreur createSecurityLog:", error);
       throw error;
     }
   }
@@ -200,16 +202,16 @@ class SecurityService {
   async triggerSecurityAnalysis(): Promise<any> {
     try {
       const response = await axios.post<{ success: boolean; data: any }>(
-        `${API_URL}/api/v1/security/analyze`
+        `${API_URL}/api/v1/security/analyze`,
       );
 
       if (response.data.success) {
         return response.data.data;
       }
 
-      throw new Error('Erreur lors du déclenchement de l\'analyse');
+      throw new Error("Erreur lors du déclenchement de l'analyse");
     } catch (error) {
-      console.error('Erreur triggerSecurityAnalysis:', error);
+      console.error("Erreur triggerSecurityAnalysis:", error);
       throw error;
     }
   }
@@ -217,4 +219,3 @@ class SecurityService {
 
 export const securityService = new SecurityService();
 export default securityService;
-

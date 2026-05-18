@@ -1,25 +1,41 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { FRONTEND_URLS } from '@/config/ports.config';
-import { 
-  ArrowLeft, Mail, Phone, Calendar, UserCheck, UserX, 
-  Shield, Edit, Save, X, Trash2, Key, Lock, Unlock,
-  AlertCircle, CheckCircle, Clock, Send
-} from 'lucide-react';
-import Link from 'next/link';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Calendar,
+  UserCheck,
+  UserX,
+  Shield,
+  Edit,
+  Save,
+  X,
+  Trash2,
+  Key,
+  Lock,
+  Unlock,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Send,
+} from "lucide-react";
+import Link from "next/link";
+import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
 
-type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 
 function toUserRole(role: string | undefined): UserRole {
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'USER') return role;
-  return 'USER';
+  if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "USER")
+    return role;
+  return "USER";
 }
 
 interface User {
@@ -42,7 +58,7 @@ export default function UserDetailPage() {
   const params = useParams();
   const { token, user: currentUser } = useAuth();
   const userId = params.id as string;
-  
+
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,15 +68,15 @@ export default function UserDetailPage() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [creating, setCreating] = useState(false);
-  const isCreateMode = userId === 'new';
+  const isCreateMode = userId === "new";
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "USER" as "USER" | "ADMIN" | "SUPER_ADMIN",
     isActive: true,
   });
 
@@ -77,19 +93,19 @@ export default function UserDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Essayer d'abord /api/v1/auth/users/:id, puis /api/v1/users/:id en fallback
       let response;
       try {
         response = await axios.get(`${API_URL}/api/v1/auth/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
-          validateStatus: (status) => status < 500
+          validateStatus: (status) => status < 500,
         });
       } catch (error: any) {
-        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+        if (error.code === "ECONNREFUSED" || error.code === "ETIMEDOUT") {
           response = await axios.get(`${API_URL}/api/v1/users/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
-            validateStatus: (status) => status < 500
+            validateStatus: (status) => status < 500,
           });
         } else {
           throw error;
@@ -97,12 +113,12 @@ export default function UserDetailPage() {
       }
 
       if (response.status === 404) {
-        setError('Utilisateur non trouvé');
+        setError("Utilisateur non trouvé");
         return;
       }
 
       if (response.status === 401 || response.status === 403) {
-        setError('Accès non autorisé');
+        setError("Accès non autorisé");
         return;
       }
 
@@ -110,20 +126,23 @@ export default function UserDetailPage() {
         const userData = response.data.user;
         setUser(userData);
         setFormData({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-          password: '',
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          password: "",
           role: toUserRole(userData.role),
           isActive: userData.isActive !== undefined ? userData.isActive : true,
         });
       } else {
-        setError('Erreur lors du chargement de l\'utilisateur');
+        setError("Erreur lors du chargement de l'utilisateur");
       }
     } catch (error: any) {
-      console.error('Erreur chargement utilisateur:', error);
-      setError(error.response?.data?.error || 'Erreur lors du chargement de l\'utilisateur');
+      console.error("Erreur chargement utilisateur:", error);
+      setError(
+        error.response?.data?.error ||
+          "Erreur lors du chargement de l'utilisateur",
+      );
     } finally {
       setLoading(false);
     }
@@ -134,7 +153,7 @@ export default function UserDetailPage() {
 
     try {
       setSaving(true);
-      
+
       // Mettre à jour les informations de base (firstName, lastName, email, phone)
       const basicUpdate = {
         firstName: formData.firstName,
@@ -142,11 +161,11 @@ export default function UserDetailPage() {
         email: formData.email,
         phone: formData.phone,
       };
-      
+
       const response = await axios.put(
         `${API_URL}/api/v1/auth/users/${userId}`,
         basicUpdate,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
@@ -155,7 +174,7 @@ export default function UserDetailPage() {
           await axios.put(
             `${API_URL}/api/v1/auth/users/${userId}/role`,
             { role: formData.role },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
         }
 
@@ -164,32 +183,39 @@ export default function UserDetailPage() {
           await axios.put(
             `${API_URL}/api/v1/auth/users/${userId}/status`,
             { isActive: formData.isActive },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
         }
 
         // Recharger l'utilisateur pour avoir les données à jour
         await loadUser();
         setEditMode(false);
-        alert('Utilisateur mis à jour avec succès');
+        alert("Utilisateur mis à jour avec succès");
       } else {
-        alert('Erreur lors de la mise à jour');
+        alert("Erreur lors de la mise à jour");
       }
     } catch (error: any) {
-      console.error('Erreur mise à jour utilisateur:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la mise à jour');
+      console.error("Erreur mise à jour utilisateur:", error);
+      alert(error.response?.data?.error || "Erreur lors de la mise à jour");
     } finally {
       setSaving(false);
     }
   };
 
   const handleCreateUser = async () => {
-    if (!formData.email?.trim() || !formData.firstName?.trim() || !formData.lastName?.trim() || !formData.password?.trim()) {
-      alert('Veuillez remplir tous les champs obligatoires (prénom, nom, email, mot de passe)');
+    if (
+      !formData.email?.trim() ||
+      !formData.firstName?.trim() ||
+      !formData.lastName?.trim() ||
+      !formData.password?.trim()
+    ) {
+      alert(
+        "Veuillez remplir tous les champs obligatoires (prénom, nom, email, mot de passe)",
+      );
       return;
     }
     if (formData.password.length < 6) {
-      alert('Le mot de passe doit contenir au moins 6 caractères');
+      alert("Le mot de passe doit contenir au moins 6 caractères");
       return;
     }
     try {
@@ -203,16 +229,16 @@ export default function UserDetailPage() {
           password: formData.password,
           role: formData.role,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response.data?.user?.id) {
         router.push(`/b4ck0ff1ce/users/${response.data.user.id}`);
       } else {
-        router.push('/b4ck0ff1ce/users');
+        router.push("/b4ck0ff1ce/users");
       }
     } catch (err: unknown) {
       const axErr = err as { response?: { data?: { error?: string } } };
-      alert(axErr.response?.data?.error || 'Erreur lors de la création');
+      alert(axErr.response?.data?.error || "Erreur lors de la création");
     } finally {
       setCreating(false);
     }
@@ -221,11 +247,11 @@ export default function UserDetailPage() {
   const handleCancel = () => {
     if (user) {
       setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        password: '',
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        password: "",
         role: toUserRole(user.role),
         isActive: user.isActive !== undefined ? user.isActive : true,
       });
@@ -235,8 +261,12 @@ export default function UserDetailPage() {
 
   const handleToggleActive = async () => {
     if (!user) return;
-    
-    if (!confirm(`Êtes-vous sûr de vouloir ${user.isActive ? 'désactiver' : 'activer'} cet utilisateur ?`)) {
+
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir ${user.isActive ? "désactiver" : "activer"} cet utilisateur ?`,
+      )
+    ) {
       return;
     }
 
@@ -244,50 +274,62 @@ export default function UserDetailPage() {
       const response = await axios.put(
         `${API_URL}/api/v1/auth/users/${userId}/status`,
         { isActive: !user.isActive },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         await loadUser(); // Recharger pour avoir les données à jour
-        alert(`Utilisateur ${!user.isActive ? 'activé' : 'désactivé'} avec succès`);
+        alert(
+          `Utilisateur ${!user.isActive ? "activé" : "désactivé"} avec succès`,
+        );
       }
     } catch (error: any) {
-      console.error('Erreur changement statut:', error);
-      alert(error.response?.data?.error || 'Erreur lors du changement de statut');
+      console.error("Erreur changement statut:", error);
+      alert(
+        error.response?.data?.error || "Erreur lors du changement de statut",
+      );
     }
   };
 
   const handleDeleteUser = async () => {
     if (!user) return;
-    
+
     if (currentUser?.id === userId) {
-      alert('Vous ne pouvez pas supprimer votre propre compte');
+      alert("Vous ne pouvez pas supprimer votre propre compte");
       return;
     }
 
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${user.firstName} ${user.lastName} ? Cette action est irréversible.`)) {
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${user.firstName} ${user.lastName} ? Cette action est irréversible.`,
+      )
+    ) {
       return;
     }
 
     try {
       setDeleting(true);
       await axios.delete(`${API_URL}/api/v1/auth/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
-      alert('Utilisateur supprimé avec succès');
-      router.push('/b4ck0ff1ce/users');
+
+      alert("Utilisateur supprimé avec succès");
+      router.push("/b4ck0ff1ce/users");
     } catch (error: any) {
-      console.error('Erreur suppression utilisateur:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la suppression');
+      console.error("Erreur suppression utilisateur:", error);
+      alert(error.response?.data?.error || "Erreur lors de la suppression");
       setDeleting(false);
     }
   };
 
   const handleResetPassword = async () => {
     if (!user) return;
-    
-    if (!confirm(`Envoyer un email de réinitialisation de mot de passe à ${user.email} ?`)) {
+
+    if (
+      !confirm(
+        `Envoyer un email de réinitialisation de mot de passe à ${user.email} ?`,
+      )
+    ) {
       return;
     }
 
@@ -296,17 +338,20 @@ export default function UserDetailPage() {
       const response = await axios.post(
         `${API_URL}/api/v1/auth/forgot-password`,
         { email: user.email },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
-        alert('Email de réinitialisation envoyé avec succès');
+        alert("Email de réinitialisation envoyé avec succès");
       } else {
-        alert(response.data?.error || 'Erreur lors de l\'envoi de l\'email');
+        alert(response.data?.error || "Erreur lors de l'envoi de l'email");
       }
     } catch (error: any) {
-      console.error('Erreur réinitialisation mot de passe:', error);
-      alert((error as any).response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
+      console.error("Erreur réinitialisation mot de passe:", error);
+      alert(
+        (error as any).response?.data?.error ||
+          "Erreur lors de l'envoi de l'email",
+      );
     } finally {
       setResettingPassword(false);
     }
@@ -314,8 +359,10 @@ export default function UserDetailPage() {
 
   const handleResendVerification = async () => {
     if (!user) return;
-    
-    if (!confirm(`Renvoyer l\'email de vérification de compte à ${user.email} ?`)) {
+
+    if (
+      !confirm(`Renvoyer l\'email de vérification de compte à ${user.email} ?`)
+    ) {
       return;
     }
 
@@ -324,27 +371,36 @@ export default function UserDetailPage() {
       const response = await axios.post(
         `${API_URL}/api/v1/auth/users/${userId}/resend-verification`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
-        alert('Email de vérification envoyé avec succès');
+        alert("Email de vérification envoyé avec succès");
         await loadUser();
       } else {
-        alert(response.data?.error || 'Erreur lors de l\'envoi de l\'email');
+        alert(response.data?.error || "Erreur lors de l'envoi de l'email");
       }
     } catch (error: any) {
-      console.error('Erreur envoi vérification:', error);
-      alert((error as any).response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
+      console.error("Erreur envoi vérification:", error);
+      alert(
+        (error as any).response?.data?.error ||
+          "Erreur lors de l'envoi de l'email",
+      );
     } finally {
       setResendingVerification(false);
     }
   };
 
-  const handleChangeRole = async (newRole: 'USER' | 'ADMIN' | 'SUPER_ADMIN') => {
+  const handleChangeRole = async (
+    newRole: "USER" | "ADMIN" | "SUPER_ADMIN",
+  ) => {
     if (!user) return;
-    
-    if (!confirm(`Changer le rôle de ${user.firstName} ${user.lastName} en ${newRole} ?`)) {
+
+    if (
+      !confirm(
+        `Changer le rôle de ${user.firstName} ${user.lastName} en ${newRole} ?`,
+      )
+    ) {
       return;
     }
 
@@ -352,16 +408,16 @@ export default function UserDetailPage() {
       const response = await axios.put(
         `${API_URL}/api/v1/auth/users/${userId}/role`,
         { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         await loadUser(); // Recharger pour avoir les données à jour
-        alert('Rôle modifié avec succès');
+        alert("Rôle modifié avec succès");
       }
     } catch (error: any) {
-      console.error('Erreur changement rôle:', error);
-      alert(error.response?.data?.error || 'Erreur lors du changement de rôle');
+      console.error("Erreur changement rôle:", error);
+      alert(error.response?.data?.error || "Erreur lors du changement de rôle");
     }
   };
 
@@ -407,7 +463,7 @@ export default function UserDetailPage() {
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => router.push('/b4ck0ff1ce/users')}
+              onClick={() => router.push("/b4ck0ff1ce/users")}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -418,11 +474,15 @@ export default function UserDetailPage() {
             <h1 className="text-2xl font-bold mb-6">Nouvel utilisateur</h1>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Prénom *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Prénom *
+                </label>
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -431,25 +491,35 @@ export default function UserDetailPage() {
                 <input
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Email *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Email *
+                </label>
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Mot de passe * (min. 6 caractères)</label>
+                <label className="block text-sm font-medium mb-1">
+                  Mot de passe * (min. 6 caractères)
+                </label>
                 <input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -457,7 +527,12 @@ export default function UserDetailPage() {
                 <label className="block text-sm font-medium mb-1">Rôle</label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER' | 'ADMIN' | 'SUPER_ADMIN' })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      role: e.target.value as "USER" | "ADMIN" | "SUPER_ADMIN",
+                    })
+                  }
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 >
                   <option value="USER">Utilisateur</option>
@@ -471,10 +546,10 @@ export default function UserDetailPage() {
                   disabled={creating}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {creating ? 'Création...' : 'Créer'}
+                  {creating ? "Création..." : "Créer"}
                 </button>
                 <button
-                  onClick={() => router.push('/b4ck0ff1ce/users')}
+                  onClick={() => router.push("/b4ck0ff1ce/users")}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   Annuler
@@ -505,7 +580,8 @@ export default function UserDetailPage() {
               Retour
             </button>
             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl">
-              {user.firstName?.[0]}{user.lastName?.[0]}
+              {user.firstName?.[0]}
+              {user.lastName?.[0]}
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -514,7 +590,7 @@ export default function UserDetailPage() {
               <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {editMode ? (
               <>
@@ -531,7 +607,7 @@ export default function UserDetailPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   <Save className="h-5 w-5" />
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? "Enregistrement..." : "Enregistrer"}
                 </button>
               </>
             ) : (
@@ -550,7 +626,7 @@ export default function UserDetailPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
                     <Trash2 className="h-5 w-5" />
-                    {deleting ? 'Suppression...' : 'Supprimer'}
+                    {deleting ? "Suppression..." : "Supprimer"}
                   </button>
                 )}
               </>
@@ -574,11 +650,15 @@ export default function UserDetailPage() {
                   <input
                     type="text"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 ) : (
-                  <p className="text-gray-900 dark:text-gray-100">{user.firstName}</p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {user.firstName}
+                  </p>
                 )}
               </div>
 
@@ -590,11 +670,15 @@ export default function UserDetailPage() {
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 ) : (
-                  <p className="text-gray-900 dark:text-gray-100">{user.lastName}</p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {user.lastName}
+                  </p>
                 )}
               </div>
 
@@ -607,11 +691,15 @@ export default function UserDetailPage() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 ) : (
-                  <p className="text-gray-900 dark:text-gray-100">{user.email}</p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {user.email}
+                  </p>
                 )}
                 {user.emailVerified && (
                   <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
@@ -630,11 +718,15 @@ export default function UserDetailPage() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 ) : (
-                  <p className="text-gray-900 dark:text-gray-100">{user.phone || 'Non renseigné'}</p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {user.phone || "Non renseigné"}
+                  </p>
                 )}
               </div>
             </div>
@@ -654,7 +746,15 @@ export default function UserDetailPage() {
                 {editMode ? (
                   <select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER' | 'ADMIN' | 'SUPER_ADMIN' })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        role: e.target.value as
+                          | "USER"
+                          | "ADMIN"
+                          | "SUPER_ADMIN",
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   >
                     <option value="USER">Utilisateur</option>
@@ -663,23 +763,25 @@ export default function UserDetailPage() {
                   </select>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    }`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        user.role === "ADMIN" || user.role === "SUPER_ADMIN"
+                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                          : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      }`}
+                    >
                       {user.role}
                     </span>
                     {!editMode && currentUser?.id !== userId && (
                       <div className="flex gap-1">
                         <button
-                          onClick={() => handleChangeRole('USER')}
+                          onClick={() => handleChangeRole("USER")}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           USER
                         </button>
                         <button
-                          onClick={() => handleChangeRole('ADMIN')}
+                          onClick={() => handleChangeRole("ADMIN")}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           ADMIN
@@ -692,28 +794,38 @@ export default function UserDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  {user.isActive ? <UserCheck className="h-4 w-4 text-green-600" /> : <UserX className="h-4 w-4 text-red-600" />}
+                  {user.isActive ? (
+                    <UserCheck className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <UserX className="h-4 w-4 text-red-600" />
+                  )}
                   Statut
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    user.isActive
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                  }`}>
-                    {user.isActive ? 'Actif' : 'Inactif'}
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      user.isActive
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    }`}
+                  >
+                    {user.isActive ? "Actif" : "Inactif"}
                   </span>
                   {!editMode && (
                     <button
                       onClick={handleToggleActive}
                       className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm transition-colors ${
                         user.isActive
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800'
-                          : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800'
+                          ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                          : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                       }`}
                     >
-                      {user.isActive ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                      {user.isActive ? 'Désactiver' : 'Activer'}
+                      {user.isActive ? (
+                        <Lock className="h-4 w-4" />
+                      ) : (
+                        <Unlock className="h-4 w-4" />
+                      )}
+                      {user.isActive ? "Désactiver" : "Activer"}
                     </button>
                   )}
                 </div>
@@ -725,12 +837,12 @@ export default function UserDetailPage() {
                   Date de création
                 </label>
                 <p className="text-gray-900 dark:text-gray-100">
-                  {new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                  {new Date(user.createdAt).toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
@@ -742,12 +854,14 @@ export default function UserDetailPage() {
                     Dernière connexion
                   </label>
                   <p className="text-gray-900 dark:text-gray-100">
-                    {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    {new Date(
+                      user.lastLogin || user.lastLoginAt || "",
+                    ).toLocaleDateString("fr-FR", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </p>
                 </div>
@@ -785,7 +899,9 @@ export default function UserDetailPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 <Send className="h-5 w-5" />
-                {resendingVerification ? 'Envoi...' : 'Renvoyer email de vérification'}
+                {resendingVerification
+                  ? "Envoi..."
+                  : "Renvoyer email de vérification"}
               </button>
             )}
             <button
@@ -794,9 +910,9 @@ export default function UserDetailPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <Key className="h-5 w-5" />
-              {resettingPassword ? 'Envoi...' : 'Réinitialiser le mot de passe'}
+              {resettingPassword ? "Envoi..." : "Réinitialiser le mot de passe"}
             </button>
-            
+
             {currentUser?.id !== userId && (
               <button
                 onClick={handleDeleteUser}
@@ -804,7 +920,7 @@ export default function UserDetailPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="h-5 w-5" />
-                {deleting ? 'Suppression...' : 'Supprimer l\'utilisateur'}
+                {deleting ? "Suppression..." : "Supprimer l'utilisateur"}
               </button>
             )}
           </div>
@@ -813,4 +929,3 @@ export default function UserDetailPage() {
     </AdminLayout>
   );
 }
-

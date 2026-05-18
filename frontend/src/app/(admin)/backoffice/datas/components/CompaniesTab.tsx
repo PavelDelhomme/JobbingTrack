@@ -1,94 +1,98 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { companyService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { companyService } from "@/lib/api";
 
 interface Company {
-  id: string
-  name: string
-  website?: string
-  industry?: string
-  size?: string
-  location?: string
-  description?: string
-  createdAt: string
+  id: string;
+  name: string;
+  website?: string;
+  industry?: string;
+  size?: string;
+  location?: string;
+  description?: string;
+  createdAt: string;
   _count?: {
-    applications: number
-    contacts: number
-  }
+    applications: number;
+    contacts: number;
+  };
 }
 
 export default function CompaniesTab() {
-  const router = useRouter()
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
+  const router = useRouter();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchCompanies()
-  }, [])
+    fetchCompanies();
+  }, []);
 
   const fetchCompanies = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'data_companies_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "data_companies_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setCompanies(Array.isArray(cached) ? (cached as Company[]) : [])
-        setLoading(false)
+        setCompanies(Array.isArray(cached) ? (cached as Company[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        companyService.getAll({ limit: 100 }).then(response => {
-          const companies = response.data.companies || []
-          cacheManager.set(cacheKey, companies, { ttl: 30000 })
-          setCompanies(companies)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        companyService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const companies = response.data.companies || [];
+            cacheManager.set(cacheKey, companies, { ttl: 30000 });
+            setCompanies(companies);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 entreprises par défaut
-      const response = await companyService.getAll({ limit: 100 })
-      const companies = response.data.companies || []
-      setCompanies(companies)
-      
+      const response = await companyService.getAll({ limit: 100 });
+      const companies = response.data.companies || [];
+      setCompanies(companies);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, companies, { ttl: 30000 })
+      await cacheManager.set(cacheKey, companies, { ttl: 30000 });
     } catch (error) {
-      console.error('Erreur chargement entreprises:', error)
+      console.error("Erreur chargement entreprises:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteCompany = async (companyId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette entreprise ?")) {
+      return;
     }
 
     try {
-      await companyService.delete(companyId)
-      fetchCompanies()
+      await companyService.delete(companyId);
+      fetchCompanies();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredCompanies = companies.filter(
+    (company) =>
+      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -147,7 +151,9 @@ export default function CompaniesTab() {
                 <tr
                   key={company.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/b4ck0ff1ce/companies/${company.id}`)}
+                  onClick={() =>
+                    router.push(`/b4ck0ff1ce/companies/${company.id}`)
+                  }
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -167,10 +173,10 @@ export default function CompaniesTab() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {company.industry || '-'}
+                    {company.industry || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {company.location || '-'}
+                    {company.location || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {company._count && (
@@ -183,8 +189,8 @@ export default function CompaniesTab() {
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/b4ck0ff1ce/companies/${company.id}`)
+                        e.stopPropagation();
+                        router.push(`/b4ck0ff1ce/companies/${company.id}`);
                       }}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                     >
@@ -192,8 +198,8 @@ export default function CompaniesTab() {
                     </button>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteCompany(company.id)
+                        e.stopPropagation();
+                        handleDeleteCompany(company.id);
                       }}
                       className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                     >
@@ -219,9 +225,13 @@ export default function CompaniesTab() {
                     🏢
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{company.name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      {company.name}
+                    </h3>
                     {company.industry && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{company.industry}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {company.industry}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -241,8 +251,8 @@ export default function CompaniesTab() {
               <div className="ml-13 flex gap-2">
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/b4ck0ff1ce/companies/${company.id}`)
+                    e.stopPropagation();
+                    router.push(`/b4ck0ff1ce/companies/${company.id}`);
                   }}
                   className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
@@ -250,8 +260,8 @@ export default function CompaniesTab() {
                 </button>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteCompany(company.id)
+                    e.stopPropagation();
+                    handleDeleteCompany(company.id);
                   }}
                   className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                 >
@@ -273,43 +283,46 @@ export default function CompaniesTab() {
         <CreateCompanyModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
-            setShowCreateModal(false)
-            fetchCompanies()
+            setShowCreateModal(false);
+            fetchCompanies();
           }}
         />
       )}
     </div>
-  )
+  );
 }
 
-function CreateCompanyModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: () => void
+function CreateCompanyModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    name: '',
-    website: '',
-    industry: '',
-    size: '',
-    location: '',
-    description: ''
-  })
-  const [loading, setLoading] = useState(false)
+    name: "",
+    website: "",
+    industry: "",
+    size: "",
+    location: "",
+    description: "",
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      await companyService.create(formData)
-      onSuccess()
+      await companyService.create(formData);
+      onSuccess();
     } catch (error) {
-      console.error('Erreur création:', error)
-      alert('Erreur lors de la création')
+      console.error("Erreur création:", error);
+      alert("Erreur lors de la création");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
@@ -327,7 +340,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -340,7 +355,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="url"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -351,7 +368,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, industry: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -364,7 +383,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, size: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Sélectionner...</option>
@@ -383,7 +404,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -396,7 +419,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
             <textarea
               rows={4}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -414,11 +439,11 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...' : 'Créer'}
+              {loading ? "Création..." : "Créer"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }

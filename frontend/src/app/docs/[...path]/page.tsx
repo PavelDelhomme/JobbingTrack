@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useState, type ComponentProps } from 'react';
-import { useParams } from 'next/navigation';
-import { AdminLayout } from '@/components/features';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState, type ComponentProps } from "react";
+import { useParams } from "next/navigation";
+import { AdminLayout } from "@/components/features";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { ArrowLeft, Download, ExternalLink } from '@/lib/icons';
-import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { ArrowLeft, Download, ExternalLink } from "@/lib/icons";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function DocsPage() {
   const params = useParams();
-  const filePath = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
-  const [content, setContent] = useState<string>('');
+  const filePath = Array.isArray(params.path)
+    ? params.path.join("/")
+    : params.path || "";
+  const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,12 +25,12 @@ export default function DocsPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(`/api/docs/${filePath}.md`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
-            setError('Fichier non trouvé');
+            setError("Fichier non trouvé");
           } else {
             setError(`Erreur ${response.status}: ${response.statusText}`);
           }
@@ -50,11 +52,11 @@ export default function DocsPage() {
   }, [filePath]);
 
   const downloadMarkdown = () => {
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${filePath.split('/').pop() || 'document'}.md`;
+    a.download = `${filePath.split("/").pop() || "document"}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -80,11 +82,7 @@ export default function DocsPage() {
           </div>
           {content && (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadMarkdown}
-              >
+              <Button variant="outline" size="sm" onClick={downloadMarkdown}>
                 <Download className="h-4 w-4 mr-2" />
                 Télécharger
               </Button>
@@ -108,14 +106,18 @@ export default function DocsPage() {
             {loading && (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Chargement de la documentation...</p>
+                <p className="text-gray-600">
+                  Chargement de la documentation...
+                </p>
               </div>
             )}
 
             {error && (
               <div className="text-center py-12">
                 <div className="text-red-600 text-xl mb-2">❌ {error}</div>
-                <p className="text-gray-600">Le fichier demandé n'a pas pu être chargé.</p>
+                <p className="text-gray-600">
+                  Le fichier demandé n'a pas pu être chargé.
+                </p>
               </div>
             )}
 
@@ -124,19 +126,40 @@ export default function DocsPage() {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    h1: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h1'>) => (
-                      <h1 className="text-4xl font-bold mb-4 mt-8 border-b-2 border-blue-500 pb-2" {...props} />
+                    h1: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"h1">) => (
+                      <h1
+                        className="text-4xl font-bold mb-4 mt-8 border-b-2 border-blue-500 pb-2"
+                        {...props}
+                      />
                     ),
-                    h2: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h2'>) => (
-                      <h2 className="text-3xl font-semibold mb-3 mt-6 border-b border-gray-300 dark:border-gray-700 pb-2" {...props} />
+                    h2: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"h2">) => (
+                      <h2
+                        className="text-3xl font-semibold mb-3 mt-6 border-b border-gray-300 dark:border-gray-700 pb-2"
+                        {...props}
+                      />
                     ),
-                    h3: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'h3'>) => (
-                      <h3 className="text-2xl font-semibold mb-2 mt-4" {...props} />
+                    h3: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"h3">) => (
+                      <h3
+                        className="text-2xl font-semibold mb-2 mt-4"
+                        {...props}
+                      />
                     ),
                     code: ({ node, className, children, ...props }: any) => {
                       const isInline = !className;
                       return isInline ? (
-                        <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                        <code
+                          className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono"
+                          {...props}
+                        >
                           {children}
                         </code>
                       ) : (
@@ -145,22 +168,52 @@ export default function DocsPage() {
                         </code>
                       );
                     },
-                    pre: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'pre'>) => (
-                      <pre className="bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4" {...props} />
+                    pre: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"pre">) => (
+                      <pre
+                        className="bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4"
+                        {...props}
+                      />
                     ),
-                    a: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'a'>) => (
-                      <a className="text-blue-600 dark:text-blue-400 hover:underline" {...props} />
+                    a: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"a">) => (
+                      <a
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        {...props}
+                      />
                     ),
-                    table: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'table'>) => (
+                    table: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"table">) => (
                       <div className="overflow-x-auto my-4">
-                        <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-700" {...props} />
+                        <table
+                          className="min-w-full border-collapse border border-gray-300 dark:border-gray-700"
+                          {...props}
+                        />
                       </div>
                     ),
-                    th: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'th'>) => (
-                      <th className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold" {...props} />
+                    th: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"th">) => (
+                      <th
+                        className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold"
+                        {...props}
+                      />
                     ),
-                    td: ({ node: _node, ...props }: { node?: unknown } & ComponentProps<'td'>) => (
-                      <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" {...props} />
+                    td: ({
+                      node: _node,
+                      ...props
+                    }: { node?: unknown } & ComponentProps<"td">) => (
+                      <td
+                        className="border border-gray-300 dark:border-gray-700 px-4 py-2"
+                        {...props}
+                      />
                     ),
                   }}
                 >
@@ -174,4 +227,3 @@ export default function DocsPage() {
     </AdminLayout>
   );
 }
-

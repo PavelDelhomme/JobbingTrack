@@ -1,26 +1,36 @@
-'use client';
+"use client";
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FRONTEND_URLS } from '@/config/ports.config';
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-  
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
-  const [resendEmail, setResendEmail] = useState('');
+  const token = searchParams.get("token");
+
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading",
+  );
+  const [message, setMessage] = useState("");
+  const [resendEmail, setResendEmail] = useState("");
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
     if (!token) {
-      setStatus('error');
-      setMessage('Token de vérification manquant. Veuillez vérifier le lien reçu par email.');
+      setStatus("error");
+      setMessage(
+        "Token de vérification manquant. Veuillez vérifier le lien reçu par email.",
+      );
       return;
     }
 
@@ -29,66 +39,73 @@ function VerifyEmailContent() {
 
   const verifyEmail = async (verificationToken: string) => {
     try {
-      setStatus('loading');
-      
+      setStatus("loading");
+
       const apiBase = FRONTEND_URLS.api;
-      const response = await fetch(`${apiBase}/api/v1/auth/verify-email/${verificationToken}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        `${apiBase}/api/v1/auth/verify-email/${verificationToken}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setStatus('success');
-        setMessage(data.message || 'Votre adresse email a été vérifiée avec succès !');
-        
+        setStatus("success");
+        setMessage(
+          data.message || "Votre adresse email a été vérifiée avec succès !",
+        );
+
         // Rediriger vers la page de connexion après 3 secondes
         setTimeout(() => {
-          router.push('/login?verified=true');
+          router.push("/login?verified=true");
         }, 3000);
       } else {
-        setStatus('error');
-        setMessage(data.error || 'Erreur lors de la vérification de votre email.');
+        setStatus("error");
+        setMessage(
+          data.error || "Erreur lors de la vérification de votre email.",
+        );
       }
     } catch (error) {
-      console.error('Erreur vérification email:', error);
-      setStatus('error');
-      setMessage('Une erreur inattendue s\'est produite. Veuillez réessayer.');
+      console.error("Erreur vérification email:", error);
+      setStatus("error");
+      setMessage("Une erreur inattendue s'est produite. Veuillez réessayer.");
     }
   };
 
   const handleResendVerification = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!resendEmail) {
       return;
     }
 
     try {
       setResending(true);
-      
-      const response = await fetch('/api/v1/auth/resend-verification', {
-        method: 'POST',
+
+      const response = await fetch("/api/v1/auth/resend-verification", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email: resendEmail })
+        body: JSON.stringify({ email: resendEmail }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert(data.message || 'Email de vérification renvoyé avec succès !');
-        setResendEmail('');
+        alert(data.message || "Email de vérification renvoyé avec succès !");
+        setResendEmail("");
       } else {
-        alert(data.error || 'Erreur lors du renvoi de l\'email.');
+        alert(data.error || "Erreur lors du renvoi de l'email.");
       }
     } catch (error) {
-      console.error('Erreur renvoi email:', error);
-      alert('Une erreur inattendue s\'est produite.');
+      console.error("Erreur renvoi email:", error);
+      alert("Une erreur inattendue s'est produite.");
     } finally {
       setResending(false);
     }
@@ -99,57 +116,57 @@ function VerifyEmailContent() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            {status === 'loading' && (
+            {status === "loading" && (
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
             )}
-            {status === 'success' && (
+            {status === "success" && (
               <CheckCircle className="w-16 h-16 text-green-600" />
             )}
-            {status === 'error' && (
+            {status === "error" && (
               <XCircle className="w-16 h-16 text-red-600" />
             )}
           </div>
-          
+
           <CardTitle className="text-2xl">
-            {status === 'loading' && 'Vérification en cours...'}
-            {status === 'success' && '✅ Email Vérifié !'}
-            {status === 'error' && '❌ Échec de la Vérification'}
+            {status === "loading" && "Vérification en cours..."}
+            {status === "success" && "✅ Email Vérifié !"}
+            {status === "error" && "❌ Échec de la Vérification"}
           </CardTitle>
-          
-          <CardDescription className="mt-2">
-            {message}
-          </CardDescription>
+
+          <CardDescription className="mt-2">{message}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {status === 'success' && (
+          {status === "success" && (
             <div className="text-center space-y-3">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Redirection automatique vers la page de connexion dans quelques secondes...
+                Redirection automatique vers la page de connexion dans quelques
+                secondes...
               </p>
-              <Button
-                onClick={() => router.push('/login')}
-                className="w-full"
-              >
+              <Button onClick={() => router.push("/login")} className="w-full">
                 Se connecter maintenant
               </Button>
             </div>
           )}
 
-          {status === 'error' && (
+          {status === "error" && (
             <div className="space-y-4">
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
                   Token expiré ou invalide ?
                 </h4>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  Si votre lien de vérification a expiré, vous pouvez demander un nouveau lien ci-dessous.
+                  Si votre lien de vérification a expiré, vous pouvez demander
+                  un nouveau lien ci-dessous.
                 </p>
               </div>
 
               <form onSubmit={handleResendVerification} className="space-y-3">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Renvoyer l'email de vérification
                   </label>
                   <input
@@ -162,12 +179,8 @@ function VerifyEmailContent() {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                   />
                 </div>
-                
-                <Button
-                  type="submit"
-                  disabled={resending}
-                  className="w-full"
-                >
+
+                <Button type="submit" disabled={resending} className="w-full">
                   {resending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -185,7 +198,7 @@ function VerifyEmailContent() {
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
                   variant="outline"
-                  onClick={() => router.push('/login')}
+                  onClick={() => router.push("/login")}
                   className="w-full"
                 >
                   Retour à la connexion
@@ -194,10 +207,11 @@ function VerifyEmailContent() {
             </div>
           )}
 
-          {status === 'loading' && (
+          {status === "loading" && (
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Veuillez patienter pendant que nous vérifions votre adresse email...
+                Veuillez patienter pendant que nous vérifions votre adresse
+                email...
               </p>
             </div>
           )}
@@ -215,9 +229,12 @@ export default function VerifyEmailPage() {
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-              <CardTitle className="text-2xl">Vérification en cours...</CardTitle>
+              <CardTitle className="text-2xl">
+                Vérification en cours...
+              </CardTitle>
               <CardDescription className="mt-2">
-                Veuillez patienter pendant que nous vérifions votre adresse email...
+                Veuillez patienter pendant que nous vérifions votre adresse
+                email...
               </CardDescription>
             </CardHeader>
           </Card>
@@ -228,4 +245,3 @@ export default function VerifyEmailPage() {
     </Suspense>
   );
 }
-

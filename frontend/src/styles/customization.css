@@ -2,15 +2,15 @@
 
 /* Variables CSS personnalisées pour les couleurs */
 :root {
-  --primary-color: #3B82F6;
-  --accent-color: #10B981;
+  --primary-color: #3b82f6;
+  --accent-color: #10b981;
   --animation-duration: 150ms;
 }
 
 /* Thème haute contraste */
 .high-contrast {
-  --primary-color: #0000FF;
-  --accent-color: #FF0000;
+  --primary-color: #0000ff;
+  --accent-color: #ff0000;
 }
 
 .high-contrast * {
@@ -241,7 +241,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -270,7 +271,8 @@
 }
 
 @keyframes wiggle {
-  0%, 7% {
+  0%,
+  7% {
     transform: rotateZ(0);
   }
   15% {
@@ -288,7 +290,8 @@
   35% {
     transform: rotateZ(-4deg);
   }
-  40%, 100% {
+  40%,
+  100% {
     transform: rotateZ(0);
   }
 }
@@ -349,7 +352,9 @@
 .page-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .page-exit {
@@ -360,7 +365,9 @@
 .page-exit-active {
   opacity: 0;
   transform: translateY(-20px);
-  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+  transition:
+    opacity 0.2s ease-in,
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* Animations de modales */
@@ -390,7 +397,9 @@
 .modal-content-enter-active {
   opacity: 1;
   transform: scale(1) translateY(0);
-  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-content-exit {
@@ -401,7 +410,9 @@
 .modal-content-exit-active {
   opacity: 0;
   transform: scale(0.95) translateY(-10px);
-  transition: opacity 0.15s ease-in, transform 0.15s cubic-bezier(0.4, 0, 1, 1);
+  transition:
+    opacity 0.15s ease-in,
+    transform 0.15s cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* Animations de cartes et éléments */
@@ -413,7 +424,9 @@
 .card-enter-active {
   opacity: 1;
   transform: scale(1) translateY(0);
-  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stagger-enter {
@@ -424,7 +437,9 @@
 .stagger-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Animations de liste */
@@ -436,7 +451,9 @@
 .list-item-enter-active {
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .list-item-exit {
@@ -447,7 +464,9 @@
 .list-item-exit-active {
   opacity: 0;
   transform: translateX(100%);
-  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+  transition:
+    opacity 0.2s ease-in,
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* Animations de chargement */
@@ -489,18 +508,30 @@
 }
 
 @keyframes loading-dots1 {
-  0% { transform: scale(0); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes loading-dots3 {
-  0% { transform: scale(1); }
-  100% { transform: scale(0); }
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
 }
 
 @keyframes loading-dots2 {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(24px, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
+  }
 }
 
 /* Animations de skeleton loading */
@@ -521,11 +552,12 @@
 
 /* Transitions fluides pour les thèmes */
 .theme-transition {
-  transition: background-color 0.3s ease,
-              border-color 0.3s ease,
-              color 0.3s ease,
-              fill 0.3s ease,
-              stroke 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease,
+    stroke 0.3s ease;
 }
 
 /* Animations pour les notifications */
@@ -537,7 +569,9 @@
 .notification-enter-active {
   opacity: 1;
   transform: translateX(0) scale(1);
-  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .notification-exit {
@@ -548,7 +582,9 @@
 .notification-exit-active {
   opacity: 0;
   transform: translateX(100%) scale(0.95);
-  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+  transition:
+    opacity 0.2s ease-in,
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* Animations pour les graphiques */
@@ -560,7 +596,9 @@
 .chart-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Animations pour les formulaires */
@@ -572,7 +610,9 @@
 .form-field-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Transitions pour les onglets */
@@ -584,7 +624,9 @@
 .tab-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Animations de succès/échec */
@@ -615,7 +657,9 @@
 .metric-enter-active {
   opacity: 1;
   transform: scale(1);
-  transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .metric-update {
@@ -740,8 +784,8 @@
 /* Variables CSS personnalisées étendues */
 :root {
   /* Couleurs par défaut */
-  --primary-color: #3B82F6;
-  --accent-color: #10B981;
+  --primary-color: #3b82f6;
+  --accent-color: #10b981;
   --animation-duration: 150ms;
   --items-per-page: 20;
   --cache-duration: 7d;
@@ -834,7 +878,7 @@
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #F59E0B;
+  background: #f59e0b;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
@@ -844,8 +888,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Dispositions du tableau de bord */
@@ -960,8 +1009,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
@@ -1002,11 +1055,12 @@
 
 /* Transitions fluides */
 * {
-  transition: background-color var(--animation-duration) ease,
-              border-color var(--animation-duration) ease,
-              color var(--animation-duration) ease,
-              opacity var(--animation-duration) ease,
-              transform var(--animation-duration) ease;
+  transition:
+    background-color var(--animation-duration) ease,
+    border-color var(--animation-duration) ease,
+    color var(--animation-duration) ease,
+    opacity var(--animation-duration) ease,
+    transform var(--animation-duration) ease;
 }
 
 /* États hover améliorés */
@@ -1084,10 +1138,10 @@
   --primary-300: rgba(59, 130, 246, 0.3);
   --primary-400: rgba(59, 130, 246, 0.4);
   --primary-500: var(--primary-color);
-  --primary-600: #2563EB;
-  --primary-700: #1D4ED8;
-  --primary-800: #1E40AF;
-  --primary-900: #1E3A8A;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
 
   --accent-50: rgba(16, 185, 129, 0.05);
   --accent-100: rgba(16, 185, 129, 0.1);
@@ -1097,8 +1151,8 @@
   --accent-500: var(--accent-color);
   --accent-600: #059669;
   --accent-700: #047857;
-  --accent-800: #065F46;
-  --accent-900: #064E3B;
+  --accent-800: #065f46;
+  --accent-900: #064e3b;
 }
 
 /* Préchargement des styles */

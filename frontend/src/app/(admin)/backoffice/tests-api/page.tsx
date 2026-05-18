@@ -1,230 +1,286 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { 
-  Play, Square, Loader2, CheckCircle, XCircle, 
-  Server, Activity, Clock, Zap, RefreshCw, CheckCircle2, FileText
-} from '@/lib/icons'
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import {
+  Play,
+  Square,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Server,
+  Activity,
+  Clock,
+  Zap,
+  RefreshCw,
+  CheckCircle2,
+  FileText,
+} from "@/lib/icons";
 
 interface TestItem {
-  id: string
-  name: string
-  description: string
-  category: string
-  enabled: boolean
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  enabled: boolean;
 }
 
 interface TestStatus {
-  name: string
-  status: 'pending' | 'running' | 'completed' | 'error'
-  progress: number
+  name: string;
+  status: "pending" | "running" | "completed" | "error";
+  progress: number;
 }
 
 export default function APITestsPage() {
-  const { user, loading: authLoading, isAuthenticated, token } = useAuth()
-  const [isRunning, setIsRunning] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [logs, setLogs] = useState<string[]>([])
-  const [testStatuses, setTestStatuses] = useState<TestStatus[]>([])
-  const [currentTest, setCurrentTest] = useState<string>('')
-  const [lastReportId, setLastReportId] = useState<string | null>(null)
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const logsEndRef = useRef<HTMLDivElement>(null)
+  const { user, loading: authLoading, isAuthenticated, token } = useAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [testStatuses, setTestStatuses] = useState<TestStatus[]>([]);
+  const [currentTest, setCurrentTest] = useState<string>("");
+  const [lastReportId, setLastReportId] = useState<string | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Liste des tests disponibles avec leurs descriptions
   const [availableTests, setAvailableTests] = useState<TestItem[]>([
     {
-      id: 'health',
-      name: 'Health Check',
-      description: 'Vérification de la santé de l\'API Gateway et tous les services',
-      category: 'Infrastructure',
-      enabled: true
+      id: "health",
+      name: "Health Check",
+      description:
+        "Vérification de la santé de l'API Gateway et tous les services",
+      category: "Infrastructure",
+      enabled: true,
     },
     {
-      id: 'services',
-      name: 'Services Backend',
-      description: 'Test de disponibilité des services (API Gateway, Auth, Company, Application)',
-      category: 'Infrastructure',
-      enabled: true
+      id: "services",
+      name: "Services Backend",
+      description:
+        "Test de disponibilité des services (API Gateway, Auth, Company, Application)",
+      category: "Infrastructure",
+      enabled: true,
     },
     {
-      id: 'auth',
-      name: 'Authentification',
-      description: 'Test de l\'endpoint de connexion et génération de tokens',
-      category: 'Sécurité',
-      enabled: true
+      id: "auth",
+      name: "Authentification",
+      description: "Test de l'endpoint de connexion et génération de tokens",
+      category: "Sécurité",
+      enabled: true,
     },
     {
-      id: 'users',
-      name: 'Endpoints Utilisateurs',
-      description: 'Test des endpoints GET/PUT /api/users et /api/users/profile',
-      category: 'Données',
-      enabled: true
+      id: "users",
+      name: "Endpoints Utilisateurs",
+      description:
+        "Test des endpoints GET/PUT /api/users et /api/users/profile",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'companies',
-      name: 'Endpoints Entreprises',
-      description: 'Test des endpoints CRUD pour les entreprises (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "companies",
+      name: "Endpoints Entreprises",
+      description:
+        "Test des endpoints CRUD pour les entreprises (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'applications',
-      name: 'Endpoints Candidatures',
-      description: 'Test des endpoints CRUD pour les candidatures (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "applications",
+      name: "Endpoints Candidatures",
+      description:
+        "Test des endpoints CRUD pour les candidatures (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'contacts',
-      name: 'Endpoints Contacts',
-      description: 'Test des endpoints CRUD pour les contacts (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "contacts",
+      name: "Endpoints Contacts",
+      description:
+        "Test des endpoints CRUD pour les contacts (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'interviews',
-      name: 'Endpoints Entretiens',
-      description: 'Test des endpoints CRUD pour les entretiens (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "interviews",
+      name: "Endpoints Entretiens",
+      description:
+        "Test des endpoints CRUD pour les entretiens (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'calls',
-      name: 'Endpoints Appels',
-      description: 'Test des endpoints CRUD pour les appels (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "calls",
+      name: "Endpoints Appels",
+      description:
+        "Test des endpoints CRUD pour les appels (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'events',
-      name: 'Endpoints Événements',
-      description: 'Test des endpoints CRUD pour les événements (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "events",
+      name: "Endpoints Événements",
+      description:
+        "Test des endpoints CRUD pour les événements (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'followups',
-      name: 'Endpoints Relances',
-      description: 'Test des endpoints CRUD pour les relances (GET, POST, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "followups",
+      name: "Endpoints Relances",
+      description:
+        "Test des endpoints CRUD pour les relances (GET, POST, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'profiles',
-      name: 'Endpoints Profils',
-      description: 'Test des endpoints pour les profils utilisateurs (GET, PUT)',
-      category: 'Données',
-      enabled: true
+      id: "profiles",
+      name: "Endpoints Profils",
+      description:
+        "Test des endpoints pour les profils utilisateurs (GET, PUT)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'notifications',
-      name: 'Endpoints Notifications',
-      description: 'Test des endpoints pour les notifications (GET, PUT, DELETE)',
-      category: 'Données',
-      enabled: true
+      id: "notifications",
+      name: "Endpoints Notifications",
+      description:
+        "Test des endpoints pour les notifications (GET, PUT, DELETE)",
+      category: "Données",
+      enabled: true,
     },
     {
-      id: 'metrics',
-      name: 'Métriques',
-      description: 'Test de récupération des métriques système',
-      category: 'Monitoring',
-      enabled: true
-    }
-  ])
+      id: "metrics",
+      name: "Métriques",
+      description: "Test de récupération des métriques système",
+      category: "Monitoring",
+      enabled: true,
+    },
+  ]);
 
   useEffect(() => {
     if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs])
+  }, [logs]);
 
   const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString('fr-FR')
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-  }
+    const timestamp = new Date().toLocaleTimeString("fr-FR");
+    setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   const toggleTest = (testId: string) => {
-    setAvailableTests(prev => prev.map(test => 
-      test.id === testId ? { ...test, enabled: !test.enabled } : test
-    ))
-  }
+    setAvailableTests((prev) =>
+      prev.map((test) =>
+        test.id === testId ? { ...test, enabled: !test.enabled } : test,
+      ),
+    );
+  };
 
   const startAPITests = async () => {
-    if (isRunning) return
+    if (isRunning) return;
 
-    const selectedTests = availableTests.filter(t => t.enabled)
+    const selectedTests = availableTests.filter((t) => t.enabled);
     if (selectedTests.length === 0) {
-      alert('Veuillez sélectionner au moins un test à exécuter')
-      return
+      alert("Veuillez sélectionner au moins un test à exécuter");
+      return;
     }
 
-    setIsRunning(true)
-    setProgress(0)
-    setLogs([])
-    setCurrentTest('Exécution en cours...')
-    setLastReportId(null)
-    setTestStatuses(selectedTests.map(test => ({ name: test.name, status: 'pending', progress: 0 })))
+    setIsRunning(true);
+    setProgress(0);
+    setLogs([]);
+    setCurrentTest("Exécution en cours...");
+    setLastReportId(null);
+    setTestStatuses(
+      selectedTests.map((test) => ({
+        name: test.name,
+        status: "pending",
+        progress: 0,
+      })),
+    );
 
-    addLog('🚀 Lancement des tests API...')
-    addLog(`📋 ${selectedTests.length} test(s) sélectionné(s)`)
+    addLog("🚀 Lancement des tests API...");
+    addLog(`📋 ${selectedTests.length} test(s) sélectionné(s)`);
 
     try {
-      const response = await fetch('/api/test/run-api', {
-        method: 'POST',
+      const response = await fetch("/api/test/run-api", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ tests: selectedTests.map(t => t.id) }),
-      })
+        body: JSON.stringify({ tests: selectedTests.map((t) => t.id) }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        addLog(`❌ Erreur: ${data.error || response.statusText}`)
-        if (data.reportId) setLastReportId(data.reportId)
+        addLog(`❌ Erreur: ${data.error || response.statusText}`);
+        if (data.reportId) setLastReportId(data.reportId);
         if (data.summary) {
-          const s = data.summary as { total: number; passed: number; failed: number; skipped?: number }
-          addLog(`📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Voir le rapport ci‑dessous.` : ''}`)
+          const s = data.summary as {
+            total: number;
+            passed: number;
+            failed: number;
+            skipped?: number;
+          };
+          addLog(
+            `📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Voir le rapport ci‑dessous.` : ""}`,
+          );
         }
-        setTestStatuses(prev => prev.map(t => ({ ...t, status: 'error', progress: 0 })))
-        setIsRunning(false)
-        setCurrentTest('')
-        return
+        setTestStatuses((prev) =>
+          prev.map((t) => ({ ...t, status: "error", progress: 0 })),
+        );
+        setIsRunning(false);
+        setCurrentTest("");
+        return;
       }
 
-      setProgress(100)
-      setTestStatuses(prev => prev.map(t => ({ ...t, status: data.success === false ? 'completed' : 'completed', progress: 100 })))
-      setCurrentTest('')
+      setProgress(100);
+      setTestStatuses((prev) =>
+        prev.map((t) => ({
+          ...t,
+          status: data.success === false ? "completed" : "completed",
+          progress: 100,
+        })),
+      );
+      setCurrentTest("");
       if (data.success === false) {
-        addLog(`⚠️ ${data.error || 'Des tests ont échoué.'}`)
+        addLog(`⚠️ ${data.error || "Des tests ont échoué."}`);
       } else {
-        addLog(`✅ ${data.message || 'Rapport généré.'}`)
+        addLog(`✅ ${data.message || "Rapport généré."}`);
       }
       if (data.summary) {
-        const s = data.summary as { total: number; passed: number; failed: number; skipped?: number }
-        addLog(`📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Consultez le rapport pour le détail.` : ' — Tout OK.'}`)
+        const s = data.summary as {
+          total: number;
+          passed: number;
+          failed: number;
+          skipped?: number;
+        };
+        addLog(
+          `📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Consultez le rapport pour le détail.` : " — Tout OK."}`,
+        );
       }
       if (data.reportId) {
-        setLastReportId(data.reportId)
-        addLog('📄 Voir le rapport ci‑dessous.')
+        setLastReportId(data.reportId);
+        addLog("📄 Voir le rapport ci‑dessous.");
       } else {
-        addLog('📄 Consultez « Rapports de Tests » pour le rapport.')
+        addLog("📄 Consultez « Rapports de Tests » pour le rapport.");
       }
     } catch (error: unknown) {
-      addLog(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur réseau'}`)
-      setTestStatuses(prev => prev.map(t => ({ ...t, status: 'error', progress: 0 })))
+      addLog(
+        `❌ Erreur: ${error instanceof Error ? error.message : "Erreur réseau"}`,
+      );
+      setTestStatuses((prev) =>
+        prev.map((t) => ({ ...t, status: "error", progress: 0 })),
+      );
     } finally {
-      setIsRunning(false)
-      setCurrentTest('')
+      setIsRunning(false);
+      setCurrentTest("");
     }
-  }
+  };
 
-  const categories = Array.from(new Set(availableTests.map(t => t.category)))
+  const categories = Array.from(new Set(availableTests.map((t) => t.category)));
 
   if (authLoading) {
     return (
@@ -235,7 +291,7 @@ export default function APITestsPage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (!isAuthenticated) {
@@ -243,11 +299,13 @@ export default function APITestsPage() {
       <AdminLayout>
         <div className="p-6">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">Vous devez être connecté.</p>
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Vous devez être connecté.
+            </p>
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -268,8 +326,8 @@ export default function APITestsPage() {
             disabled={!token || isRunning}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               isRunning
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-blue-600 text-white hover:bg-blue-700"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isRunning ? (
@@ -290,12 +348,17 @@ export default function APITestsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Tests Disponibles ({availableTests.filter(t => t.enabled).length} sélectionné(s))
+              Tests Disponibles (
+              {availableTests.filter((t) => t.enabled).length} sélectionné(s))
             </h2>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setAvailableTests(prev => prev.map(t => ({ ...t, enabled: true })))}
+                onClick={() =>
+                  setAvailableTests((prev) =>
+                    prev.map((t) => ({ ...t, enabled: true })),
+                  )
+                }
                 disabled={isRunning}
                 className="text-sm px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
               >
@@ -303,7 +366,11 @@ export default function APITestsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setAvailableTests(prev => prev.map(t => ({ ...t, enabled: false })))}
+                onClick={() =>
+                  setAvailableTests((prev) =>
+                    prev.map((t) => ({ ...t, enabled: false })),
+                  )
+                }
                 disabled={isRunning}
                 className="text-sm px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
               >
@@ -311,34 +378,36 @@ export default function APITestsPage() {
               </button>
             </div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Cliquez sur une carte pour l&apos;activer ou la désactiver.</p>
-          
-          {categories.map(category => (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Cliquez sur une carte pour l&apos;activer ou la désactiver.
+          </p>
+
+          {categories.map((category) => (
             <div key={category} className="mb-6 last:mb-0">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase">
                 {category}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {availableTests
-                  .filter(test => test.category === category)
-                  .map(test => (
+                  .filter((test) => test.category === category)
+                  .map((test) => (
                     <div
                       key={test.id}
                       className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         test.enabled
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
                       }`}
                       onClick={() => !isRunning && toggleTest(test.id)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle2 
+                            <CheckCircle2
                               className={`w-5 h-5 ${
-                                test.enabled 
-                                  ? 'text-blue-600 dark:text-blue-400' 
-                                  : 'text-gray-400'
+                                test.enabled
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : "text-gray-400"
                               }`}
                             />
                             <h4 className="font-semibold text-gray-900 dark:text-white">
@@ -362,9 +431,11 @@ export default function APITestsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {currentTest || 'Préparation...'}
+                {currentTest || "Préparation..."}
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">{Math.round(progress)}%</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {Math.round(progress)}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
@@ -372,20 +443,35 @@ export default function APITestsPage() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            
+
             {/* Statuts des tests */}
             {testStatuses.length > 0 && (
               <div className="mt-4 space-y-2">
                 {testStatuses.map((test, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm">
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <div className="flex items-center gap-2">
-                      {test.status === 'completed' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                      {test.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
-                      {test.status === 'error' && <XCircle className="w-4 h-4 text-red-500" />}
-                      {test.status === 'pending' && <Clock className="w-4 h-4 text-gray-400" />}
-                      <span className="text-gray-700 dark:text-gray-300">{test.name}</span>
+                      {test.status === "completed" && (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      )}
+                      {test.status === "running" && (
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                      )}
+                      {test.status === "error" && (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      )}
+                      {test.status === "pending" && (
+                        <Clock className="w-4 h-4 text-gray-400" />
+                      )}
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {test.name}
+                      </span>
                     </div>
-                    <span className="text-gray-500 dark:text-gray-400">{test.progress}%</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {test.progress}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -400,8 +486,8 @@ export default function APITestsPage() {
               <span className="text-gray-400">Terminal</span>
               <button
                 onClick={() => {
-                  setLogs([])
-                  setProgress(0)
+                  setLogs([]);
+                  setProgress(0);
                 }}
                 className="text-gray-400 hover:text-white"
               >
@@ -443,5 +529,5 @@ export default function APITestsPage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }

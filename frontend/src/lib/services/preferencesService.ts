@@ -1,6 +1,6 @@
-import axios from 'axios';
-import { FRONTEND_URLS } from '@/config/ports.config';
-import { buildApiUrl, isOptionalEndpoint } from '@/config/api.config';
+import axios from "axios";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import { buildApiUrl, isOptionalEndpoint } from "@/config/api.config";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -56,15 +56,15 @@ class PreferencesService {
     try {
       // Vérifier le cache
       const now = Date.now();
-      if (this.cache && (now - this.cacheTimestamp) < this.cacheDuration) {
+      if (this.cache && now - this.cacheTimestamp < this.cacheDuration) {
         return this.cache;
       }
 
       const token = this.getToken();
-      const response = await axios.get(buildApiUrl('preferences'), {
+      const response = await axios.get(buildApiUrl("preferences"), {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.success) {
@@ -77,8 +77,11 @@ class PreferencesService {
       return this.getDefaultPreferences();
     } catch (error: any) {
       // Ne logger que les erreurs autres que 404 (endpoint optionnel)
-      if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
-        console.warn('⚠️ Erreur récupération préférences:', error.message);
+      if (
+        error?.response?.status !== 404 &&
+        error?.code !== "ERR_BAD_REQUEST"
+      ) {
+        console.warn("⚠️ Erreur récupération préférences:", error.message);
       }
       // Retourner les préférences par défaut en cas d'erreur
       return this.getDefaultPreferences();
@@ -88,7 +91,9 @@ class PreferencesService {
   /**
    * Mettre à jour les préférences de l'utilisateur
    */
-  async updateUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences> {
+  async updateUserPreferences(
+    preferences: Partial<UserPreferences>,
+  ): Promise<UserPreferences> {
     try {
       const token = this.getToken();
       const response = await axios.put(
@@ -97,25 +102,28 @@ class PreferencesService {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data.success) {
         // Mettre à jour le cache
         this.cache = response.data.preferences;
         this.cacheTimestamp = Date.now();
-        
+
         // Stocker aussi en localStorage pour persistance immédiate
-        localStorage.setItem('userPreferences', JSON.stringify(response.data.preferences));
-        
+        localStorage.setItem(
+          "userPreferences",
+          JSON.stringify(response.data.preferences),
+        );
+
         return response.data.preferences;
       }
 
-      throw new Error('Échec de la mise à jour des préférences');
+      throw new Error("Échec de la mise à jour des préférences");
     } catch (error) {
-      console.error('Erreur lors de la mise à jour des préférences:', error);
+      console.error("Erreur lors de la mise à jour des préférences:", error);
       throw error;
     }
   }
@@ -131,25 +139,28 @@ class PreferencesService {
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.data.success) {
         // Mettre à jour le cache
         this.cache = response.data.preferences;
         this.cacheTimestamp = Date.now();
-        
+
         // Nettoyer le localStorage
-        localStorage.removeItem('userPreferences');
-        
+        localStorage.removeItem("userPreferences");
+
         return response.data.preferences;
       }
 
-      throw new Error('Échec de la réinitialisation des préférences');
+      throw new Error("Échec de la réinitialisation des préférences");
     } catch (error) {
-      console.error('Erreur lors de la réinitialisation des préférences:', error);
+      console.error(
+        "Erreur lors de la réinitialisation des préférences:",
+        error,
+      );
       throw error;
     }
   }
@@ -159,13 +170,19 @@ class PreferencesService {
    */
   async getRefreshInterval(key: keyof RefreshIntervals): Promise<number> {
     const preferences = await this.getUserPreferences();
-    return preferences.refreshInterval[key] || this.getDefaultPreferences().refreshInterval[key];
+    return (
+      preferences.refreshInterval[key] ||
+      this.getDefaultPreferences().refreshInterval[key]
+    );
   }
 
   /**
    * Mettre à jour un intervalle de rafraîchissement spécifique
    */
-  async updateRefreshInterval(key: keyof RefreshIntervals, value: number): Promise<void> {
+  async updateRefreshInterval(
+    key: keyof RefreshIntervals,
+    value: number,
+  ): Promise<void> {
     const preferences = await this.getUserPreferences();
     preferences.refreshInterval[key] = value;
     await this.updateUserPreferences(preferences);
@@ -176,12 +193,15 @@ class PreferencesService {
    */
   getLocalPreferences(): UserPreferences | null {
     try {
-      const stored = localStorage.getItem('userPreferences');
+      const stored = localStorage.getItem("userPreferences");
       if (stored) {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.error('Erreur lors de la lecture des préférences locales:', error);
+      console.error(
+        "Erreur lors de la lecture des préférences locales:",
+        error,
+      );
     }
     return null;
   }
@@ -192,19 +212,19 @@ class PreferencesService {
   private getDefaultPreferences(): UserPreferences {
     return {
       refreshInterval: {
-        logs: 30000,        // 30 secondes (logs de sécurité)
-        analytics: 30000,   // 30 secondes (analytics)
-        metrics: 30000,     // 30 secondes (métriques système/projet)
-        dashboard: 30000,   // 30 secondes (dashboard principal)
-        services: 60000,    // 60 secondes (liste des services)
-        notifications: 60000 // 60 secondes (notifications)
+        logs: 30000, // 30 secondes (logs de sécurité)
+        analytics: 30000, // 30 secondes (analytics)
+        metrics: 30000, // 30 secondes (métriques système/projet)
+        dashboard: 30000, // 30 secondes (dashboard principal)
+        services: 60000, // 60 secondes (liste des services)
+        notifications: 60000, // 60 secondes (notifications)
       },
       display: {
         itemsPerPage: 20,
         compactMode: false,
         showCharts: true,
         showMetrics: true,
-        detailedMetrics: false
+        detailedMetrics: false,
       },
       notifications: {
         desktop: true,
@@ -214,14 +234,14 @@ class PreferencesService {
         interviewReminders: true,
         followupReminders: true,
         deadlineAlerts: true,
-        systemAlerts: true
+        systemAlerts: true,
       },
-      theme: 'light',
-      language: 'fr',
-      timezone: 'Europe/Paris',
+      theme: "light",
+      language: "fr",
+      timezone: "Europe/Paris",
       metricsRetentionDays: 30,
       logsRetentionDays: 30,
-      autoCleanupHistory: true
+      autoCleanupHistory: true,
     };
   }
 
@@ -229,10 +249,10 @@ class PreferencesService {
    * Récupérer le token d'authentification
    */
   private getToken(): string {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('token') || '';
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token") || "";
     }
-    return '';
+    return "";
   }
 
   /**
@@ -241,27 +261,24 @@ class PreferencesService {
   async exportPreferences(): Promise<void> {
     try {
       const token = this.getToken();
-      const response = await axios.get(
-        `${API_URL}/api/v1/preferences/export`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          responseType: 'blob'
-        }
-      );
+      const response = await axios.get(`${API_URL}/api/v1/preferences/export`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob",
+      });
 
       // Créer un lien de téléchargement
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `preferences-${Date.now()}.json`);
+      link.setAttribute("download", `preferences-${Date.now()}.json`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Erreur lors de l\'export des préférences:', error);
+      console.error("Erreur lors de l'export des préférences:", error);
       throw error;
     }
   }
@@ -275,7 +292,7 @@ class PreferencesService {
       const data = JSON.parse(text);
 
       if (!data.preferences) {
-        throw new Error('Format de fichier invalide');
+        throw new Error("Format de fichier invalide");
       }
 
       const token = this.getToken();
@@ -285,25 +302,28 @@ class PreferencesService {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data.success) {
         // Mettre à jour le cache
         this.cache = response.data.preferences;
         this.cacheTimestamp = Date.now();
-        
+
         // Stocker aussi en localStorage
-        localStorage.setItem('userPreferences', JSON.stringify(response.data.preferences));
-        
+        localStorage.setItem(
+          "userPreferences",
+          JSON.stringify(response.data.preferences),
+        );
+
         return response.data.preferences;
       }
 
-      throw new Error('Échec de l\'import des préférences');
+      throw new Error("Échec de l'import des préférences");
     } catch (error) {
-      console.error('Erreur lors de l\'import des préférences:', error);
+      console.error("Erreur lors de l'import des préférences:", error);
       throw error;
     }
   }
@@ -319,4 +339,3 @@ class PreferencesService {
 
 export const preferencesService = new PreferencesService();
 export default preferencesService;
-

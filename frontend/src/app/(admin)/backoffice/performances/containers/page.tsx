@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { AdminLayout } from '@/components/features';
-import { PerformancesSubNav } from '../PerformancesSubNav';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
@@ -12,27 +18,27 @@ import {
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
-} from '@/components/analytics';
+} from "@/components/analytics";
 import {
   getPeriodMs,
   formatRangeLabel,
   formatCustomRangeLabel,
   localCalendarDayBounds,
-} from '@/components/analytics/timeRangeUtils';
+} from "@/components/analytics/timeRangeUtils";
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
   metricRowToTimeMs,
   metricTimestampToMs,
   normalizeMetricTimestampToIso,
-} from '@/lib/utils/date';
-import { chartXDomainFromDataRange } from '@/lib/charts/chartTimeDomain';
-import { analyticsService } from '@/lib/api/analytics.service';
+} from "@/lib/utils/date";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { analyticsService } from "@/lib/api/analytics.service";
 
 const AnalyticsContainersChartsBundle = dynamic(
   () =>
-    import('@/components/charts/AnalyticsContainersChartsBundle').then(
-      (m) => m.AnalyticsContainersChartsBundle
+    import("@/components/charts/AnalyticsContainersChartsBundle").then(
+      (m) => m.AnalyticsContainersChartsBundle,
     ),
   {
     ssr: false,
@@ -41,10 +47,10 @@ const AnalyticsContainersChartsBundle = dynamic(
         Chargement des graphiques…
       </div>
     ),
-  }
+  },
 );
 
-const ALL_CONTAINERS_VALUE = '__all__';
+const ALL_CONTAINERS_VALUE = "__all__";
 const METRIC_GAP_MS = 15 * 60 * 1000;
 /** Évite de saturer l’agrégateur / le navigateur quand « Tous les conteneurs » lance N historiques en parallèle. */
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
@@ -52,7 +58,7 @@ const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
 async function promisePool<T, R>(
   items: readonly T[],
   concurrency: number,
-  mapper: (item: T) => Promise<R>
+  mapper: (item: T) => Promise<R>,
 ): Promise<R[]> {
   const out: R[] = [];
   for (let i = 0; i < items.length; i += concurrency) {
@@ -81,7 +87,7 @@ interface ContainerMetric {
 function compressData<T extends { timestamp: string }>(
   data: T[],
   targetMax: number,
-  valueKeys: (keyof T)[]
+  valueKeys: (keyof T)[],
 ): T[] {
   if (data.length <= targetMax) return data;
   const step = data.length / targetMax;
@@ -96,8 +102,11 @@ function compressData<T extends { timestamp: string }>(
     valueKeys.forEach((k) => {
       const key = String(k);
       const nums = slice
-        .map((s) => (s as Record<string, unknown>)[key] as number | null | undefined)
-        .filter((n): n is number => typeof n === 'number' && !Number.isNaN(n));
+        .map(
+          (s) =>
+            (s as Record<string, unknown>)[key] as number | null | undefined,
+        )
+        .filter((n): n is number => typeof n === "number" && !Number.isNaN(n));
       if (nums.length) avg[key] = nums.reduce((a, b) => a + b, 0) / nums.length;
     });
     out.push({ ...mid, ...avg } as T);
@@ -107,12 +116,14 @@ function compressData<T extends { timestamp: string }>(
 
 export default function ContainersAnalyticsPage() {
   const [containers, setContainers] = useState<ContainerInfo[]>([]);
-  const [selectedContainer, setSelectedContainer] = useState<string>('');
+  const [selectedContainer, setSelectedContainer] = useState<string>("");
   const [rawMetrics, setRawMetrics] = useState<ContainerMetric[]>([]);
-  const [rawMetricsByContainer, setRawMetricsByContainer] = useState<Record<string, ContainerMetric[]>>({});
+  const [rawMetricsByContainer, setRawMetricsByContainer] = useState<
+    Record<string, ContainerMetric[]>
+  >({});
   const [loadingList, setLoadingList] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
@@ -171,7 +182,7 @@ export default function ContainersAnalyticsPage() {
         const list = await analyticsService.getContainersList();
         if (!cancelled) {
           setContainers(list);
-          if (list.length > 0 && selectedContainer === '') {
+          if (list.length > 0 && selectedContainer === "") {
             setSelectedContainer(ALL_CONTAINERS_VALUE);
           }
         }
@@ -202,37 +213,40 @@ export default function ContainersAnalyticsPage() {
       (data || [])
         .map((d) => {
           const rawTs =
-            typeof d.timestamp === 'string'
+            typeof d.timestamp === "string"
               ? d.timestamp
-              : (d.timestamp as Date)?.toISOString?.() ?? '';
+              : ((d.timestamp as Date)?.toISOString?.() ?? "");
           const timestamp = normalizeMetricTimestampToIso(rawTs);
           const timeMs = metricRowToTimeMs(d, timestamp);
           return {
-          timestamp,
-          ...(timeMs != null ? { timeMs } : {}),
-          cpuUsagePercent:
-            d.cpuUsagePercent != null
-              ? Number(d.cpuUsagePercent)
-              : d.cpu_usage_percent != null
-                ? Number(d.cpu_usage_percent)
-                : null,
-          memoryUsagePercent:
-            d.memoryUsagePercent != null
-              ? Number(d.memoryUsagePercent)
-              : d.memory_usage_percent != null
-                ? Number(d.memory_usage_percent)
-                : null,
-        };
+            timestamp,
+            ...(timeMs != null ? { timeMs } : {}),
+            cpuUsagePercent:
+              d.cpuUsagePercent != null
+                ? Number(d.cpuUsagePercent)
+                : d.cpu_usage_percent != null
+                  ? Number(d.cpu_usage_percent)
+                  : null,
+            memoryUsagePercent:
+              d.memoryUsagePercent != null
+                ? Number(d.memoryUsagePercent)
+                : d.memory_usage_percent != null
+                  ? Number(d.memory_usage_percent)
+                  : null,
+          };
         })
         .filter((d) => d.timestamp)
         .sort(
           (a, b) =>
             (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
-            (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0)
+            (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0),
         );
 
     const withGaps = (rows: ContainerMetric[]) =>
-      injectMetricTimeGaps(rows, METRIC_GAP_MS, ['cpuUsagePercent', 'memoryUsagePercent']);
+      injectMetricTimeGaps(rows, METRIC_GAP_MS, [
+        "cpuUsagePercent",
+        "memoryUsagePercent",
+      ]);
 
     if (selectedContainer === ALL_CONTAINERS_VALUE) {
       if (containers.length === 0) {
@@ -248,7 +262,7 @@ export default function ContainersAnalyticsPage() {
           .then((data: Record<string, unknown>[]) => ({
             name: c.name,
             data: withGaps(normalize(data)),
-          }))
+          })),
       )
         .then((results) => {
           if (cancelled) return;
@@ -316,8 +330,14 @@ export default function ContainersAnalyticsPage() {
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() - days);
       const ne = new Date(re);
@@ -327,7 +347,7 @@ export default function ContainersAnalyticsPage() {
       return;
     }
     setFollowLive(false);
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() - 1);
       setWindowEnd(d);
@@ -340,8 +360,14 @@ export default function ContainersAnalyticsPage() {
 
   const goNext = useCallback(() => {
     if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(customStart, customEnd);
-      const days = Math.max(1, Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)));
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
       const ns = new Date(rs);
       ns.setDate(ns.getDate() + days);
       const ne = new Date(re);
@@ -349,7 +375,9 @@ export default function ContainersAnalyticsPage() {
       const today = ymdLocal();
       if (ymdLocal(ne) > today) {
         setCustomEnd(today);
-        setCustomStart(ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
+        setCustomStart(
+          ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)),
+        );
       } else {
         setCustomStart(ymdLocal(ns));
         setCustomEnd(ymdLocal(ne));
@@ -358,7 +386,7 @@ export default function ContainersAnalyticsPage() {
     }
     setFollowLive(false);
     const now = new Date();
-    if (timeRange === 'today') {
+    if (timeRange === "today") {
       const d = new Date(windowEnd);
       d.setDate(d.getDate() + 1);
       if (d <= now) setWindowEnd(d);
@@ -374,18 +402,24 @@ export default function ContainersAnalyticsPage() {
   const canGoNext = useMemo(() => {
     if (useCustomRange) return customEnd < ymdLocal();
     const now = new Date();
-    if (timeRange === 'today') return windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10);
+    if (timeRange === "today")
+      return (
+        windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10)
+      );
     return windowEnd.getTime() < now.getTime();
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
   const chartData = useMemo(() => {
     if (selectedContainer !== ALL_CONTAINERS_VALUE) {
       if (rawMetrics.length === 0) return [];
-      const keys: (keyof ContainerMetric)[] = ['cpuUsagePercent', 'memoryUsagePercent'];
+      const keys: (keyof ContainerMetric)[] = [
+        "cpuUsagePercent",
+        "memoryUsagePercent",
+      ];
       const compressed = compressData(rawMetrics, 200, keys);
       return compressed.map((d) => {
         const timeMs =
-          typeof d.timeMs === 'number' && Number.isFinite(d.timeMs)
+          typeof d.timeMs === "number" && Number.isFinite(d.timeMs)
             ? d.timeMs
             : (metricTimestampToMs(d.timestamp) ?? NaN);
         return {
@@ -394,23 +428,28 @@ export default function ContainersAnalyticsPage() {
           time: formatLocalChartAxisTick(timeMs, { withDate: false }),
           datetime: formatLocalDateTime(d.timestamp),
           cpu: d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : null,
-          memory: d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : null,
+          memory:
+            d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : null,
         };
       });
     }
-    const names = Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0);
+    const names = Object.keys(rawMetricsByContainer).filter(
+      (n) => rawMetricsByContainer[n].length > 0,
+    );
     if (names.length === 0) return [];
-    const toKey = (n: string) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_');
+    const toKey = (n: string) =>
+      n.replace(/^jobbingtrack-/, "").replace(/-/g, "_");
     /** Les séries par conteneur n’ont pas le même horodatage exact : on aligne au point le plus proche. */
     const MAX_ALIGN_MS = 120_000;
     const rowTimeMs = (m: ContainerMetric): number | null => {
-      if (typeof m.timeMs === 'number' && Number.isFinite(m.timeMs)) return m.timeMs;
+      if (typeof m.timeMs === "number" && Number.isFinite(m.timeMs))
+        return m.timeMs;
       return metricTimestampToMs(m.timestamp);
     };
     const getNearestVal = (
       arr: ContainerMetric[],
       targetMs: number,
-      key: 'cpuUsagePercent' | 'memoryUsagePercent'
+      key: "cpuUsagePercent" | "memoryUsagePercent",
     ): number | null => {
       let best: ContainerMetric | null = null;
       let bestD = Infinity;
@@ -435,7 +474,8 @@ export default function ContainersAnalyticsPage() {
     });
     const sortedMs = Array.from(allMs).sort((a, b) => a - b);
     const target = 200;
-    const step = sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
+    const step =
+      sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
     const sampledMs = sortedMs.filter((_, i) => i % step === 0);
     return sampledMs.map((targetMs) => {
       const iso = new Date(targetMs).toISOString();
@@ -447,8 +487,16 @@ export default function ContainersAnalyticsPage() {
       };
       names.forEach((n) => {
         const k = toKey(n);
-        point[`cpu_${k}`] = getNearestVal(rawMetricsByContainer[n], targetMs, 'cpuUsagePercent');
-        point[`memory_${k}`] = getNearestVal(rawMetricsByContainer[n], targetMs, 'memoryUsagePercent');
+        point[`cpu_${k}`] = getNearestVal(
+          rawMetricsByContainer[n],
+          targetMs,
+          "cpuUsagePercent",
+        );
+        point[`memory_${k}`] = getNearestVal(
+          rawMetricsByContainer[n],
+          targetMs,
+          "memoryUsagePercent",
+        );
       });
       return point;
     });
@@ -459,9 +507,9 @@ export default function ContainersAnalyticsPage() {
       chartXDomainFromDataRange(
         chartXDomainMin,
         chartXDomainMax,
-        chartData.map((d) => Number(d.timeMs))
+        chartData.map((d) => Number(d.timeMs)),
       ),
-    [chartData, chartXDomainMin, chartXDomainMax]
+    [chartData, chartXDomainMin, chartXDomainMax],
   );
 
   const containerAxisShowDate =
@@ -469,7 +517,9 @@ export default function ContainersAnalyticsPage() {
 
   const isAllContainers = selectedContainer === ALL_CONTAINERS_VALUE;
   const containerNamesForChart = isAllContainers
-    ? Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0).map((n) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_'))
+    ? Object.keys(rawMetricsByContainer)
+        .filter((n) => rawMetricsByContainer[n].length > 0)
+        .map((n) => n.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
     : [];
 
   const handlePeriodNow = useCallback(() => {
@@ -515,11 +565,13 @@ export default function ContainersAnalyticsPage() {
                 <option value="">Aucun conteneur</option>
               ) : (
                 <>
-                  <option value={ALL_CONTAINERS_VALUE}>Tous les conteneurs (combiné)</option>
+                  <option value={ALL_CONTAINERS_VALUE}>
+                    Tous les conteneurs (combiné)
+                  </option>
                   {containers.map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name}
-                      {c.health_status ? ` (${c.health_status})` : ''}
+                      {c.health_status ? ` (${c.health_status})` : ""}
                     </option>
                   ))}
                 </>
@@ -550,13 +602,19 @@ export default function ContainersAnalyticsPage() {
             Aucun conteneur disponible. Vérifiez que le metrics-aggregator et
             Docker exposent les conteneurs JobbingTrack.
           </div>
-        ) : loadingMetrics && (isAllContainers ? Object.keys(rawMetricsByContainer).length === 0 : rawMetrics.length === 0) && chartData.length === 0 ? (
+        ) : loadingMetrics &&
+          (isAllContainers
+            ? Object.keys(rawMetricsByContainer).length === 0
+            : rawMetrics.length === 0) &&
+          chartData.length === 0 ? (
           <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             Chargement des métriques…
           </div>
         ) : chartData.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucune métrique persistée pour {isAllContainers ? 'ces conteneurs' : 'ce conteneur'} sur cette période.
+            Aucune métrique persistée pour{" "}
+            {isAllContainers ? "ces conteneurs" : "ce conteneur"} sur cette
+            période.
           </div>
         ) : isAllContainers && containerNamesForChart.length > 0 ? (
           <AnalyticsContainersChartsBundle
@@ -579,7 +637,10 @@ export default function ContainersAnalyticsPage() {
             containerAxisShowDate={containerAxisShowDate}
             chartData={chartData}
             containerNamesForChart={[]}
-            selectedContainerLabel={selectedContainer.replace(/^jobbingtrack-/, '')}
+            selectedContainerLabel={selectedContainer.replace(
+              /^jobbingtrack-/,
+              "",
+            )}
             rawMetricsLength={rawMetrics.length}
           />
         )}

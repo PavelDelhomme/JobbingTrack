@@ -1,68 +1,68 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ChevronLeft, ChevronRight } from '@/lib/icons';
-import { ymdLocal } from './useAnalyticsAutoRefresh';
+import React from "react";
+import { ChevronLeft, ChevronRight } from "@/lib/icons";
+import { ymdLocal } from "./useAnalyticsAutoRefresh";
 
 export type TimeRangeOption =
-  | 'today'
-  | '1h'
-  | '6h'
-  | '24h'
-  | '3d'
-  | '7d'
-  | '14d'
-  | '21d'
-  | '30d';
+  | "today"
+  | "1h"
+  | "6h"
+  | "24h"
+  | "3d"
+  | "7d"
+  | "14d"
+  | "21d"
+  | "30d";
 
-const PERIODE_ACTUELLE_LABEL = 'Période actuelle (→ maintenant)';
+const PERIODE_ACTUELLE_LABEL = "Période actuelle (→ maintenant)";
 
 const DEFAULT_OPTIONS: TimeRangeOption[] = [
-  'today',
-  '1h',
-  '6h',
-  '24h',
-  '3d',
-  '7d',
-  '14d',
-  '21d',
-  '30d',
+  "today",
+  "1h",
+  "6h",
+  "24h",
+  "3d",
+  "7d",
+  "14d",
+  "21d",
+  "30d",
 ];
 
 const LABELS: Record<TimeRangeOption, string> = {
   today: "Aujourd'hui",
-  '1h': 'Dernière heure',
-  '6h': 'Dernières 6 h',
-  '24h': 'Dernières 24 h',
-  '3d': '3 jours',
-  '7d': '7 jours',
-  '14d': '14 jours',
-  '21d': '21 jours',
-  '30d': '30 jours',
+  "1h": "Dernière heure",
+  "6h": "Dernières 6 h",
+  "24h": "Dernières 24 h",
+  "3d": "3 jours",
+  "7d": "7 jours",
+  "14d": "14 jours",
+  "21d": "21 jours",
+  "30d": "30 jours",
 };
 
 function periodNavigationHint(
   range: TimeRangeOption,
   useCustomRange: boolean,
-  customEnd?: string
+  customEnd?: string,
 ): string {
   if (useCustomRange) {
     const endsToday = customEnd && customEnd === ymdLocal();
     return endsToday
-      ? 'Plage personnalisée : les dates sont fixes ; si la fin est aujourd’hui, les données se rechargent périodiquement (sans décaler les dates).'
-      : 'Plage personnalisée : dates fixes — pas d’actualisation automatique (rechargement manuel : changez une date ou rechargez la page).';
+      ? "Plage personnalisée : les dates sont fixes ; si la fin est aujourd’hui, les données se rechargent périodiquement (sans décaler les dates)."
+      : "Plage personnalisée : dates fixes — pas d’actualisation automatique (rechargement manuel : changez une date ou rechargez la page).";
   }
   switch (range) {
-    case '24h':
-      return 'Dernières 24 h glissantes : la borne de droite est l’instant affiché entre ◀ et ▶. « Période actuelle (→ maintenant) » remet cette borne sur l’instant présent.';
-    case '1h':
-      return 'Dernière heure glissante jusqu’à la borne de droite.';
-    case '6h':
-      return 'Dernières 6 h glissantes jusqu’à la borne de droite.';
-    case 'today':
-      return 'Journée civile locale : de minuit à l’instant de la borne de droite (au plus la fin du jour).';
+    case "24h":
+      return "Dernières 24 h glissantes : la borne de droite est l’instant affiché entre ◀ et ▶. « Période actuelle (→ maintenant) » remet cette borne sur l’instant présent.";
+    case "1h":
+      return "Dernière heure glissante jusqu’à la borne de droite.";
+    case "6h":
+      return "Dernières 6 h glissantes jusqu’à la borne de droite.";
+    case "today":
+      return "Journée civile locale : de minuit à l’instant de la borne de droite (au plus la fin du jour).";
     default:
-      return 'Fenêtre glissante : ◀ ▶ décale la période ; le bouton à droite aligne la fin sur maintenant.';
+      return "Fenêtre glissante : ◀ ▶ décale la période ; le bouton à droite aligne la fin sur maintenant.";
   }
 }
 

@@ -1,41 +1,45 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DevelopmentLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  const isDev = process.env.NODE_ENV === 'development'
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const isDev = process.env.NODE_ENV === "development";
 
   useEffect(() => {
     if (!isDev) {
-      router.push('/')
-      return
+      router.push("/");
+      return;
     }
-    
+
     if (!loading && !user) {
-      router.push('/login')
-    } else if (!loading && user && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-      router.push('/access-denied')
+      router.push("/login");
+    } else if (
+      !loading &&
+      user &&
+      !["ADMIN", "SUPER_ADMIN"].includes(user.role)
+    ) {
+      router.push("/access-denied");
     }
-  }, [user, loading, router, isDev])
+  }, [user, loading, router, isDev]);
 
   if (!isDev) {
-    return <div>Ces outils ne sont disponibles qu'en mode développement</div>
+    return <div>Ces outils ne sont disponibles qu'en mode développement</div>;
   }
 
   if (loading) {
-    return <div>Chargement...</div>
+    return <div>Chargement...</div>;
   }
 
-  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-    return null
+  if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    return null;
   }
 
   return (
@@ -45,5 +49,5 @@ export default function DevelopmentLayout({
       </div>
       {children}
     </div>
-  )
+  );
 }

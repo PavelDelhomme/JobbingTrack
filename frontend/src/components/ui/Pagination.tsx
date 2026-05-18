@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { ChevronLeft, ChevronRight } from '@/lib/icons';
+import { ChevronLeft, ChevronRight } from "@/lib/icons";
 
 interface PaginationProps {
   currentPage: number;
@@ -33,7 +33,7 @@ export function Pagination({
   onPrevious,
   canGoNext,
   canGoPrevious,
-  className = '',
+  className = "",
 }: PaginationProps) {
   // Générer les numéros de page à afficher
   const getPageNumbers = () => {
@@ -51,13 +51,13 @@ export function Pagination({
         for (let i = 1; i <= 4; i++) {
           pages.push(i);
         }
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
       // Afficher les pages du milieu
       else if (currentPage >= totalPages - 2) {
         pages.push(1);
-        pages.push('...');
+        pages.push("...");
         for (let i = totalPages - 3; i <= totalPages; i++) {
           pages.push(i);
         }
@@ -65,11 +65,11 @@ export function Pagination({
       // Afficher autour de la page actuelle
       else {
         pages.push(1);
-        pages.push('...');
+        pages.push("...");
         for (let i = currentPage - 1; i <= currentPage + 1; i++) {
           pages.push(i);
         }
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -82,12 +82,24 @@ export function Pagination({
   }
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
+    <div
+      className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}
+    >
       {/* Informations */}
       <div className="text-sm text-gray-600 dark:text-gray-400">
-        Affichage de <span className="font-medium text-gray-900 dark:text-gray-100">{startIndex}</span> à{' '}
-        <span className="font-medium text-gray-900 dark:text-gray-100">{endIndex}</span> sur{' '}
-        <span className="font-medium text-gray-900 dark:text-gray-100">{totalItems}</span> résultats
+        Affichage de{" "}
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {startIndex}
+        </span>{" "}
+        à{" "}
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {endIndex}
+        </span>{" "}
+        sur{" "}
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {totalItems}
+        </span>{" "}
+        résultats
       </div>
 
       {/* Contrôles de pagination */}
@@ -98,8 +110,8 @@ export function Pagination({
           disabled={!canGoPrevious}
           className={`px-3 py-2 rounded-lg border transition-colors ${
             canGoPrevious
-              ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-              : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+              ? "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -108,9 +120,12 @@ export function Pagination({
         {/* Numéros de page */}
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => {
-            if (page === '...') {
+            if (page === "...") {
               return (
-                <span key={`ellipsis-${index}`} className="px-2 text-gray-400 dark:text-gray-600">
+                <span
+                  key={`ellipsis-${index}`}
+                  className="px-2 text-gray-400 dark:text-gray-600"
+                >
                   ...
                 </span>
               );
@@ -125,8 +140,8 @@ export function Pagination({
                 onClick={() => onPageChange(pageNumber)}
                 className={`px-3 py-2 rounded-lg border transition-colors ${
                   isActive
-                    ? 'border-blue-600 dark:border-blue-500 bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    ? "border-blue-600 dark:border-blue-500 bg-blue-600 dark:bg-blue-500 text-white"
+                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
                 {pageNumber}
@@ -141,8 +156,8 @@ export function Pagination({
           disabled={!canGoNext}
           className={`px-3 py-2 rounded-lg border transition-colors ${
             canGoNext
-              ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-              : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+              ? "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
           }`}
         >
           <ChevronRight className="h-4 w-4" />
@@ -151,4 +166,3 @@ export function Pagination({
     </div>
   );
 }
-

@@ -1,1 +1,1 @@
-export { EventTypeBadge } from './EventTypeBadge'
+export { EventTypeBadge } from "./EventTypeBadge";

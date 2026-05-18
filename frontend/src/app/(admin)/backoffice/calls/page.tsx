@@ -1,13 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { Phone, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, Building2, Users, FileText } from 'lucide-react';
-import { callService, contactService, companyService, applicationService } from '@/lib/api';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import {
+  Phone,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  RefreshCw,
+  X,
+  Building2,
+  Users,
+  FileText,
+} from "lucide-react";
+import {
+  callService,
+  contactService,
+  companyService,
+  applicationService,
+} from "@/lib/api";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Call {
   id: string;
@@ -32,7 +49,7 @@ export default function CallsPage() {
   const { token } = useAuth();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
@@ -47,31 +64,34 @@ export default function CallsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'calls_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "calls_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setCalls(Array.isArray(cached) ? (cached as Call[]) : [])
-        setLoading(false)
+        setCalls(Array.isArray(cached) ? (cached as Call[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        callService.getAll({ limit: 100 }).then(response => {
-          const calls = response.data.calls || response.data || []
-          cacheManager.set(cacheKey, calls, { ttl: 30000 })
-          setCalls(calls)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        callService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const calls = response.data.calls || response.data || [];
+            cacheManager.set(cacheKey, calls, { ttl: 30000 });
+            setCalls(calls);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 appels par défaut
-      const response = await callService.getAll({ limit: 100 })
-      const calls = response.data.calls || response.data || []
-      setCalls(calls)
-      
+      const response = await callService.getAll({ limit: 100 });
+      const calls = response.data.calls || response.data || [];
+      setCalls(calls);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, calls, { ttl: 30000 })
+      await cacheManager.set(cacheKey, calls, { ttl: 30000 });
     } catch (error: any) {
-      console.error('Erreur chargement appels:', error);
+      console.error("Erreur chargement appels:", error);
       setCalls([]);
     } finally {
       setLoading(false);
@@ -79,21 +99,22 @@ export default function CallsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appel ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet appel ?")) return;
+
     try {
       await callService.delete(id);
       loadCalls();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      alert('Erreur lors de la suppression');
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
   };
 
-  const filteredCalls = calls.filter(call =>
-    call.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.contactName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCalls = calls.filter(
+    (call) =>
+      call.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.contactName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
@@ -122,7 +143,8 @@ export default function CallsPage() {
               Gestion des Appels
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gérez vos appels téléphoniques (contact, entreprise ou candidature)
+              Gérez vos appels téléphoniques (contact, entreprise ou
+              candidature)
             </p>
           </div>
           <button
@@ -136,8 +158,12 @@ export default function CallsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Appels</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{calls.length}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Total Appels
+            </p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {calls.length}
+            </p>
           </div>
         </div>
 
@@ -167,18 +193,33 @@ export default function CallsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Appel</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Contact/Entreprise/Candidature</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Appel
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Contact/Entreprise/Candidature
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {pagination.paginatedItems.map((call) => (
-                  <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={call.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{call.subject || 'Appel'}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {call.subject || "Appel"}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {call.contactName && (
@@ -203,14 +244,14 @@ export default function CallsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        {call.scheduledAt 
+                        {call.scheduledAt
                           ? new Date(call.scheduledAt).toLocaleDateString()
                           : new Date(call.createdAt).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                        {call.type || 'N/A'}
+                        {call.type || "N/A"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -236,15 +277,20 @@ export default function CallsPage() {
                 ))}
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {calls.length === 0 ? 'Aucun appel trouvé' : 'Aucun résultat pour votre recherche'}
+                    <td
+                      colSpan={5}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {calls.length === 0
+                        ? "Aucun appel trouvé"
+                        : "Aucun résultat pour votre recherche"}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           {/* ✅ OPTIMISATION : Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -294,25 +340,27 @@ export default function CallsPage() {
   );
 }
 
-function CallFormModal({ 
-  call, 
-  onClose, 
-  onSuccess 
-}: { 
-  call?: Call; 
-  onClose: () => void; 
+function CallFormModal({
+  call,
+  onClose,
+  onSuccess,
+}: {
+  call?: Call;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    subject: call?.subject || '',
-    scheduledAt: call?.scheduledAt ? new Date(call.scheduledAt).toISOString().slice(0, 16) : '',
-    type: call?.type || 'spontaneous',
-    notes: call?.notes || '',
-    contactId: call?.contactId || '',
-    companyId: call?.companyId || '',
-    companyName: call?.companyName || '',
-    applicationId: call?.applicationId || '',
+    subject: call?.subject || "",
+    scheduledAt: call?.scheduledAt
+      ? new Date(call.scheduledAt).toISOString().slice(0, 16)
+      : "",
+    type: call?.type || "spontaneous",
+    notes: call?.notes || "",
+    contactId: call?.contactId || "",
+    companyId: call?.companyId || "",
+    companyName: call?.companyName || "",
+    applicationId: call?.applicationId || "",
   });
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -329,30 +377,37 @@ function CallFormModal({
       const [contactsRes, companiesRes, applicationsRes] = await Promise.all([
         contactService.getAll().catch(() => ({ data: { contacts: [] } })),
         companyService.getAll().catch(() => ({ data: { companies: [] } })),
-        applicationService.getAll().catch(() => ({ data: { applications: [] } })),
+        applicationService
+          .getAll()
+          .catch(() => ({ data: { applications: [] } })),
       ]);
 
       setContacts(contactsRes.data.contacts || contactsRes.data || []);
-      const companiesData = companiesRes.data.companies || companiesRes.data || [];
+      const companiesData =
+        companiesRes.data.companies || companiesRes.data || [];
       setCompanies(companiesData);
       setCompanySuggestions(companiesData.map((c: any) => c.name));
-      setApplications(applicationsRes.data.applications || applicationsRes.data || []);
+      setApplications(
+        applicationsRes.data.applications || applicationsRes.data || [],
+      );
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error("Erreur chargement données:", error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Vérifier qu'au moins un champ est rempli
     if (!formData.contactId && !formData.companyId && !formData.applicationId) {
-      alert('Vous devez sélectionner au moins un contact, une entreprise ou une candidature');
+      alert(
+        "Vous devez sélectionner au moins un contact, une entreprise ou une candidature",
+      );
       return;
     }
 
     if (!formData.subject) {
-      alert('Le sujet est obligatoire');
+      alert("Le sujet est obligatoire");
       return;
     }
 
@@ -361,15 +416,18 @@ function CallFormModal({
     try {
       // Si entreprise saisie mais pas d'ID, créer/récupérer l'entreprise
       if (formData.companyName && !formData.companyId) {
-        const existingCompany = companies.find(c => 
-          c.name.toLowerCase() === formData.companyName.toLowerCase()
+        const existingCompany = companies.find(
+          (c) => c.name.toLowerCase() === formData.companyName.toLowerCase(),
         );
 
         if (existingCompany) {
           formData.companyId = existingCompany.id;
         } else {
-          const newCompany = await companyService.create({ name: formData.companyName });
-          formData.companyId = newCompany.data.company?.id || newCompany.data.id;
+          const newCompany = await companyService.create({
+            name: formData.companyName,
+          });
+          formData.companyId =
+            newCompany.data.company?.id || newCompany.data.id;
         }
       }
 
@@ -385,7 +443,8 @@ function CallFormModal({
 
       if (formData.contactId) callData.contactId = formData.contactId;
       if (formData.companyId) callData.companyId = formData.companyId;
-      if (formData.applicationId) callData.applicationId = formData.applicationId;
+      if (formData.applicationId)
+        callData.applicationId = formData.applicationId;
 
       if (call) {
         await callService.update(call.id, callData);
@@ -395,8 +454,11 @@ function CallFormModal({
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur création/modification appel:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'appel');
+      console.error("Erreur création/modification appel:", error);
+      alert(
+        error.response?.data?.error ||
+          "Erreur lors de la création/modification de l'appel",
+      );
     } finally {
       setLoading(false);
     }
@@ -407,7 +469,7 @@ function CallFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {call ? 'Modifier l\'appel' : 'Nouvel appel'}
+            {call ? "Modifier l'appel" : "Nouvel appel"}
           </h2>
           <button
             onClick={onClose}
@@ -426,7 +488,9 @@ function CallFormModal({
               type="text"
               required
               value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, subject: e.target.value })
+              }
               placeholder="Ex: Candidature spontanée, Suivi entretien..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -439,7 +503,9 @@ function CallFormModal({
             <select
               required
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="spontaneous">Candidature spontanée</option>
@@ -457,7 +523,14 @@ function CallFormModal({
               </label>
               <select
                 value={formData.contactId}
-                onChange={(e) => setFormData({ ...formData, contactId: e.target.value, companyId: '', applicationId: '' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    contactId: e.target.value,
+                    companyId: "",
+                    applicationId: "",
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Aucun</option>
@@ -476,13 +549,15 @@ function CallFormModal({
               <select
                 value={formData.companyId}
                 onChange={(e) => {
-                  const company = companies.find(c => c.id === e.target.value);
-                  setFormData({ 
-                    ...formData, 
+                  const company = companies.find(
+                    (c) => c.id === e.target.value,
+                  );
+                  setFormData({
+                    ...formData,
                     companyId: e.target.value,
-                    companyName: company?.name || '',
-                    contactId: '',
-                    applicationId: ''
+                    companyName: company?.name || "",
+                    contactId: "",
+                    applicationId: "",
                   });
                 }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -502,7 +577,14 @@ function CallFormModal({
               </label>
               <select
                 value={formData.applicationId}
-                onChange={(e) => setFormData({ ...formData, applicationId: e.target.value, contactId: '', companyId: '' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    applicationId: e.target.value,
+                    contactId: "",
+                    companyId: "",
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Aucune</option>
@@ -517,7 +599,8 @@ function CallFormModal({
 
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
             <p className="text-xs text-yellow-800 dark:text-yellow-200">
-              ⚠️ Au moins un champ (Contact, Entreprise ou Candidature) doit être rempli
+              ⚠️ Au moins un champ (Contact, Entreprise ou Candidature) doit
+              être rempli
             </p>
           </div>
 
@@ -528,7 +611,9 @@ function CallFormModal({
             <input
               type="datetime-local"
               value={formData.scheduledAt}
-              onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, scheduledAt: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -539,7 +624,9 @@ function CallFormModal({
             </label>
             <textarea
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -558,7 +645,7 @@ function CallFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : call ? 'Modifier' : 'Créer'}
+              {loading ? "Enregistrement..." : call ? "Modifier" : "Créer"}
             </button>
           </div>
         </form>

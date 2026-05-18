@@ -1,10 +1,10 @@
-import * as React from "react"
+import * as React from "react";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { ChevronDown, Check } from "@/lib/icons"
+import { ChevronDown, Check } from "@/lib/icons";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>
+export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, ...props }, ref) => {
@@ -13,7 +13,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           className={cn(
             "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-50 appearance-none",
-            className
+            className,
           )}
           ref={ref}
           {...props}
@@ -22,25 +22,28 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         </select>
         <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" />
       </div>
-    )
-  }
-)
-Select.displayName = "Select"
+    );
+  },
+);
+Select.displayName = "Select";
 
-export type SelectOptionProps = React.OptionHTMLAttributes<HTMLOptionElement>
+export type SelectOptionProps = React.OptionHTMLAttributes<HTMLOptionElement>;
 
 const SelectOption = React.forwardRef<HTMLOptionElement, SelectOptionProps>(
   ({ className, children, ...props }, ref) => (
     <option
-      className={cn("bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100", className)}
+      className={cn(
+        "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+        className,
+      )}
       ref={ref}
       {...props}
     >
       {children}
     </option>
-  )
-)
-SelectOption.displayName = "SelectOption"
+  ),
+);
+SelectOption.displayName = "SelectOption";
 
 // Composants supplémentaires pour la compatibilité shadcn/ui
 const SelectTrigger = React.forwardRef<
@@ -51,7 +54,7 @@ const SelectTrigger = React.forwardRef<
     type="button"
     className={cn(
       "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-50",
-      className
+      className,
     )}
     ref={ref}
     {...props}
@@ -59,24 +62,20 @@ const SelectTrigger = React.forwardRef<
     {children}
     <ChevronDown className="h-4 w-4 opacity-50" />
   </button>
-))
-SelectTrigger.displayName = "SelectTrigger"
+));
+SelectTrigger.displayName = "SelectTrigger";
 
 const SelectValue = React.forwardRef<
   HTMLSpanElement,
   React.HTMLAttributes<HTMLSpanElement> & {
-    placeholder?: string
+    placeholder?: string;
   }
 >(({ className, placeholder, ...props }, ref) => (
-  <span
-    className={cn("block truncate", className)}
-    ref={ref}
-    {...props}
-  >
+  <span className={cn("block truncate", className)} ref={ref} {...props}>
     {props.children || placeholder}
   </span>
-))
-SelectValue.displayName = "SelectValue"
+));
+SelectValue.displayName = "SelectValue";
 
 const SelectContent = React.forwardRef<
   HTMLDivElement,
@@ -85,28 +84,26 @@ const SelectContent = React.forwardRef<
   <div
     className={cn(
       "relative z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-md animate-in fade-in-80",
-      className
+      className,
     )}
     ref={ref}
     {...props}
   >
-    <div className="p-1">
-      {children}
-    </div>
+    <div className="p-1">{children}</div>
   </div>
-))
-SelectContent.displayName = "SelectContent"
+));
+SelectContent.displayName = "SelectContent";
 
 const SelectItem = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    value?: string
+    value?: string;
   }
 >(({ className, children, ...props }, ref) => (
   <div
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800",
-      className
+      className,
     )}
     ref={ref}
     {...props}
@@ -116,20 +113,23 @@ const SelectItem = React.forwardRef<
     </span>
     {children}
   </div>
-))
-SelectItem.displayName = "SelectItem"
+));
+SelectItem.displayName = "SelectItem";
 
 const SelectLabel = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
   <div
-    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-gray-900 dark:text-gray-100", className)}
+    className={cn(
+      "py-1.5 pl-8 pr-2 text-sm font-semibold text-gray-900 dark:text-gray-100",
+      className,
+    )}
     ref={ref}
     {...props}
   />
-))
-SelectLabel.displayName = "SelectLabel"
+));
+SelectLabel.displayName = "SelectLabel";
 
 const SelectSeparator = React.forwardRef<
   HTMLDivElement,
@@ -140,8 +140,8 @@ const SelectSeparator = React.forwardRef<
     ref={ref}
     {...props}
   />
-))
-SelectSeparator.displayName = "SelectSeparator"
+));
+SelectSeparator.displayName = "SelectSeparator";
 
 export {
   Select,
@@ -151,5 +151,5 @@ export {
   SelectContent,
   SelectItem,
   SelectLabel,
-  SelectSeparator
-}
+  SelectSeparator,
+};

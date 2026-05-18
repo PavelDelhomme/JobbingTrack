@@ -1,98 +1,139 @@
-'use client'
+"use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import AdminLayout from '@/components/features/AdminLayout'
-import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
-import { LoadingState } from '@/components/ui/LoadingState'
-import { centralMetricsService } from '@/lib/services/centralMetricsService'
-import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
-import { cacheManager } from '@/lib/cache/cacheManager'
-import { preferencesService } from '@/lib/services/preferencesService'
-import { FRONTEND_URLS } from '@/config/ports.config'
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import AdminLayout from "@/components/features/AdminLayout";
+import MetricsErrorBoundary from "@/components/MetricsErrorBoundary";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import {
+  dashboardService,
+  applicationService,
+  authService,
+  companyService,
+} from "@/lib/api";
+import { cacheManager } from "@/lib/cache/cacheManager";
+import { preferencesService } from "@/lib/services/preferencesService";
+import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server, Wifi } from '@/lib/icons'
-import axios from 'axios'
-import { useTracking } from '@/components/tracking/TrackingProvider'
+import {
+  Activity,
+  TrendingUp,
+  Users,
+  Building2,
+  FileText,
+  Phone,
+  Calendar,
+  Settings,
+  Shield,
+  Zap,
+  Clock,
+  X,
+  Cpu,
+  MemoryStick,
+  Server,
+  Wifi,
+} from "@/lib/icons";
+import axios from "axios";
+import { useTracking } from "@/components/tracking/TrackingProvider";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 // ✅ Fonction utilitaire pour formater les nombres en toute sécurité
-const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A'): string => {
-  if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+const safeToFixed = (
+  value: any,
+  decimals: number = 2,
+  fallback: string = "N/A",
+): string => {
+  if (typeof value === "number" && !isNaN(value) && isFinite(value)) {
     return value.toFixed(decimals);
   }
   return fallback;
-}
+};
 
 const formatMemoryMb = (valueMb: unknown): string => {
-  const value = Number(valueMb)
-  if (!Number.isFinite(value)) return 'N/A'
-  if (Math.abs(value) >= 1024) return `${safeToFixed(value / 1024, 1)} GB`
-  return `${safeToFixed(value, 0)} MB`
-}
+  const value = Number(valueMb);
+  if (!Number.isFinite(value)) return "N/A";
+  if (Math.abs(value) >= 1024) return `${safeToFixed(value / 1024, 1)} GB`;
+  return `${safeToFixed(value, 0)} MB`;
+};
 
 const formatCompactDecimal = (value: number, decimals = 1): string => {
-  return value.toFixed(decimals).replace(/\.0$/, '')
-}
+  return value.toFixed(decimals).replace(/\.0$/, "");
+};
 
 const formatDiskGb = (valueGb: unknown): string => {
-  const value = Number(valueGb)
-  if (!Number.isFinite(value)) return 'N/A'
-  return `${formatCompactDecimal(value, 1)} GB`
-}
+  const value = Number(valueGb);
+  if (!Number.isFinite(value)) return "N/A";
+  return `${formatCompactDecimal(value, 1)} GB`;
+};
 
 /** Même priorité que l’affichage principal « CPU Système » (cohérence chiffre + pastille). */
 function getSystemCpuPercentForDisplay(systemMetrics: any): number | undefined {
-  if (!systemMetrics) return undefined
-  if (systemMetrics.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) {
-    return systemMetrics.cpu.usage_percent
+  if (!systemMetrics) return undefined;
+  if (
+    systemMetrics.cpu?.usage_percent !== undefined &&
+    systemMetrics.cpu.usage_percent > 0
+  ) {
+    return systemMetrics.cpu.usage_percent;
   }
-  if (typeof systemMetrics.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0) {
-    return systemMetrics.cpu.usage
+  if (
+    typeof systemMetrics.cpu?.usage === "number" &&
+    systemMetrics.cpu.usage > 0
+  ) {
+    return systemMetrics.cpu.usage;
   }
-  if (systemMetrics.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0) {
-    return systemMetrics.monitoringC.avg_cpu_percent
+  if (
+    systemMetrics.monitoringC?.avg_cpu_percent !== undefined &&
+    systemMetrics.monitoringC.avg_cpu_percent > 0
+  ) {
+    return systemMetrics.monitoringC.avg_cpu_percent;
   }
-  return undefined
+  return undefined;
 }
 
 /** Parse un pourcentage ou nombre issu des métriques conteneur (string « 12.3% » ou number). */
 function parseContainerMetricNumber(v: unknown): number {
-  if (typeof v === 'number' && Number.isFinite(v)) return v
-  if (typeof v === 'string') {
-    const n = parseFloat(v.replace(/%/g, '').replace(',', '.').trim())
-    return Number.isFinite(n) ? n : NaN
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(/%/g, "").replace(",", ".").trim());
+    return Number.isFinite(n) ? n : NaN;
   }
-  return NaN
+  return NaN;
 }
 
 /** Libellé droite « État des services » : le badge vert = processus joignable, pas forcément durée d’uptime remontée par l’agrégateur. */
 function serviceAvailabilityCaption(service: {
-  status?: string
-  uptime?: string
-  responseTime?: string | number
+  status?: string;
+  uptime?: string;
+  responseTime?: string | number;
 }): string {
-  const u = service.uptime
+  const u = service.uptime;
   const looksLikeDuration =
-    typeof u === 'string' && u.length > 0 && u !== 'N/A' && u !== 'En ligne' && u !== 'Hors ligne' && /[\djhms]/.test(u)
-  if (looksLikeDuration) return u
-  const rt = service.responseTime
-  if (rt !== undefined && rt !== null && rt !== 'N/A') {
-    const n = typeof rt === 'number' ? rt : Number(String(rt).replace(/[^\d.]/g, ''))
-    if (!Number.isNaN(n) && n > 0) return `~${Math.round(n)} ms`
+    typeof u === "string" &&
+    u.length > 0 &&
+    u !== "N/A" &&
+    u !== "En ligne" &&
+    u !== "Hors ligne" &&
+    /[\djhms]/.test(u);
+  if (looksLikeDuration) return u;
+  const rt = service.responseTime;
+  if (rt !== undefined && rt !== null && rt !== "N/A") {
+    const n =
+      typeof rt === "number" ? rt : Number(String(rt).replace(/[^\d.]/g, ""));
+    if (!Number.isNaN(n) && n > 0) return `~${Math.round(n)} ms`;
   }
-  if (service.status === 'running') return 'En ligne'
-  if (service.status === 'stopped') return 'Hors ligne'
-  return '—'
+  if (service.status === "running") return "En ligne";
+  if (service.status === "stopped") return "Hors ligne";
+  return "—";
 }
 
 export default function BackofficePage() {
-  const { user, loading, isAuthenticated, token } = useAuth()
-  const router = useRouter()
-  const { trackEvent } = useTracking()
+  const { user, loading, isAuthenticated, token } = useAuth();
+  const router = useRouter();
+  const { trackEvent } = useTracking();
   const [stats, setStats] = useState({
     totalApplications: 0,
     totalCompanies: 0,
@@ -112,204 +153,222 @@ export default function BackofficePage() {
     securityAlerts: 0,
     codeQuality: 85,
     vulnerabilities: 0,
-    deploymentStatus: 'success'
-  })
-  const [loadingStats, setLoadingStats] = useState(true)
-  const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
-  const [showServicesPopup, setShowServicesPopup] = useState(false)
-  const [systemMetrics, setSystemMetrics] = useState<any>(null)
-  const [containerMetrics, setContainerMetrics] = useState<any>(null)
-  const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false)
-  const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
-  const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
-  const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
-  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000) // Valeur par défaut, sera remplacée par les préférences
-  const [servicesRefreshInterval, setServicesRefreshInterval] = useState(60000) // Valeur par défaut
+    deploymentStatus: "success",
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [systemStatus, setSystemStatus] = useState<
+    "healthy" | "degraded" | "down"
+  >("healthy");
+  const [showServicesPopup, setShowServicesPopup] = useState(false);
+  const [systemMetrics, setSystemMetrics] = useState<any>(null);
+  const [containerMetrics, setContainerMetrics] = useState<any>(null);
+  const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false);
+  const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([]);
+  const [maintenances, setMaintenances] = useState<{ [key: string]: any }>({});
+  const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false);
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000); // Valeur par défaut, sera remplacée par les préférences
+  const [servicesRefreshInterval, setServicesRefreshInterval] = useState(60000); // Valeur par défaut
 
-  const API_GATEWAY_URL = API_URL
+  const API_GATEWAY_URL = API_URL;
 
   // Charger les maintenances
   const loadMaintenances = async () => {
     try {
-      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/maintenance`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const response = await axios.get(
+        `${API_GATEWAY_URL}/api/v1/maintenance`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (response.data.success) {
-        const maintenanceMap: {[key: string]: any} = {}
+        const maintenanceMap: { [key: string]: any } = {};
         response.data.maintenances.forEach((m: any) => {
-          maintenanceMap[m.serviceName] = m
-        })
-        setMaintenances(maintenanceMap)
+          maintenanceMap[m.serviceName] = m;
+        });
+        setMaintenances(maintenanceMap);
       }
     } catch (error) {
-      console.error('Erreur chargement maintenances:', error)
+      console.error("Erreur chargement maintenances:", error);
     }
-  }
+  };
 
   // Activer la maintenance pour un service
   const activateMaintenance = async (serviceId: string) => {
     try {
-      await axios.post(`${API_GATEWAY_URL}/api/v1/maintenance/${serviceId}/activate`, {
-        message: `Maintenance activée depuis le dashboard`
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      await loadMaintenances()
+      await axios.post(
+        `${API_GATEWAY_URL}/api/v1/maintenance/${serviceId}/activate`,
+        {
+          message: `Maintenance activée depuis le dashboard`,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      await loadMaintenances();
     } catch (error) {
-      console.error('Erreur activation maintenance:', error)
+      console.error("Erreur activation maintenance:", error);
     }
-  }
+  };
 
   // Désactiver la maintenance pour un service
   const deactivateMaintenance = async (serviceId: string) => {
     try {
-      await axios.post(`${API_GATEWAY_URL}/api/v1/maintenance/${serviceId}/deactivate`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      await loadMaintenances()
+      await axios.post(
+        `${API_GATEWAY_URL}/api/v1/maintenance/${serviceId}/deactivate`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      await loadMaintenances();
     } catch (error) {
-      console.error('Erreur désactivation maintenance:', error)
+      console.error("Erreur désactivation maintenance:", error);
     }
-  }
+  };
 
   // Liste des services disponibles
   const services = [
     {
-      id: 'auth-service',
-      name: 'Service d\'Authentification',
-      description: 'Gestion des utilisateurs et authentification',
-      icon: '🔐',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/auth-service'
+      id: "auth-service",
+      name: "Service d'Authentification",
+      description: "Gestion des utilisateurs et authentification",
+      icon: "🔐",
+      status: "running",
+      route: "/b4ck0ff1ce/services/auth-service",
     },
     {
-      id: 'application-service',
-      name: 'Service des Candidatures',
-      description: 'Gestion des candidatures et processus',
-      icon: '📝',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/application-service'
+      id: "application-service",
+      name: "Service des Candidatures",
+      description: "Gestion des candidatures et processus",
+      icon: "📝",
+      status: "running",
+      route: "/b4ck0ff1ce/services/application-service",
     },
     {
-      id: 'company-service',
-      name: 'Service des Entreprises',
-      description: 'Gestion des entreprises et recrutement',
-      icon: '🏢',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/company-service'
+      id: "company-service",
+      name: "Service des Entreprises",
+      description: "Gestion des entreprises et recrutement",
+      icon: "🏢",
+      status: "running",
+      route: "/b4ck0ff1ce/services/company-service",
     },
     {
-      id: 'contact-service',
-      name: 'Service des Contacts',
-      description: 'Gestion des contacts et réseaux',
-      icon: '👥',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/contact-service'
+      id: "contact-service",
+      name: "Service des Contacts",
+      description: "Gestion des contacts et réseaux",
+      icon: "👥",
+      status: "running",
+      route: "/b4ck0ff1ce/services/contact-service",
     },
     {
-      id: 'interview-service',
-      name: 'Service des Entretiens',
-      description: 'Gestion des entretiens et calendrier',
-      icon: '📅',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/interview-service'
+      id: "interview-service",
+      name: "Service des Entretiens",
+      description: "Gestion des entretiens et calendrier",
+      icon: "📅",
+      status: "running",
+      route: "/b4ck0ff1ce/services/interview-service",
     },
     {
-      id: 'call-service',
-      name: 'Service des Appels',
-      description: 'Gestion des appels et communications',
-      icon: '📞',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/call-service'
+      id: "call-service",
+      name: "Service des Appels",
+      description: "Gestion des appels et communications",
+      icon: "📞",
+      status: "running",
+      route: "/b4ck0ff1ce/services/call-service",
     },
     {
-      id: 'notification-service',
-      name: 'Service de Notifications',
-      description: 'Gestion des notifications et alertes',
-      icon: '🔔',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/notification-service'
+      id: "notification-service",
+      name: "Service de Notifications",
+      description: "Gestion des notifications et alertes",
+      icon: "🔔",
+      status: "running",
+      route: "/b4ck0ff1ce/services/notification-service",
     },
     {
-      id: 'dashboard-service',
-      name: 'Service du Tableau de Bord',
-      description: 'Gestion des métriques et analytics',
-      icon: '📊',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/dashboard-service'
+      id: "dashboard-service",
+      name: "Service du Tableau de Bord",
+      description: "Gestion des métriques et analytics",
+      icon: "📊",
+      status: "running",
+      route: "/b4ck0ff1ce/services/dashboard-service",
     },
     {
-      id: 'workflow-service',
-      name: 'Service de Workflow',
-      description: 'Gestion des workflows automatisés',
-      icon: '⚙️',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/workflow-service'
+      id: "workflow-service",
+      name: "Service de Workflow",
+      description: "Gestion des workflows automatisés",
+      icon: "⚙️",
+      status: "running",
+      route: "/b4ck0ff1ce/services/workflow-service",
     },
     {
-      id: 'event-service',
-      name: 'Service des Événements',
-      description: 'Gestion des événements et rappels',
-      icon: '🎯',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/event-service'
+      id: "event-service",
+      name: "Service des Événements",
+      description: "Gestion des événements et rappels",
+      icon: "🎯",
+      status: "running",
+      route: "/b4ck0ff1ce/services/event-service",
     },
     {
-      id: 'followup-service',
-      name: 'Service de Relances',
-      description: 'Gestion des relances automatiques',
-      icon: '📧',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/followup-service'
+      id: "followup-service",
+      name: "Service de Relances",
+      description: "Gestion des relances automatiques",
+      icon: "📧",
+      status: "running",
+      route: "/b4ck0ff1ce/services/followup-service",
     },
     {
-      id: 'profile-service',
-      name: 'Service des Profils',
-      description: 'Gestion des profils utilisateurs',
-      icon: '👤',
-      status: 'running',
-      route: '/b4ck0ff1ce/services/profile-service'
-    }
-  ]
+      id: "profile-service",
+      name: "Service des Profils",
+      description: "Gestion des profils utilisateurs",
+      icon: "👤",
+      status: "running",
+      route: "/b4ck0ff1ce/services/profile-service",
+    },
+  ];
 
   // ✅ Valeurs attendues (pour afficher X/Y)
   // Par défaut, on se base sur la liste des services affichés (source de vérité UI).
-  const expectedServicesCount = services.length
+  const expectedServicesCount = services.length;
   // Le nombre de conteneurs JobbingTrack attendus dépend du profil docker-compose.
   // On conserve une valeur par défaut (22) mais permet override via env.
   const expectedJobbingtrackContainers =
-    Number(process.env.NEXT_PUBLIC_EXPECTED_JOBBINGTRACK_CONTAINERS || 22) || 22
+    Number(process.env.NEXT_PUBLIC_EXPECTED_JOBBINGTRACK_CONTAINERS || 22) ||
+    22;
 
   /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
   const jobbingtrackContainerRows = useMemo(() => {
-    if (!containerMetrics || typeof containerMetrics !== 'object') return []
+    if (!containerMetrics || typeof containerMetrics !== "object") return [];
     type M = {
-      cpu?: { percentage?: unknown; usage?: unknown }
-      memory?: { percentage?: unknown; usageMb?: unknown; usage?: unknown }
-    }
+      cpu?: { percentage?: unknown; usage?: unknown };
+      memory?: { percentage?: unknown; usageMb?: unknown; usage?: unknown };
+    };
     return Object.entries(containerMetrics as Record<string, M>)
-      .filter(([key]) => key.startsWith('jobbingtrack-'))
+      .filter(([key]) => key.startsWith("jobbingtrack-"))
       .map(([fullName, m]) => {
-        const cpu = parseContainerMetricNumber(m?.cpu?.percentage ?? m?.cpu?.usage)
-        const memPct = parseContainerMetricNumber(m?.memory?.percentage)
-        const memMb = parseContainerMetricNumber(m?.memory?.usageMb ?? m?.memory?.usage)
+        const cpu = parseContainerMetricNumber(
+          m?.cpu?.percentage ?? m?.cpu?.usage,
+        );
+        const memPct = parseContainerMetricNumber(m?.memory?.percentage);
+        const memMb = parseContainerMetricNumber(
+          m?.memory?.usageMb ?? m?.memory?.usage,
+        );
         return {
           fullName,
-          shortName: fullName.replace(/^jobbingtrack-/, ''),
+          shortName: fullName.replace(/^jobbingtrack-/, ""),
           cpu: Number.isFinite(cpu) ? cpu : null,
           memPct: Number.isFinite(memPct) ? memPct : null,
           memMb: Number.isFinite(memMb) ? memMb : null,
-        }
+        };
       })
       .filter((r) => r.cpu != null || r.memPct != null || r.memMb != null)
-      .sort((a, b) => (b.cpu ?? 0) - (a.cpu ?? 0))
-  }, [containerMetrics])
+      .sort((a, b) => (b.cpu ?? 0) - (a.cpu ?? 0));
+  }, [containerMetrics]);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [loading, isAuthenticated, router])
+  }, [loading, isAuthenticated, router]);
 
   // Charger les métriques système et des services
   useEffect(() => {
@@ -318,12 +377,12 @@ export default function BackofficePage() {
         // ✅ NE PAS mettre loading à true pour le premier chargement uniquement
         // Cela évite d'afficher N/A pendant les rechargements
         if (!systemMetrics) {
-          setLoadingSystemMetrics(true)
+          setLoadingSystemMetrics(true);
         }
-        
+
         // Récupérer toutes les métriques depuis le service centralisé
-        const allMetrics = await centralMetricsService.fetchMetrics()
-        
+        const allMetrics = await centralMetricsService.fetchMetrics();
+
         if (allMetrics) {
           // ✅ FUSIONNER les nouvelles métriques avec les anciennes pour garder toutes les valeurs
           // Ne jamais mettre null ou undefined pour éviter d'afficher N/A
@@ -335,383 +394,519 @@ export default function BackofficePage() {
                 return {
                   ...allMetrics.system,
                   monitoringC: allMetrics.monitoringC,
-                  jobbingtrack: allMetrics.system.jobbingtrack
-                }
+                  jobbingtrack: allMetrics.system.jobbingtrack,
+                };
               }
-              
+
               // ✅ OPTIMISATION : Comparer les valeurs numériques au lieu des strings pour éviter les re-renders inutiles
-              const prevCpuPercent = typeof prev?.cpu?.usage_percent === 'number' ? prev.cpu.usage_percent : 
-                (typeof prev?.cpu?.usage === 'string' ? parseFloat(prev.cpu.usage.replace('%', '')) : 0)
-              const newCpuPercent = typeof allMetrics.system.cpu?.usage_percent === 'number' ? allMetrics.system.cpu.usage_percent :
-                (typeof allMetrics.system.cpu?.usage === 'string' ? parseFloat(allMetrics.system.cpu.usage.replace('%', '')) : 0)
-              
-              const prevMemPercent = typeof prev?.memory?.usage_percent === 'number' ? prev.memory.usage_percent :
-                (typeof prev?.memory?.usage === 'string' ? parseFloat(prev.memory.usage.replace('%', '')) : 0)
-              const newMemPercent = typeof allMetrics.system.memory?.usage_percent === 'number' ? allMetrics.system.memory.usage_percent :
-                (typeof allMetrics.system.memory?.usage === 'string' ? parseFloat(allMetrics.system.memory.usage.replace('%', '')) : 0)
-              
-              const cpuChanged = Math.abs(prevCpuPercent - newCpuPercent) > 0.5 // Seuil de 0.5% pour éviter trop de re-renders
-              const memChanged = Math.abs(prevMemPercent - newMemPercent) > 0.5
-              
+              const prevCpuPercent =
+                typeof prev?.cpu?.usage_percent === "number"
+                  ? prev.cpu.usage_percent
+                  : typeof prev?.cpu?.usage === "string"
+                    ? parseFloat(prev.cpu.usage.replace("%", ""))
+                    : 0;
+              const newCpuPercent =
+                typeof allMetrics.system.cpu?.usage_percent === "number"
+                  ? allMetrics.system.cpu.usage_percent
+                  : typeof allMetrics.system.cpu?.usage === "string"
+                    ? parseFloat(allMetrics.system.cpu.usage.replace("%", ""))
+                    : 0;
+
+              const prevMemPercent =
+                typeof prev?.memory?.usage_percent === "number"
+                  ? prev.memory.usage_percent
+                  : typeof prev?.memory?.usage === "string"
+                    ? parseFloat(prev.memory.usage.replace("%", ""))
+                    : 0;
+              const newMemPercent =
+                typeof allMetrics.system.memory?.usage_percent === "number"
+                  ? allMetrics.system.memory.usage_percent
+                  : typeof allMetrics.system.memory?.usage === "string"
+                    ? parseFloat(
+                        allMetrics.system.memory.usage.replace("%", ""),
+                      )
+                    : 0;
+
+              const cpuChanged = Math.abs(prevCpuPercent - newCpuPercent) > 0.5; // Seuil de 0.5% pour éviter trop de re-renders
+              const memChanged = Math.abs(prevMemPercent - newMemPercent) > 0.5;
+
               // ✅ OPTIMISATION : Toujours mettre à jour si les données projet ont changé
-              const projectCpuChanged = Math.abs(
-                (prev?.jobbingtrack?.containers?.cpu?.averagePercent || 0) - 
-                (allMetrics.system.jobbingtrack?.containers?.cpu?.averagePercent || 0)
-              ) > 0.1
-              const projectMemChanged = Math.abs(
-                (prev?.jobbingtrack?.containers?.memory?.percent_of_system || 0) - 
-                (allMetrics.system.jobbingtrack?.containers?.memory?.percent_of_system || 0)
-              ) > 0.1
-              
+              const projectCpuChanged =
+                Math.abs(
+                  (prev?.jobbingtrack?.containers?.cpu?.averagePercent || 0) -
+                    (allMetrics.system.jobbingtrack?.containers?.cpu
+                      ?.averagePercent || 0),
+                ) > 0.1;
+              const projectMemChanged =
+                Math.abs(
+                  (prev?.jobbingtrack?.containers?.memory?.percent_of_system ||
+                    0) -
+                    (allMetrics.system.jobbingtrack?.containers?.memory
+                      ?.percent_of_system || 0),
+                ) > 0.1;
+
               // Si pas de changement significatif, retourner l'objet précédent (évite re-render)
-              if (!cpuChanged && !memChanged && !projectCpuChanged && !projectMemChanged && prev) {
-                return prev
+              if (
+                !cpuChanged &&
+                !memChanged &&
+                !projectCpuChanged &&
+                !projectMemChanged &&
+                prev
+              ) {
+                return prev;
               }
-              
+
               return {
                 ...prev,
                 ...allMetrics.system,
                 // ✅ CORRECTION : Préserver monitoringC et jobbingtrack
                 monitoringC: allMetrics.monitoringC || prev.monitoringC,
                 // Préserver les sous-objets en les fusionnant aussi
-                cpu: prev?.cpu ? { ...prev.cpu, ...allMetrics.system.cpu } : allMetrics.system.cpu,
-                memory: prev?.memory ? { ...prev.memory, ...allMetrics.system.memory } : allMetrics.system.memory,
-                load: prev?.load ? { ...prev.load, ...allMetrics.system.load } : allMetrics.system.load,
+                cpu: prev?.cpu
+                  ? { ...prev.cpu, ...allMetrics.system.cpu }
+                  : allMetrics.system.cpu,
+                memory: prev?.memory
+                  ? { ...prev.memory, ...allMetrics.system.memory }
+                  : allMetrics.system.memory,
+                load: prev?.load
+                  ? { ...prev.load, ...allMetrics.system.load }
+                  : allMetrics.system.load,
                 disk: allMetrics.system.disk || prev?.disk,
-                jobbingtrack: prev?.jobbingtrack ? {
-                  ...prev.jobbingtrack,
-                  ...allMetrics.system.jobbingtrack,
-                  containers: allMetrics.system.jobbingtrack?.containers || prev.jobbingtrack.containers
-                } : allMetrics.system.jobbingtrack
-              }
-            })
+                jobbingtrack: prev?.jobbingtrack
+                  ? {
+                      ...prev.jobbingtrack,
+                      ...allMetrics.system.jobbingtrack,
+                      containers:
+                        allMetrics.system.jobbingtrack?.containers ||
+                        prev.jobbingtrack.containers,
+                    }
+                  : allMetrics.system.jobbingtrack,
+              };
+            });
           }
           if (allMetrics.containers) {
             setContainerMetrics((prev: any) => ({
               ...prev,
-              ...allMetrics.containers
-            }))
+              ...allMetrics.containers,
+            }));
           }
-          
+
           // ✅ Enrichir les services avec leurs métriques en temps réel
           // FUSIONNER avec les valeurs précédentes pour éviter d'afficher "Test en cours" pendant le chargement
           setServicesWithMetrics((prevServices: any[]) => {
             // ✅ CORRECTION : S'assurer que prevServices est un tableau
-            const safePrevServices = Array.isArray(prevServices) ? prevServices : []
-            return services.map(service => {
+            const safePrevServices = Array.isArray(prevServices)
+              ? prevServices
+              : [];
+            return services.map((service) => {
               // Trouver le service précédent pour garder ses valeurs si disponibles
-              const prevService = safePrevServices.find(s => s.id === service.id)
-              
+              const prevService = safePrevServices.find(
+                (s) => s.id === service.id,
+              );
+
               // Chercher les métriques du conteneur correspondant au service
-              const serviceKey = service.id.replace('-service', '')
-              let containerMetrics = null
-              
+              const serviceKey = service.id.replace("-service", "");
+              let containerMetrics = null;
+
               // Chercher dans containers si disponible
               if (allMetrics.containers) {
-                const containerName = `jobbingtrack-${serviceKey}`
-                containerMetrics = Object.entries(allMetrics.containers).find(([name]) => 
-                  name.toLowerCase().includes(serviceKey)
-                )?.[1]
+                const containerName = `jobbingtrack-${serviceKey}`;
+                containerMetrics = Object.entries(allMetrics.containers).find(
+                  ([name]) => name.toLowerCase().includes(serviceKey),
+                )?.[1];
               }
-              
+
               // Chercher dans services si disponible
-              let serviceMetrics = null
+              let serviceMetrics = null;
               if (allMetrics.services && allMetrics.services[service.id]) {
-                serviceMetrics = allMetrics.services[service.id]
+                serviceMetrics = allMetrics.services[service.id];
               }
-              
+
               // ✅ CORRECTION : Chercher aussi dans servicesList pour avoir les métriques complètes
-              const serviceFromList = allMetrics.servicesList?.find((s: any) => 
-                s.rawName === `jobbingtrack-${serviceKey}` || 
-                s.name === service.id ||
-                s.serviceType === serviceKey
-              )
-              
+              const serviceFromList = allMetrics.servicesList?.find(
+                (s: any) =>
+                  s.rawName === `jobbingtrack-${serviceKey}` ||
+                  s.name === service.id ||
+                  s.serviceType === serviceKey,
+              );
+
               if (serviceFromList) {
-                serviceMetrics = serviceFromList
+                serviceMetrics = serviceFromList;
               }
-              
+
               // ✅ CORRECTION : Déterminer le status correctement depuis les métriques
-              let newStatus = prevService?.status || 'testing'
-              
+              let newStatus = prevService?.status || "testing";
+
               // Priorité 1 : Statut depuis serviceMetrics (le plus fiable)
               if (serviceMetrics?.status) {
-                newStatus = serviceMetrics.status
+                newStatus = serviceMetrics.status;
               } else if (serviceMetrics?.healthStatus) {
                 // Mapper healthStatus vers status
-                if (serviceMetrics.healthStatus === 'online' || serviceMetrics.healthStatus === 'healthy') {
-                  newStatus = 'running'
-                } else if (serviceMetrics.healthStatus === 'offline' || serviceMetrics.healthStatus === 'unhealthy') {
-                  newStatus = 'stopped'
-                } else if (serviceMetrics.healthStatus === 'degraded') {
-                  newStatus = 'degraded'
+                if (
+                  serviceMetrics.healthStatus === "online" ||
+                  serviceMetrics.healthStatus === "healthy"
+                ) {
+                  newStatus = "running";
+                } else if (
+                  serviceMetrics.healthStatus === "offline" ||
+                  serviceMetrics.healthStatus === "unhealthy"
+                ) {
+                  newStatus = "stopped";
+                } else if (serviceMetrics.healthStatus === "degraded") {
+                  newStatus = "degraded";
                 } else {
-                  newStatus = 'unknown'
+                  newStatus = "unknown";
                 }
               } else if (serviceMetrics?.health?.status) {
-                const healthStatus = serviceMetrics.health.status
-                if (healthStatus === 'healthy') {
-                  newStatus = 'running'
-                } else if (healthStatus === 'unhealthy' || healthStatus === 'down') {
-                  newStatus = 'stopped'
-                } else if (healthStatus === 'degraded') {
-                  newStatus = 'degraded'
+                const healthStatus = serviceMetrics.health.status;
+                if (healthStatus === "healthy") {
+                  newStatus = "running";
+                } else if (
+                  healthStatus === "unhealthy" ||
+                  healthStatus === "down"
+                ) {
+                  newStatus = "stopped";
+                } else if (healthStatus === "degraded") {
+                  newStatus = "degraded";
                 } else {
-                  newStatus = 'unknown'
+                  newStatus = "unknown";
                 }
               } else if (containerMetrics) {
                 // Si on a des métriques de conteneur, le service est probablement running
-                newStatus = 'running'
+                newStatus = "running";
               } else {
                 // Pas de métriques disponibles : garder l'ancien statut ou 'unknown'
-                newStatus = prevService?.status || 'unknown'
+                newStatus = prevService?.status || "unknown";
               }
-              
+
               const resolvedUptime =
-                (serviceMetrics?.uptime && serviceMetrics.uptime !== 'N/A' && String(serviceMetrics.uptime).trim() !== '')
+                serviceMetrics?.uptime &&
+                serviceMetrics.uptime !== "N/A" &&
+                String(serviceMetrics.uptime).trim() !== ""
                   ? serviceMetrics.uptime
-                  : (prevService?.uptime && prevService.uptime !== 'N/A' ? prevService.uptime : undefined)
-                  ?? (newStatus === 'running' || containerMetrics ? 'En ligne' : newStatus === 'stopped' ? 'Hors ligne' : '—')
+                  : ((prevService?.uptime && prevService.uptime !== "N/A"
+                      ? prevService.uptime
+                      : undefined) ??
+                    (newStatus === "running" || containerMetrics
+                      ? "En ligne"
+                      : newStatus === "stopped"
+                        ? "Hors ligne"
+                        : "—"));
 
               return {
                 ...service,
                 // Garder les anciennes valeurs si les nouvelles ne sont pas disponibles
-                metrics: containerMetrics || serviceMetrics?.metrics || prevService?.metrics,
+                metrics:
+                  containerMetrics ||
+                  serviceMetrics?.metrics ||
+                  prevService?.metrics,
                 health: serviceMetrics?.health || prevService?.health,
                 status: newStatus,
-                responseTime: serviceMetrics?.health?.responseTime ?? prevService?.responseTime ?? 'N/A',
+                responseTime:
+                  serviceMetrics?.health?.responseTime ??
+                  prevService?.responseTime ??
+                  "N/A",
                 uptime: resolvedUptime,
-              }
-            })
-          })
-          
+              };
+            });
+          });
+
           // ✅ Calculer le temps de réponse moyen depuis les métriques
           // Priorité 1 : Utiliser avg_response_time_ms depuis monitoringC (le plus fiable)
           // Priorité 2 : Utiliser responseTime.average_ms (calculé depuis servicesList)
           // Priorité 3 : Calculer depuis servicesList individuellement
-          const avgResponseTime = allMetrics.monitoringC?.avg_response_time_ms !== null && allMetrics.monitoringC?.avg_response_time_ms !== undefined
-            ? Math.round(Number(allMetrics.monitoringC.avg_response_time_ms))
-            : allMetrics.responseTime?.average_ms !== null && allMetrics.responseTime?.average_ms !== undefined
-            ? Math.round(Number(allMetrics.responseTime.average_ms))
-            : (() => {
-                const responseTimes = allMetrics.servicesList
-                  ?.filter((svc: any) => typeof svc.responseTimeMs === 'number' && svc.responseTimeMs > 0)
-                  .map((svc: any) => svc.responseTimeMs) || []
-                return responseTimes.length > 0
-                  ? Math.round(responseTimes.reduce((sum: number, time: number) => sum + time, 0) / responseTimes.length)
-                  : 0
-              })()
-          
+          const avgResponseTime =
+            allMetrics.monitoringC?.avg_response_time_ms !== null &&
+            allMetrics.monitoringC?.avg_response_time_ms !== undefined
+              ? Math.round(Number(allMetrics.monitoringC.avg_response_time_ms))
+              : allMetrics.responseTime?.average_ms !== null &&
+                  allMetrics.responseTime?.average_ms !== undefined
+                ? Math.round(Number(allMetrics.responseTime.average_ms))
+                : (() => {
+                    const responseTimes =
+                      allMetrics.servicesList
+                        ?.filter(
+                          (svc: any) =>
+                            typeof svc.responseTimeMs === "number" &&
+                            svc.responseTimeMs > 0,
+                        )
+                        .map((svc: any) => svc.responseTimeMs) || [];
+                    return responseTimes.length > 0
+                      ? Math.round(
+                          responseTimes.reduce(
+                            (sum: number, time: number) => sum + time,
+                            0,
+                          ) / responseTimes.length,
+                        )
+                      : 0;
+                  })();
+
           // ✅ Calculer le taux d'erreur depuis les métriques
-          const totalErrors = allMetrics.errors?.total_last_5m || 0
-          const errorRate = allMetrics.errors?.rate_per_min || 0
-          
+          const totalErrors = allMetrics.errors?.total_last_5m || 0;
+          const errorRate = allMetrics.errors?.rate_per_min || 0;
+
           // Événements erreur côté agrégateur (fenêtre courte, ex. 5 min) — pas une vue 24h tant que l’API ne l’expose pas
-          const securityWindowErrors = typeof totalErrors === 'number' ? totalErrors : 0
-          const nextErrorRate = typeof errorRate === 'number' && !Number.isNaN(errorRate) ? errorRate : 0
+          const securityWindowErrors =
+            typeof totalErrors === "number" ? totalErrors : 0;
+          const nextErrorRate =
+            typeof errorRate === "number" && !Number.isNaN(errorRate)
+              ? errorRate
+              : 0;
 
           // ✅ Mettre à jour les stats (0 explicite pour taux / compteurs, pas conserver une ancienne valeur)
           setStats((prev: any) => ({
             ...prev,
-            averageResponseTime: (typeof avgResponseTime === 'number' && !Number.isNaN(avgResponseTime)) ? avgResponseTime : prev.averageResponseTime,
+            averageResponseTime:
+              typeof avgResponseTime === "number" &&
+              !Number.isNaN(avgResponseTime)
+                ? avgResponseTime
+                : prev.averageResponseTime,
             errorRate: nextErrorRate,
             recentErrors: securityWindowErrors,
             systemHealth: allMetrics.health?.availability_percent
               ? Math.round(Number(allMetrics.health.availability_percent))
-              : prev.systemHealth
-          }))
+              : prev.systemHealth,
+          }));
         }
         // ✅ Suppression du else - on garde les anciennes valeurs si échec
       } catch (error) {
-        console.error('Erreur chargement métriques système:', error)
+        console.error("Erreur chargement métriques système:", error);
         // ✅ Ne rien faire en cas d'erreur - garder les anciennes valeurs
       } finally {
-        setLoadingSystemMetrics(false)
+        setLoadingSystemMetrics(false);
       }
-    }
+    };
 
     if (isAuthenticated) {
       // ✅ Charger les préférences de rafraîchissement
       const loadRefreshIntervals = async () => {
         try {
-          const metricsInterval = await preferencesService.getRefreshInterval('metrics')
-          const dashboardInterval = await preferencesService.getRefreshInterval('dashboard')
-          setMetricsRefreshInterval(Math.max(30000, metricsInterval))
-          setServicesRefreshInterval(dashboardInterval)
+          const metricsInterval =
+            await preferencesService.getRefreshInterval("metrics");
+          const dashboardInterval =
+            await preferencesService.getRefreshInterval("dashboard");
+          setMetricsRefreshInterval(Math.max(30000, metricsInterval));
+          setServicesRefreshInterval(dashboardInterval);
         } catch (error) {
-          console.error('Erreur chargement préférences:', error)
+          console.error("Erreur chargement préférences:", error);
         }
-      }
-      loadRefreshIntervals()
+      };
+      loadRefreshIntervals();
 
       // ✅ OPTIMISATION : Délai initial pour ne pas bloquer le chargement principal
       const initialTimeout = setTimeout(() => {
-        loadSystemMetrics()
-        loadMaintenances()
-      }, 500)
-      
+        loadSystemMetrics();
+        loadMaintenances();
+      }, 500);
+
       // ✅ Actualiser selon les préférences utilisateur
       const interval = setInterval(() => {
-        if (document.visibilityState === 'visible' && !document.hidden) {
-          loadSystemMetrics()
+        if (document.visibilityState === "visible" && !document.hidden) {
+          loadSystemMetrics();
         }
-      }, metricsRefreshInterval)
-      
+      }, metricsRefreshInterval);
+
       return () => {
-        clearTimeout(initialTimeout)
-        clearInterval(interval)
-      }
+        clearTimeout(initialTimeout);
+        clearInterval(interval);
+      };
     }
-  }, [isAuthenticated, metricsRefreshInterval])
+  }, [isAuthenticated, metricsRefreshInterval]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setLoadingStats(true)
-        
+        setLoadingStats(true);
+
         // Récupérer les statistiques depuis les services (avec gestion silencieuse des erreurs)
-        const fetchWithFallback = async (promise: Promise<any>, fallback: any) => {
+        const fetchWithFallback = async (
+          promise: Promise<any>,
+          fallback: any,
+        ) => {
           try {
-            const result = await promise
-            return result
+            const result = await promise;
+            return result;
           } catch (error: any) {
             // Gérer les erreurs 500, 503, et autres erreurs serveur gracieusement
-            const status = error?.response?.status
-            const isServerError = status >= 500 && status < 600
-            const isClientError = status >= 400 && status < 500
-            
+            const status = error?.response?.status;
+            const isServerError = status >= 500 && status < 600;
+            const isClientError = status >= 400 && status < 500;
+
             // Ne log que les erreurs serveur (500+) ou les erreurs client critiques (401, 403)
             // Ignorer silencieusement les 404 et autres erreurs non critiques
-            if (isServerError || (isClientError && (status === 401 || status === 403))) {
+            if (
+              isServerError ||
+              (isClientError && (status === 401 || status === 403))
+            ) {
               // En développement, logger pour debug
-              if (process.env.NODE_ENV === 'development') {
-                console.warn('Error retrieving data:', {
+              if (process.env.NODE_ENV === "development") {
+                console.warn("Error retrieving data:", {
                   status,
                   message: error.message,
-                  url: error?.config?.url
+                  url: error?.config?.url,
                 });
               }
             }
             // Toujours retourner le fallback pour éviter de bloquer l'interface
-            return fallback
+            return fallback;
           }
-        }
+        };
 
         // ✅ OPTIMISATION : Charger les données en parallèle mais avec cache et limites
-        const cacheKey = `backoffice_overview_stats_${token?.substring(0, 10)}`
-        const cached = await cacheManager?.get(cacheKey, { ttl: 15000 }) // Cache 15 secondes
-        
+        const cacheKey = `backoffice_overview_stats_${token?.substring(0, 10)}`;
+        const cached = await cacheManager?.get(cacheKey, { ttl: 15000 }); // Cache 15 secondes
+
         if (cached) {
-          setStats(cached as typeof stats)
-          setLoadingStats(false)
+          setStats(cached as typeof stats);
+          setLoadingStats(false);
           // ✅ OPTIMISATION : Rafraîchir en arrière-plan sans bloquer
           Promise.all([
             fetchWithFallback(
               applicationService.getAll({ limit: 10 }).catch((error: any) => {
                 if (error?.response?.status === 500) {
-                  console.warn('[Vue d\'ensemble] Erreur 500 sur /api/v1/applications');
+                  console.warn(
+                    "[Vue d'ensemble] Erreur 500 sur /api/v1/applications",
+                  );
                 }
                 throw error;
               }),
-              { data: { total: 0, applications: [] } }
+              { data: { total: 0, applications: [] } },
             ),
             fetchWithFallback(
-              axios.get(`${API_URL}/api/v1/auth/users?limit=10`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-                validateStatus: (status) => status < 500
-              }).then(r => ({ data: r.data })).catch(e => {
-                if (e.response?.status !== 401 && e.response?.status !== 403) {
-                  return axios.get(`${API_URL}/api/v1/users?limit=10`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    validateStatus: (status) => status < 500
-                  }).then(r => ({ data: r.data })).catch(() => ({ data: { users: [] } }));
-                }
-                return { data: { users: [] } };
-              }),
-              { data: { users: [] } }
+              axios
+                .get(`${API_URL}/api/v1/auth/users?limit=10`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                  validateStatus: (status) => status < 500,
+                })
+                .then((r) => ({ data: r.data }))
+                .catch((e) => {
+                  if (
+                    e.response?.status !== 401 &&
+                    e.response?.status !== 403
+                  ) {
+                    return axios
+                      .get(`${API_URL}/api/v1/users?limit=10`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        validateStatus: (status) => status < 500,
+                      })
+                      .then((r) => ({ data: r.data }))
+                      .catch(() => ({ data: { users: [] } }));
+                  }
+                  return { data: { users: [] } };
+                }),
+              { data: { users: [] } },
             ),
-            fetchWithFallback(
-              companyService.getAll({ limit: 10 }),
-              { data: { companies: [] } }
-            ),
+            fetchWithFallback(companyService.getAll({ limit: 10 }), {
+              data: { companies: [] },
+            }),
             fetchWithFallback(
               axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-                validateStatus: (status) => status < 500
+                headers: { Authorization: `Bearer ${token}` },
+                validateStatus: (status) => status < 500,
               }),
-              { data: { total: 0, activeUsersLast30Min: 0 } }
+              { data: { total: 0, activeUsersLast30Min: 0 } },
+            ),
+          ])
+            .then(
+              ([
+                applicationsResponse,
+                usersResponse,
+                companiesResponse,
+                activeSessionsResponse,
+              ]) => {
+                const totalApplications =
+                  applicationsResponse?.data?.total || 0;
+                const totalUsers =
+                  usersResponse?.data?.users?.length ||
+                  usersResponse?.data?.total ||
+                  0;
+                const totalCompanies =
+                  companiesResponse?.data?.companies?.length || 0;
+                const activeSessions =
+                  activeSessionsResponse?.data?.total ||
+                  activeSessionsResponse?.data?.activeUsersLast30Min ||
+                  (user ? 1 : 0);
+
+                const newStats = {
+                  totalApplications,
+                  totalUsers,
+                  totalCompanies,
+                  activeUsers: activeSessions,
+                  activeSessions: activeSessions,
+                  systemHealth: 100,
+                  deploymentStatus: "success" as const,
+                };
+
+                setStats((prev) => ({ ...prev, ...newStats }));
+                cacheManager
+                  ?.set(cacheKey, newStats, { ttl: 15000 })
+                  .catch(() => {});
+              },
             )
-          ]).then(([applicationsResponse, usersResponse, companiesResponse, activeSessionsResponse]) => {
-            const totalApplications = applicationsResponse?.data?.total || 0
-            const totalUsers = usersResponse?.data?.users?.length || usersResponse?.data?.total || 0
-            const totalCompanies = companiesResponse?.data?.companies?.length || 0
-            const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || (user ? 1 : 0)
-
-            const newStats = {
-              totalApplications,
-              totalUsers,
-              totalCompanies,
-              activeUsers: activeSessions,
-              activeSessions: activeSessions,
-              systemHealth: 100,
-              deploymentStatus: 'success' as const
-            }
-
-            setStats(prev => ({ ...prev, ...newStats }))
-            cacheManager?.set(cacheKey, newStats, { ttl: 15000 }).catch(() => {})
-          }).catch(() => {})
-          return
+            .catch(() => {});
+          return;
         }
-        
+
         // Pas de cache, charger les données
         const [
           applicationsResponse,
           usersResponse,
           companiesResponse,
-          activeSessionsResponse
+          activeSessionsResponse,
         ] = await Promise.all([
           fetchWithFallback(
             applicationService.getAll({ limit: 10 }).catch((error: any) => {
               if (error?.response?.status === 500) {
-                console.warn('[Vue d\'ensemble] Erreur 500 sur /api/v1/applications');
+                console.warn(
+                  "[Vue d'ensemble] Erreur 500 sur /api/v1/applications",
+                );
               }
               throw error;
             }),
-            { data: { total: 0, applications: [] } }
+            { data: { total: 0, applications: [] } },
           ),
           fetchWithFallback(
-            axios.get(`${API_URL}/api/v1/auth/users?limit=10`, {
-              headers: { 'Authorization': `Bearer ${token}` },
-              validateStatus: (status) => status < 500
-            }).then(r => ({ data: r.data })).catch(e => {
-              if (e.response?.status !== 401 && e.response?.status !== 403) {
-                return axios.get(`${API_URL}/api/v1/users?limit=10`, {
-                  headers: { 'Authorization': `Bearer ${token}` },
-                  validateStatus: (status) => status < 500
-                }).then(r => ({ data: r.data })).catch(() => ({ data: { users: [] } }));
-              }
-              return { data: { users: [] } };
-            }),
-            { data: { users: [] } }
+            axios
+              .get(`${API_URL}/api/v1/auth/users?limit=10`, {
+                headers: { Authorization: `Bearer ${token}` },
+                validateStatus: (status) => status < 500,
+              })
+              .then((r) => ({ data: r.data }))
+              .catch((e) => {
+                if (e.response?.status !== 401 && e.response?.status !== 403) {
+                  return axios
+                    .get(`${API_URL}/api/v1/users?limit=10`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                      validateStatus: (status) => status < 500,
+                    })
+                    .then((r) => ({ data: r.data }))
+                    .catch(() => ({ data: { users: [] } }));
+                }
+                return { data: { users: [] } };
+              }),
+            { data: { users: [] } },
           ),
-          fetchWithFallback(
-            companyService.getAll({ limit: 10 }),
-            { data: { companies: [] } }
-          ),
+          fetchWithFallback(companyService.getAll({ limit: 10 }), {
+            data: { companies: [] },
+          }),
           fetchWithFallback(
             axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
-              headers: { 'Authorization': `Bearer ${token}` },
-              validateStatus: (status) => status < 500
+              headers: { Authorization: `Bearer ${token}` },
+              validateStatus: (status) => status < 500,
             }),
-            { data: { total: 0, activeUsersLast30Min: 0 } }
-          )
-        ])
+            { data: { total: 0, activeUsersLast30Min: 0 } },
+          ),
+        ]);
 
         // Calculer les statistiques
-        const totalApplications = applicationsResponse?.data?.total || 0
-        const totalUsers = usersResponse?.data?.users?.length || usersResponse?.data?.total || 0
-        const totalCompanies = companiesResponse?.data?.companies?.length || 0
-        const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || (user ? 1 : 0)
+        const totalApplications = applicationsResponse?.data?.total || 0;
+        const totalUsers =
+          usersResponse?.data?.users?.length || usersResponse?.data?.total || 0;
+        const totalCompanies = companiesResponse?.data?.companies?.length || 0;
+        const activeSessions =
+          activeSessionsResponse?.data?.total ||
+          activeSessionsResponse?.data?.activeUsersLast30Min ||
+          (user ? 1 : 0);
 
         const newStats = {
           totalApplications,
@@ -720,183 +915,207 @@ export default function BackofficePage() {
           activeUsers: activeSessions,
           activeSessions: activeSessions,
           systemHealth: 100,
-          deploymentStatus: 'success' as const
-        }
+          deploymentStatus: "success" as const,
+        };
 
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
-          ...newStats
-        }))
-        
+          ...newStats,
+        }));
+
         // Mettre en cache
-        await cacheManager?.set(cacheKey, newStats, { ttl: 15000 })
+        await cacheManager?.set(cacheKey, newStats, { ttl: 15000 });
       } catch (error) {
-        console.error('Erreur chargement statistiques:', error)
+        console.error("Erreur chargement statistiques:", error);
       } finally {
-        setLoadingStats(false)
+        setLoadingStats(false);
       }
-    }
+    };
 
     if (isAuthenticated && token) {
-      fetchStats()
+      fetchStats();
     }
-  }, [isAuthenticated, token])
+  }, [isAuthenticated, token]);
 
   // ✅ OPTIMISATION : Charger les services avec leurs métriques avec cache et délai
   useEffect(() => {
-    let mounted = true
-    let timeoutId: NodeJS.Timeout | null = null
-    
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const loadServicesWithMetrics = async () => {
       try {
         // ✅ OPTIMISATION : Utiliser le cache
-        const cacheKey = 'backoffice_services_metrics'
-        const cached = await cacheManager?.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-        
+        const cacheKey = "backoffice_services_metrics";
+        const cached = await cacheManager?.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
         if (cached && mounted) {
-          setServicesWithMetrics(Array.isArray(cached) ? cached : [])
+          setServicesWithMetrics(Array.isArray(cached) ? cached : []);
           // Rafraîchir en arrière-plan
           timeoutId = setTimeout(async () => {
             try {
-              const servicesData = await centralMetricsService.getAllServices()
+              const servicesData = await centralMetricsService.getAllServices();
               if (servicesData && servicesData.length > 0 && mounted) {
-                const updatedServices = services.map(service => {
-                  const serviceData = servicesData.find((s: any) => s.name === service.name || s.id === service.id)
-                  return serviceData ? { ...service, ...serviceData } : service
-                })
-                await cacheManager?.set(cacheKey, updatedServices, { ttl: 30000 })
-                if (mounted) setServicesWithMetrics(updatedServices)
+                const updatedServices = services.map((service) => {
+                  const serviceData = servicesData.find(
+                    (s: any) => s.name === service.name || s.id === service.id,
+                  );
+                  return serviceData ? { ...service, ...serviceData } : service;
+                });
+                await cacheManager?.set(cacheKey, updatedServices, {
+                  ttl: 30000,
+                });
+                if (mounted) setServicesWithMetrics(updatedServices);
               }
             } catch (error) {
               // Ignorer les erreurs en arrière-plan
             }
-          }, 1000)
-          return
+          }, 1000);
+          return;
         }
-        
+
         // ✅ OPTIMISATION : Délai initial pour ne pas bloquer le chargement principal
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const servicesData = await centralMetricsService.getAllServices()
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const servicesData = await centralMetricsService.getAllServices();
         if (servicesData && servicesData.length > 0 && mounted) {
           // ✅ FUSIONNER avec les valeurs précédentes au lieu d'écraser
           setServicesWithMetrics((prevServices: any[]) => {
             // ✅ CORRECTION : S'assurer que prevServices est un tableau
-            const safePrevServices = Array.isArray(prevServices) ? prevServices : []
-            const updated = services.map(service => {
+            const safePrevServices = Array.isArray(prevServices)
+              ? prevServices
+              : [];
+            const updated = services.map((service) => {
               // Trouver le service précédent pour garder ses valeurs
-              const prevService = safePrevServices.find(s => s.id === service.id)
-              
+              const prevService = safePrevServices.find(
+                (s) => s.id === service.id,
+              );
+
               // Chercher le service correspondant dans les données Docker
-              const dockerService = servicesData.find((s: any) => 
-                s.name?.includes(service.id) || s.name === `jobbingtrack-${service.id}`
-              )
-              
+              const dockerService = servicesData.find(
+                (s: any) =>
+                  s.name?.includes(service.id) ||
+                  s.name === `jobbingtrack-${service.id}`,
+              );
+
               // ✅ OPTIMISATION : Si on a des nouvelles données Docker, les utiliser avec logique stable
               if (dockerService) {
                 // Logique de statut stable - ne changer que si nécessaire
-                const dockerStatus = dockerService.is_running ? 'running' : 'stopped'
+                const dockerStatus = dockerService.is_running
+                  ? "running"
+                  : "stopped";
                 // Garder l'ancien statut si le nouveau est 'stopped' mais l'ancien était 'running'
                 // (éviter les changements erratiques dus aux requêtes qui échouent temporairement)
-                const finalStatus = (prevService?.status === 'running' && dockerStatus === 'stopped' && !dockerService.is_healthy) 
-                  ? prevService.status  // Garder 'running' si on était en ligne et que la requête échoue
-                  : dockerStatus
-                
+                const finalStatus =
+                  prevService?.status === "running" &&
+                  dockerStatus === "stopped" &&
+                  !dockerService.is_healthy
+                    ? prevService.status // Garder 'running' si on était en ligne et que la requête échoue
+                    : dockerStatus;
+
                 return {
                   ...service,
                   status: finalStatus,
-                  metrics: dockerService.metrics ? {
-                    cpu: dockerService.metrics.cpu_percent,
-                    memory: {
-                      percent: dockerService.metrics.memory_percent,
-                      usage: dockerService.metrics.memory_usage_mb
-                    },
-                    pids: dockerService.metrics.pids
-                  } : prevService?.metrics,
-                  health: prevService?.health || (dockerService.is_healthy ? { status: 'healthy' } : { status: 'unhealthy' }),
-                  responseTime: prevService?.responseTime || 'N/A',
-                  uptime: prevService?.uptime || (dockerService.is_running ? 'En ligne' : 'Hors ligne')
-                }
+                  metrics: dockerService.metrics
+                    ? {
+                        cpu: dockerService.metrics.cpu_percent,
+                        memory: {
+                          percent: dockerService.metrics.memory_percent,
+                          usage: dockerService.metrics.memory_usage_mb,
+                        },
+                        pids: dockerService.metrics.pids,
+                      }
+                    : prevService?.metrics,
+                  health:
+                    prevService?.health ||
+                    (dockerService.is_healthy
+                      ? { status: "healthy" }
+                      : { status: "unhealthy" }),
+                  responseTime: prevService?.responseTime || "N/A",
+                  uptime:
+                    prevService?.uptime ||
+                    (dockerService.is_running ? "En ligne" : "Hors ligne"),
+                };
               }
-              
+
               // Pas de nouvelles données Docker, garder les anciennes valeurs
-              return prevService || service
-            })
-            return updated
-          })
+              return prevService || service;
+            });
+            return updated;
+          });
         }
         // ✅ Ne rien faire si pas de données - garder les valeurs existantes
       } catch (error) {
-        console.error('Erreur chargement services:', error)
+        console.error("Erreur chargement services:", error);
         // ✅ Ne rien faire en cas d'erreur - garder les valeurs existantes
       }
-    }
+    };
 
     // ✅ Charger les préférences de rafraîchissement
     const loadRefreshIntervals = async () => {
       try {
-        const servicesInterval = await preferencesService.getRefreshInterval('services')
-        setServicesRefreshInterval(Math.max(60000, servicesInterval))
+        const servicesInterval =
+          await preferencesService.getRefreshInterval("services");
+        setServicesRefreshInterval(Math.max(60000, servicesInterval));
       } catch (error) {
-        console.error('Erreur chargement préférences:', error)
+        console.error("Erreur chargement préférences:", error);
       }
-    }
-    loadRefreshIntervals()
+    };
+    loadRefreshIntervals();
 
-    loadServicesWithMetrics()
+    loadServicesWithMetrics();
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !document.hidden) {
-        loadServicesWithMetrics()
+      if (document.visibilityState === "visible" && !document.hidden) {
+        loadServicesWithMetrics();
       }
-    }, servicesRefreshInterval)
+    }, servicesRefreshInterval);
     return () => {
-      mounted = false
-      if (timeoutId) clearTimeout(timeoutId)
-      clearInterval(interval)
-    }
-  }, [servicesRefreshInterval])
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
+  }, [servicesRefreshInterval]);
 
   // Charger les maintenances au démarrage
   useEffect(() => {
     if (isAuthenticated && token) {
-      loadMaintenances()
+      loadMaintenances();
     }
-  }, [isAuthenticated, token])
+  }, [isAuthenticated, token]);
 
   // ✅ OPTIMISATION : Mémoriser le statut des services simulés avec useMemo
   const generateServiceStatus = useMemo(() => {
     const services = [
-      { name: 'Auth Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Application Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Company Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Contact Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Interview Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Notification Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Dashboard Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Call Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Profile Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Event Service', status: 'running', uptime: '15j 4h 23m' },
-      { name: 'Followup Service', status: 'running', uptime: '15j 4h 23m' }
-    ]
-    return services
-  }, [])
+      { name: "Auth Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Application Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Company Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Contact Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Interview Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Notification Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Dashboard Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Call Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Profile Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Event Service", status: "running", uptime: "15j 4h 23m" },
+      { name: "Followup Service", status: "running", uptime: "15j 4h 23m" },
+    ];
+    return services;
+  }, []);
 
   if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <LoadingState 
-            message="Chargement du tableau de bord..." 
+          <LoadingState
+            message="Chargement du tableau de bord..."
             size="lg"
             fullScreen={false}
           />
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (!isAuthenticated) {
-    return null
+    return null;
   }
 
   return (
@@ -907,7 +1126,9 @@ export default function BackofficePage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 md:gap-6">
             <MetricCard
               title="Sessions actives"
-              value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
+              value={
+                stats.activeUsers !== undefined ? stats.activeUsers : "..."
+              }
               subtitle={`${stats.totalUsers || 0} utilisateurs`}
               icon={<Users className="h-6 w-6" />}
               color="green"
@@ -915,7 +1136,9 @@ export default function BackofficePage() {
             />
             <MetricCard
               title="Signaux sécurité"
-              value={stats.recentErrors !== undefined ? stats.recentErrors : '...'}
+              value={
+                stats.recentErrors !== undefined ? stats.recentErrors : "..."
+              }
               subtitle="Événements sécurité récents"
               icon={<Shield className="h-6 w-6" />}
               color="red"
@@ -923,65 +1146,101 @@ export default function BackofficePage() {
             />
             <MetricCard
               title="Santé système"
-              value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
+              value={
+                stats.systemHealth !== undefined
+                  ? `${stats.systemHealth}%`
+                  : "..."
+              }
               subtitle="Disponibilité"
               icon={<Zap className="h-6 w-6" />}
               color="blue"
             />
             <MetricCard
               title="Temps de réponse"
-              value={stats.averageResponseTime != null && typeof stats.averageResponseTime === 'number' ? `${Math.round(stats.averageResponseTime)}ms` : 'N/A'}
+              value={
+                stats.averageResponseTime != null &&
+                typeof stats.averageResponseTime === "number"
+                  ? `${Math.round(stats.averageResponseTime)}ms`
+                  : "N/A"
+              }
               subtitle="Moyenne agrégée"
               icon={<Clock className="h-6 w-6" />}
               color="purple"
             />
             <MetricCard
               title="CPU conteneurs JobbingTrack"
-              value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
-                : systemMetrics?.cpu?.containers_only !== undefined
-                ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%`
-                : '...'}
-              subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
-                ? `Total ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% (somme CPUs cont.)`
-                : systemMetrics?.jobbingtrack?.containers?.count !== undefined
-                ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
-                : '...'}
+              value={
+                systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !==
+                undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
+                  : systemMetrics?.cpu?.containers_only !== undefined
+                    ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%`
+                    : "..."
+              }
+              subtitle={
+                systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !==
+                undefined
+                  ? `Total ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% (somme CPUs cont.)`
+                  : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                    ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
+                    : "..."
+              }
               icon={<Cpu className="h-6 w-6" />}
               color={
-                (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+                (systemMetrics?.jobbingtrack?.containers?.cpu
+                  ?.averagePercent !== undefined
                   ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
                   : systemMetrics?.cpu?.containers_only) > 80
-                ? 'red'
-                : (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
-                  ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
-                  : systemMetrics?.cpu?.containers_only) > 60
-                ? 'yellow'
-                : 'green'}
+                  ? "red"
+                  : (systemMetrics?.jobbingtrack?.containers?.cpu
+                        ?.averagePercent !== undefined
+                        ? systemMetrics.jobbingtrack.containers.cpu
+                            .averagePercent
+                        : systemMetrics?.cpu?.containers_only) > 60
+                    ? "yellow"
+                    : "green"
+              }
             />
             <MetricCard
               title="Mémoire conteneurs JobbingTrack"
-              value={systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
-                : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
-                : '...'}
-              subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
-                ? `% RAM hôte · ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
-                : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
-                ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
-                : '...'}
+              value={
+                systemMetrics?.jobbingtrack?.containers?.memory
+                  ?.percent_of_system !== undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !==
+                      undefined
+                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
+                    : "..."
+              }
+              subtitle={
+                systemMetrics?.jobbingtrack?.containers?.memory?.used != null &&
+                systemMetrics?.memory?.total_mb != null
+                  ? `% RAM hôte · ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.used !=
+                        null &&
+                      systemMetrics?.jobbingtrack?.containers?.memory?.limit !=
+                        null
+                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
+                    : "..."
+              }
               icon={<MemoryStick className="h-6 w-6" />}
               color={
-                (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 20
-                ? 'red'
-                : (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                  ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 10
-                ? 'yellow'
-                : 'green'}
+                (systemMetrics?.jobbingtrack?.containers?.memory
+                  ?.percent_of_system !== undefined
+                  ? systemMetrics.jobbingtrack.containers.memory
+                      .percent_of_system
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) >
+                20
+                  ? "red"
+                  : (systemMetrics?.jobbingtrack?.containers?.memory
+                        ?.percent_of_system !== undefined
+                        ? systemMetrics.jobbingtrack.containers.memory
+                            .percent_of_system
+                        : systemMetrics?.jobbingtrack?.containers?.memory
+                            ?.percent) > 10
+                    ? "yellow"
+                    : "green"
+              }
             />
           </div>
 
@@ -1000,8 +1259,9 @@ export default function BackofficePage() {
             </div>
             {jobbingtrackContainerRows.length === 0 ? (
               <p className="text-xs text-indigo-900/80 dark:text-indigo-200/90">
-                Aucune ligne conteneur pour l’instant (token agrégateur, monitoring ou liste Docker). Les cartes
-                ci-dessus utilisent les agrégats projet lorsque disponibles.
+                Aucune ligne conteneur pour l’instant (token agrégateur,
+                monitoring ou liste Docker). Les cartes ci-dessus utilisent les
+                agrégats projet lorsque disponibles.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-indigo-100 bg-white/90 dark:border-indigo-900 dark:bg-gray-900/80">
@@ -1009,9 +1269,15 @@ export default function BackofficePage() {
                   <thead>
                     <tr className="border-b border-indigo-100 bg-indigo-100/50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-100">
                       <th className="px-3 py-2 font-medium">Conteneur</th>
-                      <th className="px-3 py-2 font-medium tabular-nums">CPU %</th>
-                      <th className="px-3 py-2 font-medium tabular-nums">Mémoire %</th>
-                      <th className="px-3 py-2 font-medium tabular-nums">RAM (MB)</th>
+                      <th className="px-3 py-2 font-medium tabular-nums">
+                        CPU %
+                      </th>
+                      <th className="px-3 py-2 font-medium tabular-nums">
+                        Mémoire %
+                      </th>
+                      <th className="px-3 py-2 font-medium tabular-nums">
+                        RAM (MB)
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1024,20 +1290,27 @@ export default function BackofficePage() {
                           {row.shortName}
                         </td>
                         <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.cpu != null ? `${safeToFixed(row.cpu, 1)}%` : '—'}
+                          {row.cpu != null
+                            ? `${safeToFixed(row.cpu, 1)}%`
+                            : "—"}
                         </td>
                         <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.memPct != null ? `${safeToFixed(row.memPct, 1)}%` : '—'}
+                          {row.memPct != null
+                            ? `${safeToFixed(row.memPct, 1)}%`
+                            : "—"}
                         </td>
                         <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.memMb != null ? safeToFixed(row.memMb, 0) : '—'}
+                          {row.memMb != null ? safeToFixed(row.memMb, 0) : "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 <p className="border-t border-indigo-100 px-3 py-2 text-[10px] text-gray-500 dark:border-indigo-800 dark:text-gray-400">
-                  Uniquement les clés Docker préfixées <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">jobbingtrack-</code>
+                  Uniquement les clés Docker préfixées{" "}
+                  <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">
+                    jobbingtrack-
+                  </code>
                   · tri par CPU décroissant · toutes les lignes détectées
                 </p>
               </div>
@@ -1048,363 +1321,565 @@ export default function BackofficePage() {
         {/* Métriques système principales */}
         <MetricsErrorBoundary>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              État du système
-              <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ metrics-aggregator</span>
-              {/* ✅ Afficher X/Y services et X/Y conteneurs */}
-              {(() => {
-                const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
-                const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
-                const totalServices = expectedServicesCount
-                const containersCount = Number(systemMetrics?.jobbingtrack?.containers?.count || 0)
-                const containersLabel = containersCount > 0
-                  ? `${containersCount}/${expectedJobbingtrackContainers} conteneurs`
-                  : `—/${expectedJobbingtrackContainers} conteneurs`
-                return (
-                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
-                    {healthyServices}/{totalServices} services • {containersLabel}
-                  </span>
-                )
-              })()}
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${
-                loadingSystemMetrics 
-                  ? 'bg-yellow-500 animate-pulse' 
-                  : systemMetrics 
-                    ? 'bg-green-500' 
-                    : 'bg-red-500'
-              }`}></div>
-              <span className={`text-sm ${
-                loadingSystemMetrics 
-                  ? 'text-yellow-600' 
-                  : systemMetrics 
-                    ? 'text-green-600' 
-                    : 'text-red-600'
-              }`}>
-                {loadingSystemMetrics ? 'Connexion...' : systemMetrics ? 'Connecté' : 'Déconnecté'}
-              </span>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Activity className="h-5 w-5 text-blue-600" />
+                État du système
+                <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">
+                  ⚡ metrics-aggregator
+                </span>
+                {/* ✅ Afficher X/Y services et X/Y conteneurs */}
+                {(() => {
+                  const svcList = Array.isArray(servicesWithMetrics)
+                    ? servicesWithMetrics
+                    : [];
+                  const healthyServices = svcList.filter(
+                    (s) =>
+                      s.health?.status === "healthy" || s.status === "running",
+                  ).length;
+                  const totalServices = expectedServicesCount;
+                  const containersCount = Number(
+                    systemMetrics?.jobbingtrack?.containers?.count || 0,
+                  );
+                  const containersLabel =
+                    containersCount > 0
+                      ? `${containersCount}/${expectedJobbingtrackContainers} conteneurs`
+                      : `—/${expectedJobbingtrackContainers} conteneurs`;
+                  return (
+                    <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
+                      {healthyServices}/{totalServices} services •{" "}
+                      {containersLabel}
+                    </span>
+                  );
+                })()}
+              </h2>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    loadingSystemMetrics
+                      ? "bg-yellow-500 animate-pulse"
+                      : systemMetrics
+                        ? "bg-green-500"
+                        : "bg-red-500"
+                  }`}
+                ></div>
+                <span
+                  className={`text-sm ${
+                    loadingSystemMetrics
+                      ? "text-yellow-600"
+                      : systemMetrics
+                        ? "text-green-600"
+                        : "text-red-600"
+                  }`}
+                >
+                  {loadingSystemMetrics
+                    ? "Connexion..."
+                    : systemMetrics
+                      ? "Connecté"
+                      : "Déconnecté"}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Charge Système + Disque en dessous */}
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${
-                (() => {
-                  const loadValue = systemMetrics?.cpu?.load_1 !== undefined && systemMetrics.cpu.load_1 > 0
-                    ? systemMetrics.cpu.load_1
-                    : systemMetrics?.load?.load_1 !== undefined && systemMetrics.load.load_1 > 0
-                    ? systemMetrics.load.load_1
-                    : systemMetrics?.load?.average !== undefined
-                    ? systemMetrics.load.average
-                    : 0;
-                  const cores = systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores) > 0
-                    ? parseInt(systemMetrics.cpu.cores)
-                    : systemMetrics?.load?.cores && systemMetrics.load.cores !== 'N/A' && parseInt(systemMetrics.load.cores) > 0
-                    ? parseInt(systemMetrics.load.cores)
-                    : 1;
-                  const loadPerCore = cores > 0 ? loadValue / cores : loadValue;
-                  return loadPerCore > 1.5 ? 'text-red-600 dark:text-red-400' : loadPerCore > 1.0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400';
-                })()
-              }`}>
-                {systemMetrics?.cpu?.load_1 !== undefined && systemMetrics.cpu.load_1 > 0
-                  ? safeToFixed(systemMetrics.cpu.load_1, 2, '0.00')
-                  : systemMetrics?.load?.load_1 !== undefined && systemMetrics.load.load_1 > 0
-                  ? safeToFixed(systemMetrics.load.load_1, 2, '0.00')
-                  : systemMetrics?.load?.average !== undefined
-                  ? safeToFixed(systemMetrics.load.average, 2, '0.00')
-                  : loadingSystemMetrics ? '...' : '0.00'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Charge Système</span>
-                {systemMetrics?.cpu?.load_1 !== undefined && systemMetrics.cpu.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores) > 0 && (
-                  <span className={`text-xs ${(systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.5 ? 'text-red-500' : (systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.0 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {(systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.5 ? '🔴' : (systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.0 ? '🟡' : '🟢'}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores) > 0
-                  ? `${systemMetrics.cpu.cores} coeurs`
-                  : systemMetrics?.load?.cores && systemMetrics.load.cores !== 'N/A'
-                  ? `${systemMetrics.load.cores} coeurs`
-                  : 'N/A'}
-              </div>
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. Charge Système + Disque en dessous */}
+              <div className="text-center">
+                <div
+                  className={`text-2xl font-bold ${(() => {
+                    const loadValue =
+                      systemMetrics?.cpu?.load_1 !== undefined &&
+                      systemMetrics.cpu.load_1 > 0
+                        ? systemMetrics.cpu.load_1
+                        : systemMetrics?.load?.load_1 !== undefined &&
+                            systemMetrics.load.load_1 > 0
+                          ? systemMetrics.load.load_1
+                          : systemMetrics?.load?.average !== undefined
+                            ? systemMetrics.load.average
+                            : 0;
+                    const cores =
+                      systemMetrics?.cpu?.cores &&
+                      systemMetrics.cpu.cores !== "N/A" &&
+                      parseInt(systemMetrics.cpu.cores) > 0
+                        ? parseInt(systemMetrics.cpu.cores)
+                        : systemMetrics?.load?.cores &&
+                            systemMetrics.load.cores !== "N/A" &&
+                            parseInt(systemMetrics.load.cores) > 0
+                          ? parseInt(systemMetrics.load.cores)
+                          : 1;
+                    const loadPerCore =
+                      cores > 0 ? loadValue / cores : loadValue;
+                    return loadPerCore > 1.5
+                      ? "text-red-600 dark:text-red-400"
+                      : loadPerCore > 1.0
+                        ? "text-yellow-600 dark:text-yellow-400"
+                        : "text-green-600 dark:text-green-400";
+                  })()}`}
+                >
+                  {systemMetrics?.cpu?.load_1 !== undefined &&
+                  systemMetrics.cpu.load_1 > 0
+                    ? safeToFixed(systemMetrics.cpu.load_1, 2, "0.00")
+                    : systemMetrics?.load?.load_1 !== undefined &&
+                        systemMetrics.load.load_1 > 0
+                      ? safeToFixed(systemMetrics.load.load_1, 2, "0.00")
+                      : systemMetrics?.load?.average !== undefined
+                        ? safeToFixed(systemMetrics.load.average, 2, "0.00")
+                        : loadingSystemMetrics
+                          ? "..."
+                          : "0.00"}
+                </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                  <span>Disque</span>
-                  {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number') && (
-                    (() => {
-                      const pct = Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage)
+                  <span>Charge Système</span>
+                  {systemMetrics?.cpu?.load_1 !== undefined &&
+                    systemMetrics.cpu.cores &&
+                    systemMetrics.cpu.cores !== "N/A" &&
+                    parseInt(systemMetrics.cpu.cores) > 0 && (
+                      <span
+                        className={`text-xs ${systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores) > 1.5 ? "text-red-500" : systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores) > 1.0 ? "text-yellow-500" : "text-green-500"}`}
+                      >
+                        {systemMetrics.cpu.load_1 /
+                          parseInt(systemMetrics.cpu.cores) >
+                        1.5
+                          ? "🔴"
+                          : systemMetrics.cpu.load_1 /
+                                parseInt(systemMetrics.cpu.cores) >
+                              1.0
+                            ? "🟡"
+                            : "🟢"}
+                      </span>
+                    )}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {systemMetrics?.cpu?.cores &&
+                  systemMetrics.cpu.cores !== "N/A" &&
+                  parseInt(systemMetrics.cpu.cores) > 0
+                    ? `${systemMetrics.cpu.cores} coeurs`
+                    : systemMetrics?.load?.cores &&
+                        systemMetrics.load.cores !== "N/A"
+                      ? `${systemMetrics.load.cores} coeurs`
+                      : "N/A"}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                    <span>Disque</span>
+                    {(typeof systemMetrics?.disk?.[0]?.usage_percent ===
+                      "number" ||
+                      typeof systemMetrics?.disk?.[0]?.usage === "number") &&
+                      (() => {
+                        const pct = Number(
+                          systemMetrics.disk[0].usage_percent ??
+                            systemMetrics.disk[0].usage,
+                        );
+                        return (
+                          <span
+                            className={`text-xs ${pct > 90 ? "text-red-500" : pct > 80 ? "text-yellow-500" : "text-green-500"}`}
+                          >
+                            {pct > 90 ? "🔴" : pct > 80 ? "🟡" : "🟢"}
+                          </span>
+                        );
+                      })()}
+                  </div>
+                  <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                    {typeof systemMetrics?.disk?.[0]?.usage_percent ===
+                      "number" ||
+                    typeof systemMetrics?.disk?.[0]?.usage === "number"
+                      ? `${safeToFixed(Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage), 1)}%`
+                      : loadingSystemMetrics
+                        ? "..."
+                        : "N/A"}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {systemMetrics?.disk?.[0]?.used != null &&
+                    systemMetrics?.disk?.[0]?.total != null
+                      ? `${formatDiskGb(systemMetrics.disk[0].used)} / ${formatDiskGb(systemMetrics.disk[0].total)}`
+                      : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human &&
+                          systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
+                        ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
+                        : loadingSystemMetrics
+                          ? "..."
+                          : "N/A"}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. CPU Système — même structure que Mémoire (valeur principale → libellé → sous-bloc « Projet » bordé) */}
+              {/* 3. Mémoire Système — aligné typo / hiérarchie sur CPU Système */}
+              <div className="text-center">
+                <div
+                  className={`text-2xl font-bold ${(() => {
+                    const p = getSystemCpuPercentForDisplay(systemMetrics);
+                    if (p === undefined)
+                      return "text-blue-600 dark:text-blue-400";
+                    return p > 80
+                      ? "text-red-600 dark:text-red-400"
+                      : p > 60
+                        ? "text-yellow-600 dark:text-yellow-400"
+                        : "text-green-600 dark:text-green-400";
+                  })()}`}
+                >
+                  {(() => {
+                    const p = getSystemCpuPercentForDisplay(systemMetrics);
+                    if (p !== undefined) return `${safeToFixed(p, 1)}%`;
+                    return loadingSystemMetrics ? "..." : "N/A";
+                  })()}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                  <span>CPU Système</span>
+                  {(() => {
+                    const n = getSystemCpuPercentForDisplay(systemMetrics);
+                    if (n === undefined) return null;
+                    return (
+                      <span
+                        className={`text-xs ${n > 80 ? "text-red-500" : n > 60 ? "text-yellow-500" : "text-green-500"}`}
+                      >
+                        {n > 80 ? "🔴" : n > 60 ? "🟡" : "🟢"}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {systemMetrics?.cpu?.cores &&
+                  systemMetrics.cpu.cores !== "N/A" &&
+                  parseInt(systemMetrics.cpu.cores, 10) > 0
+                    ? `Charge globale hôte · ${systemMetrics.cpu.cores} cœurs`
+                    : "Utilisation CPU hôte (hors ventilation par conteneur)"}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-lg font-semibold">
+                    {(() => {
+                      const cpuProject =
+                        systemMetrics?.jobbingtrack?.containers?.cpu
+                          ?.averagePercent !== undefined
+                          ? systemMetrics.jobbingtrack.containers.cpu
+                              .averagePercent
+                          : systemMetrics?.cpu?.containers_only !== undefined
+                            ? systemMetrics.cpu.containers_only
+                            : null;
+                      if (cpuProject === null)
+                        return (
+                          <span className="text-gray-500 dark:text-gray-400">
+                            —
+                          </span>
+                        );
+                      const colorClass =
+                        cpuProject > 80
+                          ? "text-red-600 dark:text-red-400"
+                          : cpuProject > 60
+                            ? "text-yellow-600 dark:text-yellow-400"
+                            : "text-green-600 dark:text-green-400";
+                      const indicator =
+                        cpuProject > 80 ? "🔴" : cpuProject > 60 ? "🟡" : "🟢";
                       return (
-                        <span className={`text-xs ${pct > 90 ? 'text-red-500' : pct > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
-                          {pct > 90 ? '🔴' : pct > 80 ? '🟡' : '🟢'}
+                        <span className={colorClass}>
+                          {indicator} {safeToFixed(cpuProject, 1)}%
                         </span>
-                      )
-                    })()
-                  )}
-                </div>
-                <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                  {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
-                    ? `${safeToFixed(Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage), 1)}%`
-                    : loadingSystemMetrics ? '...' : 'N/A'}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemMetrics?.disk?.[0]?.used != null && systemMetrics?.disk?.[0]?.total != null
-                    ? `${formatDiskGb(systemMetrics.disk[0].used)} / ${formatDiskGb(systemMetrics.disk[0].total)}`
-                    : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
-                    ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
-                    : loadingSystemMetrics ? '...' : 'N/A'}
+                      );
+                    })()}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                    CPU Projet (moy. conteneurs)
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {systemMetrics?.jobbingtrack?.containers?.cpu
+                      ?.totalPercent !== undefined
+                      ? `Total somme CPUs ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%`
+                      : systemMetrics?.jobbingtrack?.containers?.count !==
+                          undefined
+                        ? `${systemMetrics.jobbingtrack.containers.count} conteneur(s) JobbingTrack`
+                        : "—"}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 2. CPU Système — même structure que Mémoire (valeur principale → libellé → sous-bloc « Projet » bordé) */}
-            {/* 3. Mémoire Système — aligné typo / hiérarchie sur CPU Système */}
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${
-                (() => {
-                  const p = getSystemCpuPercentForDisplay(systemMetrics)
-                  if (p === undefined) return 'text-blue-600 dark:text-blue-400'
-                  return p > 80 ? 'text-red-600 dark:text-red-400' : p > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
-                })()
-              }`}>
-                {(() => {
-                  const p = getSystemCpuPercentForDisplay(systemMetrics)
-                  if (p !== undefined) return `${safeToFixed(p, 1)}%`
-                  return loadingSystemMetrics ? '...' : 'N/A'
-                })()}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>CPU Système</span>
-                {(() => {
-                  const n = getSystemCpuPercentForDisplay(systemMetrics)
-                  if (n === undefined) return null
-                  return (
-                    <span className={`text-xs ${n > 80 ? 'text-red-500' : n > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
-                      {n > 80 ? '🔴' : n > 60 ? '🟡' : '🟢'}
-                    </span>
-                  )
-                })()}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores, 10) > 0
-                  ? `Charge globale hôte · ${systemMetrics.cpu.cores} cœurs`
-                  : 'Utilisation CPU hôte (hors ventilation par conteneur)'}
-              </div>
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-lg font-semibold">
-                  {(() => {
-                    const cpuProject = systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
-                      ? systemMetrics.jobbingtrack.containers.cpu.averagePercent
-                      : systemMetrics?.cpu?.containers_only !== undefined
-                      ? systemMetrics.cpu.containers_only
-                      : null
-                    if (cpuProject === null) return <span className="text-gray-500 dark:text-gray-400">—</span>
-                    const colorClass = cpuProject > 80
-                      ? 'text-red-600 dark:text-red-400'
-                      : cpuProject > 60
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-green-600 dark:text-green-400'
-                    const indicator = cpuProject > 80 ? '🔴' : cpuProject > 60 ? '🟡' : '🟢'
-                    return <span className={colorClass}>{indicator} {safeToFixed(cpuProject, 1)}%</span>
-                  })()}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-500">CPU Projet (moy. conteneurs)</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
-                    ? `Total somme CPUs ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%`
-                    : systemMetrics?.jobbingtrack?.containers?.count !== undefined
-                    ? `${systemMetrics.jobbingtrack.containers.count} conteneur(s) JobbingTrack`
-                    : '—'}
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${
-                systemMetrics?.memory?.usage_percent !== undefined
-                  ? (systemMetrics.memory.usage_percent > 90 ? 'text-red-600 dark:text-red-400' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
-                  : systemMetrics?.memory?.usage !== undefined
-                  ? (() => {
-                      const memUsage = parseFloat(String(systemMetrics.memory.usage).replace('%', ''))
-                      return memUsage > 90 ? 'text-red-600 dark:text-red-400' : memUsage > 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
-                    })()
-                  : 'text-green-600 dark:text-green-400'
-              }`}>
-                {systemMetrics?.memory?.usage_percent !== undefined
-                  ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
-                  : systemMetrics?.memory?.usage !== undefined
-                  ? `${safeToFixed(parseFloat(String(systemMetrics.memory.usage).replace('%', '')), 1)}%`
-                  : loadingSystemMetrics ? '...' : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
-                <span>Mémoire Système</span>
-                {(() => {
-                  const memP =
+              <div className="text-center">
+                <div
+                  className={`text-2xl font-bold ${
                     systemMetrics?.memory?.usage_percent !== undefined
-                      ? systemMetrics.memory.usage_percent
+                      ? systemMetrics.memory.usage_percent > 90
+                        ? "text-red-600 dark:text-red-400"
+                        : systemMetrics.memory.usage_percent > 75
+                          ? "text-yellow-600 dark:text-yellow-400"
+                          : "text-green-600 dark:text-green-400"
                       : systemMetrics?.memory?.usage !== undefined
-                      ? parseFloat(String(systemMetrics.memory.usage).replace('%', ''))
-                      : NaN
-                  if (Number.isNaN(memP)) return null
-                  return (
-                    <span className={`text-xs ${memP > 90 ? 'text-red-500' : memP > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
-                      {memP > 90 ? '🔴' : memP > 75 ? '🟡' : '🟢'}
-                    </span>
-                  )
-                })()}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.memory?.used_mb != null && systemMetrics?.memory?.total_mb != null
-                  ? `${formatMemoryMb(systemMetrics.memory.used_mb)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
-                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
-                  ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}`
-                  : loadingSystemMetrics ? '...' : '—'}
-              </div>
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-lg font-semibold">
+                        ? (() => {
+                            const memUsage = parseFloat(
+                              String(systemMetrics.memory.usage).replace(
+                                "%",
+                                "",
+                              ),
+                            );
+                            return memUsage > 90
+                              ? "text-red-600 dark:text-red-400"
+                              : memUsage > 75
+                                ? "text-yellow-600 dark:text-yellow-400"
+                                : "text-green-600 dark:text-green-400";
+                          })()
+                        : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  {systemMetrics?.memory?.usage_percent !== undefined
+                    ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
+                    : systemMetrics?.memory?.usage !== undefined
+                      ? `${safeToFixed(parseFloat(String(systemMetrics.memory.usage).replace("%", "")), 1)}%`
+                      : loadingSystemMetrics
+                        ? "..."
+                        : "N/A"}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                  <span>Mémoire Système</span>
                   {(() => {
-                    const memPct = systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
-                      ? systemMetrics.jobbingtrack.containers.memory.percent_of_system
-                      : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
-                      ? systemMetrics.jobbingtrack.containers.memory.percent
-                      : null
-                    if (memPct === null) return <span className="text-gray-500 dark:text-gray-400">—</span>
-                    const colorClass = memPct > 20
-                      ? 'text-red-600 dark:text-red-400'
-                      : memPct > 10
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-green-600 dark:text-green-400'
-                    const indicator = memPct > 20 ? '🔴' : memPct > 10 ? '🟡' : '🟢'
-                    return <span className={colorClass}>{indicator} {safeToFixed(memPct, 1)}%</span>
+                    const memP =
+                      systemMetrics?.memory?.usage_percent !== undefined
+                        ? systemMetrics.memory.usage_percent
+                        : systemMetrics?.memory?.usage !== undefined
+                          ? parseFloat(
+                              String(systemMetrics.memory.usage).replace(
+                                "%",
+                                "",
+                              ),
+                            )
+                          : NaN;
+                    if (Number.isNaN(memP)) return null;
+                    return (
+                      <span
+                        className={`text-xs ${memP > 90 ? "text-red-500" : memP > 75 ? "text-yellow-500" : "text-green-500"}`}
+                      >
+                        {memP > 90 ? "🔴" : memP > 75 ? "🟡" : "🟢"}
+                      </span>
+                    );
                   })()}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-500">Mémoire Projet (% RAM hôte)</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.memory?.total_mb != null
-                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)} RAM hôte`
-                    : systemMetrics?.jobbingtrack?.containers?.memory?.used != null && systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
-                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
-                    : '—'}
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {systemMetrics?.memory?.used_mb != null &&
+                  systemMetrics?.memory?.total_mb != null
+                    ? `${formatMemoryMb(systemMetrics.memory.used_mb)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
+                    : systemMetrics?.memory?.used &&
+                        systemMetrics?.memory?.total
+                      ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}`
+                      : loadingSystemMetrics
+                        ? "..."
+                        : "—"}
                 </div>
-              </div>
-            </div>
-
-            {/* 4. Conteneurs actifs + état Services en dessous */}
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {systemMetrics?.jobbingtrack?.containers?.count !== undefined 
-                  ? systemMetrics.jobbingtrack.containers.count 
-                  : containerMetrics && Object.keys(containerMetrics).length > 0
-                  ? Object.keys(containerMetrics).length
-                  : '...'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs actifs</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {(systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0) || 
-                 (containerMetrics && Object.keys(containerMetrics).length > 0)
-                  ? 'Conteneurs détectés' 
-                  : systemMetrics ? 'Aucun conteneur détecté' : '...'}
-              </div>
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {(() => {
-                    const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
-                    const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
-                    return `${healthyServices}/${expectedServicesCount}`
-                  })()}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {(() => {
-                    const svcList = Array.isArray(servicesWithMetrics) ? servicesWithMetrics : []
-                    const healthyServices = svcList.filter(s => (s.health?.status === 'healthy' || s.status === 'running')).length
-                    const isOk = healthyServices >= expectedServicesCount
-                    return loadingSystemMetrics ? '...' : isOk ? '🟢 OK' : `🟡 ${expectedServicesCount - healthyServices} KO`
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
-          {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
-            <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-              <h3 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-                📦 Métriques Projet - Conteneurs JobbingTrack ({systemMetrics.jobbingtrack.containers.count})
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Moyen (Projet)</span>
-                    <span className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                      {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined 
-                        ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%` 
-                        : '...'}
-                    </span>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-lg font-semibold">
+                    {(() => {
+                      const memPct =
+                        systemMetrics?.jobbingtrack?.containers?.memory
+                          ?.percent_of_system !== undefined
+                          ? systemMetrics.jobbingtrack.containers.memory
+                              .percent_of_system
+                          : systemMetrics?.jobbingtrack?.containers?.memory
+                                ?.percent !== undefined
+                            ? systemMetrics.jobbingtrack.containers.memory
+                                .percent
+                            : null;
+                      if (memPct === null)
+                        return (
+                          <span className="text-gray-500 dark:text-gray-400">
+                            —
+                          </span>
+                        );
+                      const colorClass =
+                        memPct > 20
+                          ? "text-red-600 dark:text-red-400"
+                          : memPct > 10
+                            ? "text-yellow-600 dark:text-yellow-400"
+                            : "text-green-600 dark:text-green-400";
+                      const indicator =
+                        memPct > 20 ? "🔴" : memPct > 10 ? "🟡" : "🟢";
+                      return (
+                        <span className={colorClass}>
+                          {indicator} {safeToFixed(memPct, 1)}%
+                        </span>
+                      );
+                    })()}
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'bg-red-500' : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'bg-yellow-500' : 'bg-blue-500'}`}
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || 0, 100)}%` }}
-                    ></div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                    Mémoire Projet (% RAM hôte)
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total: {systemMetrics.jobbingtrack.containers.cpu?.totalPercent !== undefined 
-                      ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent.toFixed(1)}%` 
-                      : '...'} • 
-                    {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 
-                      ? ' 🔴 Élevé' 
-                      : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 
-                      ? ' 🟡 Modéré' 
-                      : ' 🟢 Normal'}
+                    {systemMetrics?.jobbingtrack?.containers?.memory?.used !=
+                      null && systemMetrics?.memory?.total_mb != null
+                      ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)} RAM hôte`
+                      : systemMetrics?.jobbingtrack?.containers?.memory?.used !=
+                            null &&
+                          systemMetrics?.jobbingtrack?.containers?.memory
+                            ?.limit != null
+                        ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
+                        : "—"}
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Utilisée (Projet)</span>
-                    <span className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined 
-                        ? `${systemMetrics.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%` 
-                        : systemMetrics.jobbingtrack.containers.memory?.percent !== undefined
-                        ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
-                        : '...'}
-                    </span>
+              {/* 4. Conteneurs actifs + état Services en dessous */}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                    ? systemMetrics.jobbingtrack.containers.count
+                    : containerMetrics &&
+                        Object.keys(containerMetrics).length > 0
+                      ? Object.keys(containerMetrics).length
+                      : "..."}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Conteneurs actifs
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {(systemMetrics?.jobbingtrack?.containers?.count !==
+                    undefined &&
+                    systemMetrics.jobbingtrack.containers.count > 0) ||
+                  (containerMetrics && Object.keys(containerMetrics).length > 0)
+                    ? "Conteneurs détectés"
+                    : systemMetrics
+                      ? "Aucun conteneur détecté"
+                      : "..."}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Services
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'bg-red-500' : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent_of_system || systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%` }}
-                    ></div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {(() => {
+                      const svcList = Array.isArray(servicesWithMetrics)
+                        ? servicesWithMetrics
+                        : [];
+                      const healthyServices = svcList.filter(
+                        (s) =>
+                          s.health?.status === "healthy" ||
+                          s.status === "running",
+                      ).length;
+                      return `${healthyServices}/${expectedServicesCount}`;
+                    })()}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics?.memory?.total_mb
-                      ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
-                      : systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics.jobbingtrack.containers.memory?.limit 
-                      ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
-                      : '...'} • 
-                    {systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 
-                      ? ' 🔴 Élevé' 
-                      : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 
-                      ? ' 🟡 Modéré' 
-                      : ' 🟢 Normal'}
+                    {(() => {
+                      const svcList = Array.isArray(servicesWithMetrics)
+                        ? servicesWithMetrics
+                        : [];
+                      const healthyServices = svcList.filter(
+                        (s) =>
+                          s.health?.status === "healthy" ||
+                          s.status === "running",
+                      ).length;
+                      const isOk = healthyServices >= expectedServicesCount;
+                      return loadingSystemMetrics
+                        ? "..."
+                        : isOk
+                          ? "🟢 OK"
+                          : `🟡 ${expectedServicesCount - healthyServices} KO`;
+                    })()}
                   </div>
                 </div>
               </div>
             </div>
-          ) : null}
+
+            {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
+            {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
+              <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <h3 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                  📦 Métriques Projet - Conteneurs JobbingTrack (
+                  {systemMetrics.jobbingtrack.containers.count})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        CPU Moyen (Projet)
+                      </span>
+                      <span
+                        className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? "text-red-600 dark:text-red-400" : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? "text-yellow-600 dark:text-yellow-400" : "text-blue-600 dark:text-blue-400"}`}
+                      >
+                        {systemMetrics.jobbingtrack.containers.cpu
+                          ?.averagePercent !== undefined
+                          ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
+                          : "..."}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? "bg-red-500" : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? "bg-yellow-500" : "bg-blue-500"}`}
+                        style={{
+                          width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || 0, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Total:{" "}
+                      {systemMetrics.jobbingtrack.containers.cpu
+                        ?.totalPercent !== undefined
+                        ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent.toFixed(1)}%`
+                        : "..."}{" "}
+                      •
+                      {systemMetrics.jobbingtrack.containers.cpu
+                        ?.averagePercent !== undefined &&
+                      systemMetrics.jobbingtrack.containers.cpu.averagePercent >
+                        80
+                        ? " 🔴 Élevé"
+                        : systemMetrics.jobbingtrack.containers.cpu
+                              ?.averagePercent !== undefined &&
+                            systemMetrics.jobbingtrack.containers.cpu
+                              .averagePercent > 60
+                          ? " 🟡 Modéré"
+                          : " 🟢 Normal"}
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Mémoire Utilisée (Projet)
+                      </span>
+                      <span
+                        className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? "text-red-600 dark:text-red-400" : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`}
+                      >
+                        {systemMetrics.jobbingtrack.containers.memory
+                          ?.percent_of_system !== undefined
+                          ? `${systemMetrics.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
+                          : systemMetrics.jobbingtrack.containers.memory
+                                ?.percent !== undefined
+                            ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
+                            : "..."}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? "bg-red-500" : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? "bg-yellow-500" : "bg-green-500"}`}
+                        style={{
+                          width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent_of_system || systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {systemMetrics.jobbingtrack.containers.memory?.used &&
+                      systemMetrics?.memory?.total_mb
+                        ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
+                        : systemMetrics.jobbingtrack.containers.memory?.used &&
+                            systemMetrics.jobbingtrack.containers.memory?.limit
+                          ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                          : "..."}{" "}
+                      •
+                      {systemMetrics.jobbingtrack.containers.memory
+                        ?.percent_of_system !== undefined &&
+                      systemMetrics.jobbingtrack.containers.memory
+                        .percent_of_system > 20
+                        ? " 🔴 Élevé"
+                        : systemMetrics.jobbingtrack.containers.memory
+                              ?.percent_of_system !== undefined &&
+                            systemMetrics.jobbingtrack.containers.memory
+                              .percent_of_system > 10
+                          ? " 🟡 Modéré"
+                          : " 🟢 Normal"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </MetricsErrorBoundary>
 
         {/* Services et métriques avancées */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* État des services */}
-          <div 
+          <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
             onClick={() => setShowServicesPopup(true)}
           >
@@ -1416,10 +1891,10 @@ export default function BackofficePage() {
                 <Settings className="h-5 w-5" />
                 État des services
               </h3>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push('/b4ck0ff1ce/services');
+                  router.push("/b4ck0ff1ce/services");
                 }}
                 className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
               >
@@ -1427,17 +1902,30 @@ export default function BackofficePage() {
               </button>
             </div>
             <div className="space-y-3">
-              {(Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0 ? servicesWithMetrics : generateServiceStatus).slice(0, 5).map((service: any, index: number) => (
-                <div key={service.id || service.name || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{service.name || service.id}</span>
+              {(Array.isArray(servicesWithMetrics) &&
+              servicesWithMetrics.length > 0
+                ? servicesWithMetrics
+                : generateServiceStatus
+              )
+                .slice(0, 5)
+                .map((service: any, index: number) => (
+                  <div
+                    key={service.id || service.name || index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${service.status === "running" ? "bg-green-500" : "bg-red-500"}`}
+                      ></div>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {service.name || service.id}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
+                      {serviceAvailabilityCaption(service)}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
-                    {serviceAvailabilityCaption(service)}
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -1504,9 +1992,10 @@ export default function BackofficePage() {
                   Temps de réponse (moy.)
                 </span>
                 <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                  {typeof stats.averageResponseTime === 'number' && !Number.isNaN(stats.averageResponseTime)
+                  {typeof stats.averageResponseTime === "number" &&
+                  !Number.isNaN(stats.averageResponseTime)
                     ? `${Math.round(stats.averageResponseTime)}ms`
-                    : 'N/A'}
+                    : "N/A"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -1517,9 +2006,10 @@ export default function BackofficePage() {
                   Débit d&apos;erreurs (agrégateur)
                 </span>
                 <span className="font-bold text-red-600 dark:text-red-400 tabular-nums">
-                  {typeof stats.errorRate === 'number' && !Number.isNaN(stats.errorRate)
+                  {typeof stats.errorRate === "number" &&
+                  !Number.isNaN(stats.errorRate)
                     ? `${stats.errorRate.toFixed(2)} /min`
-                    : 'N/A'}
+                    : "N/A"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -1529,7 +2019,9 @@ export default function BackofficePage() {
                 >
                   Sessions actives (auth)
                 </span>
-                <span className="font-bold text-green-600 dark:text-green-400 tabular-nums">{stats.activeSessions || 0}</span>
+                <span className="font-bold text-green-600 dark:text-green-400 tabular-nums">
+                  {stats.activeSessions || 0}
+                </span>
               </div>
               <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-3">
                 <span
@@ -1539,9 +2031,10 @@ export default function BackofficePage() {
                   Disponibilité (synthèse)
                 </span>
                 <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
-                  {typeof stats.systemHealth === 'number' && !Number.isNaN(stats.systemHealth)
+                  {typeof stats.systemHealth === "number" &&
+                  !Number.isNaN(stats.systemHealth)
                     ? `${Math.round(stats.systemHealth)}%`
-                    : 'N/A'}
+                    : "N/A"}
                 </span>
               </div>
               {/* ✅ NOUVEAU : Trafic réseau */}
@@ -1553,9 +2046,9 @@ export default function BackofficePage() {
                       Trafic Réseau (RX)
                     </span>
                     <span className="font-bold text-blue-600 dark:text-blue-400">
-                      {systemMetrics.network.total_rx_mb !== undefined 
+                      {systemMetrics.network.total_rx_mb !== undefined
                         ? `${systemMetrics.network.total_rx_mb.toFixed(2)} MB`
-                        : 'N/A'}
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1564,9 +2057,9 @@ export default function BackofficePage() {
                       Trafic Réseau (TX)
                     </span>
                     <span className="font-bold text-orange-600 dark:text-orange-400">
-                      {systemMetrics.network.total_tx_mb !== undefined 
+                      {systemMetrics.network.total_tx_mb !== undefined
                         ? `${systemMetrics.network.total_tx_mb.toFixed(2)} MB`
-                        : 'N/A'}
+                        : "N/A"}
                     </span>
                   </div>
                 </>
@@ -1596,16 +2089,22 @@ export default function BackofficePage() {
 
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {((Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0) ? servicesWithMetrics : (Array.isArray(services) ? services : [])).map((service) => {
-                    const maintenance = maintenances[service.id]
-                    
+                  {(Array.isArray(servicesWithMetrics) &&
+                  servicesWithMetrics.length > 0
+                    ? servicesWithMetrics
+                    : Array.isArray(services)
+                      ? services
+                      : []
+                  ).map((service) => {
+                    const maintenance = maintenances[service.id];
+
                     return (
                       <div
                         key={service.id}
                         className={`rounded-lg p-4 cursor-pointer transition-colors border ${
                           maintenance?.isActive
-                            ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
-                            : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                            ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                            : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
                         }`}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -1616,13 +2115,21 @@ export default function BackofficePage() {
                                 {service.name}
                               </h3>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className={`inline-block w-2 h-2 rounded-full ${
-                                  service.status === 'running' ? 'bg-green-500' :
-                                  service.status === 'stopped' ? 'bg-red-500' : 'bg-yellow-500'
-                                }`}></span>
+                                <span
+                                  className={`inline-block w-2 h-2 rounded-full ${
+                                    service.status === "running"
+                                      ? "bg-green-500"
+                                      : service.status === "stopped"
+                                        ? "bg-red-500"
+                                        : "bg-yellow-500"
+                                  }`}
+                                ></span>
                                 <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                                  {service.status === 'running' ? 'En ligne' :
-                                   service.status === 'stopped' ? 'Hors ligne' : 'Test...'}
+                                  {service.status === "running"
+                                    ? "En ligne"
+                                    : service.status === "stopped"
+                                      ? "Hors ligne"
+                                      : "Test..."}
                                 </span>
                                 {maintenance?.isActive && (
                                   <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 text-xs font-medium rounded-full">
@@ -1638,8 +2145,8 @@ export default function BackofficePage() {
                             {maintenance?.isActive ? (
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  deactivateMaintenance(service.id)
+                                  e.stopPropagation();
+                                  deactivateMaintenance(service.id);
                                 }}
                                 className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
                                 title="Désactiver la maintenance"
@@ -1649,8 +2156,8 @@ export default function BackofficePage() {
                             ) : (
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  activateMaintenance(service.id)
+                                  e.stopPropagation();
+                                  activateMaintenance(service.id);
                                 }}
                                 className="p-1.5 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded transition-colors"
                                 title="Activer la maintenance"
@@ -1669,25 +2176,37 @@ export default function BackofficePage() {
                         {service.health && (
                           <div className="mb-2 p-2 bg-white dark:bg-gray-600/50 rounded text-xs">
                             <div className="flex justify-between items-center">
-                              <span className="text-gray-600 dark:text-gray-400">État:</span>
-                              <span className={`font-semibold ${
-                                service.health.status === 'healthy' ? 'text-green-600 dark:text-green-400' :
-                                service.health.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' :
-                                'text-yellow-600 dark:text-yellow-400'
-                              }`}>
-                                {service.health.status === 'healthy' ? '✅ Disponible' :
-                                 service.health.status === 'unhealthy' ? '❌ Indisponible' :
-                                 '⚠️ En cours de test'}
+                              <span className="text-gray-600 dark:text-gray-400">
+                                État:
+                              </span>
+                              <span
+                                className={`font-semibold ${
+                                  service.health.status === "healthy"
+                                    ? "text-green-600 dark:text-green-400"
+                                    : service.health.status === "unhealthy"
+                                      ? "text-red-600 dark:text-red-400"
+                                      : "text-yellow-600 dark:text-yellow-400"
+                                }`}
+                              >
+                                {service.health.status === "healthy"
+                                  ? "✅ Disponible"
+                                  : service.health.status === "unhealthy"
+                                    ? "❌ Indisponible"
+                                    : "⚠️ En cours de test"}
                               </span>
                             </div>
-                            {(service.responseTime !== 'N/A' && service.responseTime !== undefined && service.responseTime !== null) && (
-                              <div className="flex justify-between items-center mt-1">
-                                <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
-                                <span className="font-medium text-blue-600 dark:text-blue-400">
-                                  {service.responseTime}ms
-                                </span>
-                              </div>
-                            )}
+                            {service.responseTime !== "N/A" &&
+                              service.responseTime !== undefined &&
+                              service.responseTime !== null && (
+                                <div className="flex justify-between items-center mt-1">
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    Temps de réponse:
+                                  </span>
+                                  <span className="font-medium text-blue-600 dark:text-blue-400">
+                                    {service.responseTime}ms
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         )}
 
@@ -1697,71 +2216,101 @@ export default function BackofficePage() {
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-1">
                                 <Cpu className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">CPU:</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                  CPU:
+                                </span>
                               </div>
                               <span className="font-semibold text-blue-600 dark:text-blue-400">
                                 {service.metrics.cpu?.percentage !== undefined
                                   ? `${service.metrics.cpu.percentage.toFixed(1)}%`
                                   : service.metrics.cpu_percent !== undefined
-                                  ? `${Number(service.metrics.cpu_percent).toFixed(1)}%`
-                                  : service.metrics.cpu
-                                  ? `${service.metrics.cpu.toFixed(1)}%`
-                                  : (service.status === 'running' ? 'Actif (non remonté)' : 'N/A')}
+                                    ? `${Number(service.metrics.cpu_percent).toFixed(1)}%`
+                                    : service.metrics.cpu
+                                      ? `${service.metrics.cpu.toFixed(1)}%`
+                                      : service.status === "running"
+                                        ? "Actif (non remonté)"
+                                        : "N/A"}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-1">
                                 <MemoryStick className="h-3 w-3 text-green-600 dark:text-green-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Mémoire:</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                  Mémoire:
+                                </span>
                               </div>
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                {service.metrics.memory?.percentage !== undefined
+                                {service.metrics.memory?.percentage !==
+                                undefined
                                   ? `${service.metrics.memory.percentage.toFixed(1)}%`
                                   : service.metrics.memory_percent !== undefined
-                                  ? `${Number(service.metrics.memory_percent).toFixed(1)}%`
-                                  : service.metrics.memory?.percent
-                                  ? `${service.metrics.memory.percent.toFixed(1)}%`
-                                  : (service.status === 'running' ? 'Actif (non remonté)' : 'N/A')}
-                                {(service.metrics.memory?.usage || service.metrics.memory_usage_mb) && (
+                                    ? `${Number(service.metrics.memory_percent).toFixed(1)}%`
+                                    : service.metrics.memory?.percent
+                                      ? `${service.metrics.memory.percent.toFixed(1)}%`
+                                      : service.status === "running"
+                                        ? "Actif (non remonté)"
+                                        : "N/A"}
+                                {(service.metrics.memory?.usage ||
+                                  service.metrics.memory_usage_mb) && (
                                   <span className="text-xs ml-1 text-gray-500">
-                                    ({service.metrics.memory?.usage
-                                      ? (service.metrics.memory.usage / 1024 / 1024).toFixed(0)
-                                      : Number(service.metrics.memory_usage_mb).toFixed(0)} MB)
+                                    (
+                                    {service.metrics.memory?.usage
+                                      ? (
+                                          service.metrics.memory.usage /
+                                          1024 /
+                                          1024
+                                        ).toFixed(0)
+                                      : Number(
+                                          service.metrics.memory_usage_mb,
+                                        ).toFixed(0)}{" "}
+                                    MB)
                                   </span>
                                 )}
                               </span>
                             </div>
                             {service.metrics.pids && (
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Processus:</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                  Processus:
+                                </span>
                                 <span className="font-semibold text-purple-600 dark:text-purple-400">
                                   {service.metrics.pids}
                                 </span>
                               </div>
                             )}
-                            {service.metrics.network && (service.metrics.network.rx || service.metrics.network.tx) && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Réseau:</span>
-                                <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                  {((service.metrics.network.rx + service.metrics.network.tx) / 1024 / 1024).toFixed(2)} MB
-                                </span>
-                              </div>
-                            )}
+                            {service.metrics.network &&
+                              (service.metrics.network.rx ||
+                                service.metrics.network.tx) && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                    Réseau:
+                                  </span>
+                                  <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                    {(
+                                      (service.metrics.network.rx +
+                                        service.metrics.network.tx) /
+                                      1024 /
+                                      1024
+                                    ).toFixed(2)}{" "}
+                                    MB
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         )}
 
                         {/* Clic pour naviguer vers la page du service */}
                         <div
                           onClick={() => {
-                            router.push(service.route)
-                            setShowServicesPopup(false)
+                            router.push(service.route);
+                            setShowServicesPopup(false);
                           }}
                           className="mt-3 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-center py-2 bg-blue-50 dark:bg-blue-900/20 rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                         >
                           Voir détails →
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -1769,13 +2318,22 @@ export default function BackofficePage() {
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {((Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0) ? servicesWithMetrics : (Array.isArray(services) ? services : [])).length} services disponibles
+                    {
+                      (Array.isArray(servicesWithMetrics) &&
+                      servicesWithMetrics.length > 0
+                        ? servicesWithMetrics
+                        : Array.isArray(services)
+                          ? services
+                          : []
+                      ).length
+                    }{" "}
+                    services disponibles
                   </p>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => {
                         setShowServicesPopup(false);
-                        router.push('/b4ck0ff1ce/services');
+                        router.push("/b4ck0ff1ce/services");
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                     >
@@ -1795,29 +2353,34 @@ export default function BackofficePage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
 
 // Composant graphique des tendances d'erreurs
 function ErrorTrendChart({ stats }: { stats: any }) {
-  const [errorData, setErrorData] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [errorData, setErrorData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simuler des données d'erreurs par heure
     const mockData = Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i.toString().padStart(2, '0')}:00`,
-      total: Math.floor(Math.random() * 10) + (stats.recentErrors > 0 ? Math.floor(stats.recentErrors / 24) : 0)
-    }))
-    setErrorData(mockData)
-    setLoading(false)
-  }, [stats.recentErrors])
+      hour: `${i.toString().padStart(2, "0")}:00`,
+      total:
+        Math.floor(Math.random() * 10) +
+        (stats.recentErrors > 0 ? Math.floor(stats.recentErrors / 24) : 0),
+    }));
+    setErrorData(mockData);
+    setLoading(false);
+  }, [stats.recentErrors]);
 
   if (loading) {
-    return <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+    return (
+      <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+    );
   }
 
-  const maxValue = errorData.length > 0 ? Math.max(...errorData.map(d => d.total)) : 10
+  const maxValue =
+    errorData.length > 0 ? Math.max(...errorData.map((d) => d.total)) : 10;
 
   return (
     <div className="space-y-4">
@@ -1825,14 +2388,16 @@ function ErrorTrendChart({ stats }: { stats: any }) {
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-          <span className="text-gray-600 dark:text-gray-400">Erreurs par heure</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            Erreurs par heure
+          </span>
         </div>
       </div>
 
       {/* Graphique en barres */}
       <div className="h-48 flex items-end justify-between gap-1">
         {errorData.map((data, index) => {
-          const height = maxValue > 0 ? (data.total / maxValue) * 100 : 0
+          const height = maxValue > 0 ? (data.total / maxValue) * 100 : 0;
           return (
             <div key={index} className="flex flex-col items-center flex-1">
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg relative">
@@ -1841,77 +2406,87 @@ function ErrorTrendChart({ stats }: { stats: any }) {
                   style={{ height: `${Math.max(height, 5)}%` }}
                 ></div>
               </div>
-              <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">{data.hour}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                {data.hour}
+              </span>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 // Composant pour les cartes de métriques
-function MetricCard({ title, value, subtitle, icon, color, href, trend, trendType = 'negative-is-bad' }: {
-  title: string
-  value: number | string
-  subtitle: string
-  icon: React.ReactNode
-  color: 'blue' | 'green' | 'purple' | 'orange' | 'yellow' | 'pink' | 'red'
-  href?: string
-  trend?: number  // Pourcentage de changement (positif = augmentation, négatif = diminution)
-  trendType?: 'negative-is-bad' | 'positive-is-bad'  
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  href,
+  trend,
+  trendType = "negative-is-bad",
+}: {
+  title: string;
+  value: number | string;
+  subtitle: string;
+  icon: React.ReactNode;
+  color: "blue" | "green" | "purple" | "orange" | "yellow" | "pink" | "red";
+  href?: string;
+  trend?: number; // Pourcentage de changement (positif = augmentation, négatif = diminution)
+  trendType?: "negative-is-bad" | "positive-is-bad";
   // 'negative-is-bad' pour Disponibilité (plus = mieux)
   // 'positive-is-bad' pour CPU, Mémoire, Temps de réponse (moins = mieux)
 }) {
   const colors = {
-    blue: 'bg-blue-500 hover:bg-blue-600',
-    green: 'bg-green-500 hover:bg-green-600',
-    purple: 'bg-purple-500 hover:bg-purple-600',
-    orange: 'bg-orange-500 hover:bg-orange-600',
-    yellow: 'bg-yellow-500 hover:bg-yellow-600',
-    pink: 'bg-pink-500 hover:bg-pink-600',
-    red: 'bg-red-500 hover:bg-red-600'
-  }
+    blue: "bg-blue-500 hover:bg-blue-600",
+    green: "bg-green-500 hover:bg-green-600",
+    purple: "bg-purple-500 hover:bg-purple-600",
+    orange: "bg-orange-500 hover:bg-orange-600",
+    yellow: "bg-yellow-500 hover:bg-yellow-600",
+    pink: "bg-pink-500 hover:bg-pink-600",
+    red: "bg-red-500 hover:bg-red-600",
+  };
 
-  const CardComponent = href ? 'a' : 'div'
+  const CardComponent = href ? "a" : "div";
 
   // Déterminer la couleur de la tendance
   const getTrendColor = () => {
-    if (trend === undefined || trend === null || trend === 0) return 'text-white/70'
-    
-    if (trendType === 'positive-is-bad') {
+    if (trend === undefined || trend === null || trend === 0)
+      return "text-white/70";
+
+    if (trendType === "positive-is-bad") {
       // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
-      return trend > 0 ? 'text-red-200' : 'text-green-200'
+      return trend > 0 ? "text-red-200" : "text-green-200";
     } else {
       // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? 'text-green-200' : 'text-red-200'
+      return trend > 0 ? "text-green-200" : "text-red-200";
     }
-  }
+  };
 
   const getTrendIcon = () => {
-    if (trend === undefined || trend === null || trend === 0) return null
-    return trend > 0 ? '↑' : '↓'
-  }
+    if (trend === undefined || trend === null || trend === 0) return null;
+    return trend > 0 ? "↑" : "↓";
+  };
 
   return (
     <CardComponent
       href={href}
-      className={`relative overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? 'cursor-pointer hover:scale-105' : ''} ${color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' : color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' : color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' : color === 'pink' ? 'bg-gradient-to-br from-pink-500 to-pink-600' : 'bg-gradient-to-br from-red-500 to-red-600'} text-white`}
+      className={`relative overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? "cursor-pointer hover:scale-105" : ""} ${color === "blue" ? "bg-gradient-to-br from-blue-500 to-blue-600" : color === "green" ? "bg-gradient-to-br from-green-500 to-green-600" : color === "purple" ? "bg-gradient-to-br from-purple-500 to-purple-600" : color === "orange" ? "bg-gradient-to-br from-orange-500 to-orange-600" : color === "yellow" ? "bg-gradient-to-br from-yellow-500 to-yellow-600" : color === "pink" ? "bg-gradient-to-br from-pink-500 to-pink-600" : "bg-gradient-to-br from-red-500 to-red-600"} text-white`}
     >
       <div className="p-4 md:p-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-white/80">
-            {icon}
-          </div>
+          <div className="text-white/80">{icon}</div>
           {trend !== undefined && trend !== null && trend !== 0 ? (
-            <div className={`text-sm font-semibold ${getTrendColor()} flex items-center gap-0.5`}>
+            <div
+              className={`text-sm font-semibold ${getTrendColor()} flex items-center gap-0.5`}
+            >
               <span>{getTrendIcon()}</span>
               <span>{Math.abs(trend).toFixed(1)}%</span>
             </div>
           ) : href ? (
-            <div className="text-white/60 text-sm">
-              →
-            </div>
+            <div className="text-white/60 text-sm">→</div>
           ) : null}
         </div>
         <div className="space-y-1">
@@ -1921,5 +2496,5 @@ function MetricCard({ title, value, subtitle, icon, color, href, trend, trendTyp
         </div>
       </div>
     </CardComponent>
-  )
+  );
 }

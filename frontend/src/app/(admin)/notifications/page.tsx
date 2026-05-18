@@ -1,78 +1,81 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import { notificationService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import { notificationService } from "@/lib/api";
 
 interface Notification {
-  id: string
-  type: string
-  title: string
-  message: string
-  status: string
-  sentAt?: string
-  readAt?: string
-  createdAt: string
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  status: string;
+  sentAt?: string;
+  readAt?: string;
+  createdAt: string;
 }
 
 export default function NotificationsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchNotifications()
+      fetchNotifications();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchNotifications = async () => {
     try {
-      const response = await notificationService.getAll()
-      setNotifications(response.data.notifications || [])
+      const response = await notificationService.getAll();
+      setNotifications(response.data.notifications || []);
     } catch (error) {
-      console.error('Erreur chargement notifications:', error)
+      console.error("Erreur chargement notifications:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      await notificationService.update(notificationId, { readAt: new Date().toISOString() })
-      fetchNotifications()
+      await notificationService.update(notificationId, {
+        readAt: new Date().toISOString(),
+      });
+      fetchNotifications();
     } catch (error) {
-      console.error('Erreur marquage notification:', error)
+      console.error("Erreur marquage notification:", error);
     }
-  }
+  };
 
   const handleDeleteNotification = async (notificationId: string) => {
-    if (!confirm('Supprimer cette notification ?')) return
+    if (!confirm("Supprimer cette notification ?")) return;
 
     try {
-      await notificationService.delete(notificationId)
-      fetchNotifications()
+      await notificationService.delete(notificationId);
+      fetchNotifications();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
-  const filteredNotifications = filterStatus === 'all'
-    ? notifications
-    : notifications.filter(n => 
-        filterStatus === 'read' ? n.readAt : !n.readAt
-      )
+  const filteredNotifications =
+    filterStatus === "all"
+      ? notifications
+      : notifications.filter((n) =>
+          filterStatus === "read" ? n.readAt : !n.readAt,
+        );
 
   if (authLoading || loading) {
     return (
@@ -81,7 +84,7 @@ export default function NotificationsPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -107,13 +110,13 @@ export default function NotificationsPage() {
           />
           <StatCard
             title="Non lues"
-            value={notifications.filter(n => !n.readAt).length}
+            value={notifications.filter((n) => !n.readAt).length}
             icon="🔴"
             color="red"
           />
           <StatCard
             title="Lues"
-            value={notifications.filter(n => n.readAt).length}
+            value={notifications.filter((n) => n.readAt).length}
             icon="✅"
             color="green"
           />
@@ -122,20 +125,20 @@ export default function NotificationsPage() {
         {/* Filters */}
         <div className="mb-6 flex space-x-4">
           <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            onClick={() => setFilterStatus("all")}
+            className={`px-4 py-2 rounded-lg ${filterStatus === "all" ? "bg-blue-600 dark:bg-blue-500 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"}`}
           >
             Toutes
           </button>
           <button
-            onClick={() => setFilterStatus('unread')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'unread' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            onClick={() => setFilterStatus("unread")}
+            className={`px-4 py-2 rounded-lg ${filterStatus === "unread" ? "bg-blue-600 dark:bg-blue-500 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"}`}
           >
-            Non lues ({notifications.filter(n => !n.readAt).length})
+            Non lues ({notifications.filter((n) => !n.readAt).length})
           </button>
           <button
-            onClick={() => setFilterStatus('read')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'read' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            onClick={() => setFilterStatus("read")}
+            className={`px-4 py-2 rounded-lg ${filterStatus === "read" ? "bg-blue-600 dark:bg-blue-500 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"}`}
           >
             Lues
           </button>
@@ -162,33 +165,39 @@ export default function NotificationsPage() {
         </div>
       </div>
     </AdminLayout>
-  )
+  );
 }
 
-function NotificationCard({ notification, onMarkAsRead, onDelete }: {
-  notification: Notification
-  onMarkAsRead: () => void
-  onDelete: () => void
+function NotificationCard({
+  notification,
+  onMarkAsRead,
+  onDelete,
+}: {
+  notification: Notification;
+  onMarkAsRead: () => void;
+  onDelete: () => void;
 }) {
   const notificationIcons: Record<string, string> = {
-    EMAIL: '📧',
-    REMINDER: '⏰',
-    ALERT: '🚨',
-    INFO: 'ℹ️',
-    SUCCESS: '✅',
-    WARNING: '⚠️',
-  }
+    EMAIL: "📧",
+    REMINDER: "⏰",
+    ALERT: "🚨",
+    INFO: "ℹ️",
+    SUCCESS: "✅",
+    WARNING: "⚠️",
+  };
 
-  const isUnread = !notification.readAt
+  const isUnread = !notification.readAt;
 
   return (
-    <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
-      isUnread ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-    }`}>
+    <div
+      className={`bg-white rounded-lg shadow p-6 border-l-4 ${
+        isUnread ? "border-blue-600 bg-blue-50" : "border-gray-300"
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
           <div className="text-3xl">
-            {notificationIcons[notification.type] || '🔔'}
+            {notificationIcons[notification.type] || "🔔"}
           </div>
           <div className="flex-1">
             <div className="flex items-center space-x-2">
@@ -201,21 +210,21 @@ function NotificationCard({ notification, onMarkAsRead, onDelete }: {
                 </span>
               )}
             </div>
-            <p className="mt-2 text-sm text-gray-700">
-              {notification.message}
-            </p>
+            <p className="mt-2 text-sm text-gray-700">{notification.message}</p>
             <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500">
               <span>
-                🕒 {new Date(notification.createdAt).toLocaleString('fr-FR')}
+                🕒 {new Date(notification.createdAt).toLocaleString("fr-FR")}
               </span>
               {notification.sentAt && (
                 <span>
-                  📤 Envoyée : {new Date(notification.sentAt).toLocaleString('fr-FR')}
+                  📤 Envoyée :{" "}
+                  {new Date(notification.sentAt).toLocaleString("fr-FR")}
                 </span>
               )}
               {notification.readAt && (
                 <span className="text-green-600">
-                  ✅ Lue : {new Date(notification.readAt).toLocaleString('fr-FR')}
+                  ✅ Lue :{" "}
+                  {new Date(notification.readAt).toLocaleString("fr-FR")}
                 </span>
               )}
             </div>
@@ -240,20 +249,25 @@ function NotificationCard({ notification, onMarkAsRead, onDelete }: {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function StatCard({ title, value, icon, color }: {
-  title: string
-  value: number
-  icon: string
-  color: 'blue' | 'red' | 'green'
+function StatCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: string;
+  color: "blue" | "red" | "green";
 }) {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-900',
-    red: 'bg-red-50 text-red-900',
-    green: 'bg-green-50 text-green-900',
-  }
+    blue: "bg-blue-50 text-blue-900",
+    red: "bg-red-50 text-red-900",
+    green: "bg-green-50 text-green-900",
+  };
 
   return (
     <div className={`rounded-lg shadow p-6 ${colorClasses[color]}`}>
@@ -265,6 +279,5 @@ function StatCard({ title, value, icon, color }: {
         <div className="text-4xl">{icon}</div>
       </div>
     </div>
-  )
+  );
 }
-

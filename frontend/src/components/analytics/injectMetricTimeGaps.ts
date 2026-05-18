@@ -1,8 +1,8 @@
-import { metricTimestampToMs } from '@/lib/utils/date';
+import { metricTimestampToMs } from "@/lib/utils/date";
 
 function rowEpochMs(row: { timestamp: string }): number | null {
   const tm = (row as { timeMs?: number }).timeMs;
-  if (typeof tm === 'number' && Number.isFinite(tm)) return tm;
+  if (typeof tm === "number" && Number.isFinite(tm)) return tm;
   return metricTimestampToMs(row.timestamp);
 }
 
@@ -13,7 +13,7 @@ function rowEpochMs(row: { timestamp: string }): number | null {
 export function injectMetricTimeGaps<T extends { timestamp: string }>(
   rows: T[],
   gapThresholdMs: number,
-  numericKeys: (keyof T)[]
+  numericKeys: (keyof T)[],
 ): T[] {
   if (rows.length < 2) return rows;
   const out: T[] = [];
@@ -21,11 +21,7 @@ export function injectMetricTimeGaps<T extends { timestamp: string }>(
     if (i > 0) {
       const prevMs = rowEpochMs(rows[i - 1]);
       const curMs = rowEpochMs(rows[i]);
-      if (
-        prevMs != null &&
-        curMs != null &&
-        curMs - prevMs > gapThresholdMs
-      ) {
+      if (prevMs != null && curMs != null && curMs - prevMs > gapThresholdMs) {
         const midMs = Math.floor((prevMs + curMs) / 2);
         const mid = new Date(midMs).toISOString();
         const gapRow = { ...rows[i - 1], timestamp: mid, timeMs: midMs } as T;

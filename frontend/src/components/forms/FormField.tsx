@@ -1,70 +1,76 @@
-'use client'
+"use client";
 
-import { ReactNode } from 'react'
-import { Label } from '@/components/ui'
-import { Input } from '@/components/ui'
-import { Textarea } from '@/components/ui'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
-import { Switch } from '@/components/ui'
+import { ReactNode } from "react";
+import { Label } from "@/components/ui";
+import { Input } from "@/components/ui";
+import { Textarea } from "@/components/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
+import { Switch } from "@/components/ui";
 
 interface BaseFieldProps {
-  label: string
-  name: string
-  required?: boolean
-  className?: string
-  description?: string
+  label: string;
+  name: string;
+  required?: boolean;
+  className?: string;
+  description?: string;
 }
 
 interface TextFieldProps extends BaseFieldProps {
-  type: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  disabled?: boolean
+  type: "text" | "email" | "password" | "number" | "tel" | "url";
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 interface TextareaFieldProps extends BaseFieldProps {
-  type: 'textarea'
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  rows?: number
-  disabled?: boolean
+  type: "textarea";
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  disabled?: boolean;
 }
 
 interface SelectFieldProps extends BaseFieldProps {
-  type: 'select'
-  value: string
-  onChange: (value: string) => void
-  options: { label: string; value: string }[]
-  placeholder?: string
-  disabled?: boolean
+  type: "select";
+  value: string;
+  onChange: (value: string) => void;
+  options: { label: string; value: string }[];
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 interface SwitchFieldProps extends BaseFieldProps {
-  type: 'switch'
-  value: boolean
-  onChange: (value: boolean) => void
-  disabled?: boolean
+  type: "switch";
+  value: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
 }
 
 type FormFieldProps =
   | TextFieldProps
   | TextareaFieldProps
   | SelectFieldProps
-  | SwitchFieldProps
+  | SwitchFieldProps;
 
 export default function FormField(props: FormFieldProps) {
-  const { label, name, required, className = '', description } = props
+  const { label, name, required, className = "", description } = props;
 
   const renderField = () => {
     switch (props.type) {
-      case 'text':
-      case 'email':
-      case 'password':
-      case 'number':
-      case 'tel':
-      case 'url':
+      case "text":
+      case "email":
+      case "password":
+      case "number":
+      case "tel":
+      case "url":
         return (
           <Input
             type={props.type}
@@ -74,9 +80,9 @@ export default function FormField(props: FormFieldProps) {
             disabled={props.disabled}
             className="w-full"
           />
-        )
+        );
 
-      case 'textarea':
+      case "textarea":
         return (
           <Textarea
             value={props.value}
@@ -86,11 +92,15 @@ export default function FormField(props: FormFieldProps) {
             disabled={props.disabled}
             className="w-full"
           />
-        )
+        );
 
-      case 'select':
+      case "select":
         return (
-          <Select value={props.value} onChange={(e) => props.onChange?.(e.target.value)} disabled={props.disabled}>
+          <Select
+            value={props.value}
+            onChange={(e) => props.onChange?.(e.target.value)}
+            disabled={props.disabled}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={props.placeholder} />
             </SelectTrigger>
@@ -102,9 +112,9 @@ export default function FormField(props: FormFieldProps) {
               ))}
             </SelectContent>
           </Select>
-        )
+        );
 
-      case 'switch':
+      case "switch":
         return (
           <div className="flex items-center space-x-2">
             <Switch
@@ -113,15 +123,15 @@ export default function FormField(props: FormFieldProps) {
               disabled={props.disabled}
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {props.value ? 'Activé' : 'Désactivé'}
+              {props.value ? "Activé" : "Désactivé"}
             </span>
           </div>
-        )
+        );
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -138,5 +148,5 @@ export default function FormField(props: FormFieldProps) {
         </p>
       )}
     </div>
-  )
+  );
 }

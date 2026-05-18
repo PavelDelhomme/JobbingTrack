@@ -1,65 +1,65 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import { contactService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import { contactService } from "@/lib/api";
 
 interface Contact {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string
-  phone?: string
-  position?: string
-  companyId?: string
-  createdAt: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  companyId?: string;
+  createdAt: string;
 }
 
 export default function ContactsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchContacts()
+      fetchContacts();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchContacts = async () => {
     try {
-      const response = await contactService.getAll()
-      setContacts(response.data.contacts || [])
+      const response = await contactService.getAll();
+      setContacts(response.data.contacts || []);
     } catch (error) {
-      console.error('Erreur chargement contacts:', error)
+      console.error("Erreur chargement contacts:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteContact = async (contactId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contact ?")) {
+      return;
     }
 
     try {
-      await contactService.delete(contactId)
-      fetchContacts()
+      await contactService.delete(contactId);
+      fetchContacts();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
   if (authLoading || loading) {
     return (
@@ -68,7 +68,7 @@ export default function ContactsPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -120,7 +120,8 @@ export default function ContactsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
-                        {contact.firstName[0]}{contact.lastName[0]}
+                        {contact.firstName[0]}
+                        {contact.lastName[0]}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
@@ -130,17 +131,17 @@ export default function ContactsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {contact.email || '-'}
+                    {contact.email || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {contact.phone || '-'}
+                    {contact.phone || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {contact.position || '-'}
+                    {contact.position || "-"}
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
-                      onClick={() => alert('Édition à implémenter')}
+                      onClick={() => alert("Édition à implémenter")}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
                       Modifier
@@ -169,44 +170,47 @@ export default function ContactsPage() {
           <CreateContactModal
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
-              setShowCreateModal(false)
-              fetchContacts()
+              setShowCreateModal(false);
+              fetchContacts();
             }}
           />
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
 
-function CreateContactModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: () => void
+function CreateContactModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    position: '',
-    notes: ''
-  })
-  const [loading, setLoading] = useState(false)
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    position: "",
+    notes: "",
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      await contactService.create(formData)
-      onSuccess()
+      await contactService.create(formData);
+      onSuccess();
     } catch (error) {
-      console.error('Erreur création:', error)
-      alert('Erreur lors de la création')
+      console.error("Erreur création:", error);
+      alert("Erreur lors de la création");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -225,7 +229,9 @@ function CreateContactModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -237,7 +243,9 @@ function CreateContactModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -250,7 +258,9 @@ function CreateContactModal({ onClose, onSuccess }: {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -262,7 +272,9 @@ function CreateContactModal({ onClose, onSuccess }: {
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -274,7 +286,9 @@ function CreateContactModal({ onClose, onSuccess }: {
             <input
               type="text"
               value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, position: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -286,7 +300,9 @@ function CreateContactModal({ onClose, onSuccess }: {
             <textarea
               rows={3}
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -304,12 +320,11 @@ function CreateContactModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
             >
-              {loading ? 'Création...' : 'Créer'}
+              {loading ? "Création..." : "Créer"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
-

@@ -1,101 +1,108 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { applicationService, companyService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { applicationService, companyService } from "@/lib/api";
 
 interface Application {
-  id: string
-  position: string
-  companyName?: string
+  id: string;
+  position: string;
+  companyName?: string;
   company?: {
-    id: string
-    name: string
-  }
-  agencyId?: string | null
-  agency?: { id: string; name: string } | null
-  status: string
-  type: string
-  location?: string
-  applicationDate?: string
-  createdAt: string
+    id: string;
+    name: string;
+  };
+  agencyId?: string | null;
+  agency?: { id: string; name: string } | null;
+  status: string;
+  type: string;
+  location?: string;
+  applicationDate?: string;
+  createdAt: string;
 }
 
 export default function ApplicationsTab() {
-  const router = useRouter()
-  const [applications, setApplications] = useState<Application[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterInterim, setFilterInterim] = useState<'all' | 'classique' | 'interim'>('all')
+  const router = useRouter();
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterInterim, setFilterInterim] = useState<
+    "all" | "classique" | "interim"
+  >("all");
 
   useEffect(() => {
-    fetchApplications()
-  }, [])
+    fetchApplications();
+  }, []);
 
   const fetchApplications = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'data_applications_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "data_applications_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setApplications(Array.isArray(cached) ? (cached as Application[]) : [])
-        setLoading(false)
+        setApplications(Array.isArray(cached) ? (cached as Application[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        applicationService.getAll({ limit: 100 }).then(response => {
-          const apps = response.data.applications || []
-          cacheManager.set(cacheKey, apps, { ttl: 30000 })
-          setApplications(apps)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        applicationService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const apps = response.data.applications || [];
+            cacheManager.set(cacheKey, apps, { ttl: 30000 });
+            setApplications(apps);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 applications par défaut
-      const response = await applicationService.getAll({ limit: 100 })
-      const apps = response.data.applications || []
-      setApplications(apps)
-      
+      const response = await applicationService.getAll({ limit: 100 });
+      const apps = response.data.applications || [];
+      setApplications(apps);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, apps, { ttl: 30000 })
+      await cacheManager.set(cacheKey, apps, { ttl: 30000 });
     } catch (error) {
-      console.error('Erreur chargement candidatures:', error)
+      console.error("Erreur chargement candidatures:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteApplication = async (appId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette candidature ?")) {
+      return;
     }
 
     try {
-      await applicationService.delete(appId)
-      fetchApplications()
+      await applicationService.delete(appId);
+      fetchApplications();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
-  const byStatus = filterStatus === 'all'
-    ? applications
-    : applications.filter(app => app.status === filterStatus)
-  const filteredApplications = filterInterim === 'all'
-    ? byStatus
-    : filterInterim === 'classique'
-      ? byStatus.filter(app => !app.agencyId)
-      : byStatus.filter(app => !!app.agencyId)
+  const byStatus =
+    filterStatus === "all"
+      ? applications
+      : applications.filter((app) => app.status === filterStatus);
+  const filteredApplications =
+    filterInterim === "all"
+      ? byStatus
+      : filterInterim === "classique"
+        ? byStatus.filter((app) => !app.agencyId)
+        : byStatus.filter((app) => !!app.agencyId);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -135,7 +142,9 @@ export default function ApplicationsTab() {
         </select>
         <select
           value={filterInterim}
-          onChange={(e) => setFilterInterim(e.target.value as 'all' | 'classique' | 'interim')}
+          onChange={(e) =>
+            setFilterInterim(e.target.value as "all" | "classique" | "interim")
+          }
           className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           title="Filtrer par type : classique (sans agence) ou intérim (via boîte d'intérim)"
         >
@@ -181,8 +190,8 @@ export default function ApplicationsTab() {
                   key={app.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                   onClick={(e) => {
-                    if ((e.target as HTMLElement).closest('button')) return
-                    router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                    if ((e.target as HTMLElement).closest("button")) return;
+                    router.push(`/b4ck0ff1ce/applications/${app.id}`);
                   }}
                 >
                   <td className="px-6 py-4">
@@ -190,19 +199,25 @@ export default function ApplicationsTab() {
                       {app.position}
                     </div>
                     {app.location && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{app.location}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {app.location}
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {app.company?.name || app.companyName || '-'}
+                    {app.company?.name || app.companyName || "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {app.agency?.name ? (
-                      <span className="inline-flex items-center gap-1" title="Via boîte d&apos;intérim">
-                        <span className="text-amber-500">👔</span> {app.agency.name}
+                      <span
+                        className="inline-flex items-center gap-1"
+                        title="Via boîte d'intérim"
+                      >
+                        <span className="text-amber-500">👔</span>{" "}
+                        {app.agency.name}
                       </span>
                     ) : (
-                      '-'
+                      "-"
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -213,15 +228,16 @@ export default function ApplicationsTab() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {app.applicationDate
-                      ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
-                      : new Date(app.createdAt).toLocaleDateString('fr-FR')
-                    }
+                      ? new Date(app.applicationDate).toLocaleDateString(
+                          "fr-FR",
+                        )
+                      : new Date(app.createdAt).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                        e.stopPropagation();
+                        router.push(`/b4ck0ff1ce/applications/${app.id}`);
                       }}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                     >
@@ -229,8 +245,8 @@ export default function ApplicationsTab() {
                     </button>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteApplication(app.id)
+                        e.stopPropagation();
+                        handleDeleteApplication(app.id);
                       }}
                       className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                     >
@@ -253,15 +269,21 @@ export default function ApplicationsTab() {
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">{app.position}</h3>
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                    {app.position}
+                  </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {app.company?.name || app.companyName || '-'}
+                    {app.company?.name || app.companyName || "-"}
                   </p>
                   {app.agency?.name && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-0.5">👔 {app.agency.name}</p>
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-0.5">
+                      👔 {app.agency.name}
+                    </p>
                   )}
                   {app.location && (
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">📍 {app.location}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                      📍 {app.location}
+                    </p>
                   )}
                 </div>
                 <StatusBadge status={app.status} />
@@ -271,17 +293,16 @@ export default function ApplicationsTab() {
                 <span>{app.type}</span>
                 <span>
                   {app.applicationDate
-                    ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
-                    : new Date(app.createdAt).toLocaleDateString('fr-FR')
-                  }
+                    ? new Date(app.applicationDate).toLocaleDateString("fr-FR")
+                    : new Date(app.createdAt).toLocaleDateString("fr-FR")}
                 </span>
               </div>
 
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                    e.stopPropagation();
+                    router.push(`/b4ck0ff1ce/applications/${app.id}`);
                   }}
                   className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
@@ -289,8 +310,8 @@ export default function ApplicationsTab() {
                 </button>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteApplication(app.id)
+                    e.stopPropagation();
+                    handleDeleteApplication(app.id);
                   }}
                   className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                 >
@@ -313,84 +334,98 @@ export default function ApplicationsTab() {
         <CreateApplicationModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
-            setShowCreateModal(false)
-            fetchApplications()
+            setShowCreateModal(false);
+            fetchApplications();
           }}
         />
       )}
     </div>
-  )
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
-    DRAFT: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
-    SENT: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-    IN_REVIEW: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-    INTERVIEW_SCHEDULED: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-    REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
-    ACCEPTED: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-  }
+    DRAFT: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300",
+    SENT: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
+    IN_REVIEW:
+      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+    INTERVIEW_SCHEDULED:
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300",
+    REJECTED: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
+    ACCEPTED:
+      "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+  };
 
   return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'}`}>
+    <span
+      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"}`}
+    >
       {status}
     </span>
-  )
+  );
 }
 
-function CreateApplicationModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: () => void
+function CreateApplicationModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
-  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([])
+  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData] = useState({
-    companyName: '',
-    position: '',
-    description: '',
-    location: '',
-    type: 'FULL_TIME',
-    status: 'DRAFT',
-    salary: '',
-    jobUrl: '',
-    source: '',
-    notes: '',
-    agencyId: '' as string | null,
-    applicationDate: new Date().toISOString().split('T')[0],
+    companyName: "",
+    position: "",
+    description: "",
+    location: "",
+    type: "FULL_TIME",
+    status: "DRAFT",
+    salary: "",
+    jobUrl: "",
+    source: "",
+    notes: "",
+    agencyId: "" as string | null,
+    applicationDate: new Date().toISOString().split("T")[0],
     companyData: {
-      website: '',
-      industry: '',
-      size: ''
-    }
-  })
-  const [loading, setLoading] = useState(false)
+      website: "",
+      industry: "",
+      size: "",
+    },
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    companyService.getAll({ limit: 100, companyType: 'TEMP_AGENCY' })
+    companyService
+      .getAll({ limit: 100, companyType: "TEMP_AGENCY" })
       .then((res) => {
-        const list = res.data?.companies || []
-        setAgencies(list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })))
+        const list = res.data?.companies || [];
+        setAgencies(
+          list.map((c: { id: string; name: string }) => ({
+            id: c.id,
+            name: c.name,
+          })),
+        );
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const payload: Record<string, unknown> = { ...formData }
-    if (!formData.agencyId) delete payload.agencyId
-    else payload.agencyId = formData.agencyId
+    e.preventDefault();
+    setLoading(true);
+    const payload: Record<string, unknown> = { ...formData };
+    if (!formData.agencyId) delete payload.agencyId;
+    else payload.agencyId = formData.agencyId;
 
     try {
-      await applicationService.create(payload)
-      onSuccess()
+      await applicationService.create(payload);
+      onSuccess();
     } catch (error) {
-      console.error('Erreur création:', error)
-      alert('Erreur lors de la création')
+      console.error("Erreur création:", error);
+      alert("Erreur lors de la création");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 overflow-y-auto">
@@ -409,7 +444,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyName: e.target.value })
+                }
                 placeholder="L'entreprise sera créée automatiquement si elle n'existe pas"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
@@ -423,7 +460,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, position: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -434,13 +473,20 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                   Agence (boîte d&apos;intérim)
                 </label>
                 <select
-                  value={formData.agencyId || ''}
-                  onChange={(e) => setFormData({ ...formData, agencyId: e.target.value || null })}
+                  value={formData.agencyId || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      agencyId: e.target.value || null,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Aucune</option>
                   {agencies.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -452,7 +498,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="FULL_TIME">CDI</option>
@@ -469,7 +517,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="DRAFT">Brouillon</option>
@@ -485,7 +535,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -497,7 +549,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="date"
                 value={formData.applicationDate}
-                onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, applicationDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -509,7 +563,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <textarea
                 rows={4}
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -528,11 +584,11 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...' : 'Créer la candidature'}
+              {loading ? "Création..." : "Créer la candidature"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }

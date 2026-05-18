@@ -1,14 +1,14 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Notification {
   id: string;
   title: string;
   body: string;
-  type: 'interview' | 'followup' | 'application' | 'system';
+  type: "interview" | "followup" | "application" | "system";
   timestamp: Date;
   read: boolean;
   data?: any;
@@ -18,7 +18,9 @@ interface MobileNotificationCenterProps {
   className?: string;
 }
 
-const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ className = '' }) => {
+const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({
+  className = "",
+}) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -28,7 +30,8 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
 
     // Simuler l'arrivée de nouvelles notifications
     const interval = setInterval(() => {
-      if (Math.random() > 0.7) { // 30% de chance de nouvelle notification
+      if (Math.random() > 0.7) {
+        // 30% de chance de nouvelle notification
         addRandomNotification();
       }
     }, 10000); // Toutes les 10 secondes
@@ -39,26 +42,26 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
   const generateDemoNotifications = () => {
     const demoNotifications: Notification[] = [
       {
-        id: '1',
-        title: 'Entretien imminent',
-        body: 'Entretien avec Marie Dubois chez TechCorp dans 1 heure',
-        type: 'interview',
+        id: "1",
+        title: "Entretien imminent",
+        body: "Entretien avec Marie Dubois chez TechCorp dans 1 heure",
+        type: "interview",
         timestamp: new Date(Date.now() - 30 * 60 * 1000), // Il y a 30 minutes
         read: false,
       },
       {
-        id: '2',
-        title: 'Relance en attente',
-        body: 'N\'oubliez pas de relancer Pierre Martin chez StartupInc',
-        type: 'followup',
+        id: "2",
+        title: "Relance en attente",
+        body: "N'oubliez pas de relancer Pierre Martin chez StartupInc",
+        type: "followup",
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2 heures
         read: true,
       },
       {
-        id: '3',
-        title: 'Nouvelle candidature',
-        body: 'Votre candidature pour Développeur Full Stack a été envoyée',
-        type: 'application',
+        id: "3",
+        title: "Nouvelle candidature",
+        body: "Votre candidature pour Développeur Full Stack a été envoyée",
+        type: "application",
         timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // Il y a 24 heures
         read: true,
       },
@@ -68,19 +71,24 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
   };
 
   const addRandomNotification = () => {
-    const types: Notification['type'][] = ['interview', 'followup', 'application', 'system'];
+    const types: Notification["type"][] = [
+      "interview",
+      "followup",
+      "application",
+      "system",
+    ];
     const titles = {
-      interview: 'Entretien programmé',
-      followup: 'Relance nécessaire',
-      application: 'Candidature mise à jour',
-      system: 'Rappel système',
+      interview: "Entretien programmé",
+      followup: "Relance nécessaire",
+      application: "Candidature mise à jour",
+      system: "Rappel système",
     };
 
     const bodies = {
-      interview: 'Nouvel entretien avec un recruteur',
-      followup: 'Une relance nécessite votre attention',
-      application: 'Le statut de votre candidature a changé',
-      system: 'Maintenance système programmée',
+      interview: "Nouvel entretien avec un recruteur",
+      followup: "Une relance nécessite votre attention",
+      application: "Le statut de votre candidature a changé",
+      system: "Maintenance système programmée",
     };
 
     const newNotification: Notification = {
@@ -92,44 +100,50 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
       read: false,
     };
 
-    setNotifications(prev => [newNotification, ...prev.slice(0, 9)]); // Garder seulement les 10 dernières
+    setNotifications((prev) => [newNotification, ...prev.slice(0, 9)]); // Garder seulement les 10 dernières
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+    setNotifications((prev) =>
+      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)),
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notif => ({ ...notif, read: true }))
-    );
+    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
   };
 
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: Notification["type"]) => {
     switch (type) {
-      case 'interview': return '🎤';
-      case 'followup': return '🔄';
-      case 'application': return '📝';
-      case 'system': return '⚙️';
-      default: return '📱';
+      case "interview":
+        return "🎤";
+      case "followup":
+        return "🔄";
+      case "application":
+        return "📝";
+      case "system":
+        return "⚙️";
+      default:
+        return "📱";
     }
   };
 
-  const getNotificationColor = (type: Notification['type']) => {
+  const getNotificationColor = (type: Notification["type"]) => {
     switch (type) {
-      case 'interview': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'followup': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-      case 'application': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'system': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      case "interview":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "followup":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+      case "application":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case "system":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <div className={`relative ${className}`}>
@@ -141,7 +155,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
         <span className="text-xl">🔔</span>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -151,7 +165,9 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
         <div className="absolute right-0 top-full mt-1 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
           {/* En-tête */}
           <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Notifications</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+              Notifications
+            </h3>
             <div className="flex items-center gap-1 sm:gap-2">
               {unreadCount > 0 && (
                 <button
@@ -182,12 +198,14 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
                 <div
                   key={notification.id}
                   className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    !notification.read ? "bg-blue-50 dark:bg-blue-900/20" : ""
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${getNotificationColor(notification.type)}`}>
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${getNotificationColor(notification.type)}`}
+                    >
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -196,14 +214,18 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
                           {notification.title}
                         </p>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {format(notification.timestamp, 'HH:mm', { locale: fr })}
+                          {format(notification.timestamp, "HH:mm", {
+                            locale: fr,
+                          })}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                         {notification.body}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotificationColor(notification.type)}`}>
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotificationColor(notification.type)}`}
+                        >
                           {notification.type}
                         </span>
                         {!notification.read && (

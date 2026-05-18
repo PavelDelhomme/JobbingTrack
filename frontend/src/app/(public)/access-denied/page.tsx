@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useAuth } from '@/lib/hooks/auth'
+import Link from "next/link";
+import { useAuth } from "@/lib/hooks/auth";
 
 export default function AccessDeniedPage() {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
@@ -17,16 +17,18 @@ export default function AccessDeniedPage() {
             Accès Refusé
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Vous n'avez pas les permissions nécessaires pour accéder au backoffice d'administration.
+            Vous n'avez pas les permissions nécessaires pour accéder au
+            backoffice d'administration.
           </p>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Votre rôle actuel :</strong> {user?.role || 'USER'}
+            <strong>Votre rôle actuel :</strong> {user?.role || "USER"}
           </p>
           <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">
-            Le backoffice est réservé aux administrateurs. Si vous pensez que c'est une erreur, contactez votre administrateur.
+            Le backoffice est réservé aux administrateurs. Si vous pensez que
+            c'est une erreur, contactez votre administrateur.
           </p>
         </div>
 
@@ -48,12 +50,15 @@ export default function AccessDeniedPage() {
         <div className="mt-8 text-sm text-gray-500 dark:text-gray-400">
           <p>Rôles autorisés :</p>
           <ul className="mt-2 space-y-1">
-            <li>👨‍💼 <strong>ADMIN</strong> - Accès au backoffice</li>
-            <li>👑 <strong>SUPER_ADMIN</strong> - Accès complet</li>
+            <li>
+              👨‍💼 <strong>ADMIN</strong> - Accès au backoffice
+            </li>
+            <li>
+              👑 <strong>SUPER_ADMIN</strong> - Accès complet
+            </li>
           </ul>
         </div>
       </div>
     </div>
-  )
+  );
 }
-
