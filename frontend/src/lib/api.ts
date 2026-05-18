@@ -3,7 +3,10 @@ import { FRONTEND_URLS } from '@/config/ports.config';
 import { cacheManager } from '@/lib/cache/cacheManager';
 import { isCriticalService, isOptionalService, getServiceErrorMessage, shouldLogServiceError } from './services/serviceStatus';
 
-const API_BASE_URL = FRONTEND_URLS.api;
+/** Résolu à chaque requête (évite https://…:5002 quand la page est en :5443). */
+function apiBaseUrl(): string {
+    return FRONTEND_URLS.api.replace(/\/$/, '');
+}
 
 /** Corrélation B6 : id par requête HTTP côté navigateur (complété / relayé par la gateway). */
 function attachClientRequestCorrelation(config: InternalAxiosRequestConfig) {
@@ -60,7 +63,6 @@ const cachedRequest = async <T>(key: string, requestFn: () => Promise<T>, ttl: n
 
 // Client principal (API Gateway) avec configuration optimisée
 export const apiClient = axios.create({
-    baseURL: `${API_BASE_URL}/api/v1`,
     timeout: 8000, // Timeout de 8 secondes pour éviter les blocages
     headers: {
         'Content-Type': 'application/json',
@@ -69,15 +71,20 @@ export const apiClient = axios.create({
 
 // Configuration pour les requêtes critiques (auth, profil)
 export const criticalApiClient = axios.create({
-    baseURL: `${API_BASE_URL}/api/v1`,
     timeout: 5000, // Timeout plus court pour les requêtes critiques
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
+function attachApiBaseUrl(config: InternalAxiosRequestConfig) {
+    config.baseURL = `${apiBaseUrl()}/api/v1`;
+    return config;
+}
+
 // Intercepteur pour ajouter le token JWT automatiquement
 apiClient.interceptors.request.use((config) => {
+    attachApiBaseUrl(config);
     attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -101,6 +108,7 @@ apiClient.interceptors.request.use((config) => {
 
 // Intercepteur pour criticalApiClient (même logique)
 criticalApiClient.interceptors.request.use((config) => {
+    attachApiBaseUrl(config);
     attachClientRequestCorrelation(config);
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
@@ -352,7 +360,7 @@ export const eventService = {
 
 export const testService = {
     healthCheck: (service?: string) => {
-        const url = service ? `${API_BASE_URL}/${service}/health` : `${API_BASE_URL}/health`;
+        const url = service ? `${apiBaseUrl()}/${service}/health` : `${apiBaseUrl()}/health`;
         return apiClient.get(url);
     },
     testAllServices: () => apiClient.get(`/test/all-services`),
@@ -445,7 +453,7 @@ export const adminService = {
     getAllLogs: (lines = 100) => 
         apiClient.get('/admin/logs/all', { params: { lines } }),
     streamServiceLogs: (serviceName: string) => 
-        `${API_BASE_URL}/api/v1/admin/logs/${serviceName}/stream`,
+        `${apiBaseUrl()}/api/v1/admin/logs/${serviceName}/stream`,
     
     // Corbeille
     getTrash: (type?: string) => 

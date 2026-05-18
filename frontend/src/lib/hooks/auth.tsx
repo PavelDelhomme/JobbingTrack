@@ -357,8 +357,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
       } catch (error: any) {
-        console.error(`❌ Connection error (attempt ${retryCount + 1}/${maxRetries}):`, error);
-        
         // Clear potentially corrupted tokens
         clearInvalidTokens();
 
@@ -371,9 +369,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Authentication errors - no retry, use API message (e.g. "Invalid email or password")
           if (error.response.status === 401 || error.response.status === 403) {
+            console.warn(`⚠️ Login refusé (${error.response.status}):`, errorMessage);
             setLoading(false);
             throw new Error(errorMessage || 'Invalid credentials');
           }
+
+          console.error(`❌ API error (attempt ${retryCount + 1}/${maxRetries}):`, error);
           
           // Validation errors
           if (error.response.status === 400) {

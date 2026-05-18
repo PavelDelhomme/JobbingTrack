@@ -92,6 +92,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const newTheme = actualTheme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
     setStoredTheme(newTheme)
+    applyTheme(newTheme)
   }
 
   const setThemeMode = (newTheme: Theme) => {
