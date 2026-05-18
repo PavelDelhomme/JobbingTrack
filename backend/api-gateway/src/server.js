@@ -1020,66 +1020,55 @@ app.get('/api/v1/services', async (req, res) => {
     // Essayer de récupérer les vraies informations depuis le service de métriques
     try {
       const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
-      // Utiliser l'endpoint /api/v1/docker/jobbingtrack/aggregated qui retourne containers
-      const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/jobbingtrack/aggregated`, {
-        timeout: 10000,
+      // Aligné frontend /backoffice/services : cache 60s côté agrégateur, moins lourd que /aggregated
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/services/all`, {
+        timeout: 25000,
         headers: metricsServiceHeaders(req),
       });
 
-      if (response.data && response.data.containers && Array.isArray(response.data.containers)) {
-        // Convertir les conteneurs du format du service metrics-aggregator vers notre format
-        servicesStatus = response.data.containers.map((container) => {
-          // Extraire le nom du service à partir du nom du conteneur
+      if (response.data && response.data.services && Array.isArray(response.data.services)) {
+        servicesStatus = response.data.services.map((container) => {
           let serviceName = container.name || '';
-          serviceName = serviceName.replace('jobbingtrack-', '');
-          if (serviceName.endsWith('-service')) {
-            serviceName = serviceName.replace('-service', '');
-          }
-          
-          // Déterminer le statut réel : utiliser health_status si disponible
-          let status = 'stopped';
-          if (container.health_status === 'healthy') {
-            status = 'running';
-          } else if (container.health_status === 'degraded') {
-            status = 'running'; // Dégradé mais toujours en cours d'exécution
-          } else if (container.health_status === 'offline') {
-            status = 'stopped';
-          } else {
-            // Fallback : si CPU > 0 ou PIDs > 0, c'est vraiment running
-            const isActuallyRunning = (container.cpu_percent > 0 || container.pids > 0);
-            status = isActuallyRunning ? 'running' : 'stopped';
-          }
+          serviceName = serviceName.replace(/^jobbingtrack-/, '');
+          const isRunning = container.is_running === true || container.status === 'running';
+          const status = isRunning ? 'running' : 'stopped';
+          const health =
+            container.health?.status ||
+            container.health_status ||
+            (container.is_healthy ? 'healthy' : status);
 
           return {
             name: serviceName,
-            status: status,
-            port: 'N/A', // Port non exposé par cAdvisor, nécessiterait inspection Docker
+            status,
+            port: 'N/A',
             url: `http://localhost:N/A`,
-            health: container.health_status || status,
-            version: 'N/A', // Version non disponible via métriques conteneur
+            health,
+            version: 'N/A',
             environment: process.env.NODE_ENV || 'development',
             type: 'service',
             dataSource: 'metrics-aggregator',
             lastCheck: new Date().toISOString(),
-            responseTime: container.response_time_ms ? `${container.response_time_ms}ms` : 'N/A',
-            error: container.health_error || undefined,
-            metrics: {
-              cpu: container.cpu_percent !== undefined ? container.cpu_percent : 'N/A',
-              memory: {
-                usage: container.memory_usage_mb !== undefined ? `${container.memory_usage_mb}MB` : 'N/A',
-                limit: container.memory_limit_mb !== undefined ? `${container.memory_limit_mb}MB` : 'N/A',
-                percent: container.memory_percent !== undefined ? container.memory_percent : 'N/A'
-              },
-              network: container.network_rx_mb !== undefined ? { 
-                rx_mb: container.network_rx_mb, 
-                tx_mb: container.network_tx_mb 
-              } : { rx_bytes: 'N/A', tx_bytes: 'N/A' },
-              pids: container.pids !== undefined ? container.pids : 'N/A'
-            }
+            responseTime:
+              container.health?.responseTime != null
+                ? `${container.health.responseTime}ms`
+                : 'N/A',
+            metrics: container.metrics
+              ? {
+                  cpu: container.metrics.cpu_percent ?? 'N/A',
+                  memory: {
+                    usage:
+                      container.metrics.memory_usage_mb != null
+                        ? `${container.metrics.memory_usage_mb}MB`
+                        : 'N/A',
+                    percent: container.metrics.memory_percent ?? 'N/A'
+                  },
+                  pids: container.metrics.pids ?? 'N/A'
+                }
+              : undefined
           };
         });
 
-        logger.info(`✅ Services récupérés depuis le service de métriques (${servicesStatus.length} services) - données temps réel`);
+        logger.info(`✅ Services récupérés (docker/services/all, ${servicesStatus.length} entrées)`);
       } else {
         throw new Error(`Format de réponse invalide du service de métriques. Réponse: ${JSON.stringify(response.data ? Object.keys(response.data).slice(0, 5) : 'N/A')}`);
       }
