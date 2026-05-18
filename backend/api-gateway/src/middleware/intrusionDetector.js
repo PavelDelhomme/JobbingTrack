@@ -121,6 +121,32 @@ const INTRUSION_PATTERNS = {
   }
 };
 
+/** Masque JWT / secrets dans les logs d'evidence (évite de rejouer des tokens en clair). */
+function redactSensitiveEvidence(text) {
+  if (!text) return text;
+  return String(text)
+    .replace(/\bbearer\s+[a-z0-9._-]+/gi, 'bearer [REDACTED]')
+    .replace(/eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, '[JWT_REDACTED]');
+}
+
+/**
+ * Dev / lab : heuristiques DoS sur headers proxy + Bearer provoquent des faux positifs (172.19.0.1).
+ * En prod/préprod pentest : INTRUSION_RELAX_HEURISTICS=false + NODE_ENV=production.
+ */
+function isIntrusionRelaxedRuntime() {
+  const relaxFlag = String(process.env.INTRUSION_RELAX_HEURISTICS || '').toLowerCase();
+  if (relaxFlag === 'true' || relaxFlag === '1' || relaxFlag === 'yes') return true;
+  if (relaxFlag === 'false' || relaxFlag === '0' || relaxFlag === 'no') return false;
+
+  const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+  if (nodeEnv === 'test' || nodeEnv === 'development') return true;
+
+  const deploy = String(
+    process.env.JT_DEPLOYMENT_ENV || process.env.DEPLOYMENT_ENV || ''
+  ).toLowerCase();
+  return deploy === 'development' || deploy === 'dev' || deploy === 'local';
+}
+
 // Classe principale de détection d'intrusion
 class IntrusionDetector {
   constructor() {
@@ -154,15 +180,37 @@ class IntrusionDetector {
    * faux positifs fréquents en dev HTTPS / backoffice authentifié.
    */
   shouldSkipDosHeuristics(req, clientIP) {
-    if (process.env.NODE_ENV !== 'production' && this.isPrivateOrLocalIp(clientIP)) {
+    const path = String(req.url || '').split('?')[0];
+    const auth = String(req.headers?.authorization || req.headers?.Authorization || '');
+
+    // Dev / lab : pas d'heuristique DoS sur le trafic backoffice (proxy Docker + JWT longs dans les headers).
+    if (isIntrusionRelaxedRuntime()) {
       return true;
     }
-    const auth = String(req.headers?.authorization || '');
+
+    if (this.isPrivateOrLocalIp(clientIP)) {
+      return true;
+    }
     if (/^bearer\s+/i.test(auth)) {
       return true;
     }
-    const path = String(req.url || '').split('?')[0];
-    if (path === '/api/v1/auth/login' || path === '/api/v1/auth/register') {
+    if (
+      path === '/api/v1/auth/login' ||
+      path === '/api/v1/auth/register' ||
+      path.startsWith('/api/v1/security/') ||
+      path === '/health'
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Dev / réseau Docker : évite menaces BRUTE_FORCE sur 172.19.x.x (tests, scripts, conteneurs). */
+  shouldSkipBruteForceHeuristics(clientIP) {
+    if (isIntrusionRelaxedRuntime()) {
+      return true;
+    }
+    if (process.env.NODE_ENV !== 'production' && this.isPrivateOrLocalIp(clientIP)) {
       return true;
     }
     return false;
@@ -232,13 +280,13 @@ class IntrusionDetector {
             method,
             userAgent,
             timestamp: new Date().toISOString(),
-            evidence: match.evidence
+            evidence: redactSensitiveEvidence(match.evidence)
           })));
         }
       }
 
       // Traitement spécial pour les attaques par force brute (config dédiée, pas la dernière entrée de la boucle patterns)
-      if (this.isBruteForceEndpoint(url)) {
+      if (this.isBruteForceEndpoint(url) && !this.shouldSkipBruteForceHeuristics(clientIP)) {
         const bruteForceConfig = INTRUSION_PATTERNS.BRUTE_FORCE;
         const bruteForceDetection = await this.checkBruteForce(req, bruteForceConfig);
         if (bruteForceDetection) {
@@ -619,11 +667,19 @@ class IntrusionDetector {
         'X-Intrusion-Count': highIntrusions.length.toString()
       });
 
-      logger.warn('⚠️ INTRUSION ÉLEVÉE DÉTECTÉE', {
+      const logPayload = {
         ip: req.ip,
-        detections: highIntrusions,
-        url: req.url
-      });
+        detections: highIntrusions.map((d) => ({
+          ...d,
+          evidence: redactSensitiveEvidence(d.evidence),
+        })),
+        url: req.url,
+      };
+      if (isIntrusionRelaxedRuntime()) {
+        logger.debug('Intrusion élevée (dev, non bloquant)', logPayload);
+      } else {
+        logger.warn('⚠️ INTRUSION ÉLEVÉE DÉTECTÉE', logPayload);
+      }
     }
     return false;
   }

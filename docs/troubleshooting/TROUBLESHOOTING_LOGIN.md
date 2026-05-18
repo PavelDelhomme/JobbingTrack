@@ -25,7 +25,7 @@ Ne jamais documenter ni coller le mot de passe dans un ticket, un commit, un log
 | `POST https://api.jobbingtrack.localhost:5443/...` + **401** + `Invalid email or password` | Requête OK ; **hash BDD ≠ mot de passe saisi** (souvent mot de passe hors `.env` ou admin non resynchronisé) | Resynchroniser l’admin (section ci-dessous). Logs auth : `Mot de passe incorrect pour admin@…`. |
 | `No token found` / tracking désactivé au chargement | **Normal** avant login | Ignorer tant qu’aucune tentative de connexion n’a réussi. |
 | `ERR_CERT_AUTHORITY_INVALID` sur l’API après login | CA locale non importée dans **ce** navigateur | Suivre **`docs/operations/DEV_HTTPS.md`** (Brave : import PEM dans Autorités, quitter tout le navigateur). |
-| Gateway : `INTRUSION … DOS_ATTACKS` sur `/auth/login` | Faux positif headers proxy en dev | **18/05** : `/api/v1/auth/login` exclu du heuristique DoS ; redémarrer **`jobbingtrack-api-gateway`** après mise à jour. |
+| Gateway : `INTRUSION … DOS_ATTACKS` (`172.19.0.1`, polling `/api/v1/security/*`) | Trafic légitime via proxy Docker en dev, pas une attaque externe | **18/05** : `INTRUSION_RELAX_HEURISTICS=true` (défaut Compose) + skip DoS en dev ; recréer **`jobbingtrack-api-gateway`**. Voir **`docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md`**. |
 | Erreur **500** au login, table `User` absente | Schéma BDD non poussé | `make db-push-all` ou `make up-full` (voir aussi historique P2021 ci-dessous). |
 
 ---
