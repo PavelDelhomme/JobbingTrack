@@ -231,6 +231,11 @@ class IntrusionDetector {
         return next();
       }
 
+      // Dev / lab : pas de rafale INTRUSION sur navigation backoffice (voir INTRUSION_RELAX_HEURISTICS).
+      if (isIntrusionRelaxedRuntime()) {
+        return next();
+      }
+
       const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
       const userAgent = req.get('User-Agent') || '';
       const url = req.url || '';
