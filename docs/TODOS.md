@@ -8,6 +8,62 @@
 - **Variables d’environnement strictes** = chantier **progressif** : la ligne détaille déjà ce qui est **amorcé** (gateway, politique, doc) et le **lot suivant** (autres services, compose, CI). Avancer **service par service** en gardant la stack démarrable entre deux étapes.
 - **Validation porteur** : cocher / dater dans **`A_VALIDER_VERIFIER.md`** ; reporter ensuite dans **`PLAN.md`** / **`STATUS.md`** quand c’est acté.
 
+## Phase validation porteur (ordre strict — après `db-push-all` + `make recreate`)
+
+> **Recreate** : si `docker ps` affiche les conteneurs `jobbingtrack-*` **Up** depuis peu (ex. ~1 h), le **`make recreate`** a bien tourné. Sinon : `make recreate` depuis la racine, puis `make status`.
+
+### Checklist à cocher (dans l’ordre)
+
+- [x] **1. HTTPS / login** — validé local 19/05 : `curl` login **200** + page `/login` **200** (`A_VALIDER_VERIFIER.md` § sécurité applicative).
+- [ ] **2. Sécurité — navigation** — barre **`SecuritySubNav`** visible ; titres FR sur **Logs** ; parcourir Politiques, Menaces, Firewall, Analyse, Réseau.
+- [ ] **3. Sécurité — pagination** — `?page=` / `blockedPage=` conservés au refresh ; logs / menaces / IPs bloquées paginés.
+- [ ] **4. Corrélation** — `/b4ck0ff1ce/performances/correlation` : KPI logs / ERROR-WARN **≠ 0** pour un service focal (BDD `aggregated_logs` déjà alimentée en dev).
+- [x] **5. WAF — comprendre les alertes** — validé 19/05 : faux positif `consolidated=true` corrigé (`all=true`) ; payloads XSS/SQLi **403** ; trafic JWT + XFF legit **200** (voir `A_VALIDER_VERIFIER.md`).
+- [x] **6. Reporter** — § **Sécurité applicative** de `A_VALIDER_VERIFIER.md` coché en local (19/05) ; suite : **§ Chantier Statistiques** (22 offline / graphes).
+
+### Suite après validation (ne pas mélanger avec la phase ci-dessus)
+
+1. **Statistics (A1h)** — compteurs services + graphes erreur / disponibilité.
+2. **Central logging** — `ENABLE_CENTRAL_LOGGING` + `SERVICE_NAME` sur les **autres** microservices `full`.
+3. **B10 reste** — `document.title`, fallbacks noms API, homogénéisation libellés.
+4. **Priorités techniques** — CI Prettier, env strictes, pentest, etc. (§ ci-dessous).
+5. **Très fin de projet** — § **Vision données décentralisées (DHT)** en bas de fichier.
+
+---
+
+## WAF gateway — analyse logs (18/05 — diagnostic, pas de correctif dans ce lot)
+
+**Où** : `backend/api-gateway/src/middleware/waf.js` (`wafCheck`, règles `WAF_RULES`).
+
+**Règles actives (familles détectées)** :
+
+| Règle | Gravité | Exemples de motifs |
+|--------|---------|-------------------|
+| `SQL_INJECTION` | high | `union select`, `--`, `drop table`, etc. |
+| `XSS` | high | `<script>`, `javascript:`, **`on\w+\s*=`** (handlers HTML), iframes, `data:text/html` |
+| `PATH_TRAVERSAL` | critical | `../`, encodages `%2e%2e` |
+| `COMMAND_INJECTION` | critical | `\|`, `` ` ``, `; rm`, `cmd /c` |
+| `LDAP_INJECTION` | medium | filtres LDAP mal formés |
+| `SUSPICIOUS_USER_AGENTS` | high | sqlmap, nikto, burpsuite, nmap, etc. |
+| `MALICIOUS_PATTERNS` | (voir fichier) | `eval(`, `base64_decode`, etc. |
+| `SUSPICIOUS_HEADERS` | (voir fichier) | en-têtes anormaux |
+
+**Ce que montrent les logs `api-gateway` en navigation backoffice sécurité (mai 2026)** :
+
+- Alertes répétées **`Attaque détectée par WAF`** · règle **`XSS`** · motif **`on\w+\s*=`** sur  
+  `GET /api/v1/security/firewall/blocked-ips?consolidated=true`
+- **Ce n’est pas une vraie attaque XSS** : le paramètre query **`consolidated=true`** contient la sous-chaîne **`on`** + lettres + **`=`**, ce qui déclenche la regex des handlers du type `onclick=`.
+- **Source côté UI** : page **Menaces** (auto-refresh ~5 s) appelle `blocked-ips?consolidated=true` pour croiser les IPs bloquées.
+- **Impact** : la règle **XSS** est en gravité **high** → la gateway renvoie **403 `WAF_BLOCKED`** (pas seulement un log). La page **Menaces** peut échouer sur `blocked-ips?consolidated=true` toutes les ~5 s ; certaines requêtes sans ce paramètre passent (logs gateway : alternance warn / proxy OK).
+
+**Correctif à planifier (après validation porteur, lot sécurité)** :
+
+- [x] **WAF faux positif `consolidated=true`** — corrigé 19/05 : frontend `all=true` + regex XSS `(?<![a-zA-Z0-9])on[a-z]+=` ; `blocked-ips?consolidated=true` → **200** en test.
+- [ ] Affiner la règle **XSS** (durcissement supplementaire) et documenter dans **`ERRORS.md`** le distinguo « vraie attaque » vs faux positif query.
+- [ ] Documenter dans **`ERRORS.md`** le distinguo « vraie attaque » vs « faux positif consolidated ».
+
+---
+
 ## Priorités à faire maintenant
 
 - [ ] **CI GitHub #556 — Prettier frontend** : le job « Vérification du formatage » échoue (~357 fichiers). Depuis `frontend/` : `npm run format` puis commit ; re-pousser pour débloquer tests backend/frontend/intégration/sécurité.
@@ -15,10 +71,13 @@
 - [ ] **Roadmap sécurité IA + PQC** : phases 6–8 documentées (offensive IA, défense UEBA/DAST, PQC/TLS hybride) — implémentation produit à planifier ; lien **`ROADMAP_SECURITE_API_ET_BACKOFFICE.md`**.
 - [ ] **Logs sécurité — compression & rétention** : **pas de compression** en BDD aujourd’hui ; prévoir gzip/archive ou colonne compressée + politique de rétention par classe. **18/05 (partiel UI)** : `/security/logs` paginé côté API (`offset`/`limit`, `pagination.total`) + composant `Pagination` + `?page=` (`useUrlPagination`) ; refresh 15 s **sans** reset de page. **Reste** : compression stockage ; vue d’ensemble sécurité encore plafonnée **2000** (`SECURITY_LOGS_FETCH_LIMIT`) — bannière « tronqué » + aligner toutes les listes sécurité.
 - [x] **Sécurité backoffice — pagination URL + refresh (18/05)** : hook `useUrlPagination` ; **menaces** (`?page=`, 50/ligne), **firewall IPs bloquées** (`blockedPage`, 25/ligne), **logs sécurité** (`page`, 25/ligne) ; auto-refresh silencieux conserve la page courante. **Reste** : autres listes sécurité (intrusions, DDoS, whitelist…) + audit cohérence `total` API.
-- [ ] **Corrélation performances — 0 logs / signaux** : `/backoffice/performances/correlation` lit `aggregated_logs` via metrics-aggregator (`GET .../persistence/logs`). **18/05** : script `scripts/db/ensure-aggregated-logs-tables.sql` + entrée `db-push-all.sh` ; message vide enrichi (prérequis `ENABLE_CENTRAL_LOGGING`, `METRICS_SERVICE_URL`, `SERVICE_NAME`, `bash scripts/db/db-push-all.sh`). **Reste** : propager **`ENABLE_CENTRAL_LOGGING` + `METRICS_SERVICE_URL` + `SERVICE_NAME=jobbingtrack-*`** sur **tous** les microservices du profil `full` (aujourd’hui partiel : gateway, auth, security, application, company…) ; recréer les services ; générer des WARN/ERROR et valider KPI ≠ 0.
+- [ ] **Sécurité backoffice — libellés & navigation (`/b4ck0ff1ce/security/**`) — rapide** : **18/05 (partiel)** : **`SecuritySubNav`** sur toutes les pages sécurité ; titre **FR** sur **Logs**. **Reste** : titres **`document.title`** / metadata par route ; fallbacks si `rule.name` / `threatType` API vides ; homogénéiser sous-titres EN résiduels. Lot **`PLAN.md` B10**.
+- [ ] **Corrélation performances — valider après recreate** : BDD **`aggregated_logs`** alimentée (ex. **>0** lignes post-recreate) ; **`ENABLE_CENTRAL_LOGGING=true`** actif sur gateway/auth/security. **Porteur** : ouvrir **`/b4ck0ff1ce/performances/correlation`** et confirmer KPI logs ≠ 0 sur un service focal (ex. auth) après navigation backoffice.
+- [ ] **Corrélation performances — 0 logs / signaux (suite technique)** : propager **`ENABLE_CENTRAL_LOGGING` + `METRICS_SERVICE_URL` + `SERVICE_NAME=jobbingtrack-*`** sur **tous** les microservices du profil `full` (aujourd’hui partiel : gateway, auth, security, application, company…). Scripts **`ensure-aggregated-logs-tables.sql`** + `db-push-all` déjà en place.
 - [ ] **Suite sécurité (non fait)** : pentest stack dédiée (`INTRUSION_RELAX_HEURISTICS=false`), scans P0 complets (`nmap`, ZAP actif, tri CVE), env strictes tous services, forensics preuves complètes, alertes mail **B11**.
 - [ ] **Préprod VPS sans sync Portainer payante** : déploiement via **registry Docker** + stack Compose manuelle / webhook déploiement backoffice — voir **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`**, **`DEPLOIEMENT_FINAL.md`** (pas de dépendance Portainer Business).
-- [ ] **Intrusion gateway — faux positifs `DOS_ATTACKS` backoffice HTTPS** : en dev, le détecteur ne doit plus journaliser « INTRUSION ÉLEVÉE » sur chaque requête authentifiée (`Authorization: Bearer`, IP Docker `172.19.0.1`, headers `x-forwarded-*`). **18/05 (code)** : `INTRUSION_RELAX_HEURISTICS` (défaut `true` sur api-gateway Compose) + skip heuristiques DoS en runtime dev/lab ; masquage JWT dans les logs ; doc **`docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md`**. **Après pull** : recréer **`jobbingtrack-api-gateway`** pour charger la variable Compose. **Reste porteur** : logs gateway sans rafale sur navigation `/backoffice/security` authentifiée. Pentest : `INTRUSION_RELAX_HEURISTICS=false` sur stack dédiée.
+- [x] **WAF gateway — faux positif XSS sur `consolidated=true`** — validé local 19/05 (`A_VALIDER_VERIFIER.md`).
+- [x] **Intrusion gateway — rafale backoffice HTTPS (dev)** — validé local 19/05 : `INTRUSION_RELAX_HEURISTICS=true` + bypass detection entiere en runtime relax ; **0** spam intrusion apres rafale API authentifiee. **Reste** : pentest avec `INTRUSION_RELAX_HEURISTICS=false` sur stack dediee.
 - [ ] **HTTPS local bloqué — `ERR_CERT_AUTHORITY_INVALID` sur `/login`** : **étape 1** depuis la racine : `DEV_HTTPS_INSTALL_CA=1 bash scripts/ops/dev-https-certs.sh` ; si besoin : `sudo trust anchor --store .local/dev-certs/ca/jobbingtrack-dev-root-ca.pem` puis `sudo trust extract-compat` ; **fermer tout le navigateur** puis rouvrir **`https://jobbingtrack.localhost:5443/login`**. **Critère hôte** : `curl -fsS -o /dev/null -w '%{http_code}\n' https://jobbingtrack.localhost:5443/login` → **200** sans `--cacert` = **TLS + CA système déjà OK** : **ne pas reboucler** sur le script ; **Brave** (Chromium) : **`brave://settings/security`** → **Gérer les certificats** → **Autorités** → importer `.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem` (filtre **Tous les fichiers** si besoin), puis **quitter tout Brave** ; idem Chrome avec `chrome://settings/security`. Flatpak/Snap = magasin isolé. Test **Firefox** ; recours **`mkcert`** (Option D dans **`docs/operations/DEV_HTTPS.md`**). **Ne pas** contourner par TLS/WAF off ni fallback HTTP silencieux.
 - [ ] **Variables d’environnement strictes (monorepo)** : supprimer progressivement les `${VAR:-défaut}` dans **tous** les `docker-compose*.yml`, les manifests CI et les `process.env.X || '…'` / `|| 3000` côté services ; réutiliser la sentinelle **`__JT_ENV_INCOMPLETE__`** et `config/jt-env-policy.cjs` ; faire échouer le démarrage avec le code **JT-CFG-001** en prod (message générique) et le nom de variable en dev. **15/05** : politique centralisée + doc `docs/configuration/STRICT_ENV.md` ; validation `.env` étendue ; boot **api-gateway** + bloc **api-gateway** dans `docker-compose.yml` alignés (`:?`, `PORT=3000`, `REDIS_URL` réseau Docker). **15/05 WAF dev** : jeton bypass tests uniquement si format **`jtbypass1-` + 32+ car.** (`config/dev-test-bypass-format.cjs`) ; helpers regroupés sous **`scripts/env/`** (`dev-test-bypass-fetch.cjs`, `dev-test-bypass-curl.inc.sh`, voir `scripts/env/README.md`). **15/05 auth-service** : boot **`src/bootstrap/strictAuthEnv.js`** + `PORT` résolu comme la gateway ; bloc **`auth-service`** Compose en **`${VAR:?…}`** ; **`REDIS_URL`** = `redis://${REDIS_HOST}:${REDIS_INTERNAL_PORT}`. **Suite** : autres microservices, `frontend` (bloc Compose `:-`), `docker-compose.monitoring.yml`, `production/*`, `backend/docker-compose.prod.yml`, scripts shell ; **évolution** : WAF edge dédié (ModSecurity / sidecar / managé) — cadrage **`docs/security/ACTIVATION_WAF.md`** (architecture + chantier WAF edge).
 - [ ] **Validation porteur rapports sécurité backoffice** : vérifier en navigateur que `/backoffice/test-reports` liste la catégorie `Sécurité`, affiche les `summary.md`/`summary.json` et télécharge un fichier lisible depuis `reports/security/**` et `tests/results/security/**`.
@@ -32,6 +91,38 @@
 - [ ] **Validation porteur centralisée** : utiliser `A_VALIDER_VERIFIER.md` comme registre unique ; quand une ligne est validée, reporter la date dans `PLAN.md` / `STATUS.md`.
 - [ ] **Mobile** : décider la source officielle entre `mobile/` et `flutter-mobile-app/`, puis archiver/supprimer le doublon restant après vérification des scripts.
 - [ ] **Conventions Git** : appliquer `BRANCHES.md` pour les prochaines branches et commits ; documenter ensuite les triggers GitHub exacts par workflow.
+
+## Chantier Statistiques & backoffice (backlog — après priorités immédiates ci-dessus)
+
+> **Constat porteur (18/05)** : onglet **Vue d’ensemble** de **`/backoffice/statistics`** — compteurs services incohérents (ex. **~22 hors ligne**, **1 seul sain**) alors que la stack tourne ; graphes **taux d’erreur dans le temps** et **disponibilité dans le temps** peu exploitables ; bloc **Statistiques & monitoring global** à reprendre. Même chantier pour **vue d’ensemble `/backoffice`**, onglets **Sécurité** et **Logs** sous Statistiques, et pages admin **non encore alignées** sur le socle actuel (HTTPS centralisé, `aggregated_logs`, log-collector Rust, pagination sécurité).
+
+- [ ] **Statistics — vue d’ensemble : état des services (P0 UX)** : recaler l’affichage **Sains / Dégradés / Hors ligne** sur une **source unique** (`metrics-aggregator` — ex. `GET /api/v1/docker/services/all` ou contrat équivalent `centralMetricsService`) ; **filtrer** les entrées fantômes (conteneurs **exited**, profils Compose **non démarrés**, doublons `rawName`, statuts **`unknown`** comptés comme offline) ; aligner libellés avec **`make status`** / page **`/backoffice/services`** ; invalider le cache `cacheManager` si métriques périmées ; documenter la règle « service attendu » (profil `full` + monitoring). Fichiers : `frontend/src/app/(admin)/backoffice/statistics/page.tsx`, `frontend/src/lib/services/centralMetricsService.ts`.
+- [ ] **Statistics — séries temporelles erreurs & disponibilité (P0)** : refaire les graphes **taux d’erreur / min** et **disponibilité %** sur la fenêtre choisie — brancher **persistance réelle** (`system_metrics`, snapshots conteneurs, historique agrégateur) plutôt que dérivés locaux ou séries vides ; états **vide / partiel / source** explicites (comme Performances **A5**) ; même plage temporelle partagée (`usePersistedSharedAnalyticsRange` ou équivalent).
+- [ ] **Statistics — onglet Sécurité (`/backoffice/statistics/security`)** : revoir avec le **nouveau pipeline** — `aggregated_logs`, logs sécurité paginés, `security-service` summary ; éviter doublon trompeur avec **`/backoffice/security`** ; KPI et tendances doivent refléter la **persistance**, pas seulement le live.
+- [ ] **Statistics — onglet Logs (`/backoffice/statistics/log-stats`)** : revoir avec **`log_collector_logs`** / **log-collector-rs** + routes metrics-aggregator ; filtres service/niveau/période ; cohérence avec **`/backoffice/services/logs`** et central logging (`ENABLE_CENTRAL_LOGGING`, `SERVICE_NAME`).
+- [ ] **Statistics — onglets Données applicatives (`app-data`)** : vérifier que les cartes **utilisateurs / candidatures / entreprises** restent correctes après refonte API HTTPS ; clarifier métriques **actifs** vs **total** (voir aussi puces utilisateurs plus bas).
+- [ ] **Vue d’ensemble `/backoffice`** : reprendre cartes **état services**, **débit erreurs**, **incidents sécurité**, **performance** — même contrat métriques que Statistics + Performances ; plus de décalage « 22 offline » sur un écran et « majorité healthy » sur un autre.
+- [ ] **Audit backoffice — pages à réaligner sur le socle 2026** (HTTPS `FRONTEND_URLS.api`, persistance, monitoring Rust, UX commune) — traiter **par lot** après Statistics :
+  - [ ] **`/backoffice/services`** + **`/backoffice/services/[serviceName]`** (liste vs détail — référence socle graphes **A1**).
+  - [ ] **`/backoffice/analytics/**`** (hub + application ; redirects conteneurs/réseau déjà faits).
+  - [ ] **`/backoffice/user-stats`**, **`/backoffice/user-analytics`** (sources et libellés).
+  - [ ] **`/backoffice/security`** (vue d’ensemble — hors sous-pages déjà paginées **18/05**).
+  - [ ] **`/backoffice/data-management`**, **`/backoffice/test-reports`**, **`/backoffice/tests-*`** (smoke après changements infra).
+  - [ ] Inventaire complet : **73** routes sous `frontend/src/app/(admin)/backoffice/**/page.tsx` — cocher au fil des reprises dans le tableau **§ Lot A — inventaire Recharts** ci-dessous.
+- [ ] **UX unifiée Statistics / Performances / Vue d’ensemble** : gabarit commun (KPI, barre période, empty states, légende **live vs persisté**) — reprend la puce existante **§ Suite & suivi** ; **bloqué** tant que les compteurs services et séries temps ne sont pas fiables.
+
+### UX Sécurité — inventaire routes `/b4ck0ff1ce/security` (libellés à reprendre)
+
+| Route | Fichier | Problème constaté / action |
+|-------|---------|----------------------------|
+| `/b4ck0ff1ce/security` | `security/page.tsx` | Cartes KPI — vérifier sous-titres et intitulés des liens |
+| `/b4ck0ff1ce/security/logs` | `security/logs/page.tsx` | Titre **EN** (« Security Logs ») → **FR** + **`SecuritySubNav`** |
+| `/b4ck0ff1ce/security/policies` | `security/policies/page.tsx` | **`SecuritySubNav`** ; règles WAF/firewall si `name` API vide |
+| `/b4ck0ff1ce/security/analysis` | `security/analysis/page.tsx` | **`SecuritySubNav`** + titres cartes cohérents |
+| `/b4ck0ff1ce/security/firewall` | `security/firewall/page.tsx` | Tableaux règles / IP — libellés + noms règles |
+| `/b4ck0ff1ce/security/network` | `security/network/page.tsx` | Corrélation conteneurs / IP sans libellé lisible |
+| `/b4ck0ff1ce/security/threats` | `security/threats/page.tsx` | Colonnes type/IP — fallbacks si champs vides |
+| `/b4ck0ff1ce/security/threats/[id]` | `security/threats/[id]/page.tsx` | Titre fiche (type + IP ou id court) |
 
 ## À valider manuellement par le porteur
 
@@ -127,8 +218,8 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 **Rôle de ce bloc** : noter ici ce qui a été **évoqué en fin de chantier** ou **« à faire ensuite »** sans mériter tout de suite une case dans **A1–H** détaillée. Ce n’est **pas** le backlog long terme (**`docs/BACKLOG.md`** reste la file « officielle » reportée). **Règle** : une ligne = une intention ; cocher quand c’est fait ; si le sujet grossit, **créer** une entrée dans le lot concerné (**A–H** ou **`PLAN.md`**) et **retirer** la ligne d’ici pour éviter le double compte.
 
 - [x] **Front — lot A1 (partiel)** : lazy + `rechartsTooltipProps` sur **`/backoffice/performances/containers`** (`AnalyticsContainersChartsBundle`) ; hub **`/backoffice/analytics`** recentré **application + utilisateurs** (plus de CPU système sur cette route, **07/04**). *Case = code en dépôt ; QA navigateur / build = à faire côté porteur (voir § RSC ci-dessus).*
-- [ ] **Front — lot A1 (suite)** : **`/backoffice/statistics`** — **fait** : **`rechartsTooltipProps`** sur la vue d’ensemble **`statistics/page.tsx`** (**07/04**) ; **reste** : **`next/dynamic`** sur les gros graphes si le bundle reste trop lourd (voir inventaire Recharts ci-dessous).
-- [ ] **UX unifiée (Statistics / Performances / Analytics)** : créer un gabarit commun (mêmes cartes KPI, même barre période, mêmes états vide/erreur/chargement, mêmes légendes axes et blocs “source de données”), puis appliquer page par page pour supprimer les différences visuelles actuelles.
+- [ ] **Front — lot A1 (suite)** : **`/backoffice/statistics`** — **fait** : **`rechartsTooltipProps`** (**07/04**) ; **reste technique** : lazy gros graphes — **bloqué métier** par **§ Chantier Statistiques & backoffice** (compteurs services, séries erreur/disponibilité à refaire avant polish UI).
+- [ ] **UX unifiée (Statistics / Performances / Analytics)** : gabarit commun KPI + période + empty states + légende **live vs persisté** — **après** fiabilisation **A1h** / § **Chantier Statistiques & backoffice** (sinon homogénéiser une UI encore fausse).
 - [ ] **Graphes fenêtre “24h” intelligente** : quand la période demandée inclut majoritairement du vide (service récemment démarré), proposer un mode “auto-fit aux données disponibles” (zoom initial sur premier/dernier point) tout en gardant l’option d’afficher la fenêtre complète 24h.
 - [ ] **Graphe corrélation “pic” (Performances)** : sous-page dédiée (`/backoffice/performances/correlation`) — toggles machine + conteneurs, axes % / Mo, **mode Léger / Complet** (session), limites points + concurrence fetch + timeout liste conteneurs ; **fait (30/04 + 07/05, partiel)** : route historique disponibilité consolidée (`availability?history=1`) + parsing front robuste alias **réseau / I/O / TR** (évite séries vides selon variantes de champs) + bloc corrélation incidents du service focalisé (logs persistés `ERROR/WARN`, signaux sécurité heuristiques, score sécurité moyen fenêtre) + **tableau de corrélation fine** incidents (`requestId`/endpoint/IP/message) alignés au point métrique le plus proche (CPU/mémoire/TR + écart secondes, borne max d’alignement pour éviter les rapprochements hors plage) + **tri colonnes** sur la synthèse **et** sur le tableau incidents (asc/desc/reset) + filtres rapides incidents (niveau, requestId présent, recherche texte) + liste services triée (**chargés en mémoire d’abord**, puis alphabétique) + deltas **Réseau/I-O** robustes aux resets compteur (**et au cas 1 seul point**) + fallback TR via **stats service** si historique vide + **07/05** : fusion **`metadata.metadata`** pour colonnes incidents (Winston imbriqué) + annulation explicite des fetch corrélation (**`AbortController`**, moins de bruit reload) + **brush/zoom partagé** sur les graphes + **icône d’état de tri** visible sur en-têtes ; **console** : moins de spam **ECONNABORTED** au F5 ; reste : corrélation causalité “pic” plus stricte (règles métier/requestId bout-en-bout), enrichissement logs sécurité (IP/port/endpoint/requestId systématiques à la source) ; **07/05 suite** : mapping persistance conteneurs enrichi pour pousser `blockIO.read/write` même via source monitoring-C (plus de `null` systématiques) ; **QA** : vérifier **I/O bloc / cumul** affichés vs persistance réelle (agrégateur / champs `block_io`) et documenter si Docker retourne réellement `0/0` sur l’hôte.
 - [ ] **Corrélation fine — colonnes incomplètes en réel** : sur `/backoffice/performances/correlation`, traiter en priorité les lignes où `CPU % proche`, `Mémoire % proche`, `TR ms proche`, `Écart (s)`, `endpoint`, `IP`, `requestId`, `Proto`, `Port` restent vides malgré logs présents ; livrer une analyse par champ (absence source vs parsing vs fenêtre d’alignement) + correctifs ciblés. **07/05 (partiel)** : remplacement des `—` **dans les colonnes** par une raison explicite (`source absente`, `champ manquant (contexte)`, `champ manquant (métriques)`, `hors fenêtre`).
@@ -234,7 +325,7 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 | **`/backoffice/performances/network`** | `frontend/src/app/(admin)/backoffice/performances/network/page.tsx` | **Partiel** : graphique corrélation CPU/réseau (import statique, plus de lazy chunk — **18/05**) ; ex-`/backoffice/analytics/network` |
 | **`/backoffice/performances/containers`** | `.../performances/containers/page.tsx` + `components/charts/AnalyticsContainersChartsBundle.tsx` | **A1c** : `rechartsTooltipProps` + lazy bundle Recharts (**07/04**, déplacé depuis Analytics) |
 | **`/backoffice/analytics/application/*`** | `frontend/src/app/(admin)/backoffice/analytics/application/**/page.tsx` | À inventorier au fil des écrans (perf / activité / feedback) |
-| **`/backoffice/statistics`** (+ sous-pages) | `frontend/src/app/(admin)/backoffice/statistics/page.tsx`, `app-data/page.tsx`, `security/page.tsx`, `log-stats/page.tsx`, `StatisticsSubNav.tsx` | **Vue d’ensemble** : tooltips **`rechartsTooltipProps`** (**07/04**) ; **lazy** gros graphes = **reste A1e** |
+| **`/backoffice/statistics`** (+ sous-pages) | `frontend/src/app/(admin)/backoffice/statistics/page.tsx`, `app-data/page.tsx`, `security/page.tsx`, `log-stats/page.tsx`, `StatisticsSubNav.tsx` | **À refaire (18/05)** : compteurs services faux positifs offline, séries erreur/disponibilité — voir **§ Chantier Statistiques & backoffice** ; tooltips **`rechartsTooltipProps`** (**07/04**) ; lazy gros graphes = **reste A1e** |
 | **`/backoffice/statistique`** | `frontend/src/app/(admin)/backoffice/statistique/page.tsx` | **Redirection serveur** → **`/backoffice/statistics`** (plus de doublon de contenu) |
 | **`/backoffice/tests-performance`** | `frontend/src/app/(admin)/backoffice/tests-performance/page.tsx` | Graphes Recharts inline — **reste** alignement thème / lazy si besoin |
 | **`/backoffice/performance-tests`** | `frontend/src/app/(admin)/backoffice/performance-tests/page.tsx` | Pas Recharts sur la même logique ; option **Infrastructure** ajoutée **24/04** |
@@ -627,4 +718,21 @@ Source : **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**. Ces tâches s
 ### Suite chantier (rappel — après nettoyage UI vue d’ensemble **04/05**)
 
 - Poursuivre **contrat logs forensics** (**`workflow-service`** si pertinent, QA corrélation) et **corrélation perf** (brush, causalité, icônes tri) listés en haut de ce fichier (**§ Suite & suivi explicite**).
+- **Après priorités immédiates** : enchaîner **§ Chantier Statistiques & backoffice** + **`PLAN.md`** lot **A1h** (Statistics, vue d’ensemble `/backoffice`, onglets sécurité/logs stats, audit ~73 pages).
+- **Rapide (UX)** : **Sécurité — libellés & `SecuritySubNav`** sur **`/b4ck0ff1ce/security/**`** (voir priorité en tête de fichier + tableau § UX Sécurité).
+
+---
+
+## Vision données décentralisées (DHT) — **très fin de projet, hors périmètre actuel**
+
+> **Idée technique notée pour plus tard** — ne **pas** démarrer tant que lots **validation porteur**, **Statistics (A1h)**, **central logging**, **B10** et **sécurité prod-like** ne sont pas stabilisés. Revoir en **dernière phase** du chantier global (après backoffice / API / déploiement cohérents).
+
+**Concept (brouillon)** :
+
+- **Table de hachage distribuée (DHT)** : annuaire éclaté entre les nœuds du réseau (pas un annuaire central unique).
+- **Routage** : chaque nœud relaie du trafic **chiffré** (contenu non lisible par les relais).
+- **Pairs** : échange de données **sans révéler l’IP** publique des participants (objectif privacy / résilience — modèle type overlay, pas le stack Docker actuel).
+- **Rapport avec JobbingTrack aujourd’hui** : architecture **centralisée** (Postgres, metrics-aggregator, gateway, logs `aggregated_logs`) — la vision DHT serait un **chantier séparé** (recherche + PoC), pas une évolution du backoffice courant.
+
+**Quand reouvrir** : fin de **`TODOS.md`** / **`PLAN.md` lot G+** ou roadmap produit dédiée « réseau P2P / confidentialité » ; cadrage légal et menaces (abus, conformité) obligatoire avant tout code.
 

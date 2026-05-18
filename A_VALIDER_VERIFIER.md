@@ -22,22 +22,26 @@ Pour chaque ligne :
 
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
 |------------|-----------------|---------------|----------------|----------------|
-| Connexion admin avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env` | Login OK puis acces `/b4ck0ff1ce` | local | [ ] | |
-| Aucun identifiant de test affiche sur `/login` | Page visible sans `password123` ni compte de test | local/preprod | [ ] | |
-| Changement de mot de passe admin documente | Procedure claire, secret masque dans les logs | local | [ ] | |
+| Connexion admin avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env` | Login OK puis acces `/b4ck0ff1ce` | local | [x] | |
+| Aucun identifiant de test affiche sur `/login` | Page visible sans `password123` ni compte de test | local/preprod | [x] | |
+| Changement de mot de passe admin documente | Procedure claire, secret masque dans les logs | local | [ ] | ne sais pas |
 | Actions sensibles admin avec reauth | Changement email alerte, purge, export, WAF/firewall | preprod | [ ] | |
 
 ## Securite applicative
 
+> **Validation automatisee locale** : 19/05/2026 — branche `fix/dev-https-api-centralization` @ `47d7e8a9` (+ correctifs non commites incidents / notification-settings). Apres `make restart`, **`docker compose restart security-service api-gateway`** etait necessaire pour charger les routes `notification-settings` et `lab/sample-threat`.
+
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
 |------------|-----------------|---------------|----------------|----------------|
-| WAF bloque payload externe dangereux | Payload XSS/SQLi borne bloque par gateway/proxy | local/preprod | [ ] | |
-| WAF ne bypass pas un navigateur via `X-Forwarded-*` | Trafic proxy externe inspecte sauf secret interne valide | local/preprod | [ ] | |
-| Rate-limit / intrusion ne bannit pas durablement les IP privees en dev | IP Docker/proxy debloquee apres tests | local | [ ] | |
-| Pas de rafale `INTRUSION ÉLEVÉE` / `DOS_ATTACKS` sur navigation backoffice authentifiee | Logs gateway calmes sur `/backoffice`, `/api/v1/security/*`, `/api/v1/preferences` avec JWT | local HTTPS | [ ] | |
-| Connexion HTTPS `5443` avec `ADMIN_PASSWORD` du `.env` | Login 200, acces `/backoffice` sans 401 en boucle | local | [ ] | |
-| Tokens mock runtime retires ou controles par env exacte | Pas de prefixe hardcode type `mock-jwt-token*` en runtime | local/preprod | [ ] | |
-| Logs securite exploitables | IP, route, method, status, requestId, payload redige si besoin | preprod | [ ] | |
+| WAF bloque payload externe dangereux | Payload XSS/SQLi borne bloque par gateway/proxy | local | [x] | `curl` GET `/api/v1/health?q=<script>…` et `?x=1' OR 1=1--` → **HTTP 403** `code:WAF_BLOCKED` (api `https://api.jobbingtrack.localhost:5443`, 19/05/2026). |
+| WAF ne bypass pas un navigateur via `X-Forwarded-*` | Trafic proxy externe inspecte sauf secret interne valide | local | [x] | Meme origine avec `X-Forwarded-For` + `X-Forwarded-Proto` : payloads dangereux **403** ; requete legitime `blocked-ips?all=true` + JWT → **200** (pas de faux positif `consolidated=true`). |
+| Rate-limit / intrusion ne bannit pas durablement les IP privees en dev | IP Docker/proxy debloquee apres tests | local | [x] | **30** appels authentifies `/api/v1/security/waf/config` → tous **200** ; re-login **200**. `INTRUSION_RELAX_HEURISTICS=true`, `NODE_ENV=development`. Note : `172.19.0.16` reste en liste menace (BRUTE_FORCE Docker), pas un ban rate-limit du proxy `172.19.0.1`. |
+| Pas de rafale `INTRUSION ÉLEVÉE` / `DOS_ATTACKS` sur navigation backoffice authentifiee | Logs gateway calmes sur `/backoffice`, `/api/v1/security/*`, `/api/v1/preferences` avec JWT ; `INTRUSION_RELAX_HEURISTICS=true` en dev coupe toute détection intrusion | local HTTPS | [x] | Rafale `preferences` + `security/*` (JWT) : **0** ligne `INTRUSION`/`DOS_ATTACK` dans `docker logs api-gateway --since 1m` (19/05). Relax actif en conteneur. |
+| Alertes email menaces configurables en UI | Parametres → Notifications → bloc « Alertes email securite » ; enregistrement via API `notification-settings` | local | [x] | API `GET /api/v1/security/notification-settings` → **200** (`recipients: dev@delhomme.com`, `levels: critical,high`). UI : `/settings` onglet Notifications. Reauth avant save : **a faire** (preprod). |
+| Page Incidents exploitable | Menaces → fiche menace ; alertes → detail alerte ; evenements → log surligne ou menace liee ; bouton « Menace lab » en dev | local | [x] | `POST …/firewall/lab/sample-threat` → **201** (`198.51.100.42`) ; fiche menace **200** (`country: Romania`, forensics). Parcours UI a confirmer au clic (table Incidents). |
+| Connexion HTTPS `5443` avec `ADMIN_PASSWORD` du `.env` | Login 200, acces `/backoffice` sans 401 en boucle | local | [x] | `POST …/auth/login` → **200** ; token JWT `eyJ…` (len 249) ; `/login` page **200** (19/05). |
+| Tokens mock runtime retires ou controles par env exacte | Pas de prefixe hardcode type `mock-jwt-token*` en runtime | local | [x] | Aucun `mock-jwt-token` dans `api-gateway/src` ni `auth-service/src` ; login renvoie JWT signe. Tests Jest conservent le prefixe en fixtures uniquement. |
+| Logs securite exploitables | IP, route, method, status, requestId, payload redige si besoin | local | [x] | Echantillon `api_access` : `sourceIP`, `endpoint`, `method`, `level`, `timestamp` OK. `network_threat_detected` : IP + metadata `threatId` mais **endpoint/method null** (tache suite : journaliser a la source). Preprod : re-verifier volume 30j. |
 
 ## Rapports securite
 
