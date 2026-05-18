@@ -83,6 +83,14 @@ async function detectAndHandleThreats() {
  */
 async function handleAnomaly(anomaly, metrics) {
   try {
+    const { isPrivateOrLocalIp, shouldSkipInternalNetworkAnomalies } = require('../network-monitor');
+    if (shouldSkipInternalNetworkAnomalies() && isPrivateOrLocalIp(anomaly.sourceIp)) {
+      logger.debug(
+        `Anomalie réseau interne ignorée (dev): ${anomaly.type} depuis ${anomaly.sourceIp}`
+      );
+      return;
+    }
+
     // Vérifier si cette menace existe déjà
     const existingThreat = await prisma.networkThreat.findFirst({
       where: {

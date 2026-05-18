@@ -68,14 +68,58 @@ Objectif : lancer / consulter les contrôles **non destructifs** depuis l’UI, 
 
 ---
 
-## Phase 6 — Menaces IA et crypto post-quantique (planification)
+## Phase 6 — Menaces « boostées » par l’IA (offensive)
 
-- **IA offensive** (adversaire) : bruteforce intelligent, évitement détection, abus logique métier — réponse : UEBA, corrélation logs, rate limit adaptatif, tests DAST réguliers.
-- **IA défensive** : corrélation multi-sources, alertes comportementales API — s’appuyer sur `security-service` + metrics-aggregator / Rust monitoring.
-- **Endpoints IA** (si ajoutés) : prompt injection, quotas, pas de secrets dans le contexte.
-- **PQC** : inventaire usages TLS/signatures ; viser crypto-agilité ; TLS hybride côté edge (Cloudflare/NPM) en prod — pas de refonte applicative immédiate.
+À couvrir par tests contrôlés, playbooks et veille (pas d’outil FraudGPT en prod).
+
+| Vecteur | Description | Tests / défense JobbingTrack |
+|---------|-------------|------------------------------|
+| Spear phishing | Textes ultra-ciblés, multilingues (modèles type FraudGPT/WormGPT) | Sensibilisation, MFA, détection phishing mail (notification-service), pas de secrets par email |
+| Malware / exploits | Génération de scripts, variantes ransomware, bypass signatures | Trivy images, durcissement conteneurs, moindre privilège, pas d’exécution shell depuis l’API |
+| Playbooks industrialisés | Traduction et kits Cybercrime-as-a-Service | Matrice B15, CI `security-audit.yml`, rapports `reports/security/**` |
+
+### Cycle d’attaque automatisé (à tester par phase)
+
+1. **Reconnaissance** : scans de masse, corrélation OSINT, listes de cibles scorées → limiter surface (`nmap` préprod, inventaire endpoints, pas de debug exposé).
+2. **Exploitation asservie** : bots qui adaptent payloads selon HTTP/erreurs → WAF gateway, validation schéma, tests ZAP actif bornés.
+3. **Mouvement latéral** : exploration API/réseau pour comptes privilégiés → RBAC, auth interne services, pas de `docker.sock` exposé (BX2).
+4. **Exfiltration furtive** : rythme/volume sous seuils SIEM → rate limit, alertes sur exports massifs, corrélation `requestId`.
+
+### Risques spécifiques API / appli web
+
+- **Bruteforce intelligent** : patterns de mots de passe, orchestration distribuée → rate limit login, lockout, `BRUTE_FORCE_THRESHOLD`, lab `jwt_tool`.
+- **Abus logique métier** : exploration workflows (signup, parrainage, export) → tests rôles, garde-fous bulk, audit logs.
+- **Évasion détection** : UA cohérent, rythme « humain » → UEBA (phase 7), ne pas se fier qu’à IP seule.
+- **Endpoints IA** (si exposés) : prompt injection, vol de modèle, secrets en contexte → quotas, filtrage prompts, pas de secrets dans les logs.
 
 ---
+
+## Phase 7 — Défense augmentée par l’IA
+
+Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrélation et automatisation **bornée**.
+
+- [ ] **UEBA / anomalies API** : séquences d’endpoints, écarts par user/IP/device (metrics + `security_logs`).
+- [ ] **Corrélation multi-sources** : agrégation logs API + auth + infra (gateway, Rust monitoring) pour attaques multi-étapes.
+- [ ] **Réponse automatisée** : blocage IP dynamique, durcissement WAF temporaire, rotation tokens incident (politique à cadrer).
+- [ ] **DAST intelligent** : fuzzing / scanning régulier (ZAP, scripts matrice) en CI ou stack lab dédiée.
+
+---
+
+## Phase 8 — Menace quantique et crypto post-quantique (PQC)
+
+- **Shor** : RSA/ECC classiques compromis à terme → TLS, signatures, échanges de clés.
+- **Collect now, decrypt later** : capture TLS aujourd’hui, déchiffrement dans 5–15 ans → données sensibles longue durée = priorité PQC.
+- **Calendrier** : abandon RSA/ECC seuls vers **2030–2035** ; NIST (Kyber / ML-KEM, Dilithium).
+
+### PQC en pratique (roadmap infra)
+
+- [ ] **Inventaire crypto** : TLS, JWT, secrets at-rest, backups (doc + checklist lot G).
+- [ ] **Crypto-agilité** : pouvoir changer d’algo sans refonte totale.
+- [ ] **TLS hybride** : edge NPM/Cloudflare avec suites classique + post-quantique (ML-KEM) quand disponible sur le VPS.
+- [ ] **Appli** : pas de migration applicative immédiate ; surveiller libs/HSM/KMS PQC-ready.
+
+---
+
 
 ## Faux positif DoS en dev (référence)
 
@@ -87,13 +131,33 @@ Objectif : lancer / consulter les contrôles **non destructifs** depuis l’UI, 
 
 **Validation** : recréer `jobbingtrack-api-gateway`, naviguer `/backoffice/security` — plus de rafale `⚠ INTRUSION ÉLEVÉE` en dev.
 
-## Faux positif Brute Force (`172.19.0.x`)
+## Faux positif Brute Force (`172.19.0.x`) — deux sources distinctes
 
-**Symptôme** : menace `BRUTE_FORCE`, IP source `172.19.0.16` → `172.19.0.4`, statut bloqué / non bloqué dans l’historique.
+| Source | Module | Comportement |
+|--------|--------|--------------|
+| **Gateway** | `api-gateway` / `intrusionDetector.js` | Compteur Redis sur `POST /auth/login` |
+| **Réseau Docker** | `security-service` / `network-monitor.js` | Compte les connexions TCP `TIME_WAIT`/`CLOSE` entre conteneurs (>20) comme « brute force » |
 
-**Cause** : trafic **inter-conteneurs** ou tests login (même réseau Docker) ; ce n’est pas un attaquant Internet. En dev, `shouldPersistentlyBlockIp` n’écrit pas de ban durable sur IP privée, mais des entrées peuvent rester en BDD.
+**Symptôme UI** : menace `BRUTE_FORCE`, `172.19.0.16` → `172.19.0.4`, parfois **auto-bloquée** (sévérité HIGH).
 
-**Correctif (18/05)** : skip compteur brute-force en runtime dev (`INTRUSION_RELAX_HEURISTICS` / IP privée hors prod). Nettoyer les anciennes menaces de test via l’UI firewall si besoin.
+**Ce n’est pas** un attaquant Internet : c’est le **trafic normal du bridge Docker** (postgres, redis, services qui se parlent).
+
+**Correctifs (18/05)** :
+- Gateway : `INTRUSION_RELAX_HEURISTICS` + skip brute-force IP privée en dev.
+- Security-service : `SECURITY_NETWORK_RELAX_INTERNAL` (défaut = relax hors prod) — ne plus **créer** de menaces sur IP `172.16–31.x` en dev.
+
+**Historique** : les lignes déjà en BDD restent visibles ; supprimer via UI firewall/menaces ou purge lab si besoin.
+
+## Logs sécurité — pas de compression, mais des plafonds
+
+| Couche | Comportement |
+|--------|--------------|
+| **Postgres `security_logs`** | Pas de compression applicative ; stockage ligne à ligne |
+| **API** | `limit` + `startDate` (défaut API **24 h** si `startDate` absent) |
+| **UI vue d’ensemble** | `startDate` = **30 j** + `limit=2000` → si >2000 événements/30 j, affichage **tronqué** |
+| **UI page `/security/logs`** | `limit=100` par requête + pagination locale 25/ligne |
+
+**À faire** : pagination API, bannière « tronqué », rétention/purge configurable (TODOS).
 
 ## Redémarrage stack — logs « effrayants » mais souvent normaux
 
