@@ -207,8 +207,14 @@ class SecurityService {
         city,
         riskScore,
         isBlocked,
-        metadata
+        metadata,
+        requestId
       } = logData;
+
+      const resolvedRequestId =
+        requestId ||
+        (metadata && typeof metadata === 'object' ? metadata.requestId : null) ||
+        null;
 
       const log = await prisma.securityLog.create({
         data: {
@@ -227,6 +233,7 @@ class SecurityService {
           city,
           riskScore: riskScore || 0,
           isBlocked: isBlocked || false,
+          requestId: resolvedRequestId,
           metadata: metadata || {}
         }
       });
