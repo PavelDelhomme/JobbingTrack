@@ -1,66 +1,69 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { followUpService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { followUpService } from "@/lib/api";
 
 interface FollowUp {
-  id: string
-  type?: string
-  scheduledAt?: string
-  followUpDate?: string
-  status: string
-  notes?: string
-  createdAt: string
+  id: string;
+  type?: string;
+  scheduledAt?: string;
+  followUpDate?: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
 }
 
 export default function FollowupsTab() {
-  const [followups, setFollowups] = useState<FollowUp[]>([])
-  const [loading, setLoading] = useState(true)
-  const [warning, setWarning] = useState<string | null>(null)
+  const [followups, setFollowups] = useState<FollowUp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchFollowups()
-  }, [])
+    fetchFollowups();
+  }, []);
 
   const fetchFollowups = async () => {
     try {
-      setLoading(true)
-      setWarning(null)
-      const cacheKey = 'data_followups_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 })
+      setLoading(true);
+      setWarning(null);
+      const cacheKey = "data_followups_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 });
 
       if (cached) {
-        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : [])
-        setLoading(false)
-        followUpService.getAll({ limit: 100 }).then(response => {
-          const list = response.data.followups || []
-          if (response.data.warning) setWarning(response.data.warning)
-          cacheManager.set(cacheKey, list, { ttl: 30000 })
-          setFollowups(list)
-        }).catch(() => {})
-        return
+        setFollowups(Array.isArray(cached) ? (cached as FollowUp[]) : []);
+        setLoading(false);
+        followUpService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const list = response.data.followups || [];
+            if (response.data.warning) setWarning(response.data.warning);
+            cacheManager.set(cacheKey, list, { ttl: 30000 });
+            setFollowups(list);
+          })
+          .catch(() => {});
+        return;
       }
 
-      const response = await followUpService.getAll({ limit: 100 })
-      const list = response.data.followups || []
-      if (response.data.warning) setWarning(response.data.warning)
-      setFollowups(list)
-      await cacheManager.set(cacheKey, list, { ttl: 30000 })
+      const response = await followUpService.getAll({ limit: 100 });
+      const list = response.data.followups || [];
+      if (response.data.warning) setWarning(response.data.warning);
+      setFollowups(list);
+      await cacheManager.set(cacheKey, list, { ttl: 30000 });
     } catch (error) {
-      console.error('Erreur chargement relances:', error)
-      setFollowups([])
+      console.error("Erreur chargement relances:", error);
+      setFollowups([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -98,15 +101,21 @@ export default function FollowupsTab() {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {followups.map((followup) => (
-                <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr
+                  key={followup.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {followup.type ?? 'Relance'}
+                    {followup.type ?? "Relance"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {(followup.followUpDate ?? followup.scheduledAt)
-                      ? new Date(followup.followUpDate ?? followup.scheduledAt!).toLocaleDateString('fr-FR')
-                      : new Date(followup.createdAt).toLocaleDateString('fr-FR')
-                    }
+                      ? new Date(
+                          followup.followUpDate ?? followup.scheduledAt!,
+                        ).toLocaleDateString("fr-FR")
+                      : new Date(followup.createdAt).toLocaleDateString(
+                          "fr-FR",
+                        )}
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
@@ -126,5 +135,5 @@ export default function FollowupsTab() {
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import type { TimeRangeOption } from './TimeRangeSelector';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import type { TimeRangeOption } from "./TimeRangeSelector";
 
-const STORAGE_KEY = 'jobbingtrack:analytics:shared-time-v1';
+const STORAGE_KEY = "jobbingtrack:analytics:shared-time-v1";
 
 type StoredShape = {
   timeRange?: unknown;
@@ -15,23 +15,23 @@ type StoredShape = {
 };
 
 const VALID_RANGES: readonly string[] = [
-  'today',
-  '1h',
-  '6h',
-  '24h',
-  '3d',
-  '7d',
-  '14d',
-  '21d',
-  '30d',
+  "today",
+  "1h",
+  "6h",
+  "24h",
+  "3d",
+  "7d",
+  "14d",
+  "21d",
+  "30d",
 ];
 
 function isTimeRangeOption(v: unknown): v is TimeRangeOption {
-  return typeof v === 'string' && VALID_RANGES.includes(v);
+  return typeof v === "string" && VALID_RANGES.includes(v);
 }
 
 function isYmdLocal(s: unknown): s is string {
-  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
 /**
@@ -69,7 +69,7 @@ export function usePersistedSharedAnalyticsRange({
   const didRestore = useRef(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     if (didRestore.current) return;
     didRestore.current = true;
     try {
@@ -77,13 +77,14 @@ export function usePersistedSharedAnalyticsRange({
       if (!raw) return;
       const p = JSON.parse(raw) as StoredShape;
       if (isTimeRangeOption(p.timeRange)) setTimeRange(p.timeRange);
-      if (typeof p.useCustomRange === 'boolean') setUseCustomRange(p.useCustomRange);
+      if (typeof p.useCustomRange === "boolean")
+        setUseCustomRange(p.useCustomRange);
       if (isYmdLocal(p.customStart)) setCustomStart(p.customStart);
       if (isYmdLocal(p.customEnd)) setCustomEnd(p.customEnd);
-      if (typeof p.followLive === 'boolean') setFollowLive(p.followLive);
-      if (typeof p.followLive === 'boolean' && p.followLive) {
+      if (typeof p.followLive === "boolean") setFollowLive(p.followLive);
+      if (typeof p.followLive === "boolean" && p.followLive) {
         setWindowEnd(new Date());
-      } else if (typeof p.windowEndIso === 'string' && p.windowEndIso) {
+      } else if (typeof p.windowEndIso === "string" && p.windowEndIso) {
         const d = new Date(p.windowEndIso);
         if (!Number.isNaN(d.getTime())) setWindowEnd(d);
       }
@@ -101,7 +102,7 @@ export function usePersistedSharedAnalyticsRange({
 
   const persistRuns = useRef(0);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     persistRuns.current += 1;
     if (persistRuns.current <= 1) return;
     try {
@@ -114,10 +115,17 @@ export function usePersistedSharedAnalyticsRange({
           customEnd,
           windowEndIso: windowEnd.toISOString(),
           followLive,
-        })
+        }),
       );
     } catch {
       /* quota / navigation privée */
     }
-  }, [timeRange, useCustomRange, customStart, customEnd, windowEnd, followLive]);
+  }, [
+    timeRange,
+    useCustomRange,
+    customStart,
+    customEnd,
+    windowEnd,
+    followLive,
+  ]);
 }

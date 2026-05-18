@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  UserPlus, 
-  LogIn, 
-  FileText, 
-  Phone, 
-  Calendar, 
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Users,
+  UserPlus,
+  LogIn,
+  FileText,
+  Phone,
+  Calendar,
   TrendingUp,
   CheckCircle,
   XCircle,
@@ -20,8 +20,8 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Download
-} from 'lucide-react';
+  Download,
+} from "lucide-react";
 
 // Types pour les étapes du parcours
 type JourneyStep = {
@@ -29,7 +29,7 @@ type JourneyStep = {
   name: string;
   description: string;
   icon: any;
-  status: 'pending' | 'running' | 'success' | 'error';
+  status: "pending" | "running" | "success" | "error";
   duration?: number;
   result?: any;
   error?: string;
@@ -38,96 +38,97 @@ type JourneyStep = {
 // Scénarios de parcours prédéfinis
 const SCENARIOS = {
   complete: {
-    name: 'Parcours Complet',
-    description: 'De l\'inscription à la statistique complète',
+    name: "Parcours Complet",
+    description: "De l'inscription à la statistique complète",
     steps: [
-      'register',
-      'login',
-      'create_applications',
-      'create_contacts',
-      'schedule_interviews',
-      'create_followups',
-      'view_statistics',
-      'make_calls'
-    ]
+      "register",
+      "login",
+      "create_applications",
+      "create_contacts",
+      "schedule_interviews",
+      "create_followups",
+      "view_statistics",
+      "make_calls",
+    ],
   },
   quick: {
-    name: 'Parcours Rapide',
-    description: 'Actions principales uniquement',
-    steps: ['login', 'create_applications', 'view_statistics']
+    name: "Parcours Rapide",
+    description: "Actions principales uniquement",
+    steps: ["login", "create_applications", "view_statistics"],
   },
   job_seeker: {
-    name: 'Chercheur d\'Emploi Actif',
-    description: 'Candidature intensive avec suivi',
+    name: "Chercheur d'Emploi Actif",
+    description: "Candidature intensive avec suivi",
     steps: [
-      'login',
-      'create_applications',
-      'create_followups',
-      'schedule_interviews',
-      'view_statistics'
-    ]
+      "login",
+      "create_applications",
+      "create_followups",
+      "schedule_interviews",
+      "view_statistics",
+    ],
   },
   beginner: {
-    name: 'Nouvel Utilisateur',
-    description: 'Première connexion et découverte',
-    steps: ['register', 'login', 'create_applications', 'view_statistics']
-  }
+    name: "Nouvel Utilisateur",
+    description: "Première connexion et découverte",
+    steps: ["register", "login", "create_applications", "view_statistics"],
+  },
 };
 
 // Définition de toutes les étapes possibles
-const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
+const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, "status">> = {
   register: {
-    id: 'register',
-    name: 'Inscription',
-    description: 'Créer un nouveau compte utilisateur',
-    icon: UserPlus
+    id: "register",
+    name: "Inscription",
+    description: "Créer un nouveau compte utilisateur",
+    icon: UserPlus,
   },
   login: {
-    id: 'login',
-    name: 'Connexion',
-    description: 'Se connecter à l\'application',
-    icon: LogIn
+    id: "login",
+    name: "Connexion",
+    description: "Se connecter à l'application",
+    icon: LogIn,
   },
   create_applications: {
-    id: 'create_applications',
-    name: 'Créer Candidatures',
-    description: 'Créer 5 candidatures de test',
-    icon: FileText
+    id: "create_applications",
+    name: "Créer Candidatures",
+    description: "Créer 5 candidatures de test",
+    icon: FileText,
   },
   create_contacts: {
-    id: 'create_contacts',
-    name: 'Créer Contacts',
-    description: 'Ajouter des contacts recruteurs',
-    icon: Users
+    id: "create_contacts",
+    name: "Créer Contacts",
+    description: "Ajouter des contacts recruteurs",
+    icon: Users,
   },
   schedule_interviews: {
-    id: 'schedule_interviews',
-    name: 'Planifier Entretiens',
-    description: 'Planifier des entretiens',
-    icon: Calendar
+    id: "schedule_interviews",
+    name: "Planifier Entretiens",
+    description: "Planifier des entretiens",
+    icon: Calendar,
   },
   create_followups: {
-    id: 'create_followups',
-    name: 'Créer Relances',
-    description: 'Configurer des relances automatiques',
-    icon: Clock
+    id: "create_followups",
+    name: "Créer Relances",
+    description: "Configurer des relances automatiques",
+    icon: Clock,
   },
   make_calls: {
-    id: 'make_calls',
-    name: 'Enregistrer Appels',
-    description: 'Logger des appels téléphoniques',
-    icon: Phone
+    id: "make_calls",
+    name: "Enregistrer Appels",
+    description: "Logger des appels téléphoniques",
+    icon: Phone,
   },
   view_statistics: {
-    id: 'view_statistics',
-    name: 'Voir Statistiques',
-    description: 'Consulter le dashboard statistiques',
-    icon: TrendingUp
-  }
+    id: "view_statistics",
+    name: "Voir Statistiques",
+    description: "Consulter le dashboard statistiques",
+    icon: TrendingUp,
+  },
 };
 
 export default function UserJourneyPage() {
-  const [selectedScenario, setSelectedScenario] = useState<keyof typeof SCENARIOS>('complete');
+  const [selectedScenario, setSelectedScenario] =
+    useState<keyof typeof SCENARIOS>("complete");
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -135,15 +136,15 @@ export default function UserJourneyPage() {
     totalDuration: 0,
     successRate: 0,
     failedSteps: [],
-    completedAt: null
+    completedAt: null,
   });
 
   // Initialiser les étapes selon le scénario
   useEffect(() => {
     const scenario = SCENARIOS[selectedScenario];
-    const initialSteps = scenario.steps.map(stepId => ({
+    const initialSteps = scenario.steps.map((stepId) => ({
       ...STEP_DEFINITIONS[stepId],
-      status: 'pending' as const
+      status: "pending" as const,
     }));
     setSteps(initialSteps);
     setCurrentStepIndex(-1);
@@ -151,149 +152,160 @@ export default function UserJourneyPage() {
       totalDuration: 0,
       successRate: 0,
       failedSteps: [],
-      completedAt: null
+      completedAt: null,
     });
   }, [selectedScenario]);
 
   // Exécuter une étape
-  const executeStep = async (step: JourneyStep): Promise<{ success: boolean; result?: any; error?: string; duration: number }> => {
+  const executeStep = async (
+    step: JourneyStep,
+  ): Promise<{
+    success: boolean;
+    result?: any;
+    error?: string;
+    duration: number;
+  }> => {
     const startTime = Date.now();
-    
+
     try {
       let result;
-      
+
       switch (step.id) {
-        case 'register':
-          result = await fetch('/api/v1/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        case "register":
+          result = await fetch("/api/v1/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: `test-${Date.now()}@example.com`,
-              password: 'Test123!',
-              firstName: 'Test',
-              lastName: 'User'
-            })
+              password: "Test123!",
+              firstName: "Test",
+              lastName: "User",
+            }),
           });
           break;
 
-        case 'login':
-          result = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        case "login":
+          result = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              email: 'redacted@example.invalid',
-              password: 'admin123'
-            })
+              email: "redacted@example.invalid",
+              password: "admin123",
+            }),
           });
           break;
 
-        case 'create_applications':
+        case "create_applications":
           const applications = [];
           for (let i = 0; i < 5; i++) {
-            const res = await fetch('/api/v1/applications', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const res = await fetch("/api/v1/applications", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
                 position: `Poste ${i + 1}`,
-                status: ['pending', 'applied', 'interview'][i % 3],
-                appliedAt: new Date().toISOString()
-              })
+                status: ["pending", "applied", "interview"][i % 3],
+                appliedAt: new Date().toISOString(),
+              }),
             });
             applications.push(await res.json());
           }
           result = { ok: true, data: applications };
           break;
 
-        case 'create_contacts':
+        case "create_contacts":
           const contacts = [];
           for (let i = 0; i < 3; i++) {
-            const res = await fetch('/api/v1/contacts', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const res = await fetch("/api/v1/contacts", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
               body: JSON.stringify({
                 firstName: `Contact${i + 1}`,
-                lastName: 'Test',
+                lastName: "Test",
                 email: `contact${i + 1}@test.com`,
-                phone: `+33600000${i}00`
-              })
+                phone: `+33600000${i}00`,
+              }),
             });
             contacts.push(await res.json());
           }
           result = { ok: true, data: contacts };
           break;
 
-        case 'schedule_interviews':
+        case "schedule_interviews":
           const interviews = [];
           for (let i = 0; i < 2; i++) {
-            const res = await fetch('/api/v1/interviews', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const res = await fetch("/api/v1/interviews", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
               body: JSON.stringify({
                 title: `Entretien Test ${i + 1}`,
-                date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-                type: ['phone', 'video', 'onsite'][i % 3]
-              })
+                date: new Date(
+                  Date.now() + (i + 1) * 24 * 60 * 60 * 1000,
+                ).toISOString(),
+                type: ["phone", "video", "onsite"][i % 3],
+              }),
             });
             interviews.push(await res.json());
           }
           result = { ok: true, data: interviews };
           break;
 
-        case 'create_followups':
+        case "create_followups":
           const followups = [];
           for (let i = 0; i < 3; i++) {
-            const res = await fetch('/api/v1/followups', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const res = await fetch("/api/v1/followups", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
               body: JSON.stringify({
-                type: ['email', 'phone', 'linkedin'][i],
-                scheduledFor: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000).toISOString(),
-                notes: `Relance automatique ${i + 1}`
-              })
+                type: ["email", "phone", "linkedin"][i],
+                scheduledFor: new Date(
+                  Date.now() + i * 7 * 24 * 60 * 60 * 1000,
+                ).toISOString(),
+                notes: `Relance automatique ${i + 1}`,
+              }),
             });
             followups.push(await res.json());
           }
           result = { ok: true, data: followups };
           break;
 
-        case 'make_calls':
+        case "make_calls":
           const calls = [];
           for (let i = 0; i < 2; i++) {
-            const res = await fetch('/api/v1/calls', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const res = await fetch("/api/v1/calls", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
               body: JSON.stringify({
                 duration: Math.floor(Math.random() * 600) + 60,
                 notes: `Appel test ${i + 1}`,
-                outcome: ['positive', 'neutral', 'negative'][i % 3]
-              })
+                outcome: ["positive", "neutral", "negative"][i % 3],
+              }),
             });
             calls.push(await res.json());
           }
           result = { ok: true, data: calls };
           break;
 
-        case 'view_statistics':
-          result = await fetch('/api/v1/dashboard/statistics', {
-            headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+        case "view_statistics":
+          result = await fetch("/api/v1/dashboard/statistics", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
           });
           break;
 
@@ -304,11 +316,20 @@ export default function UserJourneyPage() {
       const duration = Date.now() - startTime;
 
       const resultIsResponse = result instanceof Response;
-      const resultOk = resultIsResponse ? result.ok : !!(result as { ok?: boolean } | undefined)?.ok;
-      const resultStatus = resultIsResponse ? result.status : (result as { status?: number } | undefined)?.status;
+      const resultOk = resultIsResponse
+        ? result.ok
+        : !!(result as { ok?: boolean } | undefined)?.ok;
+      const resultStatus = resultIsResponse
+        ? result.status
+        : (result as { status?: number } | undefined)?.status;
 
       let normalizedResult: unknown;
-      if (result && !resultIsResponse && typeof result === 'object' && 'data' in result) {
+      if (
+        result &&
+        !resultIsResponse &&
+        typeof result === "object" &&
+        "data" in result
+      ) {
         normalizedResult = (result as { data: unknown }).data;
       } else if (result instanceof Response) {
         try {
@@ -324,21 +345,21 @@ export default function UserJourneyPage() {
         return {
           success: true,
           result: normalizedResult,
-          duration
+          duration,
         };
       } else {
         return {
           success: false,
-          error: 'Erreur lors de l\'exécution',
-          duration
+          error: "Erreur lors de l'exécution",
+          duration,
         };
       }
     } catch (error) {
       const duration = Date.now() - startTime;
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-        duration 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Erreur inconnue",
+        duration,
       };
     }
   };
@@ -351,28 +372,32 @@ export default function UserJourneyPage() {
 
     for (let i = 0; i < steps.length; i++) {
       setCurrentStepIndex(i);
-      
+
       // Mettre à jour le statut à "running"
-      setSteps(prev => prev.map((s, idx) => 
-        idx === i ? { ...s, status: 'running' } : s
-      ));
+      setSteps((prev) =>
+        prev.map((s, idx) => (idx === i ? { ...s, status: "running" } : s)),
+      );
 
       // Exécuter l'étape
       const { success, result, error, duration } = await executeStep(steps[i]);
 
       // Attendre un peu pour voir l'animation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Mettre à jour le statut
-      setSteps(prev => prev.map((s, idx) => 
-        idx === i ? { 
-          ...s, 
-          status: success ? 'success' : 'error',
-          duration,
-          result,
-          error
-        } : s
-      ));
+      setSteps((prev) =>
+        prev.map((s, idx) =>
+          idx === i
+            ? {
+                ...s,
+                status: success ? "success" : "error",
+                duration,
+                result,
+                error,
+              }
+            : s,
+        ),
+      );
 
       if (!success) {
         failedSteps.push(steps[i].name);
@@ -381,12 +406,12 @@ export default function UserJourneyPage() {
 
     const totalDuration = Date.now() - startTime;
     const successCount = steps.length - failedSteps.length;
-    
+
     setAnalytics({
       totalDuration,
       successRate: (successCount / steps.length) * 100,
       failedSteps,
-      completedAt: new Date()
+      completedAt: new Date(),
     });
 
     setIsRunning(false);
@@ -395,19 +420,21 @@ export default function UserJourneyPage() {
 
   // Réinitialiser le parcours
   const resetJourney = () => {
-    setSteps(prev => prev.map(s => ({ 
-      ...s, 
-      status: 'pending',
-      duration: undefined,
-      result: undefined,
-      error: undefined
-    })));
+    setSteps((prev) =>
+      prev.map((s) => ({
+        ...s,
+        status: "pending",
+        duration: undefined,
+        result: undefined,
+        error: undefined,
+      })),
+    );
     setCurrentStepIndex(-1);
     setAnalytics({
       totalDuration: 0,
       successRate: 0,
       failedSteps: [],
-      completedAt: null
+      completedAt: null,
     });
   };
 
@@ -415,19 +442,21 @@ export default function UserJourneyPage() {
   const exportResults = () => {
     const data = {
       scenario: SCENARIOS[selectedScenario].name,
-      steps: steps.map(s => ({
+      steps: steps.map((s) => ({
         name: s.name,
         status: s.status,
         duration: s.duration,
-        error: s.error
+        error: s.error,
       })),
       analytics,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `user-journey-${Date.now()}.json`;
     a.click();
@@ -445,26 +474,18 @@ export default function UserJourneyPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button
-            onClick={runJourney}
-            disabled={isRunning}
-            variant="default"
-          >
+          <Button onClick={runJourney} disabled={isRunning} variant="default">
             <Play className="h-4 w-4 mr-2" />
-            {isRunning ? 'En cours...' : 'Lancer le parcours'}
+            {isRunning ? "En cours..." : "Lancer le parcours"}
           </Button>
-          <Button
-            onClick={resetJourney}
-            disabled={isRunning}
-            variant="outline"
-          >
+          <Button onClick={resetJourney} disabled={isRunning} variant="outline">
             <RotateCcw className="h-4 w-4 mr-2" />
             Réinitialiser
           </Button>
           <Button
             onClick={exportResults}
             variant="outline"
-            disabled={steps.every(s => s.status === 'pending')}
+            disabled={steps.every((s) => s.status === "pending")}
           >
             <Download className="h-4 w-4 mr-2" />
             Exporter
@@ -491,19 +512,24 @@ export default function UserJourneyPage() {
                 {Object.entries(SCENARIOS).map(([key, scenario]) => (
                   <button
                     key={key}
-                    onClick={() => !isRunning && setSelectedScenario(key as any)}
+                    onClick={() =>
+                      !isRunning && setSelectedScenario(key as any)
+                    }
                     disabled={isRunning}
                     className={`
                       p-4 rounded-lg border-2 text-left transition-all
-                      ${selectedScenario === key 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-300'
+                      ${
+                        selectedScenario === key
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300"
                       }
-                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      ${isRunning ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                     `}
                   >
                     <h3 className="font-semibold mb-1">{scenario.name}</h3>
-                    <p className="text-sm text-gray-600">{scenario.description}</p>
+                    <p className="text-sm text-gray-600">
+                      {scenario.description}
+                    </p>
                     <p className="text-xs text-gray-500 mt-2">
                       {scenario.steps.length} étapes
                     </p>
@@ -523,43 +549,61 @@ export default function UserJourneyPage() {
                 {steps.map((step, index) => {
                   const Icon = step.icon;
                   const isActive = currentStepIndex === index;
-                  
+
                   return (
                     <div
                       key={step.id}
                       className={`
                         flex items-start gap-4 p-4 rounded-lg border-2 transition-all
-                        ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200'}
+                        ${isActive ? "border-blue-500 bg-blue-50 shadow-md" : "border-gray-200"}
                       `}
                     >
                       {/* Icône de statut */}
-                      <div className={`
+                      <div
+                        className={`
                         flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                        ${step.status === 'pending' ? 'bg-gray-100' : ''}
-                        ${step.status === 'running' ? 'bg-blue-100 animate-pulse' : ''}
-                        ${step.status === 'success' ? 'bg-green-100' : ''}
-                        ${step.status === 'error' ? 'bg-red-100' : ''}
-                      `}>
-                        {step.status === 'pending' && <Icon className="h-6 w-6 text-gray-400" />}
-                        {step.status === 'running' && <Icon className="h-6 w-6 text-blue-500 animate-pulse" />}
-                        {step.status === 'success' && <CheckCircle className="h-6 w-6 text-green-500" />}
-                        {step.status === 'error' && <XCircle className="h-6 w-6 text-red-500" />}
+                        ${step.status === "pending" ? "bg-gray-100" : ""}
+                        ${step.status === "running" ? "bg-blue-100 animate-pulse" : ""}
+                        ${step.status === "success" ? "bg-green-100" : ""}
+                        ${step.status === "error" ? "bg-red-100" : ""}
+                      `}
+                      >
+                        {step.status === "pending" && (
+                          <Icon className="h-6 w-6 text-gray-400" />
+                        )}
+                        {step.status === "running" && (
+                          <Icon className="h-6 w-6 text-blue-500 animate-pulse" />
+                        )}
+                        {step.status === "success" && (
+                          <CheckCircle className="h-6 w-6 text-green-500" />
+                        )}
+                        {step.status === "error" && (
+                          <XCircle className="h-6 w-6 text-red-500" />
+                        )}
                       </div>
 
                       {/* Contenu */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold">{step.name}</h3>
-                          <Badge variant={
-                            step.status === 'pending' ? 'secondary' :
-                            step.status === 'running' ? 'default' :
-                            step.status === 'success' ? 'default' :
-                            'destructive'
-                          }>
-                            {step.status === 'pending' ? 'En attente' :
-                             step.status === 'running' ? 'En cours...' :
-                             step.status === 'success' ? 'Réussi' :
-                             'Échoué'}
+                          <Badge
+                            variant={
+                              step.status === "pending"
+                                ? "secondary"
+                                : step.status === "running"
+                                  ? "default"
+                                  : step.status === "success"
+                                    ? "default"
+                                    : "destructive"
+                            }
+                          >
+                            {step.status === "pending"
+                              ? "En attente"
+                              : step.status === "running"
+                                ? "En cours..."
+                                : step.status === "success"
+                                  ? "Réussi"
+                                  : "Échoué"}
                           </Badge>
                           {step.duration && (
                             <span className="text-sm text-gray-500">
@@ -567,8 +611,10 @@ export default function UserJourneyPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600">{step.description}</p>
-                        
+                        <p className="text-sm text-gray-600">
+                          {step.description}
+                        </p>
+
                         {/* Erreur */}
                         {step.error && (
                           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
@@ -577,7 +623,7 @@ export default function UserJourneyPage() {
                         )}
 
                         {/* Résultat */}
-                        {step.result && step.status === 'success' && (
+                        {step.result && step.status === "success" && (
                           <details className="mt-2">
                             <summary className="text-sm text-blue-600 cursor-pointer">
                               Voir le résultat
@@ -641,7 +687,8 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {steps.filter(s => s.status === 'success').length} / {steps.length}
+                  {steps.filter((s) => s.status === "success").length} /{" "}
+                  {steps.length}
                 </div>
               </CardContent>
             </Card>
@@ -667,24 +714,28 @@ export default function UserJourneyPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {steps.filter(s => s.duration).map(step => (
-                  <div key={step.id} className="flex items-center gap-3">
-                    <div className="w-32 text-sm">{step.name}</div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          step.status === 'success' ? 'bg-green-500' : 'bg-red-500'
-                        }`}
-                        style={{
-                          width: `${Math.min(100, ((step.duration || 0) / Math.max(...steps.map(s => s.duration || 0))) * 100)}%`
-                        }}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-700">
-                        {step.duration}ms
-                      </span>
+                {steps
+                  .filter((s) => s.duration)
+                  .map((step) => (
+                    <div key={step.id} className="flex items-center gap-3">
+                      <div className="w-32 text-sm">{step.name}</div>
+                      <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            step.status === "success"
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                          style={{
+                            width: `${Math.min(100, ((step.duration || 0) / Math.max(...steps.map((s) => s.duration || 0))) * 100)}%`,
+                          }}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-700">
+                          {step.duration}ms
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </CardContent>
           </Card>
@@ -697,9 +748,13 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-1">
-                  {analytics.failedSteps.map((stepName: string, idx: number) => (
-                    <li key={idx} className="text-red-700">{stepName}</li>
-                  ))}
+                  {analytics.failedSteps.map(
+                    (stepName: string, idx: number) => (
+                      <li key={idx} className="text-red-700">
+                        {stepName}
+                      </li>
+                    ),
+                  )}
                 </ul>
               </CardContent>
             </Card>
@@ -713,10 +768,22 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
-                  <div><strong>Scénario :</strong> {SCENARIOS[selectedScenario].name}</div>
-                  <div><strong>Complété le :</strong> {analytics.completedAt.toLocaleString('fr-FR')}</div>
-                  <div><strong>Durée totale :</strong> {(analytics.totalDuration / 1000).toFixed(2)}s</div>
-                  <div><strong>Taux de réussite :</strong> {analytics.successRate.toFixed(1)}%</div>
+                  <div>
+                    <strong>Scénario :</strong>{" "}
+                    {SCENARIOS[selectedScenario].name}
+                  </div>
+                  <div>
+                    <strong>Complété le :</strong>{" "}
+                    {analytics.completedAt.toLocaleString("fr-FR")}
+                  </div>
+                  <div>
+                    <strong>Durée totale :</strong>{" "}
+                    {(analytics.totalDuration / 1000).toFixed(2)}s
+                  </div>
+                  <div>
+                    <strong>Taux de réussite :</strong>{" "}
+                    {analytics.successRate.toFixed(1)}%
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -733,12 +800,14 @@ export default function UserJourneyPage() {
               <div className="space-y-4">
                 {Object.entries(SCENARIOS).map(([key, scenario]) => (
                   <div key={key} className="border rounded-lg p-4">
-                    <h3 className="font-semibold text-lg mb-2">{scenario.name}</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      {scenario.name}
+                    </h3>
                     <p className="text-gray-600 mb-3">{scenario.description}</p>
                     <div className="space-y-1">
                       <strong className="text-sm">Étapes :</strong>
                       <ol className="list-decimal list-inside text-sm space-y-1">
-                        {scenario.steps.map(stepId => (
+                        {scenario.steps.map((stepId) => (
                           <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
                         ))}
                       </ol>
@@ -759,25 +828,28 @@ export default function UserJourneyPage() {
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                Le système complet de monitoring et analytics mobile est documenté et prêt à être implémenté.
+                Le système complet de monitoring et analytics mobile est
+                documenté et prêt à être implémenté.
               </p>
               <div className="space-y-2">
-                <a 
-                  href="/docs/mobile/analytics/SUMMARY.md" 
+                <a
+                  href="/docs/mobile/analytics/SUMMARY.md"
                   target="_blank"
                   className="block text-blue-600 hover:underline"
                 >
                   📄 Voir la documentation complète →
                 </a>
-                <a 
-                  href="/docs/mobile/analytics/INTEGRATION.md" 
+                <a
+                  href="/docs/mobile/analytics/INTEGRATION.md"
                   target="_blank"
                   className="block text-blue-600 hover:underline"
                 >
                   🔧 Guide d'intégration →
                 </a>
                 <p className="text-sm text-gray-600 mt-4">
-                  <strong>Note :</strong> Une fois implémenté, vous pourrez visualiser les analytics mobile en temps réel depuis cette page.
+                  <strong>Note :</strong> Une fois implémenté, vous pourrez
+                  visualiser les analytics mobile en temps réel depuis cette
+                  page.
                 </p>
               </div>
             </CardContent>
@@ -787,4 +859,3 @@ export default function UserJourneyPage() {
     </div>
   );
 }
-

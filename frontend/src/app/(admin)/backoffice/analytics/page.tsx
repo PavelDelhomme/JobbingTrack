@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { AdminLayout } from '@/components/features';
-import { BarChart3, Smartphone, Users } from '@/lib/icons';
+import React from "react";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { BarChart3, Smartphone, Users } from "@/lib/icons";
 
 /**
  * Hub Analytics : résumé orienté **données produit** (application, utilisateurs).
@@ -12,21 +12,21 @@ import { BarChart3, Smartphone, Users } from '@/lib/icons';
 export default function AnalyticsPage() {
   const cards = [
     {
-      href: '/b4ck0ff1ce/analytics/application/performance',
-      title: 'Application',
-      desc: 'Performances live mobile, activité & traces, retours et signalements.',
+      href: "/b4ck0ff1ce/analytics/application/performance",
+      title: "Application",
+      desc: "Performances live mobile, activité & traces, retours et signalements.",
       icon: Smartphone,
     },
     {
-      href: '/b4ck0ff1ce/user-analytics',
-      title: 'Utilisateurs',
-      desc: 'Analytics utilisateur (parcours, engagement, segments).',
+      href: "/b4ck0ff1ce/user-analytics",
+      title: "Utilisateurs",
+      desc: "Analytics utilisateur (parcours, engagement, segments).",
       icon: Users,
     },
     {
-      href: '/b4ck0ff1ce/performances',
-      title: 'Performances (infra)',
-      desc: 'CPU, mémoire, conteneurs Docker, réseau système — hors périmètre « analytics » métier.',
+      href: "/b4ck0ff1ce/performances",
+      title: "Performances (infra)",
+      desc: "CPU, mémoire, conteneurs Docker, réseau système — hors périmètre « analytics » métier.",
       icon: BarChart3,
     },
   ] as const;
@@ -40,9 +40,16 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-            Vue d&apos;ensemble des vues <strong className="font-medium text-gray-800 dark:text-gray-200">application</strong> et{' '}
-            <strong className="font-medium text-gray-800 dark:text-gray-200">utilisateurs</strong>. Les métriques machine
-            (charge, conteneurs, réseau hôte) sont regroupées sous{' '}
+            Vue d&apos;ensemble des vues{" "}
+            <strong className="font-medium text-gray-800 dark:text-gray-200">
+              application
+            </strong>{" "}
+            et{" "}
+            <strong className="font-medium text-gray-800 dark:text-gray-200">
+              utilisateurs
+            </strong>
+            . Les métriques machine (charge, conteneurs, réseau hôte) sont
+            regroupées sous{" "}
             <Link
               href="/b4ck0ff1ce/performances"
               className="font-medium text-blue-600 underline hover:no-underline dark:text-blue-400"
@@ -61,10 +68,17 @@ export default function AnalyticsPage() {
               className="block rounded-lg border border-gray-200 bg-white p-5 transition hover:border-blue-400 hover:shadow-sm dark:border-gray-600 dark:bg-gray-800/80 dark:hover:border-blue-500"
             >
               <div className="flex items-start gap-3">
-                <Icon className="mt-0.5 h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
+                <Icon
+                  className="mt-0.5 h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400"
+                  aria-hidden
+                />
                 <div>
-                  <div className="font-semibold text-gray-900 dark:text-gray-100">{title}</div>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{desc}</p>
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    {title}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {desc}
+                  </p>
                 </div>
               </div>
             </Link>
@@ -72,8 +86,11 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
-          Statistiques agrégées (app data, sécurité, logs) :{' '}
-          <Link href="/b4ck0ff1ce/statistics" className="font-medium text-blue-600 underline dark:text-blue-400">
+          Statistiques agrégées (app data, sécurité, logs) :{" "}
+          <Link
+            href="/b4ck0ff1ce/statistics"
+            className="font-medium text-blue-600 underline dark:text-blue-400"
+          >
             Statistiques
           </Link>
         </div>

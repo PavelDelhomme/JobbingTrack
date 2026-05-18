@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { FRONTEND_URLS } from '@/config/ports.config';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from '@/lib/icons';
-import axios from 'axios';
+import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from "@/lib/icons";
+import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (token) {
@@ -29,39 +29,45 @@ export default function NotificationsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = `notifications_list_${token?.substring(0, 10)}`
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = `notifications_list_${token?.substring(0, 10)}`;
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setNotifications(Array.isArray(cached) ? (cached as any[]) : [])
-        setLoading(false)
+        setNotifications(Array.isArray(cached) ? (cached as any[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        axios.get(`${API_URL}/api/v1/notifications?limit=100`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(response => {
-          if (response.data.success) {
-            const notifications = response.data.notifications || []
-            cacheManager.set(cacheKey, notifications, { ttl: 30000 })
-            setNotifications(notifications)
-          }
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        axios
+          .get(`${API_URL}/api/v1/notifications?limit=100`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((response) => {
+            if (response.data.success) {
+              const notifications = response.data.notifications || [];
+              cacheManager.set(cacheKey, notifications, { ttl: 30000 });
+              setNotifications(notifications);
+            }
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 notifications par défaut
-      const response = await axios.get(`${API_URL}/api/v1/notifications?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await axios.get(
+        `${API_URL}/api/v1/notifications?limit=100`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       if (response.data.success) {
-        const notifications = response.data.notifications || []
-        setNotifications(notifications)
+        const notifications = response.data.notifications || [];
+        setNotifications(notifications);
         // Mettre en cache
-        await cacheManager.set(cacheKey, notifications, { ttl: 30000 })
+        await cacheManager.set(cacheKey, notifications, { ttl: 30000 });
       }
     } catch (error) {
-      console.error('Erreur chargement notifications:', error);
+      console.error("Erreur chargement notifications:", error);
     } finally {
       setLoading(false);
     }
@@ -69,8 +75,8 @@ export default function NotificationsPage() {
 
   // ✅ OPTIMISATION : useMemo pour filteredNotifications
   const filteredNotifications = useMemo(() => {
-    return notifications.filter(notification =>
-      notification.message?.toLowerCase().includes(searchTerm.toLowerCase())
+    return notifications.filter((notification) =>
+      notification.message?.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [notifications, searchTerm]);
 
@@ -89,11 +95,15 @@ export default function NotificationsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Gestion des Notifications</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez les notifications système et utilisateur</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              Gestion des Notifications
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Gérez les notifications système et utilisateur
+            </p>
           </div>
           <button
-            onClick={() => router.push('/b4ck0ff1ce/notifications/new')}
+            onClick={() => router.push("/b4ck0ff1ce/notifications/new")}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="h-5 w-5" />
@@ -104,18 +114,20 @@ export default function NotificationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{notifications.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {notifications.length}
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Lues</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-              {notifications.filter(n => n.isRead).length}
+              {notifications.filter((n) => n.isRead).length}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Non lues</p>
             <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-              {notifications.filter(n => !n.isRead).length}
+              {notifications.filter((n) => !n.isRead).length}
             </p>
           </div>
         </div>
@@ -146,17 +158,30 @@ export default function NotificationsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Message</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Statut</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Message
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredNotifications.map((notification) => (
-                  <tr key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={notification.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{notification.message || 'N/A'}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {notification.message || "N/A"}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
@@ -165,17 +190,23 @@ export default function NotificationsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        notification.isRead 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                      }`}>
-                        {notification.isRead ? 'Lue' : 'Non lue'}
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          notification.isRead
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                        }`}
+                      >
+                        {notification.isRead ? "Lue" : "Non lue"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
-                        onClick={() => router.push(`/b4ck0ff1ce/notifications/${notification.id}`)}
+                        onClick={() =>
+                          router.push(
+                            `/b4ck0ff1ce/notifications/${notification.id}`,
+                          )
+                        }
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400"
                       >
                         <Edit className="h-5 w-5" />
@@ -185,7 +216,10 @@ export default function NotificationsPage() {
                 ))}
                 {filteredNotifications.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td
+                      colSpan={4}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
                       Aucune notification trouvée
                     </td>
                   </tr>
@@ -198,4 +232,3 @@ export default function NotificationsPage() {
     </AdminLayout>
   );
 }
-

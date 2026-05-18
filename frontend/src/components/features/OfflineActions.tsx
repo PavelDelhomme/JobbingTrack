@@ -6,5 +6,5 @@ export function OfflineActions() {
       </span>
       <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
     </div>
-  )
+  );
 }

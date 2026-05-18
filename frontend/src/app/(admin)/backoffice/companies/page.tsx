@@ -1,119 +1,137 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { companyService } from '@/lib/api'
-import Link from 'next/link'
-import { usePagination } from '@/lib/hooks/usePagination'
-import { Pagination } from '@/components/ui/Pagination'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter, useSearchParams } from "next/navigation";
+import { companyService } from "@/lib/api";
+import Link from "next/link";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Company {
-  id: string
-  name: string
-  website?: string
-  industry?: string
-  size?: string
-  companyType?: 'EMPLOYER' | 'TEMP_AGENCY'
-  location?: string
-  description?: string
-  createdAt: string
+  id: string;
+  name: string;
+  website?: string;
+  industry?: string;
+  size?: string;
+  companyType?: "EMPLOYER" | "TEMP_AGENCY";
+  location?: string;
+  description?: string;
+  createdAt: string;
   _count?: {
-    applications: number
-    contacts: number
-  }
+    applications: number;
+    contacts: number;
+  };
 }
 
 export default function CompaniesPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [companyTypeFilter, setCompanyTypeFilter] = useState<'ALL' | 'EMPLOYER' | 'TEMP_AGENCY'>('ALL')
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [companyTypeFilter, setCompanyTypeFilter] = useState<
+    "ALL" | "EMPLOYER" | "TEMP_AGENCY"
+  >("ALL");
 
   // Initialiser le filtre depuis l'URL (ex. ?companyType=TEMP_AGENCY)
   useEffect(() => {
-    const type = searchParams?.get('companyType')
-    if (type === 'TEMP_AGENCY' || type === 'EMPLOYER') {
-      setCompanyTypeFilter(type)
+    const type = searchParams?.get("companyType");
+    if (type === "TEMP_AGENCY" || type === "EMPLOYER") {
+      setCompanyTypeFilter(type);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   // ✅ OPTIMISATION : Charger avec pagination et cache
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCompanies()
+      fetchCompanies();
     }
-  }, [isAuthenticated, companyTypeFilter])
+  }, [isAuthenticated, companyTypeFilter]);
 
   const fetchCompanies = async () => {
     try {
-      setLoading(true)
-      const params: { limit: number; companyType?: 'EMPLOYER' | 'TEMP_AGENCY' } = { limit: 100 }
-      if (companyTypeFilter === 'EMPLOYER') params.companyType = 'EMPLOYER'
-      if (companyTypeFilter === 'TEMP_AGENCY') params.companyType = 'TEMP_AGENCY'
+      setLoading(true);
+      const params: {
+        limit: number;
+        companyType?: "EMPLOYER" | "TEMP_AGENCY";
+      } = { limit: 100 };
+      if (companyTypeFilter === "EMPLOYER") params.companyType = "EMPLOYER";
+      if (companyTypeFilter === "TEMP_AGENCY")
+        params.companyType = "TEMP_AGENCY";
 
-      const cacheKey = `companies_list_${companyTypeFilter}`
-      const cached = await (await import('@/lib/cache/cacheManager')).cacheManager.get(cacheKey, { ttl: 30000 })
+      const cacheKey = `companies_list_${companyTypeFilter}`;
+      const cached = await (
+        await import("@/lib/cache/cacheManager")
+      ).cacheManager.get(cacheKey, { ttl: 30000 });
 
       if (cached) {
-        setCompanies(Array.isArray(cached) ? (cached as Company[]) : [])
-        setLoading(false)
-        companyService.getAll(params).then(async response => {
-          const list = response.data.companies || []
-          const { cacheManager } = await import('@/lib/cache/cacheManager')
-          await cacheManager.set(cacheKey, list, { ttl: 30000 })
-          setCompanies(list)
-        }).catch(() => {})
-        return
+        setCompanies(Array.isArray(cached) ? (cached as Company[]) : []);
+        setLoading(false);
+        companyService
+          .getAll(params)
+          .then(async (response) => {
+            const list = response.data.companies || [];
+            const { cacheManager } = await import("@/lib/cache/cacheManager");
+            await cacheManager.set(cacheKey, list, { ttl: 30000 });
+            setCompanies(list);
+          })
+          .catch(() => {});
+        return;
       }
 
-      const response = await companyService.getAll(params)
-      const list = response.data.companies || []
-      setCompanies(list)
-      await (await import('@/lib/cache/cacheManager')).cacheManager.set(cacheKey, list, { ttl: 30000 })
+      const response = await companyService.getAll(params);
+      const list = response.data.companies || [];
+      setCompanies(list);
+      await (
+        await import("@/lib/cache/cacheManager")
+      ).cacheManager.set(cacheKey, list, { ttl: 30000 });
     } catch (error) {
-      console.error('Erreur chargement entreprises:', error)
+      console.error("Erreur chargement entreprises:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteCompany = async (companyId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ? Toutes les candidatures liées seront affectées.')) {
-      return
+    if (
+      !confirm(
+        "Êtes-vous sûr de vouloir supprimer cette entreprise ? Toutes les candidatures liées seront affectées.",
+      )
+    ) {
+      return;
     }
 
     try {
-      await companyService.delete(companyId)
-      fetchCompanies()
+      await companyService.delete(companyId);
+      fetchCompanies();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredCompanies = companies.filter(
+    (company) =>
+      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
   const pagination = usePagination({
     items: filteredCompanies,
     itemsPerPage: 20,
     initialPage: 1,
-  })
+  });
 
   if (authLoading || loading) {
     return (
@@ -122,7 +140,7 @@ export default function CompaniesPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -156,18 +174,22 @@ export default function CompaniesPage() {
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
           <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
-            {(['ALL', 'EMPLOYER', 'TEMP_AGENCY'] as const).map((f) => (
+            {(["ALL", "EMPLOYER", "TEMP_AGENCY"] as const).map((f) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setCompanyTypeFilter(f)}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
                   companyTypeFilter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                 }`}
               >
-                {f === 'ALL' ? 'Toutes' : f === 'EMPLOYER' ? 'Employeur' : 'Boîte d\'intérim'}
+                {f === "ALL"
+                  ? "Toutes"
+                  : f === "EMPLOYER"
+                    ? "Employeur"
+                    : "Boîte d'intérim"}
               </button>
             ))}
           </div>
@@ -210,8 +232,8 @@ export default function CompaniesPage() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                     onClick={(e) => {
                       // Ne pas déclencher si on clique sur les boutons d'action
-                      if ((e.target as HTMLElement).closest('button')) return
-                      window.location.href = `/b4ck0ff1ce/companies/${company.id}`
+                      if ((e.target as HTMLElement).closest("button")) return;
+                      window.location.href = `/b4ck0ff1ce/companies/${company.id}`;
                     }}
                   >
                     <td className="px-6 py-4">
@@ -232,27 +254,33 @@ export default function CompaniesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                        company.companyType === 'TEMP_AGENCY'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                      }`}>
-                        {company.companyType === 'TEMP_AGENCY' ? 'Boîte d\'intérim' : 'Employeur'}
+                      <span
+                        className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                          company.companyType === "TEMP_AGENCY"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {company.companyType === "TEMP_AGENCY"
+                          ? "Boîte d'intérim"
+                          : "Employeur"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {company.industry || '-'}
+                      {company.industry || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {company.location || '-'}
+                      {company.location || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {company.size || '-'}
+                      {company.size || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {company._count && (
                         <div className="flex space-x-3">
-                          <span>📝 {company._count.applications} candidatures</span>
+                          <span>
+                            📝 {company._count.applications} candidatures
+                          </span>
                           <span>👤 {company._count.contacts} contacts</span>
                         </div>
                       )}
@@ -260,8 +288,8 @@ export default function CompaniesPage() {
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`
+                          e.stopPropagation();
+                          window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`;
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                       >
@@ -269,8 +297,8 @@ export default function CompaniesPage() {
                       </button>
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteCompany(company.id)
+                          e.stopPropagation();
+                          handleDeleteCompany(company.id);
                         }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                       >
@@ -289,7 +317,9 @@ export default function CompaniesPage() {
               <div
                 key={company.id}
                 className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                onClick={() => window.location.href = `/b4ck0ff1ce/companies/${company.id}`}
+                onClick={() =>
+                  (window.location.href = `/b4ck0ff1ce/companies/${company.id}`)
+                }
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center flex-1">
@@ -297,21 +327,21 @@ export default function CompaniesPage() {
                       🏢
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{company.name}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                        {company.name}
+                      </h3>
                       {company.industry && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{company.industry}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {company.industry}
+                        </p>
                       )}
                     </div>
                   </div>
                 </div>
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {company.location && (
-                    <p>📍 {company.location}</p>
-                  )}
-                  {company.size && (
-                    <p>👥 {company.size} employés</p>
-                  )}
+                  {company.location && <p>📍 {company.location}</p>}
+                  {company.size && <p>👥 {company.size} employés</p>}
                   {company.website && (
                     <a
                       href={company.website}
@@ -339,8 +369,8 @@ export default function CompaniesPage() {
                 <div className="ml-13 flex gap-2">
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`
+                      e.stopPropagation();
+                      window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`;
                     }}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
@@ -348,8 +378,8 @@ export default function CompaniesPage() {
                   </button>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteCompany(company.id)
+                      e.stopPropagation();
+                      handleDeleteCompany(company.id);
                     }}
                     className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   >
@@ -391,46 +421,48 @@ export default function CompaniesPage() {
           <CreateCompanyModal
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
-              setShowCreateModal(false)
-              fetchCompanies()
+              setShowCreateModal(false);
+              fetchCompanies();
             }}
           />
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
 
-
-function CreateCompanyModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: () => void
+function CreateCompanyModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    name: '',
-    website: '',
-    industry: '',
-    size: '',
-    companyType: 'EMPLOYER' as 'EMPLOYER' | 'TEMP_AGENCY',
-    location: '',
-    description: ''
-  })
-  const [loading, setLoading] = useState(false)
+    name: "",
+    website: "",
+    industry: "",
+    size: "",
+    companyType: "EMPLOYER" as "EMPLOYER" | "TEMP_AGENCY",
+    location: "",
+    description: "",
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      await companyService.create(formData)
-      onSuccess()
+      await companyService.create(formData);
+      onSuccess();
     } catch (error) {
-      console.error('Erreur création:', error)
-      alert('Erreur lors de la création')
+      console.error("Erreur création:", error);
+      alert("Erreur lors de la création");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
@@ -448,7 +480,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -461,7 +495,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="url"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -472,7 +508,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, industry: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -485,7 +523,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, size: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Sélectionner...</option>
@@ -502,7 +542,12 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.companyType}
-                onChange={(e) => setFormData({ ...formData, companyType: e.target.value as 'EMPLOYER' | 'TEMP_AGENCY' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    companyType: e.target.value as "EMPLOYER" | "TEMP_AGENCY",
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="EMPLOYER">Employeur</option>
@@ -519,7 +564,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -532,7 +579,9 @@ function CreateCompanyModal({ onClose, onSuccess }: {
             <textarea
               rows={4}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -550,12 +599,11 @@ function CreateCompanyModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...' : 'Créer'}
+              {loading ? "Création..." : "Créer"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
-

@@ -1,10 +1,14 @@
 // Service d'intégration calendrier pour JobbingTrack
-import axios from 'axios';
+import axios from "axios";
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'your-google-client-id';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'your-google-client-secret';
-const MICROSOFT_CLIENT_ID = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || 'your-microsoft-client-id';
-const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET || 'your-microsoft-client-secret';
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "your-google-client-id";
+const GOOGLE_CLIENT_SECRET =
+  process.env.GOOGLE_CLIENT_SECRET || "your-google-client-secret";
+const MICROSOFT_CLIENT_ID =
+  process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || "your-microsoft-client-id";
+const MICROSOFT_CLIENT_SECRET =
+  process.env.MICROSOFT_CLIENT_SECRET || "your-microsoft-client-secret";
 
 interface CalendarEvent {
   id: string;
@@ -14,8 +18,8 @@ interface CalendarEvent {
   end: Date;
   location?: string;
   attendees?: string[];
-  status: 'confirmed' | 'tentative' | 'cancelled';
-  source: 'google' | 'outlook' | 'local';
+  status: "confirmed" | "tentative" | "cancelled";
+  source: "google" | "outlook" | "local";
   externalId?: string;
   externalUrl?: string;
 }
@@ -23,7 +27,7 @@ interface CalendarEvent {
 interface CalendarProvider {
   id: string;
   name: string;
-  type: 'google' | 'outlook' | 'local';
+  type: "google" | "outlook" | "local";
   isConnected: boolean;
   color?: string;
   isDefault?: boolean;
@@ -51,8 +55,8 @@ class CalendarIntegrationService {
     }
 
     // Charger depuis localStorage
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('calendar-tokens');
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("calendar-tokens");
       if (stored) {
         try {
           const tokens = JSON.parse(stored);
@@ -60,7 +64,10 @@ class CalendarIntegrationService {
           this.microsoftAccessToken = tokens.microsoftAccessToken;
           this.microsoftRefreshToken = tokens.microsoftRefreshToken;
         } catch (error) {
-          console.error('Erreur lors du chargement des tokens calendrier:', error);
+          console.error(
+            "Erreur lors du chargement des tokens calendrier:",
+            error,
+          );
         }
       }
     }
@@ -68,14 +75,15 @@ class CalendarIntegrationService {
 
   // Obtenir l'URL d'autorisation Google Calendar
   getGoogleAuthUrl(): string {
-    const scope = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events';
+    const scope =
+      "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events";
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: `${window.location.origin}/api/auth/google/callback`,
       scope,
-      response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent'
+      response_type: "code",
+      access_type: "offline",
+      prompt: "consent",
     });
 
     return `https://accounts.google.com/oauth/authorize?${params.toString()}`;
@@ -83,13 +91,14 @@ class CalendarIntegrationService {
 
   // Obtenir l'URL d'autorisation Microsoft Outlook
   getMicrosoftAuthUrl(): string {
-    const scope = 'openid profile offline_access https://graph.microsoft.com/Calendars.ReadWrite';
+    const scope =
+      "openid profile offline_access https://graph.microsoft.com/Calendars.ReadWrite";
     const params = new URLSearchParams({
       client_id: MICROSOFT_CLIENT_ID,
-      response_type: 'code',
+      response_type: "code",
       redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`,
       scope,
-      response_mode: 'query'
+      response_mode: "query",
     });
 
     return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
@@ -98,94 +107,108 @@ class CalendarIntegrationService {
   // Échanger le code Google contre des tokens
   async exchangeGoogleCode(code: string): Promise<{ accessToken: string }> {
     try {
-      const response = await axios.post('https://oauth2.googleapis.com/token', {
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: `${window.location.origin}/api/auth/google/callback`
-      }, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      const response = await axios.post(
+        "https://oauth2.googleapis.com/token",
+        {
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: `${window.location.origin}/api/auth/google/callback`,
+        },
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
+      );
 
       this.googleAccessToken = response.data.access_token;
 
       if (!this.googleAccessToken) {
-        throw new Error('Aucun access token reçu de Google');
+        throw new Error("Aucun access token reçu de Google");
       }
 
       // Sauvegarder les tokens
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const tokens = {
           googleAccessToken: this.googleAccessToken,
           microsoftAccessToken: this.microsoftAccessToken,
-          microsoftRefreshToken: this.microsoftRefreshToken
+          microsoftRefreshToken: this.microsoftRefreshToken,
         };
-        localStorage.setItem('calendar-tokens', JSON.stringify(tokens));
+        localStorage.setItem("calendar-tokens", JSON.stringify(tokens));
       }
 
       return { accessToken: this.googleAccessToken };
     } catch (error) {
-      console.error('Erreur échange Google:', error);
-      throw new Error('Impossible d\'échanger le code Google');
+      console.error("Erreur échange Google:", error);
+      throw new Error("Impossible d'échanger le code Google");
     }
   }
 
   // Échanger le code Microsoft contre des tokens
-  async exchangeMicrosoftCode(code: string): Promise<{ accessToken: string; refreshToken?: string }> {
+  async exchangeMicrosoftCode(
+    code: string,
+  ): Promise<{ accessToken: string; refreshToken?: string }> {
     try {
-      const response = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-        client_id: MICROSOFT_CLIENT_ID,
-        client_secret: MICROSOFT_CLIENT_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`
-      }, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      const response = await axios.post(
+        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        {
+          client_id: MICROSOFT_CLIENT_ID,
+          client_secret: MICROSOFT_CLIENT_SECRET,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`,
+        },
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
+      );
 
       this.microsoftAccessToken = response.data.access_token;
       this.microsoftRefreshToken = response.data.refresh_token;
 
       if (!this.microsoftAccessToken) {
-        throw new Error('Aucun access token reçu de Microsoft');
+        throw new Error("Aucun access token reçu de Microsoft");
       }
 
       // Sauvegarder les tokens
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const tokens = {
           googleAccessToken: this.googleAccessToken,
           microsoftAccessToken: this.microsoftAccessToken,
-          microsoftRefreshToken: this.microsoftRefreshToken
+          microsoftRefreshToken: this.microsoftRefreshToken,
         };
-        localStorage.setItem('calendar-tokens', JSON.stringify(tokens));
+        localStorage.setItem("calendar-tokens", JSON.stringify(tokens));
       }
 
       return {
         accessToken: this.microsoftAccessToken,
-        refreshToken: this.microsoftRefreshToken || undefined
+        refreshToken: this.microsoftRefreshToken || undefined,
       };
     } catch (error) {
-      console.error('Erreur échange Microsoft:', error);
-      throw new Error('Impossible d\'échanger le code Microsoft');
+      console.error("Erreur échange Microsoft:", error);
+      throw new Error("Impossible d'échanger le code Microsoft");
     }
   }
 
   // Rafraîchir le token Microsoft
   async refreshMicrosoftToken(): Promise<string> {
     if (!this.microsoftRefreshToken) {
-      throw new Error('Refresh token Microsoft non disponible');
+      throw new Error("Refresh token Microsoft non disponible");
     }
 
     try {
-      const response = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-        client_id: MICROSOFT_CLIENT_ID,
-        client_secret: MICROSOFT_CLIENT_SECRET,
-        refresh_token: this.microsoftRefreshToken,
-        grant_type: 'refresh_token'
-      }, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      const response = await axios.post(
+        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        {
+          client_id: MICROSOFT_CLIENT_ID,
+          client_secret: MICROSOFT_CLIENT_SECRET,
+          refresh_token: this.microsoftRefreshToken,
+          grant_type: "refresh_token",
+        },
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
+      );
 
       this.microsoftAccessToken = response.data.access_token;
       if (response.data.refresh_token) {
@@ -193,56 +216,65 @@ class CalendarIntegrationService {
       }
 
       if (!this.microsoftAccessToken) {
-        throw new Error('Aucun access token reçu lors du rafraîchissement Microsoft');
+        throw new Error(
+          "Aucun access token reçu lors du rafraîchissement Microsoft",
+        );
       }
 
       // Mettre à jour le stockage
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const tokens = {
           googleAccessToken: this.googleAccessToken,
           microsoftAccessToken: this.microsoftAccessToken,
-          microsoftRefreshToken: this.microsoftRefreshToken
+          microsoftRefreshToken: this.microsoftRefreshToken,
         };
-        localStorage.setItem('calendar-tokens', JSON.stringify(tokens));
+        localStorage.setItem("calendar-tokens", JSON.stringify(tokens));
       }
 
       return this.microsoftAccessToken;
     } catch (error) {
-      console.error('Erreur rafraîchissement Microsoft:', error);
-      throw new Error('Impossible de rafraîchir le token Microsoft');
+      console.error("Erreur rafraîchissement Microsoft:", error);
+      throw new Error("Impossible de rafraîchir le token Microsoft");
     }
   }
 
   // Récupérer les calendriers Google
   async getGoogleCalendars(): Promise<any[]> {
     if (!this.googleAccessToken) {
-      throw new Error('Non authentifié sur Google');
+      throw new Error("Non authentifié sur Google");
     }
 
     try {
-      const response = await axios.get('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-        headers: { Authorization: `Bearer ${this.googleAccessToken}` }
-      });
+      const response = await axios.get(
+        "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+        {
+          headers: { Authorization: `Bearer ${this.googleAccessToken}` },
+        },
+      );
 
       return response.data.items || [];
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Token Google expiré');
+        throw new Error("Token Google expiré");
       }
       throw error;
     }
   }
 
   // Récupérer les événements Google Calendar
-  async getGoogleEvents(calendarId: string = 'primary', startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+  async getGoogleEvents(
+    calendarId: string = "primary",
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<CalendarEvent[]> {
     if (!this.googleAccessToken) {
-      throw new Error('Non authentifié sur Google');
+      throw new Error("Non authentifié sur Google");
     }
 
     try {
       const params: any = {
         singleEvents: true,
-        orderBy: 'startTime'
+        orderBy: "startTime",
       };
 
       if (startDate) {
@@ -252,27 +284,30 @@ class CalendarIntegrationService {
         params.timeMax = endDate.toISOString();
       }
 
-      const response = await axios.get(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`, {
-        headers: { Authorization: `Bearer ${this.googleAccessToken}` },
-        params
-      });
+      const response = await axios.get(
+        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
+        {
+          headers: { Authorization: `Bearer ${this.googleAccessToken}` },
+          params,
+        },
+      );
 
       return (response.data.items || []).map((event: any) => ({
         id: event.id,
-        title: event.summary || 'Sans titre',
+        title: event.summary || "Sans titre",
         description: event.description,
         start: new Date(event.start.dateTime || event.start.date),
         end: new Date(event.end.dateTime || event.end.date),
         location: event.location,
         attendees: event.attendees?.map((a: any) => a.email) || [],
-        status: event.status || 'confirmed',
-        source: 'google' as const,
+        status: event.status || "confirmed",
+        source: "google" as const,
         externalId: event.id,
-        externalUrl: event.htmlLink
+        externalUrl: event.htmlLink,
       }));
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Token Google expiré');
+        throw new Error("Token Google expiré");
       }
       throw error;
     }
@@ -281,13 +316,16 @@ class CalendarIntegrationService {
   // Récupérer les calendriers Microsoft
   async getMicrosoftCalendars(): Promise<any[]> {
     if (!this.microsoftAccessToken) {
-      throw new Error('Non authentifié sur Microsoft');
+      throw new Error("Non authentifié sur Microsoft");
     }
 
     try {
-      const response = await axios.get('https://graph.microsoft.com/v1.0/me/calendars', {
-        headers: { Authorization: `Bearer ${this.microsoftAccessToken}` }
-      });
+      const response = await axios.get(
+        "https://graph.microsoft.com/v1.0/me/calendars",
+        {
+          headers: { Authorization: `Bearer ${this.microsoftAccessToken}` },
+        },
+      );
 
       return response.data.value || [];
     } catch (error: any) {
@@ -298,7 +336,7 @@ class CalendarIntegrationService {
           // Réessayer la requête
           return this.getMicrosoftCalendars();
         } catch (refreshError) {
-          throw new Error('Token Microsoft expiré');
+          throw new Error("Token Microsoft expiré");
         }
       }
       throw error;
@@ -306,9 +344,13 @@ class CalendarIntegrationService {
   }
 
   // Récupérer les événements Microsoft Calendar
-  async getMicrosoftEvents(calendarId: string, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+  async getMicrosoftEvents(
+    calendarId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<CalendarEvent[]> {
     if (!this.microsoftAccessToken) {
-      throw new Error('Non authentifié sur Microsoft');
+      throw new Error("Non authentifié sur Microsoft");
     }
 
     try {
@@ -320,23 +362,27 @@ class CalendarIntegrationService {
         params.endDateTime = endDate.toISOString();
       }
 
-      const response = await axios.get(`https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events`, {
-        headers: { Authorization: `Bearer ${this.microsoftAccessToken}` },
-        params
-      });
+      const response = await axios.get(
+        `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events`,
+        {
+          headers: { Authorization: `Bearer ${this.microsoftAccessToken}` },
+          params,
+        },
+      );
 
       return (response.data.value || []).map((event: any) => ({
         id: event.id,
-        title: event.subject || 'Sans titre',
+        title: event.subject || "Sans titre",
         description: event.body?.content,
         start: new Date(event.start.dateTime),
         end: new Date(event.end.dateTime),
         location: event.location?.displayName,
-        attendees: event.attendees?.map((a: any) => a.emailAddress?.address) || [],
-        status: event.showAs || 'confirmed',
-        source: 'outlook' as const,
+        attendees:
+          event.attendees?.map((a: any) => a.emailAddress?.address) || [],
+        status: event.showAs || "confirmed",
+        source: "outlook" as const,
         externalId: event.id,
-        externalUrl: event.webLink
+        externalUrl: event.webLink,
       }));
     } catch (error: any) {
       if (error.response?.status === 401) {
@@ -346,7 +392,7 @@ class CalendarIntegrationService {
           // Réessayer la requête
           return this.getMicrosoftEvents(calendarId, startDate, endDate);
         } catch (refreshError) {
-          throw new Error('Token Microsoft expiré');
+          throw new Error("Token Microsoft expiré");
         }
       }
       throw error;
@@ -364,28 +410,31 @@ class CalendarIntegrationService {
       location?: string;
       description?: string;
     },
-    targetCalendar: { provider: 'google' | 'outlook'; calendarId: string }
+    targetCalendar: { provider: "google" | "outlook"; calendarId: string },
   ): Promise<string> {
     const eventData = {
       summary: `[Entretien] ${interviewData.title} - ${interviewData.companyName}`,
-      description: interviewData.description || `Entretien programmé via JobbingTrack`,
+      description:
+        interviewData.description || `Entretien programmé via JobbingTrack`,
       start: {
         dateTime: interviewData.date.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       end: {
-        dateTime: new Date(interviewData.date.getTime() + (interviewData.duration || 60) * 60000).toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        dateTime: new Date(
+          interviewData.date.getTime() + (interviewData.duration || 60) * 60000,
+        ).toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
-      location: interviewData.location || 'À définir'
+      location: interviewData.location || "À définir",
     };
 
     try {
-      if (targetCalendar.provider === 'google') {
+      if (targetCalendar.provider === "google") {
         const response = await axios.post(
           `https://www.googleapis.com/calendar/v3/calendars/${targetCalendar.calendarId}/events`,
           eventData,
-          { headers: { Authorization: `Bearer ${this.googleAccessToken}` } }
+          { headers: { Authorization: `Bearer ${this.googleAccessToken}` } },
         );
 
         return response.data.id;
@@ -393,38 +442,38 @@ class CalendarIntegrationService {
         const response = await axios.post(
           `https://graph.microsoft.com/v1.0/me/calendars/${targetCalendar.calendarId}/events`,
           eventData,
-          { headers: { Authorization: `Bearer ${this.microsoftAccessToken}` } }
+          { headers: { Authorization: `Bearer ${this.microsoftAccessToken}` } },
         );
 
         return response.data.id;
       }
     } catch (error) {
-      console.error('Erreur lors de la synchronisation:', error);
-      throw new Error('Impossible de synchroniser l\'événement');
+      console.error("Erreur lors de la synchronisation:", error);
+      throw new Error("Impossible de synchroniser l'événement");
     }
   }
 
   // Supprimer un événement synchronisé
   async deleteSyncedEvent(
     eventId: string,
-    provider: 'google' | 'outlook',
-    calendarId: string
+    provider: "google" | "outlook",
+    calendarId: string,
   ): Promise<void> {
     try {
-      if (provider === 'google') {
+      if (provider === "google") {
         await axios.delete(
           `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`,
-          { headers: { Authorization: `Bearer ${this.googleAccessToken}` } }
+          { headers: { Authorization: `Bearer ${this.googleAccessToken}` } },
         );
       } else {
         await axios.delete(
           `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events/${eventId}`,
-          { headers: { Authorization: `Bearer ${this.microsoftAccessToken}` } }
+          { headers: { Authorization: `Bearer ${this.microsoftAccessToken}` } },
         );
       }
     } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      throw new Error('Impossible de supprimer l\'événement');
+      console.error("Erreur lors de la suppression:", error);
+      throw new Error("Impossible de supprimer l'événement");
     }
   }
 
@@ -438,22 +487,22 @@ class CalendarIntegrationService {
   }
 
   // Déconnexion
-  logout(provider?: 'google' | 'outlook'): void {
-    if (provider === 'google' || !provider) {
+  logout(provider?: "google" | "outlook"): void {
+    if (provider === "google" || !provider) {
       this.googleAccessToken = null;
     }
-    if (provider === 'outlook' || !provider) {
+    if (provider === "outlook" || !provider) {
       this.microsoftAccessToken = null;
       this.microsoftRefreshToken = null;
     }
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const tokens = {
         googleAccessToken: this.googleAccessToken,
         microsoftAccessToken: this.microsoftAccessToken,
-        microsoftRefreshToken: this.microsoftRefreshToken
+        microsoftRefreshToken: this.microsoftRefreshToken,
       };
-      localStorage.setItem('calendar-tokens', JSON.stringify(tokens));
+      localStorage.setItem("calendar-tokens", JSON.stringify(tokens));
     }
   }
 
@@ -461,27 +510,27 @@ class CalendarIntegrationService {
   getAvailableProviders(): CalendarProvider[] {
     return [
       {
-        id: 'google',
-        name: 'Google Calendar',
-        type: 'google',
+        id: "google",
+        name: "Google Calendar",
+        type: "google",
         isConnected: this.isGoogleAuthenticated(),
-        color: '#4285F4'
+        color: "#4285F4",
       },
       {
-        id: 'outlook',
-        name: 'Outlook Calendar',
-        type: 'outlook',
+        id: "outlook",
+        name: "Outlook Calendar",
+        type: "outlook",
         isConnected: this.isMicrosoftAuthenticated(),
-        color: '#0078D4'
+        color: "#0078D4",
       },
       {
-        id: 'local',
-        name: 'Calendrier local',
-        type: 'local',
+        id: "local",
+        name: "Calendrier local",
+        type: "local",
         isConnected: true,
         isDefault: true,
-        color: '#10B981'
-      }
+        color: "#10B981",
+      },
     ];
   }
 
@@ -502,34 +551,48 @@ class CalendarIntegrationService {
       end: eventData.end,
       location: eventData.location,
       attendees: eventData.attendees,
-      status: 'confirmed',
-      source: 'local'
+      status: "confirmed",
+      source: "local",
     };
 
     // Sauvegarder l'événement localement
-    if (typeof window !== 'undefined') {
-      const localEvents = JSON.parse(localStorage.getItem('local-calendar-events') || '[]');
+    if (typeof window !== "undefined") {
+      const localEvents = JSON.parse(
+        localStorage.getItem("local-calendar-events") || "[]",
+      );
       localEvents.push(event);
-      localStorage.setItem('local-calendar-events', JSON.stringify(localEvents));
+      localStorage.setItem(
+        "local-calendar-events",
+        JSON.stringify(localEvents),
+      );
     }
 
     return event;
   }
 
   // Récupérer les événements locaux
-  async getLocalEvents(startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
-    if (typeof window === 'undefined') return [];
+  async getLocalEvents(
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<CalendarEvent[]> {
+    if (typeof window === "undefined") return [];
 
-    const localEvents = JSON.parse(localStorage.getItem('local-calendar-events') || '[]');
+    const localEvents = JSON.parse(
+      localStorage.getItem("local-calendar-events") || "[]",
+    );
 
     let filteredEvents = localEvents;
 
     if (startDate) {
-      filteredEvents = filteredEvents.filter((event: CalendarEvent) => event.start >= startDate);
+      filteredEvents = filteredEvents.filter(
+        (event: CalendarEvent) => event.start >= startDate,
+      );
     }
 
     if (endDate) {
-      filteredEvents = filteredEvents.filter((event: CalendarEvent) => event.end <= endDate);
+      filteredEvents = filteredEvents.filter(
+        (event: CalendarEvent) => event.end <= endDate,
+      );
     }
 
     return filteredEvents;
@@ -537,11 +600,18 @@ class CalendarIntegrationService {
 
   // Supprimer un événement local
   async deleteLocalEvent(eventId: string): Promise<void> {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const localEvents = JSON.parse(localStorage.getItem('local-calendar-events') || '[]');
-    const filteredEvents = localEvents.filter((event: CalendarEvent) => event.id !== eventId);
-    localStorage.setItem('local-calendar-events', JSON.stringify(filteredEvents));
+    const localEvents = JSON.parse(
+      localStorage.getItem("local-calendar-events") || "[]",
+    );
+    const filteredEvents = localEvents.filter(
+      (event: CalendarEvent) => event.id !== eventId,
+    );
+    localStorage.setItem(
+      "local-calendar-events",
+      JSON.stringify(filteredEvents),
+    );
   }
 }
 

@@ -1,2 +1,2 @@
-export { default as FormModal } from './FormModal'
-export { default as FormField } from './FormField'
+export { default as FormModal } from "./FormModal";
+export { default as FormField } from "./FormField";

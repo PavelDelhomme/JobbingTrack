@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 interface TooltipProps {
-  children: React.ReactNode
-  content: string
-  className?: string
+  children: React.ReactNode;
+  content: string;
+  className?: string;
 }
 
 const Tooltip = ({ children, content, className }: TooltipProps) => {
-  const [visible, setVisible] = React.useState(false)
+  const [visible, setVisible] = React.useState(false);
 
   return (
     <div
@@ -26,12 +26,14 @@ const Tooltip = ({ children, content, className }: TooltipProps) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 // Pour la compatibilité avec l'import existant
-const TooltipProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>
-const TooltipTrigger = ({ children, ...props }: any) => <>{children}</>
-const TooltipContent = ({ children, ...props }: any) => <>{children}</>
+const TooltipProvider = ({ children }: { children: React.ReactNode }) => (
+  <>{children}</>
+);
+const TooltipTrigger = ({ children, ...props }: any) => <>{children}</>;
+const TooltipContent = ({ children, ...props }: any) => <>{children}</>;
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };

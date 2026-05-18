@@ -1,175 +1,216 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { FRONTEND_URLS } from '@/config/ports.config'
-import { 
-  Calendar, Clock, Play, Pause, Trash2, Edit, Plus, 
-  CheckCircle, XCircle, RefreshCw, Settings, Zap
-} from '@/lib/icons'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  Calendar,
+  Clock,
+  Play,
+  Pause,
+  Trash2,
+  Edit,
+  Plus,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Settings,
+  Zap,
+} from "@/lib/icons";
+import axios from "axios";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 interface TestSchedule {
-  id: string
-  name: string
-  type: 'performance-backend' | 'performance-frontend' | 'both' | 'performance-infrastructure' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails'
-  interval: 'hourly' | 'daily' | 'weekly' | 'custom'
-  customCron?: string
-  enabled: boolean
-  lastRun?: string
-  nextRun?: string
-  createdAt: string
-  config?: any
+  id: string;
+  name: string;
+  type:
+    | "performance-backend"
+    | "performance-frontend"
+    | "both"
+    | "performance-infrastructure"
+    | "api"
+    | "backend"
+    | "frontend"
+    | "backoffice"
+    | "security"
+    | "playwright"
+    | "emails";
+  interval: "hourly" | "daily" | "weekly" | "custom";
+  customCron?: string;
+  enabled: boolean;
+  lastRun?: string;
+  nextRun?: string;
+  createdAt: string;
+  config?: any;
 }
 
 export default function PerformanceTestsSchedulePage() {
-  const { user, loading: authLoading, isAuthenticated, token } = useAuth()
-  const [schedules, setSchedules] = useState<TestSchedule[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [editingSchedule, setEditingSchedule] = useState<TestSchedule | null>(null)
+  const { user, loading: authLoading, isAuthenticated, token } = useAuth();
+  const [schedules, setSchedules] = useState<TestSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<TestSchedule | null>(
+    null,
+  );
   const [formData, setFormData] = useState({
-    name: '',
-    type: 'both' as 'performance-backend' | 'performance-frontend' | 'both' | 'performance-infrastructure' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails',
-    interval: 'daily' as 'hourly' | 'daily' | 'weekly' | 'custom',
-    customCron: '',
-    enabled: true
-  })
+    name: "",
+    type: "both" as
+      | "performance-backend"
+      | "performance-frontend"
+      | "both"
+      | "performance-infrastructure"
+      | "api"
+      | "backend"
+      | "frontend"
+      | "backoffice"
+      | "security"
+      | "playwright"
+      | "emails",
+    interval: "daily" as "hourly" | "daily" | "weekly" | "custom",
+    customCron: "",
+    enabled: true,
+  });
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      loadSchedules()
+      loadSchedules();
     }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated]);
 
   const loadSchedules = async () => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/test-reports/schedule')
-      const data = await response.json()
+      setLoading(true);
+      const response = await fetch("/api/test-reports/schedule");
+      const data = await response.json();
       if (data.success) {
-        setSchedules(data.schedules || [])
+        setSchedules(data.schedules || []);
       }
     } catch (error) {
-      console.error('Erreur chargement schedules:', error)
+      console.error("Erreur chargement schedules:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const url = editingSchedule 
+      const url = editingSchedule
         ? `/api/test-reports/schedule?id=${editingSchedule.id}`
-        : '/api/test-reports/schedule'
-      
-      const method = editingSchedule ? 'PUT' : 'POST'
-      
+        : "/api/test-reports/schedule";
+
+      const method = editingSchedule ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingSchedule ? { id: editingSchedule.id, ...formData } : formData)
-      })
-      
-      const data = await response.json()
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editingSchedule ? { id: editingSchedule.id, ...formData } : formData,
+        ),
+      });
+
+      const data = await response.json();
       if (data.success) {
-        await loadSchedules()
-        setShowModal(false)
-        setEditingSchedule(null)
+        await loadSchedules();
+        setShowModal(false);
+        setEditingSchedule(null);
         setFormData({
-          name: '',
-          type: 'both',
-          interval: 'daily',
-          customCron: '',
-          enabled: true
-        })
+          name: "",
+          type: "both",
+          interval: "daily",
+          customCron: "",
+          enabled: true,
+        });
       } else {
-        alert(`Erreur: ${data.error}`)
+        alert(`Erreur: ${data.error}`);
       }
     } catch (error) {
-      console.error('Erreur sauvegarde schedule:', error)
-      alert('Erreur lors de la sauvegarde')
+      console.error("Erreur sauvegarde schedule:", error);
+      alert("Erreur lors de la sauvegarde");
     }
-  }
+  };
 
   const toggleSchedule = async (schedule: TestSchedule) => {
     try {
-      const response = await fetch('/api/test-reports/schedule', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: schedule.id, enabled: !schedule.enabled })
-      })
-      
-      const data = await response.json()
+      const response = await fetch("/api/test-reports/schedule", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: schedule.id, enabled: !schedule.enabled }),
+      });
+
+      const data = await response.json();
       if (data.success) {
-        await loadSchedules()
+        await loadSchedules();
       }
     } catch (error) {
-      console.error('Erreur toggle schedule:', error)
+      console.error("Erreur toggle schedule:", error);
     }
-  }
+  };
 
   const deleteSchedule = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce schedule ?')) return
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce schedule ?")) return;
+
     try {
       const response = await fetch(`/api/test-reports/schedule?id=${id}`, {
-        method: 'DELETE'
-      })
-      
-      const data = await response.json()
+        method: "DELETE",
+      });
+
+      const data = await response.json();
       if (data.success) {
-        await loadSchedules()
+        await loadSchedules();
       }
     } catch (error) {
-      console.error('Erreur suppression schedule:', error)
+      console.error("Erreur suppression schedule:", error);
     }
-  }
+  };
 
   const runNow = async (schedule: TestSchedule) => {
     try {
       // Lancer les tests selon le type
-      if (schedule.type === 'performance-backend' || schedule.type === 'both') {
-        await fetch('/api/test/run-performance-backend', { method: 'POST' })
+      if (schedule.type === "performance-backend" || schedule.type === "both") {
+        await fetch("/api/test/run-performance-backend", { method: "POST" });
       }
-      if (schedule.type === 'performance-frontend' || schedule.type === 'both') {
-        await fetch('/api/test/run-performance-frontend', { method: 'POST' })
+      if (
+        schedule.type === "performance-frontend" ||
+        schedule.type === "both"
+      ) {
+        await fetch("/api/test/run-performance-frontend", { method: "POST" });
       }
-      if (schedule.type === 'performance-infrastructure') {
-        await fetch('/api/test/run-performance-infrastructure', { method: 'POST' })
+      if (schedule.type === "performance-infrastructure") {
+        await fetch("/api/test/run-performance-infrastructure", {
+          method: "POST",
+        });
       }
-      if (schedule.type === 'api') {
-        await fetch('/api/test/run-api', { method: 'POST' })
+      if (schedule.type === "api") {
+        await fetch("/api/test/run-api", { method: "POST" });
       }
-      if (schedule.type === 'backend') {
-        await fetch('/api/test/run-backend', { method: 'POST' })
+      if (schedule.type === "backend") {
+        await fetch("/api/test/run-backend", { method: "POST" });
       }
-      if (schedule.type === 'frontend') {
-        await fetch('/api/test/run-frontend', { method: 'POST' })
+      if (schedule.type === "frontend") {
+        await fetch("/api/test/run-frontend", { method: "POST" });
       }
-      if (schedule.type === 'backoffice') {
-        await fetch('/api/test/run-backoffice', { method: 'POST' })
+      if (schedule.type === "backoffice") {
+        await fetch("/api/test/run-backoffice", { method: "POST" });
       }
-      if (schedule.type === 'security') {
-        await fetch('/api/test/run-security', { method: 'POST' })
+      if (schedule.type === "security") {
+        await fetch("/api/test/run-security", { method: "POST" });
       }
-      if (schedule.type === 'playwright') {
-        await fetch('/api/test/run-playwright', { method: 'POST' })
+      if (schedule.type === "playwright") {
+        await fetch("/api/test/run-playwright", { method: "POST" });
       }
-      if (schedule.type === 'emails') {
-        await fetch('/api/test/run-emails', { method: 'POST' })
+      if (schedule.type === "emails") {
+        await fetch("/api/test/run-emails", { method: "POST" });
       }
 
-      alert('Tests lancés ! Consultez les rapports dans "Rapports de Tests"')
+      alert('Tests lancés ! Consultez les rapports dans "Rapports de Tests"');
     } catch (error) {
-      console.error('Erreur lancement tests:', error)
-      alert('Erreur lors du lancement des tests')
+      console.error("Erreur lancement tests:", error);
+      alert("Erreur lors du lancement des tests");
     }
-  }
+  };
 
   if (authLoading || loading) {
     return (
@@ -183,7 +224,7 @@ export default function PerformanceTestsSchedulePage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (!isAuthenticated) {
@@ -191,11 +232,13 @@ export default function PerformanceTestsSchedulePage() {
       <AdminLayout>
         <div className="p-6">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">Vous devez être connecté.</p>
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Vous devez être connecté.
+            </p>
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -208,20 +251,21 @@ export default function PerformanceTestsSchedulePage() {
               Programmer les Tests
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Configurez l'exécution automatique des tests (Performance, API, Backend, Frontend, Backoffice)
+              Configurez l'exécution automatique des tests (Performance, API,
+              Backend, Frontend, Backoffice)
             </p>
           </div>
           <button
             onClick={() => {
-              setEditingSchedule(null)
+              setEditingSchedule(null);
               setFormData({
-                name: '',
-                type: 'both',
-                interval: 'daily',
-                customCron: '',
-                enabled: true
-              })
-              setShowModal(true)
+                name: "",
+                type: "both",
+                interval: "daily",
+                customCron: "",
+                enabled: true,
+              });
+              setShowModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
@@ -237,7 +281,8 @@ export default function PerformanceTestsSchedulePage() {
               Aucun schedule configuré
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Créez un schedule pour programmer l'exécution automatique des tests de performance
+              Créez un schedule pour programmer l'exécution automatique des
+              tests de performance
             </p>
           </div>
         ) : (
@@ -263,51 +308,75 @@ export default function PerformanceTestsSchedulePage() {
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Type
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {schedule.type === 'both' ? 'Performance Backend + Frontend' :
-                           schedule.type === 'performance-backend' ? 'Performance Backend' :
-                           schedule.type === 'performance-frontend' ? 'Performance Frontend' :
-                           schedule.type === 'performance-infrastructure' ? 'Performance Infrastructure (BDD)' :
-                           schedule.type === 'api' ? 'Tests API' :
-                           schedule.type === 'backend' ? 'Tests Backend' :
-                           schedule.type === 'frontend' ? 'Tests Frontend' :
-                           schedule.type === 'backoffice' ? 'Tests Backoffice' :
-                           schedule.type === 'security' ? 'Tests Sécurité' :
-                           schedule.type === 'playwright' ? 'Tests Playwright' :
-                           schedule.type === 'emails' ? 'Tests Emails' : schedule.type}
+                          {schedule.type === "both"
+                            ? "Performance Backend + Frontend"
+                            : schedule.type === "performance-backend"
+                              ? "Performance Backend"
+                              : schedule.type === "performance-frontend"
+                                ? "Performance Frontend"
+                                : schedule.type === "performance-infrastructure"
+                                  ? "Performance Infrastructure (BDD)"
+                                  : schedule.type === "api"
+                                    ? "Tests API"
+                                    : schedule.type === "backend"
+                                      ? "Tests Backend"
+                                      : schedule.type === "frontend"
+                                        ? "Tests Frontend"
+                                        : schedule.type === "backoffice"
+                                          ? "Tests Backoffice"
+                                          : schedule.type === "security"
+                                            ? "Tests Sécurité"
+                                            : schedule.type === "playwright"
+                                              ? "Tests Playwright"
+                                              : schedule.type === "emails"
+                                                ? "Tests Emails"
+                                                : schedule.type}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Intervalle</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Intervalle
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {schedule.interval === 'hourly' ? 'Toutes les heures' :
-                           schedule.interval === 'daily' ? 'Quotidien' :
-                           schedule.interval === 'weekly' ? 'Hebdomadaire' : 'Personnalisé'}
+                          {schedule.interval === "hourly"
+                            ? "Toutes les heures"
+                            : schedule.interval === "daily"
+                              ? "Quotidien"
+                              : schedule.interval === "weekly"
+                                ? "Hebdomadaire"
+                                : "Personnalisé"}
                         </p>
                       </div>
                       {schedule.lastRun && (
                         <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Dernière exécution</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Dernière exécution
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {new Date(schedule.lastRun).toLocaleString('fr-FR')}
+                            {new Date(schedule.lastRun).toLocaleString("fr-FR")}
                           </p>
                         </div>
                       )}
                       {schedule.nextRun && (
                         <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Prochaine exécution</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Prochaine exécution
+                          </p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {new Date(schedule.nextRun).toLocaleString('fr-FR')}
+                            {new Date(schedule.nextRun).toLocaleString("fr-FR")}
                           </p>
                         </div>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 ml-4">
                     <button
                       onClick={() => runNow(schedule)}
@@ -320,24 +389,28 @@ export default function PerformanceTestsSchedulePage() {
                       onClick={() => toggleSchedule(schedule)}
                       className={`p-2 rounded ${
                         schedule.enabled
-                          ? 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                          : 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
+                          ? "text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                          : "text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                       }`}
-                      title={schedule.enabled ? 'Désactiver' : 'Activer'}
+                      title={schedule.enabled ? "Désactiver" : "Activer"}
                     >
-                      {schedule.enabled ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                      {schedule.enabled ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5" />
+                      )}
                     </button>
                     <button
                       onClick={() => {
-                        setEditingSchedule(schedule)
+                        setEditingSchedule(schedule);
                         setFormData({
                           name: schedule.name,
                           type: schedule.type,
                           interval: schedule.interval,
-                          customCron: schedule.customCron || '',
-                          enabled: schedule.enabled
-                        })
-                        setShowModal(true)
+                          customCron: schedule.customCron || "",
+                          enabled: schedule.enabled,
+                        });
+                        setShowModal(true);
                       }}
                       className="p-2 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
                       title="Modifier"
@@ -363,9 +436,9 @@ export default function PerformanceTestsSchedulePage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                {editingSchedule ? 'Modifier le Schedule' : 'Nouveau Schedule'}
+                {editingSchedule ? "Modifier le Schedule" : "Nouveau Schedule"}
               </h2>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -374,26 +447,38 @@ export default function PerformanceTestsSchedulePage() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Type de Test
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, type: e.target.value as any })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <optgroup label="Tests de Performance">
-                      <option value="both">Performance Backend + Frontend</option>
-                      <option value="performance-backend">Performance Backend uniquement</option>
-                      <option value="performance-frontend">Performance Frontend uniquement</option>
-                      <option value="performance-infrastructure">Infrastructure (BDD / schéma)</option>
+                      <option value="both">
+                        Performance Backend + Frontend
+                      </option>
+                      <option value="performance-backend">
+                        Performance Backend uniquement
+                      </option>
+                      <option value="performance-frontend">
+                        Performance Frontend uniquement
+                      </option>
+                      <option value="performance-infrastructure">
+                        Infrastructure (BDD / schéma)
+                      </option>
                     </optgroup>
                     <optgroup label="Autres Types de Tests">
                       <option value="api">Tests API</option>
@@ -406,14 +491,19 @@ export default function PerformanceTestsSchedulePage() {
                     </optgroup>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Intervalle
                   </label>
                   <select
                     value={formData.interval}
-                    onChange={(e) => setFormData({ ...formData, interval: e.target.value as any })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        interval: e.target.value as any,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="hourly">Toutes les heures</option>
@@ -422,41 +512,49 @@ export default function PerformanceTestsSchedulePage() {
                     <option value="custom">Personnalisé (Cron)</option>
                   </select>
                 </div>
-                
-                {formData.interval === 'custom' && (
+
+                {formData.interval === "custom" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Expression Cron (ex: 0 0 * * * pour tous les jours à minuit)
+                      Expression Cron (ex: 0 0 * * * pour tous les jours à
+                      minuit)
                     </label>
                     <input
                       type="text"
                       value={formData.customCron}
-                      onChange={(e) => setFormData({ ...formData, customCron: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, customCron: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="0 0 * * *"
                     />
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="enabled"
                     checked={formData.enabled}
-                    onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, enabled: e.target.checked })
+                    }
                     className="w-4 h-4"
                   />
-                  <label htmlFor="enabled" className="text-sm text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="enabled"
+                    className="text-sm text-gray-700 dark:text-gray-300"
+                  >
                     Activer immédiatement
                   </label>
                 </div>
-                
+
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     type="button"
                     onClick={() => {
-                      setShowModal(false)
-                      setEditingSchedule(null)
+                      setShowModal(false);
+                      setEditingSchedule(null);
                     }}
                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
@@ -466,7 +564,7 @@ export default function PerformanceTestsSchedulePage() {
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    {editingSchedule ? 'Modifier' : 'Créer'}
+                    {editingSchedule ? "Modifier" : "Créer"}
                   </button>
                 </div>
               </form>
@@ -475,6 +573,5 @@ export default function PerformanceTestsSchedulePage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
-

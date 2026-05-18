@@ -1,92 +1,111 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { companyService, applicationService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { companyService, applicationService } from "@/lib/api";
 
 interface Company {
-  id: string
-  name: string
-  companyType?: 'EMPLOYER' | 'TEMP_AGENCY'
-  website?: string
-  industry?: string
-  location?: string
+  id: string;
+  name: string;
+  companyType?: "EMPLOYER" | "TEMP_AGENCY";
+  website?: string;
+  industry?: string;
+  location?: string;
 }
 
 interface Application {
-  id: string
-  position: string
-  companyId: string
-  agencyId?: string | null
-  applicationDate?: string
-  status?: { code: string; label?: string }
-  company?: { name: string }
-  agency?: { name: string } | null
+  id: string;
+  position: string;
+  companyId: string;
+  agencyId?: string | null;
+  applicationDate?: string;
+  status?: { code: string; label?: string };
+  company?: { name: string };
+  agency?: { name: string } | null;
 }
 
 /** Contenu réutilisable « Suivi intérim » (sans layout) pour la page dédiée et l’onglet Gestion des données */
 export default function SuiviInterimContent() {
-  const [agencies, setAgencies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [applicationsByAgency, setApplicationsByAgency] = useState<Record<string, Application[]>>({})
-  const [loadingAgency, setLoadingAgency] = useState<Record<string, boolean>>({})
-  const [expandedAgencies, setExpandedAgencies] = useState<Record<string, boolean>>({})
+  const [agencies, setAgencies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [applicationsByAgency, setApplicationsByAgency] = useState<
+    Record<string, Application[]>
+  >({});
+  const [loadingAgency, setLoadingAgency] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [expandedAgencies, setExpandedAgencies] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
-    fetchAgencies()
-  }, [])
+    fetchAgencies();
+  }, []);
 
   const fetchAgencies = async () => {
     try {
-      setLoading(true)
-      setLoadError(null)
-      const response = await companyService.getAll({ limit: 200, companyType: 'TEMP_AGENCY' })
-      const list = response.data.companies || []
-      setAgencies(list)
+      setLoading(true);
+      setLoadError(null);
+      const response = await companyService.getAll({
+        limit: 200,
+        companyType: "TEMP_AGENCY",
+      });
+      const list = response.data.companies || [];
+      setAgencies(list);
     } catch (e) {
-      console.error('Erreur chargement agences:', e)
-      setAgencies([])
+      console.error("Erreur chargement agences:", e);
+      setAgencies([]);
       const msg =
-        e && typeof e === 'object' && 'message' in e && typeof (e as Error).message === 'string'
+        e &&
+        typeof e === "object" &&
+        "message" in e &&
+        typeof (e as Error).message === "string"
           ? (e as Error).message
-          : 'Impossible de joindre l’API (gateway ou company-service arrêté ?).'
-      setLoadError(msg)
+          : "Impossible de joindre l’API (gateway ou company-service arrêté ?).";
+      setLoadError(msg);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleAgency = async (agencyId: string) => {
-    const next = !expandedAgencies[agencyId]
-    setExpandedAgencies(prev => ({ ...prev, [agencyId]: next }))
-    if (next && !applicationsByAgency[agencyId]?.length && !loadingAgency[agencyId]) {
-      setLoadingAgency(prev => ({ ...prev, [agencyId]: true }))
+    const next = !expandedAgencies[agencyId];
+    setExpandedAgencies((prev) => ({ ...prev, [agencyId]: next }));
+    if (
+      next &&
+      !applicationsByAgency[agencyId]?.length &&
+      !loadingAgency[agencyId]
+    ) {
+      setLoadingAgency((prev) => ({ ...prev, [agencyId]: true }));
       try {
-        const res = await applicationService.getAll({ agencyId, limit: 100 })
-        let apps = res.data.applications || []
+        const res = await applicationService.getAll({ agencyId, limit: 100 });
+        let apps = res.data.applications || [];
         // Compatibilité données historiques: certaines candidatures d'intérim sont liées via companyId.
         if (!apps.length) {
-          const allRes = await applicationService.getAll({ limit: 200 })
-          const allApps = allRes.data.applications || []
-          apps = allApps.filter((a: Application) => a.companyId === agencyId || a.agencyId === agencyId)
+          const allRes = await applicationService.getAll({ limit: 200 });
+          const allApps = allRes.data.applications || [];
+          apps = allApps.filter(
+            (a: Application) =>
+              a.companyId === agencyId || a.agencyId === agencyId,
+          );
         }
-        setApplicationsByAgency(prev => ({ ...prev, [agencyId]: apps }))
+        setApplicationsByAgency((prev) => ({ ...prev, [agencyId]: apps }));
       } catch (e) {
-        console.error('Erreur chargement candidatures agence:', e)
-        setApplicationsByAgency(prev => ({ ...prev, [agencyId]: [] }))
+        console.error("Erreur chargement candidatures agence:", e);
+        setApplicationsByAgency((prev) => ({ ...prev, [agencyId]: [] }));
       } finally {
-        setLoadingAgency(prev => ({ ...prev, [agencyId]: false }))
+        setLoadingAgency((prev) => ({ ...prev, [agencyId]: false }));
       }
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" />
       </div>
-    )
+    );
   }
 
   return (
@@ -106,7 +125,7 @@ export default function SuiviInterimContent() {
           disabled={loading}
           className="shrink-0 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
         >
-          {loading ? 'Chargement…' : 'Rafraîchir'}
+          {loading ? "Chargement…" : "Rafraîchir"}
         </button>
       </div>
 
@@ -118,7 +137,11 @@ export default function SuiviInterimContent() {
           <p className="font-medium">Erreur de chargement des agences</p>
           <p className="mt-1 opacity-90">{loadError}</p>
           <p className="mt-2 text-xs text-red-700 dark:text-red-300">
-            Vérifiez que la stack tourne (<code className="rounded bg-red-100 dark:bg-red-950 px-1">make up-full</code>) et que vous êtes connecté en admin.
+            Vérifiez que la stack tourne (
+            <code className="rounded bg-red-100 dark:bg-red-950 px-1">
+              make up-full
+            </code>
+            ) et que vous êtes connecté en admin.
           </p>
         </div>
       ) : null}
@@ -126,26 +149,35 @@ export default function SuiviInterimContent() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {!loadError && agencies.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucune boîte d&apos;intérim. Créez une entreprise avec le type &quot;Boîte d&apos;intérim&quot; depuis l&apos;onglet{' '}
-            <Link href="/b4ck0ff1ce/datas?tab=companies" className="text-amber-600 dark:text-amber-400 hover:underline">
+            Aucune boîte d&apos;intérim. Créez une entreprise avec le type
+            &quot;Boîte d&apos;intérim&quot; depuis l&apos;onglet{" "}
+            <Link
+              href="/b4ck0ff1ce/datas?tab=companies"
+              className="text-amber-600 dark:text-amber-400 hover:underline"
+            >
               Entreprises
-            </Link>
-            {' '}(filtre Boîtes d&apos;intérim), ou générez des données de test depuis{' '}
-            <Link href="/b4ck0ff1ce/test-data" className="text-amber-600 dark:text-amber-400 hover:underline">
+            </Link>{" "}
+            (filtre Boîtes d&apos;intérim), ou générez des données de test
+            depuis{" "}
+            <Link
+              href="/b4ck0ff1ce/test-data"
+              className="text-amber-600 dark:text-amber-400 hover:underline"
+            >
               Données de test
             </Link>
             .
           </div>
         ) : loadError ? (
           <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Corrigez l&apos;erreur ci-dessus puis cliquez sur <strong>Rafraîchir</strong>.
+            Corrigez l&apos;erreur ci-dessus puis cliquez sur{" "}
+            <strong>Rafraîchir</strong>.
           </div>
         ) : (
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {agencies.map((agency) => {
-              const isExpanded = expandedAgencies[agency.id]
-              const apps = applicationsByAgency[agency.id] || []
-              const loadingApps = loadingAgency[agency.id]
+              const isExpanded = expandedAgencies[agency.id];
+              const apps = applicationsByAgency[agency.id] || [];
+              const loadingApps = loadingAgency[agency.id];
               return (
                 <li key={agency.id}>
                   <button
@@ -156,14 +188,18 @@ export default function SuiviInterimContent() {
                     <div className="flex items-center gap-3">
                       <span className="text-amber-500 text-xl">👔</span>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{agency.name}</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {agency.name}
+                        </p>
                         {agency.industry && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{agency.industry}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {agency.industry}
+                          </p>
                         )}
                       </div>
                     </div>
                     <span className="text-gray-400 dark:text-gray-500">
-                      {isExpanded ? '▼' : '▶'} Candidatures
+                      {isExpanded ? "▼" : "▶"} Candidatures
                     </span>
                   </button>
                   {isExpanded && (
@@ -184,9 +220,13 @@ export default function SuiviInterimContent() {
                                 href={`/b4ck0ff1ce/applications/${app.id}`}
                                 className="block px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:border-amber-300 dark:hover:border-amber-600 transition-colors"
                               >
-                                <span className="font-medium text-gray-900 dark:text-gray-100">{app.position}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                  {app.position}
+                                </span>
                                 {app.company?.name && (
-                                  <span className="text-gray-500 dark:text-gray-400 ml-2">— {app.company.name}</span>
+                                  <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                    — {app.company.name}
+                                  </span>
                                 )}
                                 {app.status?.code && (
                                   <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
@@ -201,11 +241,11 @@ export default function SuiviInterimContent() {
                     </div>
                   )}
                 </li>
-              )
+              );
             })}
           </ul>
         )}
       </div>
     </div>
-  )
+  );
 }

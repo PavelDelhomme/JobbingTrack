@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { AdminLayout } from '@/components/features';
-import { ApplicationSubNav } from '../ApplicationSubNav';
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { ApplicationSubNav } from "../ApplicationSubNav";
 
 /**
  * Emplacement réservé — retours utilisateurs, signalements, contenus d&apos;emails liés aux problèmes (voir **TODOS.md**).
@@ -20,14 +20,18 @@ export default function ApplicationFeedbackPage() {
         </Link>
         <ApplicationSubNav />
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Application — retours &amp; signalements</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Application — retours &amp; signalements
+          </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Cible : regrouper les canaux de feedback (crash reports, mails support, formulaires) sans dupliquer la vue
-            Email monitor existante — liens croisés à prévoir.
+            Cible : regrouper les canaux de feedback (crash reports, mails
+            support, formulaires) sans dupliquer la vue Email monitor existante
+            — liens croisés à prévoir.
           </p>
         </div>
         <div className="rounded-lg border border-blue-200 bg-blue-50/90 p-4 text-sm text-blue-950 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-100">
-          Implémentation ultérieure : agrégation par utilisateur / période et corrélation avec les métriques Performances live.
+          Implémentation ultérieure : agrégation par utilisateur / période et
+          corrélation avec les métriques Performances live.
         </div>
       </div>
     </AdminLayout>

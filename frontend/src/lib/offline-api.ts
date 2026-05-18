@@ -1,5 +1,5 @@
-import { apiClient } from './api';
-import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { apiClient } from "./api";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 // Types pour les opérations offline
 interface OfflineConfig {
@@ -13,20 +13,24 @@ class OfflineAPI {
 
   // Configuration par défaut pour chaque entité
   private defaultConfigs: Record<string, OfflineConfig> = {
-    applications: { entity: 'applications', enableOffline: true, cacheTimeout: 30 },
-    companies: { entity: 'companies', enableOffline: true, cacheTimeout: 60 },
-    contacts: { entity: 'contacts', enableOffline: true, cacheTimeout: 60 },
-    interviews: { entity: 'interviews', enableOffline: true, cacheTimeout: 15 },
-    calls: { entity: 'calls', enableOffline: true, cacheTimeout: 15 },
-    dashboard: { entity: 'dashboard', enableOffline: true, cacheTimeout: 5 },
-    search: { entity: 'search', enableOffline: false, cacheTimeout: 10 }
+    applications: {
+      entity: "applications",
+      enableOffline: true,
+      cacheTimeout: 30,
+    },
+    companies: { entity: "companies", enableOffline: true, cacheTimeout: 60 },
+    contacts: { entity: "contacts", enableOffline: true, cacheTimeout: 60 },
+    interviews: { entity: "interviews", enableOffline: true, cacheTimeout: 15 },
+    calls: { entity: "calls", enableOffline: true, cacheTimeout: 15 },
+    dashboard: { entity: "dashboard", enableOffline: true, cacheTimeout: 5 },
+    search: { entity: "search", enableOffline: false, cacheTimeout: 10 },
   };
 
   // Wrapper pour les requêtes GET avec cache offline
   async get<T = any>(
     url: string,
     config?: OfflineConfig,
-    params?: Record<string, any>
+    params?: Record<string, any>,
   ): Promise<T> {
     const entity = this.extractEntityFromUrl(url);
     const offlineConfig = { ...this.defaultConfigs[entity], ...config };
@@ -75,7 +79,7 @@ class OfflineAPI {
   async post<T = any>(
     url: string,
     data: any,
-    config?: OfflineConfig
+    config?: OfflineConfig,
   ): Promise<T> {
     const entity = this.extractEntityFromUrl(url);
     const offlineConfig = { ...this.defaultConfigs[entity], ...config };
@@ -92,18 +96,18 @@ class OfflineAPI {
       } catch (error) {
         // Si erreur et offline activé, ajouter à la queue
         if (offlineConfig.enableOffline) {
-          this.offlineSync.createOfflineOperation(entity, 'CREATE', data);
-          throw new Error('Opération ajoutée à la queue de synchronisation');
+          this.offlineSync.createOfflineOperation(entity, "CREATE", data);
+          throw new Error("Opération ajoutée à la queue de synchronisation");
         }
         throw error;
       }
     } else {
       // Hors ligne, ajouter à la queue
       if (offlineConfig.enableOffline) {
-        this.offlineSync.createOfflineOperation(entity, 'CREATE', data);
-        throw new Error('Opération ajoutée à la queue de synchronisation');
+        this.offlineSync.createOfflineOperation(entity, "CREATE", data);
+        throw new Error("Opération ajoutée à la queue de synchronisation");
       } else {
-        throw new Error('Création impossible hors ligne');
+        throw new Error("Création impossible hors ligne");
       }
     }
   }
@@ -112,7 +116,7 @@ class OfflineAPI {
   async put<T = any>(
     url: string,
     data: any,
-    config?: OfflineConfig
+    config?: OfflineConfig,
   ): Promise<T> {
     const entity = this.extractEntityFromUrl(url);
     const offlineConfig = { ...this.defaultConfigs[entity], ...config };
@@ -129,27 +133,24 @@ class OfflineAPI {
       } catch (error) {
         // Si erreur et offline activé, ajouter à la queue
         if (offlineConfig.enableOffline) {
-          this.offlineSync.createOfflineOperation(entity, 'UPDATE', data);
-          throw new Error('Opération ajoutée à la queue de synchronisation');
+          this.offlineSync.createOfflineOperation(entity, "UPDATE", data);
+          throw new Error("Opération ajoutée à la queue de synchronisation");
         }
         throw error;
       }
     } else {
       // Hors ligne, ajouter à la queue
       if (offlineConfig.enableOffline) {
-        this.offlineSync.createOfflineOperation(entity, 'UPDATE', data);
-        throw new Error('Opération ajoutée à la queue de synchronisation');
+        this.offlineSync.createOfflineOperation(entity, "UPDATE", data);
+        throw new Error("Opération ajoutée à la queue de synchronisation");
       } else {
-        throw new Error('Modification impossible hors ligne');
+        throw new Error("Modification impossible hors ligne");
       }
     }
   }
 
   // Wrapper pour les requêtes DELETE avec gestion offline
-  async delete<T = any>(
-    url: string,
-    config?: OfflineConfig
-  ): Promise<T> {
+  async delete<T = any>(url: string, config?: OfflineConfig): Promise<T> {
     const entity = this.extractEntityFromUrl(url);
     const offlineConfig = { ...this.defaultConfigs[entity], ...config };
 
@@ -166,8 +167,8 @@ class OfflineAPI {
         // Si erreur et offline activé, ajouter à la queue
         if (offlineConfig.enableOffline) {
           const id = this.extractIdFromUrl(url);
-          this.offlineSync.createOfflineOperation(entity, 'DELETE', { id });
-          throw new Error('Opération ajoutée à la queue de synchronisation');
+          this.offlineSync.createOfflineOperation(entity, "DELETE", { id });
+          throw new Error("Opération ajoutée à la queue de synchronisation");
         }
         throw error;
       }
@@ -175,10 +176,10 @@ class OfflineAPI {
       // Hors ligne, ajouter à la queue
       if (offlineConfig.enableOffline) {
         const id = this.extractIdFromUrl(url);
-        this.offlineSync.createOfflineOperation(entity, 'DELETE', { id });
-        throw new Error('Opération ajoutée à la queue de synchronisation');
+        this.offlineSync.createOfflineOperation(entity, "DELETE", { id });
+        throw new Error("Opération ajoutée à la queue de synchronisation");
       } else {
-        throw new Error('Suppression impossible hors ligne');
+        throw new Error("Suppression impossible hors ligne");
       }
     }
   }
@@ -187,7 +188,7 @@ class OfflineAPI {
   private extractEntityFromUrl(url: string): string {
     // Pattern pour extraire l'entité depuis l'URL API
     const match = url.match(/\/api\/v1\/([^\/\?]+)/);
-    return match ? match[1].replace(/s$/, '') : 'unknown'; // Retirer le 's' final si présent
+    return match ? match[1].replace(/s$/, "") : "unknown"; // Retirer le 's' final si présent
   }
 
   // Extraire l'ID depuis l'URL
@@ -198,8 +199,8 @@ class OfflineAPI {
 
   // Générer une clé de cache unique
   private generateCacheKey(url: string, params?: Record<string, any>): string {
-    const paramString = params ? JSON.stringify(params) : '';
-    return `api_${url}_${paramString}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    const paramString = params ? JSON.stringify(params) : "";
+    return `api_${url}_${paramString}`.replace(/[^a-zA-Z0-9_]/g, "_");
   }
 
   // Invalider le cache d'une entité
@@ -232,59 +233,63 @@ export const offlineAPI = new OfflineAPI();
 
 // Wrapper pour les services existants
 export const offlineApplicationService = {
-  getAll: (params?: any) => offlineAPI.get('/applications', undefined, params),
+  getAll: (params?: any) => offlineAPI.get("/applications", undefined, params),
   getById: (id: string) => offlineAPI.get(`/applications/${id}`),
-  create: (data: any) => offlineAPI.post('/applications', data),
-  update: (id: string, data: any) => offlineAPI.put(`/applications/${id}`, data),
-  delete: (id: string) => offlineAPI.delete(`/applications/${id}`)
+  create: (data: any) => offlineAPI.post("/applications", data),
+  update: (id: string, data: any) =>
+    offlineAPI.put(`/applications/${id}`, data),
+  delete: (id: string) => offlineAPI.delete(`/applications/${id}`),
 };
 
 export const offlineCompanyService = {
-  getAll: (params?: any) => offlineAPI.get('/companies', undefined, params),
+  getAll: (params?: any) => offlineAPI.get("/companies", undefined, params),
   getById: (id: string) => offlineAPI.get(`/companies/${id}`),
-  create: (data: any) => offlineAPI.post('/companies', data),
+  create: (data: any) => offlineAPI.post("/companies", data),
   update: (id: string, data: any) => offlineAPI.put(`/companies/${id}`, data),
-  delete: (id: string) => offlineAPI.delete(`/companies/${id}`)
+  delete: (id: string) => offlineAPI.delete(`/companies/${id}`),
 };
 
 export const offlineContactService = {
-  getAll: (params?: any) => offlineAPI.get('/contacts', undefined, params),
+  getAll: (params?: any) => offlineAPI.get("/contacts", undefined, params),
   getById: (id: string) => offlineAPI.get(`/contacts/${id}`),
-  create: (data: any) => offlineAPI.post('/contacts', data),
+  create: (data: any) => offlineAPI.post("/contacts", data),
   update: (id: string, data: any) => offlineAPI.put(`/contacts/${id}`, data),
-  delete: (id: string) => offlineAPI.delete(`/contacts/${id}`)
+  delete: (id: string) => offlineAPI.delete(`/contacts/${id}`),
 };
 
 export const offlineInterviewService = {
-  getAll: (params?: any) => offlineAPI.get('/interviews', undefined, params),
+  getAll: (params?: any) => offlineAPI.get("/interviews", undefined, params),
   getById: (id: string) => offlineAPI.get(`/interviews/${id}`),
-  create: (data: any) => offlineAPI.post('/interviews', data),
+  create: (data: any) => offlineAPI.post("/interviews", data),
   update: (id: string, data: any) => offlineAPI.put(`/interviews/${id}`, data),
-  delete: (id: string) => offlineAPI.delete(`/interviews/${id}`)
+  delete: (id: string) => offlineAPI.delete(`/interviews/${id}`),
 };
 
 export const offlineCallService = {
-  getAll: (params?: any) => offlineAPI.get('/calls', undefined, params),
+  getAll: (params?: any) => offlineAPI.get("/calls", undefined, params),
   getById: (id: string) => offlineAPI.get(`/calls/${id}`),
-  create: (data: any) => offlineAPI.post('/calls', data),
+  create: (data: any) => offlineAPI.post("/calls", data),
   update: (id: string, data: any) => offlineAPI.put(`/calls/${id}`, data),
-  delete: (id: string) => offlineAPI.delete(`/calls/${id}`)
+  delete: (id: string) => offlineAPI.delete(`/calls/${id}`),
 };
 
 export const offlineDashboardService = {
-  getKPIs: () => offlineAPI.get('/dashboard/kpis'),
-  getStats: () => offlineAPI.get('/dashboard/stats')
+  getKPIs: () => offlineAPI.get("/dashboard/kpis"),
+  getStats: () => offlineAPI.get("/dashboard/stats"),
 };
 
 export const offlineSearchService = {
   globalSearch: (query: string, modules?: string[], limit?: number) => {
     const params = new URLSearchParams({ query });
     if (modules && modules.length > 0) {
-      params.append('modules', modules.join(','));
+      params.append("modules", modules.join(","));
     }
     if (limit) {
-      params.append('limit', limit.toString());
+      params.append("limit", limit.toString());
     }
-    return offlineAPI.get(`/search?${params.toString()}`, { entity: 'search', enableOffline: false });
-  }
+    return offlineAPI.get(`/search?${params.toString()}`, {
+      entity: "search",
+      enableOffline: false,
+    });
+  },
 };

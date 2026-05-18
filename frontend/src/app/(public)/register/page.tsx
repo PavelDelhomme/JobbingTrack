@@ -1,78 +1,81 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
-  const router = useRouter()
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+    email: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
-      return
+      setError("Les mots de passe ne correspondent pas");
+      return;
     }
 
     if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
-      return
+      setError("Le mot de passe doit contenir au moins 6 caractères");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        "http://localhost:8080/api/v1/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone || undefined,
+          }),
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone || undefined
-        })
-      })
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'inscription')
+        throw new Error(data.error || "Erreur lors de l'inscription");
       }
 
       // Enregistrer le token
-      localStorage.setItem('token', data.token)
-      
+      localStorage.setItem("token", data.token);
+
       // Redirection vers le dashboard
-      router.push('/b4ck0ff1ce')
+      router.push("/b4ck0ff1ce");
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue')
+      setError(err.message || "Une erreur est survenue");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
+      [e.target.name]: e.target.value,
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
@@ -96,7 +99,10 @@ export default function RegisterPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Prénom *
                 </label>
                 <input
@@ -112,7 +118,10 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Nom *
                 </label>
                 <input
@@ -129,7 +138,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Email *
               </label>
               <input
@@ -146,7 +158,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Téléphone (optionnel)
               </label>
               <input
@@ -161,7 +176,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Mot de passe *
               </label>
               <input
@@ -178,7 +196,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Confirmer le mot de passe *
               </label>
               <input
@@ -197,7 +218,8 @@ export default function RegisterPage() {
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              💡 En créant un compte, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+              💡 En créant un compte, vous acceptez nos conditions d'utilisation
+              et notre politique de confidentialité.
             </p>
           </div>
 
@@ -207,14 +229,17 @@ export default function RegisterPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Création en cours...' : 'Créer mon compte'}
+              {loading ? "Création en cours..." : "Créer mon compte"}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Vous avez déjà un compte ?{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+              Vous avez déjà un compte ?{" "}
+              <Link
+                href="/login"
+                className="text-blue-600 hover:text-blue-500 font-medium"
+              >
                 Se connecter
               </Link>
             </p>
@@ -222,6 +247,5 @@ export default function RegisterPage() {
         </form>
       </div>
     </div>
-  )
+  );
 }
-

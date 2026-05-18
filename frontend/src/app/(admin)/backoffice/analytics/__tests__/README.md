@@ -5,16 +5,19 @@ Cette suite de tests complète détecte et prévient les problèmes courants dan
 ## Types de tests
 
 ### 1. Tests de validation des props (`analytics-page.test.tsx`)
+
 - Vérifie que `timeRange` est défini et passé correctement
 - Détecte les props manquantes
 - Vérifie que les composants Tab reçoivent toutes les props nécessaires
 
 ### 2. Tests des composants Tab (`tab-components.test.tsx`)
+
 - Valide que chaque composant Tab (OverviewTab, SystemTab, PerformanceTab, NetworkTab) fonctionne correctement
 - Vérifie que `timeRange` est utilisé correctement dans chaque composant
 - Détecte les erreurs de référence non définies
 
 ### 3. Tests de détection d'erreurs React (`react-errors-detector.test.tsx`)
+
 - Détecte les erreurs React courantes :
   - Props manquantes
   - Références non définies
@@ -22,6 +25,7 @@ Cette suite de tests complète détecte et prévient les problèmes courants dan
   - Warnings React
 
 ### 4. Tests de performance (`performance.test.tsx`)
+
 - Mesure le temps de chargement
 - Vérifie l'utilisation de `useMemo` et `useCallback`
 - Détecte les fuites mémoire
@@ -29,10 +33,13 @@ Cette suite de tests complète détecte et prévient les problèmes courants dan
 ## Scripts de validation
 
 ### Validation automatique
+
 ```bash
 npm run test:analytics:validate
 ```
+
 Vérifie automatiquement :
+
 - Présence de `timeRange` dans tous les composants Tab
 - Utilisation de `useCallback` pour `handleTimeRangeChange`
 - Utilisation de `useMemo` pour `timeRangeMs`
@@ -41,10 +48,13 @@ Vérifie automatiquement :
 - Erreurs ESLint
 
 ### Suite de tests complète
+
 ```bash
 npm run test:analytics:complete
 ```
+
 Exécute :
+
 1. Validation automatique
 2. Tests unitaires
 3. Tests de détection d'erreurs React
@@ -52,6 +62,7 @@ Exécute :
 5. Vérification de performance
 
 ### Tests unitaires uniquement
+
 ```bash
 npm run test:analytics
 ```
@@ -84,4 +95,3 @@ Lors de l'ajout de nouvelles fonctionnalités à la page Analytics :
 1. Exécutez `npm run test:analytics:validate` avant de commiter
 2. Ajoutez des tests pour les nouvelles fonctionnalités
 3. Vérifiez que tous les tests passent
-

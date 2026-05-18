@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
 import {
   Play,
   Square,
@@ -100,21 +100,33 @@ import {
   Loader2,
   Calendar,
   FileText,
-  Zap as ZapIcon
-} from '@/lib/icons';
+  Zap as ZapIcon,
+} from "@/lib/icons";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
-import { Button } from '@/components/ui';
-import { Badge } from '@/components/ui';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
-import { Textarea } from '@/components/ui';
-import { Input } from '@/components/ui';
-import { Label } from '@/components/ui';
-import { Alert, AlertDescription } from '@/components/ui';
-import { Switch } from '@/components/ui';
-import { Separator } from '@/components/ui';
-import { Progress } from '@/components/ui';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui";
+import { Button } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
+import { Textarea } from "@/components/ui";
+import { Input } from "@/components/ui";
+import { Label } from "@/components/ui";
+import { Alert, AlertDescription } from "@/components/ui";
+import { Switch } from "@/components/ui";
+import { Separator } from "@/components/ui";
+import { Progress } from "@/components/ui";
 
 // Appels API via le même hôte que la page → Next.js rewrite vers api-gateway.
 
@@ -122,12 +134,12 @@ import { Progress } from '@/components/ui';
 interface PerformanceTest {
   id: string;
   name: string;
-  type: 'api' | 'load' | 'database' | 'frontend' | 'memory' | 'stress' | 'full';
+  type: "api" | "load" | "database" | "frontend" | "memory" | "stress" | "full";
   description: string;
   duration: number;
   concurrentUsers: number;
   services: string[];
-  status: 'idle' | 'running' | 'completed' | 'failed';
+  status: "idle" | "running" | "completed" | "failed";
   progress: number;
   results?: any;
   timestamp: string;
@@ -143,7 +155,7 @@ interface PerformanceHistory {
 
 interface ServiceStatus {
   name: string;
-  status: 'available' | 'unavailable' | 'starting';
+  status: "available" | "unavailable" | "starting";
   url: string;
   responseTime?: number;
 }
@@ -152,7 +164,9 @@ export default function PerformanceTestsPage() {
   const { user, token } = useAuth();
 
   // État principal de l'interface
-  const [activeTab, setActiveTab] = useState<'run' | 'history' | 'settings'>('run');
+  const [activeTab, setActiveTab] = useState<"run" | "history" | "settings">(
+    "run",
+  );
   const [terminalVisible, setTerminalVisible] = useState(true);
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -164,15 +178,17 @@ export default function PerformanceTestsPage() {
 
   // Configuration des tests
   const [testConfig, setTestConfig] = useState({
-    type: 'full',
+    type: "full",
     duration: 60,
     concurrentUsers: 10,
     services: [] as string[],
-    customOptions: {} as any
+    customOptions: {} as any,
   });
 
   // Services disponibles
-  const [availableServices, setAvailableServices] = useState<ServiceStatus[]>([]);
+  const [availableServices, setAvailableServices] = useState<ServiceStatus[]>(
+    [],
+  );
 
   // Historique des tests
   const [testHistory, setTestHistory] = useState<PerformanceHistory[]>([]);
@@ -200,7 +216,7 @@ export default function PerformanceTestsPage() {
   // Charger les services disponibles
   const loadAvailableServices = async () => {
     try {
-      const response = await fetch('/api/v1/services', {
+      const response = await fetch("/api/v1/services", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -209,24 +225,30 @@ export default function PerformanceTestsPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.services) {
-          const services: ServiceStatus[] = data.services.map((service: any) => ({
-            name: service.name,
-            status: service.status === 'running' || service.health?.status === 'online' ? 'available' : 'unavailable',
-            url: service.url || `http://localhost:${service.port}`,
-            responseTime: service.health?.responseTime
-          }));
+          const services: ServiceStatus[] = data.services.map(
+            (service: any) => ({
+              name: service.name,
+              status:
+                service.status === "running" ||
+                service.health?.status === "online"
+                  ? "available"
+                  : "unavailable",
+              url: service.url || `http://localhost:${service.port}`,
+              responseTime: service.health?.responseTime,
+            }),
+          );
           setAvailableServices(services);
         }
       }
     } catch (error) {
-      console.error('Erreur chargement services:', error);
+      console.error("Erreur chargement services:", error);
     }
   };
 
   // Charger l'historique des tests
   const loadTestHistory = async () => {
     try {
-      const response = await fetch('/api/v1/admin/performance/history', {
+      const response = await fetch("/api/v1/admin/performance/history", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -239,14 +261,14 @@ export default function PerformanceTestsPage() {
         }
       }
     } catch (error) {
-      console.error('Erreur chargement historique:', error);
+      console.error("Erreur chargement historique:", error);
     }
   };
 
   // Ajouter un log
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
   // Démarrer les tests de performance
@@ -257,15 +279,17 @@ export default function PerformanceTestsPage() {
     setTestResults(null);
 
     addLog(`🚀 Démarrage des tests de performance: ${testConfig.type}`);
-    addLog(`📋 Services: ${testConfig.services.length > 0 ? testConfig.services.join(', ') : 'Tous disponibles'}`);
+    addLog(
+      `📋 Services: ${testConfig.services.length > 0 ? testConfig.services.join(", ") : "Tous disponibles"}`,
+    );
     addLog(`⏱️ Durée: ${testConfig.duration} secondes`);
     addLog(`👥 Utilisateurs concurrents: ${testConfig.concurrentUsers}`);
 
     try {
-      const response = await fetch('/api/v1/admin/performance/run', {
-        method: 'POST',
+      const response = await fetch("/api/v1/admin/performance/run", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -273,8 +297,8 @@ export default function PerformanceTestsPage() {
           services: testConfig.services,
           duration: testConfig.duration,
           concurrentUsers: testConfig.concurrentUsers,
-          customOptions: testConfig.customOptions
-        })
+          customOptions: testConfig.customOptions,
+        }),
       });
 
       if (!response.ok) {
@@ -289,41 +313,47 @@ export default function PerformanceTestsPage() {
       // Suivre la progression
       const progressInterval = setInterval(async () => {
         try {
-          const statusResponse = await fetch(`/api/v1/admin/performance/status/${executionId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
+          const statusResponse = await fetch(
+            `/api/v1/admin/performance/status/${executionId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             },
-          });
+          );
 
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
 
-            if (statusData.status === 'completed') {
+            if (statusData.status === "completed") {
               clearInterval(progressInterval);
               setProgress(100);
               setTestResults(statusData.report);
               setIsRunning(false);
 
               addLog(`✅ Tests terminés avec succès`);
-              addLog(`📊 Score global: ${statusData.report?.summary?.averageResponseTime ? Math.round(100 - (statusData.report.summary.averageResponseTime / 10)) : 'N/A'}/100`);
+              addLog(
+                `📊 Score global: ${statusData.report?.summary?.averageResponseTime ? Math.round(100 - statusData.report.summary.averageResponseTime / 10) : "N/A"}/100`,
+              );
 
               // Recharger l'historique
               loadTestHistory();
-            } else if (statusData.status === 'failed') {
+            } else if (statusData.status === "failed") {
               clearInterval(progressInterval);
               setProgress(0);
               setIsRunning(false);
-              addLog(`❌ Tests échoués: ${statusData.report?.error || 'Erreur inconnue'}`);
+              addLog(
+                `❌ Tests échoués: ${statusData.report?.error || "Erreur inconnue"}`,
+              );
             } else {
               // Simuler la progression
-              setProgress(prev => Math.min(prev + 5, 95));
+              setProgress((prev) => Math.min(prev + 5, 95));
             }
           }
         } catch (error) {
-          console.error('Erreur suivi progression:', error);
+          console.error("Erreur suivi progression:", error);
         }
       }, 2000);
-
     } catch (error) {
       addLog(`❌ Erreur démarrage tests: ${error}`);
       setIsRunning(false);
@@ -334,7 +364,7 @@ export default function PerformanceTestsPage() {
   const stopPerformanceTests = async () => {
     setIsRunning(false);
     setProgress(0);
-    addLog('🛑 Tests arrêtés par l\'utilisateur');
+    addLog("🛑 Tests arrêtés par l'utilisateur");
   };
 
   // Télécharger le rapport
@@ -342,7 +372,7 @@ export default function PerformanceTestsPage() {
     if (!testResults) return;
 
     try {
-      const response = await fetch('/api/v1/admin/performance/report', {
+      const response = await fetch("/api/v1/admin/performance/report", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -350,15 +380,17 @@ export default function PerformanceTestsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        const blob = new Blob([JSON.stringify(data.report, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(data.report, null, 2)], {
+          type: "application/json",
+        });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `performance-report-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `performance-report-${new Date().toISOString().split("T")[0]}.json`;
         a.click();
         window.URL.revokeObjectURL(url);
 
-        addLog('📥 Rapport téléchargé');
+        addLog("📥 Rapport téléchargé");
       }
     } catch (error) {
       addLog(`❌ Erreur téléchargement: ${error}`);
@@ -368,45 +400,45 @@ export default function PerformanceTestsPage() {
   // Templates de configuration prédéfinis
   const testTemplates = [
     {
-      name: 'Tests Complets',
-      type: 'full',
+      name: "Tests Complets",
+      type: "full",
       duration: 120,
       concurrentUsers: 20,
       services: [],
-      description: 'Tests complets de performance sur tous les services'
+      description: "Tests complets de performance sur tous les services",
     },
     {
-      name: 'Tests API Seulement',
-      type: 'api',
+      name: "Tests API Seulement",
+      type: "api",
       duration: 60,
       concurrentUsers: 15,
-      services: ['apiGateway', 'auth', 'companies', 'applications'],
-      description: 'Tests des performances API uniquement'
+      services: ["apiGateway", "auth", "companies", "applications"],
+      description: "Tests des performances API uniquement",
     },
     {
-      name: 'Tests Frontend',
-      type: 'frontend',
+      name: "Tests Frontend",
+      type: "frontend",
       duration: 30,
       concurrentUsers: 5,
-      services: ['frontend'],
-      description: 'Tests des performances frontend'
+      services: ["frontend"],
+      description: "Tests des performances frontend",
     },
     {
-      name: 'Tests de Charge',
-      type: 'load',
+      name: "Tests de Charge",
+      type: "load",
       duration: 180,
       concurrentUsers: 50,
-      services: ['apiGateway', 'auth'],
-      description: 'Tests de charge intensive'
+      services: ["apiGateway", "auth"],
+      description: "Tests de charge intensive",
     },
     {
-      name: 'Tests Mémoire',
-      type: 'memory',
+      name: "Tests Mémoire",
+      type: "memory",
       duration: 30,
       concurrentUsers: 1,
       services: [],
-      description: 'Tests d\'utilisation mémoire'
-    }
+      description: "Tests d'utilisation mémoire",
+    },
   ];
 
   return (
@@ -439,13 +471,16 @@ export default function PerformanceTestsPage() {
             >
               {/* Terminal icon non importé ici; remplacé par un fallback */}
               <span className="h-4 w-4">🖥️</span>
-              {terminalVisible ? 'Masquer' : 'Terminal'}
+              {terminalVisible ? "Masquer" : "Terminal"}
             </Button>
           </div>
         </div>
 
         {/* Onglets principaux */}
-        <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value: any) => setActiveTab(value)}
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="run" className="flex items-center gap-2">
               <Play className="h-4 w-4" />
@@ -481,7 +516,12 @@ export default function PerformanceTestsPage() {
                     <Label htmlFor="testType">Type de Test</Label>
                     <Select
                       value={testConfig.type}
-                      onChange={(e) => setTestConfig(prev => ({ ...prev, type: e.target.value }))}
+                      onChange={(e) =>
+                        setTestConfig((prev) => ({
+                          ...prev,
+                          type: e.target.value,
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -491,7 +531,9 @@ export default function PerformanceTestsPage() {
                         <SelectItem value="api">Tests API</SelectItem>
                         <SelectItem value="load">Tests de Charge</SelectItem>
                         <SelectItem value="frontend">Tests Frontend</SelectItem>
-                        <SelectItem value="database">Tests Base de Données</SelectItem>
+                        <SelectItem value="database">
+                          Tests Base de Données
+                        </SelectItem>
                         <SelectItem value="memory">Tests Mémoire</SelectItem>
                         <SelectItem value="stress">Tests de Stress</SelectItem>
                       </SelectContent>
@@ -502,22 +544,27 @@ export default function PerformanceTestsPage() {
                   <div className="space-y-2">
                     <Label>Services à Tester</Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {availableServices.map(service => (
-                        <div key={service.name} className="flex items-center space-x-2">
+                      {availableServices.map((service) => (
+                        <div
+                          key={service.name}
+                          className="flex items-center space-x-2"
+                        >
                           <input
                             type="checkbox"
                             id={`service-${service.name}`}
                             checked={testConfig.services.includes(service.name)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setTestConfig(prev => ({
+                                setTestConfig((prev) => ({
                                   ...prev,
-                                  services: [...prev.services, service.name]
+                                  services: [...prev.services, service.name],
                                 }));
                               } else {
-                                setTestConfig(prev => ({
+                                setTestConfig((prev) => ({
                                   ...prev,
-                                  services: prev.services.filter(s => s !== service.name)
+                                  services: prev.services.filter(
+                                    (s) => s !== service.name,
+                                  ),
                                 }));
                               }
                             }}
@@ -527,16 +574,23 @@ export default function PerformanceTestsPage() {
                             htmlFor={`service-${service.name}`}
                             className="text-sm font-normal flex items-center gap-2"
                           >
-                            <div className={`w-2 h-2 rounded-full ${
-                              service.status === 'available' ? 'bg-green-500' : 'bg-red-500'
-                            }`} />
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                service.status === "available"
+                                  ? "bg-green-500"
+                                  : "bg-red-500"
+                              }`}
+                            />
                             {service.name}
                           </Label>
                         </div>
                       ))}
                     </div>
                     {testConfig.services.length === 0 && (
-                      <p className="text-xs text-gray-500">Aucun service sélectionné - tous les services disponibles seront testés</p>
+                      <p className="text-xs text-gray-500">
+                        Aucun service sélectionné - tous les services
+                        disponibles seront testés
+                      </p>
                     )}
                   </div>
 
@@ -550,10 +604,12 @@ export default function PerformanceTestsPage() {
                         min="10"
                         max="300"
                         value={testConfig.duration}
-                        onChange={(e) => setTestConfig(prev => ({
-                          ...prev,
-                          duration: parseInt(e.target.value) || 60
-                        }))}
+                        onChange={(e) =>
+                          setTestConfig((prev) => ({
+                            ...prev,
+                            duration: parseInt(e.target.value) || 60,
+                          }))
+                        }
                         className="flex-1"
                       />
                       <span className="text-sm text-gray-500">
@@ -564,7 +620,9 @@ export default function PerformanceTestsPage() {
 
                   {/* Utilisateurs concurrents */}
                   <div className="space-y-2">
-                    <Label htmlFor="concurrentUsers">Utilisateurs Concurrents</Label>
+                    <Label htmlFor="concurrentUsers">
+                      Utilisateurs Concurrents
+                    </Label>
                     <div className="flex items-center gap-2">
                       <Input
                         id="concurrentUsers"
@@ -572,10 +630,12 @@ export default function PerformanceTestsPage() {
                         min="1"
                         max="100"
                         value={testConfig.concurrentUsers}
-                        onChange={(e) => setTestConfig(prev => ({
-                          ...prev,
-                          concurrentUsers: parseInt(e.target.value) || 10
-                        }))}
+                        onChange={(e) =>
+                          setTestConfig((prev) => ({
+                            ...prev,
+                            concurrentUsers: parseInt(e.target.value) || 10,
+                          }))
+                        }
                         className="flex-1"
                       />
                       <span className="text-sm text-gray-500">
@@ -588,23 +648,27 @@ export default function PerformanceTestsPage() {
                   <div className="space-y-2">
                     <Label>Templates Prédéfinis</Label>
                     <div className="grid grid-cols-1 gap-2">
-                      {testTemplates.map(template => (
+                      {testTemplates.map((template) => (
                         <Button
                           key={template.name}
                           variant="outline"
                           size="sm"
-                          onClick={() => setTestConfig({
-                            type: template.type,
-                            duration: template.duration,
-                            concurrentUsers: template.concurrentUsers,
-                            services: template.services,
-                            customOptions: {}
-                          })}
+                          onClick={() =>
+                            setTestConfig({
+                              type: template.type,
+                              duration: template.duration,
+                              concurrentUsers: template.concurrentUsers,
+                              services: template.services,
+                              customOptions: {},
+                            })
+                          }
                           className="justify-start text-left h-auto p-3"
                         >
                           <div>
                             <div className="font-medium">{template.name}</div>
-                            <div className="text-xs text-gray-500">{template.description}</div>
+                            <div className="text-xs text-gray-500">
+                              {template.description}
+                            </div>
                           </div>
                         </Button>
                       ))}
@@ -647,10 +711,16 @@ export default function PerformanceTestsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-green-600" />
-                    {isRunning ? 'Tests en Cours' : testResults ? 'Résultats' : 'État des Tests'}
+                    {isRunning
+                      ? "Tests en Cours"
+                      : testResults
+                        ? "Résultats"
+                        : "État des Tests"}
                   </CardTitle>
                   <CardDescription>
-                    {isRunning ? 'Exécution des tests de performance' : 'Résultats des derniers tests'}
+                    {isRunning
+                      ? "Exécution des tests de performance"
+                      : "Résultats des derniers tests"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -673,9 +743,17 @@ export default function PerformanceTestsPage() {
                       {/* Score global */}
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                          {testResults.summary?.averageResponseTime ?
-                            Math.max(0, Math.round(100 - (testResults.summary.averageResponseTime / 10))) : 'N/A'
-                          }/100
+                          {testResults.summary?.averageResponseTime
+                            ? Math.max(
+                                0,
+                                Math.round(
+                                  100 -
+                                    testResults.summary.averageResponseTime /
+                                      10,
+                                ),
+                              )
+                            : "N/A"}
+                          /100
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           Score de Performance Global
@@ -688,25 +766,39 @@ export default function PerformanceTestsPage() {
                           <div className="text-lg font-semibold text-green-600">
                             {testResults.summary?.successfulTests || 0}
                           </div>
-                          <div className="text-xs text-gray-500">Tests Réussis</div>
+                          <div className="text-xs text-gray-500">
+                            Tests Réussis
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-semibold text-red-600">
-                            {testResults.summary?.totalTests ? testResults.summary.totalTests - testResults.summary.successfulTests : 0}
+                            {testResults.summary?.totalTests
+                              ? testResults.summary.totalTests -
+                                testResults.summary.successfulTests
+                              : 0}
                           </div>
-                          <div className="text-xs text-gray-500">Tests Échoués</div>
+                          <div className="text-xs text-gray-500">
+                            Tests Échoués
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-semibold text-blue-600">
-                            {Math.round(testResults.summary?.averageResponseTime || 0)}ms
+                            {Math.round(
+                              testResults.summary?.averageResponseTime || 0,
+                            )}
+                            ms
                           </div>
-                          <div className="text-xs text-gray-500">Temps Moyen</div>
+                          <div className="text-xs text-gray-500">
+                            Temps Moyen
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-semibold text-purple-600">
                             {testResults.summary?.totalRequests || 0}
                           </div>
-                          <div className="text-xs text-gray-500">Requêtes Totales</div>
+                          <div className="text-xs text-gray-500">
+                            Requêtes Totales
+                          </div>
                         </div>
                       </div>
 
@@ -759,20 +851,26 @@ export default function PerformanceTestsPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {availableServices.map(service => (
+                  {availableServices.map((service) => (
                     <div
                       key={service.name}
                       className={`flex items-center justify-between p-3 rounded-lg border ${
-                        service.status === 'available'
-                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        service.status === "available"
+                          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          service.status === 'available' ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                        <span className="font-medium text-sm">{service.name}</span>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            service.status === "available"
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                        />
+                        <span className="font-medium text-sm">
+                          {service.name}
+                        </span>
                       </div>
                       {service.responseTime && (
                         <span className="text-xs text-gray-500">
@@ -802,29 +900,45 @@ export default function PerformanceTestsPage() {
                 {testHistory.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-500">Aucun test dans l'historique</p>
+                    <p className="text-gray-500">
+                      Aucun test dans l'historique
+                    </p>
                     <p className="text-sm text-gray-400 mt-1">
                       Lancez des tests pour voir l'historique
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {testHistory.map(test => (
+                    {testHistory.map((test) => (
                       <div
                         key={test.executionId}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">{test.executionId}</span>
+                            <span className="font-medium">
+                              {test.executionId}
+                            </span>
                             <span className="text-xs text-gray-500">
                               {new Date(test.timestamp).toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <span>Score: {Math.round(100 - ((test.summary?.averageResponseTime || 0) / 10))}/100</span>
-                            <span>Tests: {test.summary?.successfulTests}/{test.summary?.totalTests}</span>
-                            <span>Services: {test.availableServices.length}</span>
+                            <span>
+                              Score:{" "}
+                              {Math.round(
+                                100 -
+                                  (test.summary?.averageResponseTime || 0) / 10,
+                              )}
+                              /100
+                            </span>
+                            <span>
+                              Tests: {test.summary?.successfulTests}/
+                              {test.summary?.totalTests}
+                            </span>
+                            <span>
+                              Services: {test.availableServices.length}
+                            </span>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -862,13 +976,15 @@ export default function PerformanceTestsPage() {
                     <Input
                       type="number"
                       value={testConfig.customOptions.timeout || 10000}
-                      onChange={(e) => setTestConfig(prev => ({
-                        ...prev,
-                        customOptions: {
-                          ...prev.customOptions,
-                          timeout: parseInt(e.target.value) || 10000
-                        }
-                      }))}
+                      onChange={(e) =>
+                        setTestConfig((prev) => ({
+                          ...prev,
+                          customOptions: {
+                            ...prev.customOptions,
+                            timeout: parseInt(e.target.value) || 10000,
+                          },
+                        }))
+                      }
                       placeholder="10000"
                     />
                   </div>
@@ -878,13 +994,15 @@ export default function PerformanceTestsPage() {
                     <Input
                       type="number"
                       value={testConfig.customOptions.interval || 1000}
-                      onChange={(e) => setTestConfig(prev => ({
-                        ...prev,
-                        customOptions: {
-                          ...prev.customOptions,
-                          interval: parseInt(e.target.value) || 1000
-                        }
-                      }))}
+                      onChange={(e) =>
+                        setTestConfig((prev) => ({
+                          ...prev,
+                          customOptions: {
+                            ...prev.customOptions,
+                            interval: parseInt(e.target.value) || 1000,
+                          },
+                        }))
+                      }
                       placeholder="1000"
                     />
                   </div>
@@ -897,9 +1015,9 @@ export default function PerformanceTestsPage() {
                     onChange={(e) => {
                       try {
                         const parsed = JSON.parse(e.target.value);
-                        setTestConfig(prev => ({
+                        setTestConfig((prev) => ({
                           ...prev,
-                          customOptions: parsed
+                          customOptions: parsed,
                         }));
                       } catch (error) {
                         // JSON invalide, ignorer
@@ -914,31 +1032,43 @@ export default function PerformanceTestsPage() {
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="autoStartServices"
-                    checked={testConfig.customOptions.autoStartServices !== false}
-                    onChange={(e) => setTestConfig(prev => ({
-                      ...prev,
-                      customOptions: {
-                        ...prev.customOptions,
-                        autoStartServices: e.target.checked
-                      }
-                    }))}
+                    checked={
+                      testConfig.customOptions.autoStartServices !== false
+                    }
+                    onChange={(e) =>
+                      setTestConfig((prev) => ({
+                        ...prev,
+                        customOptions: {
+                          ...prev.customOptions,
+                          autoStartServices: e.target.checked,
+                        },
+                      }))
+                    }
                   />
-                  <Label htmlFor="autoStartServices">Démarrage automatique des services</Label>
+                  <Label htmlFor="autoStartServices">
+                    Démarrage automatique des services
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="autoStopServices"
-                    checked={testConfig.customOptions.autoStopServices !== false}
-                    onChange={(e) => setTestConfig(prev => ({
-                      ...prev,
-                      customOptions: {
-                        ...prev.customOptions,
-                        autoStopServices: e.target.checked
-                      }
-                    }))}
+                    checked={
+                      testConfig.customOptions.autoStopServices !== false
+                    }
+                    onChange={(e) =>
+                      setTestConfig((prev) => ({
+                        ...prev,
+                        customOptions: {
+                          ...prev.customOptions,
+                          autoStopServices: e.target.checked,
+                        },
+                      }))
+                    }
                   />
-                  <Label htmlFor="autoStopServices">Arrêt automatique des services temporaires</Label>
+                  <Label htmlFor="autoStopServices">
+                    Arrêt automatique des services temporaires
+                  </Label>
                 </div>
               </CardContent>
             </Card>

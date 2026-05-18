@@ -5,9 +5,11 @@
 export function chartXDomainFromDataRange(
   rangeStartMs: number,
   rangeEndMs: number,
-  dataMs: Array<number | null | undefined>
+  dataMs: Array<number | null | undefined>,
 ): [number, number] {
-  const t = dataMs.filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+  const t = dataMs.filter(
+    (n): n is number => typeof n === "number" && Number.isFinite(n),
+  );
   if (t.length === 0) return [rangeStartMs, rangeEndMs];
   const dMin = Math.min(...t);
   const dMax = Math.max(...t);

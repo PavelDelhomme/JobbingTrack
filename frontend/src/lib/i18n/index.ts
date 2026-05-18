@@ -1,13 +1,12 @@
-import { fr } from './locales/fr'
-import { en } from './locales/en'
+import { fr } from "./locales/fr";
+import { en } from "./locales/en";
 
 export const translations = {
   fr,
   en,
-} as const
+} as const;
 
-export type Locale = keyof typeof translations
-export type Translation = typeof fr
+export type Locale = keyof typeof translations;
+export type Translation = typeof fr;
 
-export { fr, en }
-
+export { fr, en };

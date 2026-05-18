@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useId, useMemo } from 'react'
+import { useId, useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -9,28 +9,32 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts'
-import { formatLocalChartAxisTick, formatLocalDateTime } from '@/lib/utils/date'
-import { rechartsTooltipProps } from '@/lib/charts/rechartsTooltipTheme'
+} from "recharts";
+import {
+  formatLocalChartAxisTick,
+  formatLocalDateTime,
+} from "@/lib/utils/date";
+import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import {
   filterSystemPercentRows,
   systemCpuAxisMax,
   systemMemoryAxisMax,
   type SystemPercentSeriesRow,
-} from '@/lib/charts/systemMetricsSeriesModel'
+} from "@/lib/charts/systemMetricsSeriesModel";
 
 export type SystemCpuMemoryAreaChartsProps = {
-  chartData: SystemPercentSeriesRow[]
-  xDomainMin: number
-  xDomainMax: number
-  axisShowDate: boolean
+  chartData: SystemPercentSeriesRow[];
+  xDomainMin: number;
+  xDomainMax: number;
+  axisShowDate: boolean;
   /** Hauteur d’un graphique (CPU ou mémoire), en px. */
-  chartHeight?: number
-}
+  chartHeight?: number;
+};
 
 function tooltipLabel(_: unknown, payload: unknown) {
-  const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload?.timestamp
-  return ts != null ? formatLocalDateTime(ts) : '—'
+  const ts = (payload as { payload?: { timestamp?: string } }[])?.[0]?.payload
+    ?.timestamp;
+  return ts != null ? formatLocalDateTime(ts) : "—";
 }
 
 /**
@@ -44,16 +48,16 @@ export function SystemCpuMemoryAreaCharts({
   axisShowDate,
   chartHeight = 220,
 }: SystemCpuMemoryAreaChartsProps) {
-  const uid = useId().replace(/:/g, '')
-  const cpuFillId = `sysCpuGrad-${uid}`
-  const memFillId = `sysMemGrad-${uid}`
+  const uid = useId().replace(/:/g, "");
+  const cpuFillId = `sysCpuGrad-${uid}`;
+  const memFillId = `sysMemGrad-${uid}`;
 
-  const rows = useMemo(() => filterSystemPercentRows(chartData), [chartData])
-  const cpuMax = useMemo(() => systemCpuAxisMax(rows), [rows])
-  const memMax = useMemo(() => systemMemoryAxisMax(rows), [rows])
+  const rows = useMemo(() => filterSystemPercentRows(chartData), [chartData]);
+  const cpuMax = useMemo(() => systemCpuAxisMax(rows), [rows]);
+  const memMax = useMemo(() => systemMemoryAxisMax(rows), [rows]);
 
-  const bottom = axisShowDate ? 72 : 60
-  const angle = axisShowDate ? -40 : -35
+  const bottom = axisShowDate ? 72 : 60;
+  const angle = axisShowDate ? -40 : -35;
 
   return (
     <div className="space-y-8">
@@ -62,14 +66,21 @@ export function SystemCpuMemoryAreaCharts({
           Utilisation CPU
         </h3>
         <ResponsiveContainer width="100%" height={chartHeight} minHeight={180}>
-          <AreaChart data={rows} margin={{ top: 8, right: 16, left: 4, bottom: bottom }}>
+          <AreaChart
+            data={rows}
+            margin={{ top: 8, right: 16, left: 4, bottom: bottom }}
+          >
             <defs>
               <linearGradient id={cpuFillId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.85} />
                 <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#374151"
+              opacity={0.3}
+            />
             <XAxis
               dataKey="timeMs"
               type="number"
@@ -79,7 +90,9 @@ export function SystemCpuMemoryAreaCharts({
               textAnchor="end"
               height={bottom}
               minTickGap={axisShowDate ? 32 : 22}
-              tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: axisShowDate })}
+              tickFormatter={(ms) =>
+                formatLocalChartAxisTick(ms, { withDate: axisShowDate })
+              }
               tick={{ fontSize: 12 }}
             />
             <YAxis
@@ -90,7 +103,10 @@ export function SystemCpuMemoryAreaCharts({
             />
             <Tooltip
               {...rechartsTooltipProps}
-              formatter={(value: number) => [`${Number(value).toFixed(4)}%`, 'CPU']}
+              formatter={(value: number) => [
+                `${Number(value).toFixed(4)}%`,
+                "CPU",
+              ]}
               labelFormatter={tooltipLabel}
             />
             <Area
@@ -110,14 +126,21 @@ export function SystemCpuMemoryAreaCharts({
           Utilisation mémoire
         </h3>
         <ResponsiveContainer width="100%" height={chartHeight} minHeight={180}>
-          <AreaChart data={rows} margin={{ top: 8, right: 16, left: 4, bottom: bottom }}>
+          <AreaChart
+            data={rows}
+            margin={{ top: 8, right: 16, left: 4, bottom: bottom }}
+          >
             <defs>
               <linearGradient id={memFillId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10B981" stopOpacity={0.85} />
                 <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#374151"
+              opacity={0.3}
+            />
             <XAxis
               dataKey="timeMs"
               type="number"
@@ -127,7 +150,9 @@ export function SystemCpuMemoryAreaCharts({
               textAnchor="end"
               height={bottom}
               minTickGap={axisShowDate ? 32 : 22}
-              tickFormatter={(ms) => formatLocalChartAxisTick(ms, { withDate: axisShowDate })}
+              tickFormatter={(ms) =>
+                formatLocalChartAxisTick(ms, { withDate: axisShowDate })
+              }
               tick={{ fontSize: 12 }}
             />
             <YAxis
@@ -138,7 +163,10 @@ export function SystemCpuMemoryAreaCharts({
             />
             <Tooltip
               {...rechartsTooltipProps}
-              formatter={(value: number) => [`${Number(value).toFixed(2)}%`, 'Mémoire']}
+              formatter={(value: number) => [
+                `${Number(value).toFixed(2)}%`,
+                "Mémoire",
+              ]}
               labelFormatter={tooltipLabel}
             />
             <Area
@@ -153,5 +181,5 @@ export function SystemCpuMemoryAreaCharts({
         </ResponsiveContainer>
       </div>
     </div>
-  )
+  );
 }

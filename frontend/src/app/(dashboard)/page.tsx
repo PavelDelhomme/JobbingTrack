@@ -1,24 +1,24 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/lib/hooks/auth'
-import { useTheme } from '@/lib/hooks/theme'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useAuth } from "@/lib/hooks/auth";
+import { useTheme } from "@/lib/hooks/theme";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function HomePage() {
-  const { user, loading } = useAuth()
-  const { actualTheme } = useTheme()
-  const router = useRouter()
+  const { user, loading } = useAuth();
+  const { actualTheme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (user) {
-        router.push('/b4ck0ff1ce')
+        router.push("/b4ck0ff1ce");
       } else {
-        router.push('/login')
+        router.push("/login");
       }
     }
-  }, [user, loading, router])
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -28,7 +28,7 @@ export default function HomePage() {
           <p className="text-gray-600 dark:text-gray-400">Chargement...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -42,5 +42,5 @@ export default function HomePage() {
         </p>
       </div>
     </div>
-  )
+  );
 }

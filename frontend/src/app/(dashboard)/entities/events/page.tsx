@@ -1,59 +1,60 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import { formatLocalDateTime } from '@/lib/utils/date'
-import { eventService } from '@/lib/api'
-import { EventTypeBadge } from '@/components/badges'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import { formatLocalDateTime } from "@/lib/utils/date";
+import { eventService } from "@/lib/api";
+import { EventTypeBadge } from "@/components/badges";
 
 interface Event {
-  id: string
-  type: string
-  title: string
-  description?: string
-  occurredAt: string
-  applicationId?: string
-  companyId?: string
-  contactId?: string
-  metadata?: any
-  createdAt: string
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  occurredAt: string;
+  applicationId?: string;
+  companyId?: string;
+  contactId?: string;
+  metadata?: any;
+  createdAt: string;
 }
 
 export default function EventsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filterType, setFilterType] = useState<string>('all')
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchEvents()
+      fetchEvents();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchEvents = async () => {
     try {
-      const response = await eventService.getAll()
-      setEvents(response.data.events || [])
+      const response = await eventService.getAll();
+      setEvents(response.data.events || []);
     } catch (error) {
-      console.error('Erreur chargement événements:', error)
+      console.error("Erreur chargement événements:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const filteredEvents = filterType === 'all'
-    ? events
-    : events.filter(event => event.type === filterType)
+  const filteredEvents =
+    filterType === "all"
+      ? events
+      : events.filter((event) => event.type === filterType);
 
   if (authLoading || loading) {
     return (
@@ -62,7 +63,7 @@ export default function EventsPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -123,7 +124,10 @@ export default function EventsPage() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredEvents.map((event) => (
-                  <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={event.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4">
                       <EventTypeBadge type={event.type} />
                     </td>
@@ -134,16 +138,20 @@ export default function EventsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                        {event.description || '-'}
+                        {event.description || "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                       {formatLocalDateTime(event.occurredAt)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {event.applicationId ? 'Candidature' :
-                       event.companyId ? 'Entreprise' :
-                       event.contactId ? 'Contact' : '-'}
+                      {event.applicationId
+                        ? "Candidature"
+                        : event.companyId
+                          ? "Entreprise"
+                          : event.contactId
+                            ? "Contact"
+                            : "-"}
                     </td>
                   </tr>
                 ))}
@@ -154,7 +162,10 @@ export default function EventsPage() {
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {filteredEvents.map((event) => (
-              <div key={event.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <div
+                key={event.id}
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3 flex-1">
                     <div className="h-10 w-10 rounded-lg bg-green-500 dark:bg-green-600 flex items-center justify-center text-white text-lg">
@@ -178,9 +189,16 @@ export default function EventsPage() {
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
                   <p>🕒 {formatLocalDateTime(event.occurredAt)}</p>
-                  <p>🔗 {event.applicationId ? 'Candidature' :
-                         event.companyId ? 'Entreprise' :
-                         event.contactId ? 'Contact' : 'Aucune'}</p>
+                  <p>
+                    🔗{" "}
+                    {event.applicationId
+                      ? "Candidature"
+                      : event.companyId
+                        ? "Entreprise"
+                        : event.contactId
+                          ? "Contact"
+                          : "Aucune"}
+                  </p>
                 </div>
               </div>
             ))}
@@ -194,7 +212,5 @@ export default function EventsPage() {
         </div>
       </div>
     </AdminLayout>
-  )
+  );
 }
-
-

@@ -1,13 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { Calendar, Search, Plus, Edit, Trash2, Clock, MapPin, RefreshCw, X, AlertCircle } from 'lucide-react';
-import { interviewService, applicationService } from '@/lib/api';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import {
+  Calendar,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Clock,
+  MapPin,
+  RefreshCw,
+  X,
+  AlertCircle,
+} from "lucide-react";
+import { interviewService, applicationService } from "@/lib/api";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Interview {
   id: string;
@@ -35,11 +46,13 @@ export default function InterviewsPage() {
   const { token } = useAuth();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
-  const applicationIdFromUrl = searchParams.get('applicationId');
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(
+    null,
+  );
+  const applicationIdFromUrl = searchParams.get("applicationId");
 
   useEffect(() => {
     if (token) {
@@ -54,31 +67,34 @@ export default function InterviewsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'interviews_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "interviews_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setInterviews(Array.isArray(cached) ? (cached as Interview[]) : [])
-        setLoading(false)
+        setInterviews(Array.isArray(cached) ? (cached as Interview[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        interviewService.getAll({ limit: 100 }).then(response => {
-          const interviews = response.data.interviews || response.data || []
-          cacheManager.set(cacheKey, interviews, { ttl: 30000 })
-          setInterviews(interviews)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        interviewService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const interviews = response.data.interviews || response.data || [];
+            cacheManager.set(cacheKey, interviews, { ttl: 30000 });
+            setInterviews(interviews);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 entretiens par défaut
-      const response = await interviewService.getAll({ limit: 100 })
-      const interviews = response.data.interviews || response.data || []
-      setInterviews(interviews)
-      
+      const response = await interviewService.getAll({ limit: 100 });
+      const interviews = response.data.interviews || response.data || [];
+      setInterviews(interviews);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, interviews, { ttl: 30000 })
+      await cacheManager.set(cacheKey, interviews, { ttl: 30000 });
     } catch (error: any) {
-      console.error('Erreur chargement entretiens:', error);
+      console.error("Erreur chargement entretiens:", error);
       setInterviews([]);
     } finally {
       setLoading(false);
@@ -86,21 +102,24 @@ export default function InterviewsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet entretien ?")) return;
+
     try {
       await interviewService.delete(id);
       loadInterviews();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      alert('Erreur lors de la suppression');
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
   };
 
-  const filteredInterviews = interviews.filter(interview =>
-    interview.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    interview.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    interview.applicationTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredInterviews = interviews.filter(
+    (interview) =>
+      interview.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      interview.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      interview.applicationTitle
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()),
   );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
@@ -129,7 +148,8 @@ export default function InterviewsPage() {
               Gestion des Entretiens
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gérez vos entretiens et rendez-vous (création depuis une candidature uniquement)
+              Gérez vos entretiens et rendez-vous (création depuis une
+              candidature uniquement)
             </p>
           </div>
           <button
@@ -148,7 +168,8 @@ export default function InterviewsPage() {
               Règle importante
             </p>
             <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-              Un entretien doit être créé depuis une candidature. L'entreprise sera automatiquement récupérée de la candidature.
+              Un entretien doit être créé depuis une candidature. L'entreprise
+              sera automatiquement récupérée de la candidature.
             </p>
           </div>
         </div>
@@ -156,24 +177,40 @@ export default function InterviewsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{interviews.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {interviews.length}
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Planifiés</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Planifiés
+            </p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-              {interviews.filter(i => i.status === 'SCHEDULED' || i.status === 'scheduled').length}
+              {
+                interviews.filter(
+                  (i) => i.status === "SCHEDULED" || i.status === "scheduled",
+                ).length
+              }
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Terminés</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-              {interviews.filter(i => i.status === 'COMPLETED' || i.status === 'completed').length}
+              {
+                interviews.filter(
+                  (i) => i.status === "COMPLETED" || i.status === "completed",
+                ).length
+              }
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Annulés</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-              {interviews.filter(i => i.status === 'CANCELLED' || i.status === 'cancelled').length}
+              {
+                interviews.filter(
+                  (i) => i.status === "CANCELLED" || i.status === "cancelled",
+                ).length
+              }
             </p>
           </div>
         </div>
@@ -204,35 +241,61 @@ export default function InterviewsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Entretien</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Candidature</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date/Heure</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lieu</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Statut</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Entretien
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Candidature
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Date/Heure
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Lieu
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {pagination.paginatedItems.map((interview) => (
-                  <tr key={interview.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={interview.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{interview.title || 'Entretien'}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {interview.title || "Entretien"}
+                      </div>
                       {interview.companyName && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{interview.companyName}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {interview.companyName}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {interview.applicationTitle && (
-                        <div className="text-sm text-gray-900 dark:text-gray-100">{interview.applicationTitle}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {interview.applicationTitle}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        {new Date(interview.scheduledAt || interview.createdAt).toLocaleDateString()}
+                        {new Date(
+                          interview.scheduledAt || interview.createdAt,
+                        ).toLocaleDateString()}
                         {interview.scheduledAt && (
                           <span className="ml-2 text-xs text-gray-500">
-                            {new Date(interview.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(interview.scheduledAt).toLocaleTimeString(
+                              "fr-FR",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
                           </span>
                         )}
                       </div>
@@ -246,12 +309,18 @@ export default function InterviewsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        interview.status === 'SCHEDULED' || interview.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        interview.status === 'COMPLETED' || interview.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}>
-                        {interview.status || 'N/A'}
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          interview.status === "SCHEDULED" ||
+                          interview.status === "scheduled"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            : interview.status === "COMPLETED" ||
+                                interview.status === "completed"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                        }`}
+                      >
+                        {interview.status || "N/A"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -277,15 +346,20 @@ export default function InterviewsPage() {
                 ))}
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {interviews.length === 0 ? 'Aucun entretien trouvé' : 'Aucun résultat pour votre recherche'}
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {interviews.length === 0
+                        ? "Aucun entretien trouvé"
+                        : "Aucun résultat pour votre recherche"}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           {/* ✅ OPTIMISATION : Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -313,13 +387,13 @@ export default function InterviewsPage() {
           onClose={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/b4ck0ff1ce/interviews');
+              router.push("/b4ck0ff1ce/interviews");
             }
           }}
           onSuccess={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push('/b4ck0ff1ce/interviews');
+              router.push("/b4ck0ff1ce/interviews");
             }
             loadInterviews();
           }}
@@ -344,35 +418,38 @@ export default function InterviewsPage() {
   );
 }
 
-function InterviewFormModal({ 
-  interview, 
+function InterviewFormModal({
+  interview,
   applicationId,
-  onClose, 
-  onSuccess 
-}: { 
+  onClose,
+  onSuccess,
+}: {
   interview?: Interview;
   applicationId?: string | null;
-  onClose: () => void; 
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    title: interview?.title || '',
-    scheduledAt: interview?.scheduledAt ? new Date(interview.scheduledAt).toISOString().slice(0, 16) : '',
-    location: interview?.location || '',
-    type: interview?.type || '',
-    notes: '',
-    applicationId: interview?.applicationId || applicationId || '',
+    title: interview?.title || "",
+    scheduledAt: interview?.scheduledAt
+      ? new Date(interview.scheduledAt).toISOString().slice(0, 16)
+      : "",
+    location: interview?.location || "",
+    type: interview?.type || "",
+    notes: "",
+    applicationId: interview?.applicationId || applicationId || "",
   });
   const [loading, setLoading] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
 
   useEffect(() => {
     loadApplications();
     if (applicationId || interview?.applicationId) {
-      loadApplicationDetails(applicationId || interview?.applicationId || '');
+      loadApplicationDetails(applicationId || interview?.applicationId || "");
     }
   }, []);
 
@@ -382,16 +459,19 @@ function InterviewFormModal({
       const response = await applicationService.getAll();
       const apps = response.data.applications || response.data || [];
       setApplications(apps);
-      
+
       if (applicationId || interview?.applicationId) {
-        const app = apps.find((a: Application) => a.id === (applicationId || interview?.applicationId));
+        const app = apps.find(
+          (a: Application) =>
+            a.id === (applicationId || interview?.applicationId),
+        );
         if (app) {
           setSelectedApplication(app);
-          setFormData(prev => ({ ...prev, applicationId: app.id }));
+          setFormData((prev) => ({ ...prev, applicationId: app.id }));
         }
       }
     } catch (error) {
-      console.error('Erreur chargement candidatures:', error);
+      console.error("Erreur chargement candidatures:", error);
       setApplications([]);
     } finally {
       setLoadingApplications(false);
@@ -404,33 +484,33 @@ function InterviewFormModal({
       const app = response.data.application || response.data;
       setSelectedApplication(app);
     } catch (error) {
-      console.error('Erreur chargement candidature:', error);
+      console.error("Erreur chargement candidature:", error);
     }
   };
 
   const handleApplicationSelect = (appId: string) => {
-    const app = applications.find(a => a.id === appId);
+    const app = applications.find((a) => a.id === appId);
     if (app) {
       setSelectedApplication(app);
-      setFormData(prev => ({ ...prev, applicationId: app.id }));
+      setFormData((prev) => ({ ...prev, applicationId: app.id }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.applicationId) {
-      alert('Vous devez sélectionner une candidature');
+      alert("Vous devez sélectionner une candidature");
       return;
     }
 
     if (!formData.title) {
-      alert('Le titre est obligatoire');
+      alert("Le titre est obligatoire");
       return;
     }
 
     if (!formData.scheduledAt) {
-      alert('La date et l\'heure sont obligatoires');
+      alert("La date et l'heure sont obligatoires");
       return;
     }
 
@@ -454,8 +534,11 @@ function InterviewFormModal({
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur création/modification entretien:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'entretien');
+      console.error("Erreur création/modification entretien:", error);
+      alert(
+        error.response?.data?.error ||
+          "Erreur lors de la création/modification de l'entretien",
+      );
     } finally {
       setLoading(false);
     }
@@ -466,7 +549,7 @@ function InterviewFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {interview ? 'Modifier l\'entretien' : 'Nouvel entretien'}
+            {interview ? "Modifier l'entretien" : "Nouvel entretien"}
           </h2>
           <button
             onClick={onClose}
@@ -494,7 +577,7 @@ function InterviewFormModal({
                     type="button"
                     onClick={() => {
                       setSelectedApplication(null);
-                      setFormData(prev => ({ ...prev, applicationId: '' }));
+                      setFormData((prev) => ({ ...prev, applicationId: "" }));
                     }}
                     className="text-xs text-blue-600 dark:text-blue-400 mt-2 hover:underline"
                   >
@@ -519,7 +602,9 @@ function InterviewFormModal({
               </select>
             )}
             {loadingApplications && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Chargement des candidatures...</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Chargement des candidatures...
+              </p>
             )}
           </div>
 
@@ -531,7 +616,9 @@ function InterviewFormModal({
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               placeholder="Ex: Entretien technique, Entretien RH..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -545,7 +632,9 @@ function InterviewFormModal({
               type="datetime-local"
               required
               value={formData.scheduledAt}
-              onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, scheduledAt: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -557,7 +646,9 @@ function InterviewFormModal({
             <input
               type="text"
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
               placeholder="Ex: Bureau, En ligne, Adresse..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -569,7 +660,9 @@ function InterviewFormModal({
             </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Sélectionner un type...</option>
@@ -595,7 +688,7 @@ function InterviewFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : interview ? 'Modifier' : 'Créer'}
+              {loading ? "Enregistrement..." : interview ? "Modifier" : "Créer"}
             </button>
           </div>
         </form>

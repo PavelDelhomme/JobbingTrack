@@ -1,15 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
-import { FRONTEND_URLS } from '@/config/ports.config';
-import { Users, Search, Plus, Edit, Trash2, Mail, Phone, Building2, RefreshCw, X } from 'lucide-react';
-import { contactService, companyService } from '@/lib/api';
-import { AutocompleteInput } from '@/components/ui/autocomplete-input';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  Users,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Mail,
+  Phone,
+  Building2,
+  RefreshCw,
+  X,
+} from "lucide-react";
+import { contactService, companyService } from "@/lib/api";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -30,7 +41,7 @@ export default function ContactsPage() {
   const { token } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -45,33 +56,36 @@ export default function ContactsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'contacts_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "contacts_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setContacts(Array.isArray(cached) ? (cached as Contact[]) : [])
-        setLoading(false)
+        setContacts(Array.isArray(cached) ? (cached as Contact[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        contactService.getAll({ limit: 100 }).then(response => {
-          const contacts = response.data.contacts || response.data || []
-          cacheManager.set(cacheKey, contacts, { ttl: 30000 })
-          setContacts(contacts)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        contactService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const contacts = response.data.contacts || response.data || [];
+            cacheManager.set(cacheKey, contacts, { ttl: 30000 });
+            setContacts(contacts);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 contacts par défaut
-      const response = await contactService.getAll({ limit: 100 })
-      const contacts = response.data.contacts || response.data || []
-      setContacts(contacts)
-      
+      const response = await contactService.getAll({ limit: 100 });
+      const contacts = response.data.contacts || response.data || [];
+      setContacts(contacts);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, contacts, { ttl: 30000 })
+      await cacheManager.set(cacheKey, contacts, { ttl: 30000 });
     } catch (error: any) {
-      console.error('Erreur chargement contacts:', error);
+      console.error("Erreur chargement contacts:", error);
       // Fallback si erreur
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
+      if (error.response?.status === 500 || error.code === "ERR_NETWORK") {
         setContacts([]);
       }
     } finally {
@@ -80,21 +94,24 @@ export default function ContactsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contact ?")) return;
+
     try {
       await contactService.delete(id);
       loadContacts();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      alert('Erreur lors de la suppression');
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
   };
 
-  const filteredContacts = contacts.filter(contact =>
-    `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredContacts = contacts.filter(
+    (contact) =>
+      `${contact.firstName} ${contact.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.companyName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
@@ -137,8 +154,12 @@ export default function ContactsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Contacts</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{contacts.length}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Total Contacts
+            </p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {contacts.length}
+            </p>
           </div>
         </div>
 
@@ -168,21 +189,35 @@ export default function ContactsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nom</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Téléphone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Entreprise</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Nom
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Téléphone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Entreprise
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {pagination.paginatedItems.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={contact.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                           <span className="text-blue-600 dark:text-blue-300 font-semibold">
-                            {contact.firstName?.[0]}{contact.lastName?.[0]}
+                            {contact.firstName?.[0]}
+                            {contact.lastName?.[0]}
                           </span>
                         </div>
                         <div className="ml-4">
@@ -190,7 +225,9 @@ export default function ContactsPage() {
                             {contact.firstName} {contact.lastName}
                           </div>
                           {contact.position && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{contact.position}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {contact.position}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -242,15 +279,20 @@ export default function ContactsPage() {
                 ))}
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {contacts.length === 0 ? 'Aucun contact trouvé' : 'Aucun résultat pour votre recherche'}
+                    <td
+                      colSpan={5}
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {contacts.length === 0
+                        ? "Aucun contact trouvé"
+                        : "Aucun résultat pour votre recherche"}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           {/* ✅ OPTIMISATION : Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -300,23 +342,23 @@ export default function ContactsPage() {
   );
 }
 
-function ContactFormModal({ 
-  contact, 
-  onClose, 
-  onSuccess 
-}: { 
-  contact?: Contact; 
-  onClose: () => void; 
+function ContactFormModal({
+  contact,
+  onClose,
+  onSuccess,
+}: {
+  contact?: Contact;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    firstName: contact?.firstName || '',
-    lastName: contact?.lastName || '',
-    email: contact?.email || '',
-    phone: contact?.phone || '',
-    position: contact?.position || '',
-    companyName: contact?.companyName || '',
+    firstName: contact?.firstName || "",
+    lastName: contact?.lastName || "",
+    email: contact?.email || "",
+    phone: contact?.phone || "",
+    position: contact?.position || "",
+    companyName: contact?.companyName || "",
   });
   const [loading, setLoading] = useState(false);
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
@@ -333,7 +375,7 @@ function ContactFormModal({
       const companies = response.data.companies || response.data || [];
       setCompanySuggestions(companies.map((c: any) => c.name));
     } catch (error) {
-      console.error('Erreur chargement entreprises:', error);
+      console.error("Erreur chargement entreprises:", error);
       setCompanySuggestions([]);
     } finally {
       setLoadingCompanies(false);
@@ -342,14 +384,14 @@ function ContactFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.firstName || !formData.lastName) {
-      alert('Le prénom et le nom sont obligatoires');
+      alert("Le prénom et le nom sont obligatoires");
       return;
     }
 
     if (!formData.companyName) {
-      alert('L\'entreprise est obligatoire');
+      alert("L'entreprise est obligatoire");
       return;
     }
 
@@ -361,9 +403,11 @@ function ContactFormModal({
       try {
         // Chercher l'entreprise existante
         const companiesResponse = await companyService.getAll();
-        const companies = companiesResponse.data.companies || companiesResponse.data || [];
-        const existingCompany = companies.find((c: any) => 
-          c.name.toLowerCase() === formData.companyName.toLowerCase()
+        const companies =
+          companiesResponse.data.companies || companiesResponse.data || [];
+        const existingCompany = companies.find(
+          (c: any) =>
+            c.name.toLowerCase() === formData.companyName.toLowerCase(),
         );
 
         if (existingCompany) {
@@ -373,11 +417,12 @@ function ContactFormModal({
           const newCompanyResponse = await companyService.create({
             name: formData.companyName,
           });
-          companyId = newCompanyResponse.data.company?.id || newCompanyResponse.data.id;
+          companyId =
+            newCompanyResponse.data.company?.id || newCompanyResponse.data.id;
         }
       } catch (error) {
-        console.error('Erreur gestion entreprise:', error);
-        alert('Erreur lors de la création/récupération de l\'entreprise');
+        console.error("Erreur gestion entreprise:", error);
+        alert("Erreur lors de la création/récupération de l'entreprise");
         setLoading(false);
         return;
       }
@@ -400,8 +445,11 @@ function ContactFormModal({
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur création/modification contact:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification du contact');
+      console.error("Erreur création/modification contact:", error);
+      alert(
+        error.response?.data?.error ||
+          "Erreur lors de la création/modification du contact",
+      );
     } finally {
       setLoading(false);
     }
@@ -412,7 +460,7 @@ function ContactFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {contact ? 'Modifier le contact' : 'Nouveau contact'}
+            {contact ? "Modifier le contact" : "Nouveau contact"}
           </h2>
           <button
             onClick={onClose}
@@ -432,7 +480,9 @@ function ContactFormModal({
                 type="text"
                 required
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -444,7 +494,9 @@ function ContactFormModal({
                 type="text"
                 required
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -456,7 +508,9 @@ function ContactFormModal({
             </label>
             <AutocompleteInput
               value={formData.companyName}
-              onChange={(value) => setFormData({ ...formData, companyName: value })}
+              onChange={(value) =>
+                setFormData({ ...formData, companyName: value })
+              }
               placeholder="Rechercher ou saisir une entreprise..."
               suggestions={companySuggestions}
               loading={loadingCompanies}
@@ -475,7 +529,9 @@ function ContactFormModal({
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -487,7 +543,9 @@ function ContactFormModal({
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -499,7 +557,9 @@ function ContactFormModal({
             <input
               type="text"
               value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, position: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -517,7 +577,7 @@ function ContactFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : contact ? 'Modifier' : 'Créer'}
+              {loading ? "Enregistrement..." : contact ? "Modifier" : "Créer"}
             </button>
           </div>
         </form>

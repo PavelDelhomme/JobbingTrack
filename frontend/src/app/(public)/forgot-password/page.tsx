@@ -1,43 +1,46 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        "http://localhost:8080/api/v1/auth/forgot-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
         },
-        body: JSON.stringify({ email })
-      })
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la demande')
+        throw new Error(data.error || "Erreur lors de la demande");
       }
 
-      setSuccess(true)
+      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue')
+      setError(err.message || "Une erreur est survenue");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (success) {
     return (
@@ -51,10 +54,12 @@ export default function ForgotPasswordPage() {
               Email envoyé !
             </h2>
             <p className="mt-4 text-gray-600 dark:text-gray-400">
-              Si l'adresse email existe dans notre système, vous recevrez un lien de réinitialisation dans quelques instants.
+              Si l'adresse email existe dans notre système, vous recevrez un
+              lien de réinitialisation dans quelques instants.
             </p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
-              Pensez à vérifier votre dossier spam si vous ne trouvez pas l'email.
+              Pensez à vérifier votre dossier spam si vous ne trouvez pas
+              l'email.
             </p>
             <div className="mt-6">
               <Link
@@ -67,7 +72,7 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -78,7 +83,8 @@ export default function ForgotPasswordPage() {
             Mot de passe oublié ?
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+            Entrez votre adresse email et nous vous enverrons un lien pour
+            réinitialiser votre mot de passe.
           </p>
         </div>
 
@@ -90,7 +96,10 @@ export default function ForgotPasswordPage() {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Adresse email
             </label>
             <input
@@ -112,7 +121,9 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}
+              {loading
+                ? "Envoi en cours..."
+                : "Envoyer le lien de réinitialisation"}
             </button>
           </div>
 
@@ -127,5 +138,5 @@ export default function ForgotPasswordPage() {
         </form>
       </div>
     </div>
-  )
+  );
 }

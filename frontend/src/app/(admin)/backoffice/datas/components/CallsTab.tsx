@@ -1,82 +1,85 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { formatLocalDate } from '@/lib/utils/date'
-import { callService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { formatLocalDate } from "@/lib/utils/date";
+import { callService } from "@/lib/api";
 
 interface Call {
-  id: string
-  type: string
-  scheduledAt?: string
-  completedAt?: string
-  status: string
-  notes?: string
-  createdAt: string
+  id: string;
+  type: string;
+  scheduledAt?: string;
+  completedAt?: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
 }
 
 export default function CallsTab() {
-  const [calls, setCalls] = useState<Call[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    fetchCalls()
-  }, [])
+    fetchCalls();
+  }, []);
 
   const fetchCalls = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'data_calls_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "data_calls_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setCalls(Array.isArray(cached) ? (cached as Call[]) : [])
-        setLoading(false)
+        setCalls(Array.isArray(cached) ? (cached as Call[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        callService.getAll({ limit: 100 }).then(response => {
-          const calls = response.data.calls || []
-          cacheManager.set(cacheKey, calls, { ttl: 30000 })
-          setCalls(calls)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        callService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const calls = response.data.calls || [];
+            cacheManager.set(cacheKey, calls, { ttl: 30000 });
+            setCalls(calls);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 appels par défaut
-      const response = await callService.getAll({ limit: 100 })
-      const calls = response.data.calls || []
-      setCalls(calls)
-      
+      const response = await callService.getAll({ limit: 100 });
+      const calls = response.data.calls || [];
+      setCalls(calls);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, calls, { ttl: 30000 })
+      await cacheManager.set(cacheKey, calls, { ttl: 30000 });
     } catch (error) {
-      console.error('Erreur chargement appels:', error)
+      console.error("Erreur chargement appels:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteCall = async (callId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appel ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet appel ?")) {
+      return;
     }
 
     try {
-      await callService.delete(callId)
-      fetchCalls()
+      await callService.delete(callId);
+      fetchCalls();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -119,15 +122,17 @@ export default function CallsTab() {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {calls.map((call) => (
-                <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr
+                  key={call.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                     {call.type}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-{call.scheduledAt
+                    {call.scheduledAt
                       ? formatLocalDate(call.scheduledAt)
-                      : formatLocalDate(call.createdAt)
-                    }
+                      : formatLocalDate(call.createdAt)}
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
@@ -136,7 +141,7 @@ export default function CallsTab() {
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
-                      onClick={() => alert('Édition à implémenter')}
+                      onClick={() => alert("Édition à implémenter")}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                     >
                       Modifier
@@ -180,5 +185,5 @@ export default function CallsTab() {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,21 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, Clock, Database } from '@/lib/icons';
-import { useOfflineSync } from '@/hooks/useOfflineSyncSimple';
-import { Button } from '@/components/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { Badge } from '@/components/ui';
-import { Progress } from '@/components/ui';
-import { Alert, AlertDescription } from '@/components/ui';
+import {
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Database,
+} from "@/lib/icons";
+import { useOfflineSync } from "@/hooks/useOfflineSyncSimple";
+import { Button } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { Progress } from "@/components/ui";
+import { Alert, AlertDescription } from "@/components/ui";
 
 interface OfflineStatusProps {
   className?: string;
   showDetails?: boolean;
 }
 
-export function OfflineStatus({ className = '', showDetails = false }: OfflineStatusProps) {
+export function OfflineStatus({
+  className = "",
+  showDetails = false,
+}: OfflineStatusProps) {
   const {
     isOnline,
     pendingOperations,
@@ -25,20 +36,20 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
     stats,
     syncPendingOperations,
     clearExpiredCache,
-    clearAllOfflineData
+    clearAllOfflineData,
   } = useOfflineSync();
 
   const [showDetailsPanel, setShowDetailsPanel] = useState(showDetails);
 
   // Formater la durée depuis la dernière synchronisation
   const formatLastSync = (lastSync: Date | null) => {
-    if (!lastSync) return 'Jamais';
+    if (!lastSync) return "Jamais";
 
     const now = new Date();
     const diffMs = now.getTime() - lastSync.getTime();
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
-    if (diffMinutes < 1) return 'À l\'instant';
+    if (diffMinutes < 1) return "À l'instant";
     if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
 
     const diffHours = Math.floor(diffMinutes / 60);
@@ -56,7 +67,9 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
   };
 
   return (
-    <Card className={`${className} ${!isOnline ? 'border-orange-300 bg-orange-50' : ''}`}>
+    <Card
+      className={`${className} ${!isOnline ? "border-orange-300 bg-orange-50" : ""}`}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           {isOnline ? (
@@ -66,8 +79,11 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
           )}
           État de connexion
           <div className="flex gap-2 ml-auto">
-            <Badge variant={isOnline ? "default" : "destructive"} className="text-xs">
-              {isOnline ? 'En ligne' : 'Hors ligne'}
+            <Badge
+              variant={isOnline ? "default" : "destructive"}
+              className="text-xs"
+            >
+              {isOnline ? "En ligne" : "Hors ligne"}
             </Badge>
             {pendingOperations.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -121,7 +137,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
             size="sm"
             onClick={() => setShowDetailsPanel(!showDetailsPanel)}
           >
-            {showDetailsPanel ? 'Masquer détails' : 'Voir détails'}
+            {showDetailsPanel ? "Masquer détails" : "Voir détails"}
           </Button>
 
           {isOnline && pendingOperations.length > 0 && (
@@ -132,8 +148,10 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
               disabled={isSyncing}
               className="text-blue-600 border-blue-300 hover:bg-blue-50"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+              />
+              {isSyncing ? "Synchronisation..." : "Synchroniser"}
             </Button>
           )}
 
@@ -164,7 +182,8 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
               <Alert>
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 <AlertDescription>
-                  Synchronisation en cours... {pendingOperations.length} opérations en attente.
+                  Synchronisation en cours... {pendingOperations.length}{" "}
+                  opérations en attente.
                 </AlertDescription>
               </Alert>
             )}
@@ -174,8 +193,9 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
               <Alert className="border-orange-200 bg-orange-50">
                 <WifiOff className="h-4 w-4 text-orange-600" />
                 <AlertDescription className="text-orange-700">
-                  <strong>Mode hors ligne activé</strong> - Vos modifications sont sauvegardées localement
-                  et seront synchronisées automatiquement au retour de la connexion.
+                  <strong>Mode hors ligne activé</strong> - Vos modifications
+                  sont sauvegardées localement et seront synchronisées
+                  automatiquement au retour de la connexion.
                 </AlertDescription>
               </Alert>
             )}
@@ -185,11 +205,16 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
               <div className="space-y-2">
                 <h4 className="font-medium text-sm">Opérations en attente</h4>
                 {pendingOperations.length === 0 ? (
-                  <p className="text-sm text-gray-500">Aucune opération en attente</p>
+                  <p className="text-sm text-gray-500">
+                    Aucune opération en attente
+                  </p>
                 ) : (
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {pendingOperations.map((op) => (
-                      <div key={op.id} className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded">
+                      <div
+                        key={op.id}
+                        className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded"
+                      >
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {op.type}
@@ -214,11 +239,15 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
                   </div>
                   <div className="flex justify-between">
                     <span>Taille approximative:</span>
-                    <span className="font-medium">{formatCacheSize(stats.totalSize)}</span>
+                    <span className="font-medium">
+                      {formatCacheSize(stats.totalSize)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Opérations en attente:</span>
-                    <span className="font-medium">{pendingOperations.length}</span>
+                    <span className="font-medium">
+                      {pendingOperations.length}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -230,17 +259,17 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
                 variant="outline"
                 size="sm"
                 onClick={syncPendingOperations}
-                disabled={!isOnline || isSyncing || pendingOperations.length === 0}
+                disabled={
+                  !isOnline || isSyncing || pendingOperations.length === 0
+                }
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+                />
                 Forcer la synchronisation
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearExpiredCache}
-              >
+              <Button variant="outline" size="sm" onClick={clearExpiredCache}>
                 <Database className="h-4 w-4 mr-2" />
                 Nettoyer le cache expiré
               </Button>
@@ -251,9 +280,10 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
         {/* Message d'aide */}
         <Alert className="mt-4">
           <AlertDescription className="text-xs">
-            <strong>Fonctionnement hors ligne :</strong> Les données sont automatiquement mises en cache
-            pour permettre une utilisation continue sans connexion. La synchronisation se fait
-            automatiquement dès le retour de la connexion internet.
+            <strong>Fonctionnement hors ligne :</strong> Les données sont
+            automatiquement mises en cache pour permettre une utilisation
+            continue sans connexion. La synchronisation se fait automatiquement
+            dès le retour de la connexion internet.
           </AlertDescription>
         </Alert>
       </CardContent>

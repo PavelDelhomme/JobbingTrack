@@ -1,43 +1,45 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import AdminLayout from '@/components/features/AdminLayout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { FRONTEND_URLS } from '@/config/ports.config'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, Mail, Eye, Edit, Save, X, Plus, Trash2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useState, useEffect } from "react";
+import axios from "axios";
+import AdminLayout from "@/components/features/AdminLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Mail, Eye, Edit, Save, X, Plus, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 interface Template {
-  type: string
-  name: string
-  description: string
-  subject: string
-  html: string
-  variables: string[]
+  type: string;
+  name: string;
+  description: string;
+  subject: string;
+  html: string;
+  variables: string[];
 }
 
 export default function EmailTemplatesPage() {
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [editedContent, setEditedContent] = useState('')
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [loading, setLoading] = useState(true)
-  const [newVariable, setNewVariable] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null,
+  );
+  const [editing, setEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newVariable, setNewVariable] = useState("");
 
   // Templates par défaut (fallback)
   const defaultTemplates: Template[] = [
     {
-      type: 'WELCOME',
-      name: 'Email de Bienvenue',
-      description: 'Envoyé lors de l\'inscription d\'un nouvel utilisateur',
-      subject: '🎉 Bienvenue sur JobbingTrack !',
+      type: "WELCOME",
+      name: "Email de Bienvenue",
+      description: "Envoyé lors de l'inscription d'un nouvel utilisateur",
+      subject: "🎉 Bienvenue sur JobbingTrack !",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
@@ -63,13 +65,13 @@ export default function EmailTemplatesPage() {
           </div>
         </div>
       `,
-      variables: ['firstName', 'lastName', 'frontendUrl']
+      variables: ["firstName", "lastName", "frontendUrl"],
     },
     {
-      type: 'VERIFICATION',
-      name: 'Email de Vérification',
-      description: 'Pour vérifier l\'adresse email lors de l\'inscription',
-      subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+      type: "VERIFICATION",
+      name: "Email de Vérification",
+      description: "Pour vérifier l'adresse email lors de l'inscription",
+      subject: "✅ Vérifiez votre adresse email - JobbingTrack",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
@@ -86,13 +88,13 @@ export default function EmailTemplatesPage() {
           <p style="color: #6b7280; font-size: 14px;">Ce lien expire dans 24 heures.</p>
         </div>
       `,
-      variables: ['firstName', 'verificationUrl']
+      variables: ["firstName", "verificationUrl"],
     },
     {
-      type: 'RESET_PASSWORD',
-      name: 'Réinitialisation de Mot de Passe',
-      description: 'Lien de réinitialisation de mot de passe',
-      subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+      type: "RESET_PASSWORD",
+      name: "Réinitialisation de Mot de Passe",
+      description: "Lien de réinitialisation de mot de passe",
+      subject: "🔐 Réinitialisation de votre mot de passe JobbingTrack",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
@@ -109,18 +111,18 @@ export default function EmailTemplatesPage() {
           <p style="color: #6b7280; font-size: 14px;">Ce lien est valide pendant 1 heure.</p>
         </div>
       `,
-      variables: ['firstName', 'resetUrl']
-    }
-  ]
+      variables: ["firstName", "resetUrl"],
+    },
+  ];
 
   // Charger les templates depuis l'API
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         const response = await axios.get(`${API_URL}/api/v1/emails/templates`, {
           headers: { Authorization: `Bearer ${token}` },
-        })
+        });
 
         if (response.data.success && response.data.data.length > 0) {
           // Convertir les templates de la DB au format attendu
@@ -131,41 +133,41 @@ export default function EmailTemplatesPage() {
             subject: t.subject,
             html: t.htmlContent,
             variables: t.variables || [],
-          }))
-          setTemplates(dbTemplates)
+          }));
+          setTemplates(dbTemplates);
         } else {
           // Utiliser les templates par défaut
-          setTemplates(defaultTemplates)
+          setTemplates(defaultTemplates);
         }
       } catch (error: any) {
-        console.error('Erreur chargement templates:', error)
+        console.error("Erreur chargement templates:", error);
         // Utiliser les templates par défaut en cas d'erreur
-        setTemplates(defaultTemplates)
+        setTemplates(defaultTemplates);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchTemplates()
-  }, [])
+    fetchTemplates();
+  }, []);
 
   const handlePreview = (template: Template) => {
-    setSelectedTemplate(template)
-    setEditedContent(template.html)
-    setEditing(false)
-  }
+    setSelectedTemplate(template);
+    setEditedContent(template.html);
+    setEditing(false);
+  };
 
   const handleEdit = (template: Template) => {
-    setSelectedTemplate(template)
-    setEditedContent(template.html)
-    setEditing(true)
-  }
+    setSelectedTemplate(template);
+    setEditedContent(template.html);
+    setEditing(true);
+  };
 
   const handleSave = async () => {
-    if (!selectedTemplate) return
+    if (!selectedTemplate) return;
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       const response = await axios.put(
         `${API_URL}/api/v1/emails/templates/${selectedTemplate.type}`,
         {
@@ -178,8 +180,8 @@ export default function EmailTemplatesPage() {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
-      )
+        },
+      );
 
       if (response.data.success) {
         // Mettre à jour le template local avec les variables détectées
@@ -187,56 +189,58 @@ export default function EmailTemplatesPage() {
           ...selectedTemplate,
           html: editedContent,
           variables: response.data.data.variables || [],
-        }
-        setSelectedTemplate(updatedTemplate)
-        setEditing(false)
-        alert('Template sauvegardé avec succès !')
+        };
+        setSelectedTemplate(updatedTemplate);
+        setEditing(false);
+        alert("Template sauvegardé avec succès !");
       }
     } catch (error: any) {
-      console.error('Erreur sauvegarde template:', error)
-      alert(`Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`)
+      console.error("Erreur sauvegarde template:", error);
+      alert(
+        `Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`,
+      );
     }
-  }
+  };
 
   const handleCancel = () => {
     if (selectedTemplate) {
-      setEditedContent(selectedTemplate.html)
+      setEditedContent(selectedTemplate.html);
     }
-    setEditing(false)
-  }
+    setEditing(false);
+  };
 
   const handleAddVariable = () => {
-    if (!selectedTemplate || !newVariable.trim()) return
+    if (!selectedTemplate || !newVariable.trim()) return;
 
-    const variableName = newVariable.trim().replace(/[{}]/g, '')
+    const variableName = newVariable.trim().replace(/[{}]/g, "");
     if (selectedTemplate.variables.includes(variableName)) {
-      alert('Cette variable existe déjà')
-      return
+      alert("Cette variable existe déjà");
+      return;
     }
 
     const updatedTemplate = {
       ...selectedTemplate,
       variables: [...selectedTemplate.variables, variableName],
-    }
-    setSelectedTemplate(updatedTemplate)
-    setNewVariable('')
-  }
+    };
+    setSelectedTemplate(updatedTemplate);
+    setNewVariable("");
+  };
 
   const handleRemoveVariable = (variable: string) => {
-    if (!selectedTemplate) return
+    if (!selectedTemplate) return;
 
     const updatedTemplate = {
       ...selectedTemplate,
-      variables: selectedTemplate.variables.filter(v => v !== variable),
-    }
-    setSelectedTemplate(updatedTemplate)
-  }
+      variables: selectedTemplate.variables.filter((v) => v !== variable),
+    };
+    setSelectedTemplate(updatedTemplate);
+  };
 
   const handleSaveVariables = async () => {
-    if (!selectedTemplate) return
+    if (!selectedTemplate) return;
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       // Sauvegarder le template avec les variables mises à jour
       // Le backend détectera automatiquement les variables dans le HTML, mais on peut aussi les envoyer explicitement
       const response = await axios.put(
@@ -251,23 +255,25 @@ export default function EmailTemplatesPage() {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
-      )
+        },
+      );
 
       if (response.data.success) {
         // Mettre à jour avec les variables détectées par le backend (qui fusionnera avec celles du HTML)
         const updatedTemplate = {
           ...selectedTemplate,
           variables: response.data.data.variables || selectedTemplate.variables,
-        }
-        setSelectedTemplate(updatedTemplate)
-        alert('Variables sauvegardées avec succès !')
+        };
+        setSelectedTemplate(updatedTemplate);
+        alert("Variables sauvegardées avec succès !");
       }
     } catch (error: any) {
-      console.error('Erreur sauvegarde variables:', error)
-      alert(`Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`)
+      console.error("Erreur sauvegarde variables:", error);
+      alert(
+        `Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`,
+      );
     }
-  }
+  };
 
   return (
     <AdminLayout>
@@ -286,10 +292,12 @@ export default function EmailTemplatesPage() {
           {/* Liste des templates */}
           <div className="lg:col-span-1 space-y-4">
             {templates.map((template) => (
-              <Card 
-                key={template.type} 
+              <Card
+                key={template.type}
                 className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                  selectedTemplate?.type === template.type ? 'ring-2 ring-blue-500' : ''
+                  selectedTemplate?.type === template.type
+                    ? "ring-2 ring-blue-500"
+                    : ""
                 }`}
                 onClick={() => handlePreview(template)}
               >
@@ -303,27 +311,29 @@ export default function EmailTemplatesPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{template.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    {template.description}
+                  </p>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        handlePreview(template)
+                        e.stopPropagation();
+                        handlePreview(template);
                       }}
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Voir
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        handleEdit(template)
+                        e.stopPropagation();
+                        handleEdit(template);
                       }}
                     >
                       <Edit className="w-4 h-4 mr-2" />
@@ -351,7 +361,11 @@ export default function EmailTemplatesPage() {
                           <Save className="w-4 h-4 mr-2" />
                           Sauvegarder
                         </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancel}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancel}
+                        >
                           <X className="w-4 h-4 mr-2" />
                           Annuler
                         </Button>
@@ -362,27 +376,46 @@ export default function EmailTemplatesPage() {
                 <CardContent>
                   <Tabs defaultValue="preview" className="w-full">
                     <TabsList>
-                      <TabsTrigger value="preview">Prévisualisation</TabsTrigger>
+                      <TabsTrigger value="preview">
+                        Prévisualisation
+                      </TabsTrigger>
                       <TabsTrigger value="html">Code HTML</TabsTrigger>
                       <TabsTrigger value="variables">Variables</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="preview" className="space-y-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Sujet :</p>
-                        <p className="font-semibold">{selectedTemplate.subject}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Sujet :
+                        </p>
+                        <p className="font-semibold">
+                          {selectedTemplate.subject}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Aperçu :</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Aperçu :
+                        </p>
                         <div className="border rounded-lg p-4 bg-white">
-                          <div dangerouslySetInnerHTML={{ 
-                            __html: editedContent
-                              .replace(/{{firstName}}/g, 'Jean')
-                              .replace(/{{lastName}}/g, 'Dupont')
-                              .replace(/{{frontendUrl}}/g, 'http://localhost:8080')
-                              .replace(/{{verificationUrl}}/g, 'http://localhost:8080/verify-email?token=example')
-                              .replace(/{{resetUrl}}/g, 'http://localhost:8080/reset-password?token=example')
-                          }} />
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: editedContent
+                                .replace(/{{firstName}}/g, "Jean")
+                                .replace(/{{lastName}}/g, "Dupont")
+                                .replace(
+                                  /{{frontendUrl}}/g,
+                                  "http://localhost:8080",
+                                )
+                                .replace(
+                                  /{{verificationUrl}}/g,
+                                  "http://localhost:8080/verify-email?token=example",
+                                )
+                                .replace(
+                                  /{{resetUrl}}/g,
+                                  "http://localhost:8080/reset-password?token=example",
+                                ),
+                            }}
+                          />
                         </div>
                       </div>
                     </TabsContent>
@@ -390,7 +423,9 @@ export default function EmailTemplatesPage() {
                     <TabsContent value="html" className="space-y-4">
                       {editing ? (
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Éditer le HTML :</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Éditer le HTML :
+                          </p>
                           <textarea
                             className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             value={editedContent}
@@ -399,9 +434,13 @@ export default function EmailTemplatesPage() {
                         </div>
                       ) : (
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Code HTML :</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Code HTML :
+                          </p>
                           <pre className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs text-gray-900 dark:text-gray-100">
-                            <code className="text-gray-900 dark:text-gray-100">{selectedTemplate.html}</code>
+                            <code className="text-gray-900 dark:text-gray-100">
+                              {selectedTemplate.html}
+                            </code>
                           </pre>
                         </div>
                       )}
@@ -409,26 +448,51 @@ export default function EmailTemplatesPage() {
 
                     <TabsContent value="variables" className="space-y-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Variables disponibles :</p>
-                        
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                          Variables disponibles :
+                        </p>
+
                         {/* Liste des variables */}
                         <div className="space-y-2 mb-4">
                           {selectedTemplate.variables.length > 0 ? (
                             selectedTemplate.variables.map((variable) => (
-                              <div key={variable} className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                              <div
+                                key={variable}
+                                className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                              >
                                 <div className="flex items-center gap-2 flex-1">
                                   <code className="text-sm font-mono bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{`{{${variable}}}`}</code>
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {variable === 'firstName' && 'Prénom de l\'utilisateur'}
-                                    {variable === 'lastName' && 'Nom de l\'utilisateur'}
-                                    {variable === 'frontendUrl' && 'URL du frontend'}
-                                    {variable === 'verificationUrl' && 'URL de vérification email'}
-                                    {variable === 'resetUrl' && 'URL de réinitialisation mot de passe'}
-                                    {variable === 'resetLink' && 'URL de réinitialisation mot de passe'}
-                                    {variable === 'userName' && 'Nom d\'utilisateur'}
-                                    {variable === 'appName' && 'Nom de l\'application'}
-                                    {variable === 'expiryMinutes' && 'Minutes avant expiration'}
-                                    {!['firstName', 'lastName', 'frontendUrl', 'verificationUrl', 'resetUrl', 'resetLink', 'userName', 'appName', 'expiryMinutes'].includes(variable) && 'Variable personnalisée'}
+                                    {variable === "firstName" &&
+                                      "Prénom de l'utilisateur"}
+                                    {variable === "lastName" &&
+                                      "Nom de l'utilisateur"}
+                                    {variable === "frontendUrl" &&
+                                      "URL du frontend"}
+                                    {variable === "verificationUrl" &&
+                                      "URL de vérification email"}
+                                    {variable === "resetUrl" &&
+                                      "URL de réinitialisation mot de passe"}
+                                    {variable === "resetLink" &&
+                                      "URL de réinitialisation mot de passe"}
+                                    {variable === "userName" &&
+                                      "Nom d'utilisateur"}
+                                    {variable === "appName" &&
+                                      "Nom de l'application"}
+                                    {variable === "expiryMinutes" &&
+                                      "Minutes avant expiration"}
+                                    {![
+                                      "firstName",
+                                      "lastName",
+                                      "frontendUrl",
+                                      "verificationUrl",
+                                      "resetUrl",
+                                      "resetLink",
+                                      "userName",
+                                      "appName",
+                                      "expiryMinutes",
+                                    ].includes(variable) &&
+                                      "Variable personnalisée"}
                                   </span>
                                 </div>
                                 <Button
@@ -442,13 +506,18 @@ export default function EmailTemplatesPage() {
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">Aucune variable définie</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                              Aucune variable définie
+                            </p>
                           )}
                         </div>
 
                         {/* Ajouter une variable */}
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <Label htmlFor="new-variable" className="text-sm font-medium mb-2 block">
+                          <Label
+                            htmlFor="new-variable"
+                            className="text-sm font-medium mb-2 block"
+                          >
                             Ajouter une variable
                           </Label>
                           <div className="flex gap-2">
@@ -459,8 +528,8 @@ export default function EmailTemplatesPage() {
                               value={newVariable}
                               onChange={(e) => setNewVariable(e.target.value)}
                               onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleAddVariable()
+                                if (e.key === "Enter") {
+                                  handleAddVariable();
                                 }
                               }}
                               className="flex-1"
@@ -476,7 +545,9 @@ export default function EmailTemplatesPage() {
                             </Button>
                           </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            💡 Les variables sont automatiquement détectées dans le HTML. Vous pouvez aussi les ajouter manuellement ici.
+                            💡 Les variables sont automatiquement détectées dans
+                            le HTML. Vous pouvez aussi les ajouter manuellement
+                            ici.
                           </p>
                         </div>
 
@@ -501,7 +572,9 @@ export default function EmailTemplatesPage() {
                 <CardContent className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Sélectionnez un template pour le visualiser</p>
+                    <p className="text-gray-600">
+                      Sélectionnez un template pour le visualiser
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -510,5 +583,5 @@ export default function EmailTemplatesPage() {
         </div>
       </div>
     </AdminLayout>
-  )
+  );
 }

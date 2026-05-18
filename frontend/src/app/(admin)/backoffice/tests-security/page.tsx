@@ -1,86 +1,119 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
 import {
-  Play, Square, Loader2, Shield, RefreshCw, CheckCircle2, ExternalLink, FileText
-} from '@/lib/icons'
+  Play,
+  Square,
+  Loader2,
+  Shield,
+  RefreshCw,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+} from "@/lib/icons";
 
 interface TestItem {
-  id: string
-  name: string
-  description: string
-  category: string
-  enabled: boolean
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  enabled: boolean;
 }
 
 export default function SecurityTestsPage() {
-  const { user, loading: authLoading, isAuthenticated, token } = useAuth()
-  const [isRunning, setIsRunning] = useState(false)
-  const [logs, setLogs] = useState<string[]>([])
-  const [reportId, setReportId] = useState<string | null>(null)
-  const logsEndRef = useRef<HTMLDivElement>(null)
+  const { user, loading: authLoading, isAuthenticated, token } = useAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   const [availableTests] = useState<TestItem[]>([
-    { id: 'waf', name: 'WAF / Firewall', description: 'Règles WAF et blocage des requêtes malveillantes', category: 'Infrastructure', enabled: true },
-    { id: 'auth', name: 'Authentification', description: 'Tokens, sessions, permissions', category: 'Auth', enabled: true },
-    { id: 'injection', name: 'Injection', description: 'SQL, XSS, commandes', category: 'Vulnérabilités', enabled: true },
-    { id: 'headers', name: 'En-têtes sécurité', description: 'CSP, HSTS, X-Frame-Options', category: 'Headers', enabled: true },
-  ])
+    {
+      id: "waf",
+      name: "WAF / Firewall",
+      description: "Règles WAF et blocage des requêtes malveillantes",
+      category: "Infrastructure",
+      enabled: true,
+    },
+    {
+      id: "auth",
+      name: "Authentification",
+      description: "Tokens, sessions, permissions",
+      category: "Auth",
+      enabled: true,
+    },
+    {
+      id: "injection",
+      name: "Injection",
+      description: "SQL, XSS, commandes",
+      category: "Vulnérabilités",
+      enabled: true,
+    },
+    {
+      id: "headers",
+      name: "En-têtes sécurité",
+      description: "CSP, HSTS, X-Frame-Options",
+      category: "Headers",
+      enabled: true,
+    },
+  ]);
 
   useEffect(() => {
     if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs])
+  }, [logs]);
 
   const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString('fr-FR')
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-  }
+    const timestamp = new Date().toLocaleTimeString("fr-FR");
+    setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   const runSecurityTests = async () => {
     if (isRunning) {
-      setIsRunning(false)
-      addLog('⏹️ Tests arrêtés')
-      return
+      setIsRunning(false);
+      addLog("⏹️ Tests arrêtés");
+      return;
     }
 
-    setIsRunning(true)
-    setLogs([])
-    setReportId(null)
-    addLog('🚀 Démarrage des tests sécurité...')
+    setIsRunning(true);
+    setLogs([]);
+    setReportId(null);
+    addLog("🚀 Démarrage des tests sécurité...");
 
     try {
-      const response = await fetch('/api/test/run-security', {
-        method: 'POST',
+      const response = await fetch("/api/test/run-security", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ testName: 'Tests Sécurité' }),
-      })
+        body: JSON.stringify({ testName: "Tests Sécurité" }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `Erreur API: ${response.status}`)
+        throw new Error(data.error || `Erreur API: ${response.status}`);
       }
 
-      addLog(`✅ ${data.message || 'Rapport généré'}`)
+      addLog(`✅ ${data.message || "Rapport généré"}`);
       if (data.reportId) {
-        setReportId(data.reportId)
-        addLog(`📊 Rapport: ${data.reportId}`)
+        setReportId(data.reportId);
+        addLog(`📊 Rapport: ${data.reportId}`);
       }
-      addLog('🎉 Tests sécurité terminés. Consultez les rapports ci-dessous.')
+      addLog("🎉 Tests sécurité terminés. Consultez les rapports ci-dessous.");
     } catch (error: unknown) {
-      addLog(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+      addLog(
+        `❌ Erreur: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     } finally {
-      setIsRunning(false)
+      setIsRunning(false);
     }
-  }
+  };
 
   if (authLoading) {
     return (
@@ -91,7 +124,7 @@ export default function SecurityTestsPage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   if (!isAuthenticated) {
@@ -99,11 +132,13 @@ export default function SecurityTestsPage() {
       <AdminLayout>
         <div className="p-6">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">Vous devez être connecté.</p>
+            <p className="text-yellow-800 dark:text-yellow-200">
+              Vous devez être connecté.
+            </p>
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -124,8 +159,8 @@ export default function SecurityTestsPage() {
             disabled={!token}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               isRunning
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-amber-600 text-white hover:bg-amber-700'
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-amber-600 text-white hover:bg-amber-700"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isRunning ? (
@@ -147,16 +182,20 @@ export default function SecurityTestsPage() {
             Couverture des tests
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {availableTests.map(test => (
+            {availableTests.map((test) => (
               <div
                 key={test.id}
                 className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">{test.name}</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                    {test.name}
+                  </h4>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{test.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {test.description}
+                </p>
               </div>
             ))}
           </div>
@@ -172,7 +211,10 @@ export default function SecurityTestsPage() {
               Voir le rapport
             </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Rapport : <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{reportId}</code>
+              Rapport :{" "}
+              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                {reportId}
+              </code>
             </p>
           </div>
         )}
@@ -182,7 +224,10 @@ export default function SecurityTestsPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400">Terminal</span>
               <button
-                onClick={() => { setLogs([]); setReportId(null) }}
+                onClick={() => {
+                  setLogs([]);
+                  setReportId(null);
+                }}
                 className="text-gray-400 hover:text-white"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -190,7 +235,9 @@ export default function SecurityTestsPage() {
             </div>
             <div className="max-h-96 overflow-y-auto">
               {logs.map((log, idx) => (
-                <div key={idx} className="mb-1">{log}</div>
+                <div key={idx} className="mb-1">
+                  {log}
+                </div>
               ))}
               <div ref={logsEndRef} />
             </div>
@@ -209,5 +256,5 @@ export default function SecurityTestsPage() {
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }

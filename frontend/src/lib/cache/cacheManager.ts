@@ -14,7 +14,7 @@ interface CacheEntry<T> {
 interface CacheOptions {
   ttl?: number; // Time to live en millisecondes
   maxSize?: number; // Taille maximale du cache
-  storage?: 'memory' | 'localStorage' | 'indexedDB' | 'hybrid';
+  storage?: "memory" | "localStorage" | "indexedDB" | "hybrid";
   version?: number; // Version du cache pour invalidation
 }
 
@@ -22,8 +22,8 @@ class CacheManager {
   private memoryCache: Map<string, CacheEntry<any>> = new Map();
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes par défaut
   private readonly MAX_MEMORY_SIZE = 100; // Nombre maximum d'entrées en mémoire
-  private readonly STORAGE_PREFIX = 'jobbingtrack_cache_';
-  private readonly VERSION_KEY = 'jobbingtrack_cache_version';
+  private readonly STORAGE_PREFIX = "jobbingtrack_cache_";
+  private readonly VERSION_KEY = "jobbingtrack_cache_version";
   private currentVersion = 1;
 
   constructor() {
@@ -34,7 +34,7 @@ class CacheManager {
   }
 
   private initializeVersion() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const savedVersion = localStorage.getItem(this.VERSION_KEY);
       if (savedVersion) {
         this.currentVersion = parseInt(savedVersion, 10);
@@ -49,7 +49,7 @@ class CacheManager {
    */
   async get<T>(key: string, options: CacheOptions = {}): Promise<T | null> {
     const fullKey = this.getFullKey(key);
-    
+
     // 1. Vérifier le cache mémoire (le plus rapide)
     const memoryEntry = this.memoryCache.get(fullKey);
     if (memoryEntry && this.isValid(memoryEntry, options.version)) {
@@ -57,7 +57,7 @@ class CacheManager {
     }
 
     // 2. Vérifier localStorage
-    if (options.storage !== 'memory' && typeof window !== 'undefined') {
+    if (options.storage !== "memory" && typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(fullKey);
         if (stored) {
@@ -72,7 +72,7 @@ class CacheManager {
           }
         }
       } catch (error) {
-        console.warn('[CACHE] Erreur lecture localStorage:', error);
+        console.warn("[CACHE] Erreur lecture localStorage:", error);
       }
     }
 
@@ -82,22 +82,26 @@ class CacheManager {
   /**
    * Stocker une valeur dans le cache
    */
-  async set<T>(key: string, data: T, options: CacheOptions = {}): Promise<void> {
+  async set<T>(
+    key: string,
+    data: T,
+    options: CacheOptions = {},
+  ): Promise<void> {
     const fullKey = this.getFullKey(key);
     const ttl = options.ttl || this.DEFAULT_TTL;
     const now = Date.now();
-    
+
     const entry: CacheEntry<T> = {
       data,
       timestamp: now,
       expiresAt: now + ttl,
       key: fullKey,
-      version: options.version || this.currentVersion
+      version: options.version || this.currentVersion,
     };
 
     // 1. Stocker en mémoire (toujours)
     this.memoryCache.set(fullKey, entry);
-    
+
     // Limiter la taille du cache mémoire
     if (this.memoryCache.size > this.MAX_MEMORY_SIZE) {
       const firstKey = this.memoryCache.keys().next().value;
@@ -107,7 +111,7 @@ class CacheManager {
     }
 
     // 2. Stocker dans localStorage si demandé
-    if (options.storage !== 'memory' && typeof window !== 'undefined') {
+    if (options.storage !== "memory" && typeof window !== "undefined") {
       try {
         localStorage.setItem(fullKey, JSON.stringify(entry));
       } catch (error) {
@@ -117,7 +121,10 @@ class CacheManager {
           try {
             localStorage.setItem(fullKey, JSON.stringify(entry));
           } catch (retryError) {
-            console.warn('[CACHE] Impossible de stocker dans localStorage:', retryError);
+            console.warn(
+              "[CACHE] Impossible de stocker dans localStorage:",
+              retryError,
+            );
           }
         }
       }
@@ -130,12 +137,12 @@ class CacheManager {
   async delete(key: string): Promise<void> {
     const fullKey = this.getFullKey(key);
     this.memoryCache.delete(fullKey);
-    
-    if (typeof window !== 'undefined') {
+
+    if (typeof window !== "undefined") {
       try {
         localStorage.removeItem(fullKey);
       } catch (error) {
-        console.warn('[CACHE] Erreur suppression localStorage:', error);
+        console.warn("[CACHE] Erreur suppression localStorage:", error);
       }
     }
   }
@@ -145,7 +152,7 @@ class CacheManager {
    */
   async has(key: string): Promise<boolean> {
     const fullKey = this.getFullKey(key);
-    
+
     // Vérifier en mémoire
     if (this.memoryCache.has(fullKey)) {
       const entry = this.memoryCache.get(fullKey);
@@ -155,7 +162,7 @@ class CacheManager {
     }
 
     // Vérifier localStorage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(fullKey);
         if (stored) {
@@ -177,7 +184,7 @@ class CacheManager {
    */
   private cleanupExpired(): void {
     const now = Date.now();
-    
+
     // Nettoyer le cache mémoire
     for (const [key, entry] of this.memoryCache.entries()) {
       if (entry.expiresAt < now) {
@@ -186,7 +193,7 @@ class CacheManager {
     }
 
     // Nettoyer localStorage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         const keys = Object.keys(localStorage);
         for (const key of keys) {
@@ -206,7 +213,7 @@ class CacheManager {
           }
         }
       } catch (error) {
-        console.warn('[CACHE] Erreur nettoyage localStorage:', error);
+        console.warn("[CACHE] Erreur nettoyage localStorage:", error);
       }
     }
   }
@@ -215,11 +222,11 @@ class CacheManager {
    * Nettoyer les entrées les plus anciennes
    */
   private cleanupOldest(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       const entries: Array<{ key: string; timestamp: number }> = [];
-      
+
       // Collecter toutes les entrées du cache
       for (const [key, entry] of this.memoryCache.entries()) {
         entries.push({ key, timestamp: entry.timestamp });
@@ -244,14 +251,14 @@ class CacheManager {
       // Trier par timestamp et supprimer les 20% les plus anciens
       entries.sort((a, b) => a.timestamp - b.timestamp);
       const toDelete = Math.ceil(entries.length * 0.2);
-      
+
       for (let i = 0; i < toDelete; i++) {
         const entry = entries[i];
         this.memoryCache.delete(entry.key);
         localStorage.removeItem(entry.key);
       }
     } catch (error) {
-      console.warn('[CACHE] Erreur nettoyage anciennes entrées:', error);
+      console.warn("[CACHE] Erreur nettoyage anciennes entrées:", error);
     }
   }
 
@@ -260,8 +267,8 @@ class CacheManager {
    */
   async clear(): Promise<void> {
     this.memoryCache.clear();
-    
-    if (typeof window !== 'undefined') {
+
+    if (typeof window !== "undefined") {
       try {
         const keys = Object.keys(localStorage);
         for (const key of keys) {
@@ -270,7 +277,7 @@ class CacheManager {
           }
         }
       } catch (error) {
-        console.warn('[CACHE] Erreur vidage cache:', error);
+        console.warn("[CACHE] Erreur vidage cache:", error);
       }
     }
   }
@@ -280,7 +287,7 @@ class CacheManager {
    */
   invalidate(): void {
     this.currentVersion++;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(this.VERSION_KEY, String(this.currentVersion));
     }
     this.clear();
@@ -298,7 +305,7 @@ class CacheManager {
    */
   private isValid(entry: CacheEntry<any>, requiredVersion?: number): boolean {
     const now = Date.now();
-    
+
     // Vérifier l'expiration
     if (entry.expiresAt < now) {
       return false;
@@ -323,8 +330,8 @@ class CacheManager {
     version: number;
   } {
     let localStorageSize = 0;
-    
-    if (typeof window !== 'undefined') {
+
+    if (typeof window !== "undefined") {
       try {
         const keys = Object.keys(localStorage);
         for (const key of keys) {
@@ -340,7 +347,7 @@ class CacheManager {
     return {
       memorySize: this.memoryCache.size,
       localStorageSize,
-      version: this.currentVersion
+      version: this.currentVersion,
     };
   }
 }
@@ -354,7 +361,7 @@ export const cacheManager = new CacheManager();
 export function useCache<T>(
   key: string,
   fetcher: () => Promise<T>,
-  options: CacheOptions = {}
+  options: CacheOptions = {},
 ): {
   data: T | null;
   loading: boolean;
@@ -375,7 +382,7 @@ export function useCache<T>(
       if (cached !== null) {
         setData(cached);
         setLoading(false);
-        
+
         // Rafraîchir en arrière-plan si nécessaire
         if (options.ttl && options.ttl > 0) {
           fetcher()
@@ -384,7 +391,10 @@ export function useCache<T>(
               setData(freshData);
             })
             .catch((err) => {
-              console.warn('[CACHE] Erreur rafraîchissement en arrière-plan:', err);
+              console.warn(
+                "[CACHE] Erreur rafraîchissement en arrière-plan:",
+                err,
+              );
             });
         }
       } else {
@@ -408,10 +418,9 @@ export function useCache<T>(
     data,
     loading,
     error,
-    refetch: loadData
+    refetch: loadData,
   };
 }
 
 // Import React pour le hook
-import React from 'react';
-
+import React from "react";

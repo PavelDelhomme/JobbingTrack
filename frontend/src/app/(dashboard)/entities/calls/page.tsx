@@ -1,215 +1,238 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import Link from 'next/link'
-import { formatLocalDateTime } from '@/lib/utils/date'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import Link from "next/link";
+import { formatLocalDateTime } from "@/lib/utils/date";
 
 interface Call {
-  id: string
-  userId: string
-  applicationId: string
-  contactId?: string
-  type: 'OUTGOING' | 'INCOMING' | 'MISSED'
-  scheduledDate?: string
-  callDate?: string
-  duration?: number
-  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_ANSWER' | 'VOICEMAIL' | 'RESCHEDULED'
-  notes?: string
-  outcome?: string
-  followUpNeeded: boolean
-  phoneNumber?: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  userId: string;
+  applicationId: string;
+  contactId?: string;
+  type: "OUTGOING" | "INCOMING" | "MISSED";
+  scheduledDate?: string;
+  callDate?: string;
+  duration?: number;
+  status:
+    | "SCHEDULED"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "NO_ANSWER"
+    | "VOICEMAIL"
+    | "RESCHEDULED";
+  notes?: string;
+  outcome?: string;
+  followUpNeeded: boolean;
+  phoneNumber?: string;
+  createdAt: string;
+  updatedAt: string;
   application?: {
-    id: string
-    position: string
+    id: string;
+    position: string;
     company: {
-      id: string
-      name: string
-    }
-  }
+      id: string;
+      name: string;
+    };
+  };
   contact?: {
-    id: string
-    firstName: string
-    lastName: string
-    position?: string
-    phone?: string
-    email?: string
-  }
+    id: string;
+    firstName: string;
+    lastName: string;
+    position?: string;
+    phone?: string;
+    email?: string;
+  };
 }
 
 interface Stats {
-  total: number
-  completed: number
-  scheduled: number
-  completionRate: string
-  averageDuration: number
-  byType: Record<string, number>
-  byOutcome: Record<string, number>
-  monthlyTrend?: any[]
+  total: number;
+  completed: number;
+  scheduled: number;
+  completionRate: string;
+  averageDuration: number;
+  byType: Record<string, number>;
+  byOutcome: Record<string, number>;
+  monthlyTrend?: any[];
 }
 
 const CALL_TYPES = {
-  OUTGOING: { label: 'Sortant', icon: '📞', color: 'blue' },
-  INCOMING: { label: 'Entrant', icon: '📱', color: 'green' },
-  MISSED: { label: 'Manqué', icon: '❌', color: 'red' },
-}
+  OUTGOING: { label: "Sortant", icon: "📞", color: "blue" },
+  INCOMING: { label: "Entrant", icon: "📱", color: "green" },
+  MISSED: { label: "Manqué", icon: "❌", color: "red" },
+};
 
 const CALL_STATUS = {
-  SCHEDULED: { label: 'Planifié', color: 'yellow' },
-  COMPLETED: { label: 'Terminé', color: 'green' },
-  CANCELLED: { label: 'Annulé', color: 'gray' },
-  NO_ANSWER: { label: 'Pas de réponse', color: 'orange' },
-  VOICEMAIL: { label: 'Message vocal', color: 'purple' },
-  RESCHEDULED: { label: 'Replanifié', color: 'blue' },
-}
+  SCHEDULED: { label: "Planifié", color: "yellow" },
+  COMPLETED: { label: "Terminé", color: "green" },
+  CANCELLED: { label: "Annulé", color: "gray" },
+  NO_ANSWER: { label: "Pas de réponse", color: "orange" },
+  VOICEMAIL: { label: "Message vocal", color: "purple" },
+  RESCHEDULED: { label: "Replanifié", color: "blue" },
+};
 
 export default function CallsPage() {
-  const { token } = useAuth()
-  const [calls, setCalls] = useState<Call[]>([])
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { token } = useAuth();
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    status: '',
-    type: '',
-    applicationId: '',
-    contactId: '',
-    search: ''
-  })
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+    status: "",
+    type: "",
+    applicationId: "",
+    contactId: "",
+    search: "",
+  });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (token) {
-      fetchCalls()
-      fetchStats()
+      fetchCalls();
+      fetchStats();
     }
-  }, [token, page, filters])
+  }, [token, page, filters]);
 
   const fetchCalls = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: "20",
         ...(filters.status && { status: filters.status }),
         ...(filters.type && { type: filters.type }),
         ...(filters.applicationId && { applicationId: filters.applicationId }),
         ...(filters.contactId && { contactId: filters.contactId }),
-      })
+      });
 
-      const response = await fetch(`http://localhost:8080/api/v1/calls?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await fetch(
+        `http://localhost:8080/api/v1/calls?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      if (!response.ok) throw new Error('Erreur lors du chargement des appels')
+      if (!response.ok) throw new Error("Erreur lors du chargement des appels");
 
-      const data = await response.json()
-      setCalls(data.calls || [])
-      setTotalPages(data.pagination?.pages || 1)
-      setError(null)
+      const data = await response.json();
+      setCalls(data.calls || []);
+      setTotalPages(data.pagination?.pages || 1);
+      setError(null);
     } catch (err: any) {
-      setError(err.message)
-      console.error('Erreur:', err)
+      setError(err.message);
+      console.error("Erreur:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/calls/stats/overview', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await fetch(
+        "http://localhost:8080/api/v1/calls/stats/overview",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       if (response.ok) {
-        const data = await response.json()
-        setStats(data.stats)
+        const data = await response.json();
+        setStats(data.stats);
       }
     } catch (err) {
-      console.error('Erreur stats:', err)
+      console.error("Erreur stats:", err);
       // ✅ Utiliser des stats par défaut si l'endpoint n'existe pas encore
       setStats({
         total: calls.length,
         byType: {
-          INCOMING: calls.filter(c => c.type === 'INCOMING').length,
-          OUTGOING: calls.filter(c => c.type === 'OUTGOING').length
+          INCOMING: calls.filter((c) => c.type === "INCOMING").length,
+          OUTGOING: calls.filter((c) => c.type === "OUTGOING").length,
         },
-        completed: calls.filter(c => c.status === 'COMPLETED').length,
-        scheduled: calls.filter(c => c.status === 'SCHEDULED').length,
-        completionRate: calls.length > 0 ? ((calls.filter(c => c.status === 'COMPLETED').length / calls.length) * 100).toFixed(1) : '0',
+        completed: calls.filter((c) => c.status === "COMPLETED").length,
+        scheduled: calls.filter((c) => c.status === "SCHEDULED").length,
+        completionRate:
+          calls.length > 0
+            ? (
+                (calls.filter((c) => c.status === "COMPLETED").length /
+                  calls.length) *
+                100
+              ).toFixed(1)
+            : "0",
         averageDuration: 0,
         byOutcome: {},
-        monthlyTrend: []
-      })
+        monthlyTrend: [],
+      });
     }
-  }
+  };
 
   const deleteCall = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appel ?')) return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet appel ?")) return;
 
     try {
       const response = await fetch(`http://localhost:8080/api/v1/calls/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (!response.ok) throw new Error('Erreur lors de la suppression')
+      if (!response.ok) throw new Error("Erreur lors de la suppression");
 
-      await fetchCalls()
-      await fetchStats()
+      await fetchCalls();
+      await fetchStats();
     } catch (err: any) {
-      alert(err.message)
+      alert(err.message);
     }
-  }
+  };
 
   const completeCall = async (id: string) => {
-    const duration = prompt('Durée de l\'appel (en secondes) :')
-    const outcome = prompt('Résultat de l\'appel :')
+    const duration = prompt("Durée de l'appel (en secondes) :");
+    const outcome = prompt("Résultat de l'appel :");
 
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/calls/${id}/complete`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `http://localhost:8080/api/v1/calls/${id}/complete`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            duration: duration ? parseInt(duration) : null,
+            outcome,
+          }),
         },
-        body: JSON.stringify({
-          duration: duration ? parseInt(duration) : null,
-          outcome
-        })
-      })
+      );
 
-      if (!response.ok) throw new Error('Erreur lors de la complétion')
+      if (!response.ok) throw new Error("Erreur lors de la complétion");
 
-      await fetchCalls()
-      await fetchStats()
+      await fetchCalls();
+      await fetchStats();
     } catch (err: any) {
-      alert(err.message)
+      alert(err.message);
     }
-  }
+  };
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A'
-    const minutes = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${minutes}m ${secs}s`
-  }
+    if (!seconds) return "N/A";
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}m ${secs}s`;
+  };
 
-  const formatDate = (date?: string) => (date ? formatLocalDateTime(date) : 'Non défini')
+  const formatDate = (date?: string) =>
+    date ? formatLocalDateTime(date) : "Non défini";
 
   return (
     <AdminLayout>
@@ -236,31 +259,41 @@ export default function CallsPage() {
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">Total</div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                Total
+              </div>
               <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.total}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">Terminés</div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                Terminés
+              </div>
               <div className="text-3xl font-bold text-green-600">
                 {stats.completed}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">Planifiés</div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                Planifiés
+              </div>
               <div className="text-3xl font-bold text-yellow-600">
                 {stats.scheduled}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">Taux complétion</div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                Taux complétion
+              </div>
               <div className="text-3xl font-bold text-blue-600">
                 {stats.completionRate}%
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">Durée moy.</div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                Durée moy.
+              </div>
               <div className="text-3xl font-bold text-purple-600">
                 {Math.floor(stats.averageDuration / 60)}m
               </div>
@@ -277,12 +310,16 @@ export default function CallsPage() {
               </label>
               <select
                 value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">Tous les statuts</option>
                 {Object.entries(CALL_STATUS).map(([key, value]) => (
-                  <option key={key} value={key}>{value.label}</option>
+                  <option key={key} value={key}>
+                    {value.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -292,12 +329,16 @@ export default function CallsPage() {
               </label>
               <select
                 value={filters.type}
-                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, type: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">Tous les types</option>
                 {Object.entries(CALL_TYPES).map(([key, value]) => (
-                  <option key={key} value={key}>{value.label}</option>
+                  <option key={key} value={key}>
+                    {value.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -308,7 +349,9 @@ export default function CallsPage() {
               <input
                 type="text"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
                 placeholder="Rechercher..."
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
@@ -319,7 +362,9 @@ export default function CallsPage() {
         {/* Liste des appels */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="text-gray-600 dark:text-gray-400">Chargement...</div>
+            <div className="text-gray-600 dark:text-gray-400">
+              Chargement...
+            </div>
           </div>
         ) : error ? (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -327,7 +372,9 @@ export default function CallsPage() {
           </div>
         ) : calls.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-600 dark:text-gray-400">Aucun appel trouvé</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Aucun appel trouvé
+            </p>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -361,13 +408,18 @@ export default function CallsPage() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {calls.map((call) => {
-                    const typeInfo = CALL_TYPES[call.type]
-                    const statusInfo = CALL_STATUS[call.status]
+                    const typeInfo = CALL_TYPES[call.type];
+                    const statusInfo = CALL_STATUS[call.status];
 
                     return (
-                      <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr
+                        key={call.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}
+                          >
                             {typeInfo.icon} {typeInfo.label}
                           </span>
                         </td>
@@ -380,7 +432,8 @@ export default function CallsPage() {
                           </div>
                           {call.contact && (
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Contact: {call.contact.firstName} {call.contact.lastName}
+                              Contact: {call.contact.firstName}{" "}
+                              {call.contact.lastName}
                             </div>
                           )}
                         </td>
@@ -391,12 +444,16 @@ export default function CallsPage() {
                           {formatDuration(call.duration)}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}
+                          >
                             {statusInfo.label}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                          <div className="max-w-xs truncate">{call.outcome || '-'}</div>
+                          <div className="max-w-xs truncate">
+                            {call.outcome || "-"}
+                          </div>
                           {call.followUpNeeded && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mt-1">
                               ⚠️ Relance requise
@@ -405,7 +462,7 @@ export default function CallsPage() {
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
-                            {call.status === 'SCHEDULED' && (
+                            {call.status === "SCHEDULED" && (
                               <button
                                 onClick={() => completeCall(call.id)}
                                 className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
@@ -429,7 +486,7 @@ export default function CallsPage() {
                           </div>
                         </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -438,11 +495,14 @@ export default function CallsPage() {
             {/* Mobile Card View */}
             <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
               {calls.map((call) => {
-                const typeInfo = CALL_TYPES[call.type]
-                const statusInfo = CALL_STATUS[call.status]
+                const typeInfo = CALL_TYPES[call.type];
+                const statusInfo = CALL_STATUS[call.status];
 
                 return (
-                  <div key={call.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div
+                    key={call.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3 flex-1">
                         <div className="h-10 w-10 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-lg">
@@ -450,36 +510,45 @@ export default function CallsPage() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}
+                            >
                               {typeInfo.icon} {typeInfo.label}
                             </span>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}
+                            >
                               {statusInfo.label}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {call.application?.company.name} - {call.application?.position}
+                            {call.application?.company.name} -{" "}
+                            {call.application?.position}
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      <p>📅 {formatDate(call.callDate || call.scheduledDate)}</p>
+                      <p>
+                        📅 {formatDate(call.callDate || call.scheduledDate)}
+                      </p>
                       <p>⏱️ {formatDuration(call.duration)}</p>
                       {call.contact && (
-                        <p>👤 {call.contact.firstName} {call.contact.lastName}</p>
+                        <p>
+                          👤 {call.contact.firstName} {call.contact.lastName}
+                        </p>
                       )}
-                      {call.outcome && (
-                        <p>📝 {call.outcome}</p>
-                      )}
+                      {call.outcome && <p>📝 {call.outcome}</p>}
                       {call.followUpNeeded && (
-                        <p className="text-orange-600 dark:text-orange-400">⚠️ Relance requise</p>
+                        <p className="text-orange-600 dark:text-orange-400">
+                          ⚠️ Relance requise
+                        </p>
                       )}
                     </div>
 
                     <div className="ml-13 flex gap-2">
-                      {call.status === 'SCHEDULED' && (
+                      {call.status === "SCHEDULED" && (
                         <button
                           onClick={() => completeCall(call.id)}
                           className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
@@ -502,7 +571,7 @@ export default function CallsPage() {
                       </button>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -512,7 +581,7 @@ export default function CallsPage() {
         {totalPages > 1 && (
           <div className="flex justify-center gap-2">
             <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -522,7 +591,7 @@ export default function CallsPage() {
               Page {page} / {totalPages}
             </span>
             <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -554,5 +623,5 @@ export default function CallsPage() {
         </div>
       )}
     </AdminLayout>
-  )
+  );
 }

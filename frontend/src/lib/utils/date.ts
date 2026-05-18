@@ -6,12 +6,15 @@
  * (= UTC toute l’année, souvent incohérent avec une horloge France métropolitaine en été).
  */
 
-const defaultLocale = typeof navigator !== 'undefined' ? navigator.language : 'fr-FR';
+const defaultLocale =
+  typeof navigator !== "undefined" ? navigator.language : "fr-FR";
 
 /**
  * Fuseau annoncé par le navigateur (sous Jest : **TZ**).
  */
-function browserTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'timeZone'> | Record<string, never> {
+function browserTimeZoneOptions():
+  | Pick<Intl.DateTimeFormatOptions, "timeZone">
+  | Record<string, never> {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return tz ? { timeZone: tz } : {};
@@ -21,17 +24,17 @@ function browserTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'timeZone'> 
 }
 
 /** Fuseaux équivalents UTC où l’affichage « heure locale » = heure UTC (décalage ~0 h / ~2 h vs France). */
-const UTC_LIKE_MISLEADING_ZONES = new Set(['Atlantic/Reykjavik', 'Iceland']);
+const UTC_LIKE_MISLEADING_ZONES = new Set(["Atlantic/Reykjavik", "Iceland"]);
 
 function readEnvDisplayTimeZone(): string | null {
-  if (typeof process === 'undefined') return null;
-  for (const key of ['NEXT_PUBLIC_CHART_TIMEZONE', 'NEXT_PUBLIC_TZ'] as const) {
+  if (typeof process === "undefined") return null;
+  for (const key of ["NEXT_PUBLIC_CHART_TIMEZONE", "NEXT_PUBLIC_TZ"] as const) {
     const v = process.env[key];
-    if (typeof v !== 'string') continue;
+    if (typeof v !== "string") continue;
     const t = v.trim();
     if (!t) continue;
     try {
-      Intl.DateTimeFormat('en-US', { timeZone: t }).format(new Date());
+      Intl.DateTimeFormat("en-US", { timeZone: t }).format(new Date());
       return t;
     } catch {
       /* IANA inconnu pour ICU */
@@ -45,16 +48,19 @@ function readEnvDisplayTimeZone(): string | null {
  * Priorité : env **NEXT_PUBLIC_CHART_TIMEZONE** puis **NEXT_PUBLIC_TZ** ; sinon repli Paris si
  * `Intl` annonce Reykjavik / Islande ; sinon fuseau navigateur.
  */
-export function displayTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'timeZone'> | Record<string, never> {
+export function displayTimeZoneOptions():
+  | Pick<Intl.DateTimeFormatOptions, "timeZone">
+  | Record<string, never> {
   const fromEnv = readEnvDisplayTimeZone();
   if (fromEnv) return { timeZone: fromEnv };
 
   const br = browserTimeZoneOptions();
-  const id = 'timeZone' in br && typeof br.timeZone === 'string' ? br.timeZone : '';
+  const id =
+    "timeZone" in br && typeof br.timeZone === "string" ? br.timeZone : "";
   if (id && UTC_LIKE_MISLEADING_ZONES.has(id)) {
-    const fallback = 'Europe/Paris';
+    const fallback = "Europe/Paris";
     try {
-      Intl.DateTimeFormat('en-US', { timeZone: fallback }).format(new Date());
+      Intl.DateTimeFormat("en-US", { timeZone: fallback }).format(new Date());
       return { timeZone: fallback };
     } catch {
       return br;
@@ -66,17 +72,18 @@ export function displayTimeZoneOptions(): Pick<Intl.DateTimeFormatOptions, 'time
 /** Fuseau brut `Intl` (diagnostic). */
 export function getResolvedBrowserTimeZoneId(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
   } catch {
-    return '';
+    return "";
   }
 }
 
 /** Fuseau réellement utilisé pour l’affichage (après env + repli Reykjavik). */
 export function getEffectiveDisplayTimeZoneId(): string {
   const o = displayTimeZoneOptions();
-  if ('timeZone' in o && typeof o.timeZone === 'string' && o.timeZone) return o.timeZone;
-  return getResolvedBrowserTimeZoneId() || '—';
+  if ("timeZone" in o && typeof o.timeZone === "string" && o.timeZone)
+    return o.timeZone;
+  return getResolvedBrowserTimeZoneId() || "—";
 }
 
 /**
@@ -84,26 +91,26 @@ export function getEffectiveDisplayTimeZoneId(): string {
  * Les sérialisations PostgreSQL / Prisma sans suffixe sont traitées comme **UTC** (pas heure locale ambiguë).
  */
 export function normalizeMetricTimestampToIso(value: unknown): string {
-  if (value == null) return '';
+  if (value == null) return "";
   if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     const ms = value < 1e12 ? value * 1000 : value;
     const d = new Date(ms);
-    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString();
   }
   const s = String(value).trim();
-  if (!s) return '';
+  if (!s) return "";
   // Epoch en chaîne (ms ou s) — ex. sérialisation JSON atypique
   if (/^\d{10,13}$/.test(s)) {
     const n = Number(s);
     const ms = s.length <= 10 ? n * 1000 : n;
     const d = new Date(ms);
-    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString();
   }
   if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) return s;
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) return `${s}Z`;
   const pg = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d+)?$/.exec(s);
-  if (pg) return `${pg[1]}T${pg[2]}${pg[3] || ''}Z`;
+  if (pg) return `${pg[1]}T${pg[2]}${pg[3] || ""}Z`;
   return s;
 }
 
@@ -114,40 +121,43 @@ export function normalizeMetricTimestampToIso(value: unknown): string {
  */
 export function formatLocalDateTime(
   value: string | Date | number | null | undefined,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
-  if (value == null) return '—';
+  if (value == null) return "—";
   let d: Date;
-  if (typeof value === 'object' && value !== null && 'getTime' in value) {
+  if (typeof value === "object" && value !== null && "getTime" in value) {
     d = value as Date;
-  } else if (typeof value === 'string') {
+  } else if (typeof value === "string") {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
-  } else if (typeof value === 'number' && Number.isFinite(value)) {
+  } else if (typeof value === "number" && Number.isFinite(value)) {
     const n = value as number;
     const ms = n < 1e12 ? n * 1000 : n;
     d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return "—";
 
   const resolved: Intl.DateTimeFormatOptions = {
     ...displayTimeZoneOptions(),
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZoneName: 'short',
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
     ...options,
   };
 
   if (resolved.dateStyle != null || resolved.timeStyle != null) {
     delete resolved.timeZoneName;
   }
-  if ((resolved.dateStyle != null || resolved.timeStyle != null) && resolved.timeZone == null) {
+  if (
+    (resolved.dateStyle != null || resolved.timeStyle != null) &&
+    resolved.timeZone == null
+  ) {
     Object.assign(resolved, displayTimeZoneOptions());
   }
 
@@ -159,27 +169,27 @@ export function formatLocalDateTime(
  */
 export function formatLocalDate(
   value: string | Date | number | null | undefined,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
-  if (value == null) return '—';
+  if (value == null) return "—";
   let d: Date;
-  if (typeof value === 'object' && value !== null && 'getTime' in value) {
+  if (typeof value === "object" && value !== null && "getTime" in value) {
     d = value as Date;
-  } else if (typeof value === 'string') {
+  } else if (typeof value === "string") {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
-  } else if (typeof value === 'number' && Number.isFinite(value)) {
+  } else if (typeof value === "number" && Number.isFinite(value)) {
     const n = value as number;
     const ms = n < 1e12 ? n * 1000 : n;
     d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString(defaultLocale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     ...displayTimeZoneOptions(),
     ...options,
   });
@@ -189,27 +199,27 @@ export function formatLocalDate(
  * Formate en heure locale pour les logs (date + heure avec secondes).
  */
 export function formatLocalTime(
-  value: string | Date | number | null | undefined
+  value: string | Date | number | null | undefined,
 ): string {
-  if (value == null) return '—';
+  if (value == null) return "—";
   let d: Date;
-  if (typeof value === 'object' && value !== null && 'getTime' in value) {
+  if (typeof value === "object" && value !== null && "getTime" in value) {
     d = value as Date;
-  } else if (typeof value === 'string') {
+  } else if (typeof value === "string") {
     const iso = normalizeMetricTimestampToIso(value);
     d = new Date(iso || value);
-  } else if (typeof value === 'number' && Number.isFinite(value)) {
+  } else if (typeof value === "number" && Number.isFinite(value)) {
     const n = value as number;
     const ms = n < 1e12 ? n * 1000 : n;
     d = new Date(ms);
   } else {
     d = new Date(value as number);
   }
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString(defaultLocale, {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: false,
     ...displayTimeZoneOptions(),
   });
@@ -225,8 +235,8 @@ export function parseChartTimestamp(value: unknown): Date | null {
 
   let v: unknown = value;
   for (let depth = 0; depth < 6; depth += 1) {
-    if (v == null || typeof v !== 'object') break;
-    if ('value' in v && (v as { value: unknown }).value !== undefined) {
+    if (v == null || typeof v !== "object") break;
+    if ("value" in v && (v as { value: unknown }).value !== undefined) {
       const inner = (v as { value: unknown }).value;
       if (inner === v) break;
       v = inner;
@@ -235,7 +245,7 @@ export function parseChartTimestamp(value: unknown): Date | null {
     break;
   }
 
-  if (typeof v === 'string') {
+  if (typeof v === "string") {
     const t = v.trim();
     if (/^\d{10,13}$/.test(t)) {
       const n = Number(t);
@@ -244,12 +254,12 @@ export function parseChartTimestamp(value: unknown): Date | null {
       return Number.isNaN(d.getTime()) ? null : d;
     }
   }
-  if (typeof v === 'number' && Number.isFinite(v)) {
+  if (typeof v === "number" && Number.isFinite(v)) {
     const ms = v < 1e12 ? v * 1000 : v;
     const d = new Date(ms);
     return Number.isNaN(d.getTime()) ? null : d;
   }
-  if (typeof v === 'object' && v !== null && 'getTime' in v) {
+  if (typeof v === "object" && v !== null && "getTime" in v) {
     const d = v as Date;
     return Number.isNaN(d.getTime()) ? null : d;
   }
@@ -272,11 +282,11 @@ export function metricTimestampToMs(value: unknown): number | null {
  */
 export function metricRowToTimeMs(
   row: Record<string, unknown>,
-  normalizedIso: string
+  normalizedIso: string,
 ): number | null {
   const direct = row.timestampMs;
-  if (typeof direct === 'number' && Number.isFinite(direct)) return direct;
-  if (typeof direct === 'string' && /^\d{10,13}$/.test(direct.trim())) {
+  if (typeof direct === "number" && Number.isFinite(direct)) return direct;
+  if (typeof direct === "string" && /^\d{10,13}$/.test(direct.trim())) {
     const t = direct.trim();
     const n = Number(t);
     const ms = t.length <= 10 ? n * 1000 : n;
@@ -289,27 +299,27 @@ export function metricRowToTimeMs(
 /** Graduations d’axe : heure locale (option jour si série longue). */
 export function formatLocalChartAxisTick(
   value: unknown,
-  opts?: { withDate?: boolean }
+  opts?: { withDate?: boolean },
 ): string {
   const d = parseChartTimestamp(value);
-  if (!d) return '';
+  if (!d) return "";
   const withDate = opts?.withDate ?? false;
   /** `timeZone` en tête : certains moteurs appliquent mieux le fuseau qu’avec un spread en fin d’objet. */
   const tz = displayTimeZoneOptions();
   if (withDate) {
     return d.toLocaleString(defaultLocale, {
       ...tz,
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: false,
     });
   }
   return d.toLocaleTimeString(defaultLocale, {
     ...tz,
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   });
 }

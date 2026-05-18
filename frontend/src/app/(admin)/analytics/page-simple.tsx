@@ -1,22 +1,22 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { AdminLayout } from '@/components/features'
-import { useAuth } from '@/lib/hooks/auth'
-import { FRONTEND_URLS } from '@/config/ports.config'
-import axios from 'axios'
+import { useEffect, useState } from "react";
+import { AdminLayout } from "@/components/features";
+import { useAuth } from "@/lib/hooks/auth";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import axios from "axios";
 
-const API_URL = FRONTEND_URLS.api
+const API_URL = FRONTEND_URLS.api;
 
 export default function AnalyticsPage() {
-  const { token } = useAuth()
-  const [loading, setLoading] = useState(true)
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (token) {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [token])
+  }, [token]);
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -37,5 +37,5 @@ export default function AnalyticsPage() {
         <p>Page des analytics fonctionnelle avec vraies données</p>
       </div>
     </AdminLayout>
-  )
+  );
 }

@@ -1,244 +1,279 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { readFile, stat } from 'fs/promises'
-import { isAbsolute, join, relative, resolve } from 'path'
-import { existsSync } from 'fs'
+import { NextRequest, NextResponse } from "next/server";
+import { readFile, stat } from "fs/promises";
+import { isAbsolute, join, relative, resolve } from "path";
+import { existsSync } from "fs";
 
 // Chemin vers la racine du projet
-const PROJECT_ROOT = process.cwd().includes('frontend') 
-  ? join(process.cwd(), '..')
-  : process.cwd()
+const PROJECT_ROOT = process.cwd().includes("frontend")
+  ? join(process.cwd(), "..")
+  : process.cwd();
 
 // ✅ Détecter si on est dans Docker ou sur l'hôte
-const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
+const IS_DOCKER = process.cwd() === "/app" || process.env.DOCKER === "true";
 const PROJECT_ROOT_VIEW = IS_DOCKER
-  ? '/app'
-  : (process.cwd().includes('frontend') 
-      ? join(process.cwd(), '..')
-      : process.cwd())
+  ? "/app"
+  : process.cwd().includes("frontend")
+    ? join(process.cwd(), "..")
+    : process.cwd();
 
 // Dossiers de rapports
 const REPORT_DIRS = {
-  'performance-backend': IS_DOCKER 
-    ? '/app/reports/performance/backend'
-    : join(PROJECT_ROOT_VIEW, 'reports/performance/backend'),
-  'performance-frontend': IS_DOCKER
-    ? '/app/frontend/performance-reports'
-    : join(PROJECT_ROOT_VIEW, 'frontend', 'performance-reports'),
-  'playwright': IS_DOCKER
-    ? '/app/frontend/playwright-report'
-    : join(PROJECT_ROOT_VIEW, 'frontend', 'playwright-report'),
-  'tests-results': process.env.TESTS_RESULTS_DIR || (IS_DOCKER ? '/app/tests/results' : join(PROJECT_ROOT_VIEW, 'tests', 'results')),
-  'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || (IS_DOCKER ? '/tmp/journey-reports' : join(PROJECT_ROOT_VIEW, 'tests', 'user-journey-reports')),
-  'user-journey-legacy': IS_DOCKER
-    ? '/app/tests/user-journey-reports'
-    : '',
-  'analytics': IS_DOCKER
-    ? '/app/tests/analytics-reports'
-    : join(PROJECT_ROOT_VIEW, 'tests', 'analytics-reports'),
-  'security-reports': join(PROJECT_ROOT_VIEW, 'reports', 'security'),
-  'security-results': join(PROJECT_ROOT_VIEW, 'tests', 'results', 'security'),
-}
+  "performance-backend": IS_DOCKER
+    ? "/app/reports/performance/backend"
+    : join(PROJECT_ROOT_VIEW, "reports/performance/backend"),
+  "performance-frontend": IS_DOCKER
+    ? "/app/frontend/performance-reports"
+    : join(PROJECT_ROOT_VIEW, "frontend", "performance-reports"),
+  playwright: IS_DOCKER
+    ? "/app/frontend/playwright-report"
+    : join(PROJECT_ROOT_VIEW, "frontend", "playwright-report"),
+  "tests-results":
+    process.env.TESTS_RESULTS_DIR ||
+    (IS_DOCKER
+      ? "/app/tests/results"
+      : join(PROJECT_ROOT_VIEW, "tests", "results")),
+  "user-journey":
+    process.env.USER_JOURNEY_REPORTS_DIR ||
+    (IS_DOCKER
+      ? "/tmp/journey-reports"
+      : join(PROJECT_ROOT_VIEW, "tests", "user-journey-reports")),
+  "user-journey-legacy": IS_DOCKER ? "/app/tests/user-journey-reports" : "",
+  analytics: IS_DOCKER
+    ? "/app/tests/analytics-reports"
+    : join(PROJECT_ROOT_VIEW, "tests", "analytics-reports"),
+  "security-reports": join(PROJECT_ROOT_VIEW, "reports", "security"),
+  "security-results": join(PROJECT_ROOT_VIEW, "tests", "results", "security"),
+};
 
 async function firstExistingReportFile(dir: string): Promise<string | null> {
-  for (const fileName of ['summary.md', 'summary.json', 'report.html']) {
-    const filePath = join(dir, fileName)
+  for (const fileName of ["summary.md", "summary.json", "report.html"]) {
+    const filePath = join(dir, fileName);
     try {
-      await stat(filePath)
-      return filePath
+      await stat(filePath);
+      return filePath;
     } catch {
       // Essayer le fichier suivant
     }
   }
 
-  return null
+  return null;
 }
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function isWithinDirectory(baseDir: string, targetPath: string): boolean {
-  const relativePath = relative(resolve(baseDir), resolve(targetPath))
-  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+  const relativePath = relative(resolve(baseDir), resolve(targetPath));
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !isAbsolute(relativePath))
+  );
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const id = searchParams.get('id')
-    const filePath = searchParams.get('path')
-    const category = searchParams.get('category') // Nouveau: catégorie du rapport
-    const playwrightReport = searchParams.get('playwright') === '1' // Rapport HTML Playwright (captures d'écran)
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get("id");
+    const filePath = searchParams.get("path");
+    const category = searchParams.get("category"); // Nouveau: catégorie du rapport
+    const playwrightReport = searchParams.get("playwright") === "1"; // Rapport HTML Playwright (captures d'écran)
 
     if (!id && !filePath) {
       return NextResponse.json(
-        { success: false, error: 'Paramètre id ou path manquant' },
-        { status: 400 }
-      )
+        { success: false, error: "Paramètre id ou path manquant" },
+        { status: 400 },
+      );
     }
 
     // ✅ NOUVEAU: Déterminer le chemin selon le type de rapport
-    let fullPath: string
-    
+    let fullPath: string;
+
     if (id) {
       // Identifier le type de rapport depuis l'ID
-      if (id.startsWith('perf-backend-')) {
+      if (id.startsWith("perf-backend-")) {
         // Rapport performance backend
-        const timestamp = id.replace('perf-backend-', '')
-        const jsonFile = `backend_performance_${timestamp.replace('_', '_')}.json`
-        fullPath = join(REPORT_DIRS['performance-backend'], jsonFile)
-      } else if (id.startsWith('perf-frontend-')) {
+        const timestamp = id.replace("perf-backend-", "");
+        const jsonFile = `backend_performance_${timestamp.replace("_", "_")}.json`;
+        fullPath = join(REPORT_DIRS["performance-backend"], jsonFile);
+      } else if (id.startsWith("perf-frontend-")) {
         // Rapport performance frontend
-        const timestamp = id.replace('perf-frontend-', '')
-        const jsonFile = `performance_${timestamp.replace('_', '_')}.json`
-        fullPath = join(REPORT_DIRS['performance-frontend'], jsonFile)
-      } else if (id.startsWith('playwright-')) {
+        const timestamp = id.replace("perf-frontend-", "");
+        const jsonFile = `performance_${timestamp.replace("_", "_")}.json`;
+        fullPath = join(REPORT_DIRS["performance-frontend"], jsonFile);
+      } else if (id.startsWith("playwright-")) {
         // Rapport Playwright
-        fullPath = join(REPORT_DIRS['playwright'], 'index.html')
-      } else if (id.startsWith('user-journey-')) {
+        fullPath = join(REPORT_DIRS["playwright"], "index.html");
+      } else if (id.startsWith("user-journey-")) {
         // Rapport parcours utilisateur (JSON)
-        const suffix = id.replace('user-journey-', '')
-        fullPath = join(REPORT_DIRS['user-journey'], `user-journey-${suffix}.json`)
-      } else if (id.startsWith('security-reports-')) {
-        const suffix = id.replace('security-reports-', '')
-        const reportDir = join(REPORT_DIRS['security-reports'], suffix)
-        if (!isWithinDirectory(REPORT_DIRS['security-reports'], reportDir)) {
+        const suffix = id.replace("user-journey-", "");
+        fullPath = join(
+          REPORT_DIRS["user-journey"],
+          `user-journey-${suffix}.json`,
+        );
+      } else if (id.startsWith("security-reports-")) {
+        const suffix = id.replace("security-reports-", "");
+        const reportDir = join(REPORT_DIRS["security-reports"], suffix);
+        if (!isWithinDirectory(REPORT_DIRS["security-reports"], reportDir)) {
           return NextResponse.json(
-            { success: false, error: 'Chemin non autorisé' },
-            { status: 403 }
-          )
+            { success: false, error: "Chemin non autorisé" },
+            { status: 403 },
+          );
         }
 
-        const reportPath = await firstExistingReportFile(reportDir)
+        const reportPath = await firstExistingReportFile(reportDir);
         if (!reportPath) {
           return NextResponse.json(
-            { success: false, error: 'Rapport sécurité non trouvé' },
-            { status: 404 }
-          )
+            { success: false, error: "Rapport sécurité non trouvé" },
+            { status: 404 },
+          );
         }
-        fullPath = reportPath
-      } else if (id.startsWith('security-results-')) {
-        const suffix = id.replace('security-results-', '')
-        const reportDir = join(REPORT_DIRS['security-results'], suffix)
-        if (!isWithinDirectory(REPORT_DIRS['security-results'], reportDir)) {
+        fullPath = reportPath;
+      } else if (id.startsWith("security-results-")) {
+        const suffix = id.replace("security-results-", "");
+        const reportDir = join(REPORT_DIRS["security-results"], suffix);
+        if (!isWithinDirectory(REPORT_DIRS["security-results"], reportDir)) {
           return NextResponse.json(
-            { success: false, error: 'Chemin non autorisé' },
-            { status: 403 }
-          )
+            { success: false, error: "Chemin non autorisé" },
+            { status: 403 },
+          );
         }
 
-        const reportPath = await firstExistingReportFile(reportDir)
+        const reportPath = await firstExistingReportFile(reportDir);
         if (!reportPath) {
           return NextResponse.json(
-            { success: false, error: 'Rapport sécurité non trouvé' },
-            { status: 404 }
-          )
+            { success: false, error: "Rapport sécurité non trouvé" },
+            { status: 404 },
+          );
         }
-        fullPath = reportPath
+        fullPath = reportPath;
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         if (playwrightReport) {
           // Rapport Playwright détaillé (avec captures d'écran) pour ce run
-          const playwrightPath = join(REPORT_DIRS['tests-results'], id, 'playwright-report', 'index.html')
+          const playwrightPath = join(
+            REPORT_DIRS["tests-results"],
+            id,
+            "playwright-report",
+            "index.html",
+          );
           if (existsSync(playwrightPath)) {
-            fullPath = playwrightPath
+            fullPath = playwrightPath;
           } else {
-            fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')
+            fullPath = join(REPORT_DIRS["tests-results"], id, "report.html");
           }
         } else {
-          fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')
+          fullPath = join(REPORT_DIRS["tests-results"], id, "report.html");
         }
       }
     } else if (filePath) {
       // Support legacy
-      if (filePath.startsWith('/') || filePath.includes('..')) {
-        const resolved = resolve(REPORT_DIRS['tests-results'], filePath.replace(REPORT_DIRS['tests-results'], ''))
-        if (!resolved.startsWith(resolve(REPORT_DIRS['tests-results']))) {
+      if (filePath.startsWith("/") || filePath.includes("..")) {
+        const resolved = resolve(
+          REPORT_DIRS["tests-results"],
+          filePath.replace(REPORT_DIRS["tests-results"], ""),
+        );
+        if (!resolved.startsWith(resolve(REPORT_DIRS["tests-results"]))) {
           return NextResponse.json(
-            { success: false, error: 'Chemin non autorisé' },
-            { status: 403 }
-          )
+            { success: false, error: "Chemin non autorisé" },
+            { status: 403 },
+          );
         }
-        fullPath = resolved
+        fullPath = resolved;
       } else {
-        fullPath = join(REPORT_DIRS['tests-results'], filePath)
+        fullPath = join(REPORT_DIRS["tests-results"], filePath);
       }
     } else {
       return NextResponse.json(
-        { success: false, error: 'Paramètre manquant' },
-        { status: 400 }
-      )
+        { success: false, error: "Paramètre manquant" },
+        { status: 400 },
+      );
     }
-    
+
     // Vérifier que le chemin résolu est bien dans un répertoire autorisé
-    const authorizedDirs = Object.values(REPORT_DIRS).map(d => resolve(d))
-    const resolvedFile = resolve(fullPath)
-    const isAuthorized = authorizedDirs.some(dir => resolvedFile.startsWith(dir))
-    
+    const authorizedDirs = Object.values(REPORT_DIRS).map((d) => resolve(d));
+    const resolvedFile = resolve(fullPath);
+    const isAuthorized = authorizedDirs.some((dir) =>
+      resolvedFile.startsWith(dir),
+    );
+
     if (!isAuthorized) {
       return NextResponse.json(
-        { success: false, error: 'Chemin non autorisé' },
-        { status: 403 }
-      )
+        { success: false, error: "Chemin non autorisé" },
+        { status: 403 },
+      );
     }
 
     // Vérifier que le fichier existe
     try {
-      await stat(fullPath)
+      await stat(fullPath);
     } catch {
       return NextResponse.json(
-        { success: false, error: 'Fichier non trouvé' },
-        { status: 404 }
-      )
+        { success: false, error: "Fichier non trouvé" },
+        { status: 404 },
+      );
     }
 
     // Lire le contenu
-    let content = await readFile(fullPath, 'utf-8')
+    let content = await readFile(fullPath, "utf-8");
 
     // Sanitizer le HTML pour l’iframe : éviter "Uncaught SyntaxError: string literal contains an unescaped line break"
     // en échappant les retours à la ligne uniquement dans les chaînes (guillemets) des scripts
-    content = content.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, body) => {
-      const escapedBody = body.replace(
-        /("(?:[^"\\]|\\.|[\r\n])*"|'(?:[^'\\]|\\.|[\r\n])*')/g,
-        (strLiteral: string) => strLiteral.replace(/\r\n?|\n/g, '\\n').replace(/\r/g, '')
-      )
-      return match.slice(0, match.indexOf('>') + 1) + escapedBody + '</script>'
-    })
-    
+    content = content.replace(
+      /<script\b[^>]*>([\s\S]*?)<\/script>/gi,
+      (match, body) => {
+        const escapedBody = body.replace(
+          /("(?:[^"\\]|\\.|[\r\n])*"|'(?:[^'\\]|\\.|[\r\n])*')/g,
+          (strLiteral: string) =>
+            strLiteral.replace(/\r\n?|\n/g, "\\n").replace(/\r/g, ""),
+        );
+        return (
+          match.slice(0, match.indexOf(">") + 1) + escapedBody + "</script>"
+        );
+      },
+    );
+
     // Si c'est un JSON (rapport performance), générer un HTML
-    if (fullPath.endsWith('.json')) {
+    if (fullPath.endsWith(".json")) {
       try {
-        const jsonData = JSON.parse(content)
-        content = generateHTMLFromJSON(jsonData, id || 'report')
+        const jsonData = JSON.parse(content);
+        content = generateHTMLFromJSON(jsonData, id || "report");
       } catch {
         // Si erreur de parsing, retourner le JSON brut
-        content = `<pre>${escapeHtml(content)}</pre>`
+        content = `<pre>${escapeHtml(content)}</pre>`;
       }
-    } else if (fullPath.endsWith('.md')) {
-      content = `<pre>${escapeHtml(content)}</pre>`
+    } else if (fullPath.endsWith(".md")) {
+      content = `<pre>${escapeHtml(content)}</pre>`;
     }
-    
+
     // Ajouter viewport meta tag si absent
-    if (!content.includes('viewport') && !content.includes('meta name="viewport"')) {
-      const viewportMeta = '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">'
-      
-      if (content.includes('<head>')) {
-        content = content.replace('<head>', `<head>${viewportMeta}`)
-      } else if (content.includes('<html')) {
-        const htmlMatch = content.match(/<html[^>]*>/)
+    if (
+      !content.includes("viewport") &&
+      !content.includes('meta name="viewport"')
+    ) {
+      const viewportMeta =
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">';
+
+      if (content.includes("<head>")) {
+        content = content.replace("<head>", `<head>${viewportMeta}`);
+      } else if (content.includes("<html")) {
+        const htmlMatch = content.match(/<html[^>]*>/);
         if (htmlMatch) {
-          content = content.replace(htmlMatch[0], `${htmlMatch[0]}\n<head>${viewportMeta}</head>`)
+          content = content.replace(
+            htmlMatch[0],
+            `${htmlMatch[0]}\n<head>${viewportMeta}</head>`,
+          );
         }
       } else {
-        content = `<!DOCTYPE html><html><head>${viewportMeta}</head><body>${content}</body></html>`
+        content = `<!DOCTYPE html><html><head>${viewportMeta}</head><body>${content}</body></html>`;
       }
     }
-    
+
     // Ajouter des styles pour améliorer l'affichage
     const mobileStyles = `
     <style>
@@ -279,27 +314,27 @@ export async function GET(request: NextRequest) {
         background: #2a2a2a;
       }
     </style>
-    `
-    
-    if (content.includes('</head>')) {
-      content = content.replace('</head>', `${mobileStyles}</head>`)
-    } else if (content.includes('<head>')) {
-      content = content.replace('<head>', `<head>${mobileStyles}`)
+    `;
+
+    if (content.includes("</head>")) {
+      content = content.replace("</head>", `${mobileStyles}</head>`);
+    } else if (content.includes("<head>")) {
+      content = content.replace("<head>", `<head>${mobileStyles}`);
     }
-    
+
     return NextResponse.json({
       success: true,
-      content
-    })
+      content,
+    });
   } catch (error: any) {
-    console.error('Erreur lecture rapport:', error)
+    console.error("Erreur lecture rapport:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de la lecture du rapport'
+        error: error.message || "Erreur lors de la lecture du rapport",
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
@@ -307,15 +342,15 @@ export async function GET(request: NextRequest) {
  * Génère un HTML à partir d'un JSON de rapport
  */
 function generateHTMLFromJSON(data: any, reportId: string): string {
-  const isPerformance = reportId.includes('perf-')
-  const isBackend = reportId.includes('backend')
-  
+  const isPerformance = reportId.includes("perf-");
+  const isBackend = reportId.includes("backend");
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapport ${isPerformance ? 'Performance' : 'Test'} - ${reportId}</title>
+  <title>Rapport ${isPerformance ? "Performance" : "Test"} - ${reportId}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -383,15 +418,15 @@ function generateHTMLFromJSON(data: any, reportId: string): string {
 </head>
 <body>
   <div class="header">
-    <h1>📊 Rapport ${isPerformance ? 'Performance' : 'Test'}</h1>
+    <h1>📊 Rapport ${isPerformance ? "Performance" : "Test"}</h1>
     <p><strong>ID:</strong> ${reportId}</p>
-    <p><strong>Date:</strong> ${data.date || data.timestamp || 'N/A'}</p>
+    <p><strong>Date:</strong> ${data.date || data.timestamp || "N/A"}</p>
   </div>
   <div class="content">
     <pre>${JSON.stringify(data, null, 2)}</pre>
   </div>
 </body>
-</html>`
-  
-  return html
+</html>`;
+
+  return html;
 }

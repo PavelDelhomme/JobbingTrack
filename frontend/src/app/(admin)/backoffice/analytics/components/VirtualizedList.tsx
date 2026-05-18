@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 
 /**
  * Composant de virtualisation simple pour les listes longues
@@ -20,7 +20,7 @@ export function VirtualizedList<T>({
   renderItem,
   itemHeight = 50,
   containerHeight = 400,
-  overscan = 5
+  overscan = 5,
 }: VirtualizedListProps<T>) {
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -28,7 +28,7 @@ export function VirtualizedList<T>({
     const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
     const visibleCount = Math.ceil(containerHeight / itemHeight);
     const end = Math.min(items.length, start + visibleCount + overscan * 2);
-    
+
     return { start, end };
   }, [scrollTop, itemHeight, containerHeight, items.length, overscan]);
 
@@ -41,13 +41,16 @@ export function VirtualizedList<T>({
 
   return (
     <div
-      style={{ height: containerHeight, overflow: 'auto' }}
+      style={{ height: containerHeight, overflow: "auto" }}
       onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
     >
-      <div style={{ height: totalHeight, position: 'relative' }}>
+      <div style={{ height: totalHeight, position: "relative" }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleItems.map((item, index) => (
-            <div key={visibleRange.start + index} style={{ height: itemHeight }}>
+            <div
+              key={visibleRange.start + index}
+              style={{ height: itemHeight }}
+            >
               {renderItem(item, visibleRange.start + index)}
             </div>
           ))}
@@ -56,4 +59,3 @@ export function VirtualizedList<T>({
     </div>
   );
 }
-

@@ -1,14 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/auth';
-import { AdminLayout } from '@/components/features';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/hooks/auth";
+import { AdminLayout } from "@/components/features";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Calendar as CalendarIcon, Search, Plus, Edit, Trash2, RefreshCw, X, Clock, MapPin } from '@/lib/icons';
-import { eventService } from '@/lib/api';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Pagination } from '@/components/ui/Pagination';
+import {
+  Calendar as CalendarIcon,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  RefreshCw,
+  X,
+  Clock,
+  MapPin,
+} from "@/lib/icons";
+import { eventService } from "@/lib/api";
+import { usePagination } from "@/lib/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Event {
   id: string;
@@ -29,11 +39,11 @@ export default function EventsPage() {
   const { token } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   useEffect(() => {
     if (token) {
@@ -45,31 +55,34 @@ export default function EventsPage() {
     try {
       setLoading(true);
       // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
-      const cacheKey = 'events_list'
-      const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cacheKey = "events_list";
+      const { cacheManager } = await import("@/lib/cache/cacheManager");
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+
       if (cached) {
-        setEvents(Array.isArray(cached) ? (cached as Event[]) : [])
-        setLoading(false)
+        setEvents(Array.isArray(cached) ? (cached as Event[]) : []);
+        setLoading(false);
         // Rafraîchir en arrière-plan
-        eventService.getAll({ limit: 100 }).then(response => {
-          const events = response.data.events || response.data || []
-          cacheManager.set(cacheKey, events, { ttl: 30000 })
-          setEvents(events)
-        }).catch(() => {}) // Ignorer les erreurs
-        return
+        eventService
+          .getAll({ limit: 100 })
+          .then((response) => {
+            const events = response.data.events || response.data || [];
+            cacheManager.set(cacheKey, events, { ttl: 30000 });
+            setEvents(events);
+          })
+          .catch(() => {}); // Ignorer les erreurs
+        return;
       }
-      
+
       // ✅ OPTIMISATION : Limiter à 100 événements par défaut
-      const response = await eventService.getAll({ limit: 100 })
-      const events = response.data.events || response.data || []
-      setEvents(events)
-      
+      const response = await eventService.getAll({ limit: 100 });
+      const events = response.data.events || response.data || [];
+      setEvents(events);
+
       // Mettre en cache
-      await cacheManager.set(cacheKey, events, { ttl: 30000 })
+      await cacheManager.set(cacheKey, events, { ttl: 30000 });
     } catch (error: any) {
-      console.error('Erreur chargement événements:', error);
+      console.error("Erreur chargement événements:", error);
       setEvents([]);
     } finally {
       setLoading(false);
@@ -77,21 +90,22 @@ export default function EventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
-    
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet événement ?")) return;
+
     try {
       await eventService.delete(id);
       loadEvents();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      alert('Erreur lors de la suppression');
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
   };
 
-  const filteredEvents = events.filter(event =>
-    event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEvents = events.filter(
+    (event) =>
+      event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
@@ -103,14 +117,17 @@ export default function EventsPage() {
 
   // ✅ OPTIMISATION : useMemo pour grouper les événements par date
   const eventsByDate = useMemo(() => {
-    return filteredEvents.reduce((acc, event) => {
-      const date = new Date(event.startDate).toLocaleDateString('fr-FR');
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(event);
-      return acc;
-    }, {} as Record<string, Event[]>);
+    return filteredEvents.reduce(
+      (acc, event) => {
+        const date = new Date(event.startDate).toLocaleDateString("fr-FR");
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(event);
+        return acc;
+      },
+      {} as Record<string, Event[]>,
+    );
   }, [filteredEvents]);
 
   if (loading) {
@@ -138,21 +155,21 @@ export default function EventsPage() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  viewMode === "list"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
               >
                 Liste
               </button>
               <button
-                onClick={() => setViewMode('calendar')}
+                onClick={() => setViewMode("calendar")}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
-                  viewMode === 'calendar'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  viewMode === "calendar"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
               >
                 Calendrier
@@ -170,8 +187,12 @@ export default function EventsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Événements</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{events.length}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Total Événements
+            </p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {events.length}
+            </p>
           </div>
         </div>
 
@@ -196,43 +217,67 @@ export default function EventsPage() {
           </div>
         </div>
 
-        {viewMode === 'list' ? (
+        {viewMode === "list" ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
                     <th className="px-2 py-3 w-8" />
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Événement</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date/Heure</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lieu</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Événement
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Date/Heure
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Lieu
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pagination.paginatedItems.map((event) => (
-                    <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr
+                      key={event.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <td className="px-2 py-4 w-8">
                         <span
                           className="inline-block w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: event.color || '#3B82F6' }}
-                          title={event.color === '#F59E0B' ? 'Intérim' : 'Classique'}
+                          style={{ backgroundColor: event.color || "#3B82F6" }}
+                          title={
+                            event.color === "#F59E0B" ? "Intérim" : "Classique"
+                          }
                         />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {event.title}
+                        </div>
                         {event.description && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{event.description}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {event.description}
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
                           <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
-                          {new Date(event.startDate).toLocaleDateString('fr-FR')}
+                          {new Date(event.startDate).toLocaleDateString(
+                            "fr-FR",
+                          )}
                           {event.startDate && (
                             <span className="ml-2 text-xs text-gray-500">
-                              {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(event.startDate).toLocaleTimeString(
+                                "fr-FR",
+                                { hour: "2-digit", minute: "2-digit" },
+                              )}
                             </span>
                           )}
                         </div>
@@ -247,7 +292,7 @@ export default function EventsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                          {event.type || 'N/A'}
+                          {event.type || "N/A"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -273,15 +318,20 @@ export default function EventsPage() {
                   ))}
                   {pagination.paginatedItems.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                        {events.length === 0 ? 'Aucun événement trouvé' : 'Aucun résultat pour votre recherche'}
+                      <td
+                        colSpan={5}
+                        className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        {events.length === 0
+                          ? "Aucun événement trouvé"
+                          : "Aucun résultat pour votre recherche"}
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-            
+
             {/* ✅ OPTIMISATION : Pagination */}
             {pagination.totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -310,9 +360,15 @@ export default function EventsPage() {
                 </div>
               ) : (
                 Object.entries(eventsByDate)
-                  .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                  .sort(
+                    ([dateA], [dateB]) =>
+                      new Date(dateA).getTime() - new Date(dateB).getTime(),
+                  )
                   .map(([date, dateEvents]) => (
-                    <div key={date} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0">
+                    <div
+                      key={date}
+                      className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0"
+                    >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                         <CalendarIcon className="h-5 w-5" />
                         {date}
@@ -324,7 +380,9 @@ export default function EventsPage() {
                             className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow"
                           >
                             <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-medium text-gray-900 dark:text-gray-100">{event.title}</h4>
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                {event.title}
+                              </h4>
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => {
@@ -346,8 +404,12 @@ export default function EventsPage() {
                             {event.startDate && (
                               <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mb-1">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                {event.endDate && ` - ${new Date(event.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
+                                {new Date(event.startDate).toLocaleTimeString(
+                                  "fr-FR",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )}
+                                {event.endDate &&
+                                  ` - ${new Date(event.endDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
                               </div>
                             )}
                             {event.location && (
@@ -400,36 +462,40 @@ export default function EventsPage() {
   );
 }
 
-function EventFormModal({ 
-  event, 
-  onClose, 
-  onSuccess 
-}: { 
-  event?: Event; 
-  onClose: () => void; 
+function EventFormModal({
+  event,
+  onClose,
+  onSuccess,
+}: {
+  event?: Event;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    title: event?.title || '',
-    description: event?.description || '',
-    startDate: event?.startDate ? new Date(event.startDate).toISOString().slice(0, 16) : '',
-    endDate: event?.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '',
-    location: event?.location || '',
-    type: event?.type || 'application',
+    title: event?.title || "",
+    description: event?.description || "",
+    startDate: event?.startDate
+      ? new Date(event.startDate).toISOString().slice(0, 16)
+      : "",
+    endDate: event?.endDate
+      ? new Date(event.endDate).toISOString().slice(0, 16)
+      : "",
+    location: event?.location || "",
+    type: event?.type || "application",
   });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title) {
-      alert('Le titre est obligatoire');
+      alert("Le titre est obligatoire");
       return;
     }
 
     if (!formData.startDate) {
-      alert('La date de début est obligatoire');
+      alert("La date de début est obligatoire");
       return;
     }
 
@@ -440,7 +506,9 @@ function EventFormModal({
         title: formData.title,
         description: formData.description || undefined,
         startDate: new Date(formData.startDate).toISOString(),
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+        endDate: formData.endDate
+          ? new Date(formData.endDate).toISOString()
+          : undefined,
         location: formData.location || undefined,
         type: formData.type,
       };
@@ -453,8 +521,11 @@ function EventFormModal({
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur création/modification événement:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'événement');
+      console.error("Erreur création/modification événement:", error);
+      alert(
+        error.response?.data?.error ||
+          "Erreur lors de la création/modification de l'événement",
+      );
     } finally {
       setLoading(false);
     }
@@ -465,7 +536,7 @@ function EventFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {event ? 'Modifier l\'événement' : 'Nouvel événement'}
+            {event ? "Modifier l'événement" : "Nouvel événement"}
           </h2>
           <button
             onClick={onClose}
@@ -484,7 +555,9 @@ function EventFormModal({
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -495,7 +568,9 @@ function EventFormModal({
             </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="application">Candidature</option>
@@ -516,7 +591,9 @@ function EventFormModal({
                 type="datetime-local"
                 required
                 value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, startDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -527,7 +604,9 @@ function EventFormModal({
               <input
                 type="datetime-local"
                 value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, endDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -540,7 +619,9 @@ function EventFormModal({
             <input
               type="text"
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
               placeholder="Ex: Bureau, En ligne, Adresse..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -552,7 +633,9 @@ function EventFormModal({
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -571,7 +654,7 @@ function EventFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : event ? 'Modifier' : 'Créer'}
+              {loading ? "Enregistrement..." : event ? "Modifier" : "Créer"}
             </button>
           </div>
         </form>

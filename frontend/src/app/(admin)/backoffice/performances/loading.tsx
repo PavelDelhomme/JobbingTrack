@@ -24,5 +24,5 @@ export default function PerformancesLoading() {
         ))}
       </div>
     </div>
-  )
+  );
 }

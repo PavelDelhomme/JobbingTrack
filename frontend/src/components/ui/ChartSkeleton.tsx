@@ -3,25 +3,38 @@
  * Affiche un placeholder pendant le chargement pour une meilleure UX
  */
 
-import React from 'react';
+import React from "react";
 
 interface ChartSkeletonProps {
   height?: number;
   className?: string;
 }
 
-export function ChartSkeleton({ height = 300, className = '' }: ChartSkeletonProps) {
+export function ChartSkeleton({
+  height = 300,
+  className = "",
+}: ChartSkeletonProps) {
   return (
-    <div className={`animate-pulse ${className}`} style={{ height: `${height}px` }}>
+    <div
+      className={`animate-pulse ${className}`}
+      style={{ height: `${height}px` }}
+    >
       <div className="h-full bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
         {/* Lignes de grille simulées */}
         <div className="absolute inset-0 flex flex-col justify-between py-4 px-6">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-px bg-gray-300 dark:bg-gray-600 w-full"></div>
+            <div
+              key={i}
+              className="h-px bg-gray-300 dark:bg-gray-600 w-full"
+            ></div>
           ))}
         </div>
         {/* Lignes de données simulées */}
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
           <path
             d="M 0,80 Q 25,60 50,50 T 100,40"
             fill="none"
@@ -41,7 +54,9 @@ export function ChartSkeleton({ height = 300, className = '' }: ChartSkeletonPro
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Chargement du graphique...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Chargement du graphique...
+            </p>
           </div>
         </div>
       </div>
@@ -52,9 +67,15 @@ export function ChartSkeleton({ height = 300, className = '' }: ChartSkeletonPro
 /**
  * Skeleton pour les graphiques en barres
  */
-export function BarChartSkeleton({ height = 300, className = '' }: ChartSkeletonProps) {
+export function BarChartSkeleton({
+  height = 300,
+  className = "",
+}: ChartSkeletonProps) {
   return (
-    <div className={`animate-pulse ${className}`} style={{ height: `${height}px` }}>
+    <div
+      className={`animate-pulse ${className}`}
+      style={{ height: `${height}px` }}
+    >
       <div className="h-full bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
         {/* Barres simulées */}
         <div className="absolute inset-0 flex items-end justify-around py-4 px-6 gap-2">
@@ -70,11 +91,12 @@ export function BarChartSkeleton({ height = 300, className = '' }: ChartSkeleton
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Chargement du graphique...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Chargement du graphique...
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

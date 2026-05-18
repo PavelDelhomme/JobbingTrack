@@ -1,29 +1,29 @@
 // Charts
-export * from './charts'
+export * from "./charts";
 
 // Widgets
-export * from './widgets'
+export * from "./widgets";
 
 // Layouts
-export * from './layout'
+export * from "./layout";
 
 // Forms
-export * from './forms'
+export * from "./forms";
 
 // Modals
-export * from './modals'
+export * from "./modals";
 
 // Integrations
-export * from './integrations'
+export * from "./integrations";
 
 // Features
-export * from './features'
+export * from "./features";
 
 // Badges
-export * from './badges'
+export * from "./badges";
 
 // Providers (vide pour le moment)
 // export * from './providers'
 
 // UI Components
-export * from './ui/'
+export * from "./ui/";

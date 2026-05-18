@@ -8,5 +8,5 @@ export function LinkedInIntegration() {
         Intégration LinkedIn en cours de développement.
       </p>
     </div>
-  )
+  );
 }

@@ -1,17 +1,28 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5003';
-const reportDir = process.env.REPORT_DIR || '';
-const outputDir = reportDir ? path.join(reportDir, 'test-results') : 'test-results';
-const htmlReportDir = reportDir ? path.join(reportDir, 'playwright-report') : 'playwright-report';
-const jsonReportPath = reportDir ? path.join(reportDir, 'test-results.json') : 'test-results.json';
-const junitReportPath = reportDir ? path.join(reportDir, 'test-results.xml') : 'test-results.xml';
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ||
+  process.env.FRONTEND_URL ||
+  "http://localhost:5003";
+const reportDir = process.env.REPORT_DIR || "";
+const outputDir = reportDir
+  ? path.join(reportDir, "test-results")
+  : "test-results";
+const htmlReportDir = reportDir
+  ? path.join(reportDir, "playwright-report")
+  : "playwright-report";
+const jsonReportPath = reportDir
+  ? path.join(reportDir, "test-results.json")
+  : "test-results.json";
+const junitReportPath = reportDir
+  ? path.join(reportDir, "test-results.xml")
+  : "test-results.xml";
 
-const authFile = path.join(__dirname, 'tests/e2e/.auth/admin.json');
+const authFile = path.join(__dirname, "tests/e2e/.auth/admin.json");
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   outputDir,
   // Les pages Next peuvent nécessiter une compilation à chaud pendant les E2E.
   // Sans timeout élargi, `page.goto()` / `waitForURL()` échouent avant que l'UI soit visible.
@@ -19,37 +30,39 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : 1,
+  workers: process.env.PLAYWRIGHT_WORKERS
+    ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
+    : 1,
   reporter: [
-    ['html', { outputFolder: htmlReportDir }],
-    ['json', { outputFile: jsonReportPath }],
-    ['junit', { outputFile: junitReportPath }],
-    process.env.CI ? ['github'] : ['list'],
+    ["html", { outputFolder: htmlReportDir }],
+    ["json", { outputFile: jsonReportPath }],
+    ["junit", { outputFile: junitReportPath }],
+    process.env.CI ? ["github"] : ["list"],
   ],
   use: {
     baseURL,
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
     navigationTimeout: 90_000,
     // Les actions UI peuvent nécessiter quelques secondes sur les pages lourdes.
     actionTimeout: 30_000,
   },
   projects: [
     {
-      name: 'setup',
+      name: "setup",
       testMatch: /auth\.setup\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'no-auth',
+      name: "no-auth",
       testMatch: [/login\.spec\.ts/, /accessibility\.spec\.ts/],
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'], storageState: authFile },
-      dependencies: ['setup'],
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], storageState: authFile },
+      dependencies: ["setup"],
       testIgnore: [
         /auth\.setup\.ts/,
         /login\.spec\.ts/,
@@ -74,11 +87,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'echo',
+    command: "echo",
     url: baseURL,
     reuseExistingServer: true,
     timeout: 15_000,
   },
-  globalSetup: './tests/e2e/global-setup.ts',
-  globalTeardown: './tests/e2e/global-teardown.ts',
+  globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
 });

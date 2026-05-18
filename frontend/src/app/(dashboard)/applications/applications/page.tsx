@@ -1,75 +1,76 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/features'
-import { formatLocalDateTime, formatLocalDate } from '@/lib/utils/date'
-import { useAuth } from '@/lib/hooks/auth'
-import { useRouter } from 'next/navigation'
-import { applicationService } from '@/lib/api'
+import { useState, useEffect } from "react";
+import { AdminLayout } from "@/components/features";
+import { formatLocalDateTime, formatLocalDate } from "@/lib/utils/date";
+import { useAuth } from "@/lib/hooks/auth";
+import { useRouter } from "next/navigation";
+import { applicationService } from "@/lib/api";
 
 interface Application {
-  id: string
-  position: string
-  companyName?: string
+  id: string;
+  position: string;
+  companyName?: string;
   company?: {
-    id: string
-    name: string
-  }
-  status: string
-  type: string
-  location?: string
-  applicationDate?: string
-  createdAt: string
+    id: string;
+    name: string;
+  };
+  status: string;
+  type: string;
+  location?: string;
+  applicationDate?: string;
+  createdAt: string;
 }
 
 export default function ApplicationsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [applications, setApplications] = useState<Application[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchApplications()
+      fetchApplications();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchApplications = async () => {
     try {
-      const response = await applicationService.getAll()
-      setApplications(response.data.applications || [])
+      const response = await applicationService.getAll();
+      setApplications(response.data.applications || []);
     } catch (error) {
-      console.error('Erreur chargement candidatures:', error)
+      console.error("Erreur chargement candidatures:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteApplication = async (appId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
-      return
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette candidature ?")) {
+      return;
     }
 
     try {
-      await applicationService.delete(appId)
-      fetchApplications()
+      await applicationService.delete(appId);
+      fetchApplications();
     } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression");
     }
-  }
+  };
 
-  const filteredApplications = filterStatus === 'all' 
-    ? applications 
-    : applications.filter(app => app.status === filterStatus)
+  const filteredApplications =
+    filterStatus === "all"
+      ? applications
+      : applications.filter((app) => app.status === filterStatus);
 
   if (authLoading || loading) {
     return (
@@ -78,7 +79,7 @@ export default function ApplicationsPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
@@ -153,8 +154,8 @@ export default function ApplicationsPage() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                     onClick={(e) => {
                       // Ne pas déclencher si on clique sur les boutons d'action
-                      if ((e.target as HTMLElement).closest('button')) return
-                      router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                      if ((e.target as HTMLElement).closest("button")) return;
+                      router.push(`/b4ck0ff1ce/applications/${app.id}`);
                     }}
                   >
                     <td className="px-6 py-4">
@@ -162,11 +163,13 @@ export default function ApplicationsPage() {
                         {app.position}
                       </div>
                       {app.location && (
-                        <div className="text-sm text-gray-600 dark:text-gray-400">{app.location}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {app.location}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {app.company?.name || app.companyName || '-'}
+                      {app.company?.name || app.companyName || "-"}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={app.status} />
@@ -177,14 +180,13 @@ export default function ApplicationsPage() {
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {app.applicationDate
                         ? formatLocalDate(app.applicationDate)
-                        : formatLocalDate(app.createdAt)
-                      }
+                        : formatLocalDate(app.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                          e.stopPropagation();
+                          router.push(`/b4ck0ff1ce/applications/${app.id}`);
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                       >
@@ -192,8 +194,8 @@ export default function ApplicationsPage() {
                       </button>
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteApplication(app.id)
+                          e.stopPropagation();
+                          handleDeleteApplication(app.id);
                         }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                       >
@@ -212,16 +214,22 @@ export default function ApplicationsPage() {
               <div
                 key={app.id}
                 className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                onClick={() => router.push(`/b4ck0ff1ce/applications/${app.id}`)}
+                onClick={() =>
+                  router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                }
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{app.position}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      {app.position}
+                    </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {app.company?.name || app.companyName || '-'}
+                      {app.company?.name || app.companyName || "-"}
                     </p>
                     {app.location && (
-                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">📍 {app.location}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                        📍 {app.location}
+                      </p>
                     )}
                   </div>
                   <StatusBadge status={app.status} />
@@ -232,16 +240,15 @@ export default function ApplicationsPage() {
                   <span>
                     {app.applicationDate
                       ? formatLocalDate(app.applicationDate)
-                      : formatLocalDate(app.createdAt)
-                    }
+                      : formatLocalDate(app.createdAt)}
                   </span>
                 </div>
 
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                      e.stopPropagation();
+                      router.push(`/b4ck0ff1ce/applications/${app.id}`);
                     }}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
@@ -249,8 +256,8 @@ export default function ApplicationsPage() {
                   </button>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteApplication(app.id)
+                      e.stopPropagation();
+                      handleDeleteApplication(app.id);
                     }}
                     className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   >
@@ -273,73 +280,81 @@ export default function ApplicationsPage() {
           <CreateApplicationModal
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
-              setShowCreateModal(false)
-              fetchApplications()
+              setShowCreateModal(false);
+              fetchApplications();
             }}
           />
         )}
       </div>
     </AdminLayout>
-  )
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
-    DRAFT: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
-    SENT: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-    IN_REVIEW: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-    INTERVIEW_SCHEDULED: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-    REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
-    ACCEPTED: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-  }
+    DRAFT: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300",
+    SENT: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
+    IN_REVIEW:
+      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+    INTERVIEW_SCHEDULED:
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300",
+    REJECTED: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
+    ACCEPTED:
+      "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+  };
 
   return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'}`}>
+    <span
+      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"}`}
+    >
       {status}
     </span>
-  )
+  );
 }
 
-function CreateApplicationModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: () => void
+function CreateApplicationModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    companyName: '',  // ✅ Nom d'entreprise au lieu de l'ID
-    position: '',
-    description: '',
-    location: '',
-    type: 'FULL_TIME',
-    status: 'DRAFT',
-    salary: '',
-    jobUrl: '',
-    source: '',
-    notes: '',
-    applicationDate: new Date().toISOString().split('T')[0], // Date du jour par défaut
+    companyName: "", // ✅ Nom d'entreprise au lieu de l'ID
+    position: "",
+    description: "",
+    location: "",
+    type: "FULL_TIME",
+    status: "DRAFT",
+    salary: "",
+    jobUrl: "",
+    source: "",
+    notes: "",
+    applicationDate: new Date().toISOString().split("T")[0], // Date du jour par défaut
     // Données entreprise (optionnel)
     companyData: {
-      website: '',
-      industry: '',
-      size: ''
-    }
-  })
-  const [loading, setLoading] = useState(false)
+      website: "",
+      industry: "",
+      size: "",
+    },
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       // ✅ Le backend gérera automatiquement l'entreprise grâce au companyName
-      await applicationService.create(formData)
-      onSuccess()
+      await applicationService.create(formData);
+      onSuccess();
     } catch (error) {
-      console.error('Erreur création:', error)
-      alert('Erreur lors de la création')
+      console.error("Erreur création:", error);
+      alert("Erreur lors de la création");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 overflow-y-auto">
@@ -359,12 +374,15 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyName: e.target.value })
+                }
                 placeholder="L'entreprise sera créée automatiquement si elle n'existe pas"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                💡 Si l'entreprise existe déjà, elle sera automatiquement liée. Sinon, elle sera créée.
+                💡 Si l'entreprise existe déjà, elle sera automatiquement liée.
+                Sinon, elle sera créée.
               </p>
             </div>
 
@@ -376,7 +394,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 type="text"
                 required
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, position: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -387,7 +407,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="FULL_TIME">CDI</option>
@@ -404,7 +426,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="DRAFT">Brouillon</option>
@@ -420,7 +444,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -432,7 +458,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.salary}
-                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, salary: e.target.value })
+                }
                 placeholder="45-55K €"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
@@ -445,7 +473,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="date"
                 value={formData.applicationDate}
-                onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, applicationDate: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -457,7 +487,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="text"
                 value={formData.source}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, source: e.target.value })
+                }
                 placeholder="LinkedIn, Indeed, etc."
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
@@ -470,7 +502,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <input
                 type="url"
                 value={formData.jobUrl}
-                onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, jobUrl: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -482,7 +516,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <textarea
                 rows={4}
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -494,7 +530,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               <textarea
                 rows={3}
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -513,12 +551,11 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...' : 'Créer la candidature'}
+              {loading ? "Création..." : "Créer la candidature"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
-
