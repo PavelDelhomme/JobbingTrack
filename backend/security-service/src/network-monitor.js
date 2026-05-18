@@ -10,6 +10,25 @@ const logger = require('./utils/logger');
 
 const execAsync = promisify(exec);
 
+function isPrivateOrLocalIp(ip) {
+  const value = String(ip || '').replace(/^::ffff:/, '');
+  return (
+    value === '127.0.0.1' ||
+    value === '::1' ||
+    value.startsWith('10.') ||
+    value.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(value)
+  );
+}
+
+/** Dev/Docker : ne pas créer de menaces BRUTE_FORCE/PORT_SCAN sur le réseau bridge (172.19.x.x). */
+function shouldSkipInternalNetworkAnomalies() {
+  const flag = String(process.env.SECURITY_NETWORK_RELAX_INTERNAL || '').toLowerCase();
+  if (flag === 'false' || flag === '0' || flag === 'no') return false;
+  if (flag === 'true' || flag === '1' || flag === 'yes') return true;
+  return process.env.NODE_ENV !== 'production';
+}
+
 /**
  * Parser une ligne de /proc/net/tcp ou /proc/net/udp
  */
@@ -281,6 +300,9 @@ function detectAnomalies(connections, previousConnections = []) {
   }
 
   for (const [ip, localPorts] of Object.entries(localPortsByRemoteIp)) {
+    if (shouldSkipInternalNetworkAnomalies() && isPrivateOrLocalIp(ip)) {
+      continue;
+    }
     const remotePorts = remotePortsByRemoteIp[ip] || new Set();
     // Éviter faux positif : une IP avec plein de connexions vers UN SEUL port (ex. app→postgres 5432) = normal
     const singleDestinationPort = remotePorts.size <= 1;
@@ -308,6 +330,9 @@ function detectAnomalies(connections, previousConnections = []) {
   }
   
   for (const [ip, count] of Object.entries(failedByIp)) {
+    if (shouldSkipInternalNetworkAnomalies() && isPrivateOrLocalIp(ip)) {
+      continue;
+    }
     if (count > 20) {
       anomalies.push({
         type: 'BRUTE_FORCE',
@@ -327,6 +352,8 @@ module.exports = {
   detectAnomalies,
   readTcpConnections,
   readUdpConnections,
-  getStateName
+  getStateName,
+  isPrivateOrLocalIp,
+  shouldSkipInternalNetworkAnomalies,
 };
 
