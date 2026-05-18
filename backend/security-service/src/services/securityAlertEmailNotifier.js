@@ -1,28 +1,17 @@
 const axios = require('axios');
 const { logger } = require('../utils/logger');
-
-const DEFAULT_LEVELS = ['critical', 'high'];
-
-function parseList(value) {
-  return String(value || '')
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean);
-}
+const securityNotificationSettings = require('./securityNotificationSettings');
 
 function getRecipients() {
-  const explicitRecipients = parseList(process.env.SECURITY_ALERT_EMAILS || process.env.SECURITY_ALERT_EMAIL);
-  if (explicitRecipients.length > 0) return explicitRecipients;
-  return parseList(process.env.CRASH_REPORT_EMAIL);
+  return securityNotificationSettings.getEffectiveSettings().recipients;
 }
 
 function getNotifiedLevels() {
-  const levels = parseList(process.env.SECURITY_ALERT_EMAIL_LEVELS).map(level => level.toLowerCase());
-  return levels.length > 0 ? levels : DEFAULT_LEVELS;
+  return securityNotificationSettings.getEffectiveSettings().levels;
 }
 
 function isEnabled() {
-  return process.env.SECURITY_ALERT_EMAIL_ENABLED !== 'false';
+  return securityNotificationSettings.getEffectiveSettings().enabled;
 }
 
 function htmlEscape(value) {
