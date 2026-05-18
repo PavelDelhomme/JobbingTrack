@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useUrlPagination } from "@/hooks/useUrlPagination";
+import { Pagination } from "@/components/ui/Pagination";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -10,6 +12,7 @@ import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
 import axios from "axios";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
+const THREATS_PAGE_SIZE = 50;
 
 function normalizeFirewallListedIp(ip: string) {
   const s = String(ip || "").trim();
@@ -34,7 +37,7 @@ export default function ThreatsPage() {
   const searchParams = useSearchParams();
   const [threats, setThreats] = useState<NetworkThreat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const { page, setPage } = useUrlPagination("page", 1);
   const [total, setTotal] = useState(0);
   const [severityFilter, setSeverityFilter] = useState<string>(
     () => searchParams.get("severity") || "",
@@ -83,7 +86,7 @@ export default function ThreatsPage() {
         else setLoading(true);
         setServiceError(null);
 
-        const params: any = { page, limit: 50 };
+        const params: any = { page, limit: THREATS_PAGE_SIZE };
         if (severityFilter) params.severity = severityFilter;
         if (typeFilter) params.threatType = typeFilter;
         if (sourceIpFilter) params.sourceIp = sourceIpFilter;
@@ -103,6 +106,7 @@ export default function ThreatsPage() {
           }),
           axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`, {
             headers,
+            params: { consolidated: true },
             timeout: 5000,
           }),
         ]);
@@ -659,29 +663,22 @@ export default function ThreatsPage() {
                   </tbody>
                 </table>
               </div>
-              {/* Pagination */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Total: {total} menaces
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
-                  >
-                    Précédent
-                  </button>
-                  <span className="px-3 py-1">Page {page}</span>
-                  <button
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={threats.length < 50}
-                    className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
-                  >
-                    Suivant
-                  </button>
-                </div>
-              </div>
+              {total > 0 && (
+                <Pagination
+                  className="p-4 border-t border-gray-200 dark:border-gray-700"
+                  currentPage={page}
+                  totalPages={Math.max(1, Math.ceil(total / THREATS_PAGE_SIZE))}
+                  totalItems={total}
+                  itemsPerPage={THREATS_PAGE_SIZE}
+                  startIndex={(page - 1) * THREATS_PAGE_SIZE + 1}
+                  endIndex={Math.min(page * THREATS_PAGE_SIZE, total)}
+                  onPageChange={setPage}
+                  onNext={() => setPage(page + 1)}
+                  onPrevious={() => setPage(page - 1)}
+                  canGoNext={page * THREATS_PAGE_SIZE < total}
+                  canGoPrevious={page > 1}
+                />
+              )}
             </>
           )}
         </div>

@@ -389,7 +389,10 @@ services:
       - REDIS_URL=redis://${REDIS_HOST:?set REDIS_HOST}:${REDIS_INTERNAL_PORT:?set REDIS_INTERNAL_PORT}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:?set SECURITY_INTERNAL_SECRET in .env}
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:?set SECURITY_SERVICE_URL in .env}
+      - SERVICE_NAME=jobbingtrack-auth-service
       - SMTP_FROM=${SMTP_FROM:?set SMTP_FROM in .env}
       - SMTP_HOST=${SMTP_HOST:?set SMTP_HOST in .env}
       - SMTP_PASS=${SMTP_PASS:-}
@@ -838,8 +841,10 @@ services:
       - CVE_SCAN_TIMEOUT_MS=${CVE_SCAN_TIMEOUT_MS:-600000}
       - CVE_SCAN_TIMEOUT_SEC=${CVE_SCAN_TIMEOUT_SEC:-120}
       - DEBUG=
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - LOG_LEVEL=info
       - NODE_ENV=development
       - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:3008}
@@ -851,6 +856,7 @@ services:
       - SECURITY_ALERT_EMAIL_TIMEOUT_MS=${SECURITY_ALERT_EMAIL_TIMEOUT_MS:-5000}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SECURITY_SERVICE_URL=http://security-service:3017
+      - SERVICE_NAME=jobbingtrack-security-service
       - WAF_ENABLED=${WAF_ENABLED:-true}
     volumes:
       # Même principe que api-gateway : le code src sur l’hôte est pris en compte sans rebuild image

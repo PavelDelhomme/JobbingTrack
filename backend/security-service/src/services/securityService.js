@@ -31,11 +31,12 @@ class SecurityService {
       // Récupérer les logs de sécurité récents (données réelles collectées)
       let securityLogs;
       try {
-        securityLogs = await this.getSecurityLogs({
+        const metricsLogs = await this.getSecurityLogs({
           startDate,
           category,
           limit: 1000
         });
+        securityLogs = metricsLogs.logs || [];
       } catch (error) {
         // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
         if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
@@ -154,19 +155,22 @@ class SecurityService {
       if (level) where.level = level;
       if (category) where.category = category;
 
-      const logs = await prisma.securityLog.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-        skip: offset
-      });
+      const [logs, total] = await Promise.all([
+        prisma.securityLog.findMany({
+          where,
+          orderBy: { timestamp: 'desc' },
+          take: limit,
+          skip: offset
+        }),
+        prisma.securityLog.count({ where })
+      ]);
 
-      return logs;
+      return { logs, total };
     } catch (error) {
       // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
         // Mode silencieux - ne pas logger
-        return [];
+        return { logs: [], total: 0 };
       }
       // En production, logger l'erreur
       if (process.env.NODE_ENV === 'production') {

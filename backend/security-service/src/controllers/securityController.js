@@ -69,22 +69,26 @@ class SecurityController {
       const parsedStartDate = startDate ? new Date(startDate) : defaultStartDate;
       const parsedEndDate = endDate ? new Date(endDate) : undefined;
 
-      const logs = await securityService.getSecurityLogs({
+      const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 500);
+      const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+      const { logs, total } = await securityService.getSecurityLogs({
         startDate: parsedStartDate,
         endDate: parsedEndDate,
         level,
         category,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: parsedLimit,
+        offset: parsedOffset
       });
 
       res.json({
         success: true,
         data: logs,
         pagination: {
-          limit: parseInt(limit),
-          offset: parseInt(offset),
+          limit: parsedLimit,
+          offset: parsedOffset,
           count: logs.length,
+          total,
           startDate: parsedStartDate,
           endDate: parsedEndDate || null
         }

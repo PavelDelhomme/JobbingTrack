@@ -200,9 +200,10 @@ class SecurityScheduler {
       try {
         logger.debug('Analyse des patterns d\'attaque...');
 
-        const recentLogs = await securityService.getSecurityLogs({
+        const { logs: recentLogs } = await securityService.getSecurityLogs({
           startDate: new Date(Date.now() - 15 * 60 * 1000), // 15 dernières minutes
-          category: 'intrusion'
+          category: 'intrusion',
+          limit: 500
         });
 
         // Analyser les patterns
@@ -279,10 +280,12 @@ class SecurityScheduler {
         // Analyser les logs de la dernière minute
         let recentLogs;
         try {
-          recentLogs = await securityService.getSecurityLogs({
+          const result = await securityService.getSecurityLogs({
             startDate: new Date(Date.now() - 60 * 1000), // Dernière minute
-            level: 'critical'
+            level: 'critical',
+            limit: 200
           });
+          recentLogs = result.logs;
         } catch (error) {
           // Si la table n'existe pas, ignorer silencieusement en mode développement
           if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
