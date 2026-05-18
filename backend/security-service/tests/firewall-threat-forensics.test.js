@@ -41,6 +41,48 @@ jest.mock('../src/utils/logger', () => ({
   logSecurityEvent: jest.fn()
 }));
 
+jest.mock('../src/utils/geoipProvider', () => ({
+  lookupGeoIp: jest.fn(async (ip) => {
+    if (ip === '8.8.8.8') {
+      return {
+        private: false,
+        country: 'United States',
+        city: 'Mountain View',
+        region: 'California',
+        timezone: 'America/Los_Angeles',
+        ll: [37.386, -122.0838],
+        asn: 'AS15169',
+        organization: 'Google LLC',
+        proxy: false,
+        vpn: false,
+        tor: false
+      };
+    }
+    if (
+      ip === '127.0.0.1' ||
+      ip.startsWith('10.') ||
+      ip.startsWith('172.') ||
+      ip.startsWith('192.168.')
+    ) {
+      return {
+        private: true,
+        country: null,
+        city: null,
+        region: null,
+        timezone: null,
+        ll: null,
+        asn: null,
+        organization: null,
+        proxy: null,
+        vpn: null,
+        tor: null,
+        note: 'Réseau privé'
+      };
+    }
+    return null;
+  })
+}));
+
 const firewallController = require('../src/controllers/firewallController');
 const firewallEngine = require('../src/firewall-engine');
 const securityService = require('../src/services/securityService');
@@ -232,9 +274,16 @@ describe('Firewall threats - détails forensics', () => {
       })
     );
     expect(investigation.related.intrusionAttempts).toHaveLength(1);
+    const isPrivateSource =
+      sourceIp.startsWith('10.') ||
+      sourceIp.startsWith('172.') ||
+      sourceIp.startsWith('192.168.') ||
+      sourceIp === '127.0.0.1';
     expect(investigation.missingTelemetry).toEqual(
       expect.arrayContaining([
-        'Détection VPN/proxy/ASN non branchée à un provider threat-intel',
+        isPrivateSource
+          ? 'IP privée (Docker/LAN) — géolocalisation publique et réputation ASN/VPN non applicables'
+          : 'Détection VPN/proxy/ASN non confirmée (provider indisponible ou métadonnées absentes)',
         'Aucun détail de connexion réseau brut conservé',
         'Aucun log sécurité corrélé à cette IP ou menace'
       ])
