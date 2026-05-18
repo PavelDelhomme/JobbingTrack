@@ -13,6 +13,7 @@
 - Référence code : `config/jt-env-policy.cjs` (`JT_ENV_INCOMPLETE`, `requireEnv`, `isIncomplete`).
 - Validation `.env` : `scripts/env/env-validate-runtime.cjs` rejette les clés obligatoires vides ou égales à la sentinelle.
 - **API Gateway** : au chargement de `src/server.js`, `src/bootstrap/strictGatewayEnv.js` vérifie les variables critiques (sauf si `NODE_ENV=test` ou `JT_SKIP_STRICT_ENV=1`).
+- **Auth-service** : au chargement de `src/server.js`, `src/bootstrap/strictAuthEnv.js` applique la même politique pour les secrets / URLs d’auth (mêmes exceptions test / `JT_SKIP_STRICT_ENV`).
 
 ## Outillage env / bypass tests (non-prod)
 
@@ -30,7 +31,9 @@ Index : **`scripts/env/README.md`**.
 
 Pour le service **`api-gateway`**, les substitutions du type `${VAR:?message}` font échouer `docker compose config` / `up` si la clé n’est pas définie dans l’environnement ou dans le fichier `.env` chargé par Compose.
 
-Les URLs **Redis** dans le conteneur gateway utilisent désormais `redis://${REDIS_HOST}:${REDIS_INTERNAL_PORT}` (pas de port hôte `5001` par défaut dans l’URL réseau Docker).
+Pour le service **`auth-service`** (profils `auth` / `full`), le bloc `environment` utilise la même convention **`${VAR:?…}`** pour les variables critiques (admin, JWT, CORS, URLs, SMTP de base, etc.) ; **`REDIS_URL`** utilise **`REDIS_HOST`** + **`REDIS_INTERNAL_PORT`** (port conteneur Redis, pas le port publié hôte).
+
+En **développement Docker**, seuls `src/` (et parfois `package.json`) sont bind-mountés sous `/app/src` : le fichier racine **`config/jt-env-policy.cjs`** n’y est pas visible avec un chemin relatif « monorepo ». Compose monte donc **`./config` → `/app/config`** pour **`api-gateway`** et **`auth-service`** ; le code charge la politique via **`src/utils/requireJtEnvPolicy.js`** (`/app/config` si présent, sinon chemin monorepo).
 
 ## Désactivation ciblée (tests / CI minimal)
 

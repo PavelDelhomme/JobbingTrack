@@ -334,38 +334,17 @@ make restart-service SERVICE=auth-service
 
 ### ❌ Impossible de se connecter en tant qu'admin
 
-**Symptôme** : Erreur "Invalid credentials" avec les bons identifiants.
+**Symptôme** : `401` / `Invalid email or password`, ou `ERR_SSL_PROTOCOL_ERROR` sur `:5002`.
 
-**Solution** :
+**Guide complet** : **[TROUBLESHOOTING_LOGIN.md](TROUBLESHOOTING_LOGIN.md)** (HTTPS `5443`, URL API, resync mot de passe).
+
+**Raccourci** (auth-service **Up**) :
+
 ```bash
-# 1. Vérifier que l'admin existe
-docker exec -it jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack
-SELECT * FROM "User" WHERE role = 'ADMIN';
-\q
-
-# 2. Si absent, créer l'admin
-cd backend
-node -e "
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-const prisma = new PrismaClient();
-
-async function main() {
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  await prisma.user.create({
-    data: {
-      email: 'admin@jobbingtrack.com',
-      password: hashedPassword,
-      firstName: 'Admin',
-      lastName: 'JobbingTrack',
-      role: 'ADMIN'
-    }
-  });
-}
-
-main();
-"
+bash backend/scripts/database/create-admin-user.sh
 ```
+
+Utiliser **`ADMIN_EMAIL`** et **`ADMIN_PASSWORD`** du **`.env` racine** sur **`https://jobbingtrack.localhost:5443/login`**. Ne pas utiliser de mot de passe de test codé en dur.
 
 ---
 
