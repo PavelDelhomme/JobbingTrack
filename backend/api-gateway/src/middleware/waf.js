@@ -34,7 +34,8 @@ const WAF_RULES = {
       /%3cscript/gi,
       /%3c\/script%3e/gi,
       /javascript:/gi,
-      /on\w+\s*=/gi,
+      // Évite les faux positifs sur des query params (ex. consolidated=true → « on…= »).
+      /(?<![a-zA-Z0-9])on[a-z]+\s*=/gi,
       /<iframe[^>]*>.*?<\/iframe>/gi,
       /<object[^>]*>.*?<\/object>/gi,
       /<embed[^>]*>/gi,
