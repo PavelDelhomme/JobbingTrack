@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import {
@@ -281,7 +282,7 @@ export default function ThreatDetailsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* En-tête */}
+        <SecuritySubNav />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -598,10 +599,22 @@ export default function ThreatDetailsPage() {
               <div>
                 <p className="text-gray-500 dark:text-gray-400">Localisation</p>
                 <p className="font-semibold">
-                  {[attacker.city, attacker.region, attacker.country]
-                    .filter(Boolean)
-                    .join(", ") || "Non disponible"}
+                  {attacker.isPrivateIp
+                    ? "Réseau privé / Docker (pas de pays public)"
+                    : [attacker.city, attacker.region, attacker.country]
+                        .filter(Boolean)
+                        .join(", ") || "Non disponible (GeoIP non résolu)"}
                 </p>
+                {attacker.locationNote && (
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                    {attacker.locationNote}
+                  </p>
+                )}
+                {Array.isArray(attacker.ll) && attacker.ll.length === 2 && (
+                  <p className="mt-1 text-xs text-gray-500 font-mono">
+                    {attacker.ll[0]}, {attacker.ll[1]}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-gray-500 dark:text-gray-400">Nature IP</p>
@@ -614,22 +627,37 @@ export default function ThreatDetailsPage() {
               <div className="grid grid-cols-2 gap-2">
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">
                   VPN:{" "}
-                  {attacker.vpn === null ? "N/A" : attacker.vpn ? "oui" : "non"}
+                  {attacker.isPrivateIp
+                    ? "—"
+                    : attacker.vpn === null
+                      ? "inconnu"
+                      : attacker.vpn
+                        ? "oui"
+                        : "non"}
                 </span>
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">
                   Proxy:{" "}
-                  {attacker.proxy === null
-                    ? "N/A"
-                    : attacker.proxy
-                      ? "oui"
-                      : "non"}
+                  {attacker.isPrivateIp
+                    ? "—"
+                    : attacker.proxy === null
+                      ? "inconnu"
+                      : attacker.proxy
+                        ? "oui"
+                        : "non"}
                 </span>
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">
                   Tor:{" "}
-                  {attacker.tor === null ? "N/A" : attacker.tor ? "oui" : "non"}
+                  {attacker.isPrivateIp
+                    ? "—"
+                    : attacker.tor === null
+                      ? "inconnu"
+                      : attacker.tor
+                        ? "oui"
+                        : "non"}
                 </span>
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">
-                  ASN: {attacker.asn || "N/A"}
+                  ASN:{" "}
+                  {attacker.isPrivateIp ? "—" : attacker.asn || "inconnu"}
                 </span>
               </div>
               {attacker.organization && (
@@ -743,10 +771,11 @@ export default function ThreatDetailsPage() {
             </h2>
             <div className="space-y-2">
               {recentEvents.map((event) => (
-                <div
+                <details
                   key={event.id}
-                  className="rounded border border-gray-200 dark:border-gray-700 p-3 text-sm"
+                  className="rounded border border-gray-200 dark:border-gray-700 text-sm group"
                 >
+                  <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{event.eventType}</span>
                     <span className="text-gray-500">{event.level}</span>
@@ -761,11 +790,20 @@ export default function ThreatDetailsPage() {
                     {event.message}
                   </p>
                   <p className="mt-1 font-mono text-xs text-gray-500">
-                    {event.method || "—"} {event.endpoint || "endpoint inconnu"}{" "}
-                    · HTTP {event.statusCode ?? "N/A"} ·{" "}
-                    {event.responseTime ?? "N/A"} ms
+                    {event.method || "—"}{" "}
+                    {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
+                    {event.statusCode ?? "—"} ·{" "}
+                    {event.responseTime != null
+                      ? `${event.responseTime} ms`
+                      : "—"}
                   </p>
-                </div>
+                  </summary>
+                  {event.metadata && (
+                    <pre className="mx-3 mb-3 bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto font-mono text-[11px] border-t border-gray-200 dark:border-gray-700 pt-2">
+                      {JSON.stringify(event.metadata, null, 2)}
+                    </pre>
+                  )}
+                </details>
               ))}
             </div>
           </div>
@@ -779,6 +817,7 @@ export default function ThreatDetailsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left p-3">Observé</th>
                     <th className="text-left p-3">IP Locale</th>
                     <th className="text-left p-3">Port Local</th>
                     <th className="text-left p-3">Port Distant</th>
@@ -793,6 +832,11 @@ export default function ThreatDetailsPage() {
                       key={idx}
                       className="border-b border-gray-200 dark:border-gray-700"
                     >
+                      <td className="p-3 text-xs whitespace-nowrap">
+                        {conn.observedAt
+                          ? formatLocalDateTime(conn.observedAt)
+                          : formatLocalDateTime(threat.detectedAt)}
+                      </td>
                       <td className="p-3 font-mono text-sm">{conn.localIp}</td>
                       <td className="p-3">{conn.localPort}</td>
                       <td className="p-3">{conn.remotePort}</td>
@@ -804,8 +848,11 @@ export default function ThreatDetailsPage() {
                       </td>
                       <td className="p-3 text-sm">
                         {conn.containerName ||
+                          conn.serviceLabel ||
                           conn.serviceName ||
-                          "Non corrélé"}
+                          (conn.remotePort === 3008
+                            ? "port-3008 (service interne Docker)"
+                            : "Non corrélé")}
                       </td>
                     </tr>
                   ))}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "./SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
@@ -11,6 +12,7 @@ import {
   isSqliThreat,
   isXssThreat,
 } from "@/lib/security/threatSignals";
+import { isIncidentLog, logHref, threatHref } from "@/lib/security/incidents";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -82,6 +84,7 @@ type IncidentItem = {
   severity: string;
   source: string;
   timestamp: string;
+  href: string;
 };
 
 type SecurityWeights = {
@@ -276,8 +279,8 @@ export default function SecurityOverviewPage() {
 
       // Ne pas dupliquer network_threat_detected en « log CRITICAL » : l’événement est déjà une menace structurée (table threats / kind threat).
       const logsForIncidents = Array.isArray(logsArray)
-        ? (logsArray as any[]).filter(
-            (l) => String(l?.eventType || "") !== "network_threat_detected",
+        ? (logsArray as any[]).filter((l) =>
+            isIncidentLog(String(l?.eventType || ""), String(l?.level || "")),
           )
         : [];
 
@@ -290,16 +293,25 @@ export default function SecurityOverviewPage() {
               severity: String(t.severity || "UNKNOWN"),
               source: t.sourceIp || "n/a",
               timestamp: t.detectedAt || new Date().toISOString(),
+              href: threatHref(String(t.id)),
             }))
           : []),
-        ...logsForIncidents.slice(0, 10).map((l: any) => ({
-          id: `log-${l.id}`,
-          kind: "log" as const,
-          title: l.eventType || l.category || "Log",
-          severity: String(l.level || "info").toUpperCase(),
-          source: l.sourceIP || "n/a",
-          timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
-        })),
+        ...logsForIncidents.slice(0, 8).map((l: any) => {
+          const meta =
+            l.metadata && typeof l.metadata === "object" ? l.metadata : {};
+          const tid = meta.threatId ? String(meta.threatId) : null;
+          const logId = String(l.id);
+          const et = String(l.eventType || "");
+          return {
+            id: `log-${logId}`,
+            kind: "log" as const,
+            title: et || l.category || "Log",
+            severity: String(l.level || "info").toUpperCase(),
+            source: l.sourceIP || "n/a",
+            timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
+            href: tid ? threatHref(tid) : logHref(logId, et),
+          };
+        }),
       ]
         .sort(
           (a, b) =>
@@ -555,6 +567,7 @@ export default function SecurityOverviewPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <SecuritySubNav />
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             🛡️ Vue d’ensemble sécurité
@@ -751,15 +764,20 @@ export default function SecurityOverviewPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            Incidents temps réel (corrélés)
-          </h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+              Incidents temps réel (corrélés)
+            </h2>
+            <Link
+              href="/b4ck0ff1ce/security/incidents"
+              className="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400"
+            >
+              Voir tous les incidents →
+            </Link>
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Données issues de la base (menaces enregistrées + logs sécurité des{" "}
-            {overview.logsPeriodDays} derniers jours), pas un flux réseau brut.
-            Les entrées peuvent provenir de <strong>tests automatisés</strong>,
-            de la génération de données de démo ou d&apos;événements réels selon
-            l&apos;environnement.
+            Aperçu des incidents récents (menaces + événements WAF/blocage, sans
+            bruit health). Page complète : filtre par type et liens vers fiches.
           </p>
           {recentIncidents.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -768,9 +786,10 @@ export default function SecurityOverviewPage() {
           ) : (
             <div className="space-y-2">
               {paginatedIncidents.map((i) => (
-                <div
+                <Link
                   key={i.id}
-                  className="flex items-center justify-between text-sm border border-gray-200 dark:border-gray-700 rounded p-2"
+                  href={i.href}
+                  className="flex items-center justify-between text-sm border border-gray-200 dark:border-gray-700 rounded p-2 hover:border-red-400 hover:bg-red-50/30 dark:hover:border-red-600 dark:hover:bg-red-950/20 transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <span
@@ -791,7 +810,7 @@ export default function SecurityOverviewPage() {
                   <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {formatLocalDateTime(i.timestamp)}
                   </span>
-                </div>
+                </Link>
               ))}
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-gray-500 dark:text-gray-400">

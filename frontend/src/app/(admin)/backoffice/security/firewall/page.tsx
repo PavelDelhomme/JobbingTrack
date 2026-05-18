@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecuritySubNav } from "../SecuritySubNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -384,7 +385,7 @@ export default function FirewallPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* En-tête */}
+        <SecuritySubNav />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
