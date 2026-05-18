@@ -3097,7 +3097,15 @@ export default function PerformancesCorrelationPage() {
                                 <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">
                                   ENABLE_CENTRAL_LOGGING
                                 </code>{" "}
-                                n’est pas désactivé sur les services.
+                                n’est pas désactivé et que chaque microservice a{" "}
+                                <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">
+                                  METRICS_SERVICE_URL
+                                </code>{" "}
+                                +{" "}
+                                <code className="rounded bg-gray-200 px-0.5 dark:bg-gray-700">
+                                  SERVICE_NAME
+                                </code>{" "}
+                                (ex. jobbingtrack-auth-service) dans Compose.
                               </p>
                             </div>
                           ) : (

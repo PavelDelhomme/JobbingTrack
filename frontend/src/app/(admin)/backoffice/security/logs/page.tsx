@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { AdminLayout } from "@/components/features";
+import { Pagination } from "@/components/ui/Pagination";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import axios from "axios";
 
@@ -17,10 +20,13 @@ interface SecurityLog {
   riskScore?: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5002";
+const API_URL = FRONTEND_URLS.api;
+const LOGS_PAGE_SIZE = 25;
+const DEFAULT_LOG_WINDOW_DAYS = 30;
 
 export default function SecurityLogsPage() {
   const [logs, setLogs] = useState<SecurityLog[]>([]);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(true);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [filterLevel, setFilterLevel] = useState<string>("all");
@@ -29,54 +35,73 @@ export default function SecurityLogsPage() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [page, setPage] = useState(1);
-  const pageSize = 25;
+  const { page, setPage } = useUrlPagination("page", 1);
 
-  // Pas de fallback cache masquant: on affiche l'état réel du service.
-  const fetchLogs = useCallback(async () => {
-    try {
-      setServiceError(null);
-      const token = localStorage.getItem("token");
+  const defaultStartIso = useMemo(
+    () =>
+      new Date(
+        Date.now() - DEFAULT_LOG_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+    [],
+  );
 
-      const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          limit: 100,
-          level: filterLevel !== "all" ? filterLevel : undefined,
-          category: filterCategory !== "all" ? filterCategory : undefined,
-          startDate: dateFrom || undefined,
-          endDate: dateTo || undefined,
-        },
-        timeout: 5000, // ✅ OPTIMISATION : Timeout de 5 secondes
-      });
+  const fetchLogs = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      const silent = options.silent === true;
+      try {
+        if (!silent) setLoading(true);
+        setServiceError(null);
+        const token = localStorage.getItem("token");
 
-      if (response.data.success) {
-        const logsData = response.data.data || response.data.logs || [];
-        const logsArray = Array.isArray(logsData) ? logsData : [];
-        const normalizedLogs = logsArray.map((log: any) => ({
-          ...log,
-          level: String(log.level || "info").toLowerCase(),
-          category: String(log.category || "unknown").toLowerCase(),
-        }));
-        setLogs(normalizedLogs);
-      } else {
+        const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            limit: LOGS_PAGE_SIZE,
+            offset: (page - 1) * LOGS_PAGE_SIZE,
+            level: filterLevel !== "all" ? filterLevel : undefined,
+            category: filterCategory !== "all" ? filterCategory : undefined,
+            startDate: dateFrom || defaultStartIso,
+            endDate: dateTo || undefined,
+          },
+          timeout: 8000,
+        });
+
+        if (response.data.success) {
+          const logsData = response.data.data || response.data.logs || [];
+          const logsArray = Array.isArray(logsData) ? logsData : [];
+          const normalizedLogs = logsArray.map((log: any) => ({
+            ...log,
+            level: String(log.level || "info").toLowerCase(),
+            category: String(log.category || "unknown").toLowerCase(),
+          }));
+          setLogs(normalizedLogs);
+          setTotalLogs(
+            typeof response.data.pagination?.total === "number"
+              ? response.data.pagination.total
+              : normalizedLogs.length,
+          );
+        } else {
+          setLogs([]);
+          setTotalLogs(0);
+          setServiceError(
+            `Le service logs sécurité a répondu avec un statut inattendu (HTTP ${response.status}).`,
+          );
+        }
+      } catch (error: any) {
+        console.error("Error loading security logs:", error);
         setLogs([]);
+        setTotalLogs(0);
         setServiceError(
-          `Le service logs sécurité a répondu avec un statut inattendu (HTTP ${response.status}).`,
+          error?.response?.data?.error ||
+            error?.message ||
+            "Service logs sécurité indisponible",
         );
+      } finally {
+        if (!silent) setLoading(false);
       }
-    } catch (error: any) {
-      console.error("Error loading security logs:", error);
-      setLogs([]);
-      setServiceError(
-        error?.response?.data?.error ||
-          error?.message ||
-          "Service logs sécurité indisponible",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, filterLevel, filterCategory, dateFrom, dateTo]);
+    },
+    [page, filterLevel, filterCategory, dateFrom, dateTo, defaultStartIso],
+  );
 
   const createTestLog = useCallback(async () => {
     try {
@@ -134,12 +159,14 @@ export default function SecurityLogsPage() {
   }, [isGenerating, fetchLogs]);
 
   useEffect(() => {
-    // ✅ OPTIMISATION : Charger immédiatement puis avec intervalle plus long
-    fetchLogs();
-    // ✅ OPTIMISATION : Rafraîchir toutes les 15 secondes au lieu de 5
-    const interval = setInterval(fetchLogs, 15000);
-    return () => clearInterval(interval);
-  }, [fetchLogs]);
+    fetchLogs()
+    const interval = setInterval(() => fetchLogs({ silent: true }), 15000)
+    return () => clearInterval(interval)
+  }, [fetchLogs])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filterLevel, filterCategory, dateFrom, dateTo, searchQuery, setPage])
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -166,11 +193,8 @@ export default function SecurityLogsPage() {
     });
   }, [logs, filterLevel, filterCategory, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
-  const paginatedLogs = filteredLogs.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
-  );
+  const totalPages = Math.max(1, Math.ceil(totalLogs / LOGS_PAGE_SIZE));
+  const paginatedLogs = filteredLogs;
 
   const levelColors = {
     info: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
@@ -350,28 +374,21 @@ export default function SecurityLogsPage() {
             </table>
           </div>
 
-          {filteredLogs.length > 0 && (
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {filteredLogs.length} log(s) • page {page}/{totalPages}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
-                >
-                  Précédent
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="px-3 py-1 bg-gray-600 text-white rounded disabled:opacity-50"
-                >
-                  Suivant
-                </button>
-              </div>
-            </div>
+          {totalLogs > 0 && (
+            <Pagination
+              className="p-4 border-t border-gray-200 dark:border-gray-700"
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalLogs}
+              itemsPerPage={LOGS_PAGE_SIZE}
+              startIndex={(page - 1) * LOGS_PAGE_SIZE + 1}
+              endIndex={Math.min(page * LOGS_PAGE_SIZE, totalLogs)}
+              onPageChange={setPage}
+              onNext={() => setPage(page + 1)}
+              onPrevious={() => setPage(page - 1)}
+              canGoNext={page < totalPages}
+              canGoPrevious={page > 1}
+            />
           )}
 
           {filteredLogs.length === 0 && !serviceError && (

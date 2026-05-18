@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { Pagination } from "@/components/ui/Pagination";
+import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import {
@@ -146,9 +148,14 @@ function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
   return parts.join(" · ");
 }
 
+const BLOCKED_IPS_PAGE_SIZE = 25;
+
 export default function FirewallPage() {
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);
+  const [blockedIpsTotal, setBlockedIpsTotal] = useState(0);
+  const { page: blockedPage, setPage: setBlockedPage } =
+    useUrlPagination("blockedPage", 1);
   const [blockedIpsMeta, setBlockedIpsMeta] = useState<{
     byOrigin?: Record<string, number>;
     count?: number;
@@ -198,6 +205,7 @@ export default function FirewallPage() {
         `${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          params: { page: blockedPage, limit: BLOCKED_IPS_PAGE_SIZE },
         },
       );
       if (response.data.success) {
@@ -206,7 +214,14 @@ export default function FirewallPage() {
             ? response.data.meta
             : null,
         );
-        // Les IPs peuvent être des strings ou des objets avec ip et reason
+        const pagination = response.data.meta?.pagination;
+        setBlockedIpsTotal(
+          typeof pagination?.total === "number"
+            ? pagination.total
+            : typeof response.data.meta?.count === "number"
+              ? response.data.meta.count
+              : 0,
+        );
         setBlockedIps(
           response.data.data?.map((item: string | BlockedIp) => {
             if (typeof item === "string") {
@@ -219,7 +234,7 @@ export default function FirewallPage() {
     } catch (err) {
       console.error("Erreur chargement IPs bloquées:", err);
     }
-  }, []);
+  }, [blockedPage]);
 
   useEffect(() => {
     loadRules();
@@ -983,6 +998,30 @@ export default function FirewallPage() {
                 );
               })}
             </div>
+          )}
+          {blockedIpsTotal > BLOCKED_IPS_PAGE_SIZE && (
+            <Pagination
+              className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+              currentPage={blockedPage}
+              totalPages={Math.max(
+                1,
+                Math.ceil(blockedIpsTotal / BLOCKED_IPS_PAGE_SIZE),
+              )}
+              totalItems={blockedIpsTotal}
+              itemsPerPage={BLOCKED_IPS_PAGE_SIZE}
+              startIndex={(blockedPage - 1) * BLOCKED_IPS_PAGE_SIZE + 1}
+              endIndex={Math.min(
+                blockedPage * BLOCKED_IPS_PAGE_SIZE,
+                blockedIpsTotal,
+              )}
+              onPageChange={setBlockedPage}
+              onNext={() => setBlockedPage(blockedPage + 1)}
+              onPrevious={() => setBlockedPage(blockedPage - 1)}
+              canGoNext={
+                blockedPage * BLOCKED_IPS_PAGE_SIZE < blockedIpsTotal
+              }
+              canGoPrevious={blockedPage > 1}
+            />
           )}
         </div>
 

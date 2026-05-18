@@ -199,6 +199,17 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
   echo ""
 fi
 
+# Garantir aggregated_logs (corrélation performances / central logger)
+if [ -f "${ROOT_DIR}/scripts/db/ensure-aggregated-logs-tables.sql" ]; then
+  echo "[DB-PUSH-ALL] Ensure – Table aggregated_logs (logs centralisés WARN/ERROR)"
+  if psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-aggregated-logs-tables.sql"; then
+    echo "  ✅ aggregated_logs OK"
+  else
+    echo "  ⚠️  ensure-aggregated-logs-tables a échoué (vérifiez Postgres)"
+  fi
+  echo ""
+fi
+
 # Garantir log_collector_logs (évite ERROR Postgres au démarrage du collecteur Rust)
 if [ -f "${ROOT_DIR}/scripts/db/ensure-log-collector-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Ensure – Table log_collector_logs (collecteur Rust)"
@@ -236,7 +247,8 @@ WITH required(name) AS (
     ('system_metrics_snapshots'),
     ('container_metrics_snapshots'),
     ('service_availability_history'),
-    ('log_collector_logs')
+    ('log_collector_logs'),
+    ('aggregated_logs')
 )
 SELECT r.name
 FROM required r

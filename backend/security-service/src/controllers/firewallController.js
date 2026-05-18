@@ -1641,12 +1641,29 @@ async function getBlockedIps(req, res) {
     const blockedIps = dedupeBlockedIpEntries(candidates);
     const meta = blockedIpsMetaSummary(blockedIps);
 
+    const listAll =
+      req.query.all === 'true' ||
+      req.query.consolidated === 'true' ||
+      req.query.consolidated === '1';
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const total = blockedIps.length;
+    const offset = (page - 1) * limit;
+    const pageData = listAll ? blockedIps : blockedIps.slice(offset, offset + limit);
+
     res.json({
       success: true,
-      data: blockedIps,
+      data: pageData,
       meta: {
         ...meta,
-        sourcesMerged: ['rules', 'iptables_if_empty', 'threats', 'logs']
+        count: total,
+        sourcesMerged: ['rules', 'iptables_if_empty', 'threats', 'logs'],
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.max(1, Math.ceil(total / limit))
+        }
       }
     });
   } catch (error) {
