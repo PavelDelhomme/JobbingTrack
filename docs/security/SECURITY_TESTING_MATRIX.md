@@ -2,6 +2,8 @@
 
 Objectif : cadrer les tests de sécurité à réaliser sur JobbingTrack, côté commandes, rapports et interface backoffice. Ces tests doivent être exécutés uniquement sur un environnement autorisé (local, test, préprod contrôlée), jamais contre une cible tierce ou une production sans fenêtre validée.
 
+**Roadmap produit (phases, backoffice CVE, IA/PQC)** : voir **[ROADMAP_SECURITE_API_ET_BACKOFFICE.md](ROADMAP_SECURITE_API_ET_BACKOFFICE.md)**.
+
 ## État actuel
 
 - **Partiellement couvert** : WAF, détection intrusion, rate limiting gateway, corrélation `requestId` / `correlationId`, logs sécurité, CVE continu, alertes email critiques, durcissement Docker en cours.

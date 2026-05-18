@@ -16,6 +16,7 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 - **[Monitoring CVE continu](CVE_CONTINUOUS_MONITORING.md)** – Scan CVE multi-technologies, alertes mail critiques, score sécurité et protection des logs.
 - **[Intégration Dependabot Alerts](DEPENDABOT_ALERTS_INTEGRATION.md)** – Mapping GitHub Dependabot vers la table `vulnerabilities` et alertes supply-chain.
 - **[Matrice tests sécurité offensifs](SECURITY_TESTING_MATRIX.md)** – Énumération URL, injections, auth, API, Docker, secrets, DoS, mobile, outils Kali/équivalents et protections attendues.
+- **[Roadmap API + backoffice sécurité](ROADMAP_SECURITE_API_ET_BACKOFFICE.md)** – Phases auth/IDOR/injections/DoS/CVE/UI, IA/PQC, faux positifs DoS dev (`172.19.0.1`).
 - **[Système de Sécurité](SYSTEME_SECURITE_README.md)** – Architecture et implémentation du système de sécurité.
 - **[Démarrage Services Sécurité](DEMARRAGE_SERVICES_SECURITE.md)** – Démarrage et configuration.
 

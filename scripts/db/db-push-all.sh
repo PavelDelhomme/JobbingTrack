@@ -199,6 +199,17 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
   echo ""
 fi
 
+# Garantir log_collector_logs (évite ERROR Postgres au démarrage du collecteur Rust)
+if [ -f "${ROOT_DIR}/scripts/db/ensure-log-collector-tables.sql" ]; then
+  echo "[DB-PUSH-ALL] Ensure – Table log_collector_logs (collecteur Rust)"
+  if psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-log-collector-tables.sql"; then
+    echo "  ✅ log_collector_logs OK"
+  else
+    echo "  ⚠️  ensure-log-collector-tables a échoué (vérifiez Postgres)"
+  fi
+  echo ""
+fi
+
 # Garantir les tables metrics-aggregator (évite « unhealthy » si init-system-metrics / init-key-tables ont échoué partiellement)
 if [ -f "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Ensure – Tables metrics-aggregator (system_metrics_snapshots, container_metrics_snapshots, service_availability_history)"
