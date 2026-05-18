@@ -12,6 +12,10 @@ import {
   filterMetricsListToActive,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
+import {
+  availabilityChartDomain,
+  buildStatisticsChartData,
+} from "@/lib/metrics/statisticsTimeSeries";
 import { preferencesService } from "@/lib/services/preferencesService";
 import {
   statisticsService,
@@ -83,6 +87,7 @@ interface MetricsHistory {
   services_healthy: number;
   services_degraded: number;
   services_offline: number;
+  error_rate_derived?: boolean;
 }
 
 interface ServiceMetricsHistory {
@@ -236,6 +241,11 @@ export default function StatisticsPage() {
   const [stats, setStats] = useState<Statistics | null>(null);
   const [previousStats, setPreviousStats] = useState<Statistics | null>(null); // Pour calculer les tendances
   const [metricsHistory, setMetricsHistory] = useState<MetricsHistory[]>([]);
+  const [historySeriesMeta, setHistorySeriesMeta] = useState({
+    pointCount: 0,
+    errorDerived: false,
+    source: "empty" as "system_metrics" | "empty",
+  });
   const [serviceHistory, setServiceHistory] = useState<ServiceMetricsHistory[]>(
     [],
   );
@@ -387,6 +397,7 @@ export default function StatisticsPage() {
           response_time_avg: parseFloat(item.response_time_avg) || 0,
           error_count: parseInt(item.error_count) || 0,
           error_rate: parseFloat(item.error_rate) || 0,
+          error_rate_derived: Boolean(item.error_rate_derived),
           availability_percent: parseFloat(item.availability_percent) || 100,
           load_score: parseFloat(item.load_score) || 0,
           containers_count: parseInt(item.containers_count) || 0,
@@ -396,6 +407,11 @@ export default function StatisticsPage() {
         }));
 
         setMetricsHistory(formattedHistory);
+        setHistorySeriesMeta({
+          pointCount: formattedHistory.length,
+          errorDerived: formattedHistory.some((h) => h.error_rate_derived),
+          source: formattedHistory.length > 0 ? "system_metrics" : "empty",
+        });
 
         // Récupérer aussi l'historique par service si disponible
         const serviceHistoryData: ServiceMetricsHistory[] = [];
@@ -424,6 +440,7 @@ export default function StatisticsPage() {
       }
     } catch (error) {
       console.error("Erreur chargement historique métriques:", error);
+      setHistorySeriesMeta({ pointCount: 0, errorDerived: false, source: "empty" });
     }
   };
 
@@ -513,17 +530,22 @@ export default function StatisticsPage() {
         setInitialLoadDone(true);
       }
 
-      // 2. Récupérer les métriques en temps réel avec cache
+      // 2. Métriques live + liste Docker en parallèle (cache getAllServices évite la rafale)
       const cacheKey = `statistics_metrics_${customization.timeRange}`;
       let metrics: MetricsData | null = (await cacheManager.get(cacheKey, {
         ttl: 10000,
       })) as MetricsData | null;
 
-      if (!metrics) {
-        metrics = await centralMetricsService.fetchMetrics();
-        if (metrics) {
-          await cacheManager.set(cacheKey, metrics, { ttl: 10000 });
-        }
+      const metricsPromise = metrics
+        ? Promise.resolve(metrics)
+        : centralMetricsService.fetchMetrics();
+      const [fetchedMetrics, dockerList] = await Promise.all([
+        metricsPromise,
+        centralMetricsService.getAllServices().catch(() => null),
+      ]);
+      metrics = fetchedMetrics;
+      if (metrics) {
+        await cacheManager.set(cacheKey, metrics, { ttl: 10000 });
       }
 
       // Récupérer les stats sur une période
@@ -582,7 +604,6 @@ export default function StatisticsPage() {
         (metrics?.servicesList as any[]) || [],
       );
       let servicesArray: Statistics["services"] = [];
-      const dockerList = await centralMetricsService.getAllServices();
       if (dockerList && dockerList.length > 0) {
         servicesArray = buildStatisticsServicesFromDocker(
           dockerList as DockerServiceRow[],
@@ -720,45 +741,27 @@ export default function StatisticsPage() {
     return formatLocalChartAxisTick(ms, { withDate });
   };
 
-  // Préparer les données pour les graphiques (memoizé pour performance)
-  const chartData = useMemo(() => {
-    if (!metricsHistory || metricsHistory.length === 0) return [];
+  const chartMaxPoints =
+    customization.timeRange === "30d"
+      ? 500
+      : customization.timeRange === "7d"
+        ? 300
+        : customization.timeRange === "24h"
+          ? 200
+          : 100;
 
-    // Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
-    const sortedHistory = [...metricsHistory].sort(
-      (a, b) =>
-        (metricTimestampToMs(a.timestamp) ?? 0) -
-        (metricTimestampToMs(b.timestamp) ?? 0),
-    );
+  const chartData = useMemo(
+    () =>
+      buildStatisticsChartData(metricsHistory, formatTimestamp, {
+        maxPoints: chartMaxPoints,
+      }),
+    [metricsHistory, customization.timeRange, chartMaxPoints],
+  );
 
-    // Sous-échantillonnage pour les grandes périodes (optimisation)
-    const maxPoints =
-      customization.timeRange === "30d"
-        ? 500
-        : customization.timeRange === "7d"
-          ? 300
-          : customization.timeRange === "24h"
-            ? 200
-            : 100;
-
-    let dataToUse = sortedHistory;
-    if (sortedHistory.length > maxPoints) {
-      const step = Math.ceil(sortedHistory.length / maxPoints);
-      dataToUse = sortedHistory.filter((_, index) => index % step === 0);
-    }
-
-    return dataToUse.map((item) => ({
-      time: formatTimestamp(item.timestamp),
-      cpu: item.cpu_percent,
-      memory: item.memory_percent,
-      networkRx: item.network_rx_mb,
-      networkTx: item.network_tx_mb,
-      responseTime: item.response_time_avg,
-      errorRate: item.error_rate,
-      availability: item.availability_percent,
-      loadScore: item.load_score,
-    }));
-  }, [metricsHistory, customization.timeRange]);
+  const availabilityDomain = useMemo(
+    () => availabilityChartDomain(chartData),
+    [chartData],
+  );
 
   // Loader uniquement au tout premier chargement
   if (authLoading || (loading && !stats)) {
@@ -957,7 +960,12 @@ export default function StatisticsPage() {
           )}
           {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
           {activeTab === "security" && (
-            <SecurityTab stats={stats} chartData={chartData} />
+            <SecurityTab
+              stats={stats}
+              chartData={chartData}
+              historySeriesMeta={historySeriesMeta}
+              availabilityDomain={availabilityDomain}
+            />
           )}
           {activeTab === "logs" && (
             <LogsTab
@@ -2223,7 +2231,12 @@ function NetworkTab({ stats, chartData, customization }: any) {
 }
 
 // Composant Security Tab
-const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
+const SecurityTab = memo(function SecurityTab({
+  stats,
+  chartData,
+  historySeriesMeta,
+  availabilityDomain,
+}: any) {
   return (
     <div className="space-y-6">
       {/* Métriques de sécurité */}
@@ -2278,7 +2291,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
       </div>
 
       {/* Graphiques de sécurité */}
-      {chartData.length > 0 && (
+      {chartData.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Disponibilité dans le temps */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -2296,7 +2309,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                 <YAxis
                   stroke="#9CA3AF"
                   style={{ fontSize: "12px" }}
-                  domain={[90, 100]}
+                  domain={availabilityDomain}
                 />
                 <Tooltip {...rechartsTooltipProps} />
                 <Line
@@ -2306,6 +2319,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   strokeWidth={3}
                   name="Disponibilité (%)"
                   dot={false}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -2347,17 +2361,30 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   fillOpacity={1}
                   fill="url(#colorError)"
                   name="Taux d'erreur (%)"
+                  connectNulls={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          Aucune série persistée ({historySeriesMeta?.pointCount ?? 0} points).
+          Vérifier monitoring-c et la table system_metrics.
+        </div>
       )}
+
+      <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+        Source séries : system_metrics
+        {historySeriesMeta?.errorDerived
+          ? " · taux erreur dérivé (100 − disponibilité)"
+          : ""}
+      </p>
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          🔧 État des Services
+          État des Services
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
