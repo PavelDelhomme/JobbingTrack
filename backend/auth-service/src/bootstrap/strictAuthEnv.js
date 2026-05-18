@@ -1,11 +1,11 @@
 /**
- * Vérifications strictes au boot de la gateway (secrets / chaîne critique).
+ * Vérifications strictes au boot de l'auth-service.
  * Voir `config/jt-env-policy.cjs` et `docs/configuration/STRICT_ENV.md`.
  */
 const { requireJtEnvPolicy } = require('../utils/requireJtEnvPolicy');
 const policy = requireJtEnvPolicy();
 
-function assertGatewayEnvOrThrow() {
+function assertAuthEnvOrThrow() {
   if (policy.isStrictEnvSkipped()) return;
 
   policy.requireEnv('DATABASE_URL');
@@ -14,8 +14,13 @@ function assertGatewayEnvOrThrow() {
   policy.requireEnv('SECURITY_INTERNAL_SECRET');
   policy.requireEnv('REDIS_URL');
   policy.requireEnv('PORT');
-  policy.requireEnv('TRUST_PROXY_HOPS');
+  policy.requireEnv('NODE_ENV');
+  policy.requireEnv('ALLOWED_ORIGINS');
+  policy.requireEnv('ADMIN_EMAIL');
+  policy.requireEnv('ADMIN_PASSWORD');
+  policy.requireEnv('FRONTEND_URL');
   policy.requireEnv('SECURITY_SERVICE_URL');
+  policy.requireEnv('APP_URL');
 }
 
-module.exports = { assertGatewayEnvOrThrow };
+module.exports = { assertAuthEnvOrThrow };

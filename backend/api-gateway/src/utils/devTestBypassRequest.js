@@ -7,11 +7,8 @@
  * (voir config/dev-test-bypass-format.cjs).
  */
 const crypto = require('crypto');
-const path = require('path');
-const { isValidDevTestBypassToken } = require(path.join(
-  __dirname,
-  '../../../../config/dev-test-bypass-format.cjs'
-));
+const { requireRepoConfigFile } = require('./resolveRepoConfig');
+const { isValidDevTestBypassToken } = requireRepoConfigFile('dev-test-bypass-format.cjs');
 
 const HEADER_CANDIDATES = ['x-jobbingtrack-dev-test-token', 'X-JobbingTrack-Dev-Test-Token'];
 
