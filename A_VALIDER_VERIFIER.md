@@ -34,6 +34,8 @@ Pour chaque ligne :
 | WAF bloque payload externe dangereux | Payload XSS/SQLi borne bloque par gateway/proxy | local/preprod | [ ] | |
 | WAF ne bypass pas un navigateur via `X-Forwarded-*` | Trafic proxy externe inspecte sauf secret interne valide | local/preprod | [ ] | |
 | Rate-limit / intrusion ne bannit pas durablement les IP privees en dev | IP Docker/proxy debloquee apres tests | local | [ ] | |
+| Pas de rafale `INTRUSION ÉLEVÉE` / `DOS_ATTACKS` sur navigation backoffice authentifiee | Logs gateway calmes sur `/backoffice`, `/api/v1/security/*`, `/api/v1/preferences` avec JWT | local HTTPS | [ ] | |
+| Connexion HTTPS `5443` avec `ADMIN_PASSWORD` du `.env` | Login 200, acces `/backoffice` sans 401 en boucle | local | [ ] | |
 | Tokens mock runtime retires ou controles par env exacte | Pas de prefixe hardcode type `mock-jwt-token*` en runtime | local/preprod | [ ] | |
 | Logs securite exploitables | IP, route, method, status, requestId, payload redige si besoin | preprod | [ ] | |
 

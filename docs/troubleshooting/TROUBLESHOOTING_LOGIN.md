@@ -1,99 +1,93 @@
-# 🔧 Troubleshooting - Problème de Login et Tables Manquantes
+# Dépannage — connexion admin / login
 
-## 📋 Problème Résolu : Login Impossible avec Table User Manquante
+[← Retour dépannage](README.md) | [← Documentation](../README.md) | [🧭 Navigation](../navigation.md) | [HTTPS dev](../operations/DEV_HTTPS.md) | [Variables `.env`](../deployment/environment-variables/README.md)
 
-### 🔍 Explication du Problème
+Guide **opérationnel** pour les échecs de connexion au backoffice. Pour l’installation TLS locale (CA, Brave, ports), voir **`docs/operations/DEV_HTTPS.md`**.
 
-Lors de la réinitialisation de la base de données ou lors du premier démarrage, la table `User` n'existe pas encore. Cela causait une erreur 500 lors de la tentative de connexion avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` depuis `.env`.
+---
 
-### ✅ Solution Implémentée
+## Parcours normal (dev HTTPS)
 
-#### 1. **Fallback P2021 dans `auth.controller.js`**
+1. Stack démarrée (`full` + `monitoring` + `https` selon votre flux).
+2. Navigateur : **`https://jobbingtrack.localhost:5443/login`** (orthographe exacte : `jobbingtrack` avec **track**).
+3. Identifiants : **`ADMIN_EMAIL`** et **`ADMIN_PASSWORD`** du **`.env` racine** (copier-coller, sans espace parasite).
+4. API attendue dans l’onglet Réseau : **`POST https://api.jobbingtrack.localhost:5443/api/v1/auth/login`** → **200** + token.
 
-Le système détecte maintenant automatiquement quand la table `User` n'existe pas (erreur Prisma P2021) et crée un utilisateur mock en mode développement :
+Ne jamais documenter ni coller le mot de passe dans un ticket, un commit, un log ou une capture.
 
-```javascript
-// Vérification préalable si prisma.user existe
-if (!prisma.user || typeof prisma.user.findUnique !== 'function') {
-  // Création utilisateur mock pour admin@jobbingtrack.test
-  user = {
-    id: 'dev_user_1',
-    email: 'admin@jobbingtrack.test',
-    password: '<ADMIN_PASSWORD>', // ne pas coder de mot de passe en dur
-    role: 'SUPER_ADMIN',
-    // ...
-  };
-}
+---
 
-// Ancien comportement dev à ne plus reproduire : ne pas accepter de mot de passe en dur
-if (false) {
-  // Authentification réussie
-}
-```
+## Symptômes → cause → action
 
-#### 2. **Exécution Automatique de `db-push-all`**
+| Symptôme console / réseau | Cause probable | Action |
+|---------------------------|----------------|--------|
+| `POST https://jobbingtrack.localhost:5002/...` + `ERR_SSL_PROTOCOL_ERROR` | Le port **5002** est l’API Gateway en **HTTP** ; le front a construit une URL HTTPS incorrecte | Vérifier `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_API_GATEWAY_URL` = `https://api.jobbingtrack.localhost:5443` (voir `.env.example`). Hard refresh. Code : `frontend/src/config/ports.config.ts`, `frontend/src/lib/api.ts`. |
+| `POST https://api.jobbingtrack.localhost:5443/...` + **401** + `Invalid email or password` | Requête OK ; **hash BDD ≠ mot de passe saisi** (souvent mot de passe hors `.env` ou admin non resynchronisé) | Resynchroniser l’admin (section ci-dessous). Logs auth : `Mot de passe incorrect pour admin@…`. |
+| `No token found` / tracking désactivé au chargement | **Normal** avant login | Ignorer tant qu’aucune tentative de connexion n’a réussi. |
+| `ERR_CERT_AUTHORITY_INVALID` sur l’API après login | CA locale non importée dans **ce** navigateur | Suivre **`docs/operations/DEV_HTTPS.md`** (Brave : import PEM dans Autorités, quitter tout le navigateur). |
+| Gateway : `INTRUSION … DOS_ATTACKS` sur `/auth/login` | Faux positif headers proxy en dev | **18/05** : `/api/v1/auth/login` exclu du heuristique DoS ; redémarrer **`jobbingtrack-api-gateway`** après mise à jour. |
+| Erreur **500** au login, table `User` absente | Schéma BDD non poussé | `make db-push-all` ou `make up-full` (voir aussi historique P2021 ci-dessous). |
 
-Les commandes `make up-full`, `make restart`, et `make restart-service` vérifient maintenant automatiquement si la base de données contient moins de 5 tables. Si c'est le cas, elles exécutent automatiquement `make db-push-all` pour créer toutes les tables.
+---
 
-**Fichiers modifiés :**
-- `makefiles/services/Makefile` : Ajout de la vérification automatique des tables
+## Resynchroniser le mot de passe admin (401)
 
-#### 3. **Fallbacks P2021 pour Tous les Services**
+Le compte **`admin@jobbingtrack.test`** (ou `ADMIN_EMAIL`) doit avoir un hash bcrypt aligné sur **`ADMIN_PASSWORD`** du `.env`.
 
-Tous les services (company-service, application-service, etc.) ont maintenant des fallbacks robustes pour gérer les erreurs P2021 :
-
-- **Dans les controllers** : Capture de toutes les variantes d'erreurs Prisma (P2021, P2022, messages d'erreur)
-- **Dans les error handlers** : Gestion globale des erreurs P2021 au niveau middleware
-
-**Fichiers modifiés :**
-- `backend/company-service/src/controllers/company.controller.js`
-- `backend/company-service/src/middlewares/errorHandler.js`
-- `backend/application-service/src/controllers/application.controller.js`
-- `backend/application-service/src/middlewares/errorHandler.js`
-
-### 🎯 Pourquoi Cela Ne Se Reproduira Plus
-
-1. **Hot Reload avec Nodemon** : Le code source est monté en volume, donc les modifications sont automatiquement rechargées
-2. **Fallbacks Robustes** : Toutes les erreurs Prisma liées aux tables manquantes sont capturées
-3. **Exécution Automatique** : `make up-full` exécute automatiquement `db-push-all` si nécessaire
-4. **Utilisateur Mock** : L'utilisateur mock permet de se connecter même si la table n'existe pas
-
-### 📝 Commandes Utiles
+**Méthode recommandée** (auth-service doit être **Up**) :
 
 ```bash
-# Démarrer tous les services (exécute automatiquement db-push-all si nécessaire)
-make up-full
-
-# Redémarrer un service spécifique
-make restart-service SERVICE=auth-service
-
-# Vérifier les tables Prisma
-make db-push-all
-
-# Voir les logs d'un service
-docker logs jobbingtrack-auth-service --tail 50
+bash backend/scripts/database/create-admin-user.sh
 ```
 
-### ⚠️ Notes Importantes
+Le script utilise désormais **Prisma + `process.env.ADMIN_PASSWORD`** dans le conteneur auth (plus d’interpolation shell fragile).
 
-- **Mode Développement Uniquement** : Les fallbacks utilisateur mock ne fonctionnent qu'en mode développement (`NODE_ENV !== 'production'`)
-- **Email Spécifique** : L'utilisateur mock n'est créé que pour `admin@jobbingtrack.test`
-- **Mot de Passe Direct** : Pour l'utilisateur mock, un ancien mot de passe en dur était accepté directement ; ce comportement est déprécié et ne doit pas être réintroduit
+**Critère de succès** (sans afficher le secret) :
 
-### 🔄 Workflow Recommandé
+```bash
+curl -kfsS -o /dev/null -w '%{http_code}\n' \
+  -X POST https://api.jobbingtrack.localhost:5443/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"VOTRE_ADMIN_EMAIL","password":"VOTRE_ADMIN_PASSWORD"}'
+```
 
-1. **Premier Démarrage** :
-   ```bash
-   make up-full  # Crée automatiquement les tables si nécessaire
-   ```
+→ **200** (tester avec les valeurs du `.env`, pas un mot de passe mémorisé ailleurs).
 
-2. **Après Réinitialisation BDD** :
-   ```bash
-   make db-push-all  # Ou laisser make up-full le faire automatiquement
-   ```
+---
 
-3. **En Cas d'Erreur 500** :
-   - Vérifier les logs : `docker logs jobbingtrack-<service-name> --tail 50`
-   - Vérifier les tables : `make db-push-all`
-   - Redémarrer le service : `make restart-service SERVICE=<service-name>`
+## Logs : navigateur vs backoffice sécurité
 
+| Source | Visible dans le backoffice ? |
+|--------|------------------------------|
+| Console (`auth.tsx`, Fast Refresh, tracking) | **Non** — local navigateur uniquement |
+| `login_failure` côté auth-service (mauvais MDP, user inconnu) | **Oui** — **Sécurité → logs** (`security_logs`) si security-service joignable |
+| Erreur réseau / SSL (requête n’atteint pas l’auth) | Souvent **non** en base |
+
+---
+
+## HTTP local (sans proxy 5443)
+
+Si vous utilisez **`http://localhost:5003/login`** :
+
+- API côté navigateur : typiquement **`http://localhost:5002/api/v1/...`**
+- Les variables `NEXT_PUBLIC_*` du `.env` peuvent différer ; voir **`docs/configuration/CONFIGURATION_PORTS.md`**.
+
+Le parcours **documenté et validé** pour le backoffice reste le **HTTPS dev sur 5443**.
+
+---
+
+## Historique — table `User` manquante (P2021)
+
+Contexte d’anciennes sessions : login impossible quand la table `User` n’existait pas encore.
+
+**Comportement actuel** :
+
+- `make up-full` peut déclencher `db-push-all` si peu de tables ;
+- fallbacks dev mock dans `auth.controller.js` — **ne pas** s’appuyer sur un mot de passe en dur ;
+- privilégier **`create-admin-user.sh`** + `.env` une fois le schéma en place.
+
+Fichiers de référence : `backend/auth-service/src/controllers/auth.controller.js`, `makefiles/services/Makefile`.
+
+---
+
+**Dernière mise à jour** : 18 mai 2026

@@ -2,6 +2,53 @@
 
 Le développement local peut tourner en HTTPS avec une CA locale de confiance, pour éviter les erreurs navigateur et les problèmes de mixed content.
 
+## Si tu es bloqué tout de suite (`ERR_CERT_AUTHORITY_INVALID`)
+
+1. Depuis la **racine du dépôt** : `DEV_HTTPS_INSTALL_CA=1 bash scripts/ops/dev-https-certs.sh`  
+   (équivalent : `make dev-https-install-ca` si tu utilises Make.)
+2. Si le script l’indique ou si **Brave / Chrome / Chromium** refuse encore :  
+   `sudo trust anchor --store .local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`  
+   puis éventuellement `sudo trust extract-compat` (Arch / Fedora).
+3. **Quitter complètement** le navigateur (toutes les fenêtres), le relancer, puis **`https://jobbingtrack.localhost:5443/login`**.
+4. Test rapide : `curl -fsS -o /dev/null -w '%{http_code}\n' https://jobbingtrack.localhost:5443/login` → si **200** sans `--cacert`, le souci est presque toujours le **magasin du navigateur** (Flatpak/Snap → import manuel du fichier `.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem` dans **Autorités**, voir **Brave** et **Chrome / Chromium** ci‑dessous).
+
+### Ordre simple si tu utilises **Brave** (et `curl` donne déjà 200)
+
+Tu n’as **pas** besoin de refaire le script tant que `curl` reste à **200**. Enchaîne **uniquement** ceci :
+
+1. Dans Brave, barre d’adresse : ouvre **`brave://settings/security`** (raccourci vers la page Sécurité).
+2. Section **Certificats** : clique sur **Gérer les certificats** (ou **Manage certificates** si l’interface est en anglais).
+3. Onglet **Autorités** → **Importer** → choisis le fichier  
+   **`<racine-du-dépôt>/.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`**.  
+   Si le fichier n’apparaît pas : dans la boîte de dialogue, passe le filtre en **« Tous les fichiers »** / **All files**, pas seulement « Certificats ».
+4. Si une fenêtre te demande les usages : coche **« Confier à cette autorité de certification pour identifier les sites web »** (équivalent anglais *Trust this CA to identify websites*).
+5. **Ferme toutes les fenêtres Brave** (y compris en arrière-plan / icône barre des tâches), rouvre Brave, reteste **`https://jobbingtrack.localhost:5443/login`**.
+
+Même chemin par le menu : **☰** → **Paramètres** → **Confidentialité et sécurité** → **Sécurité** → **Gérer les certificats** → **Autorités** → **Importer**.
+
+Si **« Gérer les certificats » n’existe pas** : Brave **Flatpak** peut ouvrir le gestionnaire système au lieu du panneau intégré — dans ce cas installe la CA côté hôte (`trust` déjà fait) **et** vérifie `flatpak list | grep -i brave` ; en dernier recours, teste un paquet **Brave natif** Arch (`brave-bin` AUR / paquet équivalent) ou **`mkcert`** (Option D plus bas).
+
+### `curl` affiche déjà 200 mais Brave / Chrome affichent encore `ERR_CERT_AUTHORITY_INVALID`
+
+Ne pas reboucler indéfiniment sur `dev-https-certs.sh` : **le TLS côté proxy et la CA hôte sont déjà bons.**
+
+1. **Identifier le binaire réellement lancé** (Flatpak / Snap ont un magasin **séparé** de `trust` sur l’hôte) :
+   ```bash
+   command -v brave brave-browser google-chrome-stable google-chrome chromium 2>/dev/null
+   flatpak list 2>/dev/null | grep -Ei 'chrome|chromium|brave' || true
+   snap list 2>/dev/null | grep -Ei 'chrome|chromium|brave' || true
+   ```
+   - Si le navigateur vient d’un **Flatpak** ou d’un **Snap**, `sudo trust anchor` **ne suffit souvent pas** : importer le PEM à la main (parcours Brave ci‑dessus) ou utiliser un paquet **natif** (`.pkg.tar.zst` / `.deb` / rpm) pour ce navigateur.
+
+2. **Import manuel dans Brave / Chrome / Chromium** (même interface Chromium ; voir aussi le bloc **Ordre simple si tu utilises Brave** ci‑dessus) :
+   - Fichier : **`<racine-du-dépôt>/.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`**
+   - **Paramètres** → **Confidentialité et sécurité** → **Sécurité** → **Gérer les certificats** → onglet **Autorités** → **Importer** → cocher **Confier à cette CA pour identifier les sites web** si proposé.
+   - **Quitter complètement** le navigateur (toutes les fenêtres), relancer, retester `/login`.
+
+3. **Vérification croisée** : ouvrir la même URL dans **Firefox** (le script a déjà injecté la CA dans les profils Mozilla listés). Si Firefox est OK et Brave/Chrome non, le diagnostic est **100 % magasin du navigateur Chromium** (Flatpak/Snap ou import manquant).
+
+4. **Dernier recours** : section **Option D — `mkcert`** plus bas (`mkcert -install` puis `FORCE=1 bash scripts/ops/dev-https-certs.sh` + redémarrage du proxy).
+
 ## URLs
 
 | Surface | URL HTTPS |
@@ -72,26 +119,27 @@ Après **`make dev-https-install-ca`**, si la commande suivante affiche **200** 
 curl -fsS -o /dev/null -w '%{http_code}\n' https://jobbingtrack.localhost:5443/login
 ```
 
-## Chrome / Chromium sous Linux (`ERR_CERT_AUTHORITY_INVALID`)
+## Chrome / Chromium / Brave sous Linux (`ERR_CERT_AUTHORITY_INVALID`)
 
-Sur beaucoup de distributions, **Chrome et Chromium** s’appuient sur le **magasin de certificats du système**. Le script tente d’abord `sudo -n trust anchor --store …` : si cela réussit, Chrome accepte le site sans étape manuelle. Si le script affiche la commande avec `sudo trust anchor` (sans `-n`), exécutez-la une fois dans un terminal, puis fermez tout Chrome et rouvrez l’URL.
+Sur beaucoup de distributions, **Chrome, Chromium et Brave** (moteur Chromium) s’appuient sur le **magasin de certificats du système** ou sur un NSS interne selon l’empaquetage. Le script tente d’abord `sudo -n trust anchor --store …` : si cela réussit, le navigateur **natif** accepte souvent le site sans étape manuelle. Si le script affiche la commande avec `sudo trust anchor` (sans `-n`), exécutez-la une fois dans un terminal, puis fermez tout le navigateur et rouvrez l’URL.
 
-Si vous ne pouvez pas utiliser `sudo`, importez le PEM dans Chrome (**Autorités**), comme ci-dessous.
+Si vous ne pouvez pas utiliser `sudo`, ou si **`curl` = 200** mais Brave refuse encore, importez le PEM dans **Autorités** (voir le bloc **Ordre simple si tu utilises Brave** en haut de ce fichier).
 
-**Option A — import manuel dans Chrome (sans sudo)**
+**Option A — import manuel Brave / Chrome / Chromium (sans sudo)**
 
 1. Fichier CA : `.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`
-2. Chrome : **Paramètres** → **Confidentialité et sécurité** → **Sécurité** → **Gérer les certificats** → onglet **Autorités** → **Importer** → choisir le `.pem` → cocher **Confier à cette CA pour identifier les sites web** si proposé.
-3. Fermer **toutes** les fenêtres Chrome, rouvrir, puis retester `https://jobbingtrack.localhost:5443`.
+2. **Brave** : barre d’adresse **`brave://settings/security`**, puis **Gérer les certificats** → onglet **Autorités** → **Importer** → choisir le `.pem` → cocher **Confier à cette CA pour identifier les sites web** si proposé.  
+   **Chrome / Chromium** : **Paramètres** → **Confidentialité et sécurité** → **Sécurité** → **Gérer les certificats** → **Autorités** → **Importer** (ou `chrome://settings/security`).
+3. Fermer **toutes** les fenêtres du navigateur, rouvrir, puis retester `https://jobbingtrack.localhost:5443`.
 
 **Option B — magasin système (sudo, recommandé si vous préférez une fois pour toutes)**
 
 - Arch / `trust` : `sudo trust anchor --store .local/dev-certs/ca/jobbingtrack-dev-root-ca.pem` puis redémarrer le navigateur.
-- Debian/Ubuntu : copier la CA sous `/usr/local/share/ca-certificates/` avec l’extension **`.crt`**, puis `sudo update-ca-certificates`, puis redémarrer Chrome.
+- Debian/Ubuntu : copier la CA sous `/usr/local/share/ca-certificates/` avec l’extension **`.crt`**, puis `sudo update-ca-certificates`, puis redémarrer Brave / Chrome.
 
 **Option C — `mkcert`**
 
-Si `mkcert` est installé, le script l’utilise en priorité : `mkcert -install` installe généralement une CA reconnue par Chrome. Voir la section « Commandes » ci-dessus (`make dev-https-install-ca`).
+Si `mkcert` est installé, le script l’utilise en priorité : `mkcert -install` installe généralement une CA reconnue par les navigateurs Chromium. Voir la section « Commandes » ci-dessus (`make dev-https-install-ca`).
 
 **Option D — tout repasser par `mkcert` (si OpenSSL + navigateur restent bloqués)**
 
@@ -151,13 +199,15 @@ C’est **normal** : le navigateur montre toujours la **chaîne** (certificat fe
 
 2. **Chaîne Nginx + caches SSL** : le proxy sert désormais un **fullchain** (feuille + CA). Après `dev-https-install-ca`, exécutez si besoin **`sudo trust extract-compat`**, redémarrez **`make dev-https-up`**, puis fermez **tout** le navigateur.
 
-3. **Chrome / Chromium installé en Flatpak ou Snap** : ils n’utilisent pas toujours le même magasin que `trust` sur l’hôte. Importez le fichier **`.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`** dans **Paramètres → Confidentialité → Gérer les certificats → Autorités**, ou utilisez un binaire **.deb / rpm** du navigateur.
+3. **Brave / Chrome / Chromium en Flatpak ou Snap** : ils n’utilisent pas toujours le même magasin que `trust` sur l’hôte. Importez le fichier **`.local/dev-certs/ca/jobbingtrack-dev-root-ca.pem`** dans **Paramètres → Confidentialité → Gérer les certificats → Autorités** (Brave : **`brave://settings/security`**), ou utilisez un binaire **natif** (pacman / `.deb` / rpm) du navigateur.
 
-4. **Brave / profil perso** : fermez **toutes** les fenêtres (pas seulement l’onglet), voire testez une **fenêtre privée** après installation de la CA.
+4. **Profil perso** : fermez **toutes** les fenêtres (pas seulement l’onglet), voire testez une **fenêtre privée** après import de la CA (utile pour écarter un profil corrompu ; l’import reste souvent nécessaire une fois pour toutes).
 
-5. **Contournement de secours** : import manuel du PEM dans les **Autorités** du navigateur (déjà décrit dans la section Chrome plus haut).
+5. **Contournement de secours** : import manuel du PEM dans les **Autorités** (déjà décrit dans la section **Chrome / Chromium / Brave** plus haut et dans **Ordre simple si tu utilises Brave**).
 
 ### Autres cas
+
+**Échecs de login (401, SSL sur `:5002`, admin non reconnu)** : ne pas mélanger avec un problème de certificat. Suivre le guide dédié **[`docs/troubleshooting/TROUBLESHOOTING_LOGIN.md`](../troubleshooting/TROUBLESHOOTING_LOGIN.md)** (symptômes, resync `ADMIN_PASSWORD` via `backend/scripts/database/create-admin-user.sh`).
 
 Si le login fonctionne mais que le backoffice affiche ensuite `ERR_CERT_AUTHORITY_INVALID` sur `https://api.jobbingtrack.localhost:5443`, le problème n'est pas un échec d'authentification : le navigateur ne fait pas encore confiance à la CA locale.
 
