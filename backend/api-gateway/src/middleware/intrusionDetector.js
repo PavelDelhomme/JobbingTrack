@@ -149,6 +149,25 @@ class IntrusionDetector {
     return true;
   }
 
+  /**
+   * Heuristiques DoS sur en-têtes JSON (x-forwarded-*, authorization Bearer) :
+   * faux positifs fréquents en dev HTTPS / backoffice authentifié.
+   */
+  shouldSkipDosHeuristics(req, clientIP) {
+    if (process.env.NODE_ENV !== 'production' && this.isPrivateOrLocalIp(clientIP)) {
+      return true;
+    }
+    const auth = String(req.headers?.authorization || '');
+    if (/^bearer\s+/i.test(auth)) {
+      return true;
+    }
+    const path = String(req.url || '').split('?')[0];
+    if (path === '/api/v1/auth/login' || path === '/api/v1/auth/register') {
+      return true;
+    }
+    return false;
+  }
+
   // Méthode principale de détection
   async detect(req, res, next) {
     try {
@@ -195,7 +214,12 @@ class IntrusionDetector {
         if (patternName === 'UNAUTHORIZED_ACCESS' && req.headers.authorization) {
           continue;
         }
-        const matches = this.checkPattern(requestData, patternConfig);
+        if (patternName === 'DOS_ATTACKS' && this.shouldSkipDosHeuristics(req, clientIP)) {
+          continue;
+        }
+        const matches = this.checkPattern(requestData, patternConfig, {
+          excludeHeaders: patternName === 'DOS_ATTACKS',
+        });
         if (matches.length > 0) {
           detections.push(...matches.map(match => ({
             pattern: patternName,
@@ -255,12 +279,16 @@ class IntrusionDetector {
   }
 
   // Vérification des patterns
-  checkPattern(requestData, patternConfig) {
+  checkPattern(requestData, patternConfig, options = {}) {
     const matches = [];
     const { url, method, userAgent, body, headers } = requestData;
 
     for (const pattern of patternConfig.patterns) {
-      const testString = `${url} ${method} ${userAgent} ${body} ${headers}`.toLowerCase();
+      const testString = (
+        options.excludeHeaders
+          ? `${url} ${method} ${userAgent} ${body}`
+          : `${url} ${method} ${userAgent} ${body} ${headers}`
+      ).toLowerCase();
 
       if (pattern.test(testString)) {
         matches.push({
