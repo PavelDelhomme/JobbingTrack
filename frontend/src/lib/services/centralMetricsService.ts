@@ -34,6 +34,8 @@ class CentralMetricsService {
   private loadingPromises: Map<string, Promise<any>> = new Map();
   private aggregatorUnavailableUntil: number = 0;
   private static readonly AGGREGATOR_BACKOFF_MS = 30000; // 30 secondes
+  private servicesListCache: { data: any[]; expiresAt: number } | null = null;
+  private static readonly SERVICES_LIST_CACHE_MS = 30000;
 
   constructor() {
     this.apiUrl = FRONTEND_URLS.api;
@@ -551,8 +553,21 @@ class CentralMetricsService {
     }
   }
 
-  // Récupération de tous les services depuis l'API Gateway avec timeout
+  // Récupération de tous les services (docker/services/all — cache + dédup requêtes)
   async getAllServices(): Promise<any[] | null> {
+    return this.getWithCache("getAllServices", () => this.fetchAllServicesUncached());
+  }
+
+  private async fetchAllServicesUncached(): Promise<any[] | null> {
+    const now = Date.now();
+    if (
+      this.servicesListCache &&
+      this.servicesListCache.expiresAt > now &&
+      this.servicesListCache.data.length > 0
+    ) {
+      return this.servicesListCache.data;
+    }
+
     // Données de test par défaut pour éviter les erreurs 404
     const defaultServices = [
       {
@@ -596,7 +611,13 @@ class CentralMetricsService {
       if (dockerRes.ok) {
         const dockerData = await dockerRes.json();
         const list = dockerData.services || [];
-        if (list.length > 0) return list;
+        if (list.length > 0) {
+          this.servicesListCache = {
+            data: list,
+            expiresAt: now + CentralMetricsService.SERVICES_LIST_CACHE_MS,
+          };
+          return list;
+        }
       }
       const metricsRes = await fetch(
         `${this.metricsAggregatorUrl}/api/v1/metrics`,
@@ -610,10 +631,19 @@ class CentralMetricsService {
       );
       if (metricsRes.ok) {
         const data = await metricsRes.json();
-        if (data.servicesList && data.servicesList.length > 0)
-          return data.servicesList;
-        if (data.services && typeof data.services === "object")
-          return Object.values(data.services);
+        const fromMetrics =
+          data.servicesList && data.servicesList.length > 0
+            ? data.servicesList
+            : data.services && typeof data.services === "object"
+              ? Object.values(data.services)
+              : [];
+        if (fromMetrics.length > 0) {
+          this.servicesListCache = {
+            data: fromMetrics,
+            expiresAt: now + CentralMetricsService.SERVICES_LIST_CACHE_MS,
+          };
+          return fromMetrics;
+        }
       }
     } catch (error: any) {
       if (
@@ -626,32 +656,36 @@ class CentralMetricsService {
       }
     }
 
-    // Fallback : API Gateway (si disponible)
-    try {
-      const response = await fetch(`${this.apiUrl}/api/v1/services`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${this.token}`,
-        },
-        signal: AbortSignal.timeout(12000), // 12s au lieu de 8s
-      });
+    // Fallback API Gateway : éviter si l’agrégateur est en backoff (réduit les timeouts en rafale)
+    if (now >= this.aggregatorUnavailableUntil) {
+      try {
+        const response = await fetch(`${this.apiUrl}/api/v1/services`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${this.token}`,
+          },
+          signal: AbortSignal.timeout(12000),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.services) {
-          console.log(
-            "[SERVICES] ✅ Services récupérés depuis l'API Gateway:",
-            data.services.length,
-            "services",
-          );
-          return data.services;
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.services?.length) {
+            this.servicesListCache = {
+              data: data.services,
+              expiresAt: now + CentralMetricsService.SERVICES_LIST_CACHE_MS,
+            };
+            return data.services;
+          }
         }
+      } catch {
+        /* gateway optionnel */
       }
-    } catch (error) {
-      // Silence - API Gateway endpoint optionnel
     }
 
-    // Fallback : Données par défaut
+    if (this.servicesListCache?.data?.length) {
+      return this.servicesListCache.data;
+    }
+
     console.log("[SERVICES] ℹ️ Utilisation des services par défaut");
     return defaultServices;
   }
@@ -1323,7 +1357,7 @@ class CentralMetricsService {
           "Content-Type": "application/json",
           ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         },
-        signal: AbortSignal.timeout(10000), // Timeout de 10 secondes
+        signal: AbortSignal.timeout(20000),
       });
 
       if (!response.ok) {
@@ -1424,12 +1458,28 @@ class CentralMetricsService {
               : item.avg_response_time_ms !== undefined
                 ? item.avg_response_time_ms
                 : 0,
-          error_rate:
-            item.errorRate !== undefined
-              ? item.errorRate
-              : item.error_rate !== undefined
-                ? item.error_rate
-                : 0,
+          error_rate: (() => {
+            const explicit =
+              item.errorRate !== undefined
+                ? item.errorRate
+                : item.error_rate;
+            if (explicit != null && Number.isFinite(Number(explicit))) {
+              return Number(explicit);
+            }
+            const avail =
+              item.availabilityPercent ?? item.availability_percent;
+            if (avail != null && Number.isFinite(Number(avail))) {
+              return Math.max(0, Math.min(100, 100 - Number(avail)));
+            }
+            const load = item.loadScore ?? item.load_score;
+            if (load != null && Number.isFinite(Number(load))) {
+              return Math.max(0, Math.min(100, 100 - Number(load)));
+            }
+            return 0;
+          })(),
+          error_rate_derived: !(
+            item.errorRate != null || item.error_rate != null
+          ),
           availability_percent:
             item.availabilityPercent !== undefined
               ? item.availabilityPercent
