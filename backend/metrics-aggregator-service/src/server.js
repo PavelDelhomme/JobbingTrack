@@ -1,3 +1,6 @@
+const { applySafeDatabaseUrl } = require('./utils/applySafeDatabaseUrl')
+applySafeDatabaseUrl()
+
 const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
@@ -622,14 +625,18 @@ function createCollectProfiler(enabled) {
 }
 
 function monitoringSourceUrls() {
-  return [
-    process.env.MONITORING_AGENT_URL,
-    process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
-  ].filter(Boolean)
+  const agentDefault = 'http://monitoring-agent-rs:8015'
+  const agentUrl = process.env.MONITORING_AGENT_URL || agentDefault
+  const legacyUrl = process.env.MONITORING_C_URL
+  const urls = [agentUrl]
+  if (legacyUrl && legacyUrl !== agentUrl) urls.push(legacyUrl)
+  return urls.filter(Boolean)
 }
 
 function monitoringSourceName(url) {
-  return url.includes('monitoring-agent-rs') ? 'monitoring-agent-rs' : 'monitoring-c'
+  if (url.includes('monitoring-agent-rs')) return 'monitoring-agent-rs'
+  if (url.includes('monitoring-c')) return 'monitoring-c'
+  return 'monitoring-source'
 }
 
 function roundMetric(value, decimals = 1) {
@@ -693,7 +700,7 @@ async function collectAllMetrics() {
   try {
     logIfVerbose('[COLLECTOR] Démarrage de la collecte des métriques...')
 
-    // Essayer d'abord la source bas niveau configurée (Rust optionnel, C fallback).
+    // Essayer d'abord la source bas niveau (agent Rust par défaut ; URL C distincte = second essai).
     try {
       monitoringCData = await collectMetricsFromMonitoringSource()
     } catch (error) {
@@ -1428,9 +1435,11 @@ try {
   const procMounted = fs.existsSync('/host/proc/self')
   console.log('[SERVER] /host/proc monté:', procMounted ? 'oui (métriques par conteneur depuis /proc)' : 'non (fallback Docker stats)')
 } catch (e) { console.log('[SERVER] /host/proc: non disponible') }
+const _jtAgentUrl = process.env.MONITORING_AGENT_URL || 'http://monitoring-agent-rs:8015'
+const _jtLegacyC = process.env.MONITORING_C_URL
 console.log(
   '[SERVER] Source monitoring prioritaire:',
-  process.env.MONITORING_AGENT_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
+  _jtAgentUrl + (_jtLegacyC && _jtLegacyC !== _jtAgentUrl ? ` ; secondaire C: ${_jtLegacyC}` : '')
 )
 
 // Collecte immédiate au démarrage
@@ -1451,7 +1460,7 @@ if (
   console.log('[SERVER] Profilage collecte: METRICS_AGGREGATOR_PROFILE_COLLECT → ligne JSON [PROFILE_COLLECT] à chaque cycle')
 }
 
-// Collecte Docker logs désactivée par défaut: log-collector-c est la source dédiée.
+// Collecte Docker logs désactivée par défaut: log-collector-rs (ou legacy C) est la source dédiée.
 if (ENABLE_DOCKER_LOGS_COLLECTION) {
   cron.schedule('*/2 * * * *', collectDockerLogs)
 }

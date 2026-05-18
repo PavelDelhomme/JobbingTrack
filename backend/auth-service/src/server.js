@@ -1,4 +1,9 @@
 require('dotenv').config();
+const { requireJtEnvPolicy } = require('./utils/requireJtEnvPolicy');
+const policy = requireJtEnvPolicy();
+const { assertAuthEnvOrThrow } = require('./bootstrap/strictAuthEnv');
+assertAuthEnvOrThrow();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,7 +23,19 @@ const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+function resolveListenPort() {
+  if (policy.isStrictEnvSkipped()) {
+    const p = parseInt(process.env.PORT || '3001', 10);
+    return Number.isFinite(p) && p > 0 ? p : 3001;
+  }
+  const raw = policy.requireEnv('PORT');
+  const p = parseInt(raw, 10);
+  if (!Number.isFinite(p) || p <= 0) {
+    throw new Error(`PORT invalide [${policy.PUBLIC_ERROR_CODE}]`);
+  }
+  return p;
+}
+const PORT = resolveListenPort();
 app.set('trust proxy', true);
 
 // Configuration des middlewares

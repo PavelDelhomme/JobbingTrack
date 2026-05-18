@@ -1,6 +1,7 @@
 require('dotenv').config();
 const path = require('path');
-const policy = require(path.join(__dirname, '../../../config/jt-env-policy.cjs'));
+const { requireJtEnvPolicy } = require('./utils/requireJtEnvPolicy');
+const policy = requireJtEnvPolicy();
 const { assertGatewayEnvOrThrow } = require('./bootstrap/strictGatewayEnv');
 assertGatewayEnvOrThrow();
 
