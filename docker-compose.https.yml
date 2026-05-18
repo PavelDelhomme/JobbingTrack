@@ -8,6 +8,7 @@ services:
       - "${DEV_HTTPS_PORT:-5443}:443"
     volumes:
       - ./production/nginx/dev-https/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./production/nginx/dev-https/errors:/etc/nginx/__jt_err__:ro
       - ./.local/dev-certs/jobbingtrack-dev-fullchain.pem:/etc/nginx/certs/jobbingtrack-dev-fullchain.pem:ro
       - ./.local/dev-certs/jobbingtrack-dev-key.pem:/etc/nginx/certs/jobbingtrack-dev-key.pem:ro
     depends_on:
@@ -16,7 +17,8 @@ services:
     networks:
       - jobbingtrack-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --no-check-certificate https://127.0.0.1/health || exit 1"]
+      # Joignabilité réelle des upstreams (127.0.0.1 ne matche pas server_name TLS ; /health n’existait pas sur Nginx → faux positifs).
+      test: ["CMD-SHELL", "wget -qO- http://frontend:3000/health >/dev/null 2>&1 && wget -qO- http://api-gateway:3000/health >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

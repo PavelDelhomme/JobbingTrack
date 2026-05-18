@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend dev-https-certs dev-https-install-ca dev-https-up dev-https-down dev-https-status _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend dev-https-certs dev-https-install-ca dev-https-up dev-https-down dev-https-status _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full recreate fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -207,7 +207,7 @@ help-services: ## Afficher l'aide services
 	@echo "  make up-full               - TOUS les services + proxy HTTPS dev (UP_FULL_HTTPS=0 pour désactiver)"
 	@echo "  make up-full-mickdevil    - TOUS les services (SANS vérification Docker)"
 	@echo "  make up-profile PROFILE=x  - Par profil (auth, applications, companies, etc.)"
-	@echo "  make up-monitoring         - Postgres + monitoring-c + metrics-aggregator (stack monitoring seul)"
+	@echo "  make up-monitoring         - Postgres + agent Rust + log-collector-rs + metrics-aggregator"
 	@echo ""
 	@echo "🛑 ARRÊT:"
 	@echo "  make down                  - Arrêter tous les services (données conservées)"
@@ -216,11 +216,12 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "🔄 RESTART:"
 	@echo "  make restart               - Redémarrer les conteneurs actifs (sans recréation : env compose inchangées)"
-	@echo "  make restart-metrics-recreate - Recrée monitoring-c + metrics-aggregator (TZ / env / image)"
-	@echo "  make monitoring-clock-refresh - Recrée postgres + monitoring-c + agrégateur (applique .env fuseaux, volumes OK)"
+	@echo "  make restart-metrics-recreate - Recrée agent Rust + log-collector-rs + metrics-aggregator (TZ / env / image)"
+	@echo "  make monitoring-clock-refresh - Recrée postgres + stack Rust monitoring + agrégateur (fuseaux / .env)"
 	@echo "  make restart-tests-api-services - Redémarrer application, interview, call, followup (fix tests API isArchived)"
 	@echo "  make restart-clean         - Redémarrage + nettoyage"
 	@echo "  make restart-full          - Redémarrage complet en conservant la DB (ex. après setup-ports)"
+	@echo "  make recreate              - Recrée conteneurs profils full+monitoring (recharge .env / DATABASE_URL, sans rebuild image)"
 	@echo "  make restart-service SERVICE=nom - Redémarrer un service (nom = comme dans make status)"
 	@echo "      Ex: make restart-service SERVICE=metrics-aggregator"
 	@echo ""
@@ -269,8 +270,8 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "🚀 Démarrage des services optionnels (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	@echo ""
-	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "📊 Démarrage du monitoring (monitoring-agent-rs + log-collector-rs + metrics-aggregator)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
@@ -296,22 +297,23 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	$(call check_and_free_ports)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services démarrés (mode NO-CHECK)!"
 	@printf '%s\n' up-essential > "$(ROOT_DIR)/.jobbingtrack-stack-mode"
 
-# Démarrer uniquement la stack monitoring (Postgres + monitoring-c + metrics-aggregator)
-up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-c, metrics-aggregator)
+# Démarrer uniquement la stack monitoring (Postgres + Rust + metrics-aggregator)
+up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-agent-rs, log-collector-rs, metrics-aggregator)
 	@echo "📊 Démarrage de la stack monitoring..."
 	$(call ensure_docker_network)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres)
 	@echo "⏳ Attente PostgreSQL (10s)..."
 	@sleep 10
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --build monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --build monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Stack monitoring démarrée."
-	@echo "  - monitoring-c:       http://localhost:5098"
+	@echo "  - monitoring-agent-rs: http://localhost:$${MONITORING_RS_PORT:-5118}"
+	@echo "  - log-collector-rs:    http://localhost:$${LOG_COLLECTOR_RS_PORT:-5099}"
 	@echo "  - metrics-aggregator: http://localhost:5004"
 	@echo "  - Postgres:           prêt pour persistance"
 	@echo ""
@@ -351,8 +353,8 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	@sleep 3
 	@echo ""
-	@echo "📊 5/5 - Monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "📊 5/5 - Monitoring (Rust + metrics-aggregator)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@sleep 2
 	@echo ""
 	@echo "================================================================"
@@ -413,7 +415,7 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "✅ Frontend démarré !"
 	@echo ""
 	@echo "📦 Phase 3/4 - Monitoring..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo "✅ Monitoring démarré !"
 	@echo ""
 	@echo "📱 Phase 4/4 - Application Mobile Flutter..."
@@ -507,9 +509,9 @@ _up-full-internal:
 	@sleep 3
 	
 	# Avant la gateway : DNS joignable pour les proxys /api/v1/security/* et /api/v1/metrics (évite ENOTFOUND au boot)
-	@echo "🚀 Pré-démarrage security-service + monitoring-c + metrics-aggregator..."
+	@echo "🚀 Pré-démarrage security-service + stack monitoring Rust + metrics-aggregator..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d security-service)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo "⏳ Attente résolution des noms security / metrics (6s)..."
 	@sleep 6
 	
@@ -554,14 +556,10 @@ _up-full-internal:
 	@sleep 8
 	
 	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
-	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_WITH_LOCAL_HTTPS) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
-	@echo "✅ Monitoring démarré (collecteur C + API agrégateur)"
+	@echo "📊 Démarrage du monitoring (monitoring-agent-rs + log-collector-rs + metrics-aggregator)..."
+	$(call docker_compose, $(COMPOSE_FILES_WITH_LOCAL_HTTPS) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
+	@echo "✅ Monitoring démarré (Rust + API agrégateur)"
 
-	# Optionnel : log-collector-c
-	@echo "📋 Démarrage du collecteur de logs (optionnel)..."
-	@$(call docker_compose, $(COMPOSE_FILES_FULL_WITH_LOCAL_HTTPS) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
-	
 	@echo "⏳ Attente finalisation (3s)..."
 	@sleep 3
 	
@@ -573,9 +571,9 @@ _up-full-internal:
 	@echo "  - Frontend (TLS dev): https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443} (si UP_FULL_HTTPS≠0)"
 	@echo "  - API Gateway:        http://localhost:5002"
 	@echo "  - API (TLS dev):      https://api.jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
-	@echo "  - Monitoring C:       http://localhost:5098 (collecteur C)"
-	@echo "  - Metrics Aggregator: http://localhost:5004 (API backoffice)"
-	@echo "  - Log Collector C:    http://localhost:5099 (optionnel)"
+	@echo "  - Monitoring agent (Rust): http://localhost:$${MONITORING_RS_PORT:-5118}"
+	@echo "  - Log collector (Rust):    http://localhost:$${LOG_COLLECTOR_RS_PORT:-5099}"
+	@echo "  - Metrics Aggregator:      http://localhost:5004 (API backoffice)"
 	@echo ""
 	
 	# Note: La vérification Prisma est faite après le démarrage complet dans up-full
@@ -772,25 +770,25 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs (pas un dow
 	@echo "✅ Services redémarrés"
 
 # Recréation ciblée monitoring (nouvelles env compose, image rebuild) — sans toucher Postgres ni le reste de la stack
-restart-metrics-recreate: ## Recrée monitoring-c + jobbingtrack-metrics-aggregator (--force-recreate, --no-deps)
-	@echo "♻️  Recréation forcée : monitoring-c + jobbingtrack-metrics-aggregator…"
+restart-metrics-recreate: ## Recrée monitoring-agent-rs + log-collector-rs + jobbingtrack-metrics-aggregator (--force-recreate, --no-deps)
+	@echo "♻️  Recréation forcée : monitoring-agent-rs + log-collector-rs + jobbingtrack-metrics-aggregator…"
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate --no-deps monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate --no-deps monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo "⏳ Attente stabilisation (20s)…"
 	@sleep 20
 	@echo "✅ Terminé. Vérifiez les graphiques (heure = fuseau navigateur). Sinon : make rebuild-service SERVICE=metrics-aggregator"
 
 # Remettre d’aplomb fuseaux + binaires monitoring depuis le .env (court downtime Postgres)
 # REBUILD_METRICS=1 : make rebuild-service SERVICE=metrics-aggregator avant le recreate (image à jour si pas de volume src)
-monitoring-clock-refresh: ## Recrée postgres + monitoring-c + metrics-aggregator (--force-recreate, volumes conservés)
-	@echo "♻️  monitoring-clock-refresh : postgres + monitoring-c + jobbingtrack-metrics-aggregator"
+monitoring-clock-refresh: ## Recrée postgres + stack Rust monitoring + metrics-aggregator (--force-recreate, volumes conservés)
+	@echo "♻️  monitoring-clock-refresh : postgres + monitoring-agent-rs + log-collector-rs + jobbingtrack-metrics-aggregator"
 	@echo "   → Applique POSTGRES_SYSTEM_METRICS_TZ / env compose depuis ton .env (données PostgreSQL conservées sur le volume)."
 	$(call check_docker)
 	@if [ "$${REBUILD_METRICS:-0}" = "1" ]; then \
 		echo "🔨 REBUILD_METRICS=1 → rebuild de l’image metrics-aggregator…"; \
 		$(MAKE) rebuild-service SERVICE=metrics-aggregator || exit 1; \
 	fi
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate postgres monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --force-recreate postgres monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo "⏳ Attente stabilisation Postgres + agrégateur (35s)…"
 	@sleep 35
 	@echo "✅ Terminé. Recharge /backoffice/analytics/performances (heure locale navigateur)."
@@ -845,6 +843,33 @@ restart-full: ## Redémarrer tout le projet en conservant la base de données (p
 	@sleep 3
 	$(MAKE) up-full
 	@echo "✅ Redémarrage terminé. Connexion : http://localhost:5003"
+
+# Recréation des conteneurs (profils full + monitoring) : recharge DATABASE_URL / .env sans rebuild image.
+# Inclut metrics-aggregator (profils full + monitoring), monitoring-agent-rs, log-collector-rs.
+# Par défaut : inclut le proxy TLS (5443). `docker_compose` ne doit pas être imbriqué dans un `if` shell
+# (le define s’étend en plusieurs lignes de recette Make → script shell cassé). On duplique donc la cible
+# avec ifeq GNU make : `make recreate RECREATE_NO_HTTPS=1` ou `RECREATE_NO_HTTPS=1 make recreate`.
+# Sans certificats .local : RECREATE_NO_HTTPS=1 make recreate  puis  make dev-https-up
+# Legacy C : uniquement `make monitoring-c-up` (profil monitoring-c).
+ifeq ($(strip $(RECREATE_NO_HTTPS)),1)
+recreate: ## Recrée profils full+monitoring (sans proxy TLS ; puis make dev-https-up si besoin de 5443)
+	@echo "🔁 Recréation forcée (profils \`full\` + \`monitoring\` — RECREATE_NO_HTTPS=1 : pas de proxy https)…"
+	@echo "   Inclut notamment : api-gateway, auth, microservices profil full, metrics-aggregator,"
+	@echo "   monitoring-agent-rs, log-collector-rs (Rust). Pas le stack C sans profil monitoring-c."
+	@echo "   💡 HTTPS ensuite : make dev-https-up"
+	$(call check_docker)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile full --profile monitoring up -d --force-recreate)
+	@echo "✅ Recreate terminé. Vérifier : make status — http://localhost:5003 puis make dev-https-up pour le TLS"
+else
+recreate: ## Recrée profils full+monitoring+https (5443) ; RECREATE_NO_HTTPS=1 sans proxy TLS
+	@echo "🔁 Recréation forcée (profils \`full\` + \`monitoring\` + \`https\` — RECREATE_NO_HTTPS=1 pour exclure le proxy 5443)…"
+	@echo "   Inclut notamment : api-gateway, auth, microservices profil full, metrics-aggregator,"
+	@echo "   monitoring-agent-rs, log-collector-rs (Rust). Pas le stack C sans profil monitoring-c."
+	@echo "   💡 Sans certificats .local : make recreate RECREATE_NO_HTTPS=1  puis  make dev-https-up"
+	$(call check_docker)
+	$(call docker_compose, $(COMPOSE_FILES_FULL_WITH_LOCAL_HTTPS) --profile full --profile monitoring --profile https up -d --force-recreate)
+	@echo "✅ Recreate terminé. Vérifier : make status — connexion https://jobbingtrack.localhost:5443 ou http://localhost:5003"
+endif
 
 # Build avec cache (profil full) — rapide après changement de code, utilise le cache Docker
 build-full: ## Build des images avec cache (sans --no-cache) — plus rapide que rebuild
@@ -1078,7 +1103,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@if [ "$(STATUS_LEGEND)" = "1" ]; then \
 		printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"; \
-		printf '%b\n' "\033[0;90mLes services Node exposent souvent 300x / 301x dans l image. \033[1;33mmonitoring-c\033[0;90m (C) ecoute \033[0;33m8015\033[0;90m dans le conteneur ; hote \033[0;36m5098\033[0;90m. \033[1;33mlog-collector-c\033[0;90m (C) ecoute \033[0;33m3019\033[0;90m dans le conteneur ; hote \033[0;36m5099\033[0;90m (pas 5099->5099). Acces reseau Docker : \033[0;36mlog-collector-c:3019\033[0;90m / \033[0;36mmonitoring-c:8015\033[0;90m.\033[0m"; \
+		printf '%b\n' "\033[0;90mParcours par defaut : \033[1;33mmonitoring-agent-rs\033[0;90m + \033[1;33mlog-collector-rs\033[0;90m (Rust) + \033[1;33mmetrics-aggregator\033[0;90m. Legacy C optionnel : \033[1;33mmonitoring-c\033[0;90m / \033[1;33mlog-collector-c\033[0;90m (\033[0;36mmake monitoring-c-up\033[0;90m). Ports typiques : agent Rust hote \033[0;36m5118\033[0;90m, log-collector-rs \033[0;36m5099\033[0;90m, monitoring-c (legacy) \033[0;36m5098\033[0;90m.\033[0m"; \
 		echo ""; \
 	fi
 	@echo "🏗️  Infrastructure:"
@@ -1269,9 +1294,9 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 		fi; \
 	done
 	@echo ""
-	@echo "📊 Monitoring & Métriques:"
+	@echo "📊 Monitoring & Métriques (Rust par défaut, C = legacy si démarré):"
 	@echo ""
-	@services="metrics-aggregator monitoring-c log-collector-c"; \
+	@services="monitoring-agent-rs log-collector-rs metrics-aggregator"; \
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
@@ -1466,13 +1491,13 @@ logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour qui
 	@echo "=============================="
 	@docker logs jobbingtrack-metrics-aggregator -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh"
 
-# Logs applicatifs uniquement (sans metrics-aggregator ni monitoring-c) — moins de bruit
+# Logs applicatifs uniquement (sans metrics-aggregator ni conteneurs monitoring Rust / C) — moins de bruit
 logs-applicative: ## Logs des services applicatifs (sans métriques / monitoring)
-	@echo "📋 Logs applicatifs (sans metrics-aggregator ni monitoring-c)"
+	@echo "📋 Logs applicatifs (sans metrics-aggregator ni monitoring Rust / legacy C)"
 	@echo "=================================================================="
 	@echo "💡 Pour tout voir : make logs  |  Métriques seules : make logs-metrics"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-metrics-aggregator[[:space:]]|^jobbingtrack-monitoring-c[[:space:]]' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-metrics-aggregator[[:space:]]|^jobbingtrack-monitoring-agent-rs[[:space:]]|^jobbingtrack-log-collector-rs[[:space:]]|^jobbingtrack-monitoring-c[[:space:]]|^jobbingtrack-log-collector-c[[:space:]]' | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-applicative"; exit 1)
 
 # Logs contenant uniquement les lignes [PERSISTENCE] (sauvegardes, snapshots, etc.)
