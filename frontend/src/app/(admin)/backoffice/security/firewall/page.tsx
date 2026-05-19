@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { TableSkeleton } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
@@ -754,7 +755,7 @@ export default function FirewallPage() {
           )}
 
           {loading ? (
-            <div className="text-center py-8">Chargement...</div>
+            <TableSkeleton rows={8} columns={6} />
           ) : rules.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               Aucune règle de firewall
@@ -1191,7 +1192,7 @@ function WAFConfigSection() {
       </h2>
 
       {loadingWaf ? (
-        <div className="text-center py-8">Chargement...</div>
+        <TableSkeleton rows={6} columns={4} />
       ) : (
         <div className="space-y-6">
           {error && (
