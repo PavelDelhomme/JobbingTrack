@@ -13,6 +13,7 @@ import {
   logHref,
   threatHref,
 } from "@/lib/security/incidents";
+import { TablePanelSkeleton, uiSurfaces, uiText } from "@/lib/ui";
 import { AlertTriangle, FlaskConical, RefreshCw } from "lucide-react";
 import axios from "axios";
 
@@ -254,15 +255,18 @@ export default function SecurityIncidentsPage() {
               Vue opérationnelle : <strong>menaces réseau</strong>,{" "}
               <strong>alertes</strong> (CVE, dispo, sévérité) et{" "}
               <strong>événements</strong> (WAF, blocages, intrusions). Les logs
-              « health » / <code className="text-xs">api_access</code> ne sont pas
-              listés ici. Cliquez une ligne pour ouvrir la fiche adaptée.
+              « health » /{" "}
+              <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800 dark:text-gray-300">
+                api_access
+              </code>{" "}
+              ne sont pas listés ici. Cliquez une ligne pour ouvrir la fiche adaptée.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => load()}
-              className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm dark:border-gray-600"
+              className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
             >
               <RefreshCw className="h-4 w-4" />
               Actualiser
@@ -285,7 +289,7 @@ export default function SecurityIncidentsPage() {
           </p>
         )}
         {error && (
-          <p className="text-sm rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-red-800 dark:border-red-800 dark:bg-red-950/30">
+          <p className="text-sm rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
             {error}
           </p>
         )}
@@ -318,9 +322,9 @@ export default function SecurityIncidentsPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <TablePanelSkeleton rows={8} columns={6} />
         ) : pageItems.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500">
+          <div className={uiSurfaces.emptyState}>
             <p>Aucun incident sur les {LOGS_WINDOW_DAYS} derniers jours.</p>
             <p className="mt-2">
               Utilisez « Menace lab (test) » pour générer une fiche forensics avec IP
@@ -328,9 +332,9 @@ export default function SecurityIncidentsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+          <div className={uiSurfaces.tableWrap}>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 text-left">
+              <thead className={uiSurfaces.tableHead}>
                 <tr>
                   <th className="p-3">Type</th>
                   <th className="p-3">Incident</th>
@@ -355,7 +359,7 @@ export default function SecurityIncidentsPage() {
                       <div className="font-medium text-gray-900 dark:text-gray-100">
                         {item.title}
                       </div>
-                      <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                      <p className={`text-xs line-clamp-2 mt-0.5 ${uiText.subtle}`}>
                         {item.subtitle}
                       </p>
                     </td>
@@ -373,7 +377,7 @@ export default function SecurityIncidentsPage() {
                     <td className="p-3">
                       <Link
                         href={item.href}
-                        className="text-red-600 hover:underline font-medium text-xs"
+                        className={`${uiText.link} text-xs`}
                       >
                         {item.kind === "threat"
                           ? "Fiche menace"
@@ -388,7 +392,7 @@ export default function SecurityIncidentsPage() {
                 ))}
               </tbody>
             </table>
-            <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-3 py-2 text-xs text-gray-500">
+            <div className={`flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-3 py-2 text-xs ${uiText.subtle}`}>
               <span>
                 Page {safePage}/{totalPages}
               </span>
@@ -397,7 +401,7 @@ export default function SecurityIncidentsPage() {
                   type="button"
                   disabled={safePage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded border px-2 py-1 disabled:opacity-50"
+                  className="rounded border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                 >
                   Précédent
                 </button>
@@ -405,7 +409,7 @@ export default function SecurityIncidentsPage() {
                   type="button"
                   disabled={safePage >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded border px-2 py-1 disabled:opacity-50"
+                  className="rounded border border-gray-300 px-2 py-1 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                 >
                   Suivant
                 </button>
@@ -414,9 +418,9 @@ export default function SecurityIncidentsPage() {
           </div>
         )}
 
-        <p className="text-xs text-gray-500">
+        <p className={`text-xs ${uiText.subtle}`}>
           Configuration des emails d&apos;alerte :{" "}
-          <Link href="/settings" className="text-red-600 hover:underline">
+          <Link href="/settings" className={uiText.link}>
             Paramètres → Notifications → Alertes sécurité
           </Link>
           . Checklist porteur :{" "}
