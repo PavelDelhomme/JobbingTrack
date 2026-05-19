@@ -7,24 +7,17 @@
   --animation-duration: 150ms;
 }
 
-/* Thème haute contraste */
+/* Haut contraste : tokens uniquement (pas de filter global — casse le dark mode). */
 .high-contrast {
-  --primary-color: #0000ff;
-  --accent-color: #ff0000;
+  --primary-color: #2563eb;
+  --accent-color: #059669;
 }
 
-.high-contrast * {
-  border-color: #000 !important;
-  color: #000 !important;
-  background: #fff !important;
-}
-
-.high-contrast .bg-gray-50 {
-  background: #fff !important;
-}
-
-.high-contrast .text-gray-600 {
-  color: #000 !important;
+.dark.high-contrast,
+html.dark.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --border: 0 0% 100%;
 }
 
 /* Texte agrandi */
@@ -867,11 +860,7 @@
   left: 1rem;
 }
 
-/* Mode hors ligne */
-.offline-mode {
-  opacity: 0.8;
-}
-
+/* Mode hors ligne : badge uniquement (jamais d'opacity sur :root). */
 .offline-mode::after {
   content: "⚡ Mode hors ligne";
   position: fixed;
@@ -1053,8 +1042,8 @@
   animation: scaleIn 0.3s ease-out;
 }
 
-/* Transitions fluides */
-* {
+/* Transitions : scope animations-enabled (évite mélange de couleurs type sepia au changement de thème). */
+.animations-enabled * {
   transition:
     background-color var(--animation-duration) ease,
     border-color var(--animation-duration) ease,
