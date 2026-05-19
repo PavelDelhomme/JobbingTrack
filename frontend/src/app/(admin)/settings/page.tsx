@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   mergeCustomizationSettings,
+  useCustomization,
   type CustomizationSettings,
 } from "@/hooks/useCustomization";
 import {
@@ -20,7 +21,6 @@ import {
 } from "lucide-react";
 import { SecurityAlertEmailSettings } from "@/components/security/SecurityAlertEmailSettings";
 import { AdminLayout } from "@/components/features";
-import { useCustomization } from "@/hooks/useCustomization";
 import { useTranslation } from "@/lib/hooks/useTranslation";
 import { OfflineStatus } from "@/components/widgets";
 import { LinkedInIntegration } from "@/components/integrations";
