@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  mergeCustomizationSettings,
+  type CustomizationSettings,
+} from "@/hooks/useCustomization";
 import {
   Save,
   RotateCcw,
@@ -39,33 +43,41 @@ export default function SettingsPage() {
   const { settings, saveSettings, resetSettings, isLoading } =
     useCustomization();
   const { t, setLocale } = useTranslation();
-  const [localSettings, setLocalSettings] = useState(settings);
+  const [localSettings, setLocalSettings] =
+    useState<CustomizationSettings>(() => mergeCustomizationSettings());
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Mettre à jour les paramètres locaux
-  const updateLocalSettings = (updates: Partial<typeof localSettings>) => {
-    const newSettings = { ...localSettings, ...updates };
+  useEffect(() => {
+    if (!isLoading) {
+      setLocalSettings(mergeCustomizationSettings(settings));
+      setHasChanges(false);
+    }
+  }, [settings, isLoading]);
+
+  const updateLocalSettings = (updates: Partial<CustomizationSettings>) => {
+    const newSettings = mergeCustomizationSettings({
+      ...localSettings,
+      ...updates,
+    });
     setLocalSettings(newSettings);
     setHasChanges(JSON.stringify(newSettings) !== JSON.stringify(settings));
   };
 
-  // Sauvegarder les paramètres
   const handleSave = async () => {
     await saveSettings(localSettings);
     setHasChanges(false);
   };
 
-  // Réinitialiser aux paramètres par défaut
   const handleReset = async () => {
-    await resetSettings();
-    setLocalSettings(settings);
+    const fresh = await resetSettings();
+    setLocalSettings(fresh);
     setHasChanges(false);
+    setLocale(fresh.language as "fr" | "en");
   };
 
-  // Gérer le changement de langue
   const handleLanguageChange = (newLanguage: string) => {
     updateLocalSettings({ language: newLanguage });
-    setLocale(newLanguage as any); // Mettre à jour immédiatement pour voir les changements
+    setLocale(newLanguage as "fr" | "en");
   };
 
   if (isLoading) {
@@ -456,7 +468,9 @@ export default function SettingsPage() {
                   <Label>Durée d'affichage (secondes)</Label>
                   <select
                     className={settingsSelectClass}
-                    value={localSettings.notifications.duration.toString()}
+                    value={String(
+                      localSettings.notifications?.duration ?? 5000,
+                    )}
                     onChange={(e) =>
                       updateLocalSettings({
                         notifications: {
