@@ -1,6 +1,6 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 18 mai 2026** — les tâches à faire passent en premier. Les succès techniques restent conservés plus bas, mais ils ne valent pas validation porteur. La validation finale est centralisée dans **`A_VALIDER_VERIFIER.md`**.
+**Dernière mise à jour : 19 mai 2026** — les tâches à faire passent en premier. Les succès techniques restent conservés plus bas, mais ils ne valent pas validation porteur. La validation finale est centralisée dans **`A_VALIDER_VERIFIER.md`**.
 
 ## Pilotage (comment utiliser ce fichier)
 
@@ -15,9 +15,9 @@
 ### Checklist à cocher (dans l’ordre)
 
 - [x] **1. HTTPS / login** — validé local 19/05 : `curl` login **200** + page `/login` **200** (`A_VALIDER_VERIFIER.md` § sécurité applicative).
-- [ ] **2. Sécurité — navigation** — barre **`SecuritySubNav`** visible ; titres FR sur **Logs** ; parcourir Politiques, Menaces, Firewall, Analyse, Réseau.
-- [ ] **3. Sécurité — pagination** — `?page=` / `blockedPage=` conservés au refresh ; logs / menaces / IPs bloquées paginés.
-- [ ] **4. Corrélation** — `/b4ck0ff1ce/performances/correlation` : KPI logs / ERROR-WARN **≠ 0** pour un service focal (BDD `aggregated_logs` déjà alimentée en dev).
+- [x] **2. Sécurité — navigation** — validé porteur 19/05 : **`SecuritySubNav`** ; titres FR **Logs** ; parcours Politiques, Menaces, Firewall, Analyse, Réseau.
+- [x] **3. Sécurité — pagination** — validé porteur 19/05 : `?page=` / `blockedPage=` conservés au refresh ; logs / menaces / IPs bloquées paginés.
+- [x] **4. Corrélation** — validé porteur 19/05 : `/b4ck0ff1ce/performances/correlation` — KPI logs / ERROR-WARN exploitables sur service focal.
 - [x] **5. WAF — comprendre les alertes** — validé 19/05 : faux positif `consolidated=true` corrigé (`all=true`) ; payloads XSS/SQLi **403** ; trafic JWT + XFF legit **200** (voir `A_VALIDER_VERIFIER.md`).
 - [x] **6. Reporter** — § **Sécurité applicative** de `A_VALIDER_VERIFIER.md` coché en local (19/05) ; suite : **§ Chantier Statistiques** (22 offline / graphes).
 
