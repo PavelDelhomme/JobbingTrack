@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "@/lib/hooks/auth";
 import { ThemeProvider } from "@/lib/hooks/theme";
+import { UiPreferencesProvider } from "@/lib/ui";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TrackingProvider } from "@/components/tracking/TrackingProvider";
 import { setupBrowserExtensionCleanup } from "@/utils/cleanBrowserExtensions";
@@ -21,6 +22,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <HydrationFix />
       <ErrorBoundary>
         <ThemeProvider>
+          <UiPreferencesProvider>
           <AuthProvider>
             <TrackingProvider>
               <div
@@ -31,6 +33,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               </div>
             </TrackingProvider>
           </AuthProvider>
+          </UiPreferencesProvider>
         </ThemeProvider>
       </ErrorBoundary>
     </>

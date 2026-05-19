@@ -5,6 +5,7 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
+import { clearLegacyUiDomOverrides } from "@/lib/ui/preferences/dom";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -89,15 +90,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // Nettoyer les overrides DOM legacy (paramètres) qui voilent l’UI en dark mode
   useEffect(() => {
-    const root = document.documentElement;
-    [
-      "high-contrast",
-      "offline-mode",
-      "large-text",
-      "reduce-motion",
-    ].forEach((cls) => root.classList.remove(cls));
+    clearLegacyUiDomOverrides();
   }, []);
 
   // Appliquer le thème quand il change

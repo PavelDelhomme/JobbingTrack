@@ -37,7 +37,7 @@
 ## Plan d’implémentation (ordre)
 
 1. **Schéma + migrations** — `UserUiPreferencesV1`, migrer `customization-settings` / `theme`.
-2. **`UiPreferencesProvider`** — load/save API, `clearDomOverrides()`, tests Jest.
+2. **`UiPreferencesProvider`** — **amorcé** : purge DOM legacy au boot (`clearLegacyUiDomOverrides`) ; load/save API et contexte à suivre.
 3. **Refonte page Paramètres** — éditeur du schéma unique ; reset fiable.
 4. **Suppression progressive** — `statistics-customization`, `analytics-customization` → préférences scopées dans le schéma (`panels.statistics`, etc.).
 5. **Layouts registry** — premier cas : disposition dashboard backoffice.
