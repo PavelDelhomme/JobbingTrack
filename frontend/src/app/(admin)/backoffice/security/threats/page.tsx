@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/features";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { TableSkeleton } from "@/lib/ui";
 import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
 import axios from "axios";
 
@@ -550,9 +551,9 @@ export default function ThreatsPage() {
         {/* Liste des menaces */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           {loading ? (
-            <div className="text-center py-8">Chargement...</div>
+            <TableSkeleton rows={10} columns={8} />
           ) : threats.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Aucune menace détectée
             </div>
           ) : (

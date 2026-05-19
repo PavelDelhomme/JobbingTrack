@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLoader } from "@/lib/ui";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -25,7 +26,7 @@ export default function AdminLayout({
   }, [user, loading, router]);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <PageLoader message="Connexion au backoffice…" />;
   }
 
   if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {

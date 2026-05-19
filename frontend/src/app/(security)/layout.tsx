@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLoader } from "@/lib/ui";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -25,7 +26,7 @@ export default function SecurityLayout({
   }, [user, loading, router]);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <PageLoader message="Connexion sécurité…" />;
   }
 
   if (!user || !["ADMIN", "SUPER_ADMIN", "SECURITY"].includes(user.role)) {
