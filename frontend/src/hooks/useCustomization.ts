@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FRONTEND_URLS } from "@/config/ports.config";
 
 export interface CustomizationSettings {
@@ -53,7 +53,7 @@ export interface CustomizationSettings {
   };
 }
 
-const defaultSettings: CustomizationSettings = {
+export const defaultSettings: CustomizationSettings = {
   theme: "auto",
   primaryColor: "#3B82F6",
   accentColor: "#10B981",
@@ -84,22 +84,100 @@ const defaultSettings: CustomizationSettings = {
   dateFormat: "DD/MM/YYYY",
   timeFormat: "24h",
   dataRetention: {
-    cacheDuration: 7, // jours
-    syncFrequency: 5, // minutes
+    cacheDuration: 7,
+    syncFrequency: 5,
     offlineMode: true,
   },
 };
+
+/** Fusion profonde avec les valeurs par défaut (évite undefined en UI). */
+export function mergeCustomizationSettings(
+  partial?: Partial<CustomizationSettings> | Record<string, unknown> | null,
+): CustomizationSettings {
+  const p = (partial || {}) as Partial<CustomizationSettings>;
+  return {
+    ...defaultSettings,
+    ...p,
+    searchFilters: {
+      ...defaultSettings.searchFilters,
+      ...(p.searchFilters || {}),
+    },
+    notifications: {
+      ...defaultSettings.notifications,
+      ...(p.notifications || {}),
+    },
+    accessibility: {
+      ...defaultSettings.accessibility,
+      ...(p.accessibility || {}),
+    },
+    dataRetention: {
+      ...defaultSettings.dataRetention,
+      ...(p.dataRetention || {}),
+    },
+  };
+}
+
+const CUSTOMIZATION_CSS_VARS = [
+  "--primary-color",
+  "--accent-color",
+  "--primary-50",
+  "--primary-100",
+  "--primary-200",
+  "--primary-300",
+  "--primary-400",
+  "--primary-500",
+  "--primary-600",
+  "--primary-700",
+  "--primary-800",
+  "--primary-900",
+  "--animation-duration",
+  "--items-per-page",
+  "--notification-duration",
+  "--cache-duration",
+  "--sync-frequency",
+];
+
+const CUSTOMIZATION_CLASSES = [
+  "high-contrast",
+  "large-text",
+  "reduce-motion",
+  "animations-enabled",
+  "compact-mode",
+  "sidebar-collapsed",
+  "notifications-enabled",
+  "notification-sound-enabled",
+  "offline-mode",
+];
+
+export function clearCustomizationDomOverrides() {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  CUSTOMIZATION_CSS_VARS.forEach((name) => root.style.removeProperty(name));
+  CUSTOMIZATION_CLASSES.forEach((cls) => root.classList.remove(cls));
+  root.removeAttribute("data-dashboard-layout");
+  root.removeAttribute("data-notification-position");
+  root.removeAttribute("data-date-format");
+  root.removeAttribute("data-time-format");
+}
+
+function applyAllSettings(settings: CustomizationSettings) {
+  applyTheme(settings);
+  applyCustomColors(settings);
+  applyAccessibility(settings);
+  applyAnimations(settings);
+  applyLayout(settings);
+  applyNotifications(settings);
+  applyLanguage(settings);
+}
 
 export function useCustomization() {
   const [settings, setSettings] =
     useState<CustomizationSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Charger les paramètres depuis le localStorage ou l'API
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // Essayer de charger depuis l'API si l'utilisateur est connecté
         const token = localStorage.getItem("token");
         if (token) {
           try {
@@ -111,48 +189,39 @@ export function useCustomization() {
                   Authorization: `Bearer ${token}`,
                   "Content-Type": "application/json",
                 },
-                // Timeout pour éviter les blocages
                 signal: AbortSignal.timeout(3000),
               },
             );
 
             if (response.ok) {
               const userSettings = await response.json();
-              if (userSettings.success && userSettings.customization) {
-                setSettings({
-                  ...defaultSettings,
-                  ...userSettings.customization,
-                });
-              } else {
-                setSettings({ ...defaultSettings, ...userSettings });
-              }
+              const payload =
+                userSettings.success && userSettings.customization
+                  ? userSettings.customization
+                  : userSettings;
+              setSettings(mergeCustomizationSettings(payload));
+              setIsLoading(false);
               return;
-            } else if (response.status === 404) {
-              // Endpoint non disponible - utiliser uniquement localStorage
-              console.warn(
-                "Endpoint de personnalisation non disponible (404), utilisation du localStorage uniquement",
-              );
-            } else {
+            }
+            if (response.status !== 404) {
               console.error(
                 `Erreur ${response.status} lors du chargement des paramètres utilisateur:`,
                 response.statusText,
               );
             }
           } catch (error) {
-            // Erreur de réseau ou timeout - utiliser uniquement localStorage
             console.warn(
-              "Erreur de réseau lors du chargement des paramètres utilisateur, utilisation du localStorage uniquement:",
+              "Erreur réseau lors du chargement des paramètres utilisateur, utilisation du localStorage:",
               error,
             );
           }
         }
 
-        // Fallback vers localStorage
         const storedSettings = localStorage.getItem("customization-settings");
         if (storedSettings) {
           try {
             const parsedSettings = JSON.parse(storedSettings);
-            setSettings({ ...defaultSettings, ...parsedSettings });
+            setSettings(mergeCustomizationSettings(parsedSettings));
           } catch (error) {
             console.error("Erreur parsing paramètres localStorage:", error);
           }
@@ -167,35 +236,38 @@ export function useCustomization() {
     loadSettings();
   }, []);
 
-  // Sauvegarder les paramètres
-  const saveSettings = async (newSettings: Partial<CustomizationSettings>) => {
-    const updatedSettings = { ...settings, ...newSettings };
+  const saveSettings = async (
+    newSettings: Partial<CustomizationSettings>,
+  ) => {
+    const updatedSettings = mergeCustomizationSettings({
+      ...settings,
+      ...newSettings,
+    });
     setSettings(updatedSettings);
 
     try {
-      // Sauvegarder en local
       localStorage.setItem(
         "customization-settings",
         JSON.stringify(updatedSettings),
       );
 
-      // Sauvegarder sur le serveur si l'utilisateur est connecté
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const response = await fetch("/api/v1/users/customization", {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+          const response = await fetch(
+            `${FRONTEND_URLS.api}/api/v1/users/customization`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedSettings),
+              signal: AbortSignal.timeout(3000),
             },
-            body: JSON.stringify(updatedSettings),
-            // Timeout pour éviter les blocages
-            signal: AbortSignal.timeout(3000),
-          });
+          );
 
           if (response.status === 404) {
-            // Endpoint non disponible - ignorer silencieusement
             console.warn(
               "Endpoint de personnalisation non disponible pour la sauvegarde (404)",
             );
@@ -206,9 +278,8 @@ export function useCustomization() {
             );
           }
         } catch (error) {
-          // Erreur de réseau - ignorer silencieusement
           console.warn(
-            "Erreur de réseau lors de la sauvegarde des paramètres utilisateur (ignorée):",
+            "Erreur réseau lors de la sauvegarde des paramètres utilisateur (ignorée):",
             error,
           );
         }
@@ -218,25 +289,43 @@ export function useCustomization() {
     }
   };
 
-  // Appliquer les paramètres au DOM
+  const resetSettings = useCallback(async (): Promise<CustomizationSettings> => {
+    const fresh = mergeCustomizationSettings({});
+    clearCustomizationDomOverrides();
+    setSettings(fresh);
+    localStorage.setItem("customization-settings", JSON.stringify(fresh));
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await fetch(`${FRONTEND_URLS.api}/api/v1/users/customization`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(fresh),
+          signal: AbortSignal.timeout(3000),
+        });
+      } catch {
+        /* local reset suffit */
+      }
+    }
+
+    applyAllSettings(fresh);
+    return fresh;
+  }, []);
+
   useEffect(() => {
     if (isLoading) return;
-
-    // Appliquer tous les paramètres
-    applyTheme(settings);
-    applyCustomColors(settings);
-    applyAccessibility(settings);
-    applyAnimations(settings);
-    applyLayout(settings);
-    applyNotifications(settings);
-    applyLanguage(settings);
+    applyAllSettings(settings);
   }, [settings, isLoading]);
 
   return {
     settings,
     isLoading,
     saveSettings,
-    resetSettings: () => saveSettings(defaultSettings),
+    resetSettings,
   };
 }
 
@@ -256,75 +345,37 @@ function applyTheme(settings: CustomizationSettings) {
     }
   };
 
-  // Appliquer le thème immédiatement
   applyDarkMode();
 
-  // Si mode auto, écouter les changements du système
   if (settings.theme === "auto") {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => applyDarkMode();
-
-    // Nettoyer l'ancien listener s'il existe
     mediaQuery.removeEventListener("change", handleChange);
-    // Ajouter le nouveau listener
     mediaQuery.addEventListener("change", handleChange);
   }
 }
 
-// Fonction pour appliquer les couleurs personnalisées
 function applyCustomColors(settings: CustomizationSettings) {
   const root = document.documentElement;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(settings.primaryColor)) return;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(settings.accentColor)) return;
 
-  // Appliquer les couleurs CSS personnalisées
   root.style.setProperty("--primary-color", settings.primaryColor);
   root.style.setProperty("--accent-color", settings.accentColor);
 
-  // Créer des variantes de couleurs
   const primaryRgb = hexToRgb(settings.primaryColor);
-  const accentRgb = hexToRgb(settings.accentColor);
-
   if (primaryRgb) {
     root.style.setProperty(
-      "--primary-50",
-      `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.05)`,
+      "--primary-500",
+      settings.primaryColor,
     );
-    root.style.setProperty(
-      "--primary-100",
-      `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.1)`,
-    );
-    root.style.setProperty(
-      "--primary-200",
-      `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.2)`,
-    );
-    root.style.setProperty(
-      "--primary-300",
-      `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.3)`,
-    );
-    root.style.setProperty(
-      "--primary-400",
-      `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.4)`,
-    );
-    root.style.setProperty("--primary-500", settings.primaryColor);
     root.style.setProperty(
       "--primary-600",
       adjustColor(settings.primaryColor, -20),
     );
-    root.style.setProperty(
-      "--primary-700",
-      adjustColor(settings.primaryColor, -40),
-    );
-    root.style.setProperty(
-      "--primary-800",
-      adjustColor(settings.primaryColor, -60),
-    );
-    root.style.setProperty(
-      "--primary-900",
-      adjustColor(settings.primaryColor, -80),
-    );
   }
 }
 
-// Fonction pour appliquer les préférences d'accessibilité
 function applyAccessibility(settings: CustomizationSettings) {
   const root = document.documentElement;
 
@@ -345,11 +396,10 @@ function applyAccessibility(settings: CustomizationSettings) {
     root.style.setProperty("--animation-duration", "0.01ms");
   } else {
     root.classList.remove("reduce-motion");
-    root.style.setProperty("--animation-duration", "150ms");
+    root.style.removeProperty("--animation-duration");
   }
 }
 
-// Fonction pour appliquer les animations
 function applyAnimations(settings: CustomizationSettings) {
   const root = document.documentElement;
 
@@ -360,7 +410,6 @@ function applyAnimations(settings: CustomizationSettings) {
   }
 }
 
-// Fonction pour appliquer la disposition
 function applyLayout(settings: CustomizationSettings) {
   const root = document.documentElement;
 
@@ -376,16 +425,16 @@ function applyLayout(settings: CustomizationSettings) {
     root.classList.remove("sidebar-collapsed");
   }
 
-  // Appliquer la disposition du tableau de bord
   root.setAttribute("data-dashboard-layout", settings.dashboardLayout);
-
-  // Appliquer les éléments par page
-  root.style.setProperty("--items-per-page", settings.itemsPerPage.toString());
+  root.style.setProperty("--items-per-page", String(settings.itemsPerPage));
 }
 
-// Fonction pour appliquer les notifications
 function applyNotifications(settings: CustomizationSettings) {
   const root = document.documentElement;
+  const duration =
+    typeof settings.notifications.duration === "number"
+      ? settings.notifications.duration
+      : defaultSettings.notifications.duration;
 
   if (settings.notifications.enabled) {
     root.classList.add("notifications-enabled");
@@ -393,19 +442,12 @@ function applyNotifications(settings: CustomizationSettings) {
     root.classList.remove("notifications-enabled");
   }
 
-  // Appliquer la position des notifications
   root.setAttribute(
     "data-notification-position",
-    settings.notifications.position,
+    settings.notifications.position || defaultSettings.notifications.position,
   );
+  root.style.setProperty("--notification-duration", `${duration}ms`);
 
-  // Appliquer la durée des notifications
-  root.style.setProperty(
-    "--notification-duration",
-    `${settings.notifications.duration}ms`,
-  );
-
-  // Appliquer le son des notifications
   if (settings.notifications.sound) {
     root.classList.add("notification-sound-enabled");
   } else {
@@ -413,20 +455,18 @@ function applyNotifications(settings: CustomizationSettings) {
   }
 }
 
-// Fonction pour appliquer la langue et les préférences locales
 function applyLanguage(settings: CustomizationSettings) {
   const root = document.documentElement;
 
-  // Appliquer la langue
-  root.setAttribute("lang", settings.language);
-
-  // Appliquer le format de date
-  root.setAttribute("data-date-format", settings.dateFormat);
-
-  // Appliquer le format d'heure
-  root.setAttribute("data-time-format", settings.timeFormat);
-
-  // Appliquer les préférences de rétention des données
+  root.setAttribute("lang", settings.language || defaultSettings.language);
+  root.setAttribute(
+    "data-date-format",
+    settings.dateFormat || defaultSettings.dateFormat,
+  );
+  root.setAttribute(
+    "data-time-format",
+    settings.timeFormat || defaultSettings.timeFormat,
+  );
   root.style.setProperty(
     "--cache-duration",
     `${settings.dataRetention.cacheDuration}d`,
@@ -443,7 +483,6 @@ function applyLanguage(settings: CustomizationSettings) {
   }
 }
 
-// Utilitaires pour les couleurs
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result

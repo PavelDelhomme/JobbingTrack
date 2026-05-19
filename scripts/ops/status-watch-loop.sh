@@ -3,7 +3,9 @@
 # Par défaut (ALTSCREEN=1) : buffer d’écran alternatif — seul le dernier « cadre » est visible ;
 #   à la sortie (Ctrl+C) l’historique des commandes tapées avant le watch reste intact.
 # ALTSCREEN=0 : ancien comportement (séparateur entre cycles ; CLEAR=1 appelle `clear`).
-# STATUS_FOLD=1 (défaut) : passe la sortie de `make status` dans `fold -s -w $(tput cols)` pour les terminaux étroits.
+# STATUS_FOLD=1 (défaut) : passe la sortie de `make status` dans `fold -s -w $(tput cols)`.
+#
+# Pendant l’attente entre deux cycles : touches 5–9 = intervalle en secondes (défaut 5).
 #
 # Variables : ROOT_DIR, INTERVAL (secondes), ALTSCREEN (0|1), CLEAR (0|1), STATUS_FOLD (0|1)
 
@@ -32,15 +34,43 @@ if [[ "$ALTSCREEN" == "1" ]]; then
   printf '\033[?1049h\033[2J\033[H'
 fi
 
-printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m${INTERVAL}s\033[0m \033[0;90m· Ctrl+C pour quitter\033[0m"
-printf '%b\n' "\033[0;90m💡 \033[0;36mmake status\033[0;90m dans un buffer alternatif (défaut) : pas d’empilement dans l’historique. \033[1;33mALTSCREEN=0\033[0;90m pour l’ancien défilement ; \033[1;33mCLEAR=1\033[0;90m + ALTSCREEN=0 pour \`clear\` plein écran.\033[0m"
+print_header() {
+  printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m${INTERVAL}s\033[0m \033[0;90m· touches \033[1;33m5-9\033[0;90m = changer l’intervalle · Ctrl+C pour quitter\033[0m"
+  printf '%b\n' "\033[0;90m💡 \033[0;36mmake status\033[0;90m dans un buffer alternatif (défaut). \033[1;33mALTSCREEN=0\033[0;90m pour l’ancien défilement ; \033[1;33mCLEAR=1\033[0;90m + ALTSCREEN=0 pour \`clear\` plein écran.\033[0m"
+}
+
+print_header
 echo ""
+
+wait_interval() {
+  local waited=0
+  local step=1
+  while (( waited < INTERVAL )); do
+    local remaining=$((INTERVAL - waited))
+    local chunk=$((remaining < step ? remaining : step))
+    local key=""
+    if IFS= read -r -t "$chunk" -n 1 key 2>/dev/null; then
+      case "$key" in
+        5|6|7|8|9)
+          INTERVAL="$key"
+          printf '%b\n' "\033[0;32m⏱ Intervalle : ${INTERVAL}s\033[0m"
+          return 0
+          ;;
+        q|Q)
+          printf '\n'
+          exit 0
+          ;;
+      esac
+    fi
+    waited=$((waited + chunk))
+  done
+}
 
 sep=0
 while true; do
   if [[ "$ALTSCREEN" == "1" ]]; then
     printf '\033[2J\033[H'
-    printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — \033[1;33m${INTERVAL}s\033[0m · Ctrl+C\033[0m"
+    printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — \033[1;33m${INTERVAL}s\033[0m · \033[0;90m5-9\033[0m intervalle · Ctrl+C\033[0m"
     echo ""
   elif [[ "$sep" == "1" && "$CLEAR" != "1" ]]; then
     printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"
@@ -54,7 +84,6 @@ while true; do
     if command -v tput >/dev/null 2>&1; then
       cols="$(tput cols 2>/dev/null || echo "$cols")"
     fi
-    # Retour à la ligne aux espaces pour s’adapter à la largeur du terminal (séquences ANSI courtes : risque mineur de coupure).
     make -C "$ROOT_DIR" --no-print-directory status 2>&1 | fold -s -w "$cols"
   else
     make -C "$ROOT_DIR" --no-print-directory status
@@ -62,6 +91,6 @@ while true; do
 
   sep=1
   echo ""
-  printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m${INTERVAL}s\033[0m  \033[0;35m(ALTSCREEN=${ALTSCREEN} CLEAR=${CLEAR})\033[0m"
-  sleep "$INTERVAL"
+  printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m${INTERVAL}s\033[0m  \033[0;90m(touches 5-9)\033[0m"
+  wait_interval
 done

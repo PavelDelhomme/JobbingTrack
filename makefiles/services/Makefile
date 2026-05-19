@@ -227,7 +227,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-watch          - Statut en boucle (INTERVAL=5) : ALTSCREEN=1 défaut = buffer terminal alternatif (remplace l’affichage sans polluer le scrollback) ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 pour désactiver le retour à la ligne selon largeur terminal"
+	@echo "  make status-watch          - Statut en boucle (INTERVAL=5, défaut) : pendant l’attente, touches 5-9 = intervalle en secondes ; ALTSCREEN=1 = buffer alternatif ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 désactive fold"
 	@echo "  make status-live           - Idem, INTERVAL=2s par défaut (même options ALTSCREEN / CLEAR / STATUS_FOLD)"
 	@echo "  STATUS_LEGEND=1 make status — affiche la légende longue des ports (désactivée par défaut)"
 	@echo "  make ps                    - Liste conteneurs actifs"
@@ -1431,7 +1431,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 
 # Boucle `make status` : script \`scripts/ops/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
 # INTERVAL=s · ALTSCREEN=1 (défaut) = pas d’empilement dans le scrollback · ALTSCREEN=0 = ancien défilement · CLEAR=1 + ALTSCREEN=0 = clear plein écran.
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=5, ALTSCREEN=1 par défaut — voir scripts/ops/status-watch-loop.sh)
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=5 ; touches 5-9 pendant l’attente — scripts/ops/status-watch-loop.sh)
 	@chmod +x "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh" 2>/dev/null || true
 	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
 
