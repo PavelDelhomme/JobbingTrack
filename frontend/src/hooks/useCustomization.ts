@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  applyTheme as applyDocumentTheme,
+  setStoredTheme,
+  type Theme,
+} from "@/lib/hooks/theme";
 
 export interface CustomizationSettings {
   // Thème général
@@ -86,7 +91,7 @@ export const defaultSettings: CustomizationSettings = {
   dataRetention: {
     cacheDuration: 7,
     syncFrequency: 5,
-    offlineMode: true,
+    offlineMode: false,
   },
 };
 
@@ -161,7 +166,7 @@ export function clearCustomizationDomOverrides() {
 }
 
 function applyAllSettings(settings: CustomizationSettings) {
-  applyTheme(settings);
+  syncThemeWithThemeProvider(settings);
   applyCustomColors(settings);
   applyAccessibility(settings);
   applyAnimations(settings);
@@ -329,30 +334,16 @@ export function useCustomization() {
   };
 }
 
-// Fonction pour appliquer le thème
-function applyTheme(settings: CustomizationSettings) {
-  const root = document.documentElement;
-
-  const applyDarkMode = () => {
-    if (
-      settings.theme === "dark" ||
-      (settings.theme === "auto" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  };
-
-  applyDarkMode();
-
-  if (settings.theme === "auto") {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => applyDarkMode();
-    mediaQuery.removeEventListener("change", handleChange);
-    mediaQuery.addEventListener("change", handleChange);
-  }
+/** Aligné sur ThemeProvider (`localStorage.theme` + classes light/dark). */
+function syncThemeWithThemeProvider(settings: CustomizationSettings) {
+  const mapped: Theme =
+    settings.theme === "auto"
+      ? "system"
+      : settings.theme === "light"
+        ? "light"
+        : "dark";
+  setStoredTheme(mapped);
+  applyDocumentTheme(mapped);
 }
 
 function applyCustomColors(settings: CustomizationSettings) {
@@ -476,11 +467,7 @@ function applyLanguage(settings: CustomizationSettings) {
     `${settings.dataRetention.syncFrequency}m`,
   );
 
-  if (settings.dataRetention.offlineMode) {
-    root.classList.add("offline-mode");
-  } else {
-    root.classList.remove("offline-mode");
-  }
+  /* offlineMode : préférence métier uniquement — pas de classe sur <html> (évite voile sepia). */
 }
 
 function hexToRgb(hex: string) {

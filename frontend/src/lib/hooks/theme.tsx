@@ -42,9 +42,14 @@ export function applyTheme(theme: Theme) {
     actualTheme = theme;
   }
 
-  // Appliquer le thème
+  // Appliquer le thème (light/dark + classe Tailwind `dark`)
   root.classList.add(actualTheme);
   body.classList.add(actualTheme);
+  if (actualTheme === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
 
   // Mettre à jour le meta tag theme-color pour mobile
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -82,6 +87,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  // Nettoyer les overrides DOM legacy (paramètres) qui voilent l’UI en dark mode
+  useEffect(() => {
+    const root = document.documentElement;
+    [
+      "high-contrast",
+      "offline-mode",
+      "large-text",
+      "reduce-motion",
+    ].forEach((cls) => root.classList.remove(cls));
   }, []);
 
   // Appliquer le thème quand il change
