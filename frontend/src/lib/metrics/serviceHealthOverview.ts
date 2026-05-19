@@ -96,6 +96,28 @@ export function getRunningServicesForStats(
   return dedupeDockerServices(services).filter(isServiceRunning);
 }
 
+/** Conteneurs connus mais non démarrés (exited, created, etc.). */
+export function countStoppedDockerServices(
+  services: DockerServiceRow[],
+): number {
+  return dedupeDockerServices(services).filter((s) => !isServiceRunning(s))
+    .length;
+}
+
+export interface ServiceHealthSummary extends ServiceHealthCounts {
+  stopped: number;
+}
+
+export function summarizeDockerServiceHealth(
+  services: DockerServiceRow[],
+): ServiceHealthSummary {
+  const buckets = countServiceHealthBuckets(services);
+  return {
+    ...buckets,
+    stopped: countStoppedDockerServices(services),
+  };
+}
+
 export function countServiceHealthBuckets(
   services: DockerServiceRow[],
 ): ServiceHealthCounts {

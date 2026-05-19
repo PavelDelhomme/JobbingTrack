@@ -3,6 +3,7 @@ import {
   countServiceHealthBuckets,
   dedupeDockerServices,
   getRunningServicesForStats,
+  summarizeDockerServiceHealth,
 } from "../serviceHealthOverview";
 
 describe("serviceHealthOverview", () => {
@@ -41,5 +42,21 @@ describe("serviceHealthOverview", () => {
         health_status: "unknown",
       }),
     ).toBe("degraded");
+  });
+
+  it("résume sains, dégradés et arrêtés", () => {
+    const summary = summarizeDockerServiceHealth([
+      { name: "jobbingtrack-frontend", is_running: true, is_healthy: true },
+      {
+        name: "jobbingtrack-api-gateway",
+        is_running: true,
+        health_status: "unhealthy",
+      },
+      { name: "jobbingtrack-old-worker", is_running: false, status: "exited" },
+    ]);
+    expect(summary.healthy).toBe(1);
+    expect(summary.degraded).toBe(1);
+    expect(summary.stopped).toBe(1);
+    expect(summary.totalRunning).toBe(2);
   });
 });

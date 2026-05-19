@@ -21,6 +21,19 @@
 - [x] **5. WAF — comprendre les alertes** — validé 19/05 : faux positif `consolidated=true` corrigé (`all=true`) ; payloads XSS/SQLi **403** ; trafic JWT + XFF legit **200** (voir `A_VALIDER_VERIFIER.md`).
 - [x] **6. Reporter** — § **Sécurité applicative** de `A_VALIDER_VERIFIER.md` coché en local (19/05) ; suite : **§ Chantier Statistiques** (22 offline / graphes).
 
+### Moteur personnalisation / apparence (dette technique — pas un vrai moteur aujourd’hui)
+
+> **Constat porteur (19/05)** : la page **Paramètres** et l’apparence globale reposent sur un empilement ad hoc (`useCustomization` + variables CSS sur `:root` + `localStorage` + API `/users/customization` optionnelle), **sans** moteur de thème/layout unifié. La page **Statistics** a en plus sa propre clé `statistics-customization` (doublon). Résultat : reset fragile, couleurs incohérentes, options « disposition » peu fiables.
+
+- [ ] **Spécifier un moteur UI** (lot **F-personalisation** ou sous-lot **PLAN.md` F4**) : contrat unique `UserUiPreferences` (thème clair/sombre/auto, densité, sidebar, couleurs sémantiques Tailwind/shadcn, pas de palette `--primary-50…900` générée à la volée sur `:root`).
+- [ ] **Couche d’application** : provider React unique (`UiPreferencesProvider`) qui applique les tokens via `data-theme` / classes `dark` / variables limitées (`--jt-primary`, `--jt-accent`) ; **aucun** `setState` pendant le render.
+- [ ] **Persistance** : API utilisateur versionnée + migration localStorage ; reset = défauts produit + purge DOM.
+- [ ] **Layouts backoffice** : registre de layouts par zone (dashboard grid, statistics panels) — pas un booléen `dashboardLayout: grid|list|kanban` sans rendu.
+- [ ] **Fusion** : retirer `statistics-customization` au profit du contrat global ; page Paramètres = éditeur du même schéma.
+- [ ] **Tests** : merge defaults, reset, application CSS, round-trip API mock.
+
+**Correctifs courts déjà faits (19/05)** : crash `duration`, reset opérationnel, couleurs hex validées — **ne remplace pas** le moteur ci-dessus.
+
 ### Suite après validation (ne pas mélanger avec la phase ci-dessus)
 
 1. **Statistics (A1h)** — compteurs services + graphes erreur / disponibilité.

@@ -10,8 +10,10 @@ import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import {
   buildStatisticsServicesFromDocker,
   filterMetricsListToActive,
+  summarizeDockerServiceHealth,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
+import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
 import {
   availabilityChartDomain,
   buildStatisticsChartData,
@@ -252,6 +254,9 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [dockerServicesSnapshot, setDockerServicesSnapshot] = useState<
+    DockerServiceRow[] | null
+  >(null);
   // ✅ SUPPRESSION : onglet services retiré — voir /b4ck0ff1ce/services et Services & Logs
   const [activeTab, setActiveTab] = useState<"overview" | "security" | "logs">(
     "overview",
@@ -547,6 +552,9 @@ export default function StatisticsPage() {
       if (metrics) {
         await cacheManager.set(cacheKey, metrics, { ttl: 10000 });
       }
+      setDockerServicesSnapshot(
+        Array.isArray(dockerList) ? (dockerList as DockerServiceRow[]) : [],
+      );
 
       // Récupérer les stats sur une période
       const timeRangeMs = getTimeRangeMs();
@@ -965,6 +973,7 @@ export default function StatisticsPage() {
               chartData={chartData}
               historySeriesMeta={historySeriesMeta}
               availabilityDomain={availabilityDomain}
+              dockerServices={dockerServicesSnapshot}
             />
           )}
           {activeTab === "logs" && (
@@ -2236,7 +2245,13 @@ const SecurityTab = memo(function SecurityTab({
   chartData,
   historySeriesMeta,
   availabilityDomain,
+  dockerServices,
 }: any) {
+  const serviceHealthSummary = useMemo(
+    () => summarizeDockerServiceHealth(dockerServices || []),
+    [dockerServices],
+  );
+
   return (
     <div className="space-y-6">
       {/* Métriques de sécurité */}
@@ -2386,47 +2401,7 @@ const SecurityTab = memo(function SecurityTab({
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           État des Services
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Services Sains
-              </span>
-              <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {
-                  stats.services.filter((s: any) => s.status === "healthy")
-                    .length
-                }
-              </span>
-            </div>
-          </div>
-          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Services Dégradés
-              </span>
-              <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {
-                  stats.services.filter((s: any) => s.status === "degraded")
-                    .length
-                }
-              </span>
-            </div>
-          </div>
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Services Hors ligne
-              </span>
-              <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {
-                  stats.services.filter((s: any) => s.status === "offline")
-                    .length
-                }
-              </span>
-            </div>
-          </div>
-        </div>
+        <ServiceHealthKpiCards dockerServices={dockerServices} />
 
         {/* Diagramme circulaire */}
         <div className="mt-6">
@@ -2436,21 +2411,15 @@ const SecurityTab = memo(function SecurityTab({
                 data={[
                   {
                     name: "Sains",
-                    value: stats.services.filter(
-                      (s: any) => s.status === "healthy",
-                    ).length,
+                    value: serviceHealthSummary.healthy,
                   },
                   {
                     name: "Dégradés",
-                    value: stats.services.filter(
-                      (s: any) => s.status === "degraded",
-                    ).length,
+                    value: serviceHealthSummary.degraded,
                   },
                   {
-                    name: "Hors ligne",
-                    value: stats.services.filter(
-                      (s: any) => s.status === "offline",
-                    ).length,
+                    name: "Arrêtés",
+                    value: serviceHealthSummary.stopped,
                   },
                 ]}
                 dataKey="value"
