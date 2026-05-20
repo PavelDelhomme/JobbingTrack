@@ -65,5 +65,16 @@ export function mergeRemoteCustomization(
   remote: Record<string, unknown> | null,
 ) {
   if (!remote) return base;
+  const localTheme =
+    typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+  if (
+    localTheme === "light" ||
+    localTheme === "dark" ||
+    localTheme === "system"
+  ) {
+    const theme =
+      localTheme === "system" ? "auto" : (localTheme as "light" | "dark");
+    return mergeCustomizationSettings({ ...base, ...remote, theme });
+  }
   return mergeCustomizationSettings({ ...base, ...remote });
 }
