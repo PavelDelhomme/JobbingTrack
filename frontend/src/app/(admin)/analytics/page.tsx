@@ -28,7 +28,7 @@ import {
   Bar,
 } from "recharts";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
-import { useAnalyticsPanelPrefs } from "@/lib/ui";
+import { DashboardLayoutRegion, useAnalyticsPanelPrefs } from "@/lib/ui";
 import { useMetrics } from "@/lib/hooks/useMetrics";
 import { DataSourceBadge } from "@/components/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -1644,7 +1644,7 @@ function AnalyticsContent() {
               </div>
 
               {/* Graphiques de performance */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DashboardLayoutRegion variant="section">
                 {/* Graphique des erreurs par heure */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -1700,7 +1700,7 @@ function AnalyticsContent() {
                     />
                   </div>
                 </div>
-              </div>
+              </DashboardLayoutRegion>
 
               {/* Recommandations */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
@@ -2189,7 +2189,7 @@ function AnalyticsContent() {
               </div>
 
               {/* Graphique de sécurité en temps réel */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DashboardLayoutRegion variant="section">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
                     📊 Activité de Sécurité (24h)
@@ -2269,7 +2269,7 @@ function AnalyticsContent() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </DashboardLayoutRegion>
 
               {/* Métriques de sécurité avancées */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">

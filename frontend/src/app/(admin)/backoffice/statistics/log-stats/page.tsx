@@ -19,6 +19,12 @@ import { AdminLayout } from "@/components/features";
 import { StatisticsSubNav } from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import {
+  DashboardLayoutRegion,
+  SectionLoader,
+  uiEmpty,
+  uiText,
+} from "@/lib/ui";
 
 type AggLog = {
   level?: string | null;
@@ -109,13 +115,13 @@ export default function StatisticsLogStatsPage() {
         </p>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <SectionLoader message="Chargement des logs persistés…" />
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
             {counts && (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DashboardLayoutRegion variant="dense" className="gap-3">
                 {Object.entries(counts).map(([k, v]) => (
                   <div
                     key={k}
@@ -129,7 +135,7 @@ export default function StatisticsLogStatsPage() {
                     </p>
                   </div>
                 ))}
-              </div>
+              </DashboardLayoutRegion>
             )}
 
             {byLevel.length > 0 ? (

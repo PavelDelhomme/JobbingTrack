@@ -71,7 +71,13 @@ import {
   ComposedChart,
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
-import { DashboardLayoutRegion, useStatisticsPanelPrefs } from "@/lib/ui";
+import {
+  DashboardLayoutRegion,
+  SectionLoader,
+  useStatisticsPanelPrefs,
+} from "@/lib/ui";
+import { MetricsSeriesCaption } from "@/components/monitoring/MetricsSeriesCaption";
+import Link from "next/link";
 
 // Types
 interface MetricsHistory {
@@ -714,12 +720,21 @@ export default function StatisticsPage() {
   );
 
   // Loader uniquement au tout premier chargement
+  const timeRangeLabels: Record<string, string> = {
+    "1h": "Dernière heure",
+    "6h": "6 heures",
+    "24h": "24 heures",
+    "7d": "7 jours",
+    "30d": "30 jours",
+  };
+
   if (authLoading || (loading && !stats)) {
     return (
       <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
-        </div>
+        <SectionLoader
+          message="Chargement des statistiques…"
+          className="min-h-[50vh]"
+        />
       </AdminLayout>
     );
   }
@@ -906,6 +921,9 @@ export default function StatisticsPage() {
               chartData={chartData}
               customization={customization}
               router={router}
+              dockerServices={dockerServicesSnapshot}
+              historySeriesMeta={historySeriesMeta}
+              timeRangeLabel={timeRangeLabels[customization.timeRange]}
             />
           )}
           {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
@@ -916,6 +934,7 @@ export default function StatisticsPage() {
               historySeriesMeta={historySeriesMeta}
               availabilityDomain={availabilityDomain}
               dockerServices={dockerServicesSnapshot}
+              timeRangeLabel={timeRangeLabels[customization.timeRange]}
             />
           )}
           {activeTab === "logs" && (
@@ -937,6 +956,9 @@ const OverviewTab = memo(function OverviewTab({
   chartData,
   customization,
   router,
+  dockerServices,
+  historySeriesMeta,
+  timeRangeLabel,
 }: any) {
   // Calculer les tendances en comparant avec les stats précédentes
   const usersTrend = previousStats
@@ -969,6 +991,34 @@ const OverviewTab = memo(function OverviewTab({
 
   return (
     <div className="space-y-6">
+      <ServiceHealthKpiCards dockerServices={dockerServices} />
+      <MetricsSeriesCaption
+        pointCount={historySeriesMeta?.pointCount ?? 0}
+        errorDerived={historySeriesMeta?.errorDerived}
+        source={historySeriesMeta?.source}
+        timeRangeLabel={timeRangeLabel}
+      />
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link
+          href="/b4ck0ff1ce/statistics/security"
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        >
+          Sécurité (persistance) →
+        </Link>
+        <Link
+          href="/b4ck0ff1ce/statistics/log-stats"
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        >
+          Logs agrégés →
+        </Link>
+        <Link
+          href="/b4ck0ff1ce/services"
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        >
+          Services & monitoring →
+        </Link>
+      </div>
+
       {/* Statistiques des données : totaux + évolution */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -2188,6 +2238,7 @@ const SecurityTab = memo(function SecurityTab({
   historySeriesMeta,
   availabilityDomain,
   dockerServices,
+  timeRangeLabel,
 }: any) {
   const serviceHealthSummary = useMemo(
     () => summarizeDockerServiceHealth(dockerServices || []),
@@ -2196,8 +2247,29 @@ const SecurityTab = memo(function SecurityTab({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link
+          href="/b4ck0ff1ce/statistics/security"
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        >
+          Détail sécurité persistée →
+        </Link>
+        <Link
+          href="/b4ck0ff1ce/security"
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        >
+          Console sécurité live →
+        </Link>
+      </div>
+      <MetricsSeriesCaption
+        pointCount={historySeriesMeta?.pointCount ?? 0}
+        errorDerived={historySeriesMeta?.errorDerived}
+        source={historySeriesMeta?.source}
+        timeRangeLabel={timeRangeLabel}
+      />
+
       {/* Métriques de sécurité */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <DashboardLayoutRegion variant="dense">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -2245,7 +2317,7 @@ const SecurityTab = memo(function SecurityTab({
             {stats.performance.errorRate.toFixed(2)}%
           </div>
         </div>
-      </div>
+      </DashboardLayoutRegion>
 
       {/* Graphiques de sécurité */}
       {chartData.length > 0 ? (
@@ -2326,17 +2398,12 @@ const SecurityTab = memo(function SecurityTab({
         </DashboardLayoutRegion>
       ) : (
         <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Aucune série persistée ({historySeriesMeta?.pointCount ?? 0} points).
-          Vérifier monitoring-c et la table system_metrics.
+          Aucune série persistée sur la période. Vérifier monitoring-c et la
+          table{" "}
+          <code className="text-xs">system_metrics</code>, ou élargir la fenêtre
+          temporelle.
         </div>
       )}
-
-      <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-        Source séries : system_metrics
-        {historySeriesMeta?.errorDerived
-          ? " · taux erreur dérivé (100 − disponibilité)"
-          : ""}
-      </p>
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
