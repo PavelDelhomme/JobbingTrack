@@ -9,6 +9,8 @@
  */
 
 const { execFileSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const EXPECTED_METRICS_URL = "http://jobbingtrack-metrics-aggregator:3014";
 
@@ -90,11 +92,45 @@ function validateService(compose, serviceName) {
   return failures;
 }
 
+function validateLoggerFiles(serviceName) {
+  const serviceRoot = path.join(process.cwd(), "backend", serviceName);
+  const centralLoggerPath = path.join(
+    serviceRoot,
+    "src",
+    "utils",
+    "centralLogger.js",
+  );
+  const loggerPath = path.join(serviceRoot, "src", "utils", "logger.js");
+  const failures = [];
+
+  if (!fs.existsSync(centralLoggerPath)) {
+    failures.push(`${serviceName}: src/utils/centralLogger.js manquant`);
+  }
+  if (!fs.existsSync(loggerPath)) {
+    failures.push(`${serviceName}: src/utils/logger.js manquant`);
+    return failures;
+  }
+
+  const loggerSource = fs.readFileSync(loggerPath, "utf8");
+  if (!loggerSource.includes("require('./centralLogger')")) {
+    failures.push(`${serviceName}: logger.js ne charge pas centralLogger`);
+  }
+  if (!loggerSource.includes("centralLogger.addLog")) {
+    failures.push(`${serviceName}: logger.js n'appelle pas centralLogger.addLog`);
+  }
+  if (!loggerSource.includes("CentralLoggerTransport")) {
+    failures.push(`${serviceName}: transport Winston central absent`);
+  }
+
+  return failures;
+}
+
 function main() {
   const compose = readComposeConfig();
-  const failures = SERVICES_WITH_CENTRAL_LOGGER.flatMap((serviceName) =>
-    validateService(compose, serviceName),
-  );
+  const failures = SERVICES_WITH_CENTRAL_LOGGER.flatMap((serviceName) => [
+    ...validateService(compose, serviceName),
+    ...validateLoggerFiles(serviceName),
+  ]);
 
   if (failures.length > 0) {
     console.error("Central logging compose validation failed:");
@@ -105,7 +141,7 @@ function main() {
   }
 
   console.log(
-    `Central logging compose validation OK (${SERVICES_WITH_CENTRAL_LOGGER.length} services).`,
+    `Central logging validation OK (${SERVICES_WITH_CENTRAL_LOGGER.length} services).`,
   );
 }
 
