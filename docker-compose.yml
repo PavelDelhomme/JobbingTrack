@@ -436,14 +436,14 @@ services:
     environment:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      - ENABLE_CENTRAL_LOGGING=true
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3002
-      - SERVICE_NAME=application-service
+      - SERVICE_NAME=jobbingtrack-application-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -480,12 +480,12 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
-      - ENABLE_CENTRAL_LOGGING=true
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3003
-      - SERVICE_NAME=company-service
+      - SERVICE_NAME=jobbingtrack-company-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -520,9 +520,12 @@ services:
     environment:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3004
+      - SERVICE_NAME=jobbingtrack-contact-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -553,9 +556,12 @@ services:
       - ./backend/interview-service/package.json:/app/package.json:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3005
+      - SERVICE_NAME=jobbingtrack-interview-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -586,9 +592,12 @@ services:
       - ./backend/call-service/package.json:/app/package.json:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
+      - SERVICE_NAME=jobbingtrack-call-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -616,9 +625,12 @@ services:
       - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3011}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
+      - SERVICE_NAME=jobbingtrack-event-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -649,9 +661,12 @@ services:
       - ./backend/followup-service/package.json:/app/package.json:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
+      - SERVICE_NAME=jobbingtrack-followup-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -679,9 +694,12 @@ services:
       - "${PROFILE_SERVICE_PORT:-5013}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3009
+      - SERVICE_NAME=jobbingtrack-profile-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -710,11 +728,14 @@ services:
     environment:
       - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - REDIS_URL=redis://redis:6379
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
+      - SERVICE_NAME=jobbingtrack-notification-service
       - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.test}
       - SMTP_HOST=${SMTP_HOST:-mailhog}
       - SMTP_PORT=${SMTP_PORT:-1025}
@@ -757,10 +778,13 @@ services:
       - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3000
+      - SERVICE_NAME=jobbingtrack-dashboard-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -788,8 +812,11 @@ services:
       - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
+      - SERVICE_NAME=jobbingtrack-workflow-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -907,10 +934,13 @@ services:
       - "${DEPLOYMENT_SERVICE_PORT:-5018}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=development
       - PORT=3016
+      - SERVICE_NAME=jobbingtrack-deployment-service
     depends_on:
       postgres:
         condition: service_healthy

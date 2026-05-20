@@ -111,10 +111,12 @@ export function loadInitialPreferences(): {
   panels: UiPanelsSettings;
 } {
   const v1 = readV1FromLocalStorage();
-  let customization =
+  const customization =
     v1?.customization ??
     readLegacyCustomization() ??
     mergeCustomizationSettings({});
-  let panels = migrateLegacyPanelStorage(v1?.panels ?? defaultUiPreferencesV1.panels);
+  const panels = migrateLegacyPanelStorage(
+    v1?.panels ?? defaultUiPreferencesV1.panels,
+  );
   return { customization, panels };
 }
