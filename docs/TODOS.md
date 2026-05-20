@@ -28,7 +28,7 @@
 - [x] **Spécifier un moteur UI** (branche `feat/ui-motor`) : `docs/frontend/UI_MOTOR.md`, `UserUiPreferencesV1` + `CustomizationSettings` dans `frontend/src/lib/ui/preferences/`.
 - [x] **Couche d’application** : tokens `--jt-primary` / `--jt-accent` (+ alias `--primary-color`), plus de génération `--primary-500/600` en JS.
 - [x] **Persistance** : localStorage v1 + legacy + API ; panneaux `panels.statistics` / `panels.analytics` (migration auto des anciennes clés).
-- [x] **Layouts backoffice** (partiel) : `useDashboardLayout` + classes sur dashboard principal ; rendu kanban métier à étendre.
+- [x] **Layouts backoffice** : `DashboardLayoutRegion` (metrics/section/dense/triple/split) sur `/backoffice` + Statistics ; `data-dashboard-layout` + classe `dashboard-content`.
 - [x] **Fusion** : `statistics-customization` / `analytics-customization` → schéma v1 (`useStatisticsPanelPrefs` / `useAnalyticsPanelPrefs`).
 - [x] **Tests** (partiel) : `preferences/__tests__/customization.test.ts` (merge, `customizationToV1`). Reste : reset DOM, round-trip API mock.
 
