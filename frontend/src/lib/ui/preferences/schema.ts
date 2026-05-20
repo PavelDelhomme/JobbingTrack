@@ -7,6 +7,7 @@ import {
   defaultCustomizationSettings,
   type CustomizationSettings,
 } from "./customization";
+import { defaultUiPanels, type UiPanelsSettings } from "./panels";
 
 export const UI_PREFERENCES_VERSION = 1 as const;
 
@@ -26,6 +27,8 @@ export interface UserUiPreferencesV1 {
   };
   /** Paramètres complets page Paramètres (forme legacy unifiée). */
   customization: CustomizationSettings;
+  /** Panneaux Statistics / Analytics (ex-clés localStorage dédiées). */
+  panels: UiPanelsSettings;
 }
 
 export const defaultUiPreferencesV1: UserUiPreferencesV1 = {
@@ -39,4 +42,5 @@ export const defaultUiPreferencesV1: UserUiPreferencesV1 = {
     reduceMotion: false,
   },
   customization: defaultCustomizationSettings,
+  panels: defaultUiPanels,
 };

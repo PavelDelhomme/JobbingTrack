@@ -38,6 +38,11 @@ import {
 } from "@/lib/icons";
 import axios from "axios";
 import { useTracking } from "@/components/tracking/TrackingProvider";
+import {
+  useDashboardLayout,
+  dashboardMetricsLayoutClass,
+  dashboardSectionLayoutClass,
+} from "@/lib/ui";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -134,6 +139,9 @@ export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth();
   const router = useRouter();
   const { trackEvent } = useTracking();
+  const { layoutId } = useDashboardLayout();
+  const metricsLayoutClass = dashboardMetricsLayoutClass(layoutId);
+  const sectionLayoutClass = dashboardSectionLayoutClass(layoutId);
   const [stats, setStats] = useState({
     totalApplications: 0,
     totalCompanies: 0,
@@ -1123,7 +1131,7 @@ export default function BackofficePage() {
       <div className="space-y-6 md:space-y-8">
         {/* Cartes synthèse : 1 colonne mobile, 2 colonnes tablette, 3 colonnes desktop. */}
         <div className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 md:gap-6">
+          <div className={metricsLayoutClass}>
             <MetricCard
               title="Sessions actives"
               value={
@@ -1877,7 +1885,7 @@ export default function BackofficePage() {
         </MetricsErrorBoundary>
 
         {/* Services et métriques avancées */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={sectionLayoutClass}>
           {/* État des services */}
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"

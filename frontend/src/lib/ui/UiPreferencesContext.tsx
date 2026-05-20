@@ -23,20 +23,35 @@ import {
   saveRemoteCustomization,
 } from "./preferences/api";
 import {
-  customizationToV1,
-  persistPreferences,
-  readLegacyCustomization,
-  readV1FromLocalStorage,
+  buildPreferencesV1,
+  loadInitialPreferences,
+  persistV1,
 } from "./preferences/storage";
 import type { UserUiPreferencesV1 } from "./preferences/schema";
+import {
+  mergeAnalyticsPanel,
+  mergeStatisticsPanel,
+  type AnalyticsPanelSettings,
+  type StatisticsPanelSettings,
+  type UiPanelsSettings,
+} from "./preferences/panels";
+
+export type PanelScope = keyof UiPanelsSettings;
 
 export interface UiPreferencesContextValue {
   preferences: UserUiPreferencesV1;
   customization: CustomizationSettings;
+  panels: UiPanelsSettings;
   isLoading: boolean;
   saveCustomization: (
     patch: Partial<CustomizationSettings> | CustomizationSettings,
   ) => Promise<CustomizationSettings>;
+  savePanelPreferences: <S extends PanelScope>(
+    scope: S,
+    patch: S extends "statistics"
+      ? Partial<StatisticsPanelSettings>
+      : Partial<AnalyticsPanelSettings>,
+  ) => Promise<UiPanelsSettings>;
   resetAll: () => Promise<CustomizationSettings>;
 }
 
@@ -44,21 +59,24 @@ const UiPreferencesContext = createContext<UiPreferencesContextValue | null>(
   null,
 );
 
-async function loadInitialCustomization(): Promise<CustomizationSettings> {
-  let base =
-    readV1FromLocalStorage()?.customization ??
-    readLegacyCustomization() ??
-    mergeCustomizationSettings({});
-
+async function loadInitial(): Promise<{
+  customization: CustomizationSettings;
+  panels: UiPanelsSettings;
+}> {
+  let { customization, panels } = loadInitialPreferences();
   const remote = await fetchRemoteCustomization();
-  base = mergeRemoteCustomization(base, remote);
-  persistPreferences(base);
-  return base;
+  customization = mergeRemoteCustomization(customization, remote);
+  const prefs = buildPreferencesV1(customization, panels);
+  persistV1(prefs);
+  return { customization: prefs.customization, panels: prefs.panels };
 }
 
 export function UiPreferencesProvider({ children }: { children: ReactNode }) {
   const [customization, setCustomization] = useState<CustomizationSettings>(
     defaultCustomizationSettings,
+  );
+  const [panels, setPanels] = useState<UiPanelsSettings>(
+    () => loadInitialPreferences().panels,
   );
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,10 +85,11 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     (async () => {
-      const loaded = await loadInitialCustomization();
+      const loaded = await loadInitial();
       if (cancelled) return;
-      setCustomization(loaded);
-      applyCustomizationToDom(loaded);
+      setCustomization(loaded.customization);
+      setPanels(loaded.panels);
+      applyCustomizationToDom(loaded.customization);
       setIsLoading(false);
     })();
 
@@ -80,9 +99,10 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const preferences = useMemo((): UserUiPreferencesV1 => {
-    if (isLoading) return customizationToV1(customization);
-    return persistPreferences(customization);
-  }, [customization, isLoading]);
+    const v1 = buildPreferencesV1(customization, panels);
+    if (!isLoading) persistV1(v1);
+    return v1;
+  }, [customization, panels, isLoading]);
 
   const saveCustomization = useCallback(
     async (
@@ -93,12 +113,42 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
         ...(patch as Partial<CustomizationSettings>),
       });
       setCustomization(next);
-      persistPreferences(next);
+      persistV1(buildPreferencesV1(next, panels));
       applyCustomizationToDom(next);
       await saveRemoteCustomization(next as unknown as Record<string, unknown>);
       return next;
     },
-    [customization],
+    [customization, panels],
+  );
+
+  const savePanelPreferences = useCallback(
+    async <S extends PanelScope>(
+      scope: S,
+      patch: S extends "statistics"
+        ? Partial<StatisticsPanelSettings>
+        : Partial<AnalyticsPanelSettings>,
+    ): Promise<UiPanelsSettings> => {
+      const nextPanels: UiPanelsSettings =
+        scope === "statistics"
+          ? {
+              ...panels,
+              statistics: mergeStatisticsPanel({
+                ...panels.statistics,
+                ...(patch as Partial<StatisticsPanelSettings>),
+              }),
+            }
+          : {
+              ...panels,
+              analytics: mergeAnalyticsPanel({
+                ...panels.analytics,
+                ...(patch as Partial<AnalyticsPanelSettings>),
+              }),
+            };
+      setPanels(nextPanels);
+      persistV1(buildPreferencesV1(customization, nextPanels));
+      return nextPanels;
+    },
+    [customization, panels],
   );
 
   const resetAll = useCallback(async (): Promise<CustomizationSettings> => {
@@ -106,21 +156,31 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
     clearCustomizationDomOverrides();
     clearLegacyUiDomOverrides();
     setCustomization(fresh);
-    persistPreferences(fresh);
+    persistV1(buildPreferencesV1(fresh, panels));
     applyCustomizationToDom(fresh);
     await saveRemoteCustomization(fresh as unknown as Record<string, unknown>);
     return fresh;
-  }, []);
+  }, [panels]);
 
   const value = useMemo(
     () => ({
       preferences,
       customization,
+      panels,
       isLoading,
       saveCustomization,
+      savePanelPreferences,
       resetAll,
     }),
-    [preferences, customization, isLoading, saveCustomization, resetAll],
+    [
+      preferences,
+      customization,
+      panels,
+      isLoading,
+      saveCustomization,
+      savePanelPreferences,
+      resetAll,
+    ],
   );
 
   return (

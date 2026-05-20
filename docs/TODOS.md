@@ -26,10 +26,10 @@
 > **Constat porteur (19/05)** : la page **Paramètres** et l’apparence globale reposent sur un empilement ad hoc (`useCustomization` + variables CSS sur `:root` + `localStorage` + API `/users/customization` optionnelle), **sans** moteur de thème/layout unifié. La page **Statistics** a en plus sa propre clé `statistics-customization` (doublon). Résultat : reset fragile, couleurs incohérentes, options « disposition » peu fiables.
 
 - [x] **Spécifier un moteur UI** (branche `feat/ui-motor`) : `docs/frontend/UI_MOTOR.md`, `UserUiPreferencesV1` + `CustomizationSettings` dans `frontend/src/lib/ui/preferences/`.
-- [x] **Couche d’application** (partiel) : `UiPreferencesProvider` + `useUiPreferences` / `useCustomization` ; `applyCustomizationToDom` (thème `ThemeProvider`, variables `--primary-*`, a11y). Reste : tokens `--jt-*` uniquement, pas de palette 50–900 générée.
-- [x] **Persistance** (partiel) : localStorage v1 + clé legacy + API `/api/v1/users/customization` ; reset purge DOM. Reste : migration serveur stricte + layouts registre.
-- [ ] **Layouts backoffice** : registre de layouts par zone (dashboard grid, statistics panels) — pas un booléen `dashboardLayout: grid|list|kanban` sans rendu.
-- [ ] **Fusion** : retirer `statistics-customization` au profit du contrat global ; page Paramètres = éditeur du même schéma.
+- [x] **Couche d’application** : tokens `--jt-primary` / `--jt-accent` (+ alias `--primary-color`), plus de génération `--primary-500/600` en JS.
+- [x] **Persistance** : localStorage v1 + legacy + API ; panneaux `panels.statistics` / `panels.analytics` (migration auto des anciennes clés).
+- [x] **Layouts backoffice** (partiel) : `useDashboardLayout` + classes sur dashboard principal ; rendu kanban métier à étendre.
+- [x] **Fusion** : `statistics-customization` / `analytics-customization` → schéma v1 (`useStatisticsPanelPrefs` / `useAnalyticsPanelPrefs`).
 - [x] **Tests** (partiel) : `preferences/__tests__/customization.test.ts` (merge, `customizationToV1`). Reste : reset DOM, round-trip API mock.
 
 **Correctifs courts déjà faits (19/05)** : crash `duration`, reset opérationnel, couleurs hex validées — **ne remplace pas** le moteur ci-dessus.

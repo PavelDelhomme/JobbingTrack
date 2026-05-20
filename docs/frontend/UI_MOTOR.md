@@ -39,8 +39,9 @@
 1. **Schéma + migrations** — `UserUiPreferencesV1`, migrer `customization-settings` / `theme`.
 2. **`UiPreferencesProvider`** — **en place** : `UiPreferencesContext` (load local v1 + legacy + API, `saveCustomization`, `resetAll`, `applyCustomizationToDom`) ; `useCustomization` = pont legacy.
 3. **Page Paramètres** — `SectionLoader` dark ; reset/save via contexte ; merge `notifications.duration` sécurisé.
-4. **Suppression progressive** — `statistics-customization`, `analytics-customization` → préférences scopées dans le schéma (`panels.statistics`, etc.).
-5. **Layouts registry** — **amorcé** : `frontend/src/lib/ui/layouts/registry.ts` + `useDashboardLayout()` ; branchement rendu kanban/list à faire page par page.
+4. **Panneaux Statistics/Analytics** — **fait** : `panels.statistics` / `panels.analytics` dans v1, hooks `useStatisticsPanelPrefs` / `useAnalyticsPanelPrefs`, migration localStorage legacy.
+5. **Layouts registry** — **partiel** : `useDashboardLayout()` + `dashboardMetricsLayoutClass` sur `/backoffice` ; étendre aux sous-vues si besoin.
+6. **Tokens** — **fait** : `--jt-primary`, `--jt-accent` (apply.ts) ; palette `.theme-custom` réduite (plus de 50–900 dynamiques sur `:root`).
 6. **Doc composants** — quand utiliser `@/components/ui` vs `@/lib/ui`.
 
 ## Hors scope immédiat (branches suivantes)

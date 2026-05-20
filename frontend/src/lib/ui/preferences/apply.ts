@@ -7,6 +7,7 @@ import {
   defaultCustomizationSettings,
   type CustomizationSettings,
 } from "./customization";
+import { JT_CSS_VARS, LEGACY_ALIAS_VARS } from "./tokens";
 
 function syncThemeWithThemeProvider(settings: CustomizationSettings) {
   const mapped: Theme =
@@ -19,28 +20,6 @@ function syncThemeWithThemeProvider(settings: CustomizationSettings) {
   applyDocumentTheme(mapped);
 }
 
-function hexToRgb(hex: string) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
-}
-
-function adjustColor(color: string, amount: number) {
-  const rgb = hexToRgb(color);
-  if (!rgb) return color;
-  const adjusted = {
-    r: Math.max(0, Math.min(255, rgb.r + amount)),
-    g: Math.max(0, Math.min(255, rgb.g + amount)),
-    b: Math.max(0, Math.min(255, rgb.b + amount)),
-  };
-  return `rgb(${adjusted.r}, ${adjusted.g}, ${adjusted.b})`;
-}
-
 /** Applique les paramètres au DOM (thème, couleurs, layout, a11y). */
 export function applyCustomizationToDom(settings: CustomizationSettings) {
   syncThemeWithThemeProvider(settings);
@@ -50,15 +29,14 @@ export function applyCustomizationToDom(settings: CustomizationSettings) {
     /^#[0-9A-Fa-f]{6}$/.test(settings.primaryColor) &&
     /^#[0-9A-Fa-f]{6}$/.test(settings.accentColor)
   ) {
-    root.style.setProperty("--primary-color", settings.primaryColor);
-    root.style.setProperty("--accent-color", settings.accentColor);
-    if (hexToRgb(settings.primaryColor)) {
-      root.style.setProperty("--primary-500", settings.primaryColor);
+    root.style.setProperty(JT_CSS_VARS.primary, settings.primaryColor);
+    root.style.setProperty(JT_CSS_VARS.accent, settings.accentColor);
+    LEGACY_ALIAS_VARS.forEach((alias, i) => {
       root.style.setProperty(
-        "--primary-600",
-        adjustColor(settings.primaryColor, -20),
+        alias,
+        i === 0 ? settings.primaryColor : settings.accentColor,
       );
-    }
+    });
   }
 
   root.classList.toggle(
