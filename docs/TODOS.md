@@ -32,6 +32,7 @@
 - [x] **Layouts backoffice** : `DashboardLayoutRegion` (metrics/section/dense/triple/split) sur `/backoffice` + Statistics ; `data-dashboard-layout` + classe `dashboard-content`.
 - [x] **Fusion** : `statistics-customization` / `analytics-customization` → schéma v1 (`useStatisticsPanelPrefs` / `useAnalyticsPanelPrefs`).
 - [x] **Tests** (partiel) : `preferences/__tests__/customization.test.ts` (merge, `customizationToV1`). Reste : reset DOM, round-trip API mock.
+- [x] **Persistance thème sombre/clair — storage unifié (20/05)** : le toggle `useTheme` synchronise maintenant `theme`, `jobbingtrack-ui-preferences-v1` et `customization-settings` pour éviter qu’un ancien `theme:auto` du moteur UI réapplique le mode clair au refresh.
 - [ ] **Mode clair backoffice — lisibilité globale** : **20/05 partiel** : surfaces/cartes/champs renforcés, puis familles colorées (`blue`, `green/emerald`, `amber/orange/yellow`, `red/rose`, `violet/purple/indigo`, `sky/cyan`) rendues plus visibles en clair. **Reste** : auditer `/b4ck0ff1ce`, Statistics, Analytics, Services, Security et pages formulaires ; corriger les cas résiduels sans casser le mode sombre ; ajouter au moins un smoke visuel ou checklist porteur.
 
 **Correctifs courts déjà faits (19/05)** : crash `duration`, reset opérationnel, couleurs hex validées — **ne remplace pas** le moteur ci-dessus.
