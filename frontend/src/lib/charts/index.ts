@@ -61,3 +61,4 @@ export const Cell = lazyRechart(() =>
 
 export * from "./systemMetricsSeriesModel";
 export * from "./rechartsTooltipTheme";
+export * from "./seriesColors";
