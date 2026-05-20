@@ -391,6 +391,7 @@ services:
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:?set SECURITY_INTERNAL_SECRET in .env}
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - SECURITY_SERVICE_URL=${SECURITY_SERVICE_URL:?set SECURITY_SERVICE_URL in .env}
       - SERVICE_NAME=jobbingtrack-auth-service
       - SMTP_FROM=${SMTP_FROM:?set SMTP_FROM in .env}
@@ -441,6 +442,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3002
       - SERVICE_NAME=jobbingtrack-application-service
@@ -483,6 +485,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3003
       - SERVICE_NAME=jobbingtrack-company-service
@@ -523,6 +526,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3004
       - SERVICE_NAME=jobbingtrack-contact-service
@@ -559,6 +563,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3005
       - SERVICE_NAME=jobbingtrack-interview-service
@@ -595,6 +600,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
       - SERVICE_NAME=jobbingtrack-call-service
@@ -628,6 +634,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
       - SERVICE_NAME=jobbingtrack-event-service
@@ -664,6 +671,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
       - SERVICE_NAME=jobbingtrack-followup-service
@@ -697,6 +705,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3009
       - SERVICE_NAME=jobbingtrack-profile-service
@@ -731,6 +740,7 @@ services:
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - REDIS_URL=redis://redis:6379
@@ -782,6 +792,7 @@ services:
       - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3000
       - SERVICE_NAME=jobbingtrack-dashboard-service
@@ -814,6 +825,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
       - SERVICE_NAME=jobbingtrack-workflow-service
@@ -872,6 +884,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - LOG_LEVEL=info
       - NODE_ENV=development
       - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:3008}
@@ -938,6 +951,7 @@ services:
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
+      - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=3016
       - SERVICE_NAME=jobbingtrack-deployment-service

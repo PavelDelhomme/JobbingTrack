@@ -5,7 +5,7 @@
 # ALTSCREEN=0 : ancien comportement (séparateur entre cycles ; CLEAR=1 appelle `clear`).
 # STATUS_FOLD=1 (défaut) : passe la sortie de `make status` dans `fold -s -w $(tput cols)`.
 #
-# Pendant l’attente entre deux cycles : touches 5–9 = intervalle en secondes (défaut 5).
+# Pendant l’attente entre deux cycles : touches 4–9 = intervalle en secondes (défaut 4).
 #
 # Variables : ROOT_DIR, INTERVAL (secondes), ALTSCREEN (0|1), CLEAR (0|1), STATUS_FOLD (0|1)
 
@@ -14,10 +14,14 @@ set -euo pipefail
 set_term_title() { printf '\033]0;%s\007' "$1" 2>/dev/null || true; }
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-INTERVAL="${INTERVAL:-5}"
+INTERVAL="${INTERVAL:-4}"
 ALTSCREEN="${ALTSCREEN:-1}"
 CLEAR="${CLEAR:-0}"
 STATUS_FOLD="${STATUS_FOLD:-1}"
+
+if ! [[ "$INTERVAL" =~ ^[0-9]+$ ]] || (( INTERVAL < 4 )); then
+  INTERVAL=4
+fi
 
 cleanup() {
   set_term_title ""
@@ -35,7 +39,7 @@ if [[ "$ALTSCREEN" == "1" ]]; then
 fi
 
 print_header() {
-  printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m${INTERVAL}s\033[0m \033[0;90m· touches \033[1;33m5-9\033[0;90m = changer l’intervalle · Ctrl+C pour quitter\033[0m"
+  printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — cycle toutes les \033[1;33m${INTERVAL}s\033[0m \033[0;90m· touches \033[1;33m4-9\033[0;90m = changer l’intervalle · Ctrl+C pour quitter\033[0m"
   printf '%b\n' "\033[0;90m💡 \033[0;36mmake status\033[0;90m dans un buffer alternatif (défaut). \033[1;33mALTSCREEN=0\033[0;90m pour l’ancien défilement ; \033[1;33mCLEAR=1\033[0;90m + ALTSCREEN=0 pour \`clear\` plein écran.\033[0m"
 }
 
@@ -51,7 +55,7 @@ wait_interval() {
     local key=""
     if IFS= read -r -t "$chunk" -n 1 key 2>/dev/null; then
       case "$key" in
-        5|6|7|8|9)
+        4|5|6|7|8|9)
           INTERVAL="$key"
           printf '%b\n' "\033[0;32m⏱ Intervalle : ${INTERVAL}s\033[0m"
           return 0
@@ -70,7 +74,7 @@ sep=0
 while true; do
   if [[ "$ALTSCREEN" == "1" ]]; then
     printf '\033[2J\033[H'
-    printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — \033[1;33m${INTERVAL}s\033[0m · \033[0;90m5-9\033[0m intervalle · Ctrl+C\033[0m"
+    printf '%b\n' "\033[0;36m📊 Statut détaillé (watch)\033[0m — \033[1;33m${INTERVAL}s\033[0m · \033[0;90m4-9\033[0m intervalle · Ctrl+C\033[0m"
     echo ""
   elif [[ "$sep" == "1" && "$CLEAR" != "1" ]]; then
     printf '%b\n' "\033[0;90m────────────────────────────────────────────────────────\033[0m"
@@ -91,6 +95,6 @@ while true; do
 
   sep=1
   echo ""
-  printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m${INTERVAL}s\033[0m  \033[0;90m(touches 5-9)\033[0m"
+  printf '%b\n' "\033[0;36m🕐\033[0m \033[1;37m$(date '+%Y-%m-%d %H:%M:%S %z')\033[0m  \033[0;90m· prochain cycle dans\033[0m \033[1;33m${INTERVAL}s\033[0m  \033[0;90m(touches 4-9)\033[0m"
   wait_interval
 done

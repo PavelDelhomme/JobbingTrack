@@ -81,6 +81,9 @@ function validateService(compose, serviceName) {
       `${serviceName}: METRICS_SERVICE_URL invalide (${env.METRICS_SERVICE_URL || "absent"})`,
     );
   }
+  if (!env.METRICS_API_KEY) {
+    failures.push(`${serviceName}: METRICS_API_KEY manquant`);
+  }
 
   const expectedServiceName = serviceNameFor(serviceName);
   if (env.SERVICE_NAME !== expectedServiceName) {
@@ -105,6 +108,14 @@ function validateLoggerFiles(serviceName) {
 
   if (!fs.existsSync(centralLoggerPath)) {
     failures.push(`${serviceName}: src/utils/centralLogger.js manquant`);
+  } else {
+    const centralLoggerSource = fs.readFileSync(centralLoggerPath, "utf8");
+    if (!centralLoggerSource.includes("process.env.METRICS_API_KEY")) {
+      failures.push(`${serviceName}: centralLogger.js ne lit pas METRICS_API_KEY`);
+    }
+    if (!centralLoggerSource.includes("X-API-Key")) {
+      failures.push(`${serviceName}: centralLogger.js n'envoie pas X-API-Key`);
+    }
   }
   if (!fs.existsSync(loggerPath)) {
     failures.push(`${serviceName}: src/utils/logger.js manquant`);

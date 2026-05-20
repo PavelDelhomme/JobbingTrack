@@ -1,6 +1,24 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : 6 mai 2026
+**Dernière mise à jour** : 20 mai 2026
+
+---
+
+## 20 mai 2026 — Statistics log-stats : persistance complète des sources suivies
+
+### Problème
+- La page **`/backoffice/statistics/log-stats`** affichait des compteurs persistés, mais `system_events` et `service_network_history` restaient à **0**, ce qui donnait l’impression que la persistance était incomplète.
+- Le libellé **legacy** sur `container_logs` était ambigu : on pouvait croire que le collecteur Rust n’était pas utilisé.
+
+### Correctifs
+1. **`metrics-aggregator`** : alimentation de `service_network_history` à chaque persistance de disponibilité service, à partir des probes santé réseau (succès/échec, temps de réponse, endpoint health).
+2. **`metrics-aggregator`** : création d’événements `system_events` à la première observation et lors des transitions de statut service (`healthy`, `degraded`, `offline`).
+3. **`/api/v1/persistence/stats`** : plage temporelle enrichie avec `system_events`.
+4. **Frontend log-stats** : remplacement du vocabulaire **legacy** par **historique** ; clarification `container_logs` = ancien historique conteneurs, `log_collector_logs` = flux Docker Rust actuel.
+5. **Smoke** : `scripts/ops/smoke-persistence-stats.cjs` vérifie que toutes les sources suivies sont non nulles, dont `events` et `serviceNetwork`.
+
+### Validation
+- Après rebuild de `jobbingtrack-metrics-aggregator` et un cycle de collecte : `node scripts/ops/smoke-persistence-stats.cjs` OK avec `events=23` et `serviceNetwork=46`.
 
 ---
 

@@ -61,6 +61,8 @@ Pour chaque ligne :
 |------------|-----------------|---------------|----------------|----------------|
 | `monitoring-agent-rs` actif par defaut | Compose lance Rust, pas C, pour la collecte bas niveau | local/preprod | [ ] | |
 | `log-collector-rs` actif par defaut | Logs Docker lus et `log_collector_logs` alimentee | local/preprod | [ ] | |
+| Central logging vers `aggregated_logs` | Smoke runtime `scripts/ops/smoke-central-logging-runtime.cjs` OK 15/15 + lignes par `serviceName` | local | [x] | Validé techniquement 20/05 : `aggregated_logs` reçoit une ligne smoke par service centralisé. Reste validation UI porteur sur corrélation/log-stats. |
+| Statistics log-stats persistance | `/api/v1/persistence/stats` affiche des compteurs non nuls pour logs/métriques réellement alimentés | local | [x] | Validé techniquement 20/05 : `containerLogs`, `containerMetrics`, `logCollectorLogs`, `aggregatedLogs`, disponibilité, sécurité, `system_events` et `service_network_history` remontent. Reste validation visuelle porteur après login. |
 | Benchmark long post-bascule Rust | 40-60 min p95 CPU/RAM/IO dans gate preprod | preprod | [ ] | |
 | Backoffice services affiche donnees coherentes | CPU, RAM, reseau, I/O, disponibilite, historique | local/preprod | [ ] | |
 | Corrélation perf/logs/securite utilisable | Incidents lies a logs avec ecart temporel comprehensible | preprod | [ ] | |
