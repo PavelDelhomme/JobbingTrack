@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { PerformancesSubNav } from "../PerformancesSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
@@ -130,6 +131,18 @@ async function promisePool<T, R>(
     out.push(...(await Promise.all(chunk.map(mapper))));
   }
   return out;
+}
+
+/** Évite qu’un appel metrics optionnel fasse échouer tout le lot (stats live Docker). */
+async function settleMetricCall<T>(
+  promise: Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
 }
 
 type ContainerPoint = {
@@ -1723,22 +1736,36 @@ export default function PerformancesCorrelationPage() {
         FETCH_CONCURRENCY,
         async (name) => {
           const [rows, availRaw, availStats, liveStats] = await Promise.all([
-            analyticsService.getContainerMetricsHistory(name, {
-              ...opts,
-              signal: controller.signal,
-            }),
-            analyticsService.getServiceAvailabilityHistory(name, {
-              startDate: opts.startDate,
-              endDate: opts.endDate,
-              limit: availLimit,
-              signal: controller.signal,
-            }),
-            analyticsService.getServiceAvailabilityStats(
-              name,
-              Math.max(1, Math.ceil(hours)),
-              controller.signal,
+            settleMetricCall(
+              analyticsService.getContainerMetricsHistory(name, {
+                ...opts,
+                signal: controller.signal,
+              }),
+              [] as Record<string, unknown>[],
             ),
-            analyticsService.getContainerStats(name, controller.signal),
+            settleMetricCall(
+              analyticsService.getServiceAvailabilityHistory(name, {
+                startDate: opts.startDate,
+                endDate: opts.endDate,
+                limit: availLimit,
+                signal: controller.signal,
+              }),
+              [] as Record<string, unknown>[],
+            ),
+            settleMetricCall(
+              analyticsService.getServiceAvailabilityStats(
+                name,
+                Math.max(1, Math.ceil(hours)),
+                controller.signal,
+              ),
+              null,
+            ),
+            settleMetricCall(
+              analyticsService.getContainerStats(name, controller.signal, {
+                timeoutMs: 10_000,
+              }),
+              null,
+            ),
           ]);
           const parsed: ContainerPoint[] = (rows || [])
             .map((r: Record<string, unknown>) => {
@@ -2417,9 +2444,16 @@ export default function PerformancesCorrelationPage() {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 w-full max-w-[1600px] mx-auto">
+        <Link
+          href="/b4ck0ff1ce/performances"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+        >
+          <span aria-hidden>←</span>
+          Retour à Performances
+        </Link>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Corrélation
+            Performances — corrélation
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
             Synthèse + détail par service sur la période définie ci-dessous. Les
