@@ -120,6 +120,15 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Mise à jour avec auto-save
   const updatePreferences = useCallback(
     (updates: Partial<UserPreferences>) => {
@@ -219,12 +228,25 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-popup-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              <h3
+                id="settings-popup-title"
+                className="text-lg font-bold text-gray-900 dark:text-gray-100"
+              >
                 Paramètres
               </h3>
               <SaveStatusIndicator />
@@ -455,6 +477,15 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     💡 <strong>Conseil :</strong> Des intervalles plus courts
                     (5-15s) offrent une meilleure réactivité mais consomment
                     plus de ressources. Pour un usage optimal, utilisez 20-30s.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                  <p className="font-semibold">À venir : réglages par graphique</p>
+                  <p className="mt-1">
+                    Les réglages actuels sont globaux par zone. Le prochain lot
+                    doit permettre de régler l’actualisation par emplacement
+                    précis, par exemple le graphe “temps de réponse” dans
+                    Performances → Synthèse, sans forcer tous les autres graphes.
                   </p>
                 </div>
               </div>
