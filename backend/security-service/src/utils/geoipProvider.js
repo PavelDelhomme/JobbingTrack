@@ -1,4 +1,5 @@
 const axios = require('axios');
+const dns = require('node:dns').promises;
 
 const IPV4_REGEX = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 
@@ -55,9 +56,74 @@ function privateGeoResult() {
     proxy: null,
     vpn: null,
     tor: null,
+    reverseDns: [],
+    rdap: null,
+    sources: ['local-classification'],
+    confidence: 'high',
     note:
       'IP privée ou réseau Docker/LAN — géolocalisation publique, VPN/Tor/proxy et ASN non applicables'
   };
+}
+
+async function lookupReverseDns(ip) {
+  if (String(process.env.SECURITY_IP_REVERSE_DNS_ENABLED || 'true').toLowerCase() === 'false') {
+    return [];
+  }
+  try {
+    const names = await Promise.race([
+      dns.reverse(ip),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('reverse dns timeout')),
+          Number(process.env.SECURITY_IP_REVERSE_DNS_TIMEOUT_MS || 1800)
+        )
+      )
+    ]);
+    return Array.isArray(names) ? names.slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeRdap(data) {
+  if (!data || typeof data !== 'object') return null;
+  const entityNames = Array.isArray(data.entities)
+    ? data.entities
+        .map((entity) => {
+          const vcard = Array.isArray(entity.vcardArray) ? entity.vcardArray[1] : null;
+          const fn = Array.isArray(vcard)
+            ? vcard.find((row) => Array.isArray(row) && row[0] === 'fn')
+            : null;
+          return fn?.[3] || entity.handle || null;
+        })
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+  return {
+    handle: data.handle || null,
+    name: data.name || null,
+    type: data.type || null,
+    country: data.country || null,
+    startAddress: data.startAddress || null,
+    endAddress: data.endAddress || null,
+    entities: entityNames,
+  };
+}
+
+async function lookupRdap(ip) {
+  if (String(process.env.SECURITY_IP_RDAP_ENABLED || 'true').toLowerCase() === 'false') {
+    return null;
+  }
+  try {
+    const base = (process.env.SECURITY_IP_RDAP_URL || 'https://rdap.org/ip').replace(/\/$/, '');
+    const { data } = await axios.get(`${base}/${encodeURIComponent(ip)}`, {
+      timeout: Number(process.env.SECURITY_IP_RDAP_TIMEOUT_MS || 3000),
+      validateStatus: (s) => s >= 200 && s < 500
+    });
+    return normalizeRdap(data);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -83,7 +149,8 @@ async function lookupGeoIp(ip) {
     `http://ip-api.com/json/${encodeURIComponent(normalized)}`;
 
   try {
-    const { data } = await axios.get(providerUrl, {
+    const [{ data }, reverseDnsResult, rdapResult] = await Promise.all([
+      axios.get(providerUrl, {
       timeout: Number(process.env.GEOIP_LOOKUP_TIMEOUT_MS || 3500),
       params:
         providerUrl.includes('ip-api.com') && !providerUrl.includes('fields=')
@@ -93,7 +160,10 @@ async function lookupGeoIp(ip) {
             }
           : undefined,
       validateStatus: (s) => s >= 200 && s < 500
-    });
+      }),
+      lookupReverseDns(normalized).then((value) => ({ status: 'fulfilled', value })).catch(() => ({ status: 'rejected', value: [] })),
+      lookupRdap(normalized).then((value) => ({ status: 'fulfilled', value })).catch(() => ({ status: 'rejected', value: null }))
+    ]);
 
     if (!data || data.status === 'fail') return null;
 
@@ -112,7 +182,15 @@ async function lookupGeoIp(ip) {
       organization: data.org || data.isp || data.as || null,
       proxy: typeof data.proxy === 'boolean' ? data.proxy : null,
       vpn: typeof data.hosting === 'boolean' ? data.hosting : null,
-      tor: typeof data.tor === 'boolean' ? data.tor : null
+      tor: typeof data.tor === 'boolean' ? data.tor : null,
+      reverseDns: reverseDnsResult.status === 'fulfilled' ? reverseDnsResult.value : [],
+      rdap: rdapResult.status === 'fulfilled' ? rdapResult.value : null,
+      sources: [
+        providerUrl.includes('ip-api.com') ? 'ip-api.com' : 'geoip-provider',
+        ...(reverseDnsResult.value?.length ? ['reverse-dns'] : []),
+        ...(rdapResult.value ? ['rdap'] : [])
+      ],
+      confidence: rdapResult.value || reverseDnsResult.value?.length ? 'medium' : 'low'
     };
     writeCache(normalized, result);
     return result;

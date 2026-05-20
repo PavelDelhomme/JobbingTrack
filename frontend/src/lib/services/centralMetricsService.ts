@@ -1423,6 +1423,12 @@ class CentralMetricsService {
               : item.avg_response_time_ms !== undefined
                 ? item.avg_response_time_ms
                 : 0,
+          error_count:
+            item.errorCount !== undefined
+              ? item.errorCount
+              : item.error_count !== undefined
+                ? item.error_count
+                : 0,
           error_rate: (() => {
             const explicit =
               item.errorRate !== undefined
