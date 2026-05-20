@@ -14,12 +14,9 @@ const LEGACY_ROOT_CLASSES = [
   "animations-enabled",
 ] as const;
 
-const LEGACY_CSS_VARS = [
-  "--primary-color",
-  "--accent-color",
-  "--primary-500",
-  "--primary-600",
-] as const;
+import { JT_DOM_VARS_TO_CLEAR } from "./tokens";
+
+const LEGACY_CSS_VARS = JT_DOM_VARS_TO_CLEAR;
 
 export function clearLegacyUiDomOverrides() {
   if (typeof document === "undefined") return;

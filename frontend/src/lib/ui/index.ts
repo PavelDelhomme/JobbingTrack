@@ -21,6 +21,22 @@ export {
   type DashboardLayoutId,
 } from "./layouts/registry";
 export { useDashboardLayout } from "./layouts/useDashboardLayout";
+export {
+  dashboardMetricsLayoutClass,
+  dashboardSectionLayoutClass,
+} from "./layouts/classes";
+export {
+  useStatisticsPanelPrefs,
+  useAnalyticsPanelPrefs,
+} from "./hooks/usePanelPreferences";
+export {
+  defaultStatisticsPanel,
+  defaultAnalyticsPanel,
+  type StatisticsPanelSettings,
+  type AnalyticsPanelSettings,
+  type UiPanelsSettings,
+} from "./preferences/panels";
+export { JT_CSS_VARS } from "./preferences/tokens";
 export { clearLegacyUiDomOverrides } from "./preferences/dom";
 export {
   defaultUiPreferencesV1,

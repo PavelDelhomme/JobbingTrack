@@ -16,6 +16,8 @@ lib/ui/
   index.ts                   # exports publics
 ```
 
-Le thème document (`dark`) reste dans `@/lib/hooks/theme` ; `applyCustomizationToDom` synchronise le choix « auto/light/dark » des Paramètres.
+Le thème document (`dark`) reste dans `@/lib/hooks/theme` ; `applyCustomizationToDom` pose `--jt-primary` / `--jt-accent`.
+
+Hooks panneaux : `useStatisticsPanelPrefs`, `useAnalyticsPanelPrefs` (remplace les clés localStorage dédiées).
 
 Ne pas ajouter de logique métier monitoring/sécurité ici — uniquement préférences d’affichage transverses.

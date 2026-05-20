@@ -71,6 +71,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { useStatisticsPanelPrefs } from "@/lib/ui";
 
 // Types
 interface MetricsHistory {
@@ -175,36 +176,6 @@ interface Statistics {
   }>;
 }
 
-interface CustomizationSettings {
-  showApplications: boolean;
-  showUsers: boolean;
-  showCompanies: boolean;
-  showPerformance: boolean;
-  showSystem: boolean;
-  showServices: boolean;
-  showNetwork: boolean;
-  showSecurity: boolean;
-  showTimeline: boolean;
-  timeRange: "1h" | "6h" | "24h" | "7d" | "30d";
-  viewType: "cards" | "charts" | "table";
-  chartType: "line" | "bar" | "area";
-}
-
-const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
-  showApplications: true,
-  showUsers: true,
-  showCompanies: true,
-  showPerformance: true,
-  showSystem: true,
-  showServices: true,
-  showNetwork: true,
-  showSecurity: true,
-  showTimeline: true,
-  timeRange: "24h",
-  viewType: "charts",
-  chartType: "line",
-};
-
 // Couleurs pour les graphiques
 const COLORS = {
   primary: "#3B82F6",
@@ -262,19 +233,9 @@ export default function StatisticsPage() {
     "overview",
   );
 
-  // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false);
-  const [customization, setCustomization] = useState<CustomizationSettings>(
-    () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("statistics-customization");
-        return saved
-          ? { ...DEFAULT_CUSTOMIZATION, ...JSON.parse(saved) }
-          : DEFAULT_CUSTOMIZATION;
-      }
-      return DEFAULT_CUSTOMIZATION;
-    },
-  );
+  const { customization, updateCustomization, resetCustomization } =
+    useStatisticsPanelPrefs();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -337,25 +298,6 @@ export default function StatisticsPage() {
     activeTab,
     statsRefreshInterval,
   ]); // ✅ Ajouter activeTab comme dépendance
-
-  // Sauvegarder les paramètres de personnalisation
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "statistics-customization",
-        JSON.stringify(customization),
-      );
-    }
-  }, [customization]);
-
-  // Fonctions de personnalisation
-  const updateCustomization = (updates: Partial<CustomizationSettings>) => {
-    setCustomization((prev) => ({ ...prev, ...updates }));
-  };
-
-  const resetCustomization = () => {
-    setCustomization(DEFAULT_CUSTOMIZATION);
-  };
 
   // Conversion du time range en millisecondes
   const getTimeRangeMs = () => {

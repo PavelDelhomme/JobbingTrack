@@ -102,17 +102,9 @@ export function mergeCustomizationSettings(
   };
 }
 
-const CUSTOMIZATION_CSS_VARS = [
-  "--primary-color",
-  "--accent-color",
-  "--primary-500",
-  "--primary-600",
-  "--animation-duration",
-  "--items-per-page",
-  "--notification-duration",
-  "--cache-duration",
-  "--sync-frequency",
-];
+import { JT_DOM_VARS_TO_CLEAR } from "./tokens";
+
+const CUSTOMIZATION_CSS_VARS = [...JT_DOM_VARS_TO_CLEAR];
 
 const CUSTOMIZATION_CLASSES = [
   "high-contrast",
