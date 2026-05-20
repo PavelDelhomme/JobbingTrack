@@ -670,6 +670,50 @@ export default function ThreatDetailsPage() {
                   <p className="font-semibold">{attacker.organization}</p>
                 </div>
               )}
+              {Array.isArray(attacker.reverseDns) &&
+                attacker.reverseDns.length > 0 && (
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      DNS inverse
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {attacker.reverseDns.map((host: string) => (
+                        <span
+                          key={host}
+                          className="rounded bg-cyan-100 px-2 py-1 font-mono text-xs text-cyan-900 dark:bg-cyan-900/40 dark:text-cyan-100"
+                        >
+                          {host}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              {attacker.rdap && (
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    RDAP réseau
+                  </p>
+                  <p className="font-semibold">
+                    {attacker.rdap.name ||
+                      attacker.rdap.handle ||
+                      "Bloc réseau public"}
+                  </p>
+                  {(attacker.rdap.startAddress || attacker.rdap.endAddress) && (
+                    <p className="mt-1 font-mono text-xs text-gray-600 dark:text-gray-400">
+                      {attacker.rdap.startAddress || "?"} →{" "}
+                      {attacker.rdap.endAddress || "?"}
+                    </p>
+                  )}
+                </div>
+              )}
+              {Array.isArray(attacker.enrichmentSources) &&
+                attacker.enrichmentSources.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Sources enrichissement :{" "}
+                    {attacker.enrichmentSources.join(", ")} · confiance{" "}
+                    {attacker.enrichmentConfidence || "n/a"}
+                  </p>
+                )}
             </div>
           </div>
 

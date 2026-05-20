@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   LineChart,
@@ -24,6 +24,20 @@ import {
 import { metricTimestampToMs } from "@/lib/utils/date";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
+
+const statusLabels: Record<string, string> = {
+  PENDING: "En attente",
+  APPLIED: "Candidature envoyée",
+  INTERVIEW: "Entretien",
+  OFFER: "Offre",
+  REJECTED: "Refusée",
+  ACCEPTED: "Acceptée",
+  SCHEDULED: "Planifié",
+  COMPLETED: "Terminé",
+  CANCELLED: "Annulé",
+  PLANNED: "Planifiée",
+  OVERDUE: "En retard",
+};
 
 export default function StatisticsAppDataPage() {
   const [stats, setStats] = useState<ApplicationStatistics | null>(null);
@@ -52,19 +66,46 @@ export default function StatisticsAppDataPage() {
     void load();
   }, [load]);
 
-  const chartRows = timeline
-    .map((row) => {
-      const ms = metricTimestampToMs(row.timestamp);
-      return {
-        timeMs: ms ?? NaN,
-        label: row.timestamp,
-        applications: row.total_applications,
-        users: row.total_users,
-        companies: row.total_companies,
-      };
-    })
-    .filter((r) => Number.isFinite(r.timeMs))
-    .sort((a, b) => a.timeMs - b.timeMs);
+  const chartRows = useMemo(
+    () =>
+      timeline
+        .map((row) => {
+          const ms = metricTimestampToMs(row.timestamp);
+          return {
+            timeMs: ms ?? NaN,
+            label: row.timestamp,
+            applications: row.total_applications,
+            users: row.total_users,
+            companies: row.total_companies,
+            contacts: row.total_contacts,
+            interviews: row.total_interviews,
+            calls: row.total_calls ?? 0,
+            followups: row.total_followups ?? 0,
+            events: row.total_events ?? 0,
+          };
+        })
+        .filter((r) => Number.isFinite(r.timeMs))
+        .sort((a, b) => a.timeMs - b.timeMs),
+    [timeline],
+  );
+
+  const sourceStates = useMemo(() => {
+    if (!stats) return [];
+    return [
+      {
+        label: "Candidatures",
+        value: stats.applications?.total ?? 0,
+        source: "application-service",
+      },
+      { label: "Utilisateurs", value: stats.users?.total ?? 0, source: "auth-service" },
+      { label: "Entreprises", value: stats.companies?.total ?? 0, source: "company-service" },
+      { label: "Contacts", value: stats.contacts?.total ?? 0, source: "contact-service" },
+      { label: "Entretiens", value: stats.interviews?.total ?? 0, source: "interview-service" },
+      { label: "Appels", value: stats.calls?.total ?? 0, source: "call-service" },
+      { label: "Relances", value: stats.followups?.total ?? 0, source: "followup-service" },
+      { label: "Événements", value: stats.events?.total ?? 0, source: "event-service" },
+    ];
+  }, [stats]);
 
   return (
     <AdminLayout>
@@ -104,19 +145,100 @@ export default function StatisticsAppDataPage() {
               <StatCard
                 label="Candidatures"
                 value={stats.applications?.total}
+                subtitle={`${stats.applications?.this_week ?? 0} nouvelles sur 7 j. · ${stats.applications?.this_month ?? 0} ce mois`}
               />
-              <StatCard label="Utilisateurs" value={stats.users?.total} />
-              <StatCard label="Entreprises" value={stats.companies?.total} />
-              <StatCard label="Contacts" value={stats.contacts?.total} />
+              <StatCard
+                label="Utilisateurs"
+                value={stats.users?.total}
+                subtitle={`${stats.users?.active ?? 0} actifs · ${stats.users?.new_this_week ?? 0} nouveaux sur 7 j.`}
+              />
+              <StatCard
+                label="Entreprises"
+                value={stats.companies?.total}
+                subtitle={`${stats.companies?.this_week ?? 0} nouvelles sur 7 j.`}
+              />
+              <StatCard
+                label="Contacts"
+                value={stats.contacts?.total}
+                subtitle={`${stats.contacts?.this_week ?? 0} nouveaux sur 7 j.`}
+              />
+              <StatCard
+                label="Entretiens"
+                value={stats.interviews?.total}
+                subtitle={`${stats.interviews?.upcoming ?? stats.interviews?.scheduled ?? 0} à venir · ${stats.interviews?.completed ?? 0} terminés`}
+              />
+              <StatCard
+                label="Appels"
+                value={stats.calls?.total}
+                subtitle={`${stats.calls?.upcoming ?? 0} à venir · ${stats.calls?.completed ?? 0} terminés`}
+              />
+              <StatCard
+                label="Relances"
+                value={stats.followups?.total}
+                subtitle={`${stats.followups?.pending ?? 0} en attente · ${stats.followups?.overdue ?? 0} en retard`}
+              />
+              <StatCard
+                label="Événements"
+                value={stats.events?.total}
+                subtitle={`${stats.events?.this_week ?? 0} créés sur 7 j. · ${stats.events?.upcoming ?? 0} à venir`}
+              />
             </DashboardLayoutRegion>
 
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-              <strong className="font-semibold">À améliorer :</strong> cette
-              page expose seulement les totaux et une timeline globale. Le lot
-              suivant doit détailler actifs vs total, nouveaux sur la période,
-              candidatures par statut, entreprises/contacts et états vides par
-              source.
+            <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                État des sources métier
+              </h2>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                {sourceStates.map((source) => (
+                  <div
+                    key={source.label}
+                    className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {source.label}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          source.value > 0
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                        }`}
+                      >
+                        {source.value > 0 ? "alimenté" : "vide"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      {source.source} · {source.value.toLocaleString("fr-FR")}{" "}
+                      ligne(s) exposée(s)
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <DashboardLayoutRegion variant="section">
+              <DistributionPanel
+                title="Candidatures par statut"
+                rows={stats.applications?.by_status}
+                empty="Aucun statut candidature exposé par application-service."
+              />
+              <DistributionPanel
+                title="Utilisateurs par rôle"
+                rows={stats.users?.by_role}
+                empty="Aucun rôle utilisateur exposé par auth-service."
+              />
+              <DistributionPanel
+                title="Entretiens par statut"
+                rows={stats.interviews?.by_status}
+                empty="Aucun statut entretien exposé par interview-service."
+              />
+              <DistributionPanel
+                title="Relances par statut"
+                rows={stats.followups?.by_status}
+                empty="Aucun statut relance exposé par followup-service."
+              />
+            </DashboardLayoutRegion>
 
             {chartRows.length > 1 ? (
               <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -173,6 +295,41 @@ export default function StatisticsAppDataPage() {
                         stroke="#059669"
                         dot={false}
                       />
+                      <Line
+                        type="monotone"
+                        dataKey="contacts"
+                        name="Contacts"
+                        stroke="#ea580c"
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="interviews"
+                        name="Entretiens"
+                        stroke="#dc2626"
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="calls"
+                        name="Appels"
+                        stroke="#0891b2"
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="followups"
+                        name="Relances"
+                        stroke="#ca8a04"
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="events"
+                        name="Événements"
+                        stroke="#be123c"
+                        dot={false}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -199,7 +356,15 @@ export default function StatisticsAppDataPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value?: number }) {
+function StatCard({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value?: number;
+  subtitle?: string;
+}) {
   return (
     <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
@@ -208,6 +373,46 @@ function StatCard({ label, value }: { label: string; value?: number }) {
       <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
         {value != null ? value.toLocaleString("fr-FR") : "—"}
       </p>
+      {subtitle ? (
+        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function DistributionPanel({
+  title,
+  rows,
+  empty,
+}: {
+  title: string;
+  rows?: Record<string, number>;
+  empty: string;
+}) {
+  const entries = Object.entries(rows || {}).filter(([, value]) => value > 0);
+  return (
+    <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+        {title}
+      </h2>
+      {entries.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {entries.map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between gap-3">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {statusLabels[key] || key}
+              </span>
+              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">
+                {value.toLocaleString("fr-FR")}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{empty}</p>
+      )}
     </div>
   );
 }

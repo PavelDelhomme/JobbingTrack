@@ -47,14 +47,21 @@ export interface ApplicationStatistics {
   calls?: {
     total: number;
     this_week: number;
+    upcoming?: number;
+    completed?: number;
+    by_status?: Record<string, number>;
   };
   followups?: {
     total: number;
     pending: number;
+    overdue?: number;
+    by_status?: Record<string, number>;
   };
   events?: {
     total: number;
     this_month: number;
+    this_week?: number;
+    upcoming?: number;
   };
   summary?: {
     total_users: number;
@@ -62,6 +69,9 @@ export interface ApplicationStatistics {
     total_companies: number;
     total_contacts: number;
     total_interviews: number;
+    total_calls?: number;
+    total_followups?: number;
+    total_events?: number;
     active_users: number;
     new_this_week: number;
     new_this_month: number;
@@ -76,11 +86,16 @@ export interface StatisticsTimelineEntry {
   total_companies: number;
   total_contacts: number;
   total_interviews: number;
+  total_calls?: number;
+  total_followups?: number;
+  total_events?: number;
   new_this_week: number;
   new_this_month: number;
   applications_by_status: Record<string, number>;
   users_by_role: Record<string, number>;
   companies_by_industry: Record<string, number>;
+  calls_by_status?: Record<string, number>;
+  followups_by_status?: Record<string, number>;
 }
 
 class StatisticsService {

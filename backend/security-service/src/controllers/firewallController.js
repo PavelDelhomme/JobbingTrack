@@ -196,7 +196,11 @@ async function buildThreatInvestigation(threat, related) {
       vpn: meta.vpn ?? geo?.vpn ?? null,
       tor: meta.tor ?? geo?.tor ?? null,
       asn: meta.asn ?? geo?.asn ?? null,
-      organization: meta.organization ?? geo?.organization ?? null
+      organization: meta.organization ?? geo?.organization ?? null,
+      reverseDns: geo?.reverseDns || [],
+      rdap: geo?.rdap || null,
+      enrichmentSources: geo?.sources || [],
+      enrichmentConfidence: geo?.confidence || null
     },
     target: {
       ip: destIpFallback,
