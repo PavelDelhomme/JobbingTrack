@@ -373,6 +373,9 @@ router.get('/security/summary', async (req, res) => {
         totalSqlInjectionAttempts: 0,
         totalXssAttempts: 0,
         uniqueBlockedIPs: 0,
+        period: `${parseInt(hours) || 24}h`,
+        dataPoints: 0,
+        source: 'empty',
       },
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });

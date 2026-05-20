@@ -1109,13 +1109,54 @@ class PersistenceService {
     }
     
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    
-    return await prisma.securityMetric.findMany({
+
+    const aggregateModel = prisma.securityMetricAggregated || prisma.securityMetric;
+    if (aggregateModel && typeof aggregateModel.findMany === 'function') {
+      const aggregated = await aggregateModel.findMany({
+        where: {
+          timestamp: { gte: since },
+        },
+        orderBy: { timestamp: 'desc' },
+      });
+      if (aggregated.length > 0) return aggregated;
+    }
+
+    const rawModel = prisma.securityMetricTable;
+    if (!rawModel || typeof rawModel.findMany !== 'function') return [];
+    const rawRows = await rawModel.findMany({
       where: {
         timestamp: { gte: since },
       },
       orderBy: { timestamp: 'desc' },
+      take: 2000,
     });
+    return rawRows.map((row) => this.mapRawSecurityMetric(row));
+  }
+
+  mapRawSecurityMetric(row) {
+    const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    const isScore = row.metricType === 'security_score';
+    const criticalEvents = Number(meta.criticalEvents || 0);
+    const intrusionAttempts = Number(meta.intrusionAttempts || 0);
+    const ddosAttacks = Number(meta.ddosAttacks || 0);
+    return {
+      id: row.id,
+      timestamp: row.timestamp,
+      failedLoginAttempts: Number(meta.failedLoginAttempts || 0),
+      successfulLogins: Number(meta.successfulLogins || 0),
+      blockedIPs: Array.isArray(meta.blockedIPs) ? meta.blockedIPs : [],
+      suspiciousActivities: Number(meta.suspiciousActivities || intrusionAttempts || 0),
+      potentialSqlInjections: Number(meta.potentialSqlInjections || 0),
+      potentialXssAttempts: Number(meta.potentialXssAttempts || 0),
+      rateLimitExceeded: Number(meta.rateLimitExceeded || 0),
+      invalidTokenAttempts: Number(meta.invalidTokenAttempts || 0),
+      securityScore: isScore ? Number(row.value || 100) : Number(meta.securityScore || 100),
+      activeSecurityAlerts: Number(meta.activeSecurityAlerts || criticalEvents || ddosAttacks || 0),
+      rawMetricType: row.metricType,
+      rawUnit: row.unit,
+      rawPeriod: row.period,
+      source: 'security_metrics',
+    };
   }
 
   /**
@@ -1145,6 +1186,9 @@ class PersistenceService {
         totalSqlInjectionAttempts: 0,
         totalXssAttempts: 0,
         uniqueBlockedIPs: 0,
+        period: `${hours}h`,
+        dataPoints: 0,
+        source: 'empty',
       };
     }
 
@@ -1182,6 +1226,9 @@ class PersistenceService {
       uniqueBlockedIPs: allBlockedIPs.size,
       period: `${hours}h`,
       dataPoints: metrics.length,
+      source: metrics.some((m) => m.source === 'security_metrics')
+        ? 'security_metrics'
+        : 'security_metrics_aggregated',
     };
   }
 }

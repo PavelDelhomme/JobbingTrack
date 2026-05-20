@@ -10,7 +10,11 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Statistics log-stats / persistance (20/05/2026)** : `aggregated_logs`, `log_collector_logs`, `container_logs`, métriques système/conteneurs, disponibilité, sécurité, `system_events` et `service_network_history` sont alimentés/visibles dans `/backoffice/statistics/log-stats`. Suite backlog : tests API/UI sur `/api/v1/persistence/stats`, smoke navigateur après login et contrôle granularité erreurs.
 
-**Statistics App data (20/05/2026)** : pour le lot actuel, garder une page lisible centrée sur **totaux** + **timeline globale**. Lot suivant : enrichir avec actifs vs total, nouveaux sur période, candidatures par statut, entreprises, contacts, relances, entretiens, appels, événements et états vides par source.
+**Statistics App data (20/05/2026)** : page reprise avec **totaux**, nouveaux sur période, distributions métier, appels/relances/événements et états vides par source. Suite : persister un vrai historique métier au lieu d’un snapshot courant enrichi, et compléter les segments contacts/entreprises si les services exposent plus de détails.
+
+**Analytics application & utilisateurs (20/05/2026)** : à reprendre après Statistics. Clarifier deux axes : analytics **application/mobile** (activité, traces, retours, signalements, parcours) et analytics **utilisateurs admin** (comptes, activité, cohortes, rôles, rétention). Ne pas confondre avec performances live infra.
+
+**Contrôles période sticky (20/05/2026)** : sur Performances/Statistics/Analytics, les barres de période doivent rester visibles en haut lors du scroll profond dans les graphes (dropdown, plage actuelle, précédent/suivant/actuelle), avec comportement cohérent clair/sombre.
 
 **UX backoffice / mode clair (20/05/2026)** : malgré la migration structure frontend / moteur UI, le mode clair reste à valider page par page (contrastes fonds/textes/cartes/tableaux/tooltips). Correctif global amorcé : surfaces/cartes/champs du contenu backoffice renforcés (bordures, ombres, textes secondaires), puis teintes de cartes/badges colorés renforcées par famille. Suivi court dans `TODOS.md` § moteur personnalisation / apparence, validation porteur dans `A_VALIDER_VERIFIER.md`.
 

@@ -250,6 +250,9 @@ export default function StatisticsSecurityPage() {
                         · {String(pSummary.period ?? "")}
                       </span>
                     </p>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      Source : {String(pSummary.source ?? "security_metrics")}
+                    </p>
                   </div>
                 </DashboardLayoutRegion>
               ) : (
@@ -380,7 +383,11 @@ export default function StatisticsSecurityPage() {
               </h2>
               {metrics.length === 0 ? (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Aucune série sur la période.
+                  Aucune série sur la période. La table brute{" "}
+                  <code className="text-xs">security_metrics</code> est
+                  utilisée en fallback si la table agrégée est vide ; attendre
+                  le collecteur sécurité ou relancer la stack doit alimenter ce
+                  bloc sans inventer de faux incidents.
                 </p>
               ) : (
                 <ul className="max-h-56 space-y-1 overflow-auto font-mono text-[10px] text-gray-700 dark:text-gray-300">
