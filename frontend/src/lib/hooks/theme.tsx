@@ -9,6 +9,14 @@ import { clearLegacyUiDomOverrides } from "@/lib/ui/preferences/dom";
 
 export type Theme = "light" | "dark" | "system";
 
+const THEME_STORAGE_KEY = "theme";
+const UI_PREFERENCES_STORAGE_KEY = "jobbingtrack-ui-preferences-v1";
+const LEGACY_CUSTOMIZATION_KEY = "customization-settings";
+
+function themeToCustomizationTheme(theme: Theme): "light" | "dark" | "auto" {
+  return theme === "system" ? "auto" : theme;
+}
+
 export function getSystemTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -18,13 +26,50 @@ export function getSystemTheme(): "light" | "dark" {
 
 export function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "dark";
-  const stored = localStorage.getItem("theme");
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
   return (stored as Theme) || "dark";
 }
 
 export function setStoredTheme(theme: Theme) {
   if (typeof window === "undefined") return;
-  localStorage.setItem("theme", theme);
+  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  const customizationTheme = themeToCustomizationTheme(theme);
+
+  // Le moteur UI persiste aussi le thème. Le garder synchronisé évite qu'il
+  // réapplique `auto` au refresh et écrase le bouton clair/sombre.
+  try {
+    const rawPrefs = localStorage.getItem(UI_PREFERENCES_STORAGE_KEY);
+    if (rawPrefs) {
+      const prefs = JSON.parse(rawPrefs);
+      localStorage.setItem(
+        UI_PREFERENCES_STORAGE_KEY,
+        JSON.stringify({
+          ...prefs,
+          theme,
+          customization: {
+            ...(prefs.customization || {}),
+            theme: customizationTheme,
+          },
+        }),
+      );
+    }
+  } catch {
+    // Ignore les préférences corrompues : le provider les régénère au chargement.
+  }
+
+  try {
+    const rawLegacy = localStorage.getItem(LEGACY_CUSTOMIZATION_KEY);
+    const legacy = rawLegacy ? JSON.parse(rawLegacy) : {};
+    localStorage.setItem(
+      LEGACY_CUSTOMIZATION_KEY,
+      JSON.stringify({ ...legacy, theme: customizationTheme }),
+    );
+  } catch {
+    localStorage.setItem(
+      LEGACY_CUSTOMIZATION_KEY,
+      JSON.stringify({ theme: customizationTheme }),
+    );
+  }
 }
 
 export function applyTheme(theme: Theme) {
@@ -77,6 +122,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Charger le thème initial
   useEffect(() => {
     const storedTheme = getStoredTheme();
+    setStoredTheme(storedTheme);
     setTheme(storedTheme);
     setSystemTheme(getSystemTheme());
 

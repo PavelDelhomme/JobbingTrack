@@ -60,6 +60,7 @@ Pour chaque ligne :
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
 |------------|-----------------|---------------|----------------|----------------|
 | Mode clair backoffice lisible | Pages clés (`/b4ck0ff1ce`, Statistics, Analytics, Services, Security, formulaires) lisibles en clair : contraste texte/fond, cartes, tableaux, badges, tooltips | local/preprod | [ ] | Constat porteur 20/05 : mode clair encore trop illisible par endroits malgré la migration structure frontend ; à corriger avant validation produit. |
+| Mode sombre persistant après refresh | Choisir le mode sombre, rafraîchir `/login` puis `/b4ck0ff1ce` : page et bouton restent en sombre | local | [ ] | Correctif technique 20/05 : synchronisation `theme` + préférences UI v1 + legacy. À valider navigateur après rebuild frontend. |
 
 ## Monitoring et performance
 
