@@ -175,7 +175,10 @@ export class AnalyticsService {
 
       return normalizeMetricRows(response.data.data || []);
     } catch (error) {
-      logAxiosError(`Erreur récupération historique ${containerName}:`, error);
+      logOptionalMetricsWarning(
+        `Historique conteneur ${containerName} indisponible:`,
+        error,
+      );
       return [];
     }
   }
@@ -258,7 +261,10 @@ export class AnalyticsService {
 
       return response.data.data || null;
     } catch (error) {
-      logAxiosError(`Erreur récupération disponibilité ${serviceName}:`, error);
+      logOptionalMetricsWarning(
+        `Disponibilité ${serviceName} indisponible:`,
+        error,
+      );
       return null;
     }
   }
@@ -407,16 +413,25 @@ export class AnalyticsService {
   /**
    * Récupérer les stats en temps réel d'un conteneur
    */
-  async getContainerStats(containerName: string, signal?: AbortSignal) {
+  async getContainerStats(
+    containerName: string,
+    signal?: AbortSignal,
+    options?: { timeoutMs?: number },
+  ) {
     try {
+      const timeout = options?.timeoutMs ?? 12_000;
       const response = await axios.get(
         `${getMetricsV1Base()}/persistence/containers/${persistenceContainerSegment(containerName)}/stats`,
-        { signal },
+        { timeout, signal, validateStatus: (s) => s < 500 },
       );
+      if (response.status !== 200) return null;
 
       return response.data.data || null;
     } catch (error) {
-      logAxiosError(`Erreur stats ${containerName}:`, error);
+      logOptionalMetricsWarning(
+        `Stats live conteneur ${containerName} indisponibles:`,
+        error,
+      );
       return null;
     }
   }
