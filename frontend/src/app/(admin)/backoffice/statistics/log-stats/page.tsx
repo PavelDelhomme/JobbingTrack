@@ -38,6 +38,8 @@ export default function StatisticsLogStatsPage() {
   const [logs, setLogs] = useState<AggLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filterLevel, setFilterLevel] = useState("");
+  const [filterService, setFilterService] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,20 +65,50 @@ export default function StatisticsLogStatsPage() {
     void load();
   }, [load]);
 
+  const levelOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of logs) {
+      set.add((row.level || "inconnu").toString());
+    }
+    return Array.from(set).sort();
+  }, [logs]);
+
+  const serviceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of logs) {
+      const s = (row.serviceName || "").toString().trim();
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort();
+  }, [logs]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((row) => {
+      if (filterLevel) {
+        const lv = (row.level || "inconnu").toString();
+        if (lv !== filterLevel) return false;
+      }
+      if (filterService) {
+        if ((row.serviceName || "").toString() !== filterService) return false;
+      }
+      return true;
+    });
+  }, [logs, filterLevel, filterService]);
+
   const byLevel = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const row of logs) {
+    for (const row of filteredLogs) {
       const lv = (row.level || "inconnu").toString();
       m[lv] = (m[lv] || 0) + 1;
     }
     return Object.entries(m)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-  }, [logs]);
+  }, [filteredLogs]);
 
   const byService = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const row of logs) {
+    for (const row of filteredLogs) {
       const s = (row.serviceName || "—").toString();
       m[s] = (m[s] || 0) + 1;
     }
@@ -87,7 +119,7 @@ export default function StatisticsLogStatsPage() {
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 12);
-  }, [logs]);
+  }, [filteredLogs]);
 
   const counts = stats?.counts as Record<string, number> | undefined;
 
@@ -120,6 +152,51 @@ export default function StatisticsLogStatsPage() {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
+            <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                Niveau
+                <select
+                  value={filterLevel}
+                  onChange={(e) => setFilterLevel(e.target.value)}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="">Tous</option>
+                  {levelOptions.map((lv) => (
+                    <option key={lv} value={lv}>
+                      {lv}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                Service
+                <select
+                  value={filterService}
+                  onChange={(e) => setFilterService(e.target.value)}
+                  className="min-w-[12rem] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="">Tous</option>
+                  {serviceOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {(filterLevel || filterService) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterLevel("");
+                    setFilterService("");
+                  }}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  Réinitialiser filtres
+                </button>
+              )}
+            </div>
+
             {counts && (
               <DashboardLayoutRegion variant="dense" className="gap-3">
                 {Object.entries(counts).map(([k, v]) => (
@@ -211,8 +288,9 @@ export default function StatisticsLogStatsPage() {
               </div>
             ) : null}
 
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {logs.length} lignes chargées sur la fenêtre demandée.
+            <p className={`text-xs ${uiText.subtle}`}>
+              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre 14
+              jours, max 800).
             </p>
 
             <div className="flex flex-wrap gap-2">

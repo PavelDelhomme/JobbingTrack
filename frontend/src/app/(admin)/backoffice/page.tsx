@@ -39,6 +39,11 @@ import {
 import axios from "axios";
 import { useTracking } from "@/components/tracking/TrackingProvider";
 import { DashboardLayoutRegion } from "@/lib/ui";
+import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
+import {
+  summarizeDockerServiceHealth,
+  type DockerServiceRow,
+} from "@/lib/metrics/serviceHealthOverview";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -165,6 +170,9 @@ export default function BackofficePage() {
   const [containerMetrics, setContainerMetrics] = useState<any>(null);
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false);
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([]);
+  const [dockerServicesSnapshot, setDockerServicesSnapshot] = useState<
+    DockerServiceRow[]
+  >([]);
   const [maintenances, setMaintenances] = useState<{ [key: string]: any }>({});
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false);
   const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000); // Valeur par défaut, sera remplacée par les préférences
@@ -330,6 +338,11 @@ export default function BackofficePage() {
   // ✅ Valeurs attendues (pour afficher X/Y)
   // Par défaut, on se base sur la liste des services affichés (source de vérité UI).
   const expectedServicesCount = services.length;
+
+  const serviceHealthSummary = useMemo(
+    () => summarizeDockerServiceHealth(dockerServicesSnapshot),
+    [dockerServicesSnapshot],
+  );
   // Le nombre de conteneurs JobbingTrack attendus dépend du profil docker-compose.
   // On conserve une valeur par défaut (22) mais permet override via env.
   const expectedJobbingtrackContainers =
@@ -956,6 +969,7 @@ export default function BackofficePage() {
             try {
               const servicesData = await centralMetricsService.getAllServices();
               if (servicesData && servicesData.length > 0 && mounted) {
+                setDockerServicesSnapshot(servicesData as DockerServiceRow[]);
                 const updatedServices = services.map((service) => {
                   const serviceData = servicesData.find(
                     (s: any) => s.name === service.name || s.id === service.id,
@@ -979,6 +993,7 @@ export default function BackofficePage() {
 
         const servicesData = await centralMetricsService.getAllServices();
         if (servicesData && servicesData.length > 0 && mounted) {
+          setDockerServicesSnapshot(servicesData as DockerServiceRow[]);
           // ✅ FUSIONNER avec les valeurs précédentes au lieu d'écraser
           setServicesWithMetrics((prevServices: any[]) => {
             // ✅ CORRECTION : S'assurer que prevServices est un tableau
@@ -1329,30 +1344,19 @@ export default function BackofficePage() {
                 <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">
                   ⚡ metrics-aggregator
                 </span>
-                {/* ✅ Afficher X/Y services et X/Y conteneurs */}
-                {(() => {
-                  const svcList = Array.isArray(servicesWithMetrics)
-                    ? servicesWithMetrics
-                    : [];
-                  const healthyServices = svcList.filter(
-                    (s) =>
-                      s.health?.status === "healthy" || s.status === "running",
-                  ).length;
-                  const totalServices = expectedServicesCount;
-                  const containersCount = Number(
-                    systemMetrics?.jobbingtrack?.containers?.count || 0,
-                  );
-                  const containersLabel =
-                    containersCount > 0
-                      ? `${containersCount}/${expectedJobbingtrackContainers} conteneurs`
-                      : `—/${expectedJobbingtrackContainers} conteneurs`;
-                  return (
-                    <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
-                      {healthyServices}/{totalServices} services •{" "}
-                      {containersLabel}
-                    </span>
-                  );
-                })()}
+                <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
+                  {serviceHealthSummary.healthy} sains ·{" "}
+                  {serviceHealthSummary.degraded} dégradés ·{" "}
+                  {serviceHealthSummary.totalRunning} en cours
+                  {serviceHealthSummary.stopped > 0
+                    ? ` · ${serviceHealthSummary.stopped} arrêtés`
+                    : ""}{" "}
+                  ·{" "}
+                  {Number(systemMetrics?.jobbingtrack?.containers?.count || 0) >
+                  0
+                    ? `${systemMetrics.jobbingtrack.containers.count}/${expectedJobbingtrackContainers} conteneurs JT`
+                    : `—/${expectedJobbingtrackContainers} conteneurs JT`}
+                </span>
               </h2>
               <div className="flex items-center gap-2">
                 <div
@@ -1380,6 +1384,25 @@ export default function BackofficePage() {
                       : "Déconnecté"}
                 </span>
               </div>
+            </div>
+
+            <ServiceHealthKpiCards
+              dockerServices={dockerServicesSnapshot}
+              className="mb-4"
+            />
+            <div className="mb-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/b4ck0ff1ce/statistics"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Statistiques & monitoring →
+              </Link>
+              <Link
+                href="/b4ck0ff1ce/services"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Détail services →
+              </Link>
             </div>
 
             <DashboardLayoutRegion variant="dense">
@@ -1739,35 +1762,17 @@ export default function BackofficePage() {
                     Services
                   </div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {(() => {
-                      const svcList = Array.isArray(servicesWithMetrics)
-                        ? servicesWithMetrics
-                        : [];
-                      const healthyServices = svcList.filter(
-                        (s) =>
-                          s.health?.status === "healthy" ||
-                          s.status === "running",
-                      ).length;
-                      return `${healthyServices}/${expectedServicesCount}`;
-                    })()}
+                    {serviceHealthSummary.healthy}/
+                    {serviceHealthSummary.totalRunning}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {(() => {
-                      const svcList = Array.isArray(servicesWithMetrics)
-                        ? servicesWithMetrics
-                        : [];
-                      const healthyServices = svcList.filter(
-                        (s) =>
-                          s.health?.status === "healthy" ||
-                          s.status === "running",
-                      ).length;
-                      const isOk = healthyServices >= expectedServicesCount;
-                      return loadingSystemMetrics
-                        ? "..."
-                        : isOk
-                          ? "🟢 OK"
-                          : `🟡 ${expectedServicesCount - healthyServices} KO`;
-                    })()}
+                    {loadingSystemMetrics
+                      ? "..."
+                      : serviceHealthSummary.degraded > 0
+                        ? `🟡 ${serviceHealthSummary.degraded} dégradé(s)`
+                        : serviceHealthSummary.totalRunning > 0
+                          ? "🟢 Conteneurs en cours"
+                          : "—"}
                   </div>
                 </div>
               </div>
