@@ -613,7 +613,7 @@ export default function ThreatDetailsPage() {
                   </p>
                 )}
                 {Array.isArray(attacker.ll) && attacker.ll.length === 2 && (
-                  <p className="mt-1 text-xs text-gray-500 font-mono">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
                     {attacker.ll[0]}, {attacker.ll[1]}
                   </p>
                 )}
@@ -780,8 +780,8 @@ export default function ThreatDetailsPage() {
                   <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{event.eventType}</span>
-                    <span className="text-gray-500">{event.level}</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-500 dark:text-gray-400">{event.level}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
                       {formatLocalDateTime(event.timestamp)}
                     </span>
                     {event.isBlocked && (
@@ -791,7 +791,7 @@ export default function ThreatDetailsPage() {
                   <p className="mt-1 text-gray-700 dark:text-gray-300">
                     {event.message}
                   </p>
-                  <p className="mt-1 font-mono text-xs text-gray-500">
+                  <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
                     {event.method || "—"}{" "}
                     {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
                     {event.statusCode ?? "—"} ·{" "}

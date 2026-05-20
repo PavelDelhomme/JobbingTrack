@@ -37,10 +37,10 @@
 ## Plan d’implémentation (ordre)
 
 1. **Schéma + migrations** — `UserUiPreferencesV1`, migrer `customization-settings` / `theme`.
-2. **`UiPreferencesProvider`** — **amorcé** : purge DOM legacy au boot (`clearLegacyUiDomOverrides`) ; load/save API et contexte à suivre.
-3. **Refonte page Paramètres** — éditeur du schéma unique ; reset fiable.
+2. **`UiPreferencesProvider`** — **en place** : `UiPreferencesContext` (load local v1 + legacy + API, `saveCustomization`, `resetAll`, `applyCustomizationToDom`) ; `useCustomization` = pont legacy.
+3. **Page Paramètres** — `SectionLoader` dark ; reset/save via contexte ; merge `notifications.duration` sécurisé.
 4. **Suppression progressive** — `statistics-customization`, `analytics-customization` → préférences scopées dans le schéma (`panels.statistics`, etc.).
-5. **Layouts registry** — premier cas : disposition dashboard backoffice.
+5. **Layouts registry** — **amorcé** : `frontend/src/lib/ui/layouts/registry.ts` + `useDashboardLayout()` ; branchement rendu kanban/list à faire page par page.
 6. **Doc composants** — quand utiliser `@/components/ui` vs `@/lib/ui`.
 
 ## Hors scope immédiat (branches suivantes)
