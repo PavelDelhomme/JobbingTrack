@@ -26,6 +26,23 @@ function unwrapStats(result, key = 'stats') {
   return result.value.data[key] || result.value.data.data || result.value.data;
 }
 
+function bucketLabel(value, fallback = 'Non renseigné') {
+  const s = String(value ?? '').trim();
+  if (!s || s.toLowerCase() === 'undefined' || s.toLowerCase() === 'null') {
+    return fallback;
+  }
+  return s;
+}
+
+function groupByField(rows, field, fallback = 'Non renseigné') {
+  if (!Array.isArray(rows)) return {};
+  return rows.reduce((acc, row) => {
+    const key = bucketLabel(row?.[field], fallback);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}
+
 /**
  * Récupérer les statistiques agrégées de tous les services
  */
@@ -101,10 +118,7 @@ const getAggregatedStatistics = async (req, res) => {
       const d = usersStats.value.data;
       users.total = getTotal(d, 'users');
       const userData = d.users || [];
-      users.byRole = userData.reduce((acc, user) => {
-        acc[user.role] = (acc[user.role] || 0) + 1;
-        return acc;
-      }, {});
+      users.byRole = groupByField(userData, 'role', 'Rôle non renseigné');
       users.newThisMonth = userData.filter(u => new Date(u.createdAt) >= thisMonth).length;
       users.newThisWeek = countSince(userData, 'createdAt', thisWeek);
       users.activeUsers = users.total;
@@ -130,12 +144,9 @@ const getAggregatedStatistics = async (req, res) => {
       const d = applicationsStats.value.data;
       applications.total = getTotal(d, 'applications');
       const appData = d.applications || [];
-      applications.byStatus = appData.reduce((acc, app) => {
-        acc[app.status] = (acc[app.status] || 0) + 1;
-        return acc;
-      }, {});
+      applications.byStatus = groupByField(appData, 'status', 'Statut non renseigné');
       applications.byType = appData.reduce((acc, app) => {
-        const type = app.jobType || 'FULL_TIME';
+        const type = bucketLabel(app.jobType, 'Type non renseigné');
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {});
@@ -149,16 +160,8 @@ const getAggregatedStatistics = async (req, res) => {
       const d = companiesStats.value.data;
       companies.total = getTotal(d, 'companies');
       const companyData = d.companies || [];
-      companies.byIndustry = companyData.reduce((acc, company) => {
-        const industry = company.industry || 'Non spécifié';
-        acc[industry] = (acc[industry] || 0) + 1;
-        return acc;
-      }, {});
-      companies.bySize = companyData.reduce((acc, company) => {
-        const size = company.size || 'Non spécifié';
-        acc[size] = (acc[size] || 0) + 1;
-        return acc;
-      }, {});
+      companies.byIndustry = groupByField(companyData, 'industry', 'Secteur non renseigné');
+      companies.bySize = groupByField(companyData, 'size', 'Taille non renseignée');
       companies.thisMonth = countSince(companyData, 'createdAt', thisMonth);
       companies.thisWeek = countSince(companyData, 'createdAt', thisWeek);
     }
@@ -184,10 +187,7 @@ const getAggregatedStatistics = async (req, res) => {
       const d = interviewsStats.value.data;
       interviews.total = d.pagination?.total != null ? Number(d.pagination.total) : (Array.isArray(d.interviews) ? d.interviews.length : 0);
       const interviewData = d.interviews || [];
-      interviews.byStatus = interviewData.reduce((acc, interview) => {
-        acc[interview.status] = (acc[interview.status] || 0) + 1;
-        return acc;
-      }, {});
+      interviews.byStatus = groupByField(interviewData, 'status', 'Statut non renseigné');
       interviews.upcoming = interviewData.filter(i => 
         new Date(i.scheduledAt) > now && i.status === 'SCHEDULED'
       ).length;

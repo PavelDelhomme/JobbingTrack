@@ -37,6 +37,14 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Annulé",
   PLANNED: "Planifiée",
   OVERDUE: "En retard",
+  undefined: "Non renseigné",
+  null: "Non renseigné",
+  "": "Non renseigné",
+  "Statut non renseigné": "Statut non renseigné",
+  "Type non renseigné": "Type non renseigné",
+  "Secteur non renseigné": "Secteur non renseigné",
+  "Taille non renseignée": "Taille non renseignée",
+  "Rôle non renseigné": "Rôle non renseigné",
 };
 
 export default function StatisticsAppDataPage() {
@@ -221,21 +229,43 @@ export default function StatisticsAppDataPage() {
               <DistributionPanel
                 title="Candidatures par statut"
                 rows={stats.applications?.by_status}
+                fallbackTotal={stats.applications?.total}
                 empty="Aucun statut candidature exposé par application-service."
+              />
+              <DistributionPanel
+                title="Candidatures par type"
+                rows={stats.applications?.by_type}
+                fallbackTotal={stats.applications?.total}
+                empty="Aucun type de candidature exposé par application-service."
               />
               <DistributionPanel
                 title="Utilisateurs par rôle"
                 rows={stats.users?.by_role}
+                fallbackTotal={stats.users?.total}
                 empty="Aucun rôle utilisateur exposé par auth-service."
+              />
+              <DistributionPanel
+                title="Entreprises par secteur"
+                rows={stats.companies?.by_industry}
+                fallbackTotal={stats.companies?.total}
+                empty="Aucun secteur entreprise exposé par company-service."
               />
               <DistributionPanel
                 title="Entretiens par statut"
                 rows={stats.interviews?.by_status}
+                fallbackTotal={stats.interviews?.total}
                 empty="Aucun statut entretien exposé par interview-service."
+              />
+              <DistributionPanel
+                title="Appels par statut"
+                rows={stats.calls?.by_status}
+                fallbackTotal={stats.calls?.total}
+                empty="Aucun statut appel exposé par call-service."
               />
               <DistributionPanel
                 title="Relances par statut"
                 rows={stats.followups?.by_status}
+                fallbackTotal={stats.followups?.total}
                 empty="Aucun statut relance exposé par followup-service."
               />
             </DashboardLayoutRegion>
@@ -385,21 +415,32 @@ function StatCard({
 function DistributionPanel({
   title,
   rows,
+  fallbackTotal,
   empty,
 }: {
   title: string;
   rows?: Record<string, number>;
+  fallbackTotal?: number;
   empty: string;
 }) {
-  const entries = Object.entries(rows || {}).filter(([, value]) => value > 0);
+  const entries = Object.entries(rows || {})
+    .map(([key, value]) => [
+      key && key !== "undefined" && key !== "null" ? key : "Non renseigné",
+      value,
+    ] as const)
+    .filter(([, value]) => value > 0);
+  const displayEntries =
+    entries.length === 0 && fallbackTotal && fallbackTotal > 0
+      ? ([["Non renseigné", fallbackTotal]] as const)
+      : entries;
   return (
     <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
         {title}
       </h2>
-      {entries.length > 0 ? (
+      {displayEntries.length > 0 ? (
         <div className="mt-3 space-y-2">
-          {entries.map(([key, value]) => (
+          {displayEntries.map(([key, value]) => (
             <div key={key} className="flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700 dark:text-gray-300">
                 {statusLabels[key] || key}
