@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { StatisticsSubNav } from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
+import { SectionLoader } from "@/lib/ui";
 
 function num(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -195,7 +196,7 @@ export default function StatisticsSecurityPage() {
         </p>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <SectionLoader message="Chargement des métriques sécurité…" />
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
