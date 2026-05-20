@@ -3,6 +3,11 @@
  * @see docs/frontend/UI_MOTOR.md
  */
 
+import {
+  defaultCustomizationSettings,
+  type CustomizationSettings,
+} from "./customization";
+
 export const UI_PREFERENCES_VERSION = 1 as const;
 
 export type UiThemePreference = "light" | "dark" | "system";
@@ -19,6 +24,8 @@ export interface UserUiPreferencesV1 {
     largeText: boolean;
     reduceMotion: boolean;
   };
+  /** Paramètres complets page Paramètres (forme legacy unifiée). */
+  customization: CustomizationSettings;
 }
 
 export const defaultUiPreferencesV1: UserUiPreferencesV1 = {
@@ -31,4 +38,5 @@ export const defaultUiPreferencesV1: UserUiPreferencesV1 = {
     largeText: false,
     reduceMotion: false,
   },
+  customization: defaultCustomizationSettings,
 };

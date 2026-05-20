@@ -17,3 +17,9 @@ export const uiText = {
   body: "text-gray-900 dark:text-gray-100",
   link: "text-red-600 dark:text-red-400 hover:underline font-medium",
 } as const;
+
+/** États vides / listes sans données (dark-ready). */
+export const uiEmpty = {
+  centerPy8: "text-center py-8 text-gray-500 dark:text-gray-400",
+  centerPy4: "text-center py-4 text-gray-500 dark:text-gray-400",
+} as const;

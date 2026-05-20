@@ -25,12 +25,12 @@
 
 > **Constat porteur (19/05)** : la page **Paramètres** et l’apparence globale reposent sur un empilement ad hoc (`useCustomization` + variables CSS sur `:root` + `localStorage` + API `/users/customization` optionnelle), **sans** moteur de thème/layout unifié. La page **Statistics** a en plus sa propre clé `statistics-customization` (doublon). Résultat : reset fragile, couleurs incohérentes, options « disposition » peu fiables.
 
-- [ ] **Spécifier un moteur UI** (lot **F-personalisation** ou sous-lot **PLAN.md` F4**) : contrat unique `UserUiPreferences` (thème clair/sombre/auto, densité, sidebar, couleurs sémantiques Tailwind/shadcn, pas de palette `--primary-50…900` générée à la volée sur `:root`).
-- [ ] **Couche d’application** : provider React unique (`UiPreferencesProvider`) qui applique les tokens via `data-theme` / classes `dark` / variables limitées (`--jt-primary`, `--jt-accent`) ; **aucun** `setState` pendant le render.
-- [ ] **Persistance** : API utilisateur versionnée + migration localStorage ; reset = défauts produit + purge DOM.
+- [x] **Spécifier un moteur UI** (branche `feat/ui-motor`) : `docs/frontend/UI_MOTOR.md`, `UserUiPreferencesV1` + `CustomizationSettings` dans `frontend/src/lib/ui/preferences/`.
+- [x] **Couche d’application** (partiel) : `UiPreferencesProvider` + `useUiPreferences` / `useCustomization` ; `applyCustomizationToDom` (thème `ThemeProvider`, variables `--primary-*`, a11y). Reste : tokens `--jt-*` uniquement, pas de palette 50–900 générée.
+- [x] **Persistance** (partiel) : localStorage v1 + clé legacy + API `/api/v1/users/customization` ; reset purge DOM. Reste : migration serveur stricte + layouts registre.
 - [ ] **Layouts backoffice** : registre de layouts par zone (dashboard grid, statistics panels) — pas un booléen `dashboardLayout: grid|list|kanban` sans rendu.
 - [ ] **Fusion** : retirer `statistics-customization` au profit du contrat global ; page Paramètres = éditeur du même schéma.
-- [ ] **Tests** : merge defaults, reset, application CSS, round-trip API mock.
+- [x] **Tests** (partiel) : `preferences/__tests__/customization.test.ts` (merge, `customizationToV1`). Reste : reset DOM, round-trip API mock.
 
 **Correctifs courts déjà faits (19/05)** : crash `duration`, reset opérationnel, couleurs hex validées — **ne remplace pas** le moteur ci-dessus.
 

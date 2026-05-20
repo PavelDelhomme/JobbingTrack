@@ -503,7 +503,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune connexion par conteneur détectée
             </p>
           )}
@@ -571,7 +571,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucun port destination détecté
             </p>
           )}
@@ -600,7 +600,7 @@ export default function NetworkStatsPage() {
               )}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune connexion par état détectée
             </p>
           )}
@@ -672,7 +672,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune IP source détectée
             </p>
           )}

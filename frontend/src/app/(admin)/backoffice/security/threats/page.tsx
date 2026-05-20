@@ -620,7 +620,7 @@ export default function ThreatsPage() {
                                     Bloqué (BDD)
                                   </span>
                                 ) : (
-                                  <span className="text-gray-500">
+                                  <span className="text-gray-500 dark:text-gray-400">
                                     Non bloqué
                                   </span>
                                 )}

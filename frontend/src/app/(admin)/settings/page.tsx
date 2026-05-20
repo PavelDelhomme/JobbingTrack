@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
 import { Separator } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { SectionLoader } from "@/lib/ui";
 
 const settingsSelectClass = cn(
   "flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400",
@@ -82,10 +83,10 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">{t("settings.loading")}</span>
-      </div>
+      <SectionLoader
+        message={t("settings.loading")}
+        className="min-h-96"
+      />
     );
   }
 

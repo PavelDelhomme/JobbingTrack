@@ -445,7 +445,7 @@ export default function FirewallPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Nom de la règle *
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (ex: "Bloquer port 9999")
                     </span>
                   </label>
@@ -462,7 +462,7 @@ export default function FirewallPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Protocole *
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (TCP, UDP, ou ICMP)
                     </span>
                   </label>
@@ -485,7 +485,7 @@ export default function FirewallPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Description
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (optionnel)
                     </span>
                   </label>
@@ -502,7 +502,7 @@ export default function FirewallPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Action *
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (comportement de la règle)
                     </span>
                   </label>
@@ -523,7 +523,7 @@ export default function FirewallPage() {
                       ALLOW - Autoriser explicitement
                     </option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     DENY: Le paquet est supprimé sans réponse. REJECT: Le paquet
                     est rejeté avec un message ICMP.
                   </p>
@@ -531,7 +531,7 @@ export default function FirewallPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     IP Source
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (optionnel - CIDR accepté)
                     </span>
                   </label>
@@ -544,14 +544,14 @@ export default function FirewallPage() {
                     placeholder="192.168.1.100 ou 10.0.0.0/8"
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Laissez vide pour appliquer à toutes les IPs sources
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Port Destination
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (optionnel - 1-65535)
                     </span>
                   </label>
@@ -566,14 +566,14 @@ export default function FirewallPage() {
                     placeholder="80, 443, 8080, 9999..."
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Laissez vide pour appliquer à tous les ports
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Priorité
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       (1-1000, plus bas = priorité plus haute)
                     </span>
                   </label>
@@ -590,7 +590,7 @@ export default function FirewallPage() {
                     }
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Défaut: 100. Les règles avec priorité plus basse sont
                     évaluées en premier.
                   </p>
@@ -757,7 +757,7 @@ export default function FirewallPage() {
           {loading ? (
             <TableSkeleton rows={8} columns={6} />
           ) : rules.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Aucune règle de firewall
             </div>
           ) : (
@@ -937,7 +937,7 @@ export default function FirewallPage() {
           )}
 
           {blockedIps.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               Aucune IP bloquée
             </div>
           ) : (
@@ -1286,7 +1286,7 @@ function WAFConfigSection() {
                 </div>
               </div>
               {wafConfig.length === 0 ? (
-                <p className="text-gray-500">Aucune règle WAF configurée</p>
+                <p className="text-gray-500 dark:text-gray-400">Aucune règle WAF configurée</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
