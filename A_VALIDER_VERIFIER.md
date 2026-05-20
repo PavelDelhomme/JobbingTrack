@@ -55,6 +55,12 @@ Pour chaque ligne :
 | Artefacts P0 recuperes ou regeneres | Dossiers dates `reports/security/*` et `tests/results/security/*` presents avec `summary.md`/`summary.json` | local/preprod/GitHub | [ ] | |
 | Findings `critical/high` tries | Faux positifs justifies, vrais risques convertis en taches | preprod | [ ] | |
 
+## UX backoffice et accessibilite visuelle
+
+| A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
+|------------|-----------------|---------------|----------------|----------------|
+| Mode clair backoffice lisible | Pages clés (`/b4ck0ff1ce`, Statistics, Analytics, Services, Security, formulaires) lisibles en clair : contraste texte/fond, cartes, tableaux, badges, tooltips | local/preprod | [ ] | Constat porteur 20/05 : mode clair encore trop illisible par endroits malgré la migration structure frontend ; à corriger avant validation produit. |
+
 ## Monitoring et performance
 
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
@@ -63,6 +69,7 @@ Pour chaque ligne :
 | `log-collector-rs` actif par defaut | Logs Docker lus et `log_collector_logs` alimentee | local/preprod | [ ] | |
 | Central logging vers `aggregated_logs` | Smoke runtime `scripts/ops/smoke-central-logging-runtime.cjs` OK 15/15 + lignes par `serviceName` | local | [x] | Validé techniquement 20/05 : `aggregated_logs` reçoit une ligne smoke par service centralisé. Reste validation UI porteur sur corrélation/log-stats. |
 | Statistics log-stats persistance | `/api/v1/persistence/stats` affiche des compteurs non nuls pour logs/métriques réellement alimentés | local | [x] | Validé techniquement 20/05 : `containerLogs`, `containerMetrics`, `logCollectorLogs`, `aggregatedLogs`, disponibilité, sécurité, `system_events` et `service_network_history` remontent. Reste validation visuelle porteur après login. |
+| Statistics graphes erreur / disponibilité | Onglet Sécurité ou Vue d’ensemble : courbes non vides sur 7j ; légende source `system_metrics` ; taux d’erreur dérivé acceptable si `error_rate` absent en BDD | local | [ ] | Smoke API 20/05 : `smoke-statistics-history-api.cjs` → 50 points, `availability_percent` OK ; fix proxy `getMetricsHistory`. À valider navigateur après login sur `/b4ck0ff1ce/statistics`. |
 | Benchmark long post-bascule Rust | 40-60 min p95 CPU/RAM/IO dans gate preprod | preprod | [ ] | |
 | Backoffice services affiche donnees coherentes | CPU, RAM, reseau, I/O, disponibilite, historique | local/preprod | [ ] | |
 | Corrélation perf/logs/securite utilisable | Incidents lies a logs avec ecart temporel comprehensible | preprod | [ ] | |

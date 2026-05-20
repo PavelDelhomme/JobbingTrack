@@ -18,6 +18,7 @@ import {
 import { normalizeMetricTimestampToIso } from "@/lib/utils/date";
 import { cacheManager } from "@/lib/cache/cacheManager";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { analyticsService } from "@/lib/api/analytics.service";
 
 class CentralMetricsService {
   private apiUrl: string;
@@ -1335,54 +1336,18 @@ class CentralMetricsService {
         ? new Date(options.endTime).toISOString()
         : undefined;
 
-      // Utiliser l'API du metrics-aggregator pour récupérer l'historique depuis PostgreSQL
-      // Le port externe est 5004, le port interne est 3004
-      const metricsAggregatorUrl =
-        process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL ||
-        process.env.NEXT_PUBLIC_METRICS_URL ||
-        (typeof window !== "undefined"
-          ? "http://localhost:5004"
-          : "http://metrics-aggregator:3004");
-
-      const params = new URLSearchParams();
-      params.append("limit", limit.toString());
-      if (startTime) params.append("startDate", startTime);
-      if (endTime) params.append("endDate", endTime);
-
-      const url = `${metricsAggregatorUrl}/api/v1/persistence/system/metrics?${params.toString()}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        },
-        signal: AbortSignal.timeout(20000),
+      // Même chemin que analytics : proxy Next `/api/metrics-aggregator` + X-API-Key serveur
+      const rows = await analyticsService.getSystemMetricsHistory({
+        limit,
+        startDate: startTime,
+        endDate: endTime,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        console.warn(
-          "[CENTRAL METRICS] ⚠️ Erreur récupération historique:",
-          response.status,
-          response.statusText,
-          errorText,
-        );
-        return [];
-      }
-
-      const data = await response.json();
-
-      if (!data.success || !Array.isArray(data.data)) {
-        console.warn("[CENTRAL METRICS] ⚠️ Format de réponse invalide:", data);
-        return [];
-      }
-
-      if (data.data.length === 0) return [];
+      if (!Array.isArray(rows) || rows.length === 0) return [];
 
       // Formater les données pour correspondre au format attendu par les graphiques
       // Le format Prisma SystemMetricsSnapshot utilise des noms de champs différents
-      return data.data.map((item: any) => {
+      return rows.map((item: any) => {
         // ✅ CORRECTION : Mapper depuis le format Prisma SystemMetricsSnapshot
         // Prisma utilise : cpuUsagePercent, memoryUsagePercent, networkRxBytes, etc.
         // On doit aussi vérifier le format depuis system_metrics (PostgreSQL direct) qui utilise : cpu_usage_percent, etc.

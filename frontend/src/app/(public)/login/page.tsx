@@ -10,7 +10,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [loginAttempts, setLoginAttempts] = useState(0);
   const currentYear = new Date().getFullYear();
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
@@ -19,7 +18,6 @@ export default function LoginPage() {
   // ✅ Si déjà connecté, rediriger automatiquement
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log("✅ Already logged in, redirecting to /b4ck0ff1ce...");
       // Forcer la redirection immédiatement
       router.push("/b4ck0ff1ce");
       router.refresh();
@@ -36,15 +34,10 @@ export default function LoginPage() {
 
     setLoading(true);
     setError("");
-    setLoginAttempts((prev) => prev + 1);
 
     try {
-      console.log("🔐 Tentative de connexion...", loginAttempts + 1);
-
       // ✅ UTILISER LA FONCTION login() du contexte d'authentification
       await login(email, password);
-
-      console.log("✅ Login successful, redirecting immediately...");
 
       // Attendre un court instant pour que le cookie soit bien défini
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -104,6 +97,7 @@ export default function LoginPage() {
           <form
             className="px-6 sm:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6"
             onSubmit={handleLogin}
+            autoComplete="on"
           >
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 sm:py-4 rounded-xl flex items-start gap-3 animate-shake">
@@ -144,10 +138,15 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-1">
-              <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="login-email"
+                className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2"
+              >
                 📧 Email
               </label>
               <input
+                id="login-email"
+                name="email"
                 type="email"
                 required
                 autoComplete="email"
@@ -159,11 +158,16 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="login-password"
+                className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2"
+              >
                 🔐 Mot de passe
               </label>
               <div className="relative">
                 <input
+                  id="login-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"

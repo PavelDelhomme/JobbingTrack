@@ -802,7 +802,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                     ${
                                       isActive || isSubItemActive
                                         ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active"
-                                        : "text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover"
+                                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-950 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1 nav-item-hover"
                                     }
                                   `}
                                   >
@@ -814,9 +814,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         e.stopPropagation();
                                         toggleSection(itemKey);
                                       }}
-                                      className={`ml-1 px-2 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-all ${
+                                      className={`ml-1 px-2 py-2 rounded text-gray-600 hover:text-gray-950 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 transition-all ${
                                         showItemSubItems
-                                          ? "text-white bg-gray-700"
+                                          ? "text-gray-950 bg-gray-100 dark:text-white dark:bg-gray-700"
                                           : ""
                                       }`}
                                       aria-label="Expander les sous-items"
@@ -841,7 +841,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           ${
                                             isSubActive
                                               ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50 border-l-2 border-blue-300 transform scale-[1.01]"
-                                              : "text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white hover:translate-x-1"
+                                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1"
                                           }
                                         `;
                                       return subItem.href ? (
@@ -903,7 +903,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
 
           {/* User info - Toujours en bas */}
-          <div className="border-t border-gray-800 dark:border-gray-900 bg-gray-900 dark:bg-gray-950 flex-shrink-0 p-4">
+          <div className="border-t border-gray-200 bg-white dark:border-gray-900 dark:bg-gray-950 flex-shrink-0 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
@@ -920,7 +920,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       router.push(`/b4ck0ff1ce/users/${user.id}`);
                     }
                   }}
-                  className="flex items-center hover:bg-gray-800 rounded-lg p-2 transition-colors cursor-pointer"
+                  className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 transition-colors cursor-pointer"
                   title="Voir le profil"
                 >
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
@@ -928,17 +928,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     {user?.lastName?.[0]}
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-xs text-gray-400">{user?.role}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {user?.role}
+                    </p>
                   </div>
                 </button>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={logout}
-                  className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-800"
+                  className="text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Déconnexion"
                 >
                   🚪
@@ -1221,7 +1223,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
           <main
-            className={`p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
+            className={`backoffice-content p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
           >
             {children}
           </main>

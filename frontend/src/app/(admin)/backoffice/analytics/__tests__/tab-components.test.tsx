@@ -11,21 +11,21 @@ describe("Analytics page.tsx — structure source", () => {
   it("existe et exporte une page client", () => {
     expect(existsSync(pagePath)).toBe(true);
     const src = readFileSync(pagePath, "utf8");
-    expect(src).toMatch(/'use client'/);
+    expect(src).toMatch(/["']use client["']/);
     expect(src).toMatch(/export default function AnalyticsPage/);
   });
 
   it("présente le hub métier (application + utilisateurs)", () => {
     const src = readFileSync(pagePath, "utf8");
     expect(src).toMatch(/Hub Analytics/);
-    expect(src).toMatch(/title:\s*'Application'/);
-    expect(src).toMatch(/title:\s*'Utilisateurs'/);
+    expect(src).toMatch(/title:\s*["']Application["']/);
+    expect(src).toMatch(/title:\s*["']Utilisateurs["']/);
   });
 
   it("redirige les métriques infra vers Performances", () => {
     const src = readFileSync(pagePath, "utf8");
-    expect(src).toMatch(/title:\s*'Performances \(infra\)'/);
-    expect(src).toMatch(/href:\s*'\/b4ck0ff1ce\/performances'/);
+    expect(src).toMatch(/title:\s*["']Performances \(infra\)["']/);
+    expect(src).toMatch(/href:\s*["']\/b4ck0ff1ce\/performances["']/);
     expect(src).toMatch(/métriques machine/i);
   });
 

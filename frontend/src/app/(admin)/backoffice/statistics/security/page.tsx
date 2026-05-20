@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
-import { StatisticsSubNav } from "../StatisticsSubNav";
+import {
+  StatisticsPageShell,
+  StatisticsRefreshButton,
+} from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
-import { SectionLoader } from "@/lib/ui";
+import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
 
 function num(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -155,46 +158,33 @@ export default function StatisticsSecurityPage() {
 
   return (
     <AdminLayout>
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
-        <StatisticsSubNav />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Statistiques — Sécurité (persistance)
-          </h1>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            Rafraîchir
-          </button>
-        </div>
-
-        <div className="rounded-lg border border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100">
-          <strong className="font-semibold">Rôle de cette page</strong> :
-          tendances et agrégats issus de la <strong>base persistée</strong> du
-          metrics-aggregator (fenêtre {hoursWindow} h). Les compteurs live,
-          menaces récentes et pilotage se trouvent sous{" "}
-          <Link
-            href="/b4ck0ff1ce/security"
-            className="font-medium underline hover:no-underline"
-          >
-            Sécurité
-          </Link>
-          — pas de doublon volontaire.
-        </div>
-
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Données :{" "}
-          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-            GET …/persistence/security/metrics
-          </code>{" "}
-          +{" "}
-          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-            …/persistence/security/summary
-          </code>
-        </p>
-
+      <StatisticsPageShell
+        title="Statistiques — Sécurité persistée"
+        description={
+          <>
+            Tendances et agrégats issus de la{" "}
+            <strong className="font-semibold">base persistée</strong> du
+            metrics-aggregator (fenêtre {hoursWindow} h). Les compteurs live,
+            menaces récentes et pilotage restent sous{" "}
+            <Link
+              href="/b4ck0ff1ce/security"
+              className="font-medium text-violet-700 underline hover:no-underline dark:text-violet-300"
+            >
+              Sécurité
+            </Link>
+            . Sources :{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              persistence/security/metrics
+            </code>{" "}
+            +{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              summary
+            </code>
+            .
+          </>
+        }
+        actions={<StatisticsRefreshButton onClick={() => void load()} />}
+      >
         {loading ? (
           <SectionLoader message="Chargement des métriques sécurité…" />
         ) : error ? (
@@ -207,17 +197,17 @@ export default function StatisticsSecurityPage() {
                 Synthèse sur la période (agrégateur)
               </h2>
               {pSummary ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                <DashboardLayoutRegion variant="dense" className="gap-4">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       Échecs connexion (cumul)
                     </p>
                     <p className="mt-1 text-2xl font-bold tabular-nums">
                       {num(pSummary.totalFailedLogins)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       Tentatives SQLi / XSS (cumul)
                     </p>
                     <p className="mt-1 text-lg font-bold tabular-nums">
@@ -225,8 +215,8 @@ export default function StatisticsSecurityPage() {
                       {num(pSummary.totalXssAttempts)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       Activités suspectes / alertes
                     </p>
                     <p className="mt-1 text-lg font-bold tabular-nums">
@@ -234,24 +224,24 @@ export default function StatisticsSecurityPage() {
                       {num(pSummary.totalSecurityAlerts)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       IP uniques bloquées (période)
                     </p>
                     <p className="mt-1 text-2xl font-bold tabular-nums">
                       {num(pSummary.uniqueBlockedIPs)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       Score sécurité moyen (snapshots)
                     </p>
                     <p className="mt-1 text-2xl font-bold tabular-nums">
                       {num(pSummary.avgSecurityScore).toFixed(1)}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                       Points de série / période
                     </p>
                     <p className="mt-1 text-2xl font-bold tabular-nums">
@@ -261,18 +251,20 @@ export default function StatisticsSecurityPage() {
                       </span>
                     </p>
                   </div>
-                </div>
+                </DashboardLayoutRegion>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <div
+                  className={`rounded-xl border border-dashed border-gray-300 p-5 dark:border-gray-700 ${uiEmpty.centerPy4}`}
+                >
                   Résumé persisté indisponible (table vide ou erreur
                   agrégateur).
-                </p>
+                </div>
               )}
             </div>
 
             {/* Tendance : score récent */}
             {fromMetrics.recentScores.length > 0 && (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   Score sécurité — derniers snapshots
                 </h2>
@@ -305,7 +297,7 @@ export default function StatisticsSecurityPage() {
 
             {/* Agrégation par jour */}
             {fromMetrics.byDay.length > 0 && (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   Agrégation par jour (séries persistées)
                 </h2>
@@ -382,12 +374,12 @@ export default function StatisticsSecurityPage() {
             )}
 
             {/* Audit compact */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                 Derniers enregistrements (extrait)
               </h2>
               {metrics.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Aucune série sur la période.
                 </p>
               ) : (
@@ -427,7 +419,7 @@ export default function StatisticsSecurityPage() {
             </div>
           </>
         )}
-      </div>
+      </StatisticsPageShell>
     </AdminLayout>
   );
 }

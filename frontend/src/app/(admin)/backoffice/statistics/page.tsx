@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, memo, Suspense, lazy } from "react";
 import { AdminLayout } from "@/components/features";
-import { StatisticsSubNav } from "./StatisticsSubNav";
+import { StatisticsPageShell } from "./StatisticsSubNav";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
@@ -751,45 +751,42 @@ export default function StatisticsPage() {
 
   return (
     <AdminLayout>
-      <div>
-        <StatisticsSubNav />
-        {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-              📊 Statistiques & Monitoring Global
-              {refreshing && (
-                <span className="text-sm font-normal text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Actualisation...
-                </span>
-              )}
-            </h1>
-            <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Analyse complète des performances, sécurité et monitoring en temps
-              réel
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+      <StatisticsPageShell
+        title="Statistiques & Monitoring global"
+        description={
+          <>
+            Vue d’ensemble des données métier, services, sécurité et séries
+            historiques. Les onglets spécialisés gardent le même gabarit visuel
+            et détaillent les sources persistées sans dupliquer Performances.
+            {refreshing && (
+              <span className="ml-2 inline-flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Actualisation…
+              </span>
+            )}
+          </>
+        }
+        actions={
+          <>
             <select
               value={customization.timeRange}
               onChange={(e) =>
@@ -805,16 +802,18 @@ export default function StatisticsPage() {
             </select>
             <button
               onClick={() => setShowCustomization(!showCustomization)}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+              aria-label="Afficher les options de personnalisation"
             >
               <Settings className="w-5 h-5" />
             </button>
-          </div>
-        </div>
+          </>
+        }
+      >
 
         {/* Panneau de personnalisation */}
         {showCustomization && (
-          <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+          <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Personnalisation
@@ -889,7 +888,7 @@ export default function StatisticsPage() {
         )}
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="border-b border-gray-300 dark:border-gray-700">
           <nav className="flex space-x-4 overflow-x-auto">
             {[
               { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
@@ -944,7 +943,7 @@ export default function StatisticsPage() {
             />
           )}
         </div>
-      </div>
+      </StatisticsPageShell>
     </AdminLayout>
   );
 }

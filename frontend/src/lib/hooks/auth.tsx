@@ -91,15 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log("🔄 Initializing authentication...");
-
         // Vérifier d'abord localStorage, puis cookies
         let storedToken = localStorage.getItem("token");
 
         // Si pas dans localStorage, vérifier les cookies
         if (!storedToken) {
-          console.log("🔍 No token found in localStorage, checking cookies...");
-
           const getCookieValue = (name: string): string | null => {
             try {
               const value = `; ${document.cookie}`;
@@ -119,9 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Si trouvé dans les cookies, synchroniser avec localStorage
           if (storedToken) {
-            console.log(
-              "🔑 Token trouvé dans les cookies, synchronisation avec localStorage...",
-            );
             try {
               localStorage.setItem("token", storedToken);
             } catch (error) {
@@ -133,8 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Si on a un token, on charge le profil
         if (storedToken) {
-          console.log("🔑 Token found, loading profile...");
-
           // Vérifier rapidement la validité du token avant de charger le profil
           if (
             !validateJwtToken(storedToken) &&
@@ -163,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           });
         } else {
-          console.log("ℹ️ No authentication token found");
           setLoading(false);
         }
       } catch (error) {
@@ -228,10 +218,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     while (retryCount < maxRetries) {
       try {
-        console.log(
-          `🔄 Loading profile (attempt ${retryCount + 1}/${maxRetries})`,
-        );
-
         // Vérifier si le token existe et n'est pas vide
         if (!authToken || authToken.trim() === "") {
           console.warn("Aucun token fourni pour le chargement du profil");
@@ -241,11 +227,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // En mode développement, accepter les tokens mock
         if (
-          process.env.NODE_ENV === "development" &&
-          authToken.startsWith("mock-jwt-token")
+          !(
+            process.env.NODE_ENV === "development" &&
+            authToken.startsWith("mock-jwt-token")
+          ) &&
+          !validateJwtToken(authToken)
         ) {
-          console.log("🔐 Mode développement: Token mock accepté");
-        } else if (!validateJwtToken(authToken)) {
           console.error("Token invalide détecté lors du chargement du profil");
           clearAuthData();
           return;
@@ -255,7 +242,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await authService.getProfile();
 
         if (response?.data?.user) {
-          console.log("✅ Profil utilisateur chargé avec succès");
           setUser(response.data.user);
           setLoading(false);
           return; // Succès, on sort de la boucle
@@ -297,7 +283,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Network errors - retry with exponential backoff
         if (isNetworkError(error) && retryCount < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
-          console.log(`⏳ Network error, retrying in ${delay}ms...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           retryCount++;
           continue;
@@ -343,8 +328,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     while (retryCount < maxRetries) {
       try {
-        console.log(`🔐 Login attempt (${retryCount + 1}/${maxRetries})...`);
-
         // Utiliser directement l'URL du service d'authentification
         const response = await authService.login(email, password);
 
@@ -364,7 +347,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error("Connection error: Invalid token");
           }
 
-          console.log("✅ Login successful, updating state...");
           setToken(newToken);
           setUser(newUser);
 
@@ -386,7 +368,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Vérifier que le cookie a bien été défini
             const cookieSet = document.cookie.includes("token=");
-            console.log("✅ Cookie défini:", cookieSet ? "Oui" : "Non");
             if (!cookieSet) {
               console.warn(
                 "⚠️ Le cookie n'a pas pu être défini, tentative avec une méthode alternative...",
@@ -396,7 +377,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          console.log("✅ Token enregistré, chargement du profil...");
           setLoading(false);
           return; // Succès
         } else {
@@ -452,7 +432,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Network errors - retry with exponential backoff
         if (retryCount < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-          console.log(`🔄 Retrying in ${delay}ms...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           retryCount++;
           continue;
@@ -469,8 +448,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (redirectToLogin = true) => {
-    console.log("🚪 Déconnexion en cours...");
-
     try {
       // Appel API de déconnexion si l'utilisateur est connecté
       if (token) {
@@ -516,11 +493,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      console.log("✅ Déconnexion réussie");
-
       // Rediriger si demandé (éviter les boucles de redirection)
       if (redirectToLogin && !window.location.pathname.startsWith("/login")) {
-        console.log("🔄 Redirection vers la page de connexion...");
         // Forcer un rechargement complet pour nettoyer l'état de l'application
         window.location.href = "/login";
       }

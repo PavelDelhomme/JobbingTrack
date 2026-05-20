@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Couleurs de base - Mode clair */
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -21,8 +21,8 @@
     --accent-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214.3 31.8% 86%;
+    --input: 214.3 31.8% 86%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
@@ -61,6 +61,11 @@
     transition:
       background-color 0.3s ease,
       color 0.3s ease;
+  }
+
+  html:not(.dark) body {
+    background-color: rgb(248 250 252);
+    color: rgb(17 24 39);
   }
 
   /* S'assurer que le background change correctement */
@@ -116,16 +121,116 @@
 
 /* Table styles for dark mode */
 @layer components {
+  .backoffice-content {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  html:not(.dark) .backoffice-content .text-gray-300 {
+    color: rgb(55 65 81);
+  }
+
+  html:not(.dark) .backoffice-content .text-gray-400 {
+    color: rgb(75 85 99);
+  }
+
+  html:not(.dark) .backoffice-content .text-gray-500 {
+    color: rgb(75 85 99);
+  }
+
+  html:not(.dark) .backoffice-content .border-gray-200 {
+    border-color: rgb(203 213 225);
+  }
+
+  html:not(.dark) .backoffice-content :where([class*="bg-white"][class*="border"]) {
+    border-color: rgb(203 213 225);
+    box-shadow:
+      0 1px 2px 0 rgb(15 23 42 / 0.06),
+      0 1px 3px 0 rgb(15 23 42 / 0.08);
+  }
+
+  html:not(.dark) .backoffice-content :where([class*="bg-gray-50"][class*="border"]) {
+    border-color: rgb(203 213 225);
+    background-color: rgb(248 250 252);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-blue-50"], [class*=" bg-blue-50"], [class^="bg-blue-100"], [class*=" bg-blue-100"]) {
+    background-color: rgb(219 234 254);
+    color: rgb(30 64 175);
+    box-shadow: inset 0 0 0 1px rgb(96 165 250 / 0.75);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-sky-50"], [class*=" bg-sky-50"], [class^="bg-sky-100"], [class*=" bg-sky-100"], [class^="bg-cyan-50"], [class*=" bg-cyan-50"], [class^="bg-cyan-100"], [class*=" bg-cyan-100"]) {
+    background-color: rgb(207 250 254);
+    color: rgb(21 94 117);
+    box-shadow: inset 0 0 0 1px rgb(34 211 238 / 0.65);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-green-50"], [class*=" bg-green-50"], [class^="bg-green-100"], [class*=" bg-green-100"], [class^="bg-emerald-50"], [class*=" bg-emerald-50"], [class^="bg-emerald-100"], [class*=" bg-emerald-100"]) {
+    background-color: rgb(209 250 229);
+    color: rgb(6 95 70);
+    box-shadow: inset 0 0 0 1px rgb(52 211 153 / 0.70);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-yellow-50"], [class*=" bg-yellow-50"], [class^="bg-yellow-100"], [class*=" bg-yellow-100"], [class^="bg-amber-50"], [class*=" bg-amber-50"], [class^="bg-amber-100"], [class*=" bg-amber-100"], [class^="bg-orange-50"], [class*=" bg-orange-50"], [class^="bg-orange-100"], [class*=" bg-orange-100"]) {
+    background-color: rgb(254 243 199);
+    color: rgb(146 64 14);
+    box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.70);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-red-50"], [class*=" bg-red-50"], [class^="bg-red-100"], [class*=" bg-red-100"], [class^="bg-rose-50"], [class*=" bg-rose-50"], [class^="bg-rose-100"], [class*=" bg-rose-100"]) {
+    background-color: rgb(254 226 226);
+    color: rgb(153 27 27);
+    box-shadow: inset 0 0 0 1px rgb(248 113 113 / 0.70);
+  }
+
+  html:not(.dark) .backoffice-content :where([class^="bg-violet-50"], [class*=" bg-violet-50"], [class^="bg-violet-100"], [class*=" bg-violet-100"], [class^="bg-purple-50"], [class*=" bg-purple-50"], [class^="bg-purple-100"], [class*=" bg-purple-100"], [class^="bg-indigo-50"], [class*=" bg-indigo-50"], [class^="bg-indigo-100"], [class*=" bg-indigo-100"]) {
+    background-color: rgb(237 233 254);
+    color: rgb(91 33 182);
+    box-shadow: inset 0 0 0 1px rgb(139 92 246 / 0.65);
+  }
+
+  html:not(.dark) .backoffice-content :where([class*="shadow-lg"], [class*="shadow-xl"]) {
+    box-shadow:
+      0 10px 15px -3px rgb(15 23 42 / 0.12),
+      0 4px 6px -4px rgb(15 23 42 / 0.10);
+  }
+
+  html:not(.dark) .backoffice-content :where(th, label) {
+    color: rgb(31 41 55);
+  }
+
+  html:not(.dark) .backoffice-content :where(input, select, textarea) {
+    border-color: rgb(156 163 175);
+    background-color: rgb(255 255 255);
+    color: rgb(17 24 39);
+  }
+
+  html:not(.dark) .backoffice-content :where(input::placeholder, textarea::placeholder) {
+    color: rgb(107 114 128);
+  }
+
+  html:not(.dark) .backoffice-content :where(.bg-gray-900, .bg-slate-900, .bg-black) .text-gray-300 {
+    color: rgb(209 213 219);
+  }
+
+  html:not(.dark) .backoffice-content :where(.bg-gray-900, .bg-slate-900, .bg-black) .text-gray-400 {
+    color: rgb(156 163 175);
+  }
+
+  html:not(.dark) .backoffice-content :where(.bg-gray-900, .bg-slate-900, .bg-black) .text-gray-500 {
+    color: rgb(107 114 128);
+  }
+
   .table-container {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden;
+    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-300 dark:border-gray-800 overflow-hidden;
   }
 
   .table-header {
-    @apply bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+    @apply bg-slate-100 dark:bg-gray-800 text-gray-950 dark:text-gray-100;
   }
 
   .table-row {
-    @apply hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700;
+    @apply hover:bg-slate-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700;
   }
 
   .table-cell {
@@ -133,14 +238,14 @@
   }
 
   .table-cell-muted {
-    @apply text-gray-600 dark:text-gray-400;
+    @apply text-gray-700 dark:text-gray-400;
   }
 }
 
 /* Form styles for dark mode */
 @layer components {
   .form-container {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6;
+    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-300 dark:border-gray-800 p-6;
   }
 
   .form-group {
@@ -148,7 +253,7 @@
   }
 
   .form-label {
-    @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+    @apply text-sm font-semibold text-gray-800 dark:text-gray-300;
   }
 
   .form-input {
@@ -179,11 +284,11 @@
   }
 
   .btn-outline {
-    @apply border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700;
+    @apply border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-700;
   }
 
   .btn-ghost {
-    @apply text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800;
+    @apply text-gray-700 dark:text-gray-400 hover:text-gray-950 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800;
   }
 }
 
@@ -244,7 +349,7 @@
 /* Card styles for dark mode */
 @layer components {
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-300 dark:border-gray-700;
   }
 
   .card-header {
@@ -256,7 +361,7 @@
   }
 
   .card-description {
-    @apply text-sm text-gray-600 dark:text-gray-400 mt-1;
+    @apply text-sm text-gray-700 dark:text-gray-400 mt-1;
   }
 
   .card-body {
