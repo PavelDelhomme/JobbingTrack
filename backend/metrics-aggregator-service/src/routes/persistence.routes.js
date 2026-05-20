@@ -498,46 +498,68 @@ router.get('/stats', async (req, res) => {
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
 
-    const safeCount = (model) => model.count().catch(() => 0);
-    const [
-      systemMetricsCount,
-      containerMetricsCount,
-      containerLogsCount,
-      securityMetricsCount,
-      eventsCount,
-    ] = await Promise.all([
-      safeCount(prisma.systemMetricsSnapshot),
-      safeCount(prisma.containerMetricsSnapshot),
-      safeCount(prisma.containerLog),
-      safeCount(prisma.securityMetric),
-      safeCount(prisma.systemEvent),
-    ]);
+    const countTables = [
+      ['systemMetricsSnapshots', 'system_metrics_snapshots'],
+      ['containerMetricsSnapshots', 'container_metrics_snapshots'],
+      ['containerLogs', 'container_logs'],
+      ['securityMetrics', 'security_metrics'],
+      ['events', 'system_events'],
+      ['aggregatedLogs', 'aggregated_logs'],
+      ['logCollectorLogs', 'log_collector_logs'],
+      ['systemMetricsRaw', 'system_metrics'],
+      ['containerMetricsRaw', 'container_metrics'],
+      ['serviceAvailability', 'service_availability_history'],
+      ['serviceNetwork', 'service_network_history'],
+    ];
 
-    // Obtenir la date du plus ancien et plus récent enregistrement
-    const safeFirstTimestamp = async (orderBy) =>
-      prisma.systemMetricsSnapshot.findFirst({
-        orderBy,
-        select: { timestamp: true },
-      }).catch(() => null);
-    const [oldestSystem, newestSystem] = await Promise.all([
-      safeFirstTimestamp({ timestamp: 'asc' }),
-      safeFirstTimestamp({ timestamp: 'desc' }),
-    ]);
+    const countTable = async (tableName) => {
+      const tableExists = await prisma.$queryRawUnsafe(
+        `SELECT to_regclass('public.${tableName}')::text AS table_name`,
+      );
+      if (!tableExists?.[0]?.table_name) return 0;
+
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT COUNT(*)::bigint AS count FROM public.${tableName}`,
+      );
+      return Number(rows?.[0]?.count || 0);
+    };
+
+    const counts = {};
+    await Promise.all(
+      countTables.map(async ([key, tableName]) => {
+        counts[key] = await countTable(tableName).catch(() => 0);
+      }),
+    );
+
+    // Compatibilité UI historique : ces clés restent les totaux "principaux".
+    counts.systemMetrics = counts.systemMetricsSnapshots + counts.systemMetricsRaw;
+    counts.containerMetrics = counts.containerMetricsSnapshots + counts.containerMetricsRaw;
+    counts.total = countTables
+      .map(([key]) => counts[key] || 0)
+      .reduce((sum, value) => sum + value, 0);
+
+    const rangeRows = await prisma.$queryRawUnsafe(`
+      SELECT MIN(ts) AS oldest, MAX(ts) AS newest
+      FROM (
+        SELECT timestamp AS ts FROM public.system_metrics_snapshots
+        UNION ALL SELECT timestamp AS ts FROM public.container_metrics_snapshots
+        UNION ALL SELECT timestamp AS ts FROM public.system_events
+        UNION ALL SELECT timestamp AS ts FROM public.aggregated_logs
+        UNION ALL SELECT timestamp AS ts FROM public.log_collector_logs
+        UNION ALL SELECT timestamp AS ts FROM public.system_metrics
+        UNION ALL SELECT timestamp AS ts FROM public.container_metrics
+        UNION ALL SELECT timestamp AS ts FROM public.service_availability_history
+      ) AS persisted_timestamps
+    `).catch(() => [{ oldest: null, newest: null }]);
+    const range = rangeRows?.[0] || {};
 
     res.json({
       success: true,
       data: {
-        counts: {
-          systemMetrics: systemMetricsCount,
-          containerMetrics: containerMetricsCount,
-          containerLogs: containerLogsCount,
-          securityMetrics: securityMetricsCount,
-          events: eventsCount,
-          total: systemMetricsCount + containerMetricsCount + containerLogsCount + securityMetricsCount + eventsCount,
-        },
+        counts,
         dataRange: {
-          oldest: oldestSystem?.timestamp || null,
-          newest: newestSystem?.timestamp || null,
+          oldest: range.oldest || null,
+          newest: range.newest || null,
         },
       },
     });

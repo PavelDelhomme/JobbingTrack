@@ -588,7 +588,45 @@ const SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS = Number(process.env.SERVICE_AVAI
 const AGGREGATOR_PERSIST_INTERVAL_MS = Number(process.env.AGGREGATOR_PERSIST_INTERVAL_MS || 60000)
 const ENABLE_DOCKER_LOGS_COLLECTION = process.env.ENABLE_DOCKER_LOGS_COLLECTION === 'true'
 const lastServiceAvailabilityPersistAt = new Map()
+const lastServiceStatusForEvents = new Map()
 let lastAggregatorPersistAt = 0
+
+function normalizeServiceHealthStatus (serviceData) {
+  const status = String(serviceData?.health?.status || serviceData?.status || 'unknown').toLowerCase()
+  if (status === 'healthy' || status === 'running') return 'healthy'
+  if (status === 'unhealthy' || status === 'degraded' || status === 'unknown') return 'degraded'
+  return 'offline'
+}
+
+function systemEventForServiceStatus (serviceName, status, previousStatus) {
+  const isFirstObservation = !previousStatus
+  const transition = isFirstObservation ? 'first_observation' : `${previousStatus}->${status}`
+  if (status === 'healthy') {
+    return {
+      type: 'SERVICE_START',
+      severity: 'INFO',
+      title: isFirstObservation ? `Service observé sain: ${serviceName}` : `Service redevenu sain: ${serviceName}`,
+      isAlert: false,
+      transition,
+    }
+  }
+  if (status === 'degraded') {
+    return {
+      type: 'SERVICE_ERROR',
+      severity: 'WARNING',
+      title: isFirstObservation ? `Service observé dégradé: ${serviceName}` : `Service dégradé: ${serviceName}`,
+      isAlert: true,
+      transition,
+    }
+  }
+  return {
+    type: 'SERVICE_STOP',
+    severity: 'ERROR',
+    title: isFirstObservation ? `Service observé hors ligne: ${serviceName}` : `Service hors ligne: ${serviceName}`,
+    isAlert: true,
+    transition,
+  }
+}
 
 /** Profilage durée par phase dans `collectAllMetrics` (logs JSON une ligne). Activer : METRICS_AGGREGATOR_PROFILE_COLLECT=1 */
 function createCollectProfiler(enabled) {
@@ -1285,17 +1323,75 @@ async function collectAllMetrics() {
         if (persistAvailabilityNow - lastPersistAt < SERVICE_AVAILABILITY_PERSIST_INTERVAL_MS) {
           continue
         }
+        const normalizedStatus = normalizeServiceHealthStatus(serviceData)
+        const responseTimeMs = serviceData.health?.responseTime || null
+        const statusCode = serviceData.health?.statusCode || null
+        const errorMessage = serviceData.health?.error || null
+
         await persistenceService.saveServiceAvailability(serviceName, {
-          isAvailable: serviceData.health?.status === 'healthy',
-          responseTimeMs: serviceData.health?.responseTime || null,
-          statusCode: serviceData.health?.statusCode || null,
-          errorMessage: serviceData.health?.error || null,
+          isAvailable: normalizedStatus === 'healthy',
+          responseTimeMs,
+          statusCode,
+          errorMessage,
         }).catch(err => {
           const msg = (err && err.message) ? String(err.message) : '';
           if (msg && !msg.includes('does not exist') && !msg.includes('service_availability_history')) {
             console.error(`[PERSISTENCE] Échec disponibilité ${serviceName}:`, msg);
           }
         });
+
+        await persistenceService.saveServiceNetworkHistory(serviceName, {
+          requestCount: 1,
+          successCount: normalizedStatus === 'healthy' ? 1 : 0,
+          errorCount: normalizedStatus === 'healthy' ? 0 : 1,
+          avgResponseTimeMs: responseTimeMs,
+          minResponseTimeMs: responseTimeMs,
+          maxResponseTimeMs: responseTimeMs,
+          p95ResponseTimeMs: responseTimeMs,
+          p99ResponseTimeMs: responseTimeMs,
+          topEndpoints: [
+            {
+              endpoint: serviceData.health?.url || 'healthcheck',
+              method: 'GET',
+              statusCode,
+              status: normalizedStatus,
+            },
+          ],
+        }).catch(err => {
+          const msg = (err && err.message) ? String(err.message) : '';
+          if (msg && !msg.includes('does not exist') && !msg.includes('service_network_history')) {
+            console.error(`[PERSISTENCE] Échec réseau service ${serviceName}:`, msg);
+          }
+        });
+
+        const previousStatus = lastServiceStatusForEvents.get(serviceName)
+        if (!previousStatus || previousStatus !== normalizedStatus) {
+          const event = systemEventForServiceStatus(serviceName, normalizedStatus, previousStatus)
+          await persistenceService.createSystemEvent({
+            type: event.type,
+            severity: event.severity,
+            source: 'metrics-aggregator',
+            title: event.title,
+            description: `Statut service ${serviceName}: ${previousStatus || 'non observé'} -> ${normalizedStatus}`,
+            isAlert: event.isAlert,
+            metadata: {
+              serviceName,
+              previousStatus: previousStatus || null,
+              status: normalizedStatus,
+              transition: event.transition,
+              responseTimeMs,
+              statusCode,
+              errorMessage,
+              source: 'service-health-probe',
+            },
+          }).catch(err => {
+            const msg = (err && err.message) ? String(err.message) : '';
+            if (msg && !msg.includes('does not exist') && !msg.includes('system_events')) {
+              console.error(`[PERSISTENCE] Échec événement service ${serviceName}:`, msg);
+            }
+          });
+          lastServiceStatusForEvents.set(serviceName, normalizedStatus)
+        }
         lastServiceAvailabilityPersistAt.set(serviceName, persistAvailabilityNow)
       }
       

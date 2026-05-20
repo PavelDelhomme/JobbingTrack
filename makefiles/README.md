@@ -146,7 +146,7 @@ make stop-service SERVICE=x   # Arrêter un service
 make restart-service SERVICE=x # Redémarrer un service
 make logs-service SERVICE=x    # Logs d'un service
 make status             # Status détaillé (légende ports hôte → conteneur, ex. monitoring-c 8015)
-make status-watch       # Boucle : buffer terminal alternatif par défaut (ALTSCREEN=1) — remplace l’affichage sans polluer le scrollback ; ALTSCREEN=0 + CLEAR=1 = ancien clear plein écran ; INTERVAL=5
+make status-watch       # Boucle : buffer terminal alternatif par défaut (ALTSCREEN=1) — remplace l’affichage sans polluer le scrollback ; ALTSCREEN=0 + CLEAR=1 = ancien clear plein écran ; INTERVAL=4 (minimum)
 make status-live        # Idem, INTERVAL=2 par défaut (mêmes variables ALTSCREEN / CLEAR)
 make ps                 # Liste conteneurs
 make logs               # Tous les logs

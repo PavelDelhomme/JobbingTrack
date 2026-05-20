@@ -8,6 +8,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Statistics & monitoring global (18/05/2026)** : KPI services et graphes erreur/disponibilité sur **`/backoffice/statistics`** + vue d’ensemble **`/backoffice`** — chantier planifié **`PLAN.md` A1h** et cases détaillées **`TODOS.md`** § **Chantier Statistiques & backoffice** (ne pas dupliquer ici).
 
+**Statistics log-stats / persistance (20/05/2026)** : `aggregated_logs`, `log_collector_logs`, `container_logs`, métriques système/conteneurs, disponibilité, sécurité, `system_events` et `service_network_history` sont alimentés/visibles dans `/backoffice/statistics/log-stats`. Suite backlog : tests API/UI sur `/api/v1/persistence/stats`, smoke navigateur après login et contrôle granularité erreurs.
+
 **Sécurité — libellés & navigation (18/05/2026)** : pages **`/b4ck0ff1ce/security/**`** (policies, logs, etc.) — reprendre noms/titres/sous-nav (**`SecuritySubNav`**, FR, fallbacks) — **`PLAN.md` B10** + priorité rapide **`TODOS.md`**.
 
 **WAF faux positif `consolidated=true` (18/05/2026)** : logs gateway **XSS** sur `blocked-ips?consolidated=true` — analyse **`TODOS.md`** § WAF ; correctif après validation porteur.

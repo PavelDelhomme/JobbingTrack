@@ -33,20 +33,130 @@ type AggLog = {
   message?: string | null;
 };
 
+type PersistenceStats = {
+  counts?: Record<string, number>;
+  dataRange?: {
+    oldest?: string | null;
+    newest?: string | null;
+  };
+};
+
+type PeriodOption = {
+  label: string;
+  days: number;
+};
+
+type SourceStatus = "active" | "historical" | "planned";
+
+const PERIOD_OPTIONS: PeriodOption[] = [
+  { label: "24 h", days: 1 },
+  { label: "7 jours", days: 7 },
+  { label: "14 jours", days: 14 },
+  { label: "30 jours", days: 30 },
+];
+
+const COUNT_CARDS: Array<{
+  key: string;
+  label: string;
+  hint: string;
+  status: SourceStatus;
+  emptyLabel?: string;
+}> = [
+  {
+    key: "aggregatedLogs",
+    label: "Logs applicatifs",
+    hint: "aggregated_logs",
+    status: "active",
+  },
+  {
+    key: "logCollectorLogs",
+    label: "Logs Docker Rust",
+    hint: "log_collector_logs",
+    status: "active",
+  },
+  {
+    key: "containerLogs",
+    label: "Logs conteneurs historiques",
+    hint: "container_logs",
+    status: "historical",
+  },
+  {
+    key: "systemMetrics",
+    label: "Métriques système",
+    hint: "system_metrics + snapshots",
+    status: "active",
+  },
+  {
+    key: "containerMetrics",
+    label: "Métriques conteneurs",
+    hint: "container_metrics + snapshots",
+    status: "active",
+  },
+  {
+    key: "serviceAvailability",
+    label: "Disponibilité services",
+    hint: "service_availability_history",
+    status: "active",
+  },
+  {
+    key: "securityMetrics",
+    label: "Métriques sécurité",
+    hint: "security_metrics",
+    status: "active",
+  },
+  {
+    key: "events",
+    label: "Événements système",
+    hint: "system_events",
+    status: "active",
+  },
+  {
+    key: "serviceNetwork",
+    label: "Réseau services",
+    hint: "service_network_history",
+    status: "active",
+  },
+];
+
+const numberFormatter = new Intl.NumberFormat("fr-FR");
+
+function sourceStatusLabel(status: SourceStatus, value: number) {
+  if (value > 0) return status === "historical" ? "Historique alimenté" : "OK";
+  if (status === "planned") return "À brancher";
+  if (status === "historical") return "Historique vide";
+  return "À investiguer";
+}
+
+function sourceStatusClass(status: SourceStatus, value: number) {
+  if (value > 0) {
+    return status === "historical"
+      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200";
+  }
+  if (status === "planned") {
+    return "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200";
+  }
+  if (status === "historical") {
+    return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
+  }
+  return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200";
+}
+
 export default function StatisticsLogStatsPage() {
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [stats, setStats] = useState<PersistenceStats | null>(null);
   const [logs, setLogs] = useState<AggLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState("");
   const [filterService, setFilterService] = useState("");
+  const [periodDays, setPeriodDays] = useState(14);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const since = new Date(
-        Date.now() - 14 * 24 * 60 * 60 * 1000,
+        Date.now() - periodDays * 24 * 60 * 60 * 1000,
       ).toISOString();
       const [st, rows] = await Promise.all([
         analyticsService.getPersistenceStats(),
@@ -59,7 +169,7 @@ export default function StatisticsLogStatsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [periodDays]);
 
   useEffect(() => {
     void load();
@@ -121,7 +231,17 @@ export default function StatisticsLogStatsPage() {
       .slice(0, 12);
   }, [filteredLogs]);
 
-  const counts = stats?.counts as Record<string, number> | undefined;
+  const counts = stats?.counts;
+  const cards = COUNT_CARDS.map((card) => ({
+    ...card,
+    value: counts?.[card.key] ?? 0,
+  }));
+  const activeSources = cards.filter((card) => card.status === "active");
+  const activeSourcesOk = activeSources.filter((card) => card.value > 0).length;
+  const plannedSources = cards.filter(
+    (card) => card.status === "planned" && card.value === 0,
+  );
+  const dataRange = stats?.dataRange;
 
   return (
     <AdminLayout>
@@ -141,9 +261,11 @@ export default function StatisticsLogStatsPage() {
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           <code className="text-xs">GET /api/v1/persistence/stats</code> et{" "}
-          <code className="text-xs">GET /api/v1/persistence/logs</code> (14
-          derniers jours, échantillon). Pour la lecture ligne à ligne, utiliser
-          les vues Logs services / sécurité.
+          <code className="text-xs">GET /api/v1/persistence/logs</code> (
+          {PERIOD_OPTIONS.find((period) => period.days === periodDays)?.label ??
+            `${periodDays} jours`}
+          , échantillon). Les compteurs ci-dessous sont des totaux globaux par
+          table ; les graphiques appliquent la période sélectionnée.
         </p>
 
         {loading ? (
@@ -153,6 +275,20 @@ export default function StatisticsLogStatsPage() {
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                Période
+                <select
+                  value={periodDays}
+                  onChange={(e) => setPeriodDays(Number(e.target.value))}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  {PERIOD_OPTIONS.map((period) => (
+                    <option key={period.days} value={period.days}>
+                      {period.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
                 Niveau
                 <select
@@ -198,21 +334,68 @@ export default function StatisticsLogStatsPage() {
             </div>
 
             {counts && (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                      Santé des sources persistées
+                    </h2>
+                    <p className={`mt-1 ${uiText.subtle}`}>
+                      {activeSourcesOk}/{activeSources.length} sources actives
+                      alimentées. `container_logs` est conservée comme historique
+                      de l’ancien collecteur, pendant que `log_collector_logs`
+                      porte le flux Docker Rust actuel. Les sources “à brancher” sont suivies mais ne
+                      doivent pas encore être interprétées comme une panne de
+                      collecte.
+                    </p>
+                  </div>
+                  {plannedSources.length > 0 && (
+                    <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">
+                      À faire :{" "}
+                      {plannedSources.map((source) => source.label).join(", ")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {counts && (
               <DashboardLayoutRegion variant="dense" className="gap-3">
-                {Object.entries(counts).map(([k, v]) => (
+                {cards.map((card) => (
                   <div
-                    key={k}
+                    key={card.key}
                     className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40"
                   >
-                    <p className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                      {k}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                        {card.label}
+                      </p>
+                      <span
+                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusClass(card.status, card.value)}`}
+                      >
+                        {sourceStatusLabel(card.status, card.value)}
+                      </span>
+                    </div>
                     <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {String(v)}
+                      {numberFormatter.format(card.value)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                      {card.value > 0
+                        ? card.hint
+                        : `${card.hint} · ${card.emptyLabel || "non alimenté"}`}
                     </p>
                   </div>
                 ))}
               </DashboardLayoutRegion>
+            )}
+
+            {dataRange && (
+              <p className={`text-xs ${uiText.subtle}`}>
+                Plage persistée connue :{" "}
+                {dataRange.oldest ? new Date(dataRange.oldest).toLocaleString("fr-FR") : "—"}{" "}
+                →{" "}
+                {dataRange.newest ? new Date(dataRange.newest).toLocaleString("fr-FR") : "—"}
+              </p>
             )}
 
             {byLevel.length > 0 ? (
@@ -249,7 +432,13 @@ export default function StatisticsLogStatsPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div
+                className={`rounded-lg border border-dashed border-gray-300 p-4 dark:border-gray-600 ${uiEmpty.centerPy4}`}
+              >
+                Aucun log applicatif agrégé sur la période sélectionnée.
+              </div>
+            )}
 
             {byService.length > 0 ? (
               <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -289,7 +478,7 @@ export default function StatisticsLogStatsPage() {
             ) : null}
 
             <p className={`text-xs ${uiText.subtle}`}>
-              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre 14
+              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre {periodDays}
               jours, max 800).
             </p>
 

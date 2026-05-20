@@ -11,6 +11,7 @@
 const axios = require('axios');
 
 const METRICS_SERVICE_URL = process.env.METRICS_SERVICE_URL || process.env.METRICS_AGGREGATOR_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+const METRICS_API_KEY = process.env.METRICS_API_KEY;
 const SERVICE_NAME = process.env.SERVICE_NAME || process.env.npm_package_name || 'unknown-service';
 
 class CentralLogger {
@@ -60,6 +61,7 @@ class CentralLogger {
         logs: logsToSend,
       }, {
         timeout: 5000, // 5 secondes max
+        headers: METRICS_API_KEY ? { 'X-API-Key': METRICS_API_KEY } : undefined,
       });
     } catch (error) {
       // En cas d'erreur, ne pas bloquer l'application

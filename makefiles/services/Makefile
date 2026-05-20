@@ -227,8 +227,8 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
-	@echo "  make status-watch          - Statut en boucle (INTERVAL=5, défaut) : pendant l’attente, touches 5-9 = intervalle en secondes ; ALTSCREEN=1 = buffer alternatif ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 désactive fold"
-	@echo "  make status-live           - Idem, INTERVAL=2s par défaut (même options ALTSCREEN / CLEAR / STATUS_FOLD)"
+	@echo "  make status-watch          - Statut en boucle (INTERVAL=4, défaut/minimum) : pendant l’attente, touches 4-9 = intervalle en secondes ; ALTSCREEN=1 = buffer alternatif ; ALTSCREEN=0 + CLEAR=1 = clear classique ; STATUS_FOLD=0 désactive fold"
+	@echo "  make status-live           - Idem, INTERVAL=4s par défaut/minimum (même options ALTSCREEN / CLEAR / STATUS_FOLD)"
 	@echo "  STATUS_LEGEND=1 make status — affiche la légende longue des ports (désactivée par défaut)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
@@ -1431,14 +1431,14 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 
 # Boucle `make status` : script \`scripts/ops/status-watch-loop.sh\` (buffer terminal alternatif par défaut).
 # INTERVAL=s · ALTSCREEN=1 (défaut) = pas d’empilement dans le scrollback · ALTSCREEN=0 = ancien défilement · CLEAR=1 + ALTSCREEN=0 = clear plein écran.
-status-watch: ## Rafraîchit make status en boucle (INTERVAL=5 ; touches 5-9 pendant l’attente — scripts/ops/status-watch-loop.sh)
+status-watch: ## Rafraîchit make status en boucle (INTERVAL=4 ; touches 4-9 pendant l’attente — scripts/ops/status-watch-loop.sh)
 	@chmod +x "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh" 2>/dev/null || true
-	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),5)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),4)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
 
 # Même rendu que `make status`, boucle rapide (pas de vue « compacte » dupliquée — évite ports tronqués et services manquants).
-status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut 2, Ctrl+C pour quitter)
+status-live: ## Même détail que make status, actualisé toutes les INTERVAL secondes (défaut/minimum 4, Ctrl+C pour quitter)
 	@chmod +x "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh" 2>/dev/null || true
-	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),2)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
+	@ROOT_DIR="$(ROOT_DIR)" INTERVAL="$(or $(INTERVAL),4)" ALTSCREEN="$(or $(ALTSCREEN),1)" CLEAR="$(or $(CLEAR),0)" STATUS_FOLD="$(or $(STATUS_FOLD),1)" bash "$(ROOT_DIR)/scripts/ops/status-watch-loop.sh"
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs

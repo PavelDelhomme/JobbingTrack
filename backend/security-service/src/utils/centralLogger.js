@@ -5,6 +5,7 @@
 const axios = require('axios');
 
 const METRICS_SERVICE_URL = process.env.METRICS_SERVICE_URL || process.env.METRICS_AGGREGATOR_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+const METRICS_API_KEY = process.env.METRICS_API_KEY;
 const SERVICE_NAME = process.env.SERVICE_NAME || process.env.npm_package_name || 'security-service';
 
 class CentralLogger {
@@ -30,7 +31,10 @@ class CentralLogger {
     this.logBuffer = [];
     if (!this.enabled) return;
     try {
-      await axios.post(this.metricsUrl, { logs: logsToSend }, { timeout: 5000 });
+      await axios.post(this.metricsUrl, { logs: logsToSend }, {
+        timeout: 5000,
+        headers: METRICS_API_KEY ? { 'X-API-Key': METRICS_API_KEY } : undefined,
+      });
     } catch (error) {
       console.error('[CENTRAL_LOGGER] Erreur envoi logs:', error.message);
     }
