@@ -16,17 +16,7 @@ import {
   formatLocalDateTime,
 } from "@/lib/utils/date";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
-
-const CHART_COLORS = [
-  "#3B82F6",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
-  "#84CC16",
-];
+import { buildStableSeriesColorMap } from "@/lib/charts/seriesColors";
 
 export type AnalyticsContainersChartsBundleProps = {
   mode: "multi" | "single";
@@ -53,6 +43,8 @@ export function AnalyticsContainersChartsBundle({
   selectedContainerLabel,
   rawMetricsLength,
 }: AnalyticsContainersChartsBundleProps) {
+  const seriesColors = buildStableSeriesColorMap(containerNamesForChart);
+
   if (mode === "multi") {
     return (
       <>
@@ -96,12 +88,12 @@ export function AnalyticsContainersChartsBundle({
                   }}
                 />
                 <Legend />
-                {containerNamesForChart.map((shortName, i) => (
+                {containerNamesForChart.map((shortName) => (
                   <Line
                     key={`cpu_${shortName}`}
                     type="monotone"
                     dataKey={`cpu_${shortName}`}
-                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                    stroke={seriesColors[shortName]}
                     strokeWidth={2}
                     name={shortName}
                     dot={false}
@@ -152,12 +144,12 @@ export function AnalyticsContainersChartsBundle({
                   }}
                 />
                 <Legend />
-                {containerNamesForChart.map((shortName, i) => (
+                {containerNamesForChart.map((shortName) => (
                   <Line
                     key={`memory_${shortName}`}
                     type="monotone"
                     dataKey={`memory_${shortName}`}
-                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                    stroke={seriesColors[shortName]}
                     strokeWidth={2}
                     name={shortName}
                     dot={false}
