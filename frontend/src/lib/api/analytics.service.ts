@@ -4,6 +4,13 @@ import { normalizeMetricTimestampToIso } from "@/lib/utils/date";
 
 /** Base des routes `/api/v1/...` de l’agrégateur (hôte direct ou proxy Next). */
 function getMetricsV1Base(): string {
+  if (typeof window !== "undefined") {
+    const forceDirect =
+      process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "false" ||
+      process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "0";
+    if (!forceDirect) return "/api/metrics-aggregator";
+  }
+
   const via =
     process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "true" ||
     process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "1";
@@ -56,6 +63,17 @@ function isBenignAxiosInterrupt(error: unknown): boolean {
 function logAxiosError(context: string, error: unknown): void {
   if (isBenignAxiosInterrupt(error)) return;
   console.error(context, error);
+}
+
+function logOptionalMetricsWarning(context: string, error: unknown): void {
+  if (isBenignAxiosInterrupt(error)) return;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String((error as { message?: unknown }).message)
+        : "indisponible";
+  console.warn(`${context} ${message}`);
 }
 
 /**
@@ -439,7 +457,10 @@ export class AnalyticsService {
       }
       return [];
     } catch (error) {
-      logAxiosError("Erreur récupération liste conteneurs:", error);
+      logOptionalMetricsWarning(
+        "Liste conteneurs metrics indisponible:",
+        error,
+      );
       return [];
     }
   }

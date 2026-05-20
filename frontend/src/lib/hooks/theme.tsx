@@ -12,6 +12,7 @@ export type Theme = "light" | "dark" | "system";
 const THEME_STORAGE_KEY = "theme";
 const UI_PREFERENCES_STORAGE_KEY = "jobbingtrack-ui-preferences-v1";
 const LEGACY_CUSTOMIZATION_KEY = "customization-settings";
+const THEME_CHANGE_EVENT = "jobbingtrack:theme-change";
 
 function themeToCustomizationTheme(theme: Theme): "light" | "dark" | "auto" {
   return theme === "system" ? "auto" : theme;
@@ -70,6 +71,8 @@ export function setStoredTheme(theme: Theme) {
       JSON.stringify({ theme: customizationTheme }),
     );
   }
+
+  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: theme }));
 }
 
 export function applyTheme(theme: Theme) {
@@ -131,9 +134,33 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handleChange = () => {
       setSystemTheme(getSystemTheme());
     };
+    const handleThemeChange = (event: Event) => {
+      const next =
+        event instanceof CustomEvent && event.detail
+          ? (event.detail as Theme)
+          : getStoredTheme();
+      if (next === "light" || next === "dark" || next === "system") {
+        setTheme(next);
+      }
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key === THEME_STORAGE_KEY ||
+        event.key === UI_PREFERENCES_STORAGE_KEY ||
+        event.key === LEGACY_CUSTOMIZATION_KEY
+      ) {
+        setTheme(getStoredTheme());
+      }
+    };
 
     mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   useEffect(() => {
