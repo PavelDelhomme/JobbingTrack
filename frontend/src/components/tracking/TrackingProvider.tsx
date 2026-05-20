@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/lib/hooks/auth";
 import userTracking from "@/lib/tracking/userTracking";
 
 /**
@@ -10,33 +9,7 @@ import userTracking from "@/lib/tracking/userTracking";
  * et track automatiquement les événements utilisateur
  */
 export function TrackingProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
   const pathname = usePathname();
-
-  useEffect(() => {
-    // Le tracking s'initialise automatiquement via le singleton
-    // Vérifier si on est sur mobile avant d'initialiser
-    if (typeof window !== "undefined") {
-      const userAgent =
-        navigator.userAgent || navigator.vendor || (window as any).opera;
-      const isMobile =
-        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-          userAgent.toLowerCase(),
-        );
-      const isBackoffice = pathname?.startsWith("/b4ck0ff1ce");
-
-      // Le tracking est uniquement pour mobile et pas dans le backoffice
-      if (isMobile && !isBackoffice) {
-        console.log(
-          "[TRACKING] Système de tracking initialisé (mobile uniquement)",
-        );
-      } else {
-        console.log(
-          "[TRACKING] Tracking désactivé - plateforme web/b4ck0ff1ce",
-        );
-      }
-    }
-  }, []);
 
   // Tracker les changements de page uniquement sur mobile
   useEffect(() => {

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const { decorateContainerHealth, summarizeContainersForBackoffice } = require('./serviceHealthModel');
 
 const execAsync = promisify(exec);
 
@@ -175,12 +176,18 @@ class DockerService {
    * @returns {Object} Statistiques formatées
    */
   formatStatsForAPI(stats) {
+    const decorated = (stats || []).map(stat => decorateContainerHealth(stat));
     return {
       success: true,
       timestamp: new Date().toISOString(),
-      containers_count: stats.length,
-      containers: stats.map(stat => ({
+      containers_count: decorated.length,
+      health_summary: summarizeContainersForBackoffice(decorated),
+      containers: decorated.map(stat => ({
         name: stat.name,
+        status: stat.status,
+        is_running: stat.is_running,
+        health_status: stat.health_status,
+        health_bucket: stat.health_bucket,
         cpu: {
           percent: stat.cpu_percent,
           usage: stat.cpu_percent

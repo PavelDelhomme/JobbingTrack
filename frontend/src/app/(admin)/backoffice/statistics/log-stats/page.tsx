@@ -16,7 +16,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AdminLayout } from "@/components/features";
-import { StatisticsSubNav } from "../StatisticsSubNav";
+import {
+  StatisticsPageShell,
+  StatisticsRefreshButton,
+} from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import {
@@ -236,46 +239,39 @@ export default function StatisticsLogStatsPage() {
     ...card,
     value: counts?.[card.key] ?? 0,
   }));
-  const activeSources = cards.filter((card) => card.status === "active");
-  const activeSourcesOk = activeSources.filter((card) => card.value > 0).length;
-  const plannedSources = cards.filter(
-    (card) => card.status === "planned" && card.value === 0,
-  );
   const dataRange = stats?.dataRange;
 
   return (
     <AdminLayout>
-      <div className="p-6 mx-auto max-w-5xl space-y-6">
-        <StatisticsSubNav />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Statistiques — Logs (persistés)
-          </h1>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            Rafraîchir
-          </button>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          <code className="text-xs">GET /api/v1/persistence/stats</code> et{" "}
-          <code className="text-xs">GET /api/v1/persistence/logs</code> (
-          {PERIOD_OPTIONS.find((period) => period.days === periodDays)?.label ??
-            `${periodDays} jours`}
-          , échantillon). Les compteurs ci-dessous sont des totaux globaux par
-          table ; les graphiques appliquent la période sélectionnée.
-        </p>
-
+      <StatisticsPageShell
+        title="Statistiques — Logs persistés"
+        description={
+          <>
+            Sources persistées lues via{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              /api/v1/persistence/stats
+            </code>{" "}
+            et{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              /api/v1/persistence/logs
+            </code>{" "}
+            (
+            {PERIOD_OPTIONS.find((period) => period.days === periodDays)
+              ?.label ?? `${periodDays} jours`}
+            , échantillon). Les compteurs sont globaux par table ; les
+            graphiques appliquent la période sélectionnée.
+          </>
+        }
+        actions={<StatisticsRefreshButton onClick={() => void load()} />}
+      >
         {loading ? (
           <SectionLoader message="Chargement des logs persistés…" />
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
-            <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-900/40">
-              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
                 Période
                 <select
                   value={periodDays}
@@ -289,7 +285,7 @@ export default function StatisticsLogStatsPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
                 Niveau
                 <select
                   value={filterLevel}
@@ -304,7 +300,7 @@ export default function StatisticsLogStatsPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
                 Service
                 <select
                   value={filterService}
@@ -326,7 +322,7 @@ export default function StatisticsLogStatsPage() {
                     setFilterLevel("");
                     setFilterService("");
                   }}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 >
                   Réinitialiser filtres
                 </button>
@@ -334,40 +330,14 @@ export default function StatisticsLogStatsPage() {
             </div>
 
             {counts && (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      Santé des sources persistées
-                    </h2>
-                    <p className={`mt-1 ${uiText.subtle}`}>
-                      {activeSourcesOk}/{activeSources.length} sources actives
-                      alimentées. `container_logs` est conservée comme historique
-                      de l’ancien collecteur, pendant que `log_collector_logs`
-                      porte le flux Docker Rust actuel. Les sources “à brancher” sont suivies mais ne
-                      doivent pas encore être interprétées comme une panne de
-                      collecte.
-                    </p>
-                  </div>
-                  {plannedSources.length > 0 && (
-                    <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">
-                      À faire :{" "}
-                      {plannedSources.map((source) => source.label).join(", ")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {counts && (
               <DashboardLayoutRegion variant="dense" className="gap-3">
                 {cards.map((card) => (
                   <div
                     key={card.key}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900/40"
+                    className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
                         {card.label}
                       </p>
                       <span
@@ -379,7 +349,7 @@ export default function StatisticsLogStatsPage() {
                     <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       {numberFormatter.format(card.value)}
                     </p>
-                    <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-[11px] text-gray-600 dark:text-gray-400">
                       {card.value > 0
                         ? card.hint
                         : `${card.hint} · ${card.emptyLabel || "non alimenté"}`}
@@ -399,7 +369,7 @@ export default function StatisticsLogStatsPage() {
             )}
 
             {byLevel.length > 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   Répartition par niveau (échantillon)
                 </h2>
@@ -441,7 +411,7 @@ export default function StatisticsLogStatsPage() {
             )}
 
             {byService.length > 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   Top services (échantillon)
                 </h2>
@@ -498,7 +468,7 @@ export default function StatisticsLogStatsPage() {
             </div>
           </>
         )}
-      </div>
+      </StatisticsPageShell>
     </AdminLayout>
   );
 }

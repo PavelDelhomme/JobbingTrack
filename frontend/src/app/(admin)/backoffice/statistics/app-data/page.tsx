@@ -12,7 +12,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AdminLayout } from "@/components/features";
-import { StatisticsSubNav } from "../StatisticsSubNav";
+import {
+  StatisticsPageShell,
+  StatisticsRefreshButton,
+} from "../StatisticsSubNav";
 import {
   statisticsService,
   type ApplicationStatistics,
@@ -20,6 +23,7 @@ import {
 } from "@/lib/services/statisticsService";
 import { metricTimestampToMs } from "@/lib/utils/date";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
 
 export default function StatisticsAppDataPage() {
   const [stats, setStats] = useState<ApplicationStatistics | null>(null);
@@ -64,38 +68,39 @@ export default function StatisticsAppDataPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 mx-auto max-w-5xl space-y-6">
-        <StatisticsSubNav />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Statistiques — App data
-          </h1>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            Rafraîchir
-          </button>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Données issues de{" "}
-          <code className="text-xs">GET /api/v1/statistics</code> et{" "}
-          <code className="text-xs">/api/v1/statistics/timeline</code>{" "}
-          (gateway). Complète la vue d’ensemble sans la dupliquer.
-        </p>
-
+      <StatisticsPageShell
+        title="Statistiques — App data"
+        description={
+          <>
+            Données métier issues de{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              GET /api/v1/statistics
+            </code>{" "}
+            et{" "}
+            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+              /api/v1/statistics/timeline
+            </code>
+            . Cette page doit compléter la vue d’ensemble avec les séries
+            applicatives, pas rester une coquille vide.
+          </>
+        }
+        actions={<StatisticsRefreshButton onClick={() => void load()} />}
+      >
         {loading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <SectionLoader message="Chargement des données applicatives…" />
         ) : error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : !stats ? (
-          <p className="text-sm text-amber-700 dark:text-amber-300">
-            Aucune statistique renvoyée par l’API.
-          </p>
+          <div
+            className={`rounded-xl border border-dashed border-amber-300 bg-amber-50 p-5 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100 ${uiEmpty.centerPy4}`}
+          >
+            Aucune statistique renvoyée par l’API. À traiter : brancher les
+            séries métier utiles (candidatures, utilisateurs actifs,
+            entreprises, contacts) et afficher un état vide explicite.
+          </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <DashboardLayoutRegion variant="dense" className="gap-4">
               <StatCard
                 label="Candidatures"
                 value={stats.applications?.total}
@@ -103,10 +108,18 @@ export default function StatisticsAppDataPage() {
               <StatCard label="Utilisateurs" value={stats.users?.total} />
               <StatCard label="Entreprises" value={stats.companies?.total} />
               <StatCard label="Contacts" value={stats.contacts?.total} />
+            </DashboardLayoutRegion>
+
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              <strong className="font-semibold">À améliorer :</strong> cette
+              page expose seulement les totaux et une timeline globale. Le lot
+              suivant doit détailler actifs vs total, nouveaux sur la période,
+              candidatures par statut, entreprises/contacts et états vides par
+              source.
             </div>
 
             {chartRows.length > 1 ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
                   Timeline (7 j.) — volumes agrégés
                 </h2>
@@ -165,10 +178,12 @@ export default function StatisticsAppDataPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div
+                className={`rounded-xl border border-dashed border-gray-300 p-5 dark:border-gray-700 ${uiEmpty.centerPy4}`}
+              >
                 Pas assez de points timeline pour tracer un graphique (collecte
                 ou rôle API).
-              </p>
+              </div>
             )}
 
             <Link
@@ -179,15 +194,15 @@ export default function StatisticsAppDataPage() {
             </Link>
           </>
         )}
-      </div>
+      </StatisticsPageShell>
     </AdminLayout>
   );
 }
 
 function StatCard({ label, value }: { label: string; value?: number }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+    <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">

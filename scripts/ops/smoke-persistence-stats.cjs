@@ -33,14 +33,27 @@ function runDockerCompose(args) {
 
 function readMetricsApiKey() {
   if (process.env.METRICS_API_KEY) return process.env.METRICS_API_KEY;
-  return runDockerCompose([
-    "exec",
-    "-T",
-    "jobbingtrack-metrics-aggregator",
-    "sh",
-    "-lc",
-    'printf %s "$METRICS_API_KEY"',
-  ]).trim();
+  try {
+    return execFileSync(
+      "docker",
+      [
+        "exec",
+        "jobbingtrack-metrics-aggregator",
+        "sh",
+        "-lc",
+        'printf %s "$METRICS_API_KEY"',
+      ],
+      { encoding: "utf8" },
+    ).trim();
+  } catch {
+    return runDockerCompose([
+      "exec",
+      "jobbingtrack-metrics-aggregator",
+      "sh",
+      "-lc",
+      'printf %s "$METRICS_API_KEY"',
+    ]).trim();
+  }
 }
 
 function getJson(url, headers) {

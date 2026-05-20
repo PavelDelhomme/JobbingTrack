@@ -94,9 +94,6 @@ class UserTracking {
     // ✅ DÉSACTIVER le tracking pour le web/b4ck0ff1ce - uniquement pour mobile
     if (!this.isMobilePlatform()) {
       this.enabled = false;
-      console.log(
-        "[TRACKING] Tracking désactivé - plateforme web/b4ck0ff1ce détectée",
-      );
       return;
     }
 
