@@ -71,7 +71,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
-import { useStatisticsPanelPrefs } from "@/lib/ui";
+import { DashboardLayoutRegion, useStatisticsPanelPrefs } from "@/lib/ui";
 
 // Types
 interface MetricsHistory {
@@ -974,7 +974,7 @@ const OverviewTab = memo(function OverviewTab({
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           📋 Statistiques des données
         </h2>
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <DashboardLayoutRegion variant="split" className="p-6">
           <div>
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
               Totaux globaux
@@ -1094,11 +1094,11 @@ const OverviewTab = memo(function OverviewTab({
               </table>
             </div>
           </div>
-        </div>
+        </DashboardLayoutRegion>
       </div>
 
       {/* Cartes de résumé - Statistiques métier */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <DashboardLayoutRegion variant="dense">
         <StatCard
           icon={<Users className="w-6 h-6" />}
           title="Utilisateurs"
@@ -1135,10 +1135,10 @@ const OverviewTab = memo(function OverviewTab({
           subtitle={`${stats.contacts?.thisWeek || 0} cette semaine`}
           trendType="positive-is-good"
         />
-      </div>
+      </DashboardLayoutRegion>
 
       {/* Graphiques de statistiques métier */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <DashboardLayoutRegion variant="section">
         {/* Évolution des utilisateurs et candidatures */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1305,7 +1305,7 @@ const OverviewTab = memo(function OverviewTab({
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </DashboardLayoutRegion>
 
       {/* Stats applicatives */}
       {customization.showApplications && (
@@ -1546,7 +1546,7 @@ function SystemTab({ stats, chartData, customization }: any) {
 
       {/* Graphiques système */}
       {chartData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardLayoutRegion variant="section">
           {/* CPU détaillé */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1672,7 +1672,7 @@ function SystemTab({ stats, chartData, customization }: any) {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </DashboardLayoutRegion>
       )}
     </div>
   );
@@ -1810,7 +1810,7 @@ function ServicesTab({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DashboardLayoutRegion variant="section">
               {/* CPU & Mémoire du service */}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -1953,7 +1953,7 @@ function ServicesTab({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </DashboardLayoutRegion>
           </div>
         </div>
       )}
@@ -2084,7 +2084,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
 
       {/* Graphiques réseau */}
       {chartData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardLayoutRegion variant="section">
           {/* Trafic réseau global */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -2158,7 +2158,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </DashboardLayoutRegion>
       )}
 
       {/* Informations supplémentaires */}
@@ -2249,7 +2249,7 @@ const SecurityTab = memo(function SecurityTab({
 
       {/* Graphiques de sécurité */}
       {chartData.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardLayoutRegion variant="section">
           {/* Disponibilité dans le temps */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -2323,7 +2323,7 @@ const SecurityTab = memo(function SecurityTab({
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </DashboardLayoutRegion>
       ) : (
         <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
           Aucune série persistée ({historySeriesMeta?.pointCount ?? 0} points).

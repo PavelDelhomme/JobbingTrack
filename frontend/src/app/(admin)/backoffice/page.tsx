@@ -38,11 +38,7 @@ import {
 } from "@/lib/icons";
 import axios from "axios";
 import { useTracking } from "@/components/tracking/TrackingProvider";
-import {
-  useDashboardLayout,
-  dashboardMetricsLayoutClass,
-  dashboardSectionLayoutClass,
-} from "@/lib/ui";
+import { DashboardLayoutRegion } from "@/lib/ui";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -139,9 +135,6 @@ export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth();
   const router = useRouter();
   const { trackEvent } = useTracking();
-  const { layoutId } = useDashboardLayout();
-  const metricsLayoutClass = dashboardMetricsLayoutClass(layoutId);
-  const sectionLayoutClass = dashboardSectionLayoutClass(layoutId);
   const [stats, setStats] = useState({
     totalApplications: 0,
     totalCompanies: 0,
@@ -1131,7 +1124,7 @@ export default function BackofficePage() {
       <div className="space-y-6 md:space-y-8">
         {/* Cartes synthèse : 1 colonne mobile, 2 colonnes tablette, 3 colonnes desktop. */}
         <div className="space-y-4 md:space-y-6">
-          <div className={metricsLayoutClass}>
+          <DashboardLayoutRegion variant="metrics">
             <MetricCard
               title="Sessions actives"
               value={
@@ -1250,7 +1243,7 @@ export default function BackofficePage() {
                     : "green"
               }
             />
-          </div>
+          </DashboardLayoutRegion>
 
           {/* Détail CPU / mémoire par conteneur jobbingtrack-* (même source que la carte, précision par service) */}
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/35">
@@ -1389,7 +1382,7 @@ export default function BackofficePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <DashboardLayoutRegion variant="dense">
               {/* 1. Charge Système + Disque en dessous */}
               <div className="text-center">
                 <div
@@ -1778,7 +1771,7 @@ export default function BackofficePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </DashboardLayoutRegion>
 
             {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
             {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
@@ -1787,7 +1780,7 @@ export default function BackofficePage() {
                   📦 Métriques Projet - Conteneurs JobbingTrack (
                   {systemMetrics.jobbingtrack.containers.count})
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DashboardLayoutRegion variant="section" className="gap-4">
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1878,14 +1871,14 @@ export default function BackofficePage() {
                           : " 🟢 Normal"}
                     </div>
                   </div>
-                </div>
+                </DashboardLayoutRegion>
               </div>
             ) : null}
           </div>
         </MetricsErrorBoundary>
 
         {/* Services et métriques avancées */}
-        <div className={sectionLayoutClass}>
+        <DashboardLayoutRegion variant="section">
           {/* État des services */}
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
@@ -2074,7 +2067,7 @@ export default function BackofficePage() {
               )}
             </div>
           </div>
-        </div>
+        </DashboardLayoutRegion>
 
         {/* Popup des Services */}
         {showServicesPopup && (
@@ -2096,7 +2089,7 @@ export default function BackofficePage() {
               </div>
 
               <div className="p-6 overflow-y-auto max-h-[60vh]">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DashboardLayoutRegion variant="triple">
                   {(Array.isArray(servicesWithMetrics) &&
                   servicesWithMetrics.length > 0
                     ? servicesWithMetrics
@@ -2320,7 +2313,7 @@ export default function BackofficePage() {
                       </div>
                     );
                   })}
-                </div>
+                </DashboardLayoutRegion>
               </div>
 
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">

@@ -20,10 +20,19 @@ export {
   resolveDashboardLayout,
   type DashboardLayoutId,
 } from "./layouts/registry";
-export { useDashboardLayout } from "./layouts/useDashboardLayout";
+export {
+  useDashboardLayout,
+  useDashboardLayoutClasses,
+} from "./layouts/useDashboardLayout";
+export { DashboardLayoutRegion } from "./layouts/DashboardLayoutRegion";
 export {
   dashboardMetricsLayoutClass,
   dashboardSectionLayoutClass,
+  dashboardDenseGridClass,
+  dashboardTripleGridClass,
+  dashboardSplitLayoutClass,
+  dashboardLayoutClassFor,
+  type DashboardLayoutVariant,
 } from "./layouts/classes";
 export {
   useStatisticsPanelPrefs,

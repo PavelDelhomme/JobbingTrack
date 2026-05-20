@@ -40,7 +40,7 @@
 2. **`UiPreferencesProvider`** — **en place** : `UiPreferencesContext` (load local v1 + legacy + API, `saveCustomization`, `resetAll`, `applyCustomizationToDom`) ; `useCustomization` = pont legacy.
 3. **Page Paramètres** — `SectionLoader` dark ; reset/save via contexte ; merge `notifications.duration` sécurisé.
 4. **Panneaux Statistics/Analytics** — **fait** : `panels.statistics` / `panels.analytics` dans v1, hooks `useStatisticsPanelPrefs` / `useAnalyticsPanelPrefs`, migration localStorage legacy.
-5. **Layouts registry** — **partiel** : `useDashboardLayout()` + `dashboardMetricsLayoutClass` sur `/backoffice` ; étendre aux sous-vues si besoin.
+5. **Layouts registry** — **fait** : `DashboardLayoutRegion` + variantes (`metrics`, `section`, `dense`, `triple`, `split`) sur dashboard backoffice et Statistics ; changement via Paramètres → disposition tableau de bord.
 6. **Tokens** — **fait** : `--jt-primary`, `--jt-accent` (apply.ts) ; palette `.theme-custom` réduite (plus de 50–900 dynamiques sur `:root`).
 6. **Doc composants** — quand utiliser `@/components/ui` vs `@/lib/ui`.
 

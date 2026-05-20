@@ -76,13 +76,22 @@ export const defaultCustomizationSettings: CustomizationSettings = {
   },
 };
 
+const VALID_DASHBOARD_LAYOUTS = ["grid", "list", "kanban"] as const;
+
 export function mergeCustomizationSettings(
   partial?: Partial<CustomizationSettings> | Record<string, unknown> | null,
 ): CustomizationSettings {
   const p = (partial || {}) as Partial<CustomizationSettings>;
+  const layoutRaw = p.dashboardLayout as string | undefined;
+  const dashboardLayout =
+    layoutRaw &&
+    (VALID_DASHBOARD_LAYOUTS as readonly string[]).includes(layoutRaw)
+      ? (layoutRaw as CustomizationSettings["dashboardLayout"])
+      : defaultCustomizationSettings.dashboardLayout;
   return {
     ...defaultCustomizationSettings,
     ...p,
+    dashboardLayout,
     searchFilters: {
       ...defaultCustomizationSettings.searchFilters,
       ...(p.searchFilters || {}),

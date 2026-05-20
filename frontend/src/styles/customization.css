@@ -890,22 +890,16 @@ html.dark.high-contrast {
   }
 }
 
-/* Dispositions du tableau de bord */
-[data-dashboard-layout="grid"] .dashboard-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-[data-dashboard-layout="list"] .dashboard-content {
+/* Dispositions du tableau de bord (fallback si classe Tailwind absente) */
+[data-dashboard-layout="list"] .dashboard-content:not([class*="grid"]):not([class*="flex"]) {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-[data-dashboard-layout="kanban"] .dashboard-content {
+[data-dashboard-layout="kanban"] .dashboard-content:not([class*="grid"]):not([class*="flex"]) {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
