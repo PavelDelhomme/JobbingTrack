@@ -100,6 +100,28 @@ Variables optionnelles : `MAILHOG_WEB_URL` (défaut http://localhost:8025), `MAI
 
 ---
 
+## 6.b Alertes sécurité (security-service → notification-service)
+
+Les emails de reset/vérification passent historiquement par **auth-service**, mais les alertes sécurité critiques passent par le chemin suivant :
+
+`security-service` → `notification-service` → SMTP/MailHog → table `EmailLog`.
+
+Points de configuration importants :
+
+- `SECURITY_ALERT_EMAILS` / `SECURITY_ALERT_EMAIL` : destinataires.
+- `SECURITY_ALERT_EMAIL_ENABLED` : désactive l’envoi réel si `false`.
+- `SECURITY_INTERNAL_SECRET` : secret interne partagé entre security-service et notification-service.
+- `NOTIFICATION_SERVICE_URL` : URL interne du notification-service.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` : doivent aussi être disponibles dans **notification-service**, pas seulement dans auth-service.
+
+En dev avec MailHog, `SMTP_HOST=mailhog`, `SMTP_PORT=1025`, sans `SMTP_USER`/`SMTP_PASS`. Le notification-service ne doit pas envoyer `AUTH PLAIN` vide. En prod/préprod avec OVH ou fournisseur SMTP réel, renseigner `SMTP_USER` et `SMTP_PASS` dans `.env`, puis redémarrer notification-service.
+
+Erreur connue :
+
+- `Missing credentials for "PLAIN"` signifie que le transport SMTP tente une authentification PLAIN sans credentials complets. Vérifier que `SMTP_USER` + `SMTP_PASS` sont passés au conteneur ou, en MailHog/dev, que l’auth SMTP est bien désactivée.
+
+---
+
 ## 7. Tests et développement (suite)
 
 - **Tests API** : `tests/api/test-email-endpoints.test.js` (logs, test-smtp, stats, envoi test).

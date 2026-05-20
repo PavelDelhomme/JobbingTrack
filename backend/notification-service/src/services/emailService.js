@@ -3,18 +3,27 @@ const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-      port: process.env.SMTP_PORT || 2525,
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const transportConfig = {
+      host: process.env.SMTP_HOST || 'mailhog',
+      port: Number(process.env.SMTP_PORT || 1025),
       secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      },
       tls: {
         rejectUnauthorized: false
       }
-    });
+    };
+
+    if (smtpUser && smtpPass) {
+      transportConfig.auth = {
+        user: smtpUser,
+        pass: smtpPass
+      };
+    } else if (smtpUser || smtpPass) {
+      logger.warn('Configuration SMTP incomplète: auth désactivée car SMTP_USER ou SMTP_PASS manque');
+    }
+
+    this.transporter = nodemailer.createTransport(transportConfig);
   }
 
   async sendEmail(to, subject, html) {
