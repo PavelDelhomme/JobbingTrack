@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -195,8 +196,9 @@ export default function ThreatDetailsPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="space-y-6">
+          <SecuritySubNav />
+          <SectionLoader message="Chargement de la menace…" />
         </div>
       </AdminLayout>
     );
@@ -611,7 +613,7 @@ export default function ThreatDetailsPage() {
                   </p>
                 )}
                 {Array.isArray(attacker.ll) && attacker.ll.length === 2 && (
-                  <p className="mt-1 text-xs text-gray-500 font-mono">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
                     {attacker.ll[0]}, {attacker.ll[1]}
                   </p>
                 )}
@@ -778,8 +780,8 @@ export default function ThreatDetailsPage() {
                   <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{event.eventType}</span>
-                    <span className="text-gray-500">{event.level}</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-500 dark:text-gray-400">{event.level}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
                       {formatLocalDateTime(event.timestamp)}
                     </span>
                     {event.isBlocked && (
@@ -789,7 +791,7 @@ export default function ThreatDetailsPage() {
                   <p className="mt-1 text-gray-700 dark:text-gray-300">
                     {event.message}
                   </p>
-                  <p className="mt-1 font-mono text-xs text-gray-500">
+                  <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
                     {event.method || "—"}{" "}
                     {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
                     {event.statusCode ?? "—"} ·{" "}

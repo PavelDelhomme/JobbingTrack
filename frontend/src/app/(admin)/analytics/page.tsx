@@ -28,6 +28,7 @@ import {
   Bar,
 } from "recharts";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import { DashboardLayoutRegion, useAnalyticsPanelPrefs } from "@/lib/ui";
 import { useMetrics } from "@/lib/hooks/useMetrics";
 import { DataSourceBadge } from "@/components/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -109,26 +110,6 @@ interface DevMetrics {
   rolledBackDeployments: number | string;
   deploymentSuccessRate: number | string;
 }
-
-interface CustomizationSettings {
-  showPerformance: boolean;
-  showErrors: boolean;
-  showTimeline: boolean;
-  showDeveloper: boolean;
-  showSecurity: boolean;
-  viewType: "cards" | "charts" | "table";
-  chartType: "bar" | "pie" | "line";
-}
-
-const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
-  showPerformance: true,
-  showErrors: true,
-  showTimeline: true,
-  showDeveloper: false,
-  showSecurity: false,
-  viewType: "cards",
-  chartType: "bar",
-};
 
 /** Graphiques Recharts réutilisables (stable, pas de scintillement) */
 
@@ -528,19 +509,9 @@ function AnalyticsContent() {
   );
   const [servicesSnapshot, setServicesSnapshot] = useState<any[]>([]);
 
-  // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false);
-  const [customization, setCustomization] = useState<CustomizationSettings>(
-    () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("analytics-customization");
-        return saved
-          ? { ...DEFAULT_CUSTOMIZATION, ...JSON.parse(saved) }
-          : DEFAULT_CUSTOMIZATION;
-      }
-      return DEFAULT_CUSTOMIZATION;
-    },
-  );
+  const { customization, updateCustomization, resetCustomization } =
+    useAnalyticsPanelPrefs();
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
@@ -559,25 +530,6 @@ function AnalyticsContent() {
     if (tabFromUrl && tabs.includes(tabFromUrl))
       setActiveTab(tabFromUrl as any);
   }, [searchParams]);
-
-  // Sauvegarder les paramètres de personnalisation
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "analytics-customization",
-        JSON.stringify(customization),
-      );
-    }
-  }, [customization]);
-
-  // Fonctions de personnalisation
-  const updateCustomization = (updates: Partial<CustomizationSettings>) => {
-    setCustomization((prev) => ({ ...prev, ...updates }));
-  };
-
-  const resetCustomization = () => {
-    setCustomization(DEFAULT_CUSTOMIZATION);
-  };
 
   // États pour les vraies données
   // Générer les données par défaut pour les tendances d'erreurs (24 heures)
@@ -1692,7 +1644,7 @@ function AnalyticsContent() {
               </div>
 
               {/* Graphiques de performance */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DashboardLayoutRegion variant="section">
                 {/* Graphique des erreurs par heure */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -1748,7 +1700,7 @@ function AnalyticsContent() {
                     />
                   </div>
                 </div>
-              </div>
+              </DashboardLayoutRegion>
 
               {/* Recommandations */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
@@ -2237,7 +2189,7 @@ function AnalyticsContent() {
               </div>
 
               {/* Graphique de sécurité en temps réel */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DashboardLayoutRegion variant="section">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
                     📊 Activité de Sécurité (24h)
@@ -2317,7 +2269,7 @@ function AnalyticsContent() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </DashboardLayoutRegion>
 
               {/* Métriques de sécurité avancées */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">

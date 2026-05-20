@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
@@ -174,8 +175,9 @@ export default function NetworkStatsPage() {
   if (loading && !stats) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="space-y-6">
+          <SecuritySubNav />
+          <SectionLoader message="Chargement du réseau…" />
         </div>
       </AdminLayout>
     );
@@ -501,7 +503,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune connexion par conteneur détectée
             </p>
           )}
@@ -569,7 +571,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucun port destination détecté
             </p>
           )}
@@ -598,7 +600,7 @@ export default function NetworkStatsPage() {
               )}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune connexion par état détectée
             </p>
           )}
@@ -670,7 +672,7 @@ export default function NetworkStatsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               Aucune IP source détectée
             </p>
           )}

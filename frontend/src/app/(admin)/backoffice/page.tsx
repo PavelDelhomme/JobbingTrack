@@ -38,6 +38,12 @@ import {
 } from "@/lib/icons";
 import axios from "axios";
 import { useTracking } from "@/components/tracking/TrackingProvider";
+import { DashboardLayoutRegion } from "@/lib/ui";
+import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
+import {
+  summarizeDockerServiceHealth,
+  type DockerServiceRow,
+} from "@/lib/metrics/serviceHealthOverview";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -164,6 +170,9 @@ export default function BackofficePage() {
   const [containerMetrics, setContainerMetrics] = useState<any>(null);
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false);
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([]);
+  const [dockerServicesSnapshot, setDockerServicesSnapshot] = useState<
+    DockerServiceRow[]
+  >([]);
   const [maintenances, setMaintenances] = useState<{ [key: string]: any }>({});
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false);
   const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000); // Valeur par défaut, sera remplacée par les préférences
@@ -329,6 +338,11 @@ export default function BackofficePage() {
   // ✅ Valeurs attendues (pour afficher X/Y)
   // Par défaut, on se base sur la liste des services affichés (source de vérité UI).
   const expectedServicesCount = services.length;
+
+  const serviceHealthSummary = useMemo(
+    () => summarizeDockerServiceHealth(dockerServicesSnapshot),
+    [dockerServicesSnapshot],
+  );
   // Le nombre de conteneurs JobbingTrack attendus dépend du profil docker-compose.
   // On conserve une valeur par défaut (22) mais permet override via env.
   const expectedJobbingtrackContainers =
@@ -955,6 +969,7 @@ export default function BackofficePage() {
             try {
               const servicesData = await centralMetricsService.getAllServices();
               if (servicesData && servicesData.length > 0 && mounted) {
+                setDockerServicesSnapshot(servicesData as DockerServiceRow[]);
                 const updatedServices = services.map((service) => {
                   const serviceData = servicesData.find(
                     (s: any) => s.name === service.name || s.id === service.id,
@@ -978,6 +993,7 @@ export default function BackofficePage() {
 
         const servicesData = await centralMetricsService.getAllServices();
         if (servicesData && servicesData.length > 0 && mounted) {
+          setDockerServicesSnapshot(servicesData as DockerServiceRow[]);
           // ✅ FUSIONNER avec les valeurs précédentes au lieu d'écraser
           setServicesWithMetrics((prevServices: any[]) => {
             // ✅ CORRECTION : S'assurer que prevServices est un tableau
@@ -1123,7 +1139,7 @@ export default function BackofficePage() {
       <div className="space-y-6 md:space-y-8">
         {/* Cartes synthèse : 1 colonne mobile, 2 colonnes tablette, 3 colonnes desktop. */}
         <div className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 md:gap-6">
+          <DashboardLayoutRegion variant="metrics">
             <MetricCard
               title="Sessions actives"
               value={
@@ -1242,7 +1258,7 @@ export default function BackofficePage() {
                     : "green"
               }
             />
-          </div>
+          </DashboardLayoutRegion>
 
           {/* Détail CPU / mémoire par conteneur jobbingtrack-* (même source que la carte, précision par service) */}
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/35">
@@ -1328,30 +1344,19 @@ export default function BackofficePage() {
                 <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">
                   ⚡ metrics-aggregator
                 </span>
-                {/* ✅ Afficher X/Y services et X/Y conteneurs */}
-                {(() => {
-                  const svcList = Array.isArray(servicesWithMetrics)
-                    ? servicesWithMetrics
-                    : [];
-                  const healthyServices = svcList.filter(
-                    (s) =>
-                      s.health?.status === "healthy" || s.status === "running",
-                  ).length;
-                  const totalServices = expectedServicesCount;
-                  const containersCount = Number(
-                    systemMetrics?.jobbingtrack?.containers?.count || 0,
-                  );
-                  const containersLabel =
-                    containersCount > 0
-                      ? `${containersCount}/${expectedJobbingtrackContainers} conteneurs`
-                      : `—/${expectedJobbingtrackContainers} conteneurs`;
-                  return (
-                    <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
-                      {healthyServices}/{totalServices} services •{" "}
-                      {containersLabel}
-                    </span>
-                  );
-                })()}
+                <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
+                  {serviceHealthSummary.healthy} sains ·{" "}
+                  {serviceHealthSummary.degraded} dégradés ·{" "}
+                  {serviceHealthSummary.totalRunning} en cours
+                  {serviceHealthSummary.stopped > 0
+                    ? ` · ${serviceHealthSummary.stopped} arrêtés`
+                    : ""}{" "}
+                  ·{" "}
+                  {Number(systemMetrics?.jobbingtrack?.containers?.count || 0) >
+                  0
+                    ? `${systemMetrics.jobbingtrack.containers.count}/${expectedJobbingtrackContainers} conteneurs JT`
+                    : `—/${expectedJobbingtrackContainers} conteneurs JT`}
+                </span>
               </h2>
               <div className="flex items-center gap-2">
                 <div
@@ -1381,7 +1386,26 @@ export default function BackofficePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <ServiceHealthKpiCards
+              dockerServices={dockerServicesSnapshot}
+              className="mb-4"
+            />
+            <div className="mb-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/b4ck0ff1ce/statistics"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Statistiques & monitoring →
+              </Link>
+              <Link
+                href="/b4ck0ff1ce/services"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Détail services →
+              </Link>
+            </div>
+
+            <DashboardLayoutRegion variant="dense">
               {/* 1. Charge Système + Disque en dessous */}
               <div className="text-center">
                 <div
@@ -1738,39 +1762,21 @@ export default function BackofficePage() {
                     Services
                   </div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {(() => {
-                      const svcList = Array.isArray(servicesWithMetrics)
-                        ? servicesWithMetrics
-                        : [];
-                      const healthyServices = svcList.filter(
-                        (s) =>
-                          s.health?.status === "healthy" ||
-                          s.status === "running",
-                      ).length;
-                      return `${healthyServices}/${expectedServicesCount}`;
-                    })()}
+                    {serviceHealthSummary.healthy}/
+                    {serviceHealthSummary.totalRunning}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {(() => {
-                      const svcList = Array.isArray(servicesWithMetrics)
-                        ? servicesWithMetrics
-                        : [];
-                      const healthyServices = svcList.filter(
-                        (s) =>
-                          s.health?.status === "healthy" ||
-                          s.status === "running",
-                      ).length;
-                      const isOk = healthyServices >= expectedServicesCount;
-                      return loadingSystemMetrics
-                        ? "..."
-                        : isOk
-                          ? "🟢 OK"
-                          : `🟡 ${expectedServicesCount - healthyServices} KO`;
-                    })()}
+                    {loadingSystemMetrics
+                      ? "..."
+                      : serviceHealthSummary.degraded > 0
+                        ? `🟡 ${serviceHealthSummary.degraded} dégradé(s)`
+                        : serviceHealthSummary.totalRunning > 0
+                          ? "🟢 Conteneurs en cours"
+                          : "—"}
                   </div>
                 </div>
               </div>
-            </div>
+            </DashboardLayoutRegion>
 
             {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
             {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
@@ -1779,7 +1785,7 @@ export default function BackofficePage() {
                   📦 Métriques Projet - Conteneurs JobbingTrack (
                   {systemMetrics.jobbingtrack.containers.count})
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DashboardLayoutRegion variant="section" className="gap-4">
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1870,14 +1876,14 @@ export default function BackofficePage() {
                           : " 🟢 Normal"}
                     </div>
                   </div>
-                </div>
+                </DashboardLayoutRegion>
               </div>
             ) : null}
           </div>
         </MetricsErrorBoundary>
 
         {/* Services et métriques avancées */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardLayoutRegion variant="section">
           {/* État des services */}
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
@@ -2066,7 +2072,7 @@ export default function BackofficePage() {
               )}
             </div>
           </div>
-        </div>
+        </DashboardLayoutRegion>
 
         {/* Popup des Services */}
         {showServicesPopup && (
@@ -2088,7 +2094,7 @@ export default function BackofficePage() {
               </div>
 
               <div className="p-6 overflow-y-auto max-h-[60vh]">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DashboardLayoutRegion variant="triple">
                   {(Array.isArray(servicesWithMetrics) &&
                   servicesWithMetrics.length > 0
                     ? servicesWithMetrics
@@ -2312,7 +2318,7 @@ export default function BackofficePage() {
                       </div>
                     );
                   })}
-                </div>
+                </DashboardLayoutRegion>
               </div>
 
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">

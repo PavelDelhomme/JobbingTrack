@@ -53,8 +53,8 @@ export function LoadingState({
   className = "",
 }: LoadingStateProps) {
   const containerClass = fullScreen
-    ? "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950"
-    : "flex items-center justify-center py-12";
+    ? "min-h-screen flex items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100"
+    : "flex items-center justify-center py-12 text-gray-900 dark:text-gray-100";
 
   return (
     <div className={`${containerClass} ${className}`}>

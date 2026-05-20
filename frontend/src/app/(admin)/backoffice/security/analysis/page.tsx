@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -230,8 +231,9 @@ export default function SecurityAnalysisPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="space-y-6">
+          <SecuritySubNav />
+          <SectionLoader message="Chargement de l'analyse…" />
         </div>
       </AdminLayout>
     );

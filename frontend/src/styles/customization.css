@@ -1,16 +1,20 @@
 /* Styles de personnalisation pour JobbingTrack */
 
-/* Variables CSS personnalisées pour les couleurs */
+/* Tokens moteur UI (--jt-*) + alias legacy pour le CSS existant */
 :root {
-  --primary-color: #3b82f6;
-  --accent-color: #10b981;
+  --jt-primary: #3b82f6;
+  --jt-accent: #10b981;
+  --primary-color: var(--jt-primary);
+  --accent-color: var(--jt-accent);
   --animation-duration: 150ms;
 }
 
 /* Haut contraste : tokens uniquement (pas de filter global — casse le dark mode). */
 .high-contrast {
-  --primary-color: #2563eb;
-  --accent-color: #059669;
+  --jt-primary: #2563eb;
+  --jt-accent: #059669;
+  --primary-color: var(--jt-primary);
+  --accent-color: var(--jt-accent);
 }
 
 .dark.high-contrast,
@@ -886,22 +890,16 @@ html.dark.high-contrast {
   }
 }
 
-/* Dispositions du tableau de bord */
-[data-dashboard-layout="grid"] .dashboard-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-[data-dashboard-layout="list"] .dashboard-content {
+/* Dispositions du tableau de bord (fallback si classe Tailwind absente) */
+[data-dashboard-layout="list"] .dashboard-content:not([class*="grid"]):not([class*="flex"]) {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-[data-dashboard-layout="kanban"] .dashboard-content {
+[data-dashboard-layout="kanban"] .dashboard-content:not([class*="grid"]):not([class*="flex"]) {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
@@ -1119,29 +1117,12 @@ html.dark.high-contrast {
   }
 }
 
-/* Thèmes personnalisés */
+/* Palette 50–900 : valeurs statiques optionnelles (plus de génération JS sur :root). */
 .theme-custom {
-  --primary-50: rgba(59, 130, 246, 0.05);
-  --primary-100: rgba(59, 130, 246, 0.1);
-  --primary-200: rgba(59, 130, 246, 0.2);
-  --primary-300: rgba(59, 130, 246, 0.3);
-  --primary-400: rgba(59, 130, 246, 0.4);
-  --primary-500: var(--primary-color);
+  --primary-500: var(--jt-primary, var(--primary-color));
   --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-
-  --accent-50: rgba(16, 185, 129, 0.05);
-  --accent-100: rgba(16, 185, 129, 0.1);
-  --accent-200: rgba(16, 185, 129, 0.2);
-  --accent-300: rgba(16, 185, 129, 0.3);
-  --accent-400: rgba(16, 185, 129, 0.4);
-  --accent-500: var(--accent-color);
+  --accent-500: var(--jt-accent, var(--accent-color));
   --accent-600: #059669;
-  --accent-700: #047857;
-  --accent-800: #065f46;
-  --accent-900: #064e3b;
 }
 
 /* Préchargement des styles */

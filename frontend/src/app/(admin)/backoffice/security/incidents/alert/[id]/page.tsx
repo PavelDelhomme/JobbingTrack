@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import { SectionLoader, uiSurfaces, uiText } from "@/lib/ui";
 import { SecuritySubNav } from "../../../SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -78,19 +79,21 @@ export default function SecurityAlertDetailPage() {
           Retour aux incidents
         </Link>
 
-        {loading && <p className="text-sm text-gray-500">Chargement…</p>}
+        {loading && (
+          <SectionLoader message="Chargement de l'alerte…" className="min-h-[40vh]" />
+        )}
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
 
-        {alert && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 space-y-4">
+        {alert && !loading && (
+          <div className={`${uiSurfaces.panel} p-6 space-y-4`}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded bg-red-100 text-red-800 dark:bg-red-900/40 px-2 py-1 text-xs font-semibold uppercase">
                 {alert.level}
               </span>
-              <span className="text-xs text-gray-500">{alert.category}</span>
-              <span className="text-xs text-gray-500 ml-auto">
+              <span className={`text-xs ${uiText.subtle}`}>{alert.category}</span>
+              <span className={`text-xs ml-auto ${uiText.subtle}`}>
                 {formatLocalDateTime(alert.timestamp)}
               </span>
             </div>
@@ -101,13 +104,13 @@ export default function SecurityAlertDetailPage() {
               {alert.description}
             </p>
             <p className="text-sm">
-              <span className="text-gray-500">Source :</span>{" "}
+              <span className={uiText.subtle}>Source :</span>{" "}
               <span className="font-mono">{alert.source}</span>
             </p>
             {threatId && (
               <Link
                 href={threatHref(threatId)}
-                className="inline-block text-red-600 hover:underline font-medium"
+                className={`inline-block ${uiText.link}`}
               >
                 Ouvrir la menace réseau liée →
               </Link>
@@ -115,7 +118,7 @@ export default function SecurityAlertDetailPage() {
             {alert.metadata && (
               <div>
                 <h2 className="text-sm font-semibold mb-2">Métadonnées</h2>
-                <pre className="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded overflow-x-auto">
+                <pre className="text-xs bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 p-3 rounded overflow-x-auto border border-gray-200 dark:border-gray-700">
                   {JSON.stringify(alert.metadata, null, 2)}
                 </pre>
               </div>
