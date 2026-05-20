@@ -63,9 +63,10 @@ async function loadInitial(): Promise<{
   customization: CustomizationSettings;
   panels: UiPanelsSettings;
 }> {
-  let { customization, panels } = loadInitialPreferences();
+  const { customization: initialCustomization, panels } =
+    loadInitialPreferences();
   const remote = await fetchRemoteCustomization();
-  customization = mergeRemoteCustomization(customization, remote);
+  const customization = mergeRemoteCustomization(initialCustomization, remote);
   const prefs = buildPreferencesV1(customization, panels);
   persistV1(prefs);
   return { customization: prefs.customization, panels: prefs.panels };
