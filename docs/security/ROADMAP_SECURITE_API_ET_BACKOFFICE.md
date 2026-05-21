@@ -72,6 +72,8 @@ Objectif : lancer / consulter les contrôles **non destructifs** depuis l’UI, 
 
 À couvrir par tests contrôlés, playbooks et veille (pas d’outil FraudGPT en prod).
 
+**Objectif produit** : ne pas « ajouter de l’IA » côté attaque, mais préparer JobbingTrack à des adversaires capables d’automatiser la reconnaissance, l’adaptation de payloads et l’ingénierie sociale. Tous les tests actifs restent bornés, tracés et exécutés uniquement sur lab/préprod autorisée.
+
 | Vecteur | Description | Tests / défense JobbingTrack |
 |---------|-------------|------------------------------|
 | Spear phishing | Textes ultra-ciblés, multilingues (modèles type FraudGPT/WormGPT) | Sensibilisation, MFA, détection phishing mail (notification-service), pas de secrets par email |
@@ -92,6 +94,11 @@ Objectif : lancer / consulter les contrôles **non destructifs** depuis l’UI, 
 - **Évasion détection** : UA cohérent, rythme « humain » → UEBA (phase 7), ne pas se fier qu’à IP seule.
 - **Endpoints IA** (si exposés) : prompt injection, vol de modèle, secrets en contexte → quotas, filtrage prompts, pas de secrets dans les logs.
 
+**Livrables phase 6** :
+- [ ] Scénarios lab documentés : phishing simulé, fuzzing adaptatif, brute force distribué borné, extraction lente.
+- [ ] Mapping détection attendue : WAF, intrusion gateway, `security_logs`, `networkThreat`, alertes mail B11.
+- [ ] Rapport d’écart : ce qui est détecté automatiquement, ce qui nécessite une validation humaine, ce qui est hors périmètre.
+
 ---
 
 ## Phase 7 — Défense augmentée par l’IA
@@ -103,13 +110,23 @@ Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrél
 - [ ] **Réponse automatisée** : blocage IP dynamique, durcissement WAF temporaire, rotation tokens incident (politique à cadrer).
 - [ ] **DAST intelligent** : fuzzing / scanning régulier (ZAP, scripts matrice) en CI ou stack lab dédiée.
 
+**Garde-fous** :
+- Les scores IA/UEBA sont **explicables** : source, fenêtre temporelle, signaux utilisés, niveau de confiance.
+- Les actions destructives ou bloquantes restent **réversibles** et journalisées (B7/B8) ; l’automatisation peut recommander ou bloquer temporairement, mais une politique admin doit définir seuils, durée et rollback.
+- Les données personnelles ne sont pas enrichies avec des sources externes non fiables ; l’enrichissement IP reste technique (ASN, RDAP, réputation contrôlée) et cache/rate-limit.
+
+**Livrables phase 7** :
+- [ ] Modèle d’événement commun pour `security_logs`, `aggregated_logs`, menaces réseau et alertes.
+- [ ] Tableau investigation : timeline par `requestId` / utilisateur / IP / service.
+- [ ] DAST lab planifié : ZAP actif borné, endpoints critiques, budget temps, faux positifs triés.
+
 ---
 
 ## Phase 8 — Menace quantique et crypto post-quantique (PQC)
 
 - **Shor** : RSA/ECC classiques compromis à terme → TLS, signatures, échanges de clés.
 - **Collect now, decrypt later** : capture TLS aujourd’hui, déchiffrement dans 5–15 ans → données sensibles longue durée = priorité PQC.
-- **Calendrier** : abandon RSA/ECC seuls vers **2030–2035** ; NIST (Kyber / ML-KEM, Dilithium).
+- **Calendrier** : abandon progressif de RSA/ECC seuls vers **2030–2035** selon les exigences clients/réglementaires ; suivre les standards NIST (**ML-KEM**, **ML-DSA**, **SLH-DSA**) et les suites TLS hybrides disponibles côté edge.
 
 ### PQC en pratique (roadmap infra)
 
@@ -117,6 +134,17 @@ Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrél
 - [ ] **Crypto-agilité** : pouvoir changer d’algo sans refonte totale.
 - [ ] **TLS hybride** : edge NPM/Cloudflare avec suites classique + post-quantique (ML-KEM) quand disponible sur le VPS.
 - [ ] **Appli** : pas de migration applicative immédiate ; surveiller libs/HSM/KMS PQC-ready.
+
+**Priorisation JobbingTrack** :
+- Données à longue confidentialité : exports, sauvegardes BDD, rapports sécurité, emails/logs sensibles, documents candidats/entreprises si conservés longtemps.
+- Flux à traiter d’abord : TLS public edge, sauvegardes, rotation secrets, JWT/JWS et clés de service.
+- Flux non prioritaires : données éphémères dev/local et métriques sans contenu sensible, sauf si elles contiennent des IP, tokens, payloads ou erreurs applicatives détaillées.
+
+**Livrables phase 8** :
+- [ ] Registre crypto : algorithme, usage, durée de vie, propriétaire, procédure de rotation, compatibilité rollback.
+- [ ] Runbook préprod/prod : test TLS hybride, mesure latence handshake, compatibilité navigateurs/mobile/API, retour arrière.
+- [ ] Politique backups : chiffrement, rotation clés, vérification restauration, conservation et destruction contrôlée.
+- [ ] Veille dépendances : Node/OpenSSL, Nginx/NPM/Cloudflare, librairies JWT, outils de sauvegarde.
 
 ---
 
