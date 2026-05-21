@@ -115,7 +115,6 @@
     "webpack-bundle-analyzer": "^4.10.1"
   },
   "overrides": {
-    "postcss": "$postcss",
-    "glob": "13.0.6"
+    "postcss": "$postcss"
   }
 }
