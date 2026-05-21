@@ -17,6 +17,7 @@
 - **Volume logs sécurité (UI)** : `/persistence/stats` expose `security_logs` ; Statistics sécurité affiche le total BDD + scripts rétention ; agrégation journalière inclut intrusion/DDoS depuis métadonnées `security_metrics`.
 - **Restauration archive (sans écraser la table active)** : `scripts/security/security-logs-archive-restore.cjs` vérifie `manifest.json`, SHA-256 gzip et forme JSONL ; `--load-staging` alimente uniquement `public.security_logs_restore_staging`. Validation locale sur l’archive test `noise` : **50** lignes vérifiées, **50** déjà présentes dans `security_logs`, **50** chargées en staging.
 - **Dette Menaces observée par le porteur** : la page Menaces contient encore des lignes historiques/lab (`10.0.0.x`, `198.51.100.42`) et d’anciennes IP privées Docker (`172.19.x`/`172.20.x`). C’est une dette de tri/nettoyage contrôlé, pas une preuve que le correctif runtime Docker a régressé ; ajout TODO pour inventaire dry-run `network_threats` avant purge validée.
+- **Inventaire Menaces dry-run** : `scripts/security/security-threats-inventory-dry-run.cjs` classe `network_threats` sans suppression (`lab_test`, `private_network`, `external_or_unknown`) et sort totaux + sévérité/statut + échantillon. Validation locale : `lab_test=228` dont `135` high/critical non bloquées ; `private_network=11` dont `2` high/critical et `1` bloquée.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 
