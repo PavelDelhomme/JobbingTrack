@@ -12,6 +12,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
+  StickyTimeRangeToolbar,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
   beginUserRangeFetch,
@@ -607,7 +608,7 @@ export default function PerformancesPage() {
               Performances
             </h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <StickyTimeRangeToolbar className="w-full">
             <TimeRangeSelector
               timeRange={timeRange}
               setTimeRange={setTimeRange}
@@ -624,8 +625,10 @@ export default function PerformancesPage() {
               onPeriodNow={handlePeriodNow}
               showNavigationHint={false}
             />
-          </div>
-          <ChartPeriodCaption label={rangeLabel} />
+            <div className="mt-2 w-full">
+              <ChartPeriodCaption label={rangeLabel} />
+            </div>
+          </StickyTimeRangeToolbar>
         </div>
 
         {loading && chartData.length === 0 ? (

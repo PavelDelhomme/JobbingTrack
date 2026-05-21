@@ -4,6 +4,13 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
+
+- **Statistics vue d’ensemble** : graphes **Disponibilité** et **Taux d’erreur** sur l’onglet Vue d’ensemble (composant `StatisticsErrorAvailabilityCharts`), avec légende `MetricsSeriesCaption` (source persistée, mention si dérivé).
+- **Plage temporelle** : `/b4ck0ff1ce/statistics` utilise le même `TimeRangeSelector` et stockage `jobbingtrack:analytics:shared-time-v1` que Performances (navigation ◀ ▶, plage personnalisée, période actuelle).
+- **Barre sticky** : `StickyTimeRangeToolbar` sur Performances (synthèse) et Statistics.
+- **Tests** : `npm run type-check` OK ; Playwright `statistics-smoke` **4/4** ; Jest `statisticsTimeSeries` **3/3**.
+
 ## 21 mai 2026 (suite) — QA Performances sous-pages + Statistics smoke
 
 - **Reprise stack locale** : stack redémarrée via `docker compose` (postgres/redis → security/monitoring → gateway/auth → `scripts/db/db-push-all.sh` → frontend + profil `full` + proxy HTTPS `dev-https-proxy`).
