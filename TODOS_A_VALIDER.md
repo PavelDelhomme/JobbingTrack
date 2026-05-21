@@ -20,7 +20,6 @@ L’agent ne coche pas à la place du porteur : après un `OK` explicite, il arc
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P0 | Rapports sécurité visibles dans le backoffice | local/preprod | `/b4ck0ff1ce/test-reports` affiche la catégorie Sécurité, ouverture et téléchargement d’un rapport OK. | [ ] | 21/05 porteur : validation partielle. Rapport CVE local frais généré (`security-results-cve-20260521-201336`) et listé par l’API ; rendu visuel CVE/PDF jugé trop brut/illisible comparé aux rapports de tests classiques, amélioration UX à planifier. |
 | P0 | Menaces historiques/lab comprises avant nettoyage | local | Confirmer que `10.0.0.x`, `198.51.100.42`, `172.19.x/172.20.x` sont à classer lab/bruit avant toute purge. | [ ] | Ne rien supprimer sans validation explicite. |
 | P1 | Archive logs sécurité sans purge | local | Export JSONL gzip + `manifest.json` lisibles ; aucune suppression BDD. | [ ] | |
 | P1 | Restauration logs sécurité en staging | local | `security_logs_restore_staging` alimentée ; aucune écriture dans `security_logs`. | [ ] | |
