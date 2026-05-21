@@ -21,6 +21,7 @@
 - **Security Audit GitHub / Node 20** : `security-audit.yml` retire `gitleaks/gitleaks-action@v2.3.9` (runtime Node 20) au profit du binaire Gitleaks `v8.30.1` puis `scripts/security/secrets-scan.sh`; l'upload SARIF Trivy passe à `github/codeql-action/upload-sarif@v4`. Correctif immédiat après run `26232354842` : éviter l’API GitHub releases non authentifiée qui a répondu `403 rate limit exceeded`. Run suivant `26234201957` : Gitleaks s’exécute mais échoue sur la dette historique connue (**718 findings bruts**) ; le workflow passe le scan en rapport non bloquant (`GITLEAKS_FINDINGS_EXIT_CODE=0`) tout en conservant l’artefact, le tri final restant suivi dans `TODOS.md`. Validation GitHub : run **`26234510539` succès** sur `dev`.
 - **Documentation prod / Trivy images** : `docs/ci-cd/README.md`, `PREPROD_PRODUCTION_CHECKLIST.md`, `RELEASE_PREPROD_PRODUCTION_PLAN.md` et `DEPLOIEMENT_FINAL.md` documentent le déclenchement manuel **Security Audit** avec `scan_prod_images=true`, les artefacts `trivy-prod-image-reports`, et le tri obligatoire des `HIGH`/`CRITICAL` avant préprod/prod.
 - **Audit doc sécurité/déploiement** : cartographie mise à jour dans `docs/security/README.md` et `docs/project/CHANTIER_SECURITE_DATA_DOCS.md` ; `CVE_CONTINUOUS_MONITORING.md`, `STATS.md`, `SECURITY_TESTING_MATRIX.md` et `ACTIVATION_WAF.md` réalignés sur les workflows/URLs actuels et sur la règle “cibles Make documentées, pas commandes directes”.
+- **Pilotage bloquant porteur** : nouveau flux racine `PILOTAGE.md` → `TODOS_A_VALIDER.md` → `TODOS_A_VERIFIER.md` → `docs/TODOS.md`; validations acceptées archivées dans `TODOS_DONE.md`; gates préprod/prod séparés dans `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, `VALIDATION_PRODUCTION.md`; règle Cursor `.cursor/rules/pilotage-validation.mdc` ajoutée.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 
@@ -35,7 +36,7 @@
 - **Smoke API** : `smoke-persistence-stats.cjs` OK ; `smoke-statistics-history-api.cjs` → 12 points / disponibilité présente sur la fenêtre courante.
 - **Playwright Performances** : nouveau `frontend/tests/e2e/performances-range-smoke.spec.ts` — Réseau, Disque, Conteneurs, Latence : graphes chargés, transitions **24 h ↔ 7 j**, aucun overlay `Network Error` (**4/4 OK**).
 - **Playwright Statistics** : `frontend/tests/e2e/statistics-smoke.spec.ts` — vue d’ensemble, log-stats, app-data chargent sans erreur réseau (**3/3 OK**).
-- **CI doc** : run GitHub `26202796200` marqué succès dans `TODOS.md` et `A_VALIDER_VERIFIER.md` (commit `058e3ca0`).
+- **CI doc** : run GitHub `26202796200` marqué succès dans `TODOS.md` et `TODOS_A_VALIDER.md` (commit `058e3ca0`).
 
 ## 21 mai 2026 — CI Prettier + périodes Performances
 
@@ -91,7 +92,7 @@
 
 ## 13 mai 2026 — documentation, rapports, suite complète
 
-- **Documents porteur / projet** : ajout de `docs/security/AUDIT_SEC_PROJECT.md`, `A_VALIDER_VERIFIER.md`, `BRANCHES.md` et `monitoring/RAPPORT_MONITORING_GOOD_PRACTICE_GO_AND_C.md`.
+- **Documents porteur / projet** : ajout initial de `docs/security/AUDIT_SEC_PROJECT.md`, registre porteur, `BRANCHES.md` et `monitoring/RAPPORT_MONITORING_GOOD_PRACTICE_GO_AND_C.md`. **21/05** : le registre porteur est restructuré en flux `PILOTAGE.md`, `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md`, `TODOS_DONE.md`, puis gates préprod/prod dédiés.
 - **Rapports sécurité backoffice** : les routes `frontend/src/app/api/test-reports/*` listent, affichent, téléchargent et suppriment les rapports sous `reports/security/**` et `tests/results/security/**`; `/backoffice/test-reports` connaît le type `security`.
 - **Tri P0 sécurité** : `docs/security/STATS.md` contient le tri initial des résultats `gitleaks` / Trivy déjà consignés ; le tri finding par finding dépend encore de la récupération ou régénération des artefacts datés manquants.
 - **Smokes infra non-gateway** : `test-metrics-aggregator.js` et `test-deployment-service.js` couvrent les exceptions F3 ; validation locale : metrics **4/4**, deployment **3/3**.

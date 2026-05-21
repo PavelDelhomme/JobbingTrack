@@ -20,7 +20,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **UX backoffice / mode clair (21/05/2026)** : validation porteur provisoire acceptée après renforcement global des surfaces/cartes/champs/couleurs. Ne plus bloquer le lot apparence global ici ; rouvrir uniquement des tickets ciblés page par page si un écran précis reste illisible.
 
-**CI Prettier frontend (21/05/2026)** : `frontend/.prettierignore` exclut les artefacts générés et `npm run format:check` est vert localement. Le suivi restant est opérationnel : commit/push puis observation du workflow GitHub #556 dans `A_VALIDER_VERIFIER.md`.
+**CI Prettier frontend (21/05/2026)** : `frontend/.prettierignore` exclut les artefacts générés et `npm run format:check` est vert localement. Le suivi restant est opérationnel : commit/push puis observation du workflow GitHub #556 dans `TODOS_A_VALIDER.md`.
 
 **Sécurité — libellés & navigation (18/05/2026)** : pages **`/b4ck0ff1ce/security/**`** (policies, logs, etc.) — reprendre noms/titres/sous-nav (**`SecuritySubNav`**, FR, fallbacks) — **`PLAN.md` B10** + priorité rapide **`TODOS.md`**.
 

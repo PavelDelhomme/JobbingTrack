@@ -2,7 +2,7 @@
 
 **À lire en début de chaque nouvelle demande utilisateur** (conversation Cursor ou agent).
 
-Dernière mise à jour : 18 mai 2026.
+Dernière mise à jour : 21 mai 2026.
 
 ---
 
@@ -10,12 +10,13 @@ Dernière mise à jour : 18 mai 2026.
 
 | Ordre | Fichier | Rôle |
 |------|---------|------|
-| 1 | **`TRAITER_IMMEDIATEMENT.md`** (ce fichier) | Procédure obligatoire |
-| 2 | **`A_VALIDER_VERIFIER.md`** | Ce que le **porteur** doit valider manuellement (pas coché par l’agent seul) |
-| 3 | **`docs/TODOS.md`** | Priorités techniques, chantier en cours |
-| 4 | **`docs/PLAN.md`** / **`docs/STATUS.md`** | Phases, validation porteur datée |
-| 5 | **`docs/ERRORS.md`** | Erreurs connues et résolutions |
-| 6 | **`BRANCHES.md`** | Conventions Git (si présent) |
+| 1 | **`PILOTAGE.md`** | Source de vérité du flux et règle bloquante |
+| 2 | **`TODOS_A_VALIDER.md`** | Ce que le **porteur** doit valider manuellement |
+| 3 | **`TODOS_A_VERIFIER.md`** | Ce que l’agent doit vérifier techniquement |
+| 4 | **`docs/TODOS.md`** | Backlog technique ordonné |
+| 5 | **`docs/PLAN.md`** / **`docs/STATUS.md`** | Phases, état et journal |
+| 6 | **`docs/ERRORS.md`** | Erreurs connues et résolutions |
+| 7 | **`BRANCHES.md`** | Conventions Git |
 
 Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT_ENV.md`, `docs/security/README.md`, `docs/security/STATS.md`.
 
@@ -25,13 +26,14 @@ Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT
 
 Cocher mentalement (ou dans la réponse si utile) :
 
-- [ ] **Branche** : `git branch --show-current` — travailler sur la branche demandée (souvent `fix/dev-https-api-centralization` pour HTTPS/API ; `docs/security-p0-triage` pour doc sécurité seule).
+- [ ] **Pilotage** : si `TODOS_A_VALIDER.md` contient un P0 ouvert, ne pas démarrer une nouvelle feature.
+- [ ] **Branche** : `git branch --show-current` — respecter `BRANCHES.md` (`docs/...`, `fix/...`, `feat/...`, `security/...`) et finir sur `dev`.
 - [ ] **Périmètre** : une demande = un objectif ; pas de refactor hors sujet.
 - [ ] **Secrets** : ne jamais committer `.env`, mots de passe, tokens ; ne pas recopier `ADMIN_PASSWORD` dans le chat.
 - [ ] **Make** : ne pas exécuter `make …` sauf demande explicite — utiliser scripts / `docker compose` / `npm` / `cargo` (règle workspace).
 - [ ] **Frontend** : si touché → `npm run type-check` et `npm run lint` dans `frontend/`.
 - [ ] **Sécurité** : pas de bypass WAF/TLS en prod ; dev HTTPS = `https://jobbingtrack.localhost:5443` + `https://api.jobbingtrack.localhost:5443`.
-- [ ] **Fin de tâche** : mettre à jour `docs/TODOS.md` / `A_VALIDER_VERIFIER.md` si le livrable change la validation porteur.
+- [ ] **Fin de tâche** : mettre à jour `TODOS_A_VERIFIER.md`, `TODOS_A_VALIDER.md`, `TODOS_DONE.md` ou `docs/TODOS.md` selon le cas.
 
 ---
 
@@ -45,7 +47,7 @@ Cocher mentalement (ou dans la réponse si utile) :
 
 ### B. Explorer
 
-1. Chercher dans le code (`grep`, recherche sémantique) — pas deviner.
+1. Chercher dans le code (`rg`, recherche sémantique) — pas deviner.
 2. Lire le fichier **avant** de modifier (style, patterns existants).
 3. Vérifier logs / conteneurs si le sujet est runtime (`docker ps`, `docker logs`, `curl`).
 
@@ -65,20 +67,20 @@ Cocher mentalement (ou dans la réponse si utile) :
 | HTTPS smoke | `curl -kfsS https://jobbingtrack.localhost:5443/login` et login API sur `api.…:5443` |
 | Compose | `docker compose … config` (syntaxe) |
 
-Ne pas marquer « validé porteur » dans `PLAN.md` — seulement dans `A_VALIDER_VERIFIER.md` après action utilisateur.
+Ne pas marquer « validé porteur » dans `PLAN.md` sans validation explicite. Après validation, déplacer la ligne de `TODOS_A_VALIDER.md` vers `TODOS_DONE.md`, puis reporter l’information utile dans `STATUS.md` / `PLAN.md`.
 
 ### E. Git (si demandé)
 
 1. `git status` + `git diff` — **exclure** `frontend/.next-local/`, artefacts build.
 2. Commits **atomiques** (un thème = un commit), messages en anglais impératif : `fix(scope): …`, `feat(scope): …`, `docs(scope): …`.
-3. Branche cible courante : **`fix/dev-https-api-centralization`** pour le chantier HTTPS/API/monitoring ; merger `docs/security-p0-triage` dedans si besoin doc (déjà ancêtre de cette branche).
-4. `git push -u origin <branche>` seulement si l’utilisateur le demande.
+3. Branche cible finale : **`dev`**. Créer une branche préfixée seulement si le travail mérite PR séparée.
+4. `git push` seulement si l’utilisateur l’a demandé dans le flux courant.
 
 ### F. Répondre
 
 1. Français, clair, proportionné.
 2. Dire ce qui a été **vérifié** (commande réelle) vs ce que le **porteur** doit encore valider.
-3. Lien vers `A_VALIDER_VERIFIER.md` pour la validation manuelle.
+3. Lien vers `TODOS_A_VALIDER.md` pour la validation manuelle.
 
 ---
 
@@ -86,17 +88,19 @@ Ne pas marquer « validé porteur » dans `PLAN.md` — seulement dans `A_VALIDE
 
 | Branche | Usage |
 |---------|--------|
-| `main` / `dev` | Intégration stable |
-| `fix/dev-https-api-centralization` | **Chantier actuel** : URLs API HTTPS, nginx dev, env strict gateway/auth, monitoring Rust, login |
-| `docs/security-p0-triage` | Doc tri P0 sécurité — **déjà fusionnée dans l’historique** de `fix/dev-https-api-centralization` |
-| `fix/backoffice-dev-https-api-url` | Ancienne branche proche — préférer `fix/dev-https-api-centralization` |
+| `dev` | Intégration active du projet |
+| `docs/...` | Documentation, pilotage, audit |
+| `fix/...` | Correction d’un problème validé ou remonté par le porteur |
+| `feat/...` | Nouvelle fonctionnalité seulement quand la validation porteur bloquante est vide |
+| `security/...` | Campagne sécurité dédiée |
 
 Workflow recommandé :
 
-1. Commiter sur `fix/dev-https-api-centralization`.
-2. Push cette branche.
-3. PR vers `dev` quand le porteur a coché `A_VALIDER_VERIFIER.md`.
-4. Ne pas écraser le travail : pas de `reset --hard` sans accord explicite.
+1. Vérifier `TODOS_A_VALIDER.md`.
+2. Travailler sur une branche préfixée si nécessaire, sinon sur `dev` pour les petits correctifs docs validés.
+3. Commit atomique.
+4. Push uniquement si demandé.
+5. Ne pas écraser le travail : pas de `reset --hard` sans accord explicite.
 
 ---
 
@@ -111,10 +115,9 @@ Workflow recommandé :
 
 ## 6. Forcer l’agent à suivre cette liste (utilisateur)
 
-1. **Règle Cursor** (`.cursor/rules/`) : ajouter « Lire `TRAITER_IMMEDIATEMENT.md` avant toute action ».
-2. **Première phrase** de chaque message : « Suis TRAITER_IMMEDIATEMENT.md ».
-3. **@ fichier** : `@TRAITER_IMMEDIATEMENT.md` dans le chat.
-4. **Skill dédié** (optionnel) : copier la checklist §2 dans un skill Cursor « jobbingtrack-start ».
+1. **Règle Cursor** : `.cursor/rules/pilotage-validation.mdc` impose la lecture du pilotage.
+2. **Première phrase possible** : « Suis `PILOTAGE.md` ».
+3. **@ fichier** : `@PILOTAGE.md` ou `@TRAITER_IMMEDIATEMENT.md` dans le chat.
 
 ---
 
@@ -122,9 +125,9 @@ Workflow recommandé :
 
 Si l’agent « perd » le contexte :
 
-1. Lire ce fichier + `docs/TODOS.md` (priorités du haut).
+1. Lire `PILOTAGE.md`, `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md`, puis `docs/TODOS.md`.
 2. `git status` et branche courante.
-3. Transcripts passés : dossier agent-transcripts (référence UUID fournie par Cursor).
+3. Reprendre uniquement la première validation bloquante ouverte.
 
 ---
 
@@ -133,4 +136,5 @@ Si l’agent « perd » le contexte :
 - Login HTTPS : `https://jobbingtrack.localhost:5443/login`
 - Backoffice : `https://jobbingtrack.localhost:5443/backoffice`
 - Sécurité : `https://jobbingtrack.localhost:5443/backoffice/security`
-- Registre validation : **`A_VALIDER_VERIFIER.md`**
+- Pilotage : **`PILOTAGE.md`**
+- Registre validation : **`TODOS_A_VALIDER.md`**

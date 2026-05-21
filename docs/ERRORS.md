@@ -59,7 +59,7 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 | **Cause** | Le paramètre query `consolidated=true` contient la sous-chaîne `on` + lettres + `=` (ex. `consolidated`), ce qui déclenchait l’ancienne regex des handlers HTML (`onclick=`). |
 | **Correctif** | Frontend : requête `blocked-ips?all=true` au lieu de `consolidated=true`. Gateway : regex XSS durcie en `(?<![a-zA-Z0-9])on[a-z]+=` pour exiger un mot-clé handler isolé. |
 | **Vraie attaque vs faux positif** | Vraie attaque : payload `<script>`, `javascript:`, handler HTML explicite (`onclick=`), iframe/data URI dangereux → **403** attendu. Faux positif query : paramètres métier contenant `on…=` dans un mot (`consolidated`, `connection`, etc.) → **200** attendu avec JWT valide. |
-| **Validation** | `curl` payloads XSS/SQLi → **403** ; `blocked-ips?all=true` + JWT → **200** ; voir `A_VALIDER_VERIFIER.md` et `docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md`. |
+| **Validation** | `curl` payloads XSS/SQLi → **403** ; `blocked-ips?all=true` + JWT → **200** ; voir `TODOS_A_VALIDER.md` et `docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md`. |
 
 ---
 

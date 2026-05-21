@@ -1,0 +1,19 @@
+---
+description: Lire le pilotage avant toute tâche et respecter les validations porteur
+alwaysApply: true
+---
+
+# Pilotage Et Validation Porteur
+
+Avant toute action sur ce projet, lire `PILOTAGE.md`, puis vérifier `TODOS_A_VALIDER.md` et `TODOS_A_VERIFIER.md`.
+
+Si `TODOS_A_VALIDER.md` contient une validation porteur bloquante ouverte, ne pas démarrer une nouvelle feature. Exceptions : corriger le problème remonté, préparer une preuve nécessaire à la validation, ou mettre à jour les fichiers de pilotage.
+
+Après chaque travail :
+
+- mettre à jour `TODOS_A_VERIFIER.md` avec les preuves techniques agent ;
+- ajouter une ligne dans `TODOS_A_VALIDER.md` si le porteur doit vérifier le rendu/comportement ;
+- déplacer vers `TODOS_DONE.md` uniquement après validation explicite du porteur ;
+- utiliser `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md` et `VALIDATION_PRODUCTION.md` seulement pour préprod/prod.
+
+`docs/TODOS.md` reste le backlog technique ; il ne vaut pas validation produit.
