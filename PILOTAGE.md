@@ -32,14 +32,14 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité et Rapports sécurité validés le 21/05/2026.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité et Rapports sécurité (affichage CVE) validés le 21/05/2026.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Menaces historiques/lab comprises avant nettoyage**.
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Comparaison de rapports sécurité (CVE)** (régression porteur 21/05).
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
-4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md`.
+4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (menaces lab, puis P1A/P1B/P1C, une ligne à la fois).
 5. Reprendre `docs/TODOS.md` uniquement quand les P0 porteur sont validés ou explicitement reclassés.
 
 ## Flux de travail
@@ -51,6 +51,7 @@ Priorité immédiate stricte :
 5. Si validé : déplacer vers `TODOS_DONE.md`.
 6. Si problème : créer ou remonter une tâche dans `docs/TODOS.md`, puis corriger avant d’avancer.
 7. Pour préprod/prod : passer ensuite par `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, puis `VALIDATION_PRODUCTION.md`.
+8. **Fin de journée / avant push majeur** : gate suite complète documenté dans `TODOS_A_VALIDER.md` § « Gate technique fin de journée / avant push majeur » (`scripts/run-all-tests-with-reports.sh` + lecture `tests/results/<horodatage>/`). Ne pas le lancer au milieu d’un P0/P1 sauf demande explicite du porteur. Checklist longue : `docs/tests/TESTS_END.md`.
 
 ## Branches
 

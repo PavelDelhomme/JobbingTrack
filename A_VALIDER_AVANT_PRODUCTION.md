@@ -13,6 +13,7 @@ Pour l’instant, aucune production réelle n’est lancée sur serveur.
 | Précondition | Statut |
 |--------------|--------|
 | `TODOS_A_VALIDER.md` ne contient plus de P0 bloquant | [ ] |
+| Suite complète locale récente verte (`scripts/run-all-tests-with-reports.sh`, exit 0, rapport `tests/results/<horodatage>/` lu) | [ ] |
 | Rapports sécurité P0 récupérés ou régénérés | [ ] |
 | Findings `critical/high` triés | [ ] |
 | Déploiement VPS/Portainer/NPM préparé hors secrets Git | [ ] |

@@ -35,14 +35,36 @@ interface CompareReportData {
   /** ISO UTC pour affichage cohérent (optionnel) */
   generatedAtISO?: string;
   category: string;
-  summary: { total: number; passed: number; failed: number; skipped: number };
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    critical?: number;
+    high?: number;
+    medium?: number;
+    low?: number;
+    info?: number;
+  };
   tests: Array<{
     num: number;
     name: string;
     status: "pass" | "fail";
     expected: string;
     actual: string;
+    security?: SecurityComparisonCell;
   }>;
+}
+
+interface SecurityComparisonCell {
+  kind: string;
+  surface: string;
+  status: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
 }
 
 interface CompareResult {
@@ -54,11 +76,22 @@ interface CompareResult {
       results: Record<string, "pass" | "fail" | "skip">;
       details?: Record<
         string,
-        { expected?: string; actual?: string; response?: string }
+        {
+          expected?: string;
+          actual?: string;
+          response?: string;
+          security?: SecurityComparisonCell;
+        }
       >;
       diff?: string;
     }>;
     sameCategory: string | null;
+    securitySummary?: {
+      totalCritical: number;
+      totalHigh: number;
+      rowsCompared: number;
+      sensitiveDataPolicy: string;
+    } | null;
   };
   error?: string;
 }
@@ -126,6 +159,30 @@ function getDifferencesOnly(
     const first = statuses[0];
     return statuses.some((s) => s !== first);
   });
+}
+
+function isSecurityCompare(compareResult: CompareResult): boolean {
+  return (
+    compareResult.comparison?.sameCategory === "Sécurité" ||
+    compareResult.reports?.some((report) => report.category === "Sécurité") ===
+      true
+  );
+}
+
+function securitySeverityClass(level: "critical" | "high" | "medium" | "low") {
+  const classes = {
+    critical:
+      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+    high: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+    medium:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
+    low: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800",
+  };
+  return classes[level];
+}
+
+function hasSecurityFindings(cell?: SecurityComparisonCell): boolean {
+  return Boolean(cell && (cell.critical > 0 || cell.high > 0));
 }
 
 interface TestReport {
@@ -684,6 +741,36 @@ export default function TestReportsPage() {
               )}
               {compareResult.success && compareResult.reports && (
                 <>
+                  {isSecurityCompare(compareResult) &&
+                    compareResult.comparison?.securitySummary && (
+                      <div className="mb-4 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-red-900 dark:text-red-100">
+                              Comparaison sécurité CVE
+                            </h3>
+                            <p className="mt-1 text-sm text-red-800 dark:text-red-200">
+                              {compareResult.comparison.securitySummary.rowsCompared}{" "}
+                              surfaces comparées,{" "}
+                              {compareResult.comparison.securitySummary.totalCritical}{" "}
+                              critical et{" "}
+                              {compareResult.comparison.securitySummary.totalHigh}{" "}
+                              high au total.
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-white/70 dark:bg-gray-950/40 px-3 py-2 text-xs text-red-800 dark:text-red-200">
+                            Données sensibles : notes brutes et payloads non
+                            affichés ici.
+                          </div>
+                        </div>
+                        <p className="mt-3 text-xs text-red-700 dark:text-red-300">
+                          {
+                            compareResult.comparison.securitySummary
+                              .sensitiveDataPolicy
+                          }
+                        </p>
+                      </div>
+                    )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {compareResult.reports.map((r) => (
                       <div
@@ -730,11 +817,175 @@ export default function TestReportsPage() {
                             <span className="text-gray-500">Ignorés</span>
                           </div>
                         </div>
+                        {r.category === "Sécurité" && (
+                          <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+                            <div
+                              className={`rounded border px-2 py-2 ${securitySeverityClass("critical")}`}
+                            >
+                              <div className="font-bold text-sm">
+                                {r.summary.critical ?? 0}
+                              </div>
+                              <div>Critical</div>
+                            </div>
+                            <div
+                              className={`rounded border px-2 py-2 ${securitySeverityClass("high")}`}
+                            >
+                              <div className="font-bold text-sm">
+                                {r.summary.high ?? 0}
+                              </div>
+                              <div>High</div>
+                            </div>
+                            <div
+                              className={`rounded border px-2 py-2 ${securitySeverityClass("medium")}`}
+                            >
+                              <div className="font-bold text-sm">
+                                {r.summary.medium ?? 0}
+                              </div>
+                              <div>Medium</div>
+                            </div>
+                            <div
+                              className={`rounded border px-2 py-2 ${securitySeverityClass("low")}`}
+                            >
+                              <div className="font-bold text-sm">
+                                {r.summary.low ?? 0}
+                              </div>
+                              <div>Low</div>
+                            </div>
+                            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-2 text-gray-700 dark:text-gray-200">
+                              <div className="font-bold text-sm">
+                                {r.summary.info ?? 0}
+                              </div>
+                              <div>Info</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
+                  {isSecurityCompare(compareResult) &&
+                    compareResult.comparison?.byTest &&
+                    compareResult.comparison.byTest.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                          Surfaces sécurité comparées
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          Chaque ligne affiche uniquement la surface, le type de
+                          scan, le statut et les compteurs de sévérité par
+                          rapport. Les notes/payloads restent dans le rapport
+                          ouvert ou téléchargé, pas dans cette comparaison.
+                        </p>
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">
+                                  Surface
+                                </th>
+                                {compareResult.reports.map((r) => (
+                                  <th
+                                    key={r.id}
+                                    className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300 min-w-[220px]"
+                                  >
+                                    {formatReportDateLocal(
+                                      r.date,
+                                      r.time,
+                                      r.generatedAtISO,
+                                    )}
+                                  </th>
+                                ))}
+                                <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">
+                                  Écart
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {compareResult.comparison.byTest.map(
+                                (row, idx) => (
+                                  <tr
+                                    key={idx}
+                                    className="border-b border-gray-100 dark:border-gray-700"
+                                  >
+                                    <td className="py-3 px-3 align-top">
+                                      <div className="font-medium text-gray-900 dark:text-white">
+                                        {row.testName}
+                                      </div>
+                                    </td>
+                                    {compareResult.reports!.map((r) => {
+                                      const cell = row.details?.[r.id]?.security;
+                                      if (!cell) {
+                                        return (
+                                          <td
+                                            key={r.id}
+                                            className="py-3 px-3 align-top text-gray-400"
+                                          >
+                                            Absent
+                                          </td>
+                                        );
+                                      }
+                                      return (
+                                        <td
+                                          key={r.id}
+                                          className="py-3 px-3 align-top"
+                                        >
+                                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                                            <span
+                                              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                                hasSecurityFindings(cell)
+                                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                                                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                                              }`}
+                                            >
+                                              {hasSecurityFindings(cell)
+                                                ? "À traiter"
+                                                : "OK"}
+                                            </span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                              {cell.kind} · {cell.status}
+                                            </span>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-1 text-xs sm:grid-cols-5">
+                                            <span
+                                              className={`rounded border px-2 py-1 ${securitySeverityClass("critical")}`}
+                                            >
+                                              C {cell.critical}
+                                            </span>
+                                            <span
+                                              className={`rounded border px-2 py-1 ${securitySeverityClass("high")}`}
+                                            >
+                                              H {cell.high}
+                                            </span>
+                                            <span
+                                              className={`rounded border px-2 py-1 ${securitySeverityClass("medium")}`}
+                                            >
+                                              M {cell.medium}
+                                            </span>
+                                            <span
+                                              className={`rounded border px-2 py-1 ${securitySeverityClass("low")}`}
+                                            >
+                                              L {cell.low}
+                                            </span>
+                                            <span className="rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-gray-600 dark:text-gray-300">
+                                              I {cell.info}
+                                            </span>
+                                          </div>
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="py-3 px-3 align-top text-gray-600 dark:text-gray-400">
+                                      {row.diff ?? "Même statut"}
+                                    </td>
+                                  </tr>
+                                ),
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   {compareResult.comparison?.byTest &&
                     compareResult.comparison.byTest.length > 0 &&
+                    !isSecurityCompare(compareResult) &&
                     (() => {
                       const reportIds = compareResult.reports!.map((r) => r.id);
                       const differencesOnly = getDifferencesOnly(
@@ -887,8 +1138,7 @@ export default function TestReportsPage() {
                   {compareResult.comparison?.byTest &&
                     compareResult.comparison.byTest.length === 0 && (
                       <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Aucun détail par test disponible (fichiers
-                        test-results.txt absents).
+                        Aucun détail comparable disponible pour ces rapports.
                       </p>
                     )}
                 </>

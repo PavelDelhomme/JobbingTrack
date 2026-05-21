@@ -16,7 +16,9 @@ Journal court des décisions de pilotage. Le journal projet détaillé reste `do
 - Retour porteur P0 **Rapports sécurité visibles** : anciens rapports CVE visibles mais pas de rapport frais attendu. Génération locale effectuée via `python3 scripts/security/cve-scan.py --output-dir tests/results/security --timeout-sec 60` ; l’API liste `security-results-cve-20260521-201336`.
 - Retour porteur complémentaire : validation partielle côté rapports sécurité, rendu CVE/PDF trop brut par rapport aux rapports de tests classiques ; amélioration UX reportée dans `docs/TODOS.md`.
 - Correctif UX rapports sécurité : `summary.md` CVE rendu en HTML structuré (cartes synthèse, priorités, tableau responsive, brut repliable) dans `/api/test-reports/view`.
-- Validation porteur P0 : **Rapports sécurité visibles dans le backoffice** — confirmé par le porteur ; archivé dans `TODOS_DONE.md`. Prochaine ligne : **Menaces historiques/lab**.
+- Validation porteur P0 : **Rapports sécurité visibles dans le backoffice** — confirmé par le porteur ; archivé dans `TODOS_DONE.md`.
+- Pilotage : section **Gate technique fin de journée / avant push majeur** ajustée dans `TODOS_A_VALIDER.md` (suite `run-all-tests-with-reports.sh`, preuve `tests/results/<horodatage>/`, ligne P1D). Décision 21/05 : ne pas lancer la campagne complète pendant le P0 courant ; garder les tests ciblés puis faire le gate complet en fin de session.
+- Régression porteur : **comparaison rapports CVE** (`Rapport non trouvé`, puis comparaison `0` partout / trop pauvre) — correctif `resolveReport.ts` + compare route + UI dédiée sécurité (surfaces, Critical/High/Medium/Low/Info, écarts). L’API de comparaison ne renvoie pas les notes/payloads bruts et force `no-store`.
 
 ## 21 mai 2026
 
