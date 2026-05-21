@@ -6,43 +6,43 @@ on:
       - main
       - develop
       - dev
-      - 'feat/security-*'
-      - 'feat/**'
+      - "feat/security-*"
+      - "feat/**"
     paths:
-      - '.github/workflows/security-audit.yml'
-      - 'backend/**/package*.json'
-      - 'frontend/package*.json'
-      - 'package*.json'
-      - 'docker-compose*.yml'
-      - 'backend/docker-compose*.yml'
-      - 'frontend/docker-compose*.yml'
-      - 'Dockerfile'
-      - '**/Dockerfile'
-      - 'scripts/security/**'
+      - ".github/workflows/security-audit.yml"
+      - "backend/**/package*.json"
+      - "frontend/package*.json"
+      - "package*.json"
+      - "docker-compose*.yml"
+      - "backend/docker-compose*.yml"
+      - "frontend/docker-compose*.yml"
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "scripts/security/**"
   pull_request:
     paths:
-      - '.github/workflows/security-audit.yml'
-      - 'backend/**/package*.json'
-      - 'frontend/package*.json'
-      - 'package*.json'
-      - 'docker-compose*.yml'
-      - 'backend/docker-compose*.yml'
-      - 'frontend/docker-compose*.yml'
-      - 'Dockerfile'
-      - '**/Dockerfile'
-      - 'scripts/security/**'
+      - ".github/workflows/security-audit.yml"
+      - "backend/**/package*.json"
+      - "frontend/package*.json"
+      - "package*.json"
+      - "docker-compose*.yml"
+      - "backend/docker-compose*.yml"
+      - "frontend/docker-compose*.yml"
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "scripts/security/**"
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       scan_prod_images:
-        description: 'Build and scan docker-compose.prod.yml images'
+        description: "Build and scan docker-compose.prod.yml images"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'false'
-          - 'true'
+          - "false"
+          - "true"
 
 permissions:
   contents: read
@@ -50,7 +50,7 @@ permissions:
   actions: read
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   gitleaks:
@@ -63,10 +63,41 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Gitleaks CLI
+        run: |
+          set -euo pipefail
+          asset_url="$(
+            python3 - <<'PY'
+          import json
+          import urllib.request
+
+          with urllib.request.urlopen("https://api.github.com/repos/gitleaks/gitleaks/releases/latest", timeout=30) as response:
+              release = json.load(response)
+
+          for asset in release.get("assets", []):
+              name = asset.get("name", "")
+              if "linux_x64" in name and name.endswith(".tar.gz"):
+                  print(asset["browser_download_url"])
+                  break
+          else:
+              raise SystemExit("No Linux x64 Gitleaks archive found in latest release")
+          PY
+          )"
+          curl -fsSL "$asset_url" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/security/secrets-scan.sh
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: gitleaks-reports
+          path: reports/security/secrets-*/**
+          if-no-files-found: warn
 
   npm-audit:
     name: Node dependency audit
@@ -79,7 +110,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -122,7 +153,7 @@ jobs:
 
       - name: Upload Trivy filesystem SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs.sarif
 

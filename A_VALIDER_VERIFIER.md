@@ -99,7 +99,7 @@ Pour chaque ligne :
 | Workflow CI/CD — Tests Backend security-service | `tests/backend/test-security-service.test.js` ne timeoute plus en CI quand la gateway met plus de 10s à être prête | local/GitHub | [x] | Correctif 21/05 ; CI run `26202796200` succès. |
 | Workflow CI/CD — Tests DB migrations | `tests/database/test-migrations.js` applique le schéma avec un `npx` portable sur runner GitHub | GitHub | [x] | Correctif `npx` via PATH ; CI run `26202796200` succès. |
 | Workflow CI/CD passe sur GitHub | Jobs DB, backend, frontend, integration, perf initialises | GitHub | [x] | Run `26202796200` sur `feat/central-logging-full` — pipeline complet succès (21/05). |
-| Workflow security-audit passe | Gitleaks/Trivy et artefacts disponibles | GitHub | [ ] | |
+| Workflow security-audit passe | Gitleaks/Trivy et artefacts disponibles, sans warning Node 20 / CodeQL v3 | GitHub | [ ] | **21/05** : workflow migré hors `gitleaks-action@v2.3.9` (binaire Gitleaks + `scripts/security/secrets-scan.sh`) et `upload-sarif@v4`. À valider sur le prochain run GitHub. |
 | Noms de branches respectent `BRANCHES.md` | Branche type `docs/...`, `feat/...`, `fix/...` | repo | [ ] | |
 | Commits respectent la convention | `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `misc:` | repo | [ ] | |
 
