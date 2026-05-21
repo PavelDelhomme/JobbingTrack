@@ -42,6 +42,7 @@ Pour chaque ligne :
 | Connexion HTTPS `5443` avec `ADMIN_PASSWORD` du `.env` | Login 200, acces `/backoffice` sans 401 en boucle | local | [x] | `POST …/auth/login` → **200** ; token JWT `eyJ…` (len 249) ; `/login` page **200** (19/05). |
 | Tokens mock runtime retires ou controles par env exacte | Pas de prefixe hardcode type `mock-jwt-token*` en runtime | local | [x] | Aucun `mock-jwt-token` dans `api-gateway/src` ni `auth-service/src` ; login renvoie JWT signe. Tests Jest conservent le prefixe en fixtures uniquement. |
 | Logs securite exploitables | IP, route, method, status, requestId, payload redige si besoin | local | [x] | Echantillon `api_access` : `sourceIP`, `endpoint`, `method`, `level`, `timestamp` OK. `network_threat_detected` : IP + metadata `threatId` mais **endpoint/method null** (tache suite : journaliser a la source). Preprod : re-verifier volume 30j. |
+| Export archive logs securite (sans purge) | `node scripts/security/security-logs-archive-export.cjs` produit gzip + manifest sous `data/archives/security-logs/` ; dry-run rétention toujours disponible | local | [ ] | **21/05** : test `--class=noise --limit=50` → 50 lignes exportées, manifest SHA-256 ; aucune suppression BDD. Valider lot complet + restauration avant purge. |
 
 ## Rapports securite
 

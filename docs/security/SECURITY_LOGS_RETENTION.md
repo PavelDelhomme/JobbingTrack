@@ -38,6 +38,18 @@ Le script suivant ne modifie rien : il exécute uniquement des `SELECT` sur `sec
 node scripts/security/security-logs-retention-dry-run.cjs
 ```
 
+## Export archive (sans purge)
+
+Exporte un lot de candidats vers `data/archives/security-logs/<date>/` (ignoré par Git) :
+
+```bash
+node scripts/security/security-logs-archive-export.cjs
+node scripts/security/security-logs-archive-export.cjs --class=noise --limit=2000
+node scripts/security/security-logs-archive-export.cjs --all --limit=1000
+```
+
+Produit pour chaque classe : `<class>.jsonl.gz` + `manifest.json` (compteurs, SHA-256, politique de rétention). **Aucune ligne n’est supprimée** de `security_logs`.
+
 Variables optionnelles :
 
 | Variable | Défaut | Usage |
@@ -47,6 +59,8 @@ Variables optionnelles :
 | `SECURITY_LOGS_RETENTION_HIGH_DAYS` | `90` | Fenêtre chaude BDD pour les événements hauts. |
 | `SECURITY_LOGS_RETENTION_STANDARD_DAYS` | `45` | Fenêtre chaude BDD pour les warnings/anomalies standard. |
 | `SECURITY_LOGS_RETENTION_NOISE_DAYS` | `14` | Fenêtre chaude BDD pour le bruit contrôlé. |
+| `SECURITY_LOGS_ARCHIVE_DIR` | `data/archives/security-logs/<date>` | Répertoire de sortie des exports gzip. |
+| `SECURITY_LOGS_ARCHIVE_BATCH` | `5000` | Nombre max de lignes exportées par classe et par exécution. |
 
 ## Options techniques
 

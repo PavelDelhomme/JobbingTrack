@@ -195,4 +195,5 @@ pnpm-lock.yaml
 data/monitoring/logs/*
 data/monitoring/metrics/*
 data/monitoring/history/*
+data/archives/security-logs/
 !data/monitoring/.gitkeep
