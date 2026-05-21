@@ -24,6 +24,8 @@ import {
 import axios from "axios";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
+const FIREWALL_SOURCE_IP_REGEX =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[12][0-9]|3[0-2]))?$/;
 
 function ruleDisplayName(
   rule: { name?: string; description?: string; id?: string },
@@ -34,6 +36,26 @@ function ruleDisplayName(
     rule.description?.trim() ||
     (rule.id ? `Règle ${String(rule.id).slice(0, 8)}` : fallback)
   );
+}
+
+function validateFirewallRuleForm(rule: {
+  sourceIp?: string | null;
+  destPort?: string | number | null;
+}) {
+  const sourceIp = String(rule.sourceIp || "").trim();
+  if (!sourceIp) {
+    return "IP source requise : les règles globales sans IP sont refusées.";
+  }
+  if (!FIREWALL_SOURCE_IP_REGEX.test(sourceIp)) {
+    return "Format IP source invalide (IPv4 ou CIDR IPv4 attendu).";
+  }
+  if (rule.destPort !== undefined && rule.destPort !== null && rule.destPort !== "") {
+    const port = Number(rule.destPort);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return "Port destination invalide (1-65535 attendu).";
+    }
+  }
+  return null;
 }
 
 /** Bandeau : vérifie Gateway + proxy /api/v1/security/* (GET firewall/rules : moins sensible au WAF que /waf/stats). */
@@ -265,6 +287,12 @@ export default function FirewallPage() {
   }, [loadRules, loadBlockedIps]);
 
   const handleCreateRule = async () => {
+    const formError = validateFirewallRuleForm(newRule);
+    if (formError) {
+      setError(formError);
+      return;
+    }
+
     try {
       const ruleData = {
         ...newRule,
@@ -316,8 +344,14 @@ export default function FirewallPage() {
 
   const handleUpdateRule = async () => {
     if (!editingRule) return;
+    const formError = validateFirewallRuleForm(editingRule);
+    if (formError) {
+      setError(formError);
+      return;
+    }
+
     try {
-      await axios.put(
+      const response = await axios.put(
         `${API_GATEWAY_URL}/api/v1/security/firewall/rules/${editingRule.id}`,
         {
           name: editingRule.name,
@@ -333,8 +367,17 @@ export default function FirewallPage() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
+      if (response.data?.success && response.data?.data) {
+        setRules((currentRules) =>
+          currentRules.map((rule) =>
+            rule.id === response.data.data.id ? response.data.data : rule,
+          ),
+        );
+      }
       setEditingRule(null);
-      loadRules();
+      setError(null);
+      await loadRules();
+      await loadBlockedIps();
     } catch (err: any) {
       setError(
         err.response?.data?.error ||
@@ -393,7 +436,9 @@ export default function FirewallPage() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
-      loadBlockedIps();
+      await loadRules();
+      await loadBlockedIps();
+      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.error || "Erreur lors du déblocage de l'IP");
     }
@@ -546,9 +591,9 @@ export default function FirewallPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    IP Source
+                    IP Source *
                     <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      (optionnel - CIDR accepté)
+                      (obligatoire - CIDR accepté)
                     </span>
                   </label>
                   <input
@@ -561,7 +606,7 @@ export default function FirewallPage() {
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Laissez vide pour appliquer à toutes les IPs sources
+                    Requis pour éviter une règle globale trop large.
                   </p>
                 </div>
                 <div>
@@ -583,7 +628,7 @@ export default function FirewallPage() {
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Laissez vide pour appliquer à tous les ports
+                    Optionnel : vide = tous les ports, mais seulement pour l’IP source indiquée.
                   </p>
                 </div>
                 <div>
@@ -617,18 +662,22 @@ export default function FirewallPage() {
                   💡 Exemple de règle :
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  <strong>Nom:</strong> "Bloquer port SSH" |{" "}
+                  <strong>Nom:</strong> "Bloquer test SSH" |{" "}
+                  <strong>IP Source:</strong> 203.0.113.77 |{" "}
                   <strong>Protocole:</strong> TCP |<strong> Port:</strong> 22 |{" "}
                   <strong>Action:</strong> DENY
-                  <br />→ Cette règle bloquera toutes les connexions TCP sur le
-                  port 22 (SSH)
+                  <br />→ Cette règle bloquera uniquement le TCP port 22 venant
+                  de cette IP source.
                 </p>
               </div>
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={handleCreateRule}
                   disabled={
-                    !newRule.name || !newRule.protocol || !newRule.action
+                    !newRule.name ||
+                    !newRule.protocol ||
+                    !newRule.action ||
+                    !newRule.sourceIp
                   }
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
@@ -685,7 +734,7 @@ export default function FirewallPage() {
                   onChange={(e) =>
                     setEditingRule({ ...editingRule, sourceIp: e.target.value })
                   }
-                  placeholder="IP source"
+                  placeholder="IP source obligatoire"
                 />
                 <input
                   type="number"
@@ -753,6 +802,11 @@ export default function FirewallPage() {
                   <span>Règle active</span>
                 </label>
               </div>
+              <p className="mt-3 text-xs text-blue-800 dark:text-blue-200">
+                Sécurité : une règle doit cibler une IP source. Le port peut
+                rester vide pour bloquer tous les ports de cette IP, mais un
+                port seul sans IP est refusé.
+              </p>
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={handleUpdateRule}
