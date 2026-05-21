@@ -14,10 +14,17 @@
 
 ## CI/CD Pipeline (GitHub Actions)
 
-La pipeline CI/CD est actuellement en échec :
-- Le job « Validation structure BDD » échouait (EventType model vs enum).
-- Le projet est en microservices (un Prisma par service) → à adapter.
-- À remettre en place quand le reste est stabilisé.
+Le déploiement automatisé complet reste à finaliser, mais le gate sécurité GitHub Actions est déjà exploitable via `.github/workflows/security-audit.yml`.
+
+Avant de pousser ou déployer des images prod :
+
+1. Ouvrir **GitHub → Actions → Security Audit → Run workflow**.
+2. Sélectionner la branche à publier.
+3. Mettre `scan_prod_images` à `true`.
+4. Vérifier que le job **Trivy prod image scan** construit `docker-compose.prod.yml`, scanne toutes les images et publie l’artefact **`trivy-prod-image-reports`**.
+5. Trier les `HIGH`/`CRITICAL` dans `docs/security/STATS.md` avant validation humaine de release.
+
+Ce gate ne remplace pas le futur pipeline build → push registry → déploiement, mais il évite de publier une image prod sans rapport CVE image daté.
 
 ## Pour l'instant
 

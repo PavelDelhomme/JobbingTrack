@@ -78,9 +78,21 @@ Critères de décision :
 
 - Tests complets verts ou exceptions datées et validées.
 - Préprod validée manuellement et techniquement.
-- Scans sécurité P0 traités ou justifiés.
+- Scans sécurité P0 traités ou justifiés, dont le workflow GitHub **Security Audit** lancé manuellement avec `scan_prod_images=true` pour produire l’artefact **`trivy-prod-image-reports`** sur les images de `docker-compose.prod.yml`.
 - Licences et notices prêtes.
 - RGPD, rétention, consentement et suppression/export cadrés.
 - Sauvegarde/restauration testée.
 - Monitoring/alerting actif.
 - Rollback documenté.
+
+## Gate GitHub Actions sécurité
+
+Avant une branche préprod ou une release prod :
+
+1. Vérifier que le dernier workflow **Security Audit** automatique est vert sur la branche cible.
+2. Déclencher **Actions → Security Audit → Run workflow** avec `scan_prod_images=true`.
+3. Attendre les jobs `Gitleaks history scan`, `Node dependency audit`, `Trivy filesystem and config scan` et `Trivy prod image scan`.
+4. Télécharger les artefacts : `gitleaks-reports`, `npm-audit-reports`, `trivy-config-report`, `trivy-prod-image-reports`.
+5. Reporter les résultats `HIGH`/`CRITICAL` dans `docs/security/STATS.md` ou dans des tickets datés.
+
+Le scan images prod construit les images à partir de `docker-compose.prod.yml`, liste les images effectives avec `docker compose ... config --images`, puis génère un JSON Trivy par image. Ne pas confondre avec le scan filesystem/config du dépôt : ce gate valide les images réellement destinées à être déployées.
