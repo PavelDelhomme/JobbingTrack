@@ -6,6 +6,11 @@ Dernière mise à jour : 21 mai 2026
 
 Journal court des décisions de pilotage. Le journal projet détaillé reste `docs/STATUS.md`; les erreurs connues restent `docs/ERRORS.md`.
 
+## 21 mai 2026 (suite)
+
+- Validation porteur P0 : **Accès HTTPS local complet** — confirmé par le porteur ; archivé dans `TODOS_DONE.md`, retiré de `TODOS_A_VALIDER.md`.
+- Prochaine ligne ouverte : **Backoffice sécurité utilisable**.
+
 ## 21 mai 2026
 
 - Mise en place d’un flux bloquant : `PILOTAGE.md` → `TODOS_A_VALIDER.md` → `TODOS_A_VERIFIER.md` → `docs/TODOS.md`.
