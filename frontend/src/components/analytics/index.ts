@@ -17,3 +17,4 @@ export {
   isBenignFetchAbort,
 } from "./analyticsHistoryFetch";
 export { injectMetricTimeGaps } from "./injectMetricTimeGaps";
+export { StickyTimeRangeToolbar } from "./StickyTimeRangeToolbar";

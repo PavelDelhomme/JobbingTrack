@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, memo, Suspense, lazy } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  memo,
+  Suspense,
+  lazy,
+  useCallback,
+} from "react";
 import { AdminLayout } from "@/components/features";
 import { StatisticsPageShell } from "./StatisticsSubNav";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -77,6 +85,21 @@ import {
   useStatisticsPanelPrefs,
 } from "@/lib/ui";
 import { MetricsSeriesCaption } from "@/components/monitoring/MetricsSeriesCaption";
+import { StatisticsErrorAvailabilityCharts } from "@/components/monitoring/StatisticsErrorAvailabilityCharts";
+import {
+  TimeRangeSelector,
+  StickyTimeRangeToolbar,
+  usePersistedSharedAnalyticsRange,
+  getPeriodMs,
+  formatRangeLabel,
+  formatCustomRangeLabel,
+  ymdLocal,
+  type TimeRangeOption,
+} from "@/components/analytics";
+import {
+  localCalendarDayBounds,
+} from "@/components/analytics/timeRangeUtils";
+import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
 
 // Types
@@ -243,6 +266,180 @@ export default function StatisticsPage() {
   const { customization, updateCustomization, resetCustomization } =
     useStatisticsPanelPrefs();
 
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>(() => {
+    const t = customization.timeRange;
+    const valid: TimeRangeOption[] = [
+      "today",
+      "1h",
+      "6h",
+      "24h",
+      "3d",
+      "7d",
+      "14d",
+      "21d",
+      "30d",
+    ];
+    return valid.includes(t as TimeRangeOption)
+      ? (t as TimeRangeOption)
+      : "24h";
+  });
+  const [windowEnd, setWindowEnd] = useState(() => new Date());
+  const [followLive, setFollowLive] = useState(true);
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [customStart, setCustomStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return ymdLocal(d);
+  });
+  const [customEnd, setCustomEnd] = useState(() => ymdLocal());
+
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    windowEnd,
+    setWindowEnd,
+    followLive,
+    setFollowLive,
+  });
+
+  const windowBounds = useMemo(() => {
+    if (useCustomRange) {
+      const { start, end } = localCalendarDayBounds(customStart, customEnd);
+      const durationMs = Math.max(0, end.getTime() - start.getTime());
+      return {
+        startTime: start.getTime(),
+        endTime: end.getTime(),
+        limit: Math.min(Math.ceil(durationMs / (60 * 1000)), 43200),
+      };
+    }
+    const { start, end, limit } = getPeriodMs(timeRange, windowEnd);
+    return { startTime: start.getTime(), endTime: end.getTime(), limit };
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  const rangeLabel = useMemo(
+    () =>
+      useCustomRange
+        ? formatCustomRangeLabel(customStart, customEnd)
+        : formatRangeLabel(
+            new Date(windowBounds.startTime),
+            new Date(windowBounds.endTime),
+            timeRange,
+          ),
+    [
+      useCustomRange,
+      customStart,
+      customEnd,
+      windowBounds.startTime,
+      windowBounds.endTime,
+      timeRange,
+    ],
+  );
+
+  const goPrev = useCallback(() => {
+    if (useCustomRange) {
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() - days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() - days);
+      setCustomStart(ymdLocal(ns));
+      setCustomEnd(ymdLocal(ne));
+      return;
+    }
+    setFollowLive(false);
+    if (timeRange === "today") {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() - 1);
+      setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      setWindowEnd(new Date(windowEnd.getTime() - period));
+    }
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  const goNext = useCallback(() => {
+    if (useCustomRange) {
+      const { start: rs, end: re } = localCalendarDayBounds(
+        customStart,
+        customEnd,
+      );
+      const days = Math.max(
+        1,
+        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
+      );
+      const ns = new Date(rs);
+      ns.setDate(ns.getDate() + days);
+      const ne = new Date(re);
+      ne.setDate(ne.getDate() + days);
+      const today = ymdLocal();
+      if (ymdLocal(ne) > today) {
+        setCustomEnd(today);
+        setCustomStart(
+          ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)),
+        );
+      } else {
+        setCustomStart(ymdLocal(ns));
+        setCustomEnd(ymdLocal(ne));
+      }
+      return;
+    }
+    setFollowLive(false);
+    const now = new Date();
+    if (timeRange === "today") {
+      const d = new Date(windowEnd);
+      d.setDate(d.getDate() + 1);
+      if (d <= now) setWindowEnd(d);
+    } else {
+      const { start } = getPeriodMs(timeRange, windowEnd);
+      const period = windowEnd.getTime() - start.getTime();
+      const nextEnd = new Date(windowEnd.getTime() + period);
+      setWindowEnd(nextEnd <= now ? nextEnd : now);
+    }
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  const canGoNext = useMemo(() => {
+    if (useCustomRange) return customEnd < ymdLocal();
+    const now = new Date();
+    if (timeRange === "today") {
+      return (
+        windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10)
+      );
+    }
+    return windowEnd.getTime() < now.getTime();
+  }, [useCustomRange, customEnd, timeRange, windowEnd]);
+
+  const onPeriodNow = useCallback(() => {
+    setFollowLive(true);
+    setWindowEnd(new Date());
+  }, []);
+
+  useEffect(() => {
+    const prefsRanges: StatisticsTimeRange[] = [
+      "1h",
+      "6h",
+      "24h",
+      "7d",
+      "30d",
+    ];
+    if (prefsRanges.includes(timeRange as StatisticsTimeRange)) {
+      updateCustomization({ timeRange: timeRange as StatisticsTimeRange });
+    }
+  }, [timeRange, updateCustomization]);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/login");
@@ -300,38 +497,26 @@ export default function StatisticsPage() {
     }
   }, [
     isAuthenticated,
-    customization.timeRange,
+    rangeHydrated,
+    windowBounds.startTime,
+    windowBounds.endTime,
+    windowBounds.limit,
     activeTab,
     statsRefreshInterval,
-  ]); // ✅ Ajouter activeTab comme dépendance
-
-  // Conversion du time range en millisecondes
-  const getTimeRangeMs = () => {
-    const ranges = {
-      "1h": 60 * 60 * 1000,
-      "6h": 6 * 60 * 60 * 1000,
-      "24h": 24 * 60 * 60 * 1000,
-      "7d": 7 * 24 * 60 * 60 * 1000,
-      "30d": 30 * 24 * 60 * 60 * 1000,
-    };
-    return ranges[customization.timeRange];
-  };
+  ]);
 
   const fetchMetricsHistory = async () => {
-    // ✅ OPTIMISATION : Ne charger que si nécessaire
+    if (!rangeHydrated) return;
     if (!needsHistory && !needsServiceHistory) {
       return;
     }
 
     try {
-      const timeRangeMs = getTimeRangeMs();
-      const endTime = Date.now();
-      const startTime = endTime - timeRangeMs;
+      const { startTime, endTime, limit: windowLimit } = windowBounds;
+      const limit = needsServiceHistory
+        ? Math.min(200, windowLimit)
+        : Math.min(500, windowLimit);
 
-      // ✅ OPTIMISATION : Réduire la limite selon l'onglet actif
-      const limit = needsServiceHistory ? 200 : 500; // Moins de données pour les logs
-
-      // Récupérer l'historique des métriques (limité pour performance)
       const history = await centralMetricsService.getMetricsHistory({
         limit,
         startTime,
@@ -508,10 +693,7 @@ export default function StatisticsPage() {
         Array.isArray(dockerList) ? (dockerList as DockerServiceRow[]) : [],
       );
 
-      // Récupérer les stats sur une période
-      const timeRangeMs = getTimeRangeMs();
-      const endTime = Date.now();
-      const startTime = endTime - timeRangeMs;
+      const { startTime, endTime } = windowBounds;
 
       const metricsStats = await centralMetricsService.getMetricsStats({
         startTime,
@@ -692,7 +874,6 @@ export default function StatisticsPage() {
   const formatTimestamp = (timestamp: string) => {
     const ms = metricTimestampToMs(timestamp);
     if (ms == null) return "—";
-    const timeRange = customization.timeRange;
     const withDate = !(
       timeRange === "1h" ||
       timeRange === "6h" ||
@@ -702,11 +883,11 @@ export default function StatisticsPage() {
   };
 
   const chartMaxPoints =
-    customization.timeRange === "30d"
+    timeRange === "30d" || timeRange === "21d"
       ? 500
-      : customization.timeRange === "7d"
+      : timeRange === "14d" || timeRange === "7d" || timeRange === "3d"
         ? 300
-        : customization.timeRange === "24h"
+        : timeRange === "24h"
           ? 200
           : 100;
 
@@ -715,22 +896,13 @@ export default function StatisticsPage() {
       buildStatisticsChartData(metricsHistory, formatTimestamp, {
         maxPoints: chartMaxPoints,
       }),
-    [metricsHistory, customization.timeRange, chartMaxPoints],
+    [metricsHistory, timeRange, chartMaxPoints],
   );
 
   const availabilityDomain = useMemo(
     () => availabilityChartDomain(chartData),
     [chartData],
   );
-
-  // Loader uniquement au tout premier chargement
-  const timeRangeLabels: Record<string, string> = {
-    "1h": "Dernière heure",
-    "6h": "6 heures",
-    "24h": "24 heures",
-    "7d": "7 jours",
-    "30d": "30 jours",
-  };
 
   if (authLoading || (loading && !stats)) {
     return (
@@ -791,19 +963,6 @@ export default function StatisticsPage() {
         }
         actions={
           <>
-            <select
-              value={customization.timeRange}
-              onChange={(e) =>
-                updateCustomization({ timeRange: e.target.value as any })
-              }
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="1h">Dernière heure</option>
-              <option value="6h">6 heures</option>
-              <option value="24h">24 heures</option>
-              <option value="7d">7 jours</option>
-              <option value="30d">30 jours</option>
-            </select>
             <button
               onClick={() => setShowCustomization(!showCustomization)}
               className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -914,6 +1073,24 @@ export default function StatisticsPage() {
           </nav>
         </div>
 
+        <StickyTimeRangeToolbar>
+          <TimeRangeSelector
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={onPeriodNow}
+          />
+        </StickyTimeRangeToolbar>
+
         {/* Contenu des onglets */}
         <div>
           {activeTab === "overview" && (
@@ -925,7 +1102,8 @@ export default function StatisticsPage() {
               router={router}
               dockerServices={dockerServicesSnapshot}
               historySeriesMeta={historySeriesMeta}
-              timeRangeLabel={timeRangeLabels[customization.timeRange]}
+              timeRangeLabel={rangeLabel}
+              availabilityDomain={availabilityDomain}
             />
           )}
           {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
@@ -936,7 +1114,7 @@ export default function StatisticsPage() {
               historySeriesMeta={historySeriesMeta}
               availabilityDomain={availabilityDomain}
               dockerServices={dockerServicesSnapshot}
-              timeRangeLabel={timeRangeLabels[customization.timeRange]}
+              timeRangeLabel={rangeLabel}
             />
           )}
           {activeTab === "logs" && (
@@ -961,6 +1139,7 @@ const OverviewTab = memo(function OverviewTab({
   dockerServices,
   historySeriesMeta,
   timeRangeLabel,
+  availabilityDomain,
 }: any) {
   // Calculer les tendances en comparant avec les stats précédentes
   const usersTrend = previousStats
@@ -999,6 +1178,11 @@ const OverviewTab = memo(function OverviewTab({
         errorDerived={historySeriesMeta?.errorDerived}
         source={historySeriesMeta?.source}
         timeRangeLabel={timeRangeLabel}
+      />
+      <StatisticsErrorAvailabilityCharts
+        chartData={chartData}
+        availabilityDomain={availabilityDomain}
+        errorDerived={historySeriesMeta?.errorDerived}
       />
       <div className="flex flex-wrap gap-3 text-sm">
         <Link
@@ -2321,90 +2505,11 @@ const SecurityTab = memo(function SecurityTab({
         </div>
       </DashboardLayoutRegion>
 
-      {/* Graphiques de sécurité */}
-      {chartData.length > 0 ? (
-        <DashboardLayoutRegion variant="section">
-          {/* Disponibilité dans le temps */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              🛡️ Disponibilité dans le temps
-            </h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis
-                  stroke="#9CA3AF"
-                  style={{ fontSize: "12px" }}
-                  domain={availabilityDomain}
-                />
-                <Tooltip {...rechartsTooltipProps} />
-                <Line
-                  type="monotone"
-                  dataKey="availability"
-                  stroke={COLORS.success}
-                  strokeWidth={3}
-                  name="Disponibilité (%)"
-                  dot={false}
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Taux d'erreur dans le temps */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚠️ Taux d'Erreur dans le temps
-            </h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorError" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor={COLORS.danger}
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={COLORS.danger}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis stroke="#9CA3AF" style={{ fontSize: "12px" }} />
-                <Tooltip {...rechartsTooltipProps} />
-                <Area
-                  type="monotone"
-                  dataKey="errorRate"
-                  stroke={COLORS.danger}
-                  fillOpacity={1}
-                  fill="url(#colorError)"
-                  name="Taux d'erreur (%)"
-                  connectNulls={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </DashboardLayoutRegion>
-      ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Aucune série persistée sur la période. Vérifier monitoring-c et la
-          table <code className="text-xs">system_metrics</code>, ou élargir la
-          fenêtre temporelle.
-        </div>
-      )}
+      <StatisticsErrorAvailabilityCharts
+        chartData={chartData}
+        availabilityDomain={availabilityDomain}
+        errorDerived={historySeriesMeta?.errorDerived}
+      />
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
