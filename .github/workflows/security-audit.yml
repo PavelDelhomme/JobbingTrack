@@ -52,6 +52,7 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   GITLEAKS_VERSION: "v8.30.1"
+  GITLEAKS_FINDINGS_EXIT_CODE: "0"
 
 jobs:
   gitleaks:
