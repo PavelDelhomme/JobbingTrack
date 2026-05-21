@@ -1,12 +1,25 @@
 # Variables d'environnement - JobbingTrack
 
-[← Retour Déploiement](../README.md) | [← Documentation](../../README.md) | [🧭 Navigation](../../navigation.md)
+[← Retour Déploiement](../production/README.md) | [← Documentation](../../README.md) | [🧭 Navigation](../../navigation.md)
 
 ## 🎯 Vue d'ensemble
 
 **JobbingTrack utilise exclusivement des variables d'environnement** pour la configuration. Aucune valeur sensible n'est hardcodée dans les fichiers de configuration.
 
 **PostgreSQL / `DATABASE_URL`** : la ligne `DATABASE_URL` du `.env` sert surtout aux **outils sur l’hôte** (Prisma, scripts) ; les **conteneurs** reçoivent en général une URL `...@postgres:5432/...` via `docker-compose`. Détail et prod / NPM : **[`../VPS_PORTAINER_NPM_OVH.md`](../VPS_PORTAINER_NPM_OVH.md)** § 2.2.
+
+## Production VPS — variables à contrôler avant déploiement
+
+Avant préprod/prod, relire aussi `docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md` et garder les valeurs réelles hors Git.
+
+Variables critiques à vérifier explicitement :
+
+- `JWT_SECRET`, `JWT_REFRESH_SECRET`, `SECURITY_INTERNAL_SECRET` : valeurs fortes, uniques, jamais les fallbacks de dev.
+- `METRICS_API_KEY` : présent côté serveur uniquement, cohérent entre gateway/services/metrics-aggregator.
+- `TRUST_PROXY_HOPS`, `ALLOWED_ORIGINS`, URLs publiques `FRONTEND_URL` / API : alignés avec Nginx Proxy Manager et les domaines HTTPS.
+- `WAF_ENABLED`, `INTRUSION_DETECTION_ENABLED`, `INTRUSION_RELAX_HEURISTICS` : mode prod strict, pas de relax dev.
+- `POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL` : secrets forts, réseau privé, pas d’exposition Internet directe.
+- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : boîtes réelles et TLS SMTP validé.
 
 ---
 

@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 21 mai 2026 — **Branche** `feat/central-logging-full`.
+**Dernière mise à jour** : 21 mai 2026 — **Branche** `dev`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -20,6 +20,7 @@
 - **Inventaire Menaces dry-run** : `scripts/security/security-threats-inventory-dry-run.cjs` classe `network_threats` sans suppression (`lab_test`, `private_network`, `external_or_unknown`) et sort totaux + sévérité/statut + échantillon. Validation locale : `lab_test=228` dont `135` high/critical non bloquées ; `private_network=11` dont `2` high/critical et `1` bloquée.
 - **Security Audit GitHub / Node 20** : `security-audit.yml` retire `gitleaks/gitleaks-action@v2.3.9` (runtime Node 20) au profit du binaire Gitleaks `v8.30.1` puis `scripts/security/secrets-scan.sh`; l'upload SARIF Trivy passe à `github/codeql-action/upload-sarif@v4`. Correctif immédiat après run `26232354842` : éviter l’API GitHub releases non authentifiée qui a répondu `403 rate limit exceeded`. Run suivant `26234201957` : Gitleaks s’exécute mais échoue sur la dette historique connue (**718 findings bruts**) ; le workflow passe le scan en rapport non bloquant (`GITLEAKS_FINDINGS_EXIT_CODE=0`) tout en conservant l’artefact, le tri final restant suivi dans `TODOS.md`. Validation GitHub : run **`26234510539` succès** sur `dev`.
 - **Documentation prod / Trivy images** : `docs/ci-cd/README.md`, `PREPROD_PRODUCTION_CHECKLIST.md`, `RELEASE_PREPROD_PRODUCTION_PLAN.md` et `DEPLOIEMENT_FINAL.md` documentent le déclenchement manuel **Security Audit** avec `scan_prod_images=true`, les artefacts `trivy-prod-image-reports`, et le tri obligatoire des `HIGH`/`CRITICAL` avant préprod/prod.
+- **Audit doc sécurité/déploiement** : cartographie mise à jour dans `docs/security/README.md` et `docs/project/CHANTIER_SECURITE_DATA_DOCS.md` ; `CVE_CONTINUOUS_MONITORING.md`, `STATS.md`, `SECURITY_TESTING_MATRIX.md` et `ACTIVATION_WAF.md` réalignés sur les workflows/URLs actuels et sur la règle “cibles Make documentées, pas commandes directes”.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 

@@ -13,22 +13,22 @@ La surveillance ne doit pas devenir une charge permanente. Le bon modèle est un
 
 ## Commandes disponibles
 
-Scan local non bloquant :
+Scan local non bloquant : cible projet **`test-cve-scan`** (ou script sous-jacent `python3 scripts/security/cve-scan.py`).
 
 ```bash
-make test-cve-scan
+python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
-Scan CI bloquant à partir de `high` :
+Scan strict à partir de `high` :
 
 ```bash
-CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high make test-cve-scan
+CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
 Scan avec images des conteneurs en cours :
 
 ```bash
-CVE_SCAN_DOCKER=1 make test-cve-scan
+CVE_SCAN_DOCKER=1 python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
 Scan d’une image précise :
@@ -38,6 +38,16 @@ python3 scripts/security/cve-scan.py --docker --docker-image jobbingtrack-api-ga
 ```
 
 Les rapports sont écrits dans `tests/results/security/cve-<timestamp>/` et ne sont pas versionnés.
+
+## GitHub Actions
+
+Le workflow `.github/workflows/security-audit.yml` exécute déjà une partie du suivi :
+
+- **Node dependency audit** : `scripts/security/cve-scan.py` avec publication `npm-audit-reports`.
+- **Trivy filesystem/config** : scan dépôt + upload SARIF via `github/codeql-action/upload-sarif@v4`.
+- **Trivy prod image scan** : déclenchement manuel `workflow_dispatch` avec `scan_prod_images=true`; construit `docker-compose.prod.yml`, scanne les images effectives et publie `trivy-prod-image-reports`.
+
+Avant préprod/prod, utiliser la procédure de `docs/ci-cd/README.md` et reporter les `HIGH`/`CRITICAL` confirmés dans `docs/security/STATS.md`.
 
 ## Fonctionnement cible en production
 
@@ -112,14 +122,13 @@ CPU, mémoire, disque, charge/core, temps de réponse et conteneurs actifs ne do
 
 ## Rétention des logs sécurité
 
-État actuel : le scheduler supprime les logs de sécurité après 90 jours.
+La politique active est maintenant cadrée dans **`SECURITY_LOGS_RETENTION.md`** : dry-run obligatoire, archive JSONL gzip, vérification SHA-256, restauration en staging, puis purge uniquement après validation.
 
-Politique recommandée :
+Rappel de cohérence :
 
-- logs bruts consultables en backoffice : 90 jours ;
-- agrégats/statistiques : 12 à 24 mois ;
-- événements critiques, actions admin sensibles, confirmations email et changements de configuration sécurité : 1 à 3 ans selon besoin légal ;
-- export long terme : stockage append-only/chiffré, hors base applicative si volumétrie élevée.
+- ne pas supprimer directement `security_logs` depuis un scheduler générique ;
+- conserver les agrégats/statistiques plus longtemps que les lignes brutes ;
+- préserver les événements liés à incident, `requestId`, export forensics ou action admin sensible tant que l’enquête n’est pas clôturée.
 
 ## Protection des logs sécurité
 
@@ -141,5 +150,5 @@ Exigences :
 1. Ajouter une table/entité de déduplication fine `cveId + package + surface` pour passer d’un résumé par surface à un suivi par CVE.
 2. Ajouter les préférences mail sécurité avec réauthentification et confirmation email.
 3. Envoyer les alertes email `critical` et les digests `high`.
-4. Ajouter la pagination complète des logs sécurité avec total réel et filtres.
+4. Brancher les préférences de rétention/export logs côté backoffice sans action destructive implicite.
 5. Ajouter un bouton de scan manuel réservé super admin, avec réauthentification récente.

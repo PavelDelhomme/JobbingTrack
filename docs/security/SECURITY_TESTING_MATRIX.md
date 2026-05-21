@@ -32,16 +32,13 @@ Objectif : cadrer les tests de sécurité à réaliser sur JobbingTrack, côté 
 
 Ces commandes ne doivent viser que `localhost`, un environnement de test ou une préprod explicitement autorisée.
 
-```bash
-# Ports exposés : nécessite une cible autorisée, idéalement l'IP/FQDN préprod vu depuis l'extérieur.
-SECURITY_NMAP_TARGET=preprod-api.example.test make security-scan-ports
+| Contrôle | Cible projet | Variables minimales |
+|----------|--------------|---------------------|
+| Ports exposés | `security-scan-ports` | `SECURITY_NMAP_TARGET=preprod-api.example.test` |
+| JWT lab | `security-scan-jwt` | `JWT_AUDIT_TOKEN=<token-lab-court-vivant>` |
+| ZAP actif borné | `security-zap-active` | `SECURITY_ACTIVE_SCAN=1`, `ZAP_TARGET=http://localhost:5002`, `ZAP_MAX_MINUTES=10` |
 
-# JWT : utiliser uniquement un token de lab court-vivant, jamais un token réel utilisateur/prod.
-JWT_AUDIT_TOKEN="eyJ..." make security-scan-jwt
-
-# ZAP actif : scan potentiellement agressif, uniquement gateway locale/préprod contrôlée.
-SECURITY_ACTIVE_SCAN=1 ZAP_TARGET=http://localhost:5002 ZAP_MAX_MINUTES=10 make security-zap-active
-```
+Ces cibles ne doivent pas être lancées contre une production réelle sans fenêtre validée et sauvegarde/rollback prêts.
 
 Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé pour l’audit JWT, Docker/ZAP disponible pour `security-zap-active`. Si l’outil manque, noter `skipped` dans le rapport plutôt que simuler un succès.
 
@@ -75,7 +72,7 @@ Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé
 
 ## Interface et commandes à prévoir
 
-- **Commandes projet** : socle initial ajouté avec `make security-audit`, `make security-scan-secrets`, `make security-scan-images`, `make security-scan-ports`, `make security-scan-jwt`, `make security-zap-active`, `make security-report`. Reste à ajouter un vrai `make security-scan-api` pour `ffuf`/`gobuster`/ZAP passive selon environnement.
+- **Commandes projet** : socle initial ajouté avec les cibles `security-audit`, `security-scan-secrets`, `security-scan-images`, `security-scan-ports`, `security-scan-jwt`, `security-zap-active`, `security-report`. Reste à ajouter une vraie cible `security-scan-api` pour `ffuf`/`gobuster`/ZAP passive selon environnement.
 - **Backoffice sécurité** : page de tests non destructifs avec sélection environnement, statut WAF, rate limit, CORS, endpoints protégés, rapport lisible et historique.
 - **Rapports** : stocker les sorties normalisées sous `reports/security/` ou `tests/results/security/`, avec date, environnement, commit, outil, statut et résumé actionnable.
 - **CI/CD** : workflow initial `security-audit.yml` ajouté pour `gitleaks`, audit dépendances, Trivy filesystem/config et scan images prod manuel. Ne bloquer le dev que sur critical/high confirmés, avec exceptions datées.

@@ -22,7 +22,7 @@ Les risques principaux ne sont plus seulement "manque d'outil", mais plutot :
 
 | Outil / controle | Etat actuel | Suite attendue |
 |------------------|-------------|----------------|
-| `gitleaks` historique complet | Execute le 11/05, 717 findings bruts notes dans `docs/security/STATS.md` | Trier secrets reels vs artefacts de tests, redacter/supprimer si besoin |
+| `gitleaks` historique complet | Exécuté le 11/05 local (**717** findings bruts) puis en CI le 21/05 (**718** findings bruts, artefact redacted non bloquant) | Trier secrets réels vs artefacts de tests, rédiger/supprimer si besoin |
 | Trivy / CVE images compose prod fusionne | Execute le 11/05, resultats critiques/hauts notes dans `docs/security/STATS.md` | Classer par surface exposee, corriger images/dépendances critiques |
 | `nmap` | Non execute sans cible autorisee | Lancer seulement avec `SECURITY_NMAP_TARGET` preprod/prod autorisee |
 | `jwt_tool` | Non execute faute d'outil/token lab confirme | Generer un JWT lab et tester algorithmes/faiblesses de signature |
@@ -33,7 +33,7 @@ Les risques principaux ne sont plus seulement "manque d'outil", mais plutot :
 
 Etat :
 
-- `gitleaks` historique complet a ete lance : 717 findings bruts notes dans `docs/STATUS.md`.
+- `gitleaks` historique complet a ete lance : 717 findings bruts localement puis 718 findings bruts en CI, notes dans `docs/STATUS.md` / `docs/security/STATS.md`.
 - Trivy/CVE images compose prod fusionne a ete lance : resultats critiques/hauts notes dans `docs/security/STATS.md`.
 - Les rapports dates sont non versionnes, ce qui est correct pour eviter de publier des chemins locaux ou extraits sensibles.
 - Au 13/05, les rapports dates bruts ne sont pas presents dans le workspace courant ; `docs/security/STATS.md` contient donc un tri initial priorise, pas un tri finding par finding.
