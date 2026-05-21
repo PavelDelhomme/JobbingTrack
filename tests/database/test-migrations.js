@@ -52,7 +52,8 @@ async function recreateDatabase() {
 
 function pushSchema() {
   console.log('📦 Application du schéma par prisma db push...');
-  execFileSync('/usr/bin/npx', ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate'], {
+  const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  execFileSync(npxBin, ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate'], {
     cwd: PRISMA_DIR,
     stdio: 'inherit',
     env: {
