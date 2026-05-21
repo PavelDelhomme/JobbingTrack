@@ -86,6 +86,7 @@ coverage/
 /test-results/
 frontend/test-results/
 frontend/test-results.*
+frontend/playwright-report/
 tests/test-results/
 tests/e2e/test-results/
 tests/results/security/cve-*/
