@@ -177,7 +177,7 @@ Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrél
 
 **Historique** : les lignes déjà en BDD restent visibles ; supprimer via UI firewall/menaces ou purge lab si besoin.
 
-## Logs sécurité — pas de compression, mais des plafonds
+## Logs sécurité — compression et rétention
 
 | Couche | Comportement |
 |--------|--------------|
@@ -186,7 +186,9 @@ Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrél
 | **UI vue d’ensemble** | `startDate` = **30 j** + `limit=2000` → si >2000 événements/30 j, affichage **tronqué** |
 | **UI page `/security/logs`** | `limit=100` par requête + pagination locale 25/ligne |
 
-**À faire** : pagination API, bannière « tronqué », rétention/purge configurable (TODOS).
+**Cadrage 21/05** : la politique cible est documentée dans **[SECURITY_LOGS_RETENTION.md](SECURITY_LOGS_RETENTION.md)** : classes de rétention par gravité, archive JSONL gzip sans perte, manifest SHA-256, dry-run obligatoire, restauration en table temporaire et purge seulement après validation.
+
+**À faire** : implémenter scripts d’archive/restauration/purge dry-run, puis brancher les indicateurs de volume/rétention dans le backoffice.
 
 ## Redémarrage stack — logs « effrayants » mais souvent normaux
 

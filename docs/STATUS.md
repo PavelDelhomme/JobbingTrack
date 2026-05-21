@@ -11,6 +11,7 @@
 - **Validation** : `npm test -- --runTestsByPath tests/network-threat-detector.test.js --runInBand` depuis `backend/security-service/` → **3/3 OK**.
 - **B10 sécurité / titres FR** : hook `useDocumentTitle` ajouté et branché sur `/b4ck0ff1ce/security/**` principales ; fallbacks FR pour menaces/logs et règles WAF/firewall sans nom API. Validation Playwright `security-titles-smoke.spec.ts` → **8/8 OK**.
 - **Roadmap sécurité IA + PQC** : phases 6–8 enrichies dans `docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md` : offensive IA contrôlée, UEBA/DAST explicables et réversibles, PQC/TLS hybride avec inventaire crypto, runbook et priorisation des données longue confidentialité.
+- **Logs sécurité / rétention** : nouveau cadrage `docs/security/SECURITY_LOGS_RETENTION.md` : classes de rétention, archive JSONL gzip avec manifest SHA-256, dry-run obligatoire, restauration temporaire et purge seulement après vérification.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 
