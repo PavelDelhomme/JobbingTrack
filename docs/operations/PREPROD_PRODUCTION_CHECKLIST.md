@@ -32,6 +32,7 @@
 
 - [ ] **`make tests`** (ou **`make test-all`**) vert avec la stack **Docker** (**`make up-full`**) : l’étape **Jest API Gateway** s’exécute dans le conteneur **`jobbingtrack-api-gateway`** quand il est up (voir **`scripts/run-all-tests-with-reports.sh`** § 6a).
 - [x] **Scripts de perf** (`tests/performance/`) : vérifier que les scénarios **métier** utilisent **`API_GATEWAY_URL`** (chemins **`/api/v1/...`**) et ne contournent pas la gateway par des **`localhost:300x`** obsolètes — **`test-performance.js`** et **`test-load-advanced.js`** sont alignés gateway (`normalizeGatewayUrlForHost`). Exception documentée : **metrics-aggregator** pour l’infra.
+- [ ] **GitHub Actions — Security Audit** : lancer manuellement le workflow **Security Audit** avec `scan_prod_images=true` avant préprod/prod pour construire `docker-compose.prod.yml` et scanner les images via Trivy. Télécharger l’artefact **`trivy-prod-image-reports`**, trier les `HIGH`/`CRITICAL` dans `docs/security/STATS.md` et bloquer la release si un risque exploitable non justifié reste ouvert. Procédure : `docs/ci-cd/README.md` § Security Audit et scan Trivy images prod.
 - [ ] Parcourir **`docs/tests/TESTS_END.md`** pour les points encore manuels avant bascule.
 - [ ] Garder **`.env`** aligné avec **`.env.example`** (mêmes clés, valeurs réelles hors dépôt) — revue à chaque ajout de variable.
 - [ ] Avant merge vers prod : appliquer le gate **lot H** (`RELEASE_PREPROD_PRODUCTION_PLAN.md`) : branche tests complets, préprod validée, scans sécurité P0, licences, RGPD, sauvegarde/restauration, monitoring/alerting, rollback.
@@ -46,4 +47,4 @@
 
 ---
 
-*Dernière mise à jour : 11 mai 2026 — ajout lien lot H release/préprod/conformité ; historique avril 2026 : F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*
+*Dernière mise à jour : 21 mai 2026 — ajout gate GitHub Actions Security Audit avec `scan_prod_images=true` pour Trivy images prod ; historique avril/mai 2026 : F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*
