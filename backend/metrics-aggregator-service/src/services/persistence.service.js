@@ -1152,6 +1152,8 @@ class PersistenceService {
       invalidTokenAttempts: Number(meta.invalidTokenAttempts || 0),
       securityScore: isScore ? Number(row.value || 100) : Number(meta.securityScore || 100),
       activeSecurityAlerts: Number(meta.activeSecurityAlerts || criticalEvents || ddosAttacks || 0),
+      intrusionAttempts: Number(meta.intrusionAttempts || 0),
+      ddosAttacks: Number(meta.ddosAttacks || 0),
       rawMetricType: row.metricType,
       rawUnit: row.unit,
       rawPeriod: row.period,

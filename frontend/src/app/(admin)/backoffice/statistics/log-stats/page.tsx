@@ -108,6 +108,12 @@ const COUNT_CARDS: Array<{
     status: "active",
   },
   {
+    key: "securityLogs",
+    label: "Logs sécurité (BDD)",
+    hint: "security_logs — rétention : SECURITY_LOGS_RETENTION.md",
+    status: "active",
+  },
+  {
     key: "events",
     label: "Événements système",
     hint: "system_events",
