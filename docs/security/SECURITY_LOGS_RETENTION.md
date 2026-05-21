@@ -30,6 +30,24 @@ Les événements liés à un incident ouvert, à un `requestId` référencé dan
 4. **Purger uniquement après vérification** : compter lignes source/export, vérifier hash, tester une restauration locale, puis supprimer par lots bornés.
 5. **Restaurer à la demande** : prévoir un script qui relit un manifest et réimporte dans une table temporaire pour investigation, sans écraser la table active.
 
+## Dry-run disponible
+
+Le script suivant ne modifie rien : il exécute uniquement des `SELECT` sur `security_logs` via le conteneur PostgreSQL et affiche la taille de table ainsi que les candidats à l’archive par classe.
+
+```bash
+node scripts/security/security-logs-retention-dry-run.cjs
+```
+
+Variables optionnelles :
+
+| Variable | Défaut | Usage |
+|----------|--------|-------|
+| `POSTGRES_CONTAINER` | `jobbingtrack-postgres` | Nom du conteneur PostgreSQL à interroger. |
+| `SECURITY_LOGS_RETENTION_CRITICAL_DAYS` | `180` | Fenêtre chaude BDD pour les événements critiques. |
+| `SECURITY_LOGS_RETENTION_HIGH_DAYS` | `90` | Fenêtre chaude BDD pour les événements hauts. |
+| `SECURITY_LOGS_RETENTION_STANDARD_DAYS` | `45` | Fenêtre chaude BDD pour les warnings/anomalies standard. |
+| `SECURITY_LOGS_RETENTION_NOISE_DAYS` | `14` | Fenêtre chaude BDD pour le bruit contrôlé. |
+
 ## Options techniques
 
 | Option | Avantages | Limites | Décision |
