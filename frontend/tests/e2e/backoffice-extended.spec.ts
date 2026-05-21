@@ -165,8 +165,8 @@ test.describe('🧪 Tests & Outils – interactions avancées', () => {
     await expectLoaded(page);
   });
 
-  test('page Tests Emails avec vérifications', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/tests-emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test('page Emails - Configuration avec vérifications', async ({ page }) => {
+    await page.goto('/b4ck0ff1ce/emails/settings', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectLoaded(page);
   });
 

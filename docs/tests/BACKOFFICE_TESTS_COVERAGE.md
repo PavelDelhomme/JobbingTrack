@@ -34,7 +34,7 @@ Quand on lance **Tests Backoffice** depuis le hub (`/backoffice/tests`), la comm
 |---|---------------|-----|------------|
 | 1 | Hub Tests | `/backoffice/tests` | Cartes, sélection, lancement, journal, lien rapport |
 | 2 | Playwright | `/backoffice/playwright-tests` | Lancement suite complète |
-| 3 | Emails | `/backoffice/tests-emails` | Lancement, config SMTP |
+| 3 | Emails | `/backoffice/emails/settings`, `/backoffice/emails/deliverability`, `/backoffice/email-monitor` | Configuration SMTP, envoi test, délivrabilité, suivi EmailLog |
 | 4 | API | `/backoffice/tests-api` | Lancer, rapport (36 tests) |
 | 5 | Backend | `/backoffice/tests-backend` | Lancer, rapport |
 | 6 | Frontend | `/backoffice/tests-frontend` | Lancer, rapport |

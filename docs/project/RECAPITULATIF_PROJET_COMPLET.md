@@ -91,7 +91,7 @@ Ce document synthétise : **ce qui est fait**, **ce qui n’est pas fait**, et *
 - **Pagination et tri** : cohérents sur toutes les listes.
 - **Email Monitor** : vérifier affichage complet des mails (liste, statuts, contenu au clic), historique, recherche.
 - **Templates email** : création (pas seulement édition), tests Playwright.
-- **Page délivrabilité** (`/backoffice/emails/deliverability`) et **tests-emails** : tests Playwright complets.
+- **Pages emails** (`/backoffice/emails/settings`, `/backoffice/emails/deliverability`, `/backoffice/email-monitor`) : configuration SMTP, tests de délivrabilité et suivi EmailLog.
 - **Page de confirmation « Email vérifié »** (frontend) après clic sur lien de vérification.
 - **Idempotence Postgres** : `db-fix-role` sans erreurs « role/database already exists » (SQL idempotent dans Makefile).
 

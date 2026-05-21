@@ -790,8 +790,9 @@ export default function EmailMonitorPage() {
               <ul className="list-disc list-inside ml-4 space-y-1">
                 <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
                 <li>
-                  Utiliser la page <strong>Tests → Tests Emails</strong> pour
-                  envoyer des emails de test
+                  Utiliser <strong>Emails → Configuration</strong> ou{" "}
+                  <strong>Emails → Déliverabilité</strong> pour envoyer des
+                  emails de test
                 </li>
                 <li>
                   Utiliser le scénario "Vérification Email et Reset Password"

@@ -17,7 +17,7 @@
 
 - **Rapports de tests** : `/backoffice/test-reports` → liste tous les rapports.
 - **Rapports parcours** : `/backoffice/user-journey/reports`.
-- Les rapports "Suite CLI" proviennent de `make test-all` ou `./scripts/run-all-tests-with-reports.sh`.
+- Les rapports "Suite CLI" proviennent des lancements complets effectués par le porteur. L’agent ne lance pas ces campagnes complètes ; il analyse les fichiers générés après coup.
 
 ## Détail technique
 
@@ -43,4 +43,10 @@ Déduplication automatique par ID de rapport.
 | Performance | — | `/api/test/run-performance` |
 | Playwright | `make test-e2e` | `/api/test/run-playwright` |
 | Emails MailHog | — | `/api/test/run-playwright-mailhog` |
-| Suite complète | `make test-all` | — |
+| Suite complète | lancement porteur uniquement | — |
+
+## Règle de responsabilité
+
+- Le porteur lance les suites complètes, rapports complets, rapports sécurité globaux et campagnes parcours utilisateur.
+- L’agent lance uniquement des validations ciblées nécessaires à une modification en cours.
+- Après un lancement porteur, l’agent analyse les rapports générés (`summary.json`, `report.html`, rapports sécurité ou parcours), puis transforme les échecs confirmés en tâches.

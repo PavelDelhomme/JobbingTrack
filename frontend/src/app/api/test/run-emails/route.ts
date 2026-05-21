@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message:
-        "Test email lancé (consultez la page Tests Emails pour plus d’options).",
+        "Test email lancé (consultez Emails > Configuration ou Déliverabilité pour plus d’options).",
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
