@@ -12,7 +12,7 @@ Avant toute nouvelle tâche, lire dans cet ordre :
 4. `docs/TODOS.md`
 5. `BRANCHES.md`
 
-Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité. Exceptions autorisées : corriger un problème remonté par le porteur, mettre à jour le pilotage, ou préparer une preuve nécessaire à la validation.
+Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité. L’agent doit traiter **uniquement la première ligne ouverte** de `TODOS_A_VALIDER.md`. Exceptions autorisées : corriger un problème remonté par le porteur sur cette ligne, mettre à jour le pilotage, ou préparer une preuve nécessaire à cette validation précise. Ne pas lancer les validations suivantes en parallèle.
 
 ## Rôle des fichiers
 
@@ -34,12 +34,13 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 Statut : **validation porteur locale à vider avant reprise de nouvelles features**.
 
-Priorité immédiate :
+Priorité immédiate stricte :
 
-1. Valider accès HTTPS/backoffice et pages sécurité/statistiques listées dans `TODOS_A_VALIDER.md`.
-2. Valider ou bloquer les rapports sécurité backoffice.
-3. Décider le traitement des menaces historiques/lab sans purge automatique.
-4. Seulement ensuite reprendre les tâches techniques de `docs/TODOS.md`.
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md`.
+2. Attendre validation explicite du porteur ou corriger le problème signalé.
+3. Déplacer la ligne validée vers `TODOS_DONE.md`.
+4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md`.
+5. Reprendre `docs/TODOS.md` uniquement quand les P0 porteur sont validés ou explicitement reclassés.
 
 ## Flux de travail
 

@@ -7,7 +7,7 @@ alwaysApply: true
 
 Avant toute action sur ce projet, lire `PILOTAGE.md`, puis vérifier `TODOS_A_VALIDER.md` et `TODOS_A_VERIFIER.md`.
 
-Si `TODOS_A_VALIDER.md` contient une validation porteur bloquante ouverte, ne pas démarrer une nouvelle feature. Exceptions : corriger le problème remonté, préparer une preuve nécessaire à la validation, ou mettre à jour les fichiers de pilotage.
+Si `TODOS_A_VALIDER.md` contient une validation porteur bloquante ouverte, ne pas démarrer une nouvelle feature. Traiter uniquement la première ligne ouverte. Exceptions : corriger le problème remonté sur cette ligne, préparer une preuve nécessaire à cette validation précise, ou mettre à jour les fichiers de pilotage. Ne pas lancer les validations suivantes en parallèle.
 
 Après chaque travail :
 

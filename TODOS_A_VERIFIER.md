@@ -19,5 +19,6 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 - Lire `PILOTAGE.md` avant de choisir une prochaine tâche.
 - Contrôler `TODOS_A_VALIDER.md` avant de commencer une feature.
+- Ne travailler que sur la première ligne ouverte de `TODOS_A_VALIDER.md`; attendre validation porteur avant la suivante.
 - Si une validation porteur échoue, créer une tâche dans `docs/TODOS.md` et traiter ce problème avant la suite.
 - Après chaque livrable, mettre à jour `TODOS_A_VERIFIER.md`, `TODOS_A_VALIDER.md` ou `TODOS_DONE.md` selon le cas.
