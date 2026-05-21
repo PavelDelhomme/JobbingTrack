@@ -68,6 +68,363 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function splitMarkdownTableRow(line: string): string[] {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  const cells: string[] = [];
+  let current = "";
+
+  for (let i = 0; i < trimmed.length; i += 1) {
+    const char = trimmed[i];
+    const previous = i > 0 ? trimmed[i - 1] : "";
+    if (char === "|" && previous !== "\\") {
+      cells.push(current.trim().replace(/\\\|/g, "|"));
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim().replace(/\\\|/g, "|"));
+  return cells;
+}
+
+function parseNumberCell(value: string): number {
+  const parsed = Number.parseInt(value.replace(/[^\d-]/g, ""), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatSecurityNotes(notes: string): string {
+  const parts = notes
+    .split(/<br\s*\/?>/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return '<span class="muted">Aucune note.</span>';
+
+  return `<ul class="findings">${parts
+    .map((part) => `<li>${escapeHtml(part)}</li>`)
+    .join("")}</ul>`;
+}
+
+function generateSecurityMarkdownHTML(content: string, reportId: string): string {
+  const lines = content.split(/\r?\n/);
+  const meta: Record<string, string> = {};
+  const rows: Array<{
+    kind: string;
+    surface: string;
+    status: string;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+    notes: string;
+  }> = [];
+
+  for (const line of lines) {
+    const metaMatch = line.match(/^- ([a-zA-Z0-9_ -]+):\s*(.+)$/);
+    if (metaMatch) {
+      meta[metaMatch[1].trim()] = metaMatch[2].trim();
+      continue;
+    }
+
+    if (!line.startsWith("|")) continue;
+    if (line.includes("---")) continue;
+    if (line.includes("Kind") && line.includes("Surface")) continue;
+
+    const cells = splitMarkdownTableRow(line);
+    if (cells.length < 9) continue;
+
+    rows.push({
+      kind: cells[0],
+      surface: cells[1].replace(/^`|`$/g, ""),
+      status: cells[2],
+      critical: parseNumberCell(cells[3]),
+      high: parseNumberCell(cells[4]),
+      medium: parseNumberCell(cells[5]),
+      low: parseNumberCell(cells[6]),
+      info: parseNumberCell(cells[7]),
+      notes: cells.slice(8).join(" | "),
+    });
+  }
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      critical: acc.critical + row.critical,
+      high: acc.high + row.high,
+      medium: acc.medium + row.medium,
+      low: acc.low + row.low,
+      info: acc.info + row.info,
+      skipped: acc.skipped + (row.status === "skipped" ? 1 : 0),
+      surfaces: acc.surfaces + 1,
+    }),
+    {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      info: 0,
+      skipped: 0,
+      surfaces: 0,
+    },
+  );
+
+  const runtimeRows = rows.filter((row) => row.status !== "skipped");
+  const priorityRows = runtimeRows
+    .filter((row) => row.critical > 0 || row.high > 0)
+    .sort((a, b) => b.critical - a.critical || b.high - a.high)
+    .slice(0, 8);
+
+  const generatedAt = meta.generated_at
+    ? new Date(meta.generated_at).toLocaleString("fr-FR", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Non renseigné";
+
+  const priorityList =
+    priorityRows.length > 0
+      ? priorityRows
+          .map(
+            (row) => `
+            <article class="priority-card">
+              <div>
+                <span class="surface">${escapeHtml(row.surface)}</span>
+                <span class="kind">${escapeHtml(row.kind)}</span>
+              </div>
+              <div class="priority-counts">
+                <span class="pill critical">${row.critical} critical</span>
+                <span class="pill high">${row.high} high</span>
+              </div>
+            </article>`,
+          )
+          .join("")
+      : '<p class="muted">Aucune surface avec criticite haute ou critique.</p>';
+
+  const tableRows = rows
+    .map((row) => {
+      const severityClass =
+        row.critical > 0
+          ? "critical"
+          : row.high > 0
+            ? "high"
+            : row.medium > 0
+              ? "medium"
+              : "ok";
+      return `
+        <tr class="${severityClass}">
+          <td>
+            <div class="surface">${escapeHtml(row.surface)}</div>
+            <div class="kind">${escapeHtml(row.kind)}</div>
+          </td>
+          <td><span class="status ${escapeHtml(row.status)}">${escapeHtml(row.status)}</span></td>
+          <td class="num critical-text">${row.critical}</td>
+          <td class="num high-text">${row.high}</td>
+          <td class="num medium-text">${row.medium}</td>
+          <td class="num">${row.low}</td>
+          <td class="num">${row.info}</td>
+          <td>${formatSecurityNotes(row.notes)}</td>
+        </tr>`;
+    })
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport securite CVE - ${escapeHtml(reportId)}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --critical: #b91c1c;
+      --critical-bg: #fef2f2;
+      --high: #c2410c;
+      --high-bg: #fff7ed;
+      --medium: #a16207;
+      --medium-bg: #fefce8;
+      --ok: #15803d;
+      --ok-bg: #f0fdf4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #e0f2fe, transparent 30%), var(--bg);
+      line-height: 1.5;
+    }
+    .shell { max-width: 1280px; margin: 0 auto; }
+    .hero {
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+      color: #fff;
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+      margin-bottom: 20px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); letter-spacing: -0.04em; }
+    .hero p { margin: 0; color: #dbeafe; }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .meta span, .pill, .status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .meta span { background: rgba(255, 255, 255, 0.14); color: #eff6ff; }
+    .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .card, .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+    }
+    .card { padding: 16px; }
+    .card .label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+    .card .value { font-size: 30px; font-weight: 900; margin-top: 4px; letter-spacing: -0.04em; }
+    .card.critical { background: var(--critical-bg); border-color: #fecaca; color: var(--critical); }
+    .card.high { background: var(--high-bg); border-color: #fed7aa; color: var(--high); }
+    .card.medium { background: var(--medium-bg); border-color: #fde68a; color: var(--medium); }
+    .card.ok { background: var(--ok-bg); border-color: #bbf7d0; color: var(--ok); }
+    .panel { padding: 18px; margin-bottom: 20px; }
+    .panel h2 { margin: 0 0 12px; font-size: 18px; }
+    .priority-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .priority-card {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .surface { font-weight: 800; }
+    .kind { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .priority-counts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .pill.critical, .status.failed { background: var(--critical-bg); color: var(--critical); }
+    .pill.high { background: var(--high-bg); color: var(--high); }
+    .status.ok { background: var(--ok-bg); color: var(--ok); }
+    .status.skipped { background: #f1f5f9; color: #475569; }
+    .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--line); background: #fff; }
+    table { width: 100%; border-collapse: collapse; min-width: 1040px; }
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    td { vertical-align: top; padding: 12px; border-bottom: 1px solid #f1f5f9; }
+    tr.critical { background: rgba(254, 242, 242, 0.55); }
+    tr.high { background: rgba(255, 247, 237, 0.55); }
+    tr.medium { background: rgba(254, 252, 232, 0.55); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; }
+    .critical-text { color: var(--critical); }
+    .high-text { color: var(--high); }
+    .medium-text { color: var(--medium); }
+    .findings { margin: 0; padding-left: 18px; max-width: 560px; }
+    .findings li { margin-bottom: 6px; }
+    .muted { color: var(--muted); }
+    .raw {
+      margin-top: 16px;
+      white-space: pre-wrap;
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 14px;
+      padding: 16px;
+      overflow: auto;
+      max-height: 420px;
+    }
+    @media (max-width: 900px) {
+      body { padding: 14px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .priority-list { grid-template-columns: 1fr; }
+      .priority-card { flex-direction: column; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .hero, .card, .panel { box-shadow: none; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>Rapport securite CVE</h1>
+      <p>Vue synthetique des dependances et surfaces scannees.</p>
+      <div class="meta">
+        <span>ID: ${escapeHtml(reportId)}</span>
+        <span>Genere: ${escapeHtml(generatedAt)}</span>
+        <span>Docker: ${escapeHtml(meta.docker_scan || "false")}</span>
+        <span>Strict: ${escapeHtml(meta.strict || "false")}</span>
+        <span>Seuil: ${escapeHtml(meta.fail_on || "high")}</span>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Synthese">
+      <article class="card"><div class="label">Surfaces</div><div class="value">${totals.surfaces}</div></article>
+      <article class="card critical"><div class="label">Critical</div><div class="value">${totals.critical}</div></article>
+      <article class="card high"><div class="label">High</div><div class="value">${totals.high}</div></article>
+      <article class="card medium"><div class="label">Medium</div><div class="value">${totals.medium}</div></article>
+      <article class="card"><div class="label">Low / Info</div><div class="value">${totals.low + totals.info}</div></article>
+      <article class="card ok"><div class="label">Scans actifs</div><div class="value">${Math.max(0, totals.surfaces - totals.skipped)}</div></article>
+    </section>
+
+    <section class="panel">
+      <h2>Priorites a trier</h2>
+      <div class="priority-list">${priorityList}</div>
+    </section>
+
+    <section class="panel">
+      <h2>Details par surface</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Surface</th>
+              <th>Statut</th>
+              <th>Critical</th>
+              <th>High</th>
+              <th>Medium</th>
+              <th>Low</th>
+              <th>Info</th>
+              <th>Notes / advisories</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+      <details>
+        <summary class="muted">Voir le Markdown brut</summary>
+        <pre class="raw">${escapeHtml(content)}</pre>
+      </details>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
 function isWithinDirectory(baseDir: string, targetPath: string): boolean {
   const relativePath = relative(resolve(baseDir), resolve(targetPath));
   return (
@@ -238,6 +595,9 @@ export async function GET(request: NextRequest) {
       },
     );
 
+    const isSecurityReport =
+      id?.startsWith("security-reports-") || id?.startsWith("security-results-");
+
     // Si c'est un JSON (rapport performance), générer un HTML
     if (fullPath.endsWith(".json")) {
       try {
@@ -248,7 +608,9 @@ export async function GET(request: NextRequest) {
         content = `<pre>${escapeHtml(content)}</pre>`;
       }
     } else if (fullPath.endsWith(".md")) {
-      content = `<pre>${escapeHtml(content)}</pre>`;
+      content = isSecurityReport
+        ? generateSecurityMarkdownHTML(content, id || "security-report")
+        : `<pre>${escapeHtml(content)}</pre>`;
     }
 
     // Ajouter viewport meta tag si absent

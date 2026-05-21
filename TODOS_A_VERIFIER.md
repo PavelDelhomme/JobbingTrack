@@ -15,7 +15,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P0 | Docs de suivi accessibles | `docs/README.md`, `docs/TODOS.md`, `docs/security/README.md`, `TRAITER_IMMEDIATEMENT.md` pointent vers les bons fichiers. | [x] |
 | P0 | Correctif Firewall backoffice | Déblocage IP + garde-fous règles globales couverts par `env npm test -- --runTestsByPath tests/firewall-unblock-ip.test.js --verbose --runInBand` OK (6/6) ; `env npm run type-check` OK ; `env npm run lint` OK avec warnings historiques uniquement. | [x] |
 | P0 | Rapport sécurité frais pour backoffice | `python3 scripts/security/cve-scan.py --output-dir tests/results/security --timeout-sec 60` OK ; API `/api/test-reports/all` liste `security-results-cve-20260521-201336` en premier ; `/api/test-reports/view` OK ; `/api/test-reports/download` OK (`cve-20260521-201336-summary.md`). | [x] |
-| P1 | UX rendu rapports sécurité | Retour porteur noté dans `docs/TODOS.md` : rendu CVE/PDF trop brut, à améliorer sans bloquer la preuve de listage/ouverture/téléchargement. | [x] |
+| P1 | UX rendu rapports sécurité | Rendu CVE Markdown amélioré dans `/api/test-reports/view` : cartes synthèse, priorités à trier, tableau responsive, markdown brut repliable ; `env npm run type-check` OK ; `env npm run lint` OK avec warnings historiques ; smoke API view OK. | [x] |
 | P1 | Validation frontend si fichier UI touché | `env npm run type-check` OK ; `env npm run lint` OK avec warnings historiques uniquement ; pas de Jest frontend ciblé existant pour `firewall/page.tsx`. | [x] |
 
 ## Vérifications récurrentes
