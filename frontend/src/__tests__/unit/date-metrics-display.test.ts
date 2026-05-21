@@ -11,13 +11,16 @@ import {
 
 describe("Affichage métriques (fuseau local)", () => {
   const prevTz = process.env.TZ;
+  const prevChartTz = process.env.NEXT_PUBLIC_CHART_TIMEZONE;
 
   beforeAll(() => {
     process.env.TZ = "Europe/Paris";
+    process.env.NEXT_PUBLIC_CHART_TIMEZONE = "Europe/Paris";
   });
 
   afterAll(() => {
     process.env.TZ = prevTz;
+    process.env.NEXT_PUBLIC_CHART_TIMEZONE = prevChartTz;
   });
 
   it("formatLocalDateTime : UTC → heure locale (CEST avril)", () => {

@@ -7,13 +7,16 @@ import { formatLocalChartAxisTick, metricRowToTimeMs } from "@/lib/utils/date";
 
 describe("normalizeMetricRows (alignement timestamp / timestampMs)", () => {
   const prevTz = process.env.TZ;
+  const prevChartTz = process.env.NEXT_PUBLIC_CHART_TIMEZONE;
 
   beforeAll(() => {
     process.env.TZ = "Europe/Paris";
+    process.env.NEXT_PUBLIC_CHART_TIMEZONE = "Europe/Paris";
   });
 
   afterAll(() => {
     process.env.TZ = prevTz;
+    process.env.NEXT_PUBLIC_CHART_TIMEZONE = prevChartTz;
   });
 
   it("écrase un timestampMs erroné (+2 h) avec la valeur dérivée du timestamp ISO", () => {

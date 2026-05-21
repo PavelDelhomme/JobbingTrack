@@ -92,7 +92,7 @@ Pour chaque ligne :
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
 |------------|-----------------|---------------|----------------|----------------|
 | Workflow CI/CD — Prettier frontend | `npm run format:check` local OK, puis prochain workflow GitHub #556 ne bloque plus sur le job « Vérification du formatage » | local/GitHub | [ ] | Local 21/05 : `npm run format`, `npm run format:check` OK depuis `frontend/`; `.prettierignore` exclut les artefacts générés. Reste GitHub après push. |
-| Workflow CI/CD — Tests Frontend Jest | `npm run test:ci` passe en CI : suites Jest OK + rapport coverage généré sans seuil global irréaliste | local/GitHub | [ ] | Local 21/05 après correction : retrait override global `glob`, lockfile régénéré, retrait seuil global coverage 70% ; `npm run test:ci -- --runInBand` → 24 suites / 118 tests OK. Reste GitHub après push. |
+| Workflow CI/CD — Tests Frontend Jest | `npm run test:ci` passe en CI : suites Jest OK + rapport coverage généré sans seuil global irréaliste | local/GitHub | [ ] | Local 21/05 après correction : retrait override global `glob`, lockfile régénéré, retrait seuil global coverage 70%, tests timezone fixés via `NEXT_PUBLIC_CHART_TIMEZONE=Europe/Paris` ; `npm run test:ci -- --runInBand` → 24 suites / 118 tests OK. Reste GitHub après push. |
 | Workflow CI/CD passe sur GitHub | Jobs DB, backend, frontend, integration, perf initialises | GitHub | [ ] | |
 | Workflow security-audit passe | Gitleaks/Trivy et artefacts disponibles | GitHub | [ ] | |
 | Noms de branches respectent `BRANCHES.md` | Branche type `docs/...`, `feat/...`, `fix/...` | repo | [ ] | |
