@@ -163,14 +163,14 @@ export default function SecurityLogsPage() {
   }, [isGenerating, fetchLogs]);
 
   useEffect(() => {
-    fetchLogs()
-    const interval = setInterval(() => fetchLogs({ silent: true }), 15000)
-    return () => clearInterval(interval)
-  }, [fetchLogs])
+    fetchLogs();
+    const interval = setInterval(() => fetchLogs({ silent: true }), 15000);
+    return () => clearInterval(interval);
+  }, [fetchLogs]);
 
   useEffect(() => {
-    setPage(1)
-  }, [filterLevel, filterCategory, dateFrom, dateTo, searchQuery, setPage])
+    setPage(1);
+  }, [filterLevel, filterCategory, dateFrom, dateTo, searchQuery, setPage]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");

@@ -8,6 +8,7 @@ import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
+  isBenignFetchAbort,
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
@@ -186,7 +187,7 @@ export default function PerformancesDiskPage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
-  usePersistedSharedAnalyticsRange({
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -225,9 +226,11 @@ export default function PerformancesDiskPage() {
   }, [customEnd, customStart, timeRange, useCustomRange, windowEnd]);
 
   useEffect(() => {
+    if (!rangeHydrated) return;
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
     let cancelled = false;
+    const controller = new AbortController();
     const { startDate, endDate, limit } = getParams();
 
     const normalizeSystemRows = (data: Record<string, unknown>[]) =>
@@ -343,7 +346,9 @@ export default function PerformancesDiskPage() {
     };
 
     (async () => {
-      if (!silent) setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       try {
         const [systemData, containers] = await Promise.all([
           analyticsService.getSystemMetricsHistory({
@@ -351,10 +356,11 @@ export default function PerformancesDiskPage() {
             endDate,
             limit,
             offset: 0,
+            signal: controller.signal,
           }),
           analyticsService.getContainersList(),
         ]);
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
         setSystemRows(normalizeSystemRows(systemData));
 
         const activeContainers = (containers as ContainerInfo[]).filter(
@@ -367,30 +373,39 @@ export default function PerformancesDiskPage() {
           async (container) => ({
             name: container.name,
             rows: normalizeContainerIoRows(
-              await analyticsService.getContainerMetricsHistory(container.name, {
-                startDate,
-                endDate,
-                limit,
-                offset: 0,
-              }),
+              await analyticsService.getContainerMetricsHistory(
+                container.name,
+                {
+                  startDate,
+                  endDate,
+                  limit,
+                  offset: 0,
+                  signal: controller.signal,
+                },
+              ),
             ),
           }),
         );
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
         const byContainer: Record<string, ContainerIoMetric[]> = {};
         histories.forEach((history) => {
           if (history.rows.length > 0) byContainer[history.name] = history.rows;
         });
         setIoRows(aggregateIo(byContainer));
+      } catch (e) {
+        if (!isBenignFetchAbort(e)) console.error(e);
       } finally {
-        if (!cancelled && !silent) setLoading(false);
+        if (!cancelled && !controller.signal.aborted && !silent) {
+          setLoading(false);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [getParams, softTick]);
+  }, [getParams, softTick, rangeHydrated]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -591,7 +606,11 @@ export default function PerformancesDiskPage() {
                 </h2>
                 <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[240px] sm:min-h-[340px]">
-                  <ResponsiveContainer width="100%" height={340} minHeight={240}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={340}
+                    minHeight={240}
+                  >
                     <LineChart
                       data={systemRows}
                       margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
@@ -659,7 +678,11 @@ export default function PerformancesDiskPage() {
                 </h2>
                 <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[220px] sm:min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300} minHeight={220}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={300}
+                    minHeight={220}
+                  >
                     <LineChart
                       data={systemRows}
                       margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
@@ -736,7 +759,11 @@ export default function PerformancesDiskPage() {
                 </h2>
                 <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[220px] sm:min-h-[320px]">
-                  <ResponsiveContainer width="100%" height={320} minHeight={220}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={320}
+                    minHeight={220}
+                  >
                     <LineChart
                       data={ioRows}
                       margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
@@ -814,7 +841,11 @@ export default function PerformancesDiskPage() {
                 </h2>
                 <ChartPeriodCaption label={rangeLabel} />
                 <div className="w-full min-h-[220px] sm:min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300} minHeight={220}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={300}
+                    minHeight={220}
+                  >
                     <LineChart
                       data={ioRows}
                       margin={{ top: 5, right: 30, left: 20, bottom: 50 }}

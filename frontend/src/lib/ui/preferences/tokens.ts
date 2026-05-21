@@ -5,10 +5,7 @@ export const JT_CSS_VARS = {
 } as const;
 
 /** Alias legacy lus par customization.css (dérivés de --jt-*). */
-export const LEGACY_ALIAS_VARS = [
-  "--primary-color",
-  "--accent-color",
-] as const;
+export const LEGACY_ALIAS_VARS = ["--primary-color", "--accent-color"] as const;
 
 export const JT_DOM_VARS_TO_CLEAR = [
   ...Object.values(JT_CSS_VARS),

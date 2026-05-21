@@ -556,7 +556,9 @@ class CentralMetricsService {
 
   // Récupération de tous les services (docker/services/all — cache + dédup requêtes)
   async getAllServices(): Promise<any[] | null> {
-    return this.getWithCache("getAllServices", () => this.fetchAllServicesUncached());
+    return this.getWithCache("getAllServices", () =>
+      this.fetchAllServicesUncached(),
+    );
   }
 
   private async fetchAllServicesUncached(): Promise<any[] | null> {
@@ -1431,14 +1433,11 @@ class CentralMetricsService {
                 : 0,
           error_rate: (() => {
             const explicit =
-              item.errorRate !== undefined
-                ? item.errorRate
-                : item.error_rate;
+              item.errorRate !== undefined ? item.errorRate : item.error_rate;
             if (explicit != null && Number.isFinite(Number(explicit))) {
               return Number(explicit);
             }
-            const avail =
-              item.availabilityPercent ?? item.availability_percent;
+            const avail = item.availabilityPercent ?? item.availability_percent;
             if (avail != null && Number.isFinite(Number(avail))) {
               return Math.max(0, Math.min(100, 100 - Number(avail)));
             }

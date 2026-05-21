@@ -11,12 +11,18 @@
  *
  * Utilise un utilisateur classique (role USER).
  */
-import { test, expect } from '@playwright/test';
-import { getAdminToken, apiCreateCompany, apiCreateApplication, uniqueId } from './test-data-helper';
+import { test, expect } from "@playwright/test";
+import {
+  getAdminToken,
+  apiCreateCompany,
+  apiCreateApplication,
+  uniqueId,
+} from "./test-data-helper";
 
-const API_URL = process.env.API_URL || process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const API_URL =
+  process.env.API_URL || process.env.API_GATEWAY_URL || "http://localhost:5002";
 
-test.describe('Moteur de statut intelligent (E2E API)', () => {
+test.describe("Moteur de statut intelligent (E2E API)", () => {
   let token: string;
   let companyId: string;
   let applicationId: string;
@@ -27,14 +33,28 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
     token = await getAdminToken(request);
     if (!token) return;
 
-    const company = await apiCreateCompany(request, token, `StatusEngine Corp ${uniqueId()}`);
+    const company = await apiCreateCompany(
+      request,
+      token,
+      `StatusEngine Corp ${uniqueId()}`,
+    );
     companyId = company.id;
 
     if (companyId) {
-      const app1 = await apiCreateApplication(request, token, companyId, 'StatusEngine Dev Auto');
+      const app1 = await apiCreateApplication(
+        request,
+        token,
+        companyId,
+        "StatusEngine Dev Auto",
+      );
       applicationId = app1.id;
 
-      const app2 = await apiCreateApplication(request, token, companyId, 'StatusEngine Dev Manual');
+      const app2 = await apiCreateApplication(
+        request,
+        token,
+        companyId,
+        "StatusEngine Dev Manual",
+      );
       applicationId2 = app2.id;
     }
   });
@@ -45,35 +65,41 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
     // Restaurer auto-statut
     await request.put(`${API_URL}/api/v1/auth/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { preferences: { statusEngine: { autoStatusEnabled: true } } }
+      data: { preferences: { statusEngine: { autoStatusEnabled: true } } },
     });
 
     const cleanups = [
       interviewId && `interviews/${interviewId}`,
       applicationId && `applications/${applicationId}`,
       applicationId2 && `applications/${applicationId2}`,
-      companyId && `companies/${companyId}`
+      companyId && `companies/${companyId}`,
     ].filter(Boolean);
 
     for (const path of cleanups) {
-      await request.post(`${API_URL}/api/v1/${path}/restore`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {});
-      await request.delete(`${API_URL}/api/v1/${path}/permanent`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {});
+      await request
+        .post(`${API_URL}/api/v1/${path}/restore`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .catch(() => {});
+      await request
+        .delete(`${API_URL}/api/v1/${path}/permanent`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .catch(() => {});
     }
   });
 
-  test('preferences par defaut doivent inclure statusEngine', async ({ request }) => {
-    test.skip(!token, 'Token non disponible');
+  test("preferences par defaut doivent inclure statusEngine", async ({
+    request,
+  }) => {
+    test.skip(!token, "Token non disponible");
 
     const res = await request.get(`${API_URL}/api/v1/auth/preferences`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (res.status() !== 200) {
-      test.skip(true, 'Endpoint preferences non disponible');
+      test.skip(true, "Endpoint preferences non disponible");
       return;
     }
 
@@ -82,16 +108,18 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
     expect(prefs).toBeDefined();
 
     if (prefs.statusEngine) {
-      expect(typeof prefs.statusEngine.autoStatusEnabled).toBe('boolean');
+      expect(typeof prefs.statusEngine.autoStatusEnabled).toBe("boolean");
     }
   });
 
-  test('mode auto : cascade entretien → INTERVIEW_PENDING', async ({ request }) => {
-    test.skip(!applicationId, 'Candidature non disponible');
+  test("mode auto : cascade entretien → INTERVIEW_PENDING", async ({
+    request,
+  }) => {
+    test.skip(!applicationId, "Candidature non disponible");
 
     await request.put(`${API_URL}/api/v1/auth/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { preferences: { statusEngine: { autoStatusEnabled: true } } }
+      data: { preferences: { statusEngine: { autoStatusEnabled: true } } },
     });
 
     const intRes = await request.post(`${API_URL}/api/v1/interviews`, {
@@ -99,46 +127,54 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
       data: {
         applicationId,
         interviewDate: new Date(Date.now() + 86400000).toISOString(),
-        status: 'SCHEDULED'
-      }
+        status: "SCHEDULED",
+      },
     });
 
     expect(intRes.status()).toBe(201);
     const intBody = await intRes.json();
     interviewId = intBody.interview?.id;
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     const appBody = await appRes.json();
-    const statusCode = appBody.application?.status?.code || appBody.application?.statusCode;
-    expect(statusCode).toBe('INTERVIEW_PENDING');
+    const statusCode =
+      appBody.application?.status?.code || appBody.application?.statusCode;
+    expect(statusCode).toBe("INTERVIEW_PENDING");
   });
 
-  test('mode auto : COMPLETED → INTERVIEW_DONE', async ({ request }) => {
-    test.skip(!interviewId, 'Entretien non disponible');
+  test("mode auto : COMPLETED → INTERVIEW_DONE", async ({ request }) => {
+    test.skip(!interviewId, "Entretien non disponible");
 
     await request.put(`${API_URL}/api/v1/interviews/${interviewId}`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { status: 'COMPLETED' }
+      data: { status: "COMPLETED" },
     });
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     const appBody = await appRes.json();
-    const statusCode = appBody.application?.status?.code || appBody.application?.statusCode;
-    expect(statusCode).toBe('INTERVIEW_DONE');
+    const statusCode =
+      appBody.application?.status?.code || appBody.application?.statusCode;
+    expect(statusCode).toBe("INTERVIEW_DONE");
   });
 
-  test('mode manuel : pas de cascade automatique', async ({ request }) => {
-    test.skip(!applicationId2, 'Candidature 2 non disponible');
+  test("mode manuel : pas de cascade automatique", async ({ request }) => {
+    test.skip(!applicationId2, "Candidature 2 non disponible");
 
     await request.put(`${API_URL}/api/v1/auth/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { preferences: { statusEngine: { autoStatusEnabled: false } } }
+      data: { preferences: { statusEngine: { autoStatusEnabled: false } } },
     });
 
     const intRes = await request.post(`${API_URL}/api/v1/interviews`, {
@@ -146,64 +182,87 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
       data: {
         applicationId: applicationId2,
         interviewDate: new Date(Date.now() + 86400000).toISOString(),
-        status: 'SCHEDULED'
-      }
+        status: "SCHEDULED",
+      },
     });
 
     expect(intRes.status()).toBe(201);
     const intBody = await intRes.json();
     const manualIntId = intBody.interview?.id;
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId2}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId2}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     const appBody = await appRes.json();
-    const statusCode = appBody.application?.status?.code || appBody.application?.statusCode;
+    const statusCode =
+      appBody.application?.status?.code || appBody.application?.statusCode;
     // En mode manuel, la candidature peut rester CANDIDATE_PENDING ou passer en INTERVIEW_PENDING si le backend applique une cascade minimale à la création d'entretien
-    expect(['CANDIDATE_PENDING', 'INTERVIEW_PENDING']).toContain(statusCode);
+    expect(["CANDIDATE_PENDING", "INTERVIEW_PENDING"]).toContain(statusCode);
 
     if (manualIntId) {
       await request.delete(`${API_URL}/api/v1/interviews/${manualIntId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      await request.delete(`${API_URL}/api/v1/interviews/${manualIntId}/permanent`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {});
+      await request
+        .delete(`${API_URL}/api/v1/interviews/${manualIntId}/permanent`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .catch(() => {});
     }
   });
 
-  test('mode manuel : changement explicite reste possible', async ({ request }) => {
-    test.skip(!applicationId2, 'Candidature 2 non disponible');
+  test("mode manuel : changement explicite reste possible", async ({
+    request,
+  }) => {
+    test.skip(!applicationId2, "Candidature 2 non disponible");
 
-    const statusRes = await request.put(`${API_URL}/api/v1/applications/${applicationId2}/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { status: 'INTERVIEW_PENDING', comment: 'Changement manuel test E2E' }
-    });
+    const statusRes = await request.put(
+      `${API_URL}/api/v1/applications/${applicationId2}/status`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          status: "INTERVIEW_PENDING",
+          comment: "Changement manuel test E2E",
+        },
+      },
+    );
 
     expect(statusRes.status()).toBe(200);
     const statusBody = await statusRes.json();
     expect(statusBody.success).toBe(true);
 
     // Remettre en CANDIDATE_PENDING
-    await request.put(`${API_URL}/api/v1/applications/${applicationId2}/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { status: 'CANDIDATE_PENDING', comment: 'Reset test E2E' }
-    });
+    await request.put(
+      `${API_URL}/api/v1/applications/${applicationId2}/status`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { status: "CANDIDATE_PENDING", comment: "Reset test E2E" },
+      },
+    );
   });
 
-  test('historique des changements de statut', async ({ request }) => {
-    test.skip(!applicationId, 'Candidature non disponible');
+  test("historique des changements de statut", async ({ request }) => {
+    test.skip(!applicationId, "Candidature non disponible");
 
     // S'assurer qu'il existe au moins un changement (indépendant de l'ordre des tests / workers)
-    await request.put(`${API_URL}/api/v1/applications/${applicationId}/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { status: 'INTERVIEW_PENDING', comment: 'E2E historique' }
-    });
+    await request.put(
+      `${API_URL}/api/v1/applications/${applicationId}/status`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { status: "INTERVIEW_PENDING", comment: "E2E historique" },
+      },
+    );
 
-    const res = await request.get(`${API_URL}/api/v1/applications/${applicationId}/status-history`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}/status-history`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     expect(res.status()).toBe(200);
     const body = await res.json();
@@ -212,33 +271,42 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
     expect(history.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('rejet direct depuis n importe quel statut', async ({ request }) => {
-    test.skip(!applicationId2, 'Candidature 2 non disponible');
+  test("rejet direct depuis n importe quel statut", async ({ request }) => {
+    test.skip(!applicationId2, "Candidature 2 non disponible");
 
     // Reactiver auto pour ce test
     await request.put(`${API_URL}/api/v1/auth/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { preferences: { statusEngine: { autoStatusEnabled: true } } }
+      data: { preferences: { statusEngine: { autoStatusEnabled: true } } },
     });
 
-    const statusRes = await request.put(`${API_URL}/api/v1/applications/${applicationId2}/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { status: 'REJECTED', comment: 'Email de rejet recu - test E2E' }
-    });
+    const statusRes = await request.put(
+      `${API_URL}/api/v1/applications/${applicationId2}/status`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { status: "REJECTED", comment: "Email de rejet recu - test E2E" },
+      },
+    );
 
     expect(statusRes.status()).toBe(200);
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId2}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId2}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     const appBody = await appRes.json();
-    const statusCode = appBody.application?.status?.code || appBody.application?.statusCode;
-    expect(statusCode).toBe('REJECTED');
+    const statusCode =
+      appBody.application?.status?.code || appBody.application?.statusCode;
+    expect(statusCode).toBe("REJECTED");
   });
 
-  test('configuration personnalisee du moteur de statut', async ({ request }) => {
-    test.skip(!token, 'Token non disponible');
+  test("configuration personnalisee du moteur de statut", async ({
+    request,
+  }) => {
+    test.skip(!token, "Token non disponible");
 
     const updateRes = await request.put(`${API_URL}/api/v1/auth/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -250,16 +318,16 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
             followUpNoResponseDays: 10,
             interviewFeedbackDays: 14,
             maxFollowUpsBeforeReject: 5,
-            autoCreateReminders: false
-          }
-        }
-      }
+            autoCreateReminders: false,
+          },
+        },
+      },
     });
 
     if (updateRes.status() !== 200) return;
 
     const getRes = await request.get(`${API_URL}/api/v1/auth/preferences`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (getRes.status() === 200) {
@@ -281,10 +349,10 @@ test.describe('Moteur de statut intelligent (E2E API)', () => {
             followUpNoResponseDays: 5,
             interviewFeedbackDays: 7,
             maxFollowUpsBeforeReject: 3,
-            autoCreateReminders: true
-          }
-        }
-      }
+            autoCreateReminders: true,
+          },
+        },
+      },
     });
   });
 });

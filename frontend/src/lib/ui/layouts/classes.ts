@@ -1,7 +1,9 @@
 import type { DashboardLayoutId } from "./registry";
 
 /** Classes Tailwind pour la grille de cartes KPI du dashboard backoffice. */
-export function dashboardMetricsLayoutClass(layoutId: DashboardLayoutId): string {
+export function dashboardMetricsLayoutClass(
+  layoutId: DashboardLayoutId,
+): string {
   switch (layoutId) {
     case "list":
       return "flex flex-col gap-4 md:gap-6";
@@ -14,7 +16,9 @@ export function dashboardMetricsLayoutClass(layoutId: DashboardLayoutId): string
 }
 
 /** Sections deux colonnes (graphiques, panneaux jumeaux). */
-export function dashboardSectionLayoutClass(layoutId: DashboardLayoutId): string {
+export function dashboardSectionLayoutClass(
+  layoutId: DashboardLayoutId,
+): string {
   switch (layoutId) {
     case "list":
       return "flex flex-col gap-6";

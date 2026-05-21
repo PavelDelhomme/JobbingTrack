@@ -362,9 +362,13 @@ export default function StatisticsLogStatsPage() {
             {dataRange && (
               <p className={`text-xs ${uiText.subtle}`}>
                 Plage persistée connue :{" "}
-                {dataRange.oldest ? new Date(dataRange.oldest).toLocaleString("fr-FR") : "—"}{" "}
+                {dataRange.oldest
+                  ? new Date(dataRange.oldest).toLocaleString("fr-FR")
+                  : "—"}{" "}
                 →{" "}
-                {dataRange.newest ? new Date(dataRange.newest).toLocaleString("fr-FR") : "—"}
+                {dataRange.newest
+                  ? new Date(dataRange.newest).toLocaleString("fr-FR")
+                  : "—"}
               </p>
             )}
 
@@ -448,7 +452,8 @@ export default function StatisticsLogStatsPage() {
             ) : null}
 
             <p className={`text-xs ${uiText.subtle}`}>
-              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre {periodDays}
+              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
+              {periodDays}
               jours, max 800).
             </p>
 

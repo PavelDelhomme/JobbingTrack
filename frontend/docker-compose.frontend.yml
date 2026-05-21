@@ -3,12 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development  # Maintenant ce stage existe
+      target: development # Maintenant ce stage existe
       args:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
     ports:
-      - "8080:3000"  # ✅ Changé de 3001 à 8080 pour éviter conflit avec auth-service
+      - "8080:3000" # ✅ Changé de 3001 à 8080 pour éviter conflit avec auth-service
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:3000

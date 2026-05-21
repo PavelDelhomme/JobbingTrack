@@ -5,9 +5,7 @@
 import { useCallback } from "react";
 import { useUiPreferences } from "@/lib/ui/UiPreferencesContext";
 
-export type {
-  CustomizationSettings,
-} from "@/lib/ui/preferences/customization";
+export type { CustomizationSettings } from "@/lib/ui/preferences/customization";
 
 export {
   defaultCustomizationSettings as defaultSettings,

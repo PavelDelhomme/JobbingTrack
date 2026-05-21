@@ -80,7 +80,10 @@ export default function SecurityAlertDetailPage() {
         </Link>
 
         {loading && (
-          <SectionLoader message="Chargement de l'alerte…" className="min-h-[40vh]" />
+          <SectionLoader
+            message="Chargement de l'alerte…"
+            className="min-h-[40vh]"
+          />
         )}
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -92,7 +95,9 @@ export default function SecurityAlertDetailPage() {
               <span className="rounded bg-red-100 text-red-800 dark:bg-red-900/40 px-2 py-1 text-xs font-semibold uppercase">
                 {alert.level}
               </span>
-              <span className={`text-xs ${uiText.subtle}`}>{alert.category}</span>
+              <span className={`text-xs ${uiText.subtle}`}>
+                {alert.category}
+              </span>
               <span className={`text-xs ml-auto ${uiText.subtle}`}>
                 {formatLocalDateTime(alert.timestamp)}
               </span>

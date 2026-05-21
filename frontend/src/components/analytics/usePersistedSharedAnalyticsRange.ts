@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { TimeRangeOption } from "./TimeRangeSelector";
 
 const STORAGE_KEY = "jobbingtrack:analytics:shared-time-v1";
@@ -65,12 +71,18 @@ export function usePersistedSharedAnalyticsRange({
   setWindowEnd: Dispatch<SetStateAction<Date>>;
   followLive: boolean;
   setFollowLive: Dispatch<SetStateAction<boolean>>;
-}): void {
+}): { rangeHydrated: boolean } {
   const didRestore = useRef(false);
+  const [rangeHydrated, setRangeHydrated] = useState(
+    () => typeof window === "undefined",
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (didRestore.current) return;
+    if (didRestore.current) {
+      setRangeHydrated(true);
+      return;
+    }
     didRestore.current = true;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -90,6 +102,8 @@ export function usePersistedSharedAnalyticsRange({
       }
     } catch {
       /* ignore */
+    } finally {
+      setRangeHydrated(true);
     }
   }, [
     setTimeRange,
@@ -128,4 +142,6 @@ export function usePersistedSharedAnalyticsRange({
     windowEnd,
     followLive,
   ]);
+
+  return { rangeHydrated };
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
+  beginUserRangeFetch,
+  isBenignFetchAbort,
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
@@ -62,6 +64,7 @@ export default function PerformancesLatencyPage() {
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
+  const silentNextFetch = useRef(false);
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
     const d = new Date();
@@ -75,7 +78,7 @@ export default function PerformancesLatencyPage() {
     end: number;
   } | null>(null);
 
-  usePersistedSharedAnalyticsRange({
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -113,50 +116,67 @@ export default function PerformancesLatencyPage() {
     };
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
-  const fetchData = useCallback(async () => {
-    const { startDate, endDate, limit } = getParams();
-    setLoadingHistory(true);
-    setLoadingLive(true);
-    try {
-      const [history, live] = await Promise.all([
-        analyticsService.getSystemMetricsHistory({
-          startDate,
-          endDate,
-          limit,
-          offset: 0,
-        }),
-        centralMetricsService.getAggregatorMetrics(),
-      ]);
-      setLiveMetrics(live);
-      const normalized = (history || [])
-        .map((r: Record<string, unknown>) => {
-          const timestamp = normalizeMetricTimestampToIso(
-            r.timestamp as string,
-          );
-          const timeMs = metricRowToTimeMs(r, timestamp);
-          const responseTimeMs = pickSystemResponseTimeAvgMsFromRow(r);
-          if (!timestamp || timeMs == null) return null;
-          return {
-            timestamp,
-            timeMs,
-            responseTimeMs:
-              responseTimeMs != null && Number.isFinite(Number(responseTimeMs))
-                ? Number(responseTimeMs)
-                : null,
-          };
-        })
-        .filter((x): x is LatencyRow => x != null)
-        .sort((a, b) => a.timeMs - b.timeMs);
-      setRows(normalized);
-    } finally {
-      setLoadingHistory(false);
-      setLoadingLive(false);
-    }
-  }, [getParams]);
+  const fetchData = useCallback(
+    async (opts?: { silent?: boolean; signal?: AbortSignal }) => {
+      const silent = opts?.silent ?? false;
+      beginUserRangeFetch(silent, setRows, setLoadingHistory);
+      if (!silent) setLoadingLive(true);
+      try {
+        const { startDate, endDate, limit } = getParams();
+        const [history, live] = await Promise.all([
+          analyticsService.getSystemMetricsHistory({
+            startDate,
+            endDate,
+            limit,
+            offset: 0,
+            signal: opts?.signal,
+          }),
+          centralMetricsService.getAggregatorMetrics(),
+        ]);
+        if (opts?.signal?.aborted) return;
+        setLiveMetrics(live);
+        const normalized = (history || [])
+          .map((r: Record<string, unknown>) => {
+            const timestamp = normalizeMetricTimestampToIso(
+              r.timestamp as string,
+            );
+            const timeMs = metricRowToTimeMs(r, timestamp);
+            const responseTimeMs = pickSystemResponseTimeAvgMsFromRow(r);
+            if (!timestamp || timeMs == null) return null;
+            return {
+              timestamp,
+              timeMs,
+              responseTimeMs:
+                responseTimeMs != null &&
+                Number.isFinite(Number(responseTimeMs))
+                  ? Number(responseTimeMs)
+                  : null,
+            };
+          })
+          .filter((x): x is LatencyRow => x != null)
+          .sort((a, b) => a.timeMs - b.timeMs);
+        setRows(normalized);
+      } catch (e) {
+        if (isBenignFetchAbort(e)) return;
+        console.error(e);
+      } finally {
+        if (!opts?.signal?.aborted) {
+          if (!silent) setLoadingHistory(false);
+          setLoadingLive(false);
+        }
+      }
+    },
+    [getParams],
+  );
 
   useEffect(() => {
-    void fetchData();
-  }, [fetchData, softTick]);
+    if (!rangeHydrated) return;
+    const silent = silentNextFetch.current;
+    silentNextFetch.current = false;
+    const controller = new AbortController();
+    void fetchData({ silent, signal: controller.signal });
+    return () => controller.abort();
+  }, [fetchData, softTick, rangeHydrated]);
 
   useEffect(() => {
     if (rows.length === 0) {
@@ -167,9 +187,11 @@ export default function PerformancesLatencyPage() {
   }, [rows]);
 
   const bumpWindowEndToNow = useCallback(() => {
+    silentNextFetch.current = true;
     setWindowEnd(new Date());
   }, []);
   const bumpSoftRefresh = useCallback(() => {
+    silentNextFetch.current = true;
     setSoftTick((t) => t + 1);
   }, []);
 

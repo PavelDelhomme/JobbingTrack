@@ -91,7 +91,9 @@ export function SecurityAlertEmailSettings() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.data?.success) {
-        setMessage("Paramètres enregistrés. Les prochaines alertes utiliseront cette configuration.");
+        setMessage(
+          "Paramètres enregistrés. Les prochaines alertes utiliseront cette configuration.",
+        );
         setSource("file");
         await load();
       }
@@ -132,8 +134,8 @@ export function SecurityAlertEmailSettings() {
         </CardTitle>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Destinataires pour les alertes <strong>critical</strong> /{" "}
-          <strong>high</strong> (menaces réseau, CVE, service down). En l&apos;absence
-          d&apos;adresse ici, repli sur{" "}
+          <strong>high</strong> (menaces réseau, CVE, service down). En
+          l&apos;absence d&apos;adresse ici, repli sur{" "}
           <code className="text-xs">SECURITY_ALERT_EMAIL</code> ou{" "}
           <code className="text-xs">CRASH_REPORT_EMAIL</code> du{" "}
           <code className="text-xs">.env</code>.
@@ -213,8 +215,8 @@ export function SecurityAlertEmailSettings() {
           </ul>
           {recipients.length === 0 && (
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              Aucun destinataire — configurez au moins une adresse pour recevoir les
-              rapports.
+              Aucun destinataire — configurez au moins une adresse pour recevoir
+              les rapports.
             </p>
           )}
         </div>
@@ -223,7 +225,9 @@ export function SecurityAlertEmailSettings() {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
         {message && (
-          <p className="text-sm text-green-700 dark:text-green-300">{message}</p>
+          <p className="text-sm text-green-700 dark:text-green-300">
+            {message}
+          </p>
         )}
 
         <Button
@@ -239,11 +243,10 @@ export function SecurityAlertEmailSettings() {
           Enregistrer les alertes sécurité
         </Button>
         <p className="text-xs text-gray-500">
-          La réauthentification obligatoire avant modification sera ajoutée dans une
-          prochaine itération (voir checklist porteur).
+          La réauthentification obligatoire avant modification sera ajoutée dans
+          une prochaine itération (voir checklist porteur).
         </p>
       </CardContent>
     </Card>
   );
 }
-

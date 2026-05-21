@@ -1,9 +1,10 @@
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { mergeCustomizationSettings } from "./customization";
 
-export async function fetchRemoteCustomization(): Promise<
-  Record<string, unknown> | null
-> {
+export async function fetchRemoteCustomization(): Promise<Record<
+  string,
+  unknown
+> | null> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
   if (!token) return null;
@@ -24,7 +25,7 @@ export async function fetchRemoteCustomization(): Promise<
     const payload =
       body?.success && body?.customization
         ? body.customization
-        : body?.data ?? body;
+        : (body?.data ?? body);
     if (payload && typeof payload === "object") {
       return payload as Record<string, unknown>;
     }

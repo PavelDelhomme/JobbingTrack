@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.next-local/
+tmp/
+coverage/
+playwright-report/
+test-results/
+tests/results/
+performance-reports/

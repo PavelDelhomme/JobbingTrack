@@ -16,7 +16,11 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Contrôles période sticky (20/05/2026)** : sur Performances/Statistics/Analytics, les barres de période doivent rester visibles en haut lors du scroll profond dans les graphes (dropdown, plage actuelle, précédent/suivant/actuelle), avec comportement cohérent clair/sombre.
 
-**UX backoffice / mode clair (20/05/2026)** : malgré la migration structure frontend / moteur UI, le mode clair reste à valider page par page (contrastes fonds/textes/cartes/tableaux/tooltips). Correctif global amorcé : surfaces/cartes/champs du contenu backoffice renforcés (bordures, ombres, textes secondaires), puis teintes de cartes/badges colorés renforcées par famille. Suivi court dans `TODOS.md` § moteur personnalisation / apparence, validation porteur dans `A_VALIDER_VERIFIER.md`.
+**Performances — transitions de période (21/05/2026)** : le comportement sans flash vide est traité dans le chantier court : les graphes restent visibles pendant le fetch d’une nouvelle plage. Reste backlog séparé : barre période sticky au scroll profond, comparaison de périodes, brush/zoom partagé et export des séries.
+
+**UX backoffice / mode clair (21/05/2026)** : validation porteur provisoire acceptée après renforcement global des surfaces/cartes/champs/couleurs. Ne plus bloquer le lot apparence global ici ; rouvrir uniquement des tickets ciblés page par page si un écran précis reste illisible.
+
+**CI Prettier frontend (21/05/2026)** : `frontend/.prettierignore` exclut les artefacts générés et `npm run format:check` est vert localement. Le suivi restant est opérationnel : commit/push puis observation du workflow GitHub #556 dans `A_VALIDER_VERIFIER.md`.
 
 **Sécurité — libellés & navigation (18/05/2026)** : pages **`/b4ck0ff1ce/security/**`** (policies, logs, etc.) — reprendre noms/titres/sous-nav (**`SecuritySubNav`**, FR, fallbacks) — **`PLAN.md` B10** + priorité rapide **`TODOS.md`**.
 

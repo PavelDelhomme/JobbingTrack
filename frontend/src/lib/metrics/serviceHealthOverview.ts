@@ -35,7 +35,10 @@ export interface ServiceHealthCounts {
 }
 
 export function normalizeDockerServiceKey(name: string): string {
-  return (name || "").replace(/^jobbingtrack-/, "").trim().toLowerCase();
+  return (name || "")
+    .replace(/^jobbingtrack-/, "")
+    .trim()
+    .toLowerCase();
 }
 
 /** Déduplique par nom court ; en cas de doublon, garde l’entrée « running ». */
@@ -72,7 +75,8 @@ export function classifyRunningServiceHealth(
 ): ServiceHealthBucket {
   const dockerHealth =
     service.health_status || service.health?.health_status_docker || "";
-  const httpHealth = service.health?.status || service.health?.health_status_http;
+  const httpHealth =
+    service.health?.status || service.health?.health_status_http;
 
   if (service.is_healthy) return "healthy";
   if (
@@ -150,7 +154,10 @@ export interface StatisticsServiceEntry {
 type MetricsServiceLike = {
   rawName?: string;
   name?: string;
-  metrics?: { cpu?: { percentage?: unknown }; memory?: { percentage?: unknown } };
+  metrics?: {
+    cpu?: { percentage?: unknown };
+    memory?: { percentage?: unknown };
+  };
   responseTimeMs?: number;
   errorRatePerMin?: unknown;
   status?: string;
@@ -191,9 +198,7 @@ export function mapDockerServiceToStatisticsEntry(
     : "stopped";
 
   const cpu = Number(
-    service.metrics?.cpu_percent ??
-      metricsSvc?.metrics?.cpu?.percentage ??
-      0,
+    service.metrics?.cpu_percent ?? metricsSvc?.metrics?.cpu?.percentage ?? 0,
   );
   const memory = Number(
     service.metrics?.memory_percent ??
@@ -219,8 +224,7 @@ export function mapDockerServiceToStatisticsEntry(
     responseTime,
     errorRate: parseFloat(String(metricsSvc?.errorRatePerMin ?? "0")) || 0,
     requests: 0,
-    availability:
-      bucket === "healthy" ? 100 : bucket === "degraded" ? 50 : 0,
+    availability: bucket === "healthy" ? 100 : bucket === "degraded" ? 50 : 0,
   };
 }
 

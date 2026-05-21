@@ -78,11 +78,7 @@ export function StatisticsPageShell({
   );
 }
 
-export function StatisticsRefreshButton({
-  onClick,
-}: {
-  onClick: () => void;
-}) {
+export function StatisticsRefreshButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"

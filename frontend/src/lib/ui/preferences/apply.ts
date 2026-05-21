@@ -39,10 +39,7 @@ export function applyCustomizationToDom(settings: CustomizationSettings) {
     });
   }
 
-  root.classList.toggle(
-    "high-contrast",
-    settings.accessibility.highContrast,
-  );
+  root.classList.toggle("high-contrast", settings.accessibility.highContrast);
   root.classList.toggle("large-text", settings.accessibility.largeText);
   if (settings.accessibility.reduceMotion) {
     root.classList.add("reduce-motion");
@@ -62,7 +59,10 @@ export function applyCustomizationToDom(settings: CustomizationSettings) {
     typeof settings.notifications.duration === "number"
       ? settings.notifications.duration
       : defaultCustomizationSettings.notifications.duration;
-  root.classList.toggle("notifications-enabled", settings.notifications.enabled);
+  root.classList.toggle(
+    "notifications-enabled",
+    settings.notifications.enabled,
+  );
   root.setAttribute(
     "data-notification-position",
     settings.notifications.position ||

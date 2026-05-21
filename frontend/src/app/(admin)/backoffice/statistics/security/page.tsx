@@ -384,9 +384,9 @@ export default function StatisticsSecurityPage() {
               {metrics.length === 0 ? (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Aucune série sur la période. La table brute{" "}
-                  <code className="text-xs">security_metrics</code> est
-                  utilisée en fallback si la table agrégée est vide ; attendre
-                  le collecteur sécurité ou relancer la stack doit alimenter ce
+                  <code className="text-xs">security_metrics</code> est utilisée
+                  en fallback si la table agrégée est vide ; attendre le
+                  collecteur sécurité ou relancer la stack doit alimenter ce
                   bloc sans inventer de faux incidents.
                 </p>
               ) : (

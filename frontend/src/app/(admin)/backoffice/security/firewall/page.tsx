@@ -156,8 +156,10 @@ export default function FirewallPage() {
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);
   const [blockedIpsTotal, setBlockedIpsTotal] = useState(0);
-  const { page: blockedPage, setPage: setBlockedPage } =
-    useUrlPagination("blockedPage", 1);
+  const { page: blockedPage, setPage: setBlockedPage } = useUrlPagination(
+    "blockedPage",
+    1,
+  );
   const [blockedIpsMeta, setBlockedIpsMeta] = useState<{
     byOrigin?: Record<string, number>;
     count?: number;
@@ -1019,9 +1021,7 @@ export default function FirewallPage() {
               onPageChange={setBlockedPage}
               onNext={() => setBlockedPage(blockedPage + 1)}
               onPrevious={() => setBlockedPage(blockedPage - 1)}
-              canGoNext={
-                blockedPage * BLOCKED_IPS_PAGE_SIZE < blockedIpsTotal
-              }
+              canGoNext={blockedPage * BLOCKED_IPS_PAGE_SIZE < blockedIpsTotal}
               canGoPrevious={blockedPage > 1}
             />
           )}
@@ -1286,7 +1286,9 @@ function WAFConfigSection() {
                 </div>
               </div>
               {wafConfig.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400">Aucune règle WAF configurée</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Aucune règle WAF configurée
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">

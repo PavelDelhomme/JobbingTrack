@@ -52,7 +52,11 @@ export function buildStableSeriesColorMap(
     const start = hashString(key) % BACKOFFICE_SERIES_COLORS.length;
     let color: string | undefined;
 
-    for (let offset = 0; offset < BACKOFFICE_SERIES_COLORS.length; offset += 1) {
+    for (
+      let offset = 0;
+      offset < BACKOFFICE_SERIES_COLORS.length;
+      offset += 1
+    ) {
       const candidate =
         BACKOFFICE_SERIES_COLORS[
           (start + offset) % BACKOFFICE_SERIES_COLORS.length
@@ -75,4 +79,3 @@ export function buildStableSeriesColorMap(
 
   return colors;
 }
-

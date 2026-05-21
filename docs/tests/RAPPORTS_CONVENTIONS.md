@@ -50,3 +50,10 @@ Déduplication automatique par ID de rapport.
 - Le porteur lance les suites complètes, rapports complets, rapports sécurité globaux et campagnes parcours utilisateur.
 - L’agent lance uniquement des validations ciblées nécessaires à une modification en cours.
 - Après un lancement porteur, l’agent analyse les rapports générés (`summary.json`, `report.html`, rapports sécurité ou parcours), puis transforme les échecs confirmés en tâches.
+
+## Stockage et compression
+
+- Les rapports doivent rester consultables via leurs metadata (`summary.json`, statut, catégorie, date, chemin, taille) même si les artefacts lourds sont archivés.
+- Les artefacts lourds à compresser en priorité : `report.html`, dossiers Playwright (`playwright-report`, traces, captures vidéo/screenshot), rapports parcours utilisateur, rapports sécurité et exports volumineux.
+- La compression doit être sans perte et réversible : archive `.tar.gz`/équivalent, index conservé, restauration documentée.
+- Aucun nettoyage destructif automatique sans validation porteur ; commencer par mesurer la taille par dossier et par type de rapport.
