@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/features";
 import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
 import axios from "axios";
 
@@ -68,6 +69,8 @@ function getIpMonitoringReason(
 }
 
 export default function NetworkStatsPage() {
+  useDocumentTitle("Sécurité réseau");
+
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

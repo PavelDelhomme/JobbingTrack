@@ -9,6 +9,7 @@ import { SecuritySubNav } from "../../../SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { threatHref } from "@/lib/security/incidents";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 
@@ -32,6 +33,7 @@ export default function SecurityAlertDetailPage() {
   const [alert, setAlert] = useState<SecurityAlert | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  useDocumentTitle(alert?.title ? `Alerte · ${alert.title}` : "Détail alerte");
 
   useEffect(() => {
     if (!alertId) return;
