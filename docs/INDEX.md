@@ -1,6 +1,6 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Dernière mise à jour** : 11 mai 2026
+**Dernière mise à jour** : 21 mai 2026
 
 ---
 
@@ -9,7 +9,7 @@
 | Thème | Emplacement |
 |-------|-------------|
 | **Chantier monitoring / sécurité / data / doc (lots A–H)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité, lot **H** release/préprod/conformité), **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (CVE / dépendances) ; index **[project/CHANTIER_SECURITE_DATA_DOCS.md](project/CHANTIER_SECURITE_DATA_DOCS.md)** |
-| **Préprod / production / release** | **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — checklist manuelle ; **[operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** — branche tests complets, préprod, bêta mobile, licences, RGPD, déploiements, mono-repo vs multi-repo |
+| **Préprod / production / release** | **[deployment/VPS_PORTAINER_NPM_OVH.md](deployment/VPS_PORTAINER_NPM_OVH.md)** — runbook VPS/Portainer/NPM/OVH ; **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — checklist manuelle ; **[operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** — branche tests complets, préprod, bêta mobile, licences, RGPD, déploiements, mono-repo vs multi-repo |
 | **Audit / restructuration documentation** | **[operations/DOCUMENTATION_AUDIT_PLAN.md](operations/DOCUMENTATION_AUDIT_PLAN.md)** — périmètre complet demandé, règles de tri, ordre de fusion/déplacement, validation liens |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |
@@ -99,6 +99,10 @@ La racine du projet ne garde que `README.md`. La racine de `docs/` garde les fic
 **Dossier** : [security/](security/)
 
 - **[README.md](security/)** - Guide de sécurité
+- **[STATS.md](security/STATS.md)** - CVE, Gitleaks, Trivy, supply-chain
+- **[SECURITY_TESTING_MATRIX.md](security/SECURITY_TESTING_MATRIX.md)** - Matrice tests offensifs contrôlés
+- **[SECURITY_LOGS_RETENTION.md](security/SECURITY_LOGS_RETENTION.md)** - Rétention/archive/restauration logs sécurité
+- **[ACTIVATION_WAF.md](security/ACTIVATION_WAF.md)** - WAF gateway et trajectoire WAF edge
 - **[SYSTEME_SECURITE_README.md](security/)** - Système de sécurité
 - **[DEMARRAGE_SERVICES_SECURITE.md](security/)** - Démarrage des services de sécurité
 

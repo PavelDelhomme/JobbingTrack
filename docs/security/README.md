@@ -13,6 +13,8 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 ### 🔐 Sécurité des Services
 - **[Audit sécurité projet](AUDIT_SEC_PROJECT.md)** — synthèse risques P0, rapports, suites attendues.
 - **[Architecture security-service](ARCHITECTURE_SECURITY_SERVICE.md)** – Périmètre, base dédiée, accès API.
+- **[Plan firewall / analyse réseau](FIREWALL_PLAN.md)** – Historique et périmètre du firewall applicatif, menaces réseau et `network_threats`.
+- **[Activation WAF](ACTIVATION_WAF.md)** – WAF gateway actuel, limites, validation et trajectoire WAF edge.
 - **[Monitoring CVE continu](CVE_CONTINUOUS_MONITORING.md)** – Scan CVE multi-technologies, alertes mail critiques, score sécurité et protection des logs.
 - **[Intégration Dependabot Alerts](DEPENDABOT_ALERTS_INTEGRATION.md)** – Mapping GitHub Dependabot vers la table `vulnerabilities` et alertes supply-chain.
 - **[Matrice tests sécurité offensifs](SECURITY_TESTING_MATRIX.md)** – Énumération URL, injections, auth, API, Docker, secrets, DoS, mobile, outils Kali/équivalents et protections attendues.
@@ -20,6 +22,19 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 - **[Rétention des logs sécurité](SECURITY_LOGS_RETENTION.md)** – Politique de compression/archive, classes de rétention, dry-run et restauration.
 - **[Système de Sécurité](SYSTEME_SECURITE_README.md)** – Architecture et implémentation du système de sécurité.
 - **[Démarrage Services Sécurité](DEMARRAGE_SERVICES_SECURITE.md)** – Démarrage et configuration.
+
+## 🧭 Source De Vérité
+
+| Sujet | Document de référence | Suivi opérationnel |
+|-------|-----------------------|--------------------|
+| Priorités sécurité/backoffice | `docs/TODOS.md` + `docs/PLAN.md` lot B/B14/B15 | `docs/STATUS.md`, `A_VALIDER_VERIFIER.md` |
+| Tests offensifs contrôlés | `SECURITY_TESTING_MATRIX.md` | Rapports `reports/security/**` ou `tests/results/security/**` |
+| CVE, Dependabot, images Docker | `STATS.md`, `CVE_CONTINUOUS_MONITORING.md`, `DEPENDABOT_ALERTS_INTEGRATION.md` | Workflow `Security Audit`, artefacts GitHub, `docs/security/STATS.md` |
+| WAF / Firewall / Menaces | `ACTIVATION_WAF.md`, `FIREWALL_PLAN.md`, `ROADMAP_SECURITE_API_ET_BACKOFFICE.md` | Pages `/b4ck0ff1ce/security/**`, dry-runs `scripts/security/*` |
+| Logs sécurité et rétention | `SECURITY_LOGS_RETENTION.md` | Scripts `security-logs-*-*.cjs`, validation porteur avant purge |
+| Durcissement prod | `COMPOSE_RUNTIME_HARDENING.md`, `../operations/PREPROD_PRODUCTION_CHECKLIST.md` | Gate préprod/prod + `Security Audit` manuel `scan_prod_images=true` |
+
+Les fichiers historiques (`SYSTEME_SECURITE_README.md`, `DEMARRAGE_SERVICES_SECURITE.md`) peuvent encore aider à comprendre l’intention initiale, mais ils ne doivent pas remplacer les documents ci-dessus pour les ports, URLs, commandes ou critères prod actuels.
 
 ## 🛡️ Principes de Sécurité
 
@@ -57,4 +72,4 @@ Les **volumes nommés** (`postgres_data`, etc.) sont stockés par le moteur Dock
 ---
 
 **Version**: 4.1 - Guide sécurité
-**Dernière mise à jour** : mai 2026
+**Dernière mise à jour** : 21 mai 2026

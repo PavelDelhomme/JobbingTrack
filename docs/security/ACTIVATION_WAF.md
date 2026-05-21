@@ -1,7 +1,9 @@
 # 🛡️ Activation et Configuration du WAF
 
 **WAF** = Web Application Firewall  
-**Statut** : ✅ Implémenté et prêt à activer
+**Statut** : ✅ Implémenté côté gateway ; à valider derrière le proxy réel avant préprod/prod.
+
+> Note 21/05/2026 : ce fichier contient encore des exemples historiques utiles pour comprendre les règles WAF. Pour les commandes opérationnelles actuelles, privilégier les scripts/cibles documentés dans `docs/TODOS.md`, `SECURITY_TESTING_MATRIX.md` et `docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`. Ne pas contourner HTTPS/WAF/auth pour valider une page.
 
 ---
 
@@ -70,9 +72,8 @@ api-gateway:
 # Redémarrer l'API Gateway avec le WAF activé
 docker restart jobbingtrack-api-gateway
 
-# Ou avec make
-cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
-make restart-service SERVICE=api-gateway
+# Ou via la cible projet de redémarrage service, si le porteur la lance explicitement.
+# Référence : restart-service avec SERVICE=api-gateway.
 ```
 
 ---
@@ -104,14 +105,14 @@ api-gateway:
 ### Étape 3 : Redémarrer l'API Gateway
 
 ```bash
-docker-compose -f docker-compose.yml -f backend/docker-compose.yml restart api-gateway
+docker compose -f docker-compose.yml -f backend/docker-compose.yml restart api-gateway
 ```
 
 ### Étape 4 : Vérifier l'Activation
 
 ```bash
 # Faire une requête et vérifier les headers
-curl -I http://localhost:3000/health
+curl -I https://api.jobbingtrack.localhost:5443/health
 
 # Vous devriez voir:
 # X-WAF-Status: PASSED
@@ -202,7 +203,7 @@ Le WAF log automatiquement :
 
 ```bash
 # Devrait être bloqué (403)
-curl "http://localhost:3000/api/v1/users?id=1' OR '1'='1"
+curl "https://api.jobbingtrack.localhost:5443/api/v1/users?id=1' OR '1'='1"
 ```
 
 **Réponse attendue** :
@@ -219,7 +220,7 @@ curl "http://localhost:3000/api/v1/users?id=1' OR '1'='1"
 
 ```bash
 # Devrait être bloqué (403)
-curl -X POST http://localhost:3000/api/v1/comments \
+curl -X POST https://api.jobbingtrack.localhost:5443/api/v1/comments \
   -H "Content-Type: application/json" \
   -d '{"text":"<script>alert(1)</script>"}'
 ```
@@ -228,14 +229,14 @@ curl -X POST http://localhost:3000/api/v1/comments \
 
 ```bash
 # Devrait être bloqué (403)
-curl -A "sqlmap/1.5.10" http://localhost:3000/api/v1/users
+curl -A "sqlmap/1.5.10" https://api.jobbingtrack.localhost:5443/api/v1/users
 ```
 
 ### Test 4 : Requête Légitime
 
 ```bash
 # Ne devrait PAS être bloqué
-curl http://localhost:3000/health
+curl https://api.jobbingtrack.localhost:5443/health
 ```
 
 **Réponse attendue** :
@@ -261,7 +262,7 @@ Ce mécanisme **remplace** d’anciens contournements basés sur `X-Test-Mode` o
 
 # Exemple (remplacer YOUR_TOKEN par la valeur de .env) :
 curl -H "X-JobbingTrack-Dev-Test-Token: YOUR_TOKEN" \
-  "http://localhost:3000/api/v1/companies?search=test"
+  "https://api.jobbingtrack.localhost:5443/api/v1/companies?search=test"
 ```
 
 En **production**, `isDevTestBypassRequest` est toujours désactivé (`NODE_ENV=production`).

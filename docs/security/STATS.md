@@ -4,7 +4,7 @@
 
 **Documents liés** : **`PLAN.md`** (lot **B** sécurité + **B14/B15** infra compose et tests offensifs, lot **A** observabilité, lot **H** release/préprod/conformité), **`TODOS.md`** § fin (CVE + briques **A2**), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`** (BX1–BX14), **`docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`**, **`ERRORS.md`**, **`STATUS.md`**.
 
-**Dernière mise à jour** : 11 mai 2026 — exécution P0 partielle : `gitleaks` historique Git complet et Trivy/CVE images prod compose fusionné (`SECURITY_COMPOSE_PROFILES=full`). Résultats bruts à trier, voir § **11 mai 2026 — scans P0 bruts**.
+**Dernière mise à jour** : 21 mai 2026 — exécution P0 partielle : `gitleaks` historique Git complet et Trivy/CVE images prod compose fusionné (`SECURITY_COMPOSE_PROFILES=full`). Le workflow GitHub **Security Audit** est vert sur `dev` et peut produire `trivy-prod-image-reports` via `scan_prod_images=true`. Résultats bruts à trier, voir § **11 mai 2026 — scans P0 bruts**.
 
 ---
 
@@ -23,8 +23,10 @@
 
 Le dépôt fournit maintenant un point d’entrée unique :
 
+Point d’entrée projet : cible **`test-cve-scan`**. Script sous-jacent direct :
+
 ```bash
-make test-cve-scan
+python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
 Ce scan génère un rapport sous **`tests/results/security/cve-<timestamp>/summary.md`** et couvre :
@@ -32,12 +34,12 @@ Ce scan génère un rapport sous **`tests/results/security/cve-<timestamp>/summa
 - les dossiers avec **`package-lock.json`** via `npm audit --json --omit=dev` ;
 - le workspace Rust **`monitoring/rust`** via `cargo audit --json` si `cargo-audit` est installé ;
 - les images Docker des conteneurs en cours si lancé avec **`CVE_SCAN_DOCKER=1`** et **Trivy** installé ;
-- les images de la stack compose prod fusionnée si lancé avec **`CVE_SCAN_DOCKER=1 CVE_SCAN_DOCKER_COMPOSE=1`** (défaut `make security-scan-images`) ; variables liées : `SECURITY_COMPOSE_FILES` et `SECURITY_COMPOSE_PROFILES`.
+- les images de la stack compose prod fusionnée si lancé avec **`CVE_SCAN_DOCKER=1 CVE_SCAN_DOCKER_COMPOSE=1`** (cible projet **`security-scan-images`**) ; variables liées : `SECURITY_COMPOSE_FILES` et `SECURITY_COMPOSE_PROFILES`.
 
 Mode bloquant CI possible :
 
 ```bash
-CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high make test-cve-scan
+CVE_SCAN_STRICT=1 CVE_SCAN_FAIL_ON=high python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
 Variables utiles : `CVE_SCAN_INCLUDE_DEV=1` pour inclure les dépendances dev, `CVE_SCAN_DOCKER=1` pour scanner les images Docker, `CVE_SCAN_DOCKER_COMPOSE=1` pour cibler les images de la stack compose prod fusionnée, `CVE_SCAN_DOCKER_ALL_IMAGES=1` pour scanner toutes les images locales filtrées JobbingTrack/Postgres/Redis/MailHog, `--docker-image <image>` pour cibler une image précise, `CVE_SCAN_TIMEOUT_SEC=180` pour augmenter les timeouts.
@@ -127,15 +129,17 @@ Colonne **Dernière analyse** : date du dernier `npm audit` (ou équivalent) ex�
 
 ---
 
-## 3. Exemple de collecte rapide (copier-coller)
+## 3. Exemple de collecte rapide
 
-Depuis la racine du dépôt :
+Depuis la racine du dépôt, utiliser la cible projet **`test-cve-scan`** ou le script direct :
 
 ```bash
-make test-cve-scan
+python3 scripts/security/cve-scan.py --output-dir tests/results/security
 ```
 
 Transcrire les totaux **critical** / **high** (ou « 0 vulnerabilities ») depuis le fichier `summary.md` généré dans le tableau § 2.1 si un suivi manuel est nécessaire.
+
+Pour les images réellement destinées à la prod, privilégier le workflow GitHub **Security Audit** déclenché avec `scan_prod_images=true`, puis classer l’artefact `trivy-prod-image-reports`.
 
 ---
 

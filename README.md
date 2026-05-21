@@ -226,8 +226,8 @@ make help-utils        # Utilitaires
 | Guide | Description |
 |-------|-------------|
 | [Déploiement Production](docs/deployment/production/README.md) | Configuration et déploiement production |
-| [Sécurité](docs/deployment/security/README.md) | Configuration sécurité et bonnes pratiques |
-| [Guide Sécurité](docs/security/guide/README.md) | Authentification, autorisations, protection |
+| [Sécurité déploiement](docs/deployment/security/README.md) | Index sécurité pour la mise en prod |
+| [Guide Sécurité](docs/security/README.md) | Authentification, WAF/firewall, CVE, logs et protections |
 
 #### 🔧 Administration et Maintenance
 | Guide | Description |
