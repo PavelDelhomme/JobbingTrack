@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 21/05/2026 | Backoffice sécurité utilisable (P0 pilotage) | local | Validation porteur : Sécurité, Menaces, Logs, Firewall parcourus ; modification IP règle OK, déblocage IP OK, garde-fous IP source OK. Revoir plus tard : enrichissement forensics menaces lab (`198.51.100.42`, `10.0.0.x`) — suivi dans `docs/TODOS.md`. |
 | 21/05/2026 | Accès HTTPS local complet (P0 pilotage) | local | Validation porteur explicite : `https://jobbingtrack.localhost:5443/login` OK, login admin OK, `/b4ck0ff1ce` accessible sans boucle 401/403. |
 | 19/05/2026 | Connexion admin avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` | local | Login OK puis accès `/b4ck0ff1ce`. |
 | 19/05/2026 | Page `/login` sans identifiants de test visibles | local | Pas de `password123` ni compte de test affiché. |

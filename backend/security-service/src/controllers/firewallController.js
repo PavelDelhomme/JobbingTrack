@@ -11,6 +11,7 @@ const { lookupGeoIp } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
 const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+const IPV4_CIDR_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\/(?:[0-9]|[12]\d|3[0-2])$/;
 /** Marqueur Prisma pour les blocages IP créés via l’API (déblocable proprement). */
 const MANUAL_IP_BLOCK_MARKER = '[MANUAL_IP_BLOCK_API]';
 /** IP de laboratoire RFC 5737 — seule IP autorisée pour `mode: "lab_simulation"`. */
@@ -59,6 +60,15 @@ function normalizeFirewallIp(ip) {
   let s = String(ip).trim();
   if (s.startsWith('::ffff:')) s = s.slice(7);
   return s;
+}
+
+function isValidFirewallIp(ip) {
+  return IPV4_REGEX.test(normalizeFirewallIp(ip));
+}
+
+function isValidFirewallSourceIp(ip) {
+  const normalized = normalizeFirewallIp(ip);
+  return IPV4_REGEX.test(normalized) || IPV4_CIDR_REGEX.test(normalized);
 }
 
 /** Expose une IP destination utile si la colonne destIp est vide mais les métadonnées réseau en contiennent une. */
@@ -417,6 +427,19 @@ function normalizeRulePayload(payload = {}) {
   };
 }
 
+function validateFirewallRuleScope(rule) {
+  if (!rule.sourceIp) {
+    return 'IP source requise : le backoffice refuse les règles globales sans IP source.';
+  }
+  if (!isValidFirewallSourceIp(rule.sourceIp)) {
+    return 'Format IP source invalide (IPv4 ou CIDR IPv4 attendu).';
+  }
+  if (rule.destPort !== null && (!Number.isInteger(rule.destPort) || rule.destPort < 1 || rule.destPort > 65535)) {
+    return 'Port destination invalide (1-65535 attendu).';
+  }
+  return null;
+}
+
 /**
  * GET /api/v1/security/firewall/rules
  * Récupérer toutes les règles de firewall
@@ -475,6 +498,13 @@ async function createFirewallRule(req, res) {
     }
 
     const normalizedRule = normalizeRulePayload({ name, description, sourceIp, destPort, protocol, action, priority });
+    const scopeError = validateFirewallRuleScope(normalizedRule);
+    if (scopeError) {
+      return res.status(400).json({
+        success: false,
+        error: scopeError
+      });
+    }
 
     // Réutiliser une règle existante équivalente (même signature réseau)
     const existingRules = await prisma.firewallRule.findMany({
@@ -680,9 +710,25 @@ async function updateFirewallRule(req, res) {
       });
     }
 
+    const normalizedUpdates = normalizeRulePayload({ ...oldRule, ...updates });
+    const scopeError = validateFirewallRuleScope(normalizedUpdates);
+    if (scopeError) {
+      return res.status(400).json({
+        success: false,
+        error: scopeError
+      });
+    }
+
     const rule = await prisma.firewallRule.update({
       where: { id },
-      data: updates
+      data: {
+        ...updates,
+        sourceIp: normalizedUpdates.sourceIp,
+        destPort: normalizedUpdates.destPort,
+        protocol: normalizedUpdates.protocol,
+        action: normalizedUpdates.action,
+        priority: normalizedUpdates.priority
+      }
     });
 
     // Réappliquer la règle si activée
@@ -1499,26 +1545,88 @@ async function unblockIp(req, res) {
         error: 'IP requise'
       });
     }
-    if (!IPV4_REGEX.test(String(ip).trim())) {
-      return res.status(400).json({
-        success: false,
-        error: 'Format IP invalide'
-      });
-    }
+    const ipNorm = normalizeFirewallIp(ip);
+    const validIp = isValidFirewallIp(ipNorm);
 
-    const result = await firewallEngine.unblockIp(ip);
-
-    try {
-      await prisma.firewallRule.updateMany({
+    if (!validIp) {
+      const disabledLegacyRules = await prisma.firewallRule.updateMany({
         where: {
-          sourceIp: String(ip).trim(),
-          description: { contains: MANUAL_IP_BLOCK_MARKER }
+          sourceIp: ipNorm,
+          action: { in: ['DENY', 'REJECT'] },
+          enabled: true
         },
         data: { enabled: false }
       });
+
+      if (disabledLegacyRules.count === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Format IP invalide'
+        });
+      }
+
+      await securityService.createSecurityLog({
+        level: 'warning',
+        category: 'firewall',
+        eventType: 'ip_unblocked_manually',
+        message: `Entrée de blocage IP invalide nettoyée: ${ipNorm}`,
+        sourceIP: req.ip || req.connection?.remoteAddress || 'unknown',
+        userAgent: req.get('User-Agent') || 'unknown',
+        userId: req.user?.id || null,
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: 200,
+        riskScore: 15,
+        isBlocked: false,
+        metadata: {
+          unblockedIp: ipNorm,
+          invalidLegacyIp: true,
+          disabledRules: disabledLegacyRules.count,
+          unblockedAt: new Date().toISOString()
+        }
+      }).catch(err => {
+        logger.error('Erreur création log sécurité pour nettoyage IP invalide:', err);
+      });
+
+      return res.json({
+        success: true,
+        message: `Entrée invalide ${ipNorm} désactivée`,
+        data: { ip: ipNorm, disabledRules: disabledLegacyRules.count, invalidLegacyIp: true }
+      });
+    }
+
+    const result = await firewallEngine.unblockIp(ipNorm);
+    let disabledRulesCount = 0;
+    let unblockedThreatsCount = 0;
+
+    try {
+      const disabledRules = await prisma.firewallRule.updateMany({
+        where: {
+          sourceIp: ipNorm,
+          action: { in: ['DENY', 'REJECT'] },
+          enabled: true
+        },
+        data: { enabled: false }
+      });
+      disabledRulesCount = disabledRules.count;
     } catch (ruleErr) {
       if (ruleErr.code !== 'P2021' && !String(ruleErr.message || '').includes('does not exist')) {
         logger.warn('Désactivation règle blocage IP (non bloquant):', ruleErr.message);
+      }
+    }
+
+    try {
+      const unblockedThreats = await prisma.networkThreat.updateMany({
+        where: {
+          sourceIp: ipNorm,
+          blocked: true
+        },
+        data: { blocked: false }
+      });
+      unblockedThreatsCount = unblockedThreats.count;
+    } catch (threatErr) {
+      if (threatErr.code !== 'P2021' && !String(threatErr.message || '').includes('does not exist')) {
+        logger.warn('Déblocage menaces associées (non bloquant):', threatErr.message);
       }
     }
 
@@ -1531,7 +1639,7 @@ async function unblockIp(req, res) {
         level: 'warning',
         category: 'firewall',
         eventType: 'ip_unblocked_manually',
-        message: `IP débloquée manuellement: ${ip}`,
+        message: `IP débloquée manuellement: ${ipNorm}`,
         sourceIP: clientIP,
         userAgent: userAgent,
         userId: req.user?.id || null,
@@ -1541,10 +1649,12 @@ async function unblockIp(req, res) {
         riskScore: 25,
         isBlocked: false,
         metadata: {
-          unblockedIp: ip,
+          unblockedIp: ipNorm,
           unblockedBy: clientIP,
           unblockedByUser: req.user?.id || null,
           iptablesRemoved: result.iptablesRemoved === true,
+          disabledRules: disabledRulesCount,
+          unblockedThreats: unblockedThreatsCount,
           unblockedAt: new Date().toISOString()
         }
       }).catch(err => {
@@ -1554,7 +1664,13 @@ async function unblockIp(req, res) {
 
     res.json({
       success: result.success,
-      message: result.message
+      message: result.message,
+      data: {
+        ip: ipNorm,
+        disabledRules: disabledRulesCount,
+        unblockedThreats: unblockedThreatsCount,
+        iptablesRemoved: result.iptablesRemoved === true
+      }
     });
   } catch (error) {
     logger.error('Erreur déblocage IP:', error);

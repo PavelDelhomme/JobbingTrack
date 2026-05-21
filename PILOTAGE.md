@@ -32,11 +32,11 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS validé le 21/05/2026.
+Statut : **validation porteur locale en cours** — P0 HTTPS et Backoffice sécurité validés le 21/05/2026.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Backoffice sécurité utilisable**.
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Rapports sécurité visibles dans le backoffice**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
 4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md`.
