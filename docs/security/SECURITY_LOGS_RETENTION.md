@@ -50,6 +50,18 @@ node scripts/security/security-logs-archive-export.cjs --all --limit=1000
 
 Produit pour chaque classe : `<class>.jsonl.gz` + `manifest.json` (compteurs, SHA-256, politique de rétention). **Aucune ligne n’est supprimée** de `security_logs`.
 
+## Restauration contrôlée (sans écraser la table active)
+
+Vérifie un export puis, si demandé explicitement, charge les lignes dans une table de staging :
+
+```bash
+node scripts/security/security-logs-archive-restore.cjs --class=noise
+node scripts/security/security-logs-archive-restore.cjs --class=noise --load-staging
+node scripts/security/security-logs-archive-restore.cjs --all --load-staging --truncate-staging
+```
+
+Le mode par défaut vérifie uniquement `manifest.json`, les SHA-256 gzip, le nombre de lignes et la forme JSONL. `--load-staging` crée/alimente `public.security_logs_restore_staging` (`payload jsonb`, `row_id`, classe, fichier, date source) et **n’insère jamais** dans `public.security_logs`.
+
 Variables optionnelles :
 
 | Variable | Défaut | Usage |
