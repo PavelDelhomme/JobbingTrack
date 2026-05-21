@@ -4,6 +4,14 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+## 21 mai 2026 (suite) — QA Performances sous-pages + Statistics smoke
+
+- **Reprise stack locale** : stack redémarrée via `docker compose` (postgres/redis → security/monitoring → gateway/auth → `scripts/db/db-push-all.sh` → frontend + profil `full` + proxy HTTPS `dev-https-proxy`).
+- **Smoke API** : `smoke-persistence-stats.cjs` OK ; `smoke-statistics-history-api.cjs` → 12 points / disponibilité présente sur la fenêtre courante.
+- **Playwright Performances** : nouveau `frontend/tests/e2e/performances-range-smoke.spec.ts` — Réseau, Disque, Conteneurs, Latence : graphes chargés, transitions **24 h ↔ 7 j**, aucun overlay `Network Error` (**4/4 OK**).
+- **Playwright Statistics** : `frontend/tests/e2e/statistics-smoke.spec.ts` — vue d’ensemble, log-stats, app-data chargent sans erreur réseau (**3/3 OK**).
+- **CI doc** : run GitHub `26202796200` marqué succès dans `TODOS.md` et `A_VALIDER_VERIFIER.md` (commit `058e3ca0`).
+
 ## 21 mai 2026 — CI Prettier + périodes Performances
 
 - **CI GitHub #556 / Prettier frontend** : correctif local appliqué pour débloquer le job « Vérification du formatage ». `frontend/.prettierignore` exclut désormais les artefacts générés (`performance-reports`, `tests/results`, `playwright-report`, `.next-local`, `tmp`, etc.) afin que `prettier --check .` ne parse plus des rapports JSON/HTML générés. Validation directe depuis `frontend/` : `npm run format`, puis `npm run format:check` → **OK**.

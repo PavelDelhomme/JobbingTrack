@@ -14,7 +14,7 @@
 | Bloc | Statut | Prochaine action concrète |
 |------|--------|---------------------------|
 | **CI / formatage frontend** | **21/05** run GitHub `26202796200` sur `feat/central-logging-full` : pipeline **succès** (Prettier, type-check, Tests Frontend, Tests Backend, DB). | Conserver la branche prête merge ; rouvrir seulement si un nouveau push casse le workflow. |
-| **Performances — plages temporelles** | Validé navigateur local 21/05 : 24 h → 7 j → 3 j → Aujourd’hui → plage personnalisée → période actuelle garde 22 graphes visibles, sans “Chargement…” intermédiaire ni erreur console. | Refaire une QA visuelle manuelle si besoin sur les sous-pages Réseau/Disque/Conteneurs/Latence. |
+| **Performances — plages temporelles** | Synthèse validée 21/05 ; sous-pages Réseau/Disque/Conteneurs/Latence validées en Playwright (`performances-range-smoke.spec.ts`, transitions 24 h ↔ 7 j, pas d’overlay Network Error). | Validation porteur navigateur optionnelle ; sticky période et disque BDD approfondi restent ouverts. |
 | **Mode clair backoffice** | Acceptation porteur provisoire 21/05 : lisibilité globale considérée validable pour l’instant. | Garder les cas résiduels dans “UX unifiée Statistics / Performances / Vue d’ensemble” plutôt que bloquer cette ligne. |
 | **Statistics / backoffice** | Plusieurs correctifs techniques faits, mais QA navigateur encore ouverte. | Priorité après Performances : graphes erreurs/disponibilité, `log-stats`, `app-data`, cohérence live vs persisté. |
 | **Sécurité** | Pagination/navigation/central logging déjà validés techniquement ; forensics, rapports, alertes mail restent des lots séparés. | Ne pas mélanger avec le formatage CI : reprendre par lot B10/B11 après le socle backoffice. |
