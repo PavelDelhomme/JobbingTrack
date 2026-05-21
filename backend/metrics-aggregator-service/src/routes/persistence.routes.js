@@ -506,6 +506,7 @@ router.get('/stats', async (req, res) => {
       ['containerMetricsSnapshots', 'container_metrics_snapshots'],
       ['containerLogs', 'container_logs'],
       ['securityMetrics', 'security_metrics'],
+      ['securityLogs', 'security_logs'],
       ['events', 'system_events'],
       ['aggregatedLogs', 'aggregated_logs'],
       ['logCollectorLogs', 'log_collector_logs'],

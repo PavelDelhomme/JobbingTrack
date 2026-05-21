@@ -37,6 +37,8 @@ type DayBucket = {
   xssAttempts: number;
   suspicious: number;
   alerts: number;
+  intrusions: number;
+  ddos: number;
   rateLimit: number;
   invalidToken: number;
   snapshots: number;
@@ -51,6 +53,9 @@ export default function StatisticsSecurityPage() {
   const [pSummary, setPSummary] = useState<Record<string, unknown> | null>(
     null,
   );
+  const [persistedLogsTotal, setPersistedLogsTotal] = useState<number | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,12 +65,19 @@ export default function StatisticsSecurityPage() {
     setLoading(true);
     setError(null);
     try {
-      const [m, s] = await Promise.all([
+      const [m, s, pStats] = await Promise.all([
         analyticsService.getSecurityMetrics(hoursWindow),
         analyticsService.getSecurityPersistenceSummary(hoursWindow),
+        analyticsService.getPersistenceStats(),
       ]);
       setMetrics(Array.isArray(m) ? m : []);
       setPSummary(s && typeof s === "object" ? s : null);
+      const counts = pStats?.counts as Record<string, unknown> | undefined;
+      const logsTotal =
+        counts && typeof counts.securityLogs === "number"
+          ? counts.securityLogs
+          : null;
+      setPersistedLogsTotal(logsTotal);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -102,6 +114,8 @@ export default function StatisticsSecurityPage() {
             xssAttempts: 0,
             suspicious: 0,
             alerts: 0,
+            intrusions: 0,
+            ddos: 0,
             rateLimit: 0,
             invalidToken: 0,
             snapshots: 0,
@@ -113,6 +127,8 @@ export default function StatisticsSecurityPage() {
         b.xssAttempts += num(row.potentialXssAttempts);
         b.suspicious += num(row.suspiciousActivities);
         b.alerts += num(row.activeSecurityAlerts);
+        b.intrusions += num(row.intrusionAttempts);
+        b.ddos += num(row.ddosAttacks);
         b.rateLimit += num(row.rateLimitExceeded);
         b.invalidToken += num(row.invalidTokenAttempts);
         b.snapshots += 1;
@@ -194,6 +210,32 @@ export default function StatisticsSecurityPage() {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
+            {persistedLogsTotal != null && persistedLogsTotal > 0 && (
+              <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
+                <p className="font-medium text-amber-950 dark:text-amber-100">
+                  Volume logs sécurité (table{" "}
+                  <code className="text-xs">security_logs</code>)
+                </p>
+                <p className="mt-1 tabular-nums text-lg font-bold text-amber-950 dark:text-amber-50">
+                  {persistedLogsTotal.toLocaleString("fr-FR")} lignes en base
+                </p>
+                <p className="mt-1 text-xs text-amber-900/90 dark:text-amber-200/80">
+                  Dry-run et export archive sans purge :{" "}
+                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/40">
+                    scripts/security/security-logs-retention-dry-run.cjs
+                  </code>
+                  ,{" "}
+                  <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/40">
+                    security-logs-archive-export.cjs
+                  </code>
+                  . Politique :{" "}
+                  <span className="font-medium">
+                    docs/security/SECURITY_LOGS_RETENTION.md
+                  </span>
+                </p>
+              </div>
+            )}
+
             {/* Résumé agrégateur (BDD) */}
             <div>
               <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -334,6 +376,12 @@ export default function StatisticsSecurityPage() {
                           Alertes
                         </th>
                         <th className="px-2 py-2 font-medium tabular-nums">
+                          Intrusion
+                        </th>
+                        <th className="px-2 py-2 font-medium tabular-nums">
+                          DDoS
+                        </th>
+                        <th className="px-2 py-2 font-medium tabular-nums">
                           429 / token
                         </th>
                         <th className="px-2 py-2 font-medium tabular-nums">
@@ -363,6 +411,10 @@ export default function StatisticsSecurityPage() {
                           <td className="px-2 py-1.5 tabular-nums">
                             {d.alerts}
                           </td>
+                          <td className="px-2 py-1.5 tabular-nums">
+                            {d.intrusions}
+                          </td>
+                          <td className="px-2 py-1.5 tabular-nums">{d.ddos}</td>
                           <td className="px-2 py-1.5 tabular-nums">
                             {d.rateLimit} / {d.invalidToken}
                           </td>

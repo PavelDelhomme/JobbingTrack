@@ -14,6 +14,7 @@
 - **Logs sécurité / rétention** : nouveau cadrage `docs/security/SECURITY_LOGS_RETENTION.md` : classes de rétention, archive JSONL gzip avec manifest SHA-256, dry-run obligatoire, restauration temporaire et purge seulement après vérification.
 - **Dry-run rétention** : `scripts/security/security-logs-retention-dry-run.cjs` ajoute un rapport lecture seule sur `security_logs` (taille table/index, lignes totales, candidats archive par classe) via le conteneur PostgreSQL. Validation locale : **42 MB**, **42 344** logs, candidats archive selon politique actuelle : `standard=228`, `noise=9654`, `critical/high=0`.
 - **Export archive (sans purge)** : `scripts/security/security-logs-archive-export.cjs` produit JSONL gzip + `manifest.json` sous `data/archives/security-logs/` (gitignored). Section **ERRORS.md** WAF `consolidated=true` documentée. Statistics sécurité : titre navigateur FR.
+- **Volume logs sécurité (UI)** : `/persistence/stats` expose `security_logs` ; Statistics sécurité affiche le total BDD + scripts rétention ; agrégation journalière inclut intrusion/DDoS depuis métadonnées `security_metrics`.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 
