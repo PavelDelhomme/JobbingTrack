@@ -465,7 +465,7 @@ export default function SecurityOverviewPage() {
       title: "Logs sécurité",
       value: overview.logsCount,
       subtitle: overview.logsTruncated
-        ? `Tronqué : ≥${SECURITY_LOGS_FETCH_LIMIT} entrées sur ${overview.logsPeriodDays} j. (pas de compression — voir page Logs)`
+        ? `Tronqué : ≥${SECURITY_LOGS_FETCH_LIMIT} entrées sur ${overview.logsPeriodDays} j. — politique rétention : docs/security/SECURITY_LOGS_RETENTION.md`
         : `${overview.logsCount} entrée(s) sur ${overview.logsPeriodDays} j. (max UI ${SECURITY_LOGS_FETCH_LIMIT})`,
       href: "/b4ck0ff1ce/security/logs",
     },

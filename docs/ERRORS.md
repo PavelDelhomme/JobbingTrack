@@ -50,6 +50,17 @@ Pour les erreurs déjà résolues avec le détail des correctifs, voir **RESOLUT
 - **VPN/proxy/Tor/ASN = N/A** : ce n’est pas une preuve que l’attaquant n’utilise pas de VPN/proxy. Cela signifie qu’aucun provider threat-intel/GeoIP ASN n’est encore branché.
 - **WAF désactivé en dev** : normal pour certains tests locaux, mais les scénarios de validation doivent couvrir explicitement WAF `on` et `off` pour vérifier détection, blocage et absence de faux positifs.
 
+### WAF — faux positif XSS sur `consolidated=true` (résolu 19/05)
+
+| Élément | Détail |
+|--------|--------|
+| **Symptôme** | Alertes répétées `Attaque détectée par WAF` · règle **XSS** · motif `on\w+\s*=` sur `GET /api/v1/security/firewall/blocked-ips?consolidated=true`. La page **Menaces** peut échouer en **403 `WAF_BLOCKED`** toutes les ~5 s. |
+| **Ce n’est pas** | Une attaque XSS réelle ni un scan externe. |
+| **Cause** | Le paramètre query `consolidated=true` contient la sous-chaîne `on` + lettres + `=` (ex. `consolidated`), ce qui déclenchait l’ancienne regex des handlers HTML (`onclick=`). |
+| **Correctif** | Frontend : requête `blocked-ips?all=true` au lieu de `consolidated=true`. Gateway : regex XSS durcie en `(?<![a-zA-Z0-9])on[a-z]+=` pour exiger un mot-clé handler isolé. |
+| **Vraie attaque vs faux positif** | Vraie attaque : payload `<script>`, `javascript:`, handler HTML explicite (`onclick=`), iframe/data URI dangereux → **403** attendu. Faux positif query : paramètres métier contenant `on…=` dans un mot (`consolidated`, `connection`, etc.) → **200** attendu avec JWT valide. |
+| **Validation** | `curl` payloads XSS/SQLi → **403** ; `blocked-ips?all=true` + JWT → **200** ; voir `A_VALIDER_VERIFIER.md` et `docs/security/ROADMAP_SECURITE_API_ET_BACKOFFICE.md`. |
+
 ---
 
 ## Pièges d’interprétation — vue d’ensemble `/backoffice` (ce ne sont pas des bugs)
