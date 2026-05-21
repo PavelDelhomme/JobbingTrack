@@ -8,7 +8,10 @@ const PAGES = [
 ] as const;
 
 async function waitForChartsReady(page: import("@playwright/test").Page) {
-  await page.locator("main").first().waitFor({ state: "visible", timeout: 60_000 });
+  await page
+    .locator("main")
+    .first()
+    .waitFor({ state: "visible", timeout: 60_000 });
   await expect
     .poll(
       async () => {
@@ -24,16 +27,22 @@ async function waitForChartsReady(page: import("@playwright/test").Page) {
 }
 
 async function countCharts(page: import("@playwright/test").Page) {
-  return page.locator(".recharts-responsive-container, .recharts-wrapper").count();
+  return page
+    .locator(".recharts-responsive-container, .recharts-wrapper")
+    .count();
 }
 
-async function expectNoNetworkErrorOverlay(page: import("@playwright/test").Page) {
+async function expectNoNetworkErrorOverlay(
+  page: import("@playwright/test").Page,
+) {
   const overlay = page.getByText(/Network Error|AxiosError/i);
   await expect(overlay).toHaveCount(0, { timeout: 5_000 });
 }
 
 for (const path of PAGES) {
-  test(`${path} — plages sans flash vide ni Network Error`, async ({ page }) => {
+  test(`${path} — plages sans flash vide ni Network Error`, async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     await page.goto(path, {
       waitUntil: "domcontentloaded",

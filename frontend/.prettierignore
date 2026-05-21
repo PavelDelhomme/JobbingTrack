@@ -4,6 +4,8 @@ node_modules/
 tmp/
 coverage/
 playwright-report/
+test-results.json
 test-results/
+tests/e2e/.auth/
 tests/results/
 performance-reports/

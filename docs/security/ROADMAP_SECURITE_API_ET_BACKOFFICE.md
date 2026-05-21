@@ -142,9 +142,10 @@ Hypothèse : l’adversaire utilise l’IA → renforcer la défense par corrél
 
 **Ce n’est pas** un attaquant Internet : c’est le **trafic normal du bridge Docker** (postgres, redis, services qui se parlent).
 
-**Correctifs (18/05)** :
+**Correctifs (18/05, validés test le 21/05)** :
 - Gateway : `INTRUSION_RELAX_HEURISTICS` + skip brute-force IP privée en dev.
 - Security-service : `SECURITY_NETWORK_RELAX_INTERNAL` (défaut = relax hors prod) — ne plus **créer** de menaces sur IP `172.16–31.x` en dev.
+- Test ciblé : `backend/security-service/tests/network-threat-detector.test.js` vérifie qu’une anomalie `BRUTE_FORCE` interne Docker est ignorée côté menaces/alertes/logs, tout en conservant la connexion réseau.
 
 **Historique** : les lignes déjà en BDD restent visibles ; supprimer via UI firewall/menaces ou purge lab si besoin.
 
