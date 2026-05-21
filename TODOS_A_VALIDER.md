@@ -14,7 +14,6 @@ Quand une ligne est validée par le porteur, la déplacer vers `TODOS_DONE.md` a
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P0 | Accès HTTPS local complet | local | `https://jobbingtrack.localhost:5443/login` fonctionne, login admin OK, `/b4ck0ff1ce` accessible sans boucle 401/403. | [ ] | |
 | P0 | Backoffice sécurité utilisable | local | Parcourir Sécurité, Menaces, Logs, Firewall ; pas d’erreur bloquante, titres/libellés compréhensibles. | [ ] | |
 | P0 | Rapports sécurité visibles dans le backoffice | local/preprod | `/backoffice/test-reports` affiche la catégorie Sécurité, ouverture et téléchargement d’un rapport OK. | [ ] | |
 | P0 | Menaces historiques/lab comprises avant nettoyage | local | Confirmer que `10.0.0.x`, `198.51.100.42`, `172.19.x/172.20.x` sont à classer lab/bruit avant toute purge. | [ ] | Ne rien supprimer sans validation explicite. |

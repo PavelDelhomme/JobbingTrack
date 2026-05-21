@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 21/05/2026 | Accès HTTPS local complet (P0 pilotage) | local | Validation porteur explicite : `https://jobbingtrack.localhost:5443/login` OK, login admin OK, `/b4ck0ff1ce` accessible sans boucle 401/403. |
 | 19/05/2026 | Connexion admin avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` | local | Login OK puis accès `/b4ck0ff1ce`. |
 | 19/05/2026 | Page `/login` sans identifiants de test visibles | local | Pas de `password123` ni compte de test affiché. |
 | 19/05/2026 | WAF bloque payloads externes dangereux | local HTTPS | Payloads XSS/SQLi bornés → `403 WAF_BLOCKED`. |
