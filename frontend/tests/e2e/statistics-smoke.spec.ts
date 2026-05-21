@@ -13,7 +13,10 @@ for (const path of PAGES) {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
-    await page.locator("main").first().waitFor({ state: "visible", timeout: 60_000 });
+    await page
+      .locator("main")
+      .first()
+      .waitFor({ state: "visible", timeout: 60_000 });
     await expect(page.getByText(/Network Error|AxiosError/i)).toHaveCount(0);
     const body = (await page.locator("body").textContent()) ?? "";
     expect(body.length).toBeGreaterThan(200);

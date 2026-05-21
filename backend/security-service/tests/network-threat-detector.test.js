@@ -20,7 +20,9 @@ jest.mock('@prisma/client', () => ({
 
 jest.mock('../src/network-monitor', () => ({
   collectNetworkMetrics: jest.fn(),
-  detectAnomalies: jest.fn()
+  detectAnomalies: jest.fn(),
+  isPrivateOrLocalIp: jest.fn((ip) => /^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(String(ip || ''))),
+  shouldSkipInternalNetworkAnomalies: jest.fn(() => false)
 }));
 
 jest.mock('../src/firewall-engine', () => ({
@@ -53,6 +55,7 @@ describe('NetworkThreatDetector - détection et blocage réel simulé', () => {
     mockPrisma.networkConnection.create.mockResolvedValue({});
     mockPrisma.securityAlert.create.mockResolvedValue({ id: 'alert-1' });
     securityService.createSecurityLog.mockResolvedValue({ id: 'security-log-1' });
+    networkMonitor.shouldSkipInternalNetworkAnomalies.mockReturnValue(false);
   });
 
   test('bloque automatiquement une attaque DDoS critique et conserve les détails réseau utiles', async () => {
@@ -223,5 +226,39 @@ describe('NetworkThreatDetector - détection et blocage réel simulé', () => {
         isBlocked: false
       })
     );
+  });
+
+  test('ignore les anomalies BRUTE_FORCE issues du bridge Docker en mode relax', async () => {
+    const connections = [
+      {
+        remoteIp: '172.19.0.16',
+        remotePort: 53122,
+        localIp: '172.19.0.2',
+        localPort: 5432,
+        protocol: 'TCP',
+        state: 0x01,
+        containerName: 'jobbingtrack-postgres',
+        containerId: 'postgres-1'
+      }
+    ];
+    const anomaly = {
+      sourceIp: '172.19.0.16',
+      type: 'BRUTE_FORCE',
+      severity: 'MEDIUM',
+      message: 'Connexions TIME_WAIT internes Docker',
+      count: 42
+    };
+
+    networkMonitor.collectNetworkMetrics.mockResolvedValue({ connections });
+    networkMonitor.detectAnomalies.mockReturnValue([anomaly]);
+    networkMonitor.shouldSkipInternalNetworkAnomalies.mockReturnValue(true);
+
+    await detector.detectAndHandleThreats();
+
+    expect(mockPrisma.networkThreat.create).not.toHaveBeenCalled();
+    expect(mockPrisma.securityAlert.create).not.toHaveBeenCalled();
+    expect(securityService.createSecurityLog).not.toHaveBeenCalled();
+    expect(firewallEngine.blockIp).not.toHaveBeenCalled();
+    expect(mockPrisma.networkConnection.create).toHaveBeenCalledTimes(1);
   });
 });

@@ -96,9 +96,7 @@ import {
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
-import {
-  localCalendarDayBounds,
-} from "@/components/analytics/timeRangeUtils";
+import { localCalendarDayBounds } from "@/components/analytics/timeRangeUtils";
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
 
@@ -428,13 +426,7 @@ export default function StatisticsPage() {
   }, []);
 
   useEffect(() => {
-    const prefsRanges: StatisticsTimeRange[] = [
-      "1h",
-      "6h",
-      "24h",
-      "7d",
-      "30d",
-    ];
+    const prefsRanges: StatisticsTimeRange[] = ["1h", "6h", "24h", "7d", "30d"];
     if (prefsRanges.includes(timeRange as StatisticsTimeRange)) {
       updateCustomization({ timeRange: timeRange as StatisticsTimeRange });
     }

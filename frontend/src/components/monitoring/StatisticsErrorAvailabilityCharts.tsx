@@ -32,9 +32,9 @@ export function StatisticsErrorAvailabilityCharts({
   if (chartData.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
-        Aucune série persistée sur la période. Vérifier le monitoring et la table{" "}
-        <code className="text-xs">system_metrics</code>, ou élargir la fenêtre
-        temporelle.
+        Aucune série persistée sur la période. Vérifier le monitoring et la
+        table <code className="text-xs">system_metrics</code>, ou élargir la
+        fenêtre temporelle.
       </div>
     );
   }
@@ -48,7 +48,11 @@ export function StatisticsErrorAvailabilityCharts({
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: "12px" }} />
+            <XAxis
+              dataKey="time"
+              stroke="#9CA3AF"
+              style={{ fontSize: "12px" }}
+            />
             <YAxis
               stroke="#9CA3AF"
               style={{ fontSize: "12px" }}
@@ -75,8 +79,8 @@ export function StatisticsErrorAvailabilityCharts({
         {errorDerived ? (
           <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
             Valeur dérivée (100 − disponibilité) lorsque{" "}
-            <code className="text-xs">error_rate</code> n&apos;est pas persisté en
-            base.
+            <code className="text-xs">error_rate</code> n&apos;est pas persisté
+            en base.
           </p>
         ) : null}
         <ResponsiveContainer width="100%" height={320}>
@@ -88,8 +92,16 @@ export function StatisticsErrorAvailabilityCharts({
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: "12px" }} />
-            <YAxis stroke="#9CA3AF" style={{ fontSize: "12px" }} domain={[0, 100]} />
+            <XAxis
+              dataKey="time"
+              stroke="#9CA3AF"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis
+              stroke="#9CA3AF"
+              style={{ fontSize: "12px" }}
+              domain={[0, 100]}
+            />
             <Tooltip {...rechartsTooltipProps} />
             <Area
               type="monotone"

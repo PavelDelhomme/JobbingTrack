@@ -4,6 +4,12 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+## 21 mai 2026 (suite 3) — Hygiène Git + faux positifs Docker BRUTE_FORCE
+
+- **Hygiène Git** : `frontend/playwright-report/` est ignoré ; le rapport HTML Playwright généré localement est retiré du suivi Git pour éviter de pousser des artefacts volumineux/sensibles de session.
+- **Security-service / réseau Docker** : test ciblé `backend/security-service/tests/network-threat-detector.test.js` mis à jour pour couvrir `SECURITY_NETWORK_RELAX_INTERNAL` : une anomalie `BRUTE_FORCE` issue du bridge Docker `172.19.0.x` ne crée ni `networkThreat`, ni alerte, ni log sécurité, tout en laissant la connexion réseau être enregistrée.
+- **Validation** : `npm test -- --runTestsByPath tests/network-threat-detector.test.js --runInBand` depuis `backend/security-service/` → **3/3 OK**.
+
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 
 - **Statistics vue d’ensemble** : graphes **Disponibilité** et **Taux d’erreur** sur l’onglet Vue d’ensemble (composant `StatisticsErrorAvailabilityCharts`), avec légende `MetricsSeriesCaption` (source persistée, mention si dérivé).
