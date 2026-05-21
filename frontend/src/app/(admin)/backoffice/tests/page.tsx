@@ -13,7 +13,6 @@ import {
   FileText,
   Play,
   BarChart3,
-  Mail,
   Calendar,
   PlayCircle,
   Check,
@@ -162,31 +161,6 @@ const CATEGORIES = [
       "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800",
     textClass: "text-cyan-700 dark:text-cyan-300",
     iconClass: "text-cyan-600 dark:text-cyan-400",
-  },
-  {
-    id: "emails",
-    name: "Tests Emails",
-    description: "Tests d'envoi et de délivrabilité des emails",
-    href: "/b4ck0ff1ce/tests-emails",
-    icon: Mail,
-    color: "pink",
-    bgClass:
-      "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800",
-    textClass: "text-pink-700 dark:text-pink-300",
-    iconClass: "text-pink-600 dark:text-pink-400",
-  },
-  {
-    id: "emails-mailhog",
-    name: "Tests Emails MailHog",
-    description:
-      "E2E : envoi email, réception MailHog, ouverture et clic liens (reset, etc.)",
-    href: "/b4ck0ff1ce/tests-emails",
-    icon: Mail,
-    color: "pink",
-    bgClass:
-      "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800",
-    textClass: "text-pink-700 dark:text-pink-300",
-    iconClass: "text-pink-600 dark:text-pink-400",
   },
   {
     id: "schedule",

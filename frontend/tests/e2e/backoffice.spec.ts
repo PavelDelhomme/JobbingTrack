@@ -412,8 +412,8 @@ test.describe('🧪 Tests & API', () => {
     await expectPageLoaded(page);
   });
 
-  test('page Tests Emails', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/tests-emails', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test('page Emails - Déliverabilité', async ({ page }) => {
+    await page.goto('/b4ck0ff1ce/emails/deliverability', { waitUntil: 'domcontentloaded', timeout: 90_000 });
     await expectPageLoaded(page);
   });
 

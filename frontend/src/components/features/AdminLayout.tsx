@@ -473,11 +473,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               href: "/b4ck0ff1ce/playwright-tests",
               icon: "🎭",
             },
-            {
-              name: "Tests Emails",
-              href: "/b4ck0ff1ce/tests-emails",
-              icon: "📧",
-            },
             { name: "Tests API", href: "/b4ck0ff1ce/tests-api", icon: "🔌" },
             {
               name: "Tests Backend",
@@ -564,7 +559,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/b4ck0ff1ce/emails/deliverability",
           icon: "✅",
         },
-        { name: "Tests Emails", href: "/b4ck0ff1ce/tests-emails", icon: "🧪" },
         {
           name: "MailHog (interface)",
           href:
