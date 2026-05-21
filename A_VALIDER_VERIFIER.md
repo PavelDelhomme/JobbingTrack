@@ -91,11 +91,11 @@ Pour chaque ligne :
 
 | A verifier | Preuve attendue | Environnement | Statut porteur | Retour porteur |
 |------------|-----------------|---------------|----------------|----------------|
-| Workflow CI/CD — Prettier frontend | `npm run format:check` local OK, puis prochain workflow GitHub #556 ne bloque plus sur le job « Vérification du formatage » | local/GitHub | [ ] | Local 21/05 : `npm run format`, `npm run format:check` OK depuis `frontend/`; `.prettierignore` exclut les artefacts générés. Reste GitHub après push. |
-| Workflow CI/CD — Tests Frontend Jest | `npm run test:ci` passe en CI : suites Jest OK + rapport coverage généré sans seuil global irréaliste | local/GitHub | [ ] | Local 21/05 après correction : retrait override global `glob`, lockfile régénéré, retrait seuil global coverage 70%, tests timezone fixés via `NEXT_PUBLIC_CHART_TIMEZONE=Europe/Paris` ; `npm run test:ci -- --runInBand` → 24 suites / 118 tests OK. Reste GitHub après push. |
-| Workflow CI/CD — Tests Backend security-service | `tests/backend/test-security-service.test.js` ne timeoute plus en CI quand la gateway met plus de 10s à être prête | local/GitHub | [ ] | Correctif 21/05 : `beforeAll` attend la gateway avant login admin, timeout porté à 70s, `401` et erreurs réseau acceptés comme replis CI si admin JWT/gateway indisponibles. Local ciblé : 12/12 OK. Reste GitHub après push. |
-| Workflow CI/CD — Tests DB migrations | `tests/database/test-migrations.js` applique le schéma avec un `npx` portable sur runner GitHub | GitHub | [ ] | Correctif 21/05 : suppression du chemin absolu `/usr/bin/npx`, utilisation `npx` / `npx.cmd` via `PATH`. Reste GitHub après push. |
-| Workflow CI/CD passe sur GitHub | Jobs DB, backend, frontend, integration, perf initialises | GitHub | [ ] | |
+| Workflow CI/CD — Prettier frontend | `npm run format:check` local OK, puis prochain workflow GitHub #556 ne bloque plus sur le job « Vérification du formatage » | local/GitHub | [x] | Local + GitHub 21/05 : run `26202796200` succès. |
+| Workflow CI/CD — Tests Frontend Jest | `npm run test:ci` passe en CI : suites Jest OK + rapport coverage généré sans seuil global irréaliste | local/GitHub | [x] | Local 24 suites / 118 tests ; CI run `26202796200` succès. |
+| Workflow CI/CD — Tests Backend security-service | `tests/backend/test-security-service.test.js` ne timeoute plus en CI quand la gateway met plus de 10s à être prête | local/GitHub | [x] | Correctif 21/05 ; CI run `26202796200` succès. |
+| Workflow CI/CD — Tests DB migrations | `tests/database/test-migrations.js` applique le schéma avec un `npx` portable sur runner GitHub | GitHub | [x] | Correctif `npx` via PATH ; CI run `26202796200` succès. |
+| Workflow CI/CD passe sur GitHub | Jobs DB, backend, frontend, integration, perf initialises | GitHub | [x] | Run `26202796200` sur `feat/central-logging-full` — pipeline complet succès (21/05). |
 | Workflow security-audit passe | Gitleaks/Trivy et artefacts disponibles | GitHub | [ ] | |
 | Noms de branches respectent `BRANCHES.md` | Branche type `docs/...`, `feat/...`, `fix/...` | repo | [ ] | |
 | Commits respectent la convention | `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `misc:` | repo | [ ] | |
