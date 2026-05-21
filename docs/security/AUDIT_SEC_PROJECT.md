@@ -176,7 +176,7 @@ Risque :
 
 Action :
 
-- Utiliser `A_VALIDER_VERIFIER.md` comme registre unique de validation porteur.
+- Utiliser `PILOTAGE.md` puis `TODOS_A_VALIDER.md` / `TODOS_DONE.md` pour la validation porteur.
 - Quand le porteur valide, reporter ensuite dans `PLAN.md` et `STATUS.md`.
 
 ## Points deja bien avances
@@ -217,7 +217,7 @@ Actions :
 3. Reformuler la tache forensics pour separer preuves techniques et enrichissement IP.
 4. Lancer un benchmark long post-bascule Rust au gate preprod, pas a chaque iteration.
 5. Durcir l'exposition compose prod.
-6. Centraliser les validations porteur dans `A_VALIDER_VERIFIER.md`.
+6. Centraliser les validations porteur dans `TODOS_A_VALIDER.md`, archiver les éléments acceptés dans `TODOS_DONE.md`, puis utiliser les fichiers production dédiés pour préprod/prod.
 7. Creer et respecter `BRANCHES.md` pour noms de branches et commits.
 
 ## Decision

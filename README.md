@@ -225,6 +225,8 @@ make help-utils        # Utilitaires
 #### 🚀 Déploiement et Production
 | Guide | Description |
 |-------|-------------|
+| [Pilotage](PILOTAGE.md) | Point d’entrée obligatoire avant nouvelle tâche |
+| [TODOs à valider](TODOS_A_VALIDER.md) | Validations porteur bloquantes |
 | [Déploiement Production](docs/deployment/production/README.md) | Configuration et déploiement production |
 | [Sécurité déploiement](docs/deployment/security/README.md) | Index sécurité pour la mise en prod |
 | [Guide Sécurité](docs/security/README.md) | Authentification, WAF/firewall, CVE, logs et protections |

@@ -432,7 +432,7 @@ export default function SecurityIncidentsPage() {
             Paramètres → Notifications → Alertes sécurité
           </Link>
           . Checklist porteur :{" "}
-          <code className="text-xs">A_VALIDER_VERIFIER.md</code>.
+          <code className="text-xs">TODOS_A_VALIDER.md</code>.
         </p>
       </div>
     </AdminLayout>

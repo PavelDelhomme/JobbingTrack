@@ -27,7 +27,7 @@ Configuration sécurité, authentification et protection des systèmes JobbingTr
 
 | Sujet | Document de référence | Suivi opérationnel |
 |-------|-----------------------|--------------------|
-| Priorités sécurité/backoffice | `docs/TODOS.md` + `docs/PLAN.md` lot B/B14/B15 | `docs/STATUS.md`, `A_VALIDER_VERIFIER.md` |
+| Priorités sécurité/backoffice | `PILOTAGE.md`, `docs/TODOS.md` + `docs/PLAN.md` lot B/B14/B15 | `TODOS_A_VALIDER.md`, `TODOS_DONE.md`, `docs/STATUS.md` |
 | Tests offensifs contrôlés | `SECURITY_TESTING_MATRIX.md` | Rapports `reports/security/**` ou `tests/results/security/**` |
 | CVE, Dependabot, images Docker | `STATS.md`, `CVE_CONTINUOUS_MONITORING.md`, `DEPENDABOT_ALERTS_INTEGRATION.md` | Workflow `Security Audit`, artefacts GitHub, `docs/security/STATS.md` |
 | WAF / Firewall / Menaces | `ACTIVATION_WAF.md`, `FIREWALL_PLAN.md`, `ROADMAP_SECURITE_API_ET_BACKOFFICE.md` | Pages `/b4ck0ff1ce/security/**`, dry-runs `scripts/security/*` |
