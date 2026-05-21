@@ -9,6 +9,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   Shield,
   Plus,
@@ -23,6 +24,17 @@ import {
 import axios from "axios";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
+
+function ruleDisplayName(
+  rule: { name?: string; description?: string; id?: string },
+  fallback: string,
+) {
+  return (
+    rule.name?.trim() ||
+    rule.description?.trim() ||
+    (rule.id ? `Règle ${String(rule.id).slice(0, 8)}` : fallback)
+  );
+}
 
 /** Bandeau : vérifie Gateway + proxy /api/v1/security/* (GET firewall/rules : moins sensible au WAF que /waf/stats). */
 function SecurityBackendStatusStrip() {
@@ -153,6 +165,8 @@ function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
 const BLOCKED_IPS_PAGE_SIZE = 25;
 
 export default function FirewallPage() {
+  useDocumentTitle("Firewall");
+
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);
   const [blockedIpsTotal, setBlockedIpsTotal] = useState(0);
@@ -778,12 +792,14 @@ export default function FirewallPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rules.map((rule) => (
+                  {rules.map((rule, index) => (
                     <tr
                       key={rule.id}
                       className="border-b border-gray-200 dark:border-gray-700"
                     >
-                      <td className="p-3">{rule.name}</td>
+                      <td className="p-3">
+                        {ruleDisplayName(rule, `Règle firewall ${index + 1}`)}
+                      </td>
                       <td className="p-3">{rule.protocol}</td>
                       <td className="p-3">{rule.sourceIp || "Toutes"}</td>
                       <td className="p-3">{rule.destPort || "Tous"}</td>
@@ -1303,14 +1319,17 @@ function WAFConfigSection() {
                       </tr>
                     </thead>
                     <tbody>
-                      {wafConfig.map((rule: any) => (
+                      {wafConfig.map((rule: any, index: number) => (
                         <tr
-                          key={rule.name}
+                          key={rule.name || `${rule.severity}-${index}`}
                           className="border-b border-gray-200 dark:border-gray-700"
                         >
-                          <td className="p-3 font-semibold">{rule.name}</td>
+                          <td className="p-3 font-semibold">
+                            {ruleDisplayName(rule, `Règle WAF ${index + 1}`)}
+                          </td>
                           <td className="p-3 text-sm text-gray-600 dark:text-gray-400">
-                            {rule.description}
+                            {rule.description ||
+                              "Règle WAF sans description fournie par l’API."}
                           </td>
                           <td className="p-3">
                             <span
@@ -1341,6 +1360,7 @@ function WAFConfigSection() {
                                 type="checkbox"
                                 className="sr-only peer"
                                 checked={rule.enabled !== false}
+                                disabled={!rule.name}
                                 onChange={(e) =>
                                   handleToggleWafRule(
                                     rule.name,

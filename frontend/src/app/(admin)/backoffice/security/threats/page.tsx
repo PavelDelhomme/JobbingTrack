@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/features";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { TableSkeleton } from "@/lib/ui";
 import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
 import axios from "axios";
@@ -35,6 +36,8 @@ interface NetworkThreat {
 }
 
 export default function ThreatsPage() {
+  useDocumentTitle("Menaces sécurité");
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const [threats, setThreats] = useState<NetworkThreat[]>([]);

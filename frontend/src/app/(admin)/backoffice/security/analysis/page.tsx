@@ -7,6 +7,7 @@ import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   countDetectionLikeLogs,
   hasToken,
@@ -22,6 +23,8 @@ const ANALYSIS_LOGS_WINDOW_DAYS = 30;
 const ANALYSIS_LOGS_FETCH_LIMIT = 2000;
 
 export default function SecurityAnalysisPage() {
+  useDocumentTitle("Analyse sécurité");
+
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [serviceError, setServiceError] = useState<string | null>(null);

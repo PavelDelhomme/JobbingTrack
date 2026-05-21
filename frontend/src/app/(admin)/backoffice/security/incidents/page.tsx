@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/features";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   type IncidentRow,
   alertHref,
@@ -38,6 +39,8 @@ function kindLabel(kind: IncidentRow["kind"]): string {
 }
 
 export default function SecurityIncidentsPage() {
+  useDocumentTitle("Incidents sécurité");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);

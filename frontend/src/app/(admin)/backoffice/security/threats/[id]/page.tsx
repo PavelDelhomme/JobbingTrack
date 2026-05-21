@@ -8,6 +8,7 @@ import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -77,6 +78,11 @@ export default function ThreatDetailsPage() {
   const [inConsolidatedBlocklist, setInConsolidatedBlocklist] = useState<
     boolean | null
   >(null);
+  useDocumentTitle(
+    threat
+      ? `Menace ${threat.threatType || "réseau"} · ${threat.sourceIp || String(params.id).slice(0, 8)}`
+      : "Détail menace",
+  );
 
   useEffect(() => {
     const loadThreat = async () => {

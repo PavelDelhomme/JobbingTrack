@@ -6,9 +6,19 @@ import { AdminLayout } from "@/components/features";
 import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
+
+function wafRuleLabel(
+  rule: { name?: string; description?: string },
+  index: number,
+) {
+  return (
+    rule.name?.trim() || rule.description?.trim() || `Règle WAF ${index + 1}`
+  );
+}
 
 interface WafConfig {
   enabled: boolean;
@@ -48,6 +58,8 @@ function blockedOriginBadgeLabel(blockOrigin?: string): string | null {
 }
 
 export default function SecurityPoliciesPage() {
+  useDocumentTitle("Politiques sécurité");
+
   const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
   const [wafSaving, setWafSaving] = useState(false);
   const [firewallRules, setFirewallRules] = useState<FirewallRule[]>([]);
@@ -366,14 +378,14 @@ export default function SecurityPoliciesPage() {
                 Règles WAF
               </p>
               <ul className="space-y-2">
-                {wafConfig.rules.map((rule) => (
+                {wafConfig.rules.map((rule, index) => (
                   <li
-                    key={rule.name}
+                    key={rule.name || `${rule.severity}-${index}`}
                     className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
                     <div>
                       <span className="font-mono text-sm text-gray-900 dark:text-gray-100">
-                        {rule.name}
+                        {wafRuleLabel(rule, index)}
                       </span>
                       <span
                         className={`ml-2 px-1.5 py-0.5 text-xs rounded ${rule.severity === "critical" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" : rule.severity === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300"}`}
@@ -381,14 +393,15 @@ export default function SecurityPoliciesPage() {
                         {rule.severity}
                       </span>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {rule.description}
+                        {rule.description ||
+                          "Règle WAF sans description fournie par l’API."}
                       </p>
                     </div>
                     <button
                       onClick={() =>
                         handleWafRuleToggle(rule.name, !rule.enabled)
                       }
-                      disabled={wafSaving}
+                      disabled={wafSaving || !rule.name}
                       className={`text-sm px-3 py-1 rounded ${rule.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400"}`}
                     >
                       {rule.enabled ? "Activée" : "Désactivée"}

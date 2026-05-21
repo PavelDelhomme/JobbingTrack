@@ -9,6 +9,7 @@
 - **Hygiène Git** : `frontend/playwright-report/` est ignoré ; le rapport HTML Playwright généré localement est retiré du suivi Git pour éviter de pousser des artefacts volumineux/sensibles de session.
 - **Security-service / réseau Docker** : test ciblé `backend/security-service/tests/network-threat-detector.test.js` mis à jour pour couvrir `SECURITY_NETWORK_RELAX_INTERNAL` : une anomalie `BRUTE_FORCE` issue du bridge Docker `172.19.0.x` ne crée ni `networkThreat`, ni alerte, ni log sécurité, tout en laissant la connexion réseau être enregistrée.
 - **Validation** : `npm test -- --runTestsByPath tests/network-threat-detector.test.js --runInBand` depuis `backend/security-service/` → **3/3 OK**.
+- **B10 sécurité / titres FR** : hook `useDocumentTitle` ajouté et branché sur `/b4ck0ff1ce/security/**` principales ; fallbacks FR pour menaces/logs et règles WAF/firewall sans nom API. Validation Playwright `security-titles-smoke.spec.ts` → **8/8 OK**.
 
 ## 21 mai 2026 (suite 2) — Statistics graphes + plage partagée + sticky
 

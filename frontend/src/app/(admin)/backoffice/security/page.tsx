@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/features";
 import { SecuritySubNav } from "./SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   countDetectionLikeLogs,
   isDdosThreat,
@@ -121,6 +122,8 @@ const defaultOverview: SecurityOverview = {
 };
 
 export default function SecurityOverviewPage() {
+  useDocumentTitle("Sécurité");
+
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<SecurityOverview>(defaultOverview);
   const [recentIncidents, setRecentIncidents] = useState<IncidentItem[]>([]);
@@ -289,7 +292,7 @@ export default function SecurityOverviewPage() {
           ? threatsArray.slice(0, 10).map((t: any) => ({
               id: `threat-${t.id}`,
               kind: "threat" as const,
-              title: t.threatType || "Threat",
+              title: t.threatType || "Menace réseau",
               severity: String(t.severity || "UNKNOWN"),
               source: t.sourceIp || "n/a",
               timestamp: t.detectedAt || new Date().toISOString(),
@@ -305,7 +308,7 @@ export default function SecurityOverviewPage() {
           return {
             id: `log-${logId}`,
             kind: "log" as const,
-            title: et || l.category || "Log",
+            title: et || l.category || "Événement sécurité",
             severity: String(l.level || "info").toUpperCase(),
             source: l.sourceIP || "n/a",
             timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
