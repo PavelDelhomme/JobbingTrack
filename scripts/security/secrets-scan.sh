@@ -8,6 +8,7 @@ mkdir -p "$OUT_DIR"
 
 SUMMARY="$OUT_DIR/summary.md"
 STATUS=0
+GITLEAKS_FINDINGS_EXIT_CODE="${GITLEAKS_FINDINGS_EXIT_CODE:-1}"
 
 {
   echo "# Secrets Scan"
@@ -24,8 +25,28 @@ if command -v gitleaks >/dev/null 2>&1; then
     --source "$ROOT_DIR" \
     --report-format json \
     --report-path "$OUT_DIR/gitleaks.json" \
+    --exit-code "$GITLEAKS_FINDINGS_EXIT_CODE" \
     --redact; then
-    echo "- gitleaks: ok" >> "$SUMMARY"
+    FINDINGS_COUNT="$(python3 - "$OUT_DIR/gitleaks.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.exists():
+    print(0)
+    raise SystemExit
+
+with path.open() as handle:
+    data = json.load(handle)
+print(len(data) if isinstance(data, list) else 0)
+PY
+)"
+    if [ "$FINDINGS_COUNT" -gt 0 ]; then
+      echo "- gitleaks: findings=$FINDINGS_COUNT (non-blocking in this run), see gitleaks.json" >> "$SUMMARY"
+    else
+      echo "- gitleaks: ok" >> "$SUMMARY"
+    fi
   else
     STATUS=1
     echo "- gitleaks: findings or scanner error, see gitleaks.json" >> "$SUMMARY"
