@@ -658,8 +658,7 @@ export default function ThreatDetailsPage() {
                         : "non"}
                 </span>
                 <span className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1">
-                  ASN:{" "}
-                  {attacker.isPrivateIp ? "—" : attacker.asn || "inconnu"}
+                  ASN: {attacker.isPrivateIp ? "—" : attacker.asn || "inconnu"}
                 </span>
               </div>
               {attacker.organization && (
@@ -822,27 +821,29 @@ export default function ThreatDetailsPage() {
                   className="rounded border border-gray-200 dark:border-gray-700 text-sm group"
                 >
                   <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold">{event.eventType}</span>
-                    <span className="text-gray-500 dark:text-gray-400">{event.level}</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {formatLocalDateTime(event.timestamp)}
-                    </span>
-                    {event.isBlocked && (
-                      <span className="text-red-600">bloqué</span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-gray-700 dark:text-gray-300">
-                    {event.message}
-                  </p>
-                  <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {event.method || "—"}{" "}
-                    {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
-                    {event.statusCode ?? "—"} ·{" "}
-                    {event.responseTime != null
-                      ? `${event.responseTime} ms`
-                      : "—"}
-                  </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{event.eventType}</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {event.level}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {formatLocalDateTime(event.timestamp)}
+                      </span>
+                      {event.isBlocked && (
+                        <span className="text-red-600">bloqué</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-gray-700 dark:text-gray-300">
+                      {event.message}
+                    </p>
+                    <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
+                      {event.method || "—"}{" "}
+                      {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
+                      {event.statusCode ?? "—"} ·{" "}
+                      {event.responseTime != null
+                        ? `${event.responseTime} ms`
+                        : "—"}
+                    </p>
                   </summary>
                   {event.metadata && (
                     <pre className="mx-3 mb-3 bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto font-mono text-[11px] border-t border-gray-200 dark:border-gray-700 pt-2">

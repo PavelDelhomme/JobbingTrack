@@ -194,7 +194,9 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
 export function useUiPreferences(): UiPreferencesContextValue {
   const ctx = useContext(UiPreferencesContext);
   if (!ctx) {
-    throw new Error("useUiPreferences must be used within UiPreferencesProvider");
+    throw new Error(
+      "useUiPreferences must be used within UiPreferencesProvider",
+    );
   }
   return ctx;
 }

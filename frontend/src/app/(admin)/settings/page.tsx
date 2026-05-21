@@ -44,8 +44,9 @@ export default function SettingsPage() {
   const { settings, saveSettings, resetSettings, isLoading } =
     useCustomization();
   const { t, setLocale } = useTranslation();
-  const [localSettings, setLocalSettings] =
-    useState<CustomizationSettings>(() => mergeCustomizationSettings());
+  const [localSettings, setLocalSettings] = useState<CustomizationSettings>(
+    () => mergeCustomizationSettings(),
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -83,10 +84,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <SectionLoader
-        message={t("settings.loading")}
-        className="min-h-96"
-      />
+      <SectionLoader message={t("settings.loading")} className="min-h-96" />
     );
   }
 

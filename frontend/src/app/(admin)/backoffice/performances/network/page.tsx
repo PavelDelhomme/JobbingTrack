@@ -15,6 +15,8 @@ import {
   ChartPeriodCaption,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
+  beginUserRangeFetch,
+  isBenignFetchAbort,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
@@ -120,7 +122,7 @@ export default function NetworkPerformancePage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
-  usePersistedSharedAnalyticsRange({
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -155,9 +157,9 @@ export default function NetworkPerformancePage() {
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const load = useCallback(
-    async (opts?: { silent?: boolean }) => {
+    async (opts?: { silent?: boolean; signal?: AbortSignal }) => {
       const silent = opts?.silent ?? false;
-      if (!silent) setLoading(true);
+      beginUserRangeFetch(silent, setSeries, setLoading);
       try {
         const { startDate, endDate, limit } = getParams();
         const raw = await analyticsService.getSystemMetricsHistory({
@@ -165,7 +167,9 @@ export default function NetworkPerformancePage() {
           endDate,
           limit,
           offset: 0,
+          signal: opts?.signal,
         });
+        if (opts?.signal?.aborted) return;
         const sorted: RawNetPoint[] = (raw || [])
           .filter((d: { timestamp?: string }) => d.timestamp)
           .map((d: Record<string, unknown>) => {
@@ -266,19 +270,23 @@ export default function NetworkPerformancePage() {
             .filter((row) => Number.isFinite(row.timeMs)),
         );
       } catch (e) {
+        if (isBenignFetchAbort(e)) return;
         console.error(e);
       } finally {
-        if (!silent) setLoading(false);
+        if (!opts?.signal?.aborted && !silent) setLoading(false);
       }
     },
     [getParams],
   );
 
   useEffect(() => {
+    if (!rangeHydrated) return;
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
-    void load({ silent });
-  }, [load, softTick]);
+    const controller = new AbortController();
+    void load({ silent, signal: controller.signal });
+    return () => controller.abort();
+  }, [load, softTick, rangeHydrated]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;

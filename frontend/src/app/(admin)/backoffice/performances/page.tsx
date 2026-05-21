@@ -14,10 +14,13 @@ import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
+  beginUserRangeFetch,
+  isBenignFetchAbort,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
+import { ChartPeriodCaption } from "@/components/analytics/ChartPeriodCaption";
 import {
   getPeriodMs,
   formatRangeLabel,
@@ -39,6 +42,7 @@ import {
 } from "@/lib/charts/systemMetricsSeriesModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
+import { buildLiveEndpointModel } from "@/lib/metrics/performanceCorrelationModel";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import type { MetricsData } from "@/lib/interfaces";
 
@@ -165,7 +169,7 @@ export default function PerformancesPage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
-  usePersistedSharedAnalyticsRange({
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -224,9 +228,9 @@ export default function PerformancesPage() {
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
 
   const fetchData = useCallback(
-    async (opts?: { silent?: boolean }) => {
+    async (opts?: { silent?: boolean; signal?: AbortSignal }) => {
       const silent = opts?.silent ?? false;
-      if (!silent) setLoading(true);
+      beginUserRangeFetch(silent, setRawData, setLoading);
       try {
         const { startDate, endDate, limit } = getParams();
         const [data, live] = await Promise.all([
@@ -235,9 +239,11 @@ export default function PerformancesPage() {
             endDate,
             limit,
             offset: 0,
+            signal: opts?.signal,
           }),
           centralMetricsService.getAggregatorMetrics(),
         ]);
+        if (opts?.signal?.aborted) return;
         setLiveMetrics(live);
         const sorted = (data || [])
           .map((d: Record<string, unknown>) => {
@@ -290,22 +296,23 @@ export default function PerformancesPage() {
         ]);
         setRawData(withGaps);
       } catch (e) {
+        if (isBenignFetchAbort(e)) return;
         console.error(e);
-        if (!silent) {
-          /* conserver la dernière série affichée */
-        }
       } finally {
-        if (!silent) setLoading(false);
+        if (!opts?.signal?.aborted && !silent) setLoading(false);
       }
     },
     [getParams],
   );
 
   useEffect(() => {
+    if (!rangeHydrated) return;
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
-    void fetchData({ silent });
-  }, [fetchData, softTick]);
+    const controller = new AbortController();
+    void fetchData({ silent, signal: controller.signal });
+    return () => controller.abort();
+  }, [fetchData, softTick, rangeHydrated]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -558,65 +565,13 @@ export default function PerformancesPage() {
     );
   }, [loading, chartData.length, showResponseTime, locationHash]);
 
-  const liveEndpointBars = useMemo(() => {
-    const parseMs = (v: unknown): number | null => {
-      if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
-      if (typeof v === "string") {
-        const n = parseFloat(v.replace(/[^\d.]/g, ""));
-        return Number.isFinite(n) && n > 0 ? n : null;
-      }
-      return null;
-    };
-    const list = liveMetrics?.servicesList ?? [];
-    return list
-      .map((s) => {
-        const ms =
-          parseMs(s.responseTimeMs) ??
-          parseMs(s.responseTime) ??
-          parseMs(s.health?.responseTime);
-        const name = (s.displayName || s.name || "service").slice(0, 48);
-        return { name, ms, status: s.status ?? s.health?.status };
-      })
-      .filter((r) => r.ms != null)
-      .map((r) => ({ ...r, ms: r.ms as number }))
-      .sort((a, b) => b.ms - a.ms)
-      .slice(0, 20);
-  }, [liveMetrics]);
-
-  const liveEndpointNoMeasure = useMemo(() => {
-    const parseMs = (v: unknown): number | null => {
-      if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
-      if (typeof v === "string") {
-        const n = parseFloat(v.replace(/[^\d.]/g, ""));
-        return Number.isFinite(n) && n > 0 ? n : null;
-      }
-      return null;
-    };
-    const list = liveMetrics?.servicesList ?? [];
-    return list
-      .map((s) => {
-        const ms =
-          parseMs(s.responseTimeMs) ??
-          parseMs(s.responseTime) ??
-          parseMs(s.health?.responseTime);
-        const name = (s.displayName || s.name || "service").slice(0, 48);
-        return { name, ms };
-      })
-      .filter((r) => r.ms == null)
-      .map((r) => r.name)
-      .slice(0, 30);
-  }, [liveMetrics]);
-
-  const liveOverviewMs = useMemo(() => {
-    const m = liveMetrics?.monitoringC?.avg_response_time_ms;
-    if (typeof m === "number" && Number.isFinite(m)) return m;
-    const r = liveMetrics?.responseTime?.average_ms;
-    if (r != null) {
-      const n = Number(r);
-      if (Number.isFinite(n)) return n;
-    }
-    return null;
-  }, [liveMetrics]);
+  const liveEndpointModel = useMemo(
+    () => buildLiveEndpointModel(liveMetrics),
+    [liveMetrics],
+  );
+  const liveEndpointBars = liveEndpointModel.bars;
+  const liveEndpointNoMeasure = liveEndpointModel.noMeasure;
+  const liveOverviewMs = liveEndpointModel.overviewMs;
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
@@ -670,9 +625,10 @@ export default function PerformancesPage() {
               showNavigationHint={false}
             />
           </div>
+          <ChartPeriodCaption label={rangeLabel} />
         </div>
 
-        {loading && rawData.length === 0 ? (
+        {loading && chartData.length === 0 ? (
           <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             Chargement…
           </div>
@@ -794,39 +750,41 @@ export default function PerformancesPage() {
           </>
         )}
 
-        {!loading && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Temps de réponse des endpoints (instantané)
-            </h2>
-            {liveOverviewMs != null && (
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                Moyenne monitoring-agent-rs / agrégat :{" "}
-                <strong className="font-semibold">
-                  {liveOverviewMs.toFixed(1)} ms
-                </strong>
-              </p>
-            )}
-            {liveEndpointBars.length === 0 ? (
-              <p className="mt-3 text-sm text-amber-800 dark:text-amber-200/90">
-                Aucune mesure par service exploitable (agrégateur injoignable,
-                auth, ou sondes sans temps de réponse).
-              </p>
-            ) : (
-              <div className="mt-4 w-full min-h-[240px]">
-                <PerformancesLiveEndpointsBarChart bars={liveEndpointBars} />
-              </div>
-            )}
-            {liveEndpointNoMeasure.length > 0 && (
-              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
-                <span className="font-medium">
-                  Services sans mesure instantanée :
-                </span>{" "}
-                {liveEndpointNoMeasure.join(", ")}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Temps de réponse des endpoints (instantané)
+          </h2>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Snapshot live agrégateur (hors plage des graphiques historiques
+            ci-dessus).
+          </p>
+          {liveOverviewMs != null && (
+            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+              Moyenne monitoring-agent-rs / agrégat :{" "}
+              <strong className="font-semibold">
+                {liveOverviewMs.toFixed(1)} ms
+              </strong>
+            </p>
+          )}
+          {liveEndpointBars.length === 0 ? (
+            <p className="mt-3 text-sm text-amber-800 dark:text-amber-200/90">
+              Aucune mesure par service exploitable (agrégateur injoignable,
+              auth, ou sondes sans temps de réponse).
+            </p>
+          ) : (
+            <div className="mt-4 w-full min-h-[240px]">
+              <PerformancesLiveEndpointsBarChart bars={liveEndpointBars} />
+            </div>
+          )}
+          {liveEndpointNoMeasure.length > 0 && (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
+              <span className="font-medium">
+                Services sans mesure instantanée :
+              </span>{" "}
+              {liveEndpointNoMeasure.join(", ")}
+            </div>
+          )}
+        </div>
       </div>
     </AdminLayout>
   );

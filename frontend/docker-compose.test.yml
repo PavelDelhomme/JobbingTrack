@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Base de données de test PostgreSQL
@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: test_password
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5433:5432"  # Port différent pour éviter les conflits
+      - "5433:5432" # Port différent pour éviter les conflits
     volumes:
       - test_db_data:/var/lib/postgresql/data
       - ./tests/e2e/test-init.sql:/docker-entrypoint-initdb.d/test-init.sql

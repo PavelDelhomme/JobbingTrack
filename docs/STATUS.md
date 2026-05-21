@@ -1,8 +1,18 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 20 mai 2026 — **Branche** `feat/central-logging-full`.
+**Dernière mise à jour** : 21 mai 2026 — **Branche** `feat/central-logging-full`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 21 mai 2026 — CI Prettier + périodes Performances
+
+- **CI GitHub #556 / Prettier frontend** : correctif local appliqué pour débloquer le job « Vérification du formatage ». `frontend/.prettierignore` exclut désormais les artefacts générés (`performance-reports`, `tests/results`, `playwright-report`, `.next-local`, `tmp`, etc.) afin que `prettier --check .` ne parse plus des rapports JSON/HTML générés. Validation directe depuis `frontend/` : `npm run format`, puis `npm run format:check` → **OK**.
+- **Formatage frontend** : les fichiers source/tests suivis par Prettier ont été formatés ; les artefacts générés touchés par la première passe (`performance-reports`, `playwright-report`, `tests/results`) ont été restaurés pour ne pas polluer le diff.
+- **Performances — plages temporelles** : pages Synthèse, Réseau, Disque, Conteneurs et Latence alignées sur le même comportement : hydratation de la plage partagée avant fetch, `AbortController` pour ignorer les réponses obsolètes, et conservation des graphes visibles pendant le chargement d’une nouvelle plage (pas de flash « Chargement… » si une série existe déjà).
+- **Validation navigateur locale** : connexion avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env` via login API (sans afficher les secrets), puis `/b4ck0ff1ce/performances` vérifié en headless : **24 h → 7 j → 3 j → Aujourd’hui → plage personnalisée → période actuelle** conserve **22 graphes** visibles pendant chaque transition, `loading=0`, aucune erreur console.
+- **Corrélation / endpoints instantanés** : modèle partagé ajouté pour éviter les libellés diagnostics répétés dans les cellules incidents et pour exploiter le fallback `responseTime.per_service` côté synthèse. Tests ciblés `analyticsHistoryFetch` + `performanceCorrelationModel` : **10/10 OK**.
+- **Mode clair backoffice** : validation porteur provisoire notée : le lot lisibilité globale n’est plus bloquant ; les cas résiduels seront rouverts page par page si constatés.
+- **Validations frontend directes** : `npm run type-check` → **OK** ; `npm run lint` → **0 erreur**, warnings historiques uniquement ; Jest ciblé → **OK**.
 
 ## 20 mai 2026 — central logging + suivi runtime
 
@@ -23,7 +33,8 @@
 - **Performances — stockage BDD (demande porteur)** : chantier dédié noté pour enrichir la page Disque avec taille PostgreSQL totale, détail par table/index/TOAST, regroupement logs/métriques/métier, tendances de croissance, projection saturation et stratégie rétention/compression/archivage. À traiter comme lot approfondi séparé, avec actions destructives uniquement après validation explicite.
 - **Performances — Corrélation (20/05 suite)** : `getContainerStats` / historiques conteneur n’ouvrent plus d’overlay Next en cas d’échec réseau ; la page continue avec l’historique persisté et un repli stats live optionnel.
 - **Alertes email sécurité (20/05 suite)** : cause `Missing credentials for "PLAIN"` identifiée : notification-service ne recevait pas `SMTP_USER`/`SMTP_PASS` via Compose et créait toujours un transport Nodemailer avec `auth` vide. Correctif : variables SMTP propagées au conteneur et auth SMTP conditionnelle ; en dev MailHog reste sans authentification.
-- **Compression stockage applicatif (demande porteur)** : chantier transversal noté pour emails/logs/métriques/rapports : mesurer par table, garder metadata/index requêtables, archiver/compresser les payloads anciens sans perte, restaurer à la demande, aucune suppression automatique sans validation.
+- **Compression stockage applicatif (demande porteur)** : chantier transversal noté pour emails/logs/métriques/rapports : mesurer par table et par dossier, garder metadata/index requêtables, archiver/compresser les payloads anciens sans perte, restaurer à la demande, aucune suppression automatique sans validation. Les rapports de tests sont inclus explicitement (HTML, JSON, captures, traces Playwright, rapports parcours et sécurité).
+- **Nettoyage données métier de test (demande porteur)** : besoin noté pour nettoyer les utilisateurs/candidatures/relances/contacts/appels/événements créés par tests et seeds lorsqu’ils ne sont plus nécessaires. À faire en deux temps : inventaire `dry-run` + rapport, puis purge validée après sauvegarde ; ne pas supprimer les comptes/admins ou fixtures nécessaires aux tests.
 - **Tests & rapports** : continuer les validations ciblées à chaque lot (type-check, Jest ciblé, smoke API) ; la suite complète avec rapports reste lancée par le porteur via `scripts/run-all-tests-with-reports.sh` / Backoffice Tests, puis analyse de `tests/results/<timestamp>/summary.json` + `report.html`.
 - **Statistics — homogénéisation UI (20/05 suite)** : `app-data`, `security` et `log-stats` passent sur un shell commun (largeur, en-tête, bouton refresh, surfaces). `app-data` expose maintenant les totaux + nouveaux sur période + distributions (candidatures, rôles, entretiens, relances, appels, entreprises), appels/relances/événements, états vides par source et timeline globale enrichie. Les statuts vides/`undefined` sont regroupés en **Non renseigné**.
 - **Tests états conteneurs (20/05 suite)** : couverture frontend renforcée sur `serviceHealthOverview` (healthy, degraded/unknown, stopped/exited, doublons, `rawName`, filtre metrics hors ligne) — Jest ciblé **8/8 OK**. Côté backend `metrics-aggregator-service`, ajout d’un modèle santé conteneurs et tests ciblés **4/4 OK** ; `formatStatsForAPI` expose `health_summary`, `is_running`, `health_status`, `health_bucket`.

@@ -12,7 +12,12 @@ describe("serviceHealthOverview", () => {
   it("déduplique et préfère le conteneur running", () => {
     const list = dedupeDockerServices([
       { name: "jobbingtrack-api-gateway", is_running: false, status: "exited" },
-      { name: "api-gateway", is_running: true, status: "running", is_healthy: true },
+      {
+        name: "api-gateway",
+        is_running: true,
+        status: "running",
+        is_healthy: true,
+      },
     ]);
     expect(list).toHaveLength(1);
     expect(list[0].is_running).toBe(true);

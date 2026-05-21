@@ -156,9 +156,7 @@ export default function SecurityIncidentsPage() {
               timestamp: String(
                 l.timestamp || l.createdAt || new Date().toISOString(),
               ),
-              href: threatId
-                ? threatHref(threatId)
-                : logHref(logId, eventType),
+              href: threatId ? threatHref(threatId) : logHref(logId, eventType),
               threatId: threatId || undefined,
               logId,
             });
@@ -197,14 +195,16 @@ export default function SecurityIncidentsPage() {
       const token = localStorage.getItem("token");
       const res = await axios.post(
         `${API_URL}/api/v1/security/firewall/lab/sample-threat`,
-        { sourceIp: "198.51.100.42", threatType: "BRUTE_FORCE", severity: "HIGH" },
+        {
+          sourceIp: "198.51.100.42",
+          threatType: "BRUTE_FORCE",
+          severity: "HIGH",
+        },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const id = res.data?.data?.id;
       setLabMsg(
-        id
-          ? `Menace lab créée — ouvrez la fiche menace.`
-          : "Menace lab créée.",
+        id ? `Menace lab créée — ouvrez la fiche menace.` : "Menace lab créée.",
       );
       await load();
     } catch (e: unknown) {
@@ -259,7 +259,8 @@ export default function SecurityIncidentsPage() {
               <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800 dark:text-gray-300">
                 api_access
               </code>{" "}
-              ne sont pas listés ici. Cliquez une ligne pour ouvrir la fiche adaptée.
+              ne sont pas listés ici. Cliquez une ligne pour ouvrir la fiche
+              adaptée.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -327,8 +328,8 @@ export default function SecurityIncidentsPage() {
           <div className={uiSurfaces.emptyState}>
             <p>Aucun incident sur les {LOGS_WINDOW_DAYS} derniers jours.</p>
             <p className="mt-2">
-              Utilisez « Menace lab (test) » pour générer une fiche forensics avec IP
-              publique de démo (198.51.100.42).
+              Utilisez « Menace lab (test) » pour générer une fiche forensics
+              avec IP publique de démo (198.51.100.42).
             </p>
           </div>
         ) : (
@@ -359,7 +360,9 @@ export default function SecurityIncidentsPage() {
                       <div className="font-medium text-gray-900 dark:text-gray-100">
                         {item.title}
                       </div>
-                      <p className={`text-xs line-clamp-2 mt-0.5 ${uiText.subtle}`}>
+                      <p
+                        className={`text-xs line-clamp-2 mt-0.5 ${uiText.subtle}`}
+                      >
                         {item.subtitle}
                       </p>
                     </td>
@@ -392,7 +395,9 @@ export default function SecurityIncidentsPage() {
                 ))}
               </tbody>
             </table>
-            <div className={`flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-3 py-2 text-xs ${uiText.subtle}`}>
+            <div
+              className={`flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-3 py-2 text-xs ${uiText.subtle}`}
+            >
               <span>
                 Page {safePage}/{totalPages}
               </span>

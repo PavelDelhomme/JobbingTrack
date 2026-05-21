@@ -105,13 +105,41 @@ export default function StatisticsAppDataPage() {
         value: stats.applications?.total ?? 0,
         source: "application-service",
       },
-      { label: "Utilisateurs", value: stats.users?.total ?? 0, source: "auth-service" },
-      { label: "Entreprises", value: stats.companies?.total ?? 0, source: "company-service" },
-      { label: "Contacts", value: stats.contacts?.total ?? 0, source: "contact-service" },
-      { label: "Entretiens", value: stats.interviews?.total ?? 0, source: "interview-service" },
-      { label: "Appels", value: stats.calls?.total ?? 0, source: "call-service" },
-      { label: "Relances", value: stats.followups?.total ?? 0, source: "followup-service" },
-      { label: "Événements", value: stats.events?.total ?? 0, source: "event-service" },
+      {
+        label: "Utilisateurs",
+        value: stats.users?.total ?? 0,
+        source: "auth-service",
+      },
+      {
+        label: "Entreprises",
+        value: stats.companies?.total ?? 0,
+        source: "company-service",
+      },
+      {
+        label: "Contacts",
+        value: stats.contacts?.total ?? 0,
+        source: "contact-service",
+      },
+      {
+        label: "Entretiens",
+        value: stats.interviews?.total ?? 0,
+        source: "interview-service",
+      },
+      {
+        label: "Appels",
+        value: stats.calls?.total ?? 0,
+        source: "call-service",
+      },
+      {
+        label: "Relances",
+        value: stats.followups?.total ?? 0,
+        source: "followup-service",
+      },
+      {
+        label: "Événements",
+        value: stats.events?.total ?? 0,
+        source: "event-service",
+      },
     ];
   }, [stats]);
 
@@ -424,10 +452,13 @@ function DistributionPanel({
   empty: string;
 }) {
   const entries = Object.entries(rows || {})
-    .map(([key, value]) => [
-      key && key !== "undefined" && key !== "null" ? key : "Non renseigné",
-      value,
-    ] as const)
+    .map(
+      ([key, value]) =>
+        [
+          key && key !== "undefined" && key !== "null" ? key : "Non renseigné",
+          value,
+        ] as const,
+    )
     .filter(([, value]) => value > 0);
   const displayEntries =
     entries.length === 0 && fallbackTotal && fallbackTotal > 0

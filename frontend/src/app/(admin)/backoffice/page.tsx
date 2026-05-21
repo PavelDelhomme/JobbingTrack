@@ -343,11 +343,6 @@ export default function BackofficePage() {
     () => summarizeDockerServiceHealth(dockerServicesSnapshot),
     [dockerServicesSnapshot],
   );
-  // Le nombre de conteneurs JobbingTrack attendus dépend du profil docker-compose.
-  // On conserve une valeur par défaut (22) mais permet override via env.
-  const expectedJobbingtrackContainers =
-    Number(process.env.NEXT_PUBLIC_EXPECTED_JOBBINGTRACK_CONTAINERS || 22) ||
-    22;
 
   /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
   const jobbingtrackContainerRows = useMemo(() => {
@@ -1259,79 +1254,6 @@ export default function BackofficePage() {
               }
             />
           </DashboardLayoutRegion>
-
-          {/* Détail CPU / mémoire par conteneur jobbingtrack-* (même source que la carte, précision par service) */}
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/35">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
-                Conteneurs JobbingTrack — CPU &amp; mémoire (instantané)
-              </h2>
-              <Link
-                href="/b4ck0ff1ce/performances/containers"
-                className="text-xs font-medium text-indigo-700 underline hover:no-underline dark:text-indigo-300"
-              >
-                Graphiques &amp; historique →
-              </Link>
-            </div>
-            {jobbingtrackContainerRows.length === 0 ? (
-              <p className="text-xs text-indigo-900/80 dark:text-indigo-200/90">
-                Aucune ligne conteneur pour l’instant (token agrégateur,
-                monitoring ou liste Docker). Les cartes ci-dessus utilisent les
-                agrégats projet lorsque disponibles.
-              </p>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-indigo-100 bg-white/90 dark:border-indigo-900 dark:bg-gray-900/80">
-                <table className="min-w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-indigo-100 bg-indigo-100/50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-100">
-                      <th className="px-3 py-2 font-medium">Conteneur</th>
-                      <th className="px-3 py-2 font-medium tabular-nums">
-                        CPU %
-                      </th>
-                      <th className="px-3 py-2 font-medium tabular-nums">
-                        Mémoire %
-                      </th>
-                      <th className="px-3 py-2 font-medium tabular-nums">
-                        RAM (MB)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobbingtrackContainerRows.map((row) => (
-                      <tr
-                        key={row.fullName}
-                        className="border-b border-indigo-50 last:border-0 dark:border-indigo-900/50"
-                      >
-                        <td className="px-3 py-1.5 font-mono text-[11px] text-gray-800 dark:text-gray-200">
-                          {row.shortName}
-                        </td>
-                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.cpu != null
-                            ? `${safeToFixed(row.cpu, 1)}%`
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.memPct != null
-                            ? `${safeToFixed(row.memPct, 1)}%`
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
-                          {row.memMb != null ? safeToFixed(row.memMb, 0) : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="border-t border-indigo-100 px-3 py-2 text-[10px] text-gray-500 dark:border-indigo-800 dark:text-gray-400">
-                  Uniquement les clés Docker préfixées{" "}
-                  <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">
-                    jobbingtrack-
-                  </code>
-                  · tri par CPU décroissant · toutes les lignes détectées
-                </p>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Métriques système principales */}
@@ -1343,19 +1265,6 @@ export default function BackofficePage() {
                 État du système
                 <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">
                   ⚡ metrics-aggregator
-                </span>
-                <span className="ml-2 text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 px-2 py-1 rounded">
-                  {serviceHealthSummary.healthy} sains ·{" "}
-                  {serviceHealthSummary.degraded} dégradés ·{" "}
-                  {serviceHealthSummary.totalRunning} en cours
-                  {serviceHealthSummary.stopped > 0
-                    ? ` · ${serviceHealthSummary.stopped} arrêtés`
-                    : ""}{" "}
-                  ·{" "}
-                  {Number(systemMetrics?.jobbingtrack?.containers?.count || 0) >
-                  0
-                    ? `${systemMetrics.jobbingtrack.containers.count}/${expectedJobbingtrackContainers} conteneurs JT`
-                    : `—/${expectedJobbingtrackContainers} conteneurs JT`}
                 </span>
               </h2>
               <div className="flex items-center gap-2">
@@ -1388,6 +1297,7 @@ export default function BackofficePage() {
 
             <ServiceHealthKpiCards
               dockerServices={dockerServicesSnapshot}
+              hideHint
               className="mb-4"
             />
             <div className="mb-4 flex flex-wrap gap-3 text-sm">
@@ -2073,6 +1983,77 @@ export default function BackofficePage() {
             </div>
           </div>
         </DashboardLayoutRegion>
+
+        {/* Détail CPU / mémoire par conteneur jobbingtrack-* (même source que la carte, précision par service) */}
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/35">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
+              Conteneurs JobbingTrack — CPU &amp; mémoire (instantané)
+            </h2>
+            <Link
+              href="/b4ck0ff1ce/performances/containers"
+              className="text-xs font-medium text-indigo-700 underline hover:no-underline dark:text-indigo-300"
+            >
+              Graphiques &amp; historique →
+            </Link>
+          </div>
+          {jobbingtrackContainerRows.length === 0 ? (
+            <p className="text-xs text-indigo-900/80 dark:text-indigo-200/90">
+              Aucune ligne conteneur pour l’instant (token agrégateur,
+              monitoring ou liste Docker). Les cartes ci-dessus utilisent les
+              agrégats projet lorsque disponibles.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-indigo-100 bg-white/90 dark:border-indigo-900 dark:bg-gray-900/80">
+              <table className="min-w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-indigo-100 bg-indigo-100/50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-100">
+                    <th className="px-3 py-2 font-medium">Conteneur</th>
+                    <th className="px-3 py-2 font-medium tabular-nums">
+                      CPU %
+                    </th>
+                    <th className="px-3 py-2 font-medium tabular-nums">
+                      Mémoire %
+                    </th>
+                    <th className="px-3 py-2 font-medium tabular-nums">
+                      RAM (MB)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobbingtrackContainerRows.map((row) => (
+                    <tr
+                      key={row.fullName}
+                      className="border-b border-indigo-50 last:border-0 dark:border-indigo-900/50"
+                    >
+                      <td className="px-3 py-1.5 font-mono text-[11px] text-gray-800 dark:text-gray-200">
+                        {row.shortName}
+                      </td>
+                      <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                        {row.cpu != null ? `${safeToFixed(row.cpu, 1)}%` : "—"}
+                      </td>
+                      <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                        {row.memPct != null
+                          ? `${safeToFixed(row.memPct, 1)}%`
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-1.5 tabular-nums text-gray-900 dark:text-gray-100">
+                        {row.memMb != null ? safeToFixed(row.memMb, 0) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="border-t border-indigo-100 px-3 py-2 text-[10px] text-gray-500 dark:border-indigo-800 dark:text-gray-400">
+                Uniquement les clés Docker préfixées{" "}
+                <code className="rounded bg-gray-100 px-0.5 dark:bg-gray-800">
+                  jobbingtrack-
+                </code>
+                · tri par CPU décroissant · toutes les lignes détectées
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Popup des Services */}
         {showServicesPopup && (

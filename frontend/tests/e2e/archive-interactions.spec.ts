@@ -1,5 +1,5 @@
 // Tests archivage & corbeille — fonctionnalités ADMIN (backoffice)
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 import {
   getAdminToken,
   getUserToken,
@@ -17,23 +17,31 @@ import {
   cleanupTestData,
   TEST_PREFIX,
   uniqueId,
-} from './test-data-helper';
+} from "./test-data-helper";
 
-const API_URL = process.env.API_URL || 'http://localhost:5002';
+const API_URL = process.env.API_URL || "http://localhost:5002";
 
-async function expectBackofficePageReady(page: import('@playwright/test').Page, heading?: RegExp) {
-  await page.waitForLoadState('domcontentloaded');
-  await page.locator('main').first().waitFor({ state: 'visible', timeout: 45_000 });
+async function expectBackofficePageReady(
+  page: import("@playwright/test").Page,
+  heading?: RegExp,
+) {
+  await page.waitForLoadState("domcontentloaded");
+  await page
+    .locator("main")
+    .first()
+    .waitFor({ state: "visible", timeout: 45_000 });
   if (heading) {
-    await expect(page.getByRole('heading', { name: heading })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: heading })).toBeVisible({
+      timeout: 30_000,
+    });
   }
 }
 
 // ═══════════════════════════════════════════════════════
 // 1. ARCHIVAGE ET CORBEILLE (API + UI) — admin
 // ═══════════════════════════════════════════════════════
-test.describe('🗄️ Archivage & Corbeille (admin)', () => {
-  test.describe.configure({ mode: 'serial' });
+test.describe("🗄️ Archivage & Corbeille (admin)", () => {
+  test.describe.configure({ mode: "serial" });
 
   let token: string;
   let companyId: string;
@@ -44,11 +52,20 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     token = await getAdminToken(request);
     if (!token) return;
 
-    const company = await apiCreateCompany(request, token, `${TEST_PREFIX} ArchE2E ${uniqueId()}`);
+    const company = await apiCreateCompany(
+      request,
+      token,
+      `${TEST_PREFIX} ArchE2E ${uniqueId()}`,
+    );
     companyId = company.id;
 
     if (companyId) {
-      const app = await apiCreateApplication(request, token, companyId, `${TEST_PREFIX} Dev ArchE2E`);
+      const app = await apiCreateApplication(
+        request,
+        token,
+        companyId,
+        `${TEST_PREFIX} Dev ArchE2E`,
+      );
       applicationId = app.id;
     }
     if (applicationId) {
@@ -60,40 +77,62 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
   test.afterAll(async ({ request }) => {
     if (!token) return;
     if (interviewId) {
-      await apiRestore(request, token, 'interviews', interviewId);
-      await apiDelete(request, token, 'interviews', interviewId);
+      await apiRestore(request, token, "interviews", interviewId);
+      await apiDelete(request, token, "interviews", interviewId);
     }
     if (applicationId) {
-      await apiRestore(request, token, 'applications', applicationId);
-      await apiDelete(request, token, 'applications', applicationId);
+      await apiRestore(request, token, "applications", applicationId);
+      await apiDelete(request, token, "applications", applicationId);
     }
     if (companyId) {
-      await apiRestore(request, token, 'companies', companyId);
-      await apiDelete(request, token, 'companies', companyId);
+      await apiRestore(request, token, "companies", companyId);
+      await apiDelete(request, token, "companies", companyId);
     }
   });
 
-  test('API : archiver et désarchiver un entretien', async ({ request }) => {
-    test.skip(!applicationId || !interviewId, 'Données manquantes');
+  test("API : archiver et désarchiver un entretien", async ({ request }) => {
+    test.skip(!applicationId || !interviewId, "Données manquantes");
     // Archiver la candidature (cascade → entretien archivé), puis désarchiver la candidature (cascade → entretien visible)
-    const archiveRes = await apiArchiveWithResponse(request, token, 'applications', applicationId);
-    expect(archiveRes.ok, `Archive candidature: ${archiveRes.status} ${JSON.stringify(archiveRes.body)}`).toBe(true);
+    const archiveRes = await apiArchiveWithResponse(
+      request,
+      token,
+      "applications",
+      applicationId,
+    );
+    expect(
+      archiveRes.ok,
+      `Archive candidature: ${archiveRes.status} ${JSON.stringify(archiveRes.body)}`,
+    ).toBe(true);
 
     const listRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const body = await listRes.json();
-    expect(body.items?.some((i: any) => i.id === interviewId), 'Entretien présent dans GET /archived').toBe(true);
+    expect(
+      body.items?.some((i: any) => i.id === interviewId),
+      "Entretien présent dans GET /archived",
+    ).toBe(true);
 
-    const unarchiveRes = await apiUnarchiveWithResponse(request, token, 'applications', applicationId);
-    expect(unarchiveRes.ok, `Désarchiver candidature: ${unarchiveRes.status} ${JSON.stringify(unarchiveRes.body)}`).toBe(true);
+    const unarchiveRes = await apiUnarchiveWithResponse(
+      request,
+      token,
+      "applications",
+      applicationId,
+    );
+    expect(
+      unarchiveRes.ok,
+      `Désarchiver candidature: ${unarchiveRes.status} ${JSON.stringify(unarchiveRes.body)}`,
+    ).toBe(true);
   });
 
-  test('API : soft-delete et restaurer un entretien', async ({ request }) => {
-    test.skip(!interviewId, 'Pas d\'entretien de test');
-    const delRes = await request.delete(`${API_URL}/api/v1/interviews/${interviewId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  test("API : soft-delete et restaurer un entretien", async ({ request }) => {
+    test.skip(!interviewId, "Pas d'entretien de test");
+    const delRes = await request.delete(
+      `${API_URL}/api/v1/interviews/${interviewId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     expect(delRes.ok()).toBe(true);
 
     const trashRes = await request.get(`${API_URL}/api/v1/interviews/trash`, {
@@ -102,92 +141,161 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     const trashBody = await trashRes.json();
     expect(trashBody.items?.some((i: any) => i.id === interviewId)).toBe(true);
 
-    const restoreRes = await apiRestoreWithResponse(request, token, 'interviews', interviewId);
+    const restoreRes = await apiRestoreWithResponse(
+      request,
+      token,
+      "interviews",
+      interviewId,
+    );
     // 200 = restauré, 404 = déjà restauré (cascade), 400 = déjà restauré ou état invalide (backend)
     expect(
       restoreRes.ok || restoreRes.status === 404 || restoreRes.status === 400,
-      `Restore entretien: ${restoreRes.status} ${JSON.stringify(restoreRes.body)}`
+      `Restore entretien: ${restoreRes.status} ${JSON.stringify(restoreRes.body)}`,
     ).toBe(true);
   });
 
-  test('API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés', async ({ request }) => {
-    test.skip(!applicationId || !interviewId, 'Données manquantes');
+  test("API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés", async ({
+    request,
+  }) => {
+    test.skip(!applicationId || !interviewId, "Données manquantes");
     // Mettre la candidature en corbeille (cascade sur entretiens, relances, appels, événements)
-    const delRes = await request.delete(`${API_URL}/api/v1/applications/${applicationId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const delRes = await request.delete(
+      `${API_URL}/api/v1/applications/${applicationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     expect(delRes.ok()).toBe(true);
 
     const trashRes = await request.get(`${API_URL}/api/v1/applications/trash`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const trashBody = await trashRes.json();
-    expect(trashBody.items?.some((a: any) => a.id === applicationId)).toBe(true);
+    expect(trashBody.items?.some((a: any) => a.id === applicationId)).toBe(
+      true,
+    );
 
-    const restoreAppRes = await apiRestoreWithResponse(request, token, 'applications', applicationId);
+    const restoreAppRes = await apiRestoreWithResponse(
+      request,
+      token,
+      "applications",
+      applicationId,
+    );
     // 200 = OK, 400 = déjà restauré ou validation (gateway/backend) — à corriger côté backend si récurrent
     if (!restoreAppRes.ok && restoreAppRes.status === 400) {
-      console.warn(`[E2E] Restore candidature 400: ${JSON.stringify(restoreAppRes.body)} — vérifier make db-push-all et application-service`);
+      console.warn(
+        `[E2E] Restore candidature 400: ${JSON.stringify(restoreAppRes.body)} — vérifier make db-push-all et application-service`,
+      );
     }
     expect(
       restoreAppRes.ok || restoreAppRes.status === 400,
-      `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`
+      `Restore candidature: ${restoreAppRes.status} ${JSON.stringify(restoreAppRes.body)}`,
     ).toBe(true);
 
     // La visibilité après restore peut être légèrement asynchrone côté backend : retry GET jusqu'à 5s
-    let appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    let appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     for (let i = 0; i < 5 && !appRes.ok(); i++) {
       await new Promise((r) => setTimeout(r, 1000));
-      appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      appRes = await request.get(
+        `${API_URL}/api/v1/applications/${applicationId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
     }
-    expect(appRes.ok(), `Candidature visible après restauration (GET après ${restoreAppRes.ok ? 'restore 200' : 'restore 400'} retourne ${appRes.status()})`).toBe(true);
+    expect(
+      appRes.ok(),
+      `Candidature visible après restauration (GET après ${restoreAppRes.ok ? "restore 200" : "restore 400"} retourne ${appRes.status()})`,
+    ).toBe(true);
 
-    const intRes = await request.get(`${API_URL}/api/v1/interviews/${interviewId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(intRes.ok(), 'Entretien lié visible après restauration cascade').toBe(true);
+    const intRes = await request.get(
+      `${API_URL}/api/v1/interviews/${interviewId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    expect(
+      intRes.ok(),
+      "Entretien lié visible après restauration cascade",
+    ).toBe(true);
   });
-  test('archiver candidature met en archive les entretiens liés (suite)', async ({ request }) => {
-    test.skip(!applicationId || !interviewId, 'Données manquantes');
-    const archiveAppRes = await apiArchiveWithResponse(request, token, 'applications', applicationId);
-    expect(archiveAppRes.ok, `Archive candidature: ${archiveAppRes.status} ${JSON.stringify(archiveAppRes.body)}`).toBe(true);
+  test("archiver candidature met en archive les entretiens liés (suite)", async ({
+    request,
+  }) => {
+    test.skip(!applicationId || !interviewId, "Données manquantes");
+    const archiveAppRes = await apiArchiveWithResponse(
+      request,
+      token,
+      "applications",
+      applicationId,
+    );
+    expect(
+      archiveAppRes.ok,
+      `Archive candidature: ${archiveAppRes.status} ${JSON.stringify(archiveAppRes.body)}`,
+    ).toBe(true);
 
-    const intArchRes = await request.get(`${API_URL}/api/v1/interviews/archived`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const intArchRes = await request.get(
+      `${API_URL}/api/v1/interviews/archived`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     const intBody = await intArchRes.json();
-    expect(intBody.items?.some((i: any) => i.id === interviewId), 'Entretien lié dans GET /interviews/archived après archive candidature').toBe(true);
+    expect(
+      intBody.items?.some((i: any) => i.id === interviewId),
+      "Entretien lié dans GET /interviews/archived après archive candidature",
+    ).toBe(true);
 
-    const unarchived = await apiUnarchive(request, token, 'applications', applicationId);
+    const unarchived = await apiUnarchive(
+      request,
+      token,
+      "applications",
+      applicationId,
+    );
     expect(unarchived).toBe(true);
   });
 
-  test('la page Archives du backoffice charge sans erreur', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page Archives du backoffice charge sans erreur", async ({
+    page,
+  }) => {
+    await page.goto("/b4ck0ff1ce/archives", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page, /Archives/i);
-    await expect(page.locator('body')).not.toContainText('500');
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("Erreur serveur");
   });
 
-  test('la page Corbeille du backoffice charge sans erreur', async ({ page }) => {
+  test("la page Corbeille du backoffice charge sans erreur", async ({
+    page,
+  }) => {
     test.setTimeout(90_000);
-    await page.goto('/b4ck0ff1ce/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto("/b4ck0ff1ce/trash", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page, /Gestion de la Corbeille|Corbeille/i);
     // Vérifier le contenu visible uniquement (éviter faux positifs sur le payload RSC/scripts)
-    const mainText = await page.locator('main').textContent({ timeout: 10000 }).catch(() => '') ?? '';
-    expect(mainText).not.toContain('500');
-    expect(mainText).not.toContain('Erreur serveur');
+    const mainText =
+      (await page
+        .locator("main")
+        .textContent({ timeout: 10000 })
+        .catch(() => "")) ?? "";
+    expect(mainText).not.toContain("500");
+    expect(mainText).not.toContain("Erreur serveur");
   });
 });
 
 // ═══════════════════════════════════════════════════════
 // 2. CASCADE STATUTS (API)
 // ═══════════════════════════════════════════════════════
-test.describe('📊 Cascade de statuts', () => {
+test.describe("📊 Cascade de statuts", () => {
   let token: string;
   let companyId: string;
   let applicationId: string;
@@ -197,21 +305,30 @@ test.describe('📊 Cascade de statuts', () => {
     try {
       token = await getUserToken(request);
       if (!token) {
-        setupError = 'Impossible d\'obtenir un token utilisateur';
+        setupError = "Impossible d'obtenir un token utilisateur";
         return;
       }
 
-      const company = await apiCreateCompany(request, token, `${TEST_PREFIX} CascE2E ${uniqueId()}`);
+      const company = await apiCreateCompany(
+        request,
+        token,
+        `${TEST_PREFIX} CascE2E ${uniqueId()}`,
+      );
       companyId = company.id;
       if (!companyId) {
-        setupError = 'Impossible de créer l\'entreprise de test';
+        setupError = "Impossible de créer l'entreprise de test";
         return;
       }
 
-      const app = await apiCreateApplication(request, token, companyId, `${TEST_PREFIX} Dev Cascade`);
+      const app = await apiCreateApplication(
+        request,
+        token,
+        companyId,
+        `${TEST_PREFIX} Dev Cascade`,
+      );
       applicationId = app.id;
       if (!applicationId) {
-        setupError = 'Impossible de créer la candidature de test';
+        setupError = "Impossible de créer la candidature de test";
       }
     } catch (e) {
       setupError = `beforeAll a échoué: ${e instanceof Error ? e.message : String(e)}`;
@@ -222,50 +339,76 @@ test.describe('📊 Cascade de statuts', () => {
     if (!token) return;
     try {
       if (applicationId) {
-        await apiRestore(request, token, 'applications', applicationId);
-        await apiDelete(request, token, 'applications', applicationId);
+        await apiRestore(request, token, "applications", applicationId);
+        await apiDelete(request, token, "applications", applicationId);
       }
-      if (companyId) await apiDelete(request, token, 'companies', companyId);
-    } catch { /* cleanup best-effort */ }
+      if (companyId) await apiDelete(request, token, "companies", companyId);
+    } catch {
+      /* cleanup best-effort */
+    }
   });
 
-  test('créer un entretien passe la candidature en INTERVIEW_PENDING', async ({ request }) => {
-    test.skip(!!setupError || !applicationId, setupError || 'Pas de candidature');
+  test("créer un entretien passe la candidature en INTERVIEW_PENDING", async ({
+    request,
+  }) => {
+    test.skip(
+      !!setupError || !applicationId,
+      setupError || "Pas de candidature",
+    );
     const intRes = await request.post(`${API_URL}/api/v1/interviews`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
         applicationId,
         interviewDate: new Date(Date.now() + 86400000).toISOString(),
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
       },
     });
-    expect(intRes.ok(), `POST /interviews a retourné ${intRes.status()}`).toBe(true);
+    expect(intRes.ok(), `POST /interviews a retourné ${intRes.status()}`).toBe(
+      true,
+    );
     const intBody = await intRes.json();
     const interviewId = intBody.interview?.id;
 
-    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(appRes.ok(), `GET /applications/${applicationId} a retourné ${appRes.status()}`).toBe(true);
+    const appRes = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    expect(
+      appRes.ok(),
+      `GET /applications/${applicationId} a retourné ${appRes.status()}`,
+    ).toBe(true);
     const appBody = await appRes.json();
-    expect(appBody.application?.status?.code).toBe('INTERVIEW_PENDING');
+    expect(appBody.application?.status?.code).toBe("INTERVIEW_PENDING");
 
     if (interviewId) {
       await request.delete(`${API_URL}/api/v1/interviews/${interviewId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      await request.delete(`${API_URL}/api/v1/interviews/${interviewId}/permanent`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await request.delete(
+        `${API_URL}/api/v1/interviews/${interviewId}/permanent`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
     }
   });
 
-  test('historique de statut candidature accessible', async ({ request }) => {
-    test.skip(!!setupError || !applicationId, setupError || 'Pas de candidature');
-    const res = await request.get(`${API_URL}/api/v1/applications/${applicationId}/status-history`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(res.ok(), `GET /status-history a retourné ${res.status()}`).toBe(true);
+  test("historique de statut candidature accessible", async ({ request }) => {
+    test.skip(
+      !!setupError || !applicationId,
+      setupError || "Pas de candidature",
+    );
+    const res = await request.get(
+      `${API_URL}/api/v1/applications/${applicationId}/status-history`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    expect(res.ok(), `GET /status-history a retourné ${res.status()}`).toBe(
+      true,
+    );
     const body = await res.json();
     const history = body.history || body.statusHistory || [];
     expect(Array.isArray(history)).toBe(true);
@@ -275,7 +418,7 @@ test.describe('📊 Cascade de statuts', () => {
 // ═══════════════════════════════════════════════════════
 // 3. AUTO-CRÉATION ÉVÉNEMENTS (API)
 // ═══════════════════════════════════════════════════════
-test.describe('📅 Auto-création événements', () => {
+test.describe("📅 Auto-création événements", () => {
   let token: string;
   let companyId: string;
   let applicationId: string;
@@ -285,21 +428,30 @@ test.describe('📅 Auto-création événements', () => {
     try {
       token = await getUserToken(request);
       if (!token) {
-        setupError = 'Impossible d\'obtenir un token utilisateur';
+        setupError = "Impossible d'obtenir un token utilisateur";
         return;
       }
 
-      const company = await apiCreateCompany(request, token, `${TEST_PREFIX} EvtE2E ${uniqueId()}`);
+      const company = await apiCreateCompany(
+        request,
+        token,
+        `${TEST_PREFIX} EvtE2E ${uniqueId()}`,
+      );
       companyId = company.id;
       if (!companyId) {
-        setupError = 'Impossible de créer l\'entreprise de test';
+        setupError = "Impossible de créer l'entreprise de test";
         return;
       }
 
-      const app = await apiCreateApplication(request, token, companyId, `${TEST_PREFIX} Dev Evt`);
+      const app = await apiCreateApplication(
+        request,
+        token,
+        companyId,
+        `${TEST_PREFIX} Dev Evt`,
+      );
       applicationId = app.id;
       if (!applicationId) {
-        setupError = 'Impossible de créer la candidature de test';
+        setupError = "Impossible de créer la candidature de test";
       }
     } catch (e) {
       setupError = `beforeAll a échoué: ${e instanceof Error ? e.message : String(e)}`;
@@ -310,19 +462,29 @@ test.describe('📅 Auto-création événements', () => {
     if (!token) return;
     try {
       if (applicationId) {
-        await apiRestore(request, token, 'applications', applicationId);
-        await apiDelete(request, token, 'applications', applicationId);
+        await apiRestore(request, token, "applications", applicationId);
+        await apiDelete(request, token, "applications", applicationId);
       }
-      if (companyId) await apiDelete(request, token, 'companies', companyId);
-    } catch { /* cleanup best-effort */ }
+      if (companyId) await apiDelete(request, token, "companies", companyId);
+    } catch {
+      /* cleanup best-effort */
+    }
   });
 
-  test('créer un entretien crée un événement calendrier automatiquement', async ({ request }) => {
-    test.skip(!!setupError || !applicationId, setupError || 'Pas de candidature');
+  test("créer un entretien crée un événement calendrier automatiquement", async ({
+    request,
+  }) => {
+    test.skip(
+      !!setupError || !applicationId,
+      setupError || "Pas de candidature",
+    );
 
-    const eventsBefore = await request.get(`${API_URL}/api/v1/events?limit=200`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const eventsBefore = await request.get(
+      `${API_URL}/api/v1/events?limit=200`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     const beforeBody = await eventsBefore.json();
     const countBefore = (beforeBody.events || []).length;
 
@@ -331,23 +493,29 @@ test.describe('📅 Auto-création événements', () => {
       data: {
         applicationId,
         interviewDate: new Date(Date.now() + 172800000).toISOString(),
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
         estimatedDuration: 60,
       },
     });
-    expect(intRes.ok(), `POST /interviews a retourné ${intRes.status()}`).toBe(true);
+    expect(intRes.ok(), `POST /interviews a retourné ${intRes.status()}`).toBe(
+      true,
+    );
     const intBody = await intRes.json();
     const interviewId = intBody.interview?.id;
 
-    const eventsAfter = await request.get(`${API_URL}/api/v1/events?limit=200`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const eventsAfter = await request.get(
+      `${API_URL}/api/v1/events?limit=200`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     const afterBody = await eventsAfter.json();
     const countAfter = (afterBody.events || []).length;
 
     expect(countAfter).toBeGreaterThanOrEqual(countBefore);
     const found = (afterBody.events || []).find(
-      (e: any) => e.interviewId === interviewId || e.title?.includes('Entretien'),
+      (e: any) =>
+        e.interviewId === interviewId || e.title?.includes("Entretien"),
     );
     expect(found).toBeDefined();
 
@@ -358,18 +526,25 @@ test.describe('📅 Auto-création événements', () => {
     }
   });
 
-  test('créer une relance crée un événement calendrier automatiquement', async ({ request }) => {
-    test.skip(!!setupError || !applicationId, setupError || 'Pas de candidature');
+  test("créer une relance crée un événement calendrier automatiquement", async ({
+    request,
+  }) => {
+    test.skip(
+      !!setupError || !applicationId,
+      setupError || "Pas de candidature",
+    );
 
     const fuRes = await request.post(`${API_URL}/api/v1/followups`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
         applicationId,
         followUpDate: new Date(Date.now() + 172800000).toISOString(),
-        status: 'PENDING',
+        status: "PENDING",
       },
     });
-    expect(fuRes.ok(), `POST /followups a retourné ${fuRes.status()}`).toBe(true);
+    expect(fuRes.ok(), `POST /followups a retourné ${fuRes.status()}`).toBe(
+      true,
+    );
     const fuBody = await fuRes.json();
     const followUpId = fuBody.followup?.id;
 
@@ -378,7 +553,7 @@ test.describe('📅 Auto-création événements', () => {
     });
     const evtBody = await eventsRes.json();
     const found = (evtBody.events || []).find(
-      (e: any) => e.followUpId === followUpId || e.title?.includes('Relance'),
+      (e: any) => e.followUpId === followUpId || e.title?.includes("Relance"),
     );
     expect(found).toBeDefined();
 
@@ -389,8 +564,13 @@ test.describe('📅 Auto-création événements', () => {
     }
   });
 
-  test('créer un appel crée un événement calendrier automatiquement', async ({ request }) => {
-    test.skip(!!setupError || !applicationId, setupError || 'Pas de candidature');
+  test("créer un appel crée un événement calendrier automatiquement", async ({
+    request,
+  }) => {
+    test.skip(
+      !!setupError || !applicationId,
+      setupError || "Pas de candidature",
+    );
 
     const callRes = await request.post(`${API_URL}/api/v1/calls`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -398,10 +578,12 @@ test.describe('📅 Auto-création événements', () => {
         applicationId,
         callDate: new Date(Date.now() + 172800000).toISOString(),
         subject: `${TEST_PREFIX} Appel auto-event`,
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
       },
     });
-    expect(callRes.ok(), `POST /calls a retourné ${callRes.status()}`).toBe(true);
+    expect(callRes.ok(), `POST /calls a retourné ${callRes.status()}`).toBe(
+      true,
+    );
     const callBody = await callRes.json();
     const callId = callBody.call?.id;
 
@@ -410,7 +592,7 @@ test.describe('📅 Auto-création événements', () => {
     });
     const evtBody = await eventsRes.json();
     const found = (evtBody.events || []).find(
-      (e: any) => e.callId === callId || e.title?.includes('Appel'),
+      (e: any) => e.callId === callId || e.title?.includes("Appel"),
     );
     expect(found).toBeDefined();
 
@@ -425,33 +607,56 @@ test.describe('📅 Auto-création événements', () => {
 // ═══════════════════════════════════════════════════════
 // 4. PAGES BACKOFFICE ARCHIVES/CORBEILLE (UI)
 // ═══════════════════════════════════════════════════════
-test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
+test.describe("🖥️ Pages Backoffice Archive/Corbeille", () => {
   test.describe.configure({ timeout: 90_000 });
-  test('la page Archives charge correctement avec les onglets', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/archives', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page Archives charge correctement avec les onglets", async ({
+    page,
+  }) => {
+    await page.goto("/b4ck0ff1ce/archives", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page, /Archives/i);
 
-    const bodyText = await page.locator('body').textContent({ timeout: 15000 }) ?? '';
-    expect(bodyText, 'La page Archives doit afficher son titre').toContain('Gestion des Archives');
+    const bodyText =
+      (await page.locator("body").textContent({ timeout: 15000 })) ?? "";
+    expect(bodyText, "La page Archives doit afficher son titre").toContain(
+      "Gestion des Archives",
+    );
 
-    const tabs = page.locator('[role="tab"], button').filter({ hasText: /(candidatures|entreprises|contacts|entretiens|appels|relances)/i });
+    const tabs = page.locator('[role="tab"], button').filter({
+      hasText:
+        /(candidatures|entreprises|contacts|entretiens|appels|relances)/i,
+    });
     const tabCount = await tabs.count();
     expect(tabCount).toBeGreaterThanOrEqual(0);
   });
 
-  test('la page Corbeille charge correctement', async ({ page }) => {
+  test("la page Corbeille charge correctement", async ({ page }) => {
     test.setTimeout(90_000);
-    await page.goto('/b4ck0ff1ce/trash', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto("/b4ck0ff1ce/trash", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page, /Gestion de la Corbeille|Corbeille/i);
-    const bodyText = await page.locator('body').textContent({ timeout: 10000 }) ?? '';
-    expect(bodyText, 'La page Corbeille doit afficher son titre ou le mot Corbeille').toMatch(/Gestion de la Corbeille|Corbeille|Tous les éléments/);
+    const bodyText =
+      (await page.locator("body").textContent({ timeout: 10000 })) ?? "";
+    expect(
+      bodyText,
+      "La page Corbeille doit afficher son titre ou le mot Corbeille",
+    ).toMatch(/Gestion de la Corbeille|Corbeille|Tous les éléments/);
   });
 
-  test('la page Données affiche les onglets entités', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/data-management', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page Données affiche les onglets entités", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/data-management", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
 
-    const tabs = page.locator('[role="tab"], button').filter({ hasText: /(candidatures|entreprises|contacts|entretiens)/i });
+    const tabs = page
+      .locator('[role="tab"], button')
+      .filter({ hasText: /(candidatures|entreprises|contacts|entretiens)/i });
     const tabCount = await tabs.count();
     expect(tabCount).toBeGreaterThanOrEqual(1);
   });
@@ -460,19 +665,27 @@ test.describe('🖥️ Pages Backoffice Archive/Corbeille', () => {
 // ═══════════════════════════════════════════════════════
 // 5. CRUD CANDIDATURES (UI)
 // ═══════════════════════════════════════════════════════
-test.describe('📋 CRUD Candidatures UI', () => {
+test.describe("📋 CRUD Candidatures UI", () => {
   test.describe.configure({ timeout: 90_000 });
-  test('la page candidatures charge et affiche une liste', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page candidatures charge et affiche une liste", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/applications", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
-    await expect(page.locator('body')).not.toContainText('Erreur');
+    await expect(page.locator("body")).not.toContainText("Erreur");
   });
 
-  test('le formulaire de création candidature s\'ouvre', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/applications', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("le formulaire de création candidature s'ouvre", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/applications", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
 
-    const createBtn = page.getByRole('button', { name: /(Nouvelle candidature|Ajouter|Créer)/i });
+    const createBtn = page.getByRole("button", {
+      name: /(Nouvelle candidature|Ajouter|Créer)/i,
+    });
     if (await createBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await createBtn.click();
       const modal = page.locator('.fixed.inset-0, [role="dialog"]');
@@ -480,50 +693,62 @@ test.describe('📋 CRUD Candidatures UI', () => {
     }
   });
 
-  test('la page entretiens charge correctement', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/interviews', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page entretiens charge correctement", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/interviews", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await expect(page.locator("body")).not.toContainText("Erreur serveur");
   });
 
-  test('la page relances charge correctement', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/followups', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page relances charge correctement", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/followups", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await expect(page.locator("body")).not.toContainText("Erreur serveur");
   });
 
-  test('la page appels charge correctement', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/calls', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page appels charge correctement", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/calls", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await expect(page.locator("body")).not.toContainText("Erreur serveur");
   });
 
-  test('la page événements charge correctement', async ({ page }) => {
-    await page.goto('/b4ck0ff1ce/events', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  test("la page événements charge correctement", async ({ page }) => {
+    await page.goto("/b4ck0ff1ce/events", {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
     await expectBackofficePageReady(page);
-    await expect(page.locator('body')).not.toContainText('Erreur serveur');
+    await expect(page.locator("body")).not.toContainText("Erreur serveur");
   });
 });
 
 // ═══════════════════════════════════════════════════════
 // 6. CLEANUP
 // ═══════════════════════════════════════════════════════
-test.describe('🧹 Nettoyage données de test', () => {
-  test('nettoyer les données de test E2E', async ({ request }) => {
+test.describe("🧹 Nettoyage données de test", () => {
+  test("nettoyer les données de test E2E", async ({ request }) => {
     let token: string;
     try {
       token = await getAdminToken(request);
     } catch {
-      token = '';
+      token = "";
     }
     if (!token) {
       try {
         token = await getUserToken(request);
       } catch {
-        token = '';
+        token = "";
       }
     }
-    test.skip(!token, 'Aucun token disponible pour le nettoyage');
+    test.skip(!token, "Aucun token disponible pour le nettoyage");
     await cleanupTestData(request, token);
   });
 });

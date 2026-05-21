@@ -15,6 +15,8 @@ import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
+  beginUserRangeFetch,
+  isBenignFetchAbort,
   injectMetricTimeGaps,
   ymdLocal,
   type TimeRangeOption,
@@ -136,7 +138,7 @@ export default function ContainersAnalyticsPage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
 
-  usePersistedSharedAnalyticsRange({
+  const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -198,6 +200,7 @@ export default function ContainersAnalyticsPage() {
   }, []);
 
   useEffect(() => {
+    if (!rangeHydrated) return;
     if (!selectedContainer) {
       setRawMetrics([]);
       setRawMetricsByContainer({});
@@ -205,9 +208,16 @@ export default function ContainersAnalyticsPage() {
     }
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
+    const controller = new AbortController();
 
     const { startDate, endDate, limit } = getParams();
-    const opts = { startDate, endDate, limit, offset: 0 };
+    const opts = {
+      startDate,
+      endDate,
+      limit,
+      offset: 0,
+      signal: controller.signal,
+    };
 
     const normalize = (data: Record<string, unknown>[]) =>
       (data || [])
@@ -255,7 +265,9 @@ export default function ContainersAnalyticsPage() {
         return;
       }
       let cancelled = false;
-      if (!silent) setLoadingMetrics(true);
+      if (!silent) {
+        setLoadingMetrics(true);
+      }
       promisePool(containers, METRICS_HISTORY_FETCH_CONCURRENCY, (c) =>
         analyticsService
           .getContainerMetricsHistory(c.name, opts)
@@ -265,7 +277,7 @@ export default function ContainersAnalyticsPage() {
           })),
       )
         .then((results) => {
-          if (cancelled) return;
+          if (cancelled || controller.signal.aborted) return;
           const byName: Record<string, ContainerMetric[]> = {};
           results.forEach((r) => {
             byName[r.name] = r.data;
@@ -273,35 +285,41 @@ export default function ContainersAnalyticsPage() {
           setRawMetricsByContainer(byName);
         })
         .catch((e) => {
-          console.error(e);
+          if (!isBenignFetchAbort(e)) console.error(e);
         })
         .finally(() => {
-          if (!cancelled && !silent) setLoadingMetrics(false);
+          if (!cancelled && !controller.signal.aborted && !silent) {
+            setLoadingMetrics(false);
+          }
         });
       return () => {
         cancelled = true;
+        controller.abort();
       };
     }
 
     let cancelled = false;
-    if (!silent) setLoadingMetrics(true);
+    beginUserRangeFetch(silent, setRawMetrics, setLoadingMetrics);
     setRawMetricsByContainer({});
     analyticsService
       .getContainerMetricsHistory(selectedContainer, opts)
       .then((data: Record<string, unknown>[]) => {
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
         setRawMetrics(withGaps(normalize(data)));
       })
       .catch((e) => {
-        console.error(e);
+        if (!isBenignFetchAbort(e)) console.error(e);
       })
       .finally(() => {
-        if (!cancelled && !silent) setLoadingMetrics(false);
+        if (!cancelled && !controller.signal.aborted && !silent) {
+          setLoadingMetrics(false);
+        }
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [selectedContainer, getParams, containers, softTick]);
+  }, [selectedContainer, getParams, containers, softTick, rangeHydrated]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -602,11 +620,7 @@ export default function ContainersAnalyticsPage() {
             Aucun conteneur disponible. Vérifiez que le metrics-aggregator et
             Docker exposent les conteneurs JobbingTrack.
           </div>
-        ) : loadingMetrics &&
-          (isAllContainers
-            ? Object.keys(rawMetricsByContainer).length === 0
-            : rawMetrics.length === 0) &&
-          chartData.length === 0 ? (
+        ) : loadingMetrics && chartData.length === 0 ? (
           <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             Chargement des métriques…
           </div>

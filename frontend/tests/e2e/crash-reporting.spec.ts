@@ -4,13 +4,18 @@
  * Endpoint : POST /api/v1/crashes (sans auth, enregistrement fichier)
  * Teste : envoi crash report, validation crashType/message, acceptation sans auth, types multiples
  */
-import { test, expect } from '@playwright/test';
-import { getUserToken, ensureTestUser, getAdminToken } from './test-data-helper';
+import { test, expect } from "@playwright/test";
+import {
+  getUserToken,
+  ensureTestUser,
+  getAdminToken,
+} from "./test-data-helper";
 
-const API_URL = process.env.API_URL || process.env.API_GATEWAY_URL || 'http://localhost:5002';
+const API_URL =
+  process.env.API_URL || process.env.API_GATEWAY_URL || "http://localhost:5002";
 const GATEWAY_CRASH_URL = `${API_URL}/api/v1/crashes`;
 
-test.describe('Crash Reporting (E2E API - Gateway)', () => {
+test.describe("Crash Reporting (E2E API - Gateway)", () => {
   let token: string | null = null;
 
   test.beforeAll(async ({ request }) => {
@@ -21,24 +26,24 @@ test.describe('Crash Reporting (E2E API - Gateway)', () => {
     }
   });
 
-  test('Envoi crash report complet (sans auth)', async ({ request }) => {
+  test("Envoi crash report complet (sans auth)", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
       data: {
-        crashType: 'FlutterError',
-        message: 'RangeError: Invalid index at position 5',
-        stackTrace: 'at main.dart:42\nat framework.dart:4950',
+        crashType: "FlutterError",
+        message: "RangeError: Invalid index at position 5",
+        stackTrace: "at main.dart:42\nat framework.dart:4950",
         deviceInfo: {
-          platform: 'android',
-          osVersion: '14',
-          deviceModel: 'Pixel 7',
-          appVersion: '1.0.0',
-          screenSize: '1080x2400',
-          locale: 'fr_FR',
+          platform: "android",
+          osVersion: "14",
+          deviceModel: "Pixel 7",
+          appVersion: "1.0.0",
+          screenSize: "1080x2400",
+          locale: "fr_FR",
         },
-        screenName: 'CandidatureDetailPage',
+        screenName: "CandidatureDetailPage",
         sessionId: `e2e-session-${Date.now()}`,
-        userActions: ['tap Candidatures', 'scroll down', 'tap item'],
-        metadata: { testId: 'playwright-e2e' },
+        userActions: ["tap Candidatures", "scroll down", "tap item"],
+        metadata: { testId: "playwright-e2e" },
       },
     });
 
@@ -49,11 +54,11 @@ test.describe('Crash Reporting (E2E API - Gateway)', () => {
     expect(body.file).toMatch(/^crash-/);
   });
 
-  test('Envoi crash report minimal', async ({ request }) => {
+  test("Envoi crash report minimal", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
       data: {
-        crashType: 'MinimalError',
-        message: 'Test crash minimal E2E',
+        crashType: "MinimalError",
+        message: "Test crash minimal E2E",
       },
     });
 
@@ -63,25 +68,25 @@ test.describe('Crash Reporting (E2E API - Gateway)', () => {
     expect(body.file).toBeDefined();
   });
 
-  test('Rejet sans crashType', async ({ request }) => {
+  test("Rejet sans crashType", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
-      data: { message: 'Missing type' },
+      data: { message: "Missing type" },
     });
 
     expect(res.status()).toBe(400);
   });
 
-  test('Rejet sans message', async ({ request }) => {
+  test("Rejet sans message", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
-      data: { crashType: 'TestError' },
+      data: { crashType: "TestError" },
     });
 
     expect(res.status()).toBe(400);
   });
 
-  test('Accepte sans authentification', async ({ request }) => {
+  test("Accepte sans authentification", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
-      data: { crashType: 'NoAuth', message: 'Should succeed without token' },
+      data: { crashType: "NoAuth", message: "Should succeed without token" },
     });
 
     expect(res.status()).toBe(201);
@@ -90,15 +95,15 @@ test.describe('Crash Reporting (E2E API - Gateway)', () => {
     expect(body.file).toBeDefined();
   });
 
-  test('Envoi de plusieurs types de crash', async ({ request }) => {
-    const types = ['UncaughtError', 'NetworkError', 'TimeoutError'];
+  test("Envoi de plusieurs types de crash", async ({ request }) => {
+    const types = ["UncaughtError", "NetworkError", "TimeoutError"];
 
     for (const crashType of types) {
       const res = await request.post(GATEWAY_CRASH_URL, {
         data: {
           crashType,
           message: `E2E test: ${crashType}`,
-          deviceInfo: { platform: 'android', osVersion: '14' },
+          deviceInfo: { platform: "android", osVersion: "14" },
         },
       });
 
@@ -106,11 +111,11 @@ test.describe('Crash Reporting (E2E API - Gateway)', () => {
     }
   });
 
-  test('Message tres long accepte', async ({ request }) => {
+  test("Message tres long accepte", async ({ request }) => {
     const res = await request.post(GATEWAY_CRASH_URL, {
       data: {
-        crashType: 'LongError',
-        message: 'X'.repeat(2000),
+        crashType: "LongError",
+        message: "X".repeat(2000),
       },
     });
 

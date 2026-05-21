@@ -9,12 +9,14 @@ export interface ServiceHealthKpiCardsProps {
   dockerServices?: DockerServiceRow[] | null;
   /** Libellé sous les cartes (source, périmètre). */
   hint?: string;
+  hideHint?: boolean;
   className?: string;
 }
 
 export function ServiceHealthKpiCards({
   dockerServices,
   hint,
+  hideHint = false,
   className = "",
 }: ServiceHealthKpiCardsProps) {
   const summary = summarizeDockerServiceHealth(dockerServices || []);
@@ -27,10 +29,12 @@ export function ServiceHealthKpiCards({
         <HealthCard label="En cours" value={summary.totalRunning} tone="blue" />
         <HealthCard label="Arrêtés" value={summary.stopped} tone="red" />
       </div>
-      <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-        {hint ??
-          "Sains / dégradés = conteneurs en cours d'exécution. Arrêtés = conteneurs connus mais non démarrés — aligné avec /backoffice/services."}
-      </p>
+      {!hideHint && (
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          {hint ??
+            "Sains / dégradés = conteneurs en cours d'exécution. Arrêtés = conteneurs connus mais non démarrés — aligné avec /backoffice/services."}
+        </p>
+      )}
     </div>
   );
 }
@@ -63,9 +67,7 @@ function HealthCard({
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </span>
-        <span
-          className={`text-2xl font-bold tabular-nums ${valueColor[tone]}`}
-        >
+        <span className={`text-2xl font-bold tabular-nums ${valueColor[tone]}`}>
           {value}
         </span>
       </div>

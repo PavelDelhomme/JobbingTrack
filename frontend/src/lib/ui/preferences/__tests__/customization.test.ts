@@ -24,9 +24,7 @@ describe("mergeCustomizationSettings", () => {
 
 describe("customizationToV1", () => {
   it("mappe theme auto vers system", () => {
-    const v1 = customizationToV1(
-      mergeCustomizationSettings({ theme: "auto" }),
-    );
+    const v1 = customizationToV1(mergeCustomizationSettings({ theme: "auto" }));
     expect(v1.theme).toBe("system");
     expect(v1.customization.theme).toBe("auto");
   });

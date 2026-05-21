@@ -21,11 +21,13 @@ frontend/tests/
 ### Tests E2E Playwright
 
 #### Tous les tests
+
 ```bash
 npm run test:e2e
 ```
 
 #### Tests spécifiques
+
 ```bash
 # Test du parcours utilisateur complet
 npx playwright test tests/e2e/complete-user-journey.spec.ts
@@ -41,6 +43,7 @@ npx playwright test --debug
 ```
 
 #### Avec différents navigateurs
+
 ```bash
 # Chrome
 npx playwright test --project=chromium
@@ -63,12 +66,14 @@ npm run test:coverage
 ## 📊 Rapports de Tests
 
 ### Générer un rapport HTML
+
 ```bash
 npx playwright test
 npx playwright show-report
 ```
 
 ### Voir les résultats
+
 - Rapport HTML : `playwright-report/index.html`
 - Résultats JSON : `test-results.json`
 - Captures d'écran : `test-results/`
@@ -79,6 +84,7 @@ npx playwright show-report
 ### Tests E2E Complets
 
 #### 1. **Parcours Utilisateur Complet** (`complete-user-journey.spec.ts`)
+
 Test end-to-end en **11 étapes** simulant un utilisateur réel :
 
 1. ✅ **Inscription** - Création d'un nouveau compte
@@ -97,6 +103,7 @@ Test end-to-end en **11 étapes** simulant un utilisateur réel :
 **Navigateurs testés** : Chrome, Firefox, Safari (Mac)
 
 #### 2. **Test de Création Automatique d'Entreprise**
+
 Vérifie que lors de la création d'une candidature, si l'entreprise n'existe pas, elle est automatiquement créée.
 
 ### Tests d'Authentification
@@ -134,6 +141,7 @@ Vérifie que lors de la création d'une candidature, si l'entreprise n'existe pa
 ### Configuration Playwright
 
 Le fichier `playwright.config.ts` configure :
+
 - Les navigateurs à tester (Chrome, Firefox, Safari)
 - Les timeouts
 - Les captures d'écran et vidéos
@@ -158,23 +166,23 @@ TEST_TIMEOUT=60000
 ### Template de Test E2E
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Ma Fonctionnalité', () => {
+test.describe("Ma Fonctionnalité", () => {
   test.beforeEach(async ({ page }) => {
     // Setup avant chaque test
-    await page.goto('http://localhost:3000');
+    await page.goto("http://localhost:3000");
   });
 
-  test('devrait faire quelque chose', async ({ page }) => {
+  test("devrait faire quelque chose", async ({ page }) => {
     // Arranger
-    await page.fill('input[name="email"]', 'test@example.com');
-    
+    await page.fill('input[name="email"]', "test@example.com");
+
     // Agir
     await page.click('button[type="submit"]');
-    
+
     // Vérifier
-    await expect(page.locator('.success')).toBeVisible();
+    await expect(page.locator(".success")).toBeVisible();
   });
 
   test.afterEach(async ({ page }) => {
@@ -186,6 +194,7 @@ test.describe('Ma Fonctionnalité', () => {
 ## 🐛 Debugging
 
 ### Mode Debug
+
 ```bash
 # Ouvrir l'inspecteur Playwright
 npx playwright test --debug
@@ -195,6 +204,7 @@ npx playwright test --debug --project=chromium
 ```
 
 ### Traces
+
 ```bash
 # Enregistrer les traces
 npx playwright test --trace on
@@ -204,18 +214,19 @@ npx playwright show-trace trace.zip
 ```
 
 ### Captures d'écran
+
 Les captures d'écran sont automatiquement prises lors des échecs de tests.
 
 ## 📈 Couverture de Tests
 
 ### Objectifs de Couverture
 
-| Type | Objectif | Actuel |
-|------|----------|--------|
-| Lignes | 80% | ✅ 85% |
-| Branches | 75% | ✅ 78% |
-| Fonctions | 80% | ✅ 82% |
-| Statements | 80% | ✅ 84% |
+| Type       | Objectif | Actuel |
+| ---------- | -------- | ------ |
+| Lignes     | 80%      | ✅ 85% |
+| Branches   | 75%      | ✅ 78% |
+| Fonctions  | 80%      | ✅ 82% |
+| Statements | 80%      | ✅ 84% |
 
 ## 🚨 Bonnes Pratiques
 
@@ -227,19 +238,21 @@ Les captures d'écran sont automatiquement prises lors des échecs de tests.
    - Réinitialiser l'état
 
 2. **Utiliser des sélecteurs stables**
+
    ```typescript
    // ✅ Bon
-   page.locator('[data-testid="submit-button"]')
-   
+   page.locator('[data-testid="submit-button"]');
+
    // ❌ Mauvais
-   page.locator('.btn.btn-primary.mt-4')
+   page.locator(".btn.btn-primary.mt-4");
    ```
 
 3. **Attendre les éléments correctement**
+
    ```typescript
    // ✅ Bon
-   await page.waitForSelector('.loading', { state: 'hidden' });
-   
+   await page.waitForSelector(".loading", { state: "hidden" });
+
    // ❌ Mauvais
    await page.waitForTimeout(5000);
    ```
@@ -265,6 +278,7 @@ Les captures d'écran sont automatiquement prises lors des échecs de tests.
 ## 📞 Support
 
 Pour toute question ou problème avec les tests :
+
 1. Consulter cette documentation
 2. Vérifier les logs de tests
 3. Utiliser le mode debug de Playwright
@@ -273,4 +287,3 @@ Pour toute question ou problème avec les tests :
 
 **Date de mise à jour** : 4 Novembre 2025  
 **Version** : 1.0.0
-

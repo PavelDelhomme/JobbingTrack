@@ -393,7 +393,11 @@ export default function StatisticsPage() {
       }
     } catch (error) {
       console.error("Erreur chargement historique métriques:", error);
-      setHistorySeriesMeta({ pointCount: 0, errorDerived: false, source: "empty" });
+      setHistorySeriesMeta({
+        pointCount: 0,
+        errorDerived: false,
+        source: "empty",
+      });
     }
   };
 
@@ -810,7 +814,6 @@ export default function StatisticsPage() {
           </>
         }
       >
-
         {/* Panneau de personnalisation */}
         {showCustomization && (
           <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -2398,9 +2401,8 @@ const SecurityTab = memo(function SecurityTab({
       ) : (
         <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
           Aucune série persistée sur la période. Vérifier monitoring-c et la
-          table{" "}
-          <code className="text-xs">system_metrics</code>, ou élargir la fenêtre
-          temporelle.
+          table <code className="text-xs">system_metrics</code>, ou élargir la
+          fenêtre temporelle.
         </div>
       )}
 

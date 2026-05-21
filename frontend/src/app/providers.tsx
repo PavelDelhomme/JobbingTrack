@@ -23,16 +23,16 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <ErrorBoundary>
         <ThemeProvider>
           <UiPreferencesProvider>
-          <AuthProvider>
-            <TrackingProvider>
-              <div
-                className="min-h-screen bg-gray-50 dark:bg-gray-950"
-                suppressHydrationWarning
-              >
-                {children}
-              </div>
-            </TrackingProvider>
-          </AuthProvider>
+            <AuthProvider>
+              <TrackingProvider>
+                <div
+                  className="min-h-screen bg-gray-50 dark:bg-gray-950"
+                  suppressHydrationWarning
+                >
+                  {children}
+                </div>
+              </TrackingProvider>
+            </AuthProvider>
           </UiPreferencesProvider>
         </ThemeProvider>
       </ErrorBoundary>

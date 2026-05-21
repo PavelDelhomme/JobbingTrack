@@ -11,6 +11,10 @@ import {
   formatLocalChartAxisTick,
 } from "@/lib/utils/date";
 import {
+  buildIncidentEmptyReason,
+  formatIncidentTableCell,
+} from "@/lib/metrics/performanceCorrelationModel";
+import {
   ResponsiveContainer,
   LineChart,
   Line,
@@ -671,80 +675,9 @@ function nextSortDirection(curr: SortDirection): SortDirection {
   return null;
 }
 
-function buildIncidentEmptyReason(row: {
-  requestId: string | null;
-  endpoint: string | null;
-  ip: string | null;
-  protocol: string | null;
-  port: string | null;
-  httpStatus: string | null;
-  nearestCpu: number | null;
-  nearestMemory: number | null;
-  nearestRtMs: number | null;
-  deltaSec: number | null;
-}): string | null {
-  const hasAnyContext = Boolean(
-    row.requestId ||
-      row.endpoint ||
-      row.ip ||
-      row.protocol ||
-      row.port ||
-      row.httpStatus,
-  );
-  const hasAnyMetric =
-    row.nearestCpu != null ||
-    row.nearestMemory != null ||
-    row.nearestRtMs != null;
-
-  const missingContextCount = [
-    row.requestId,
-    row.endpoint,
-    row.ip,
-    row.protocol,
-    row.port,
-    row.httpStatus,
-  ].filter((v) => !v).length;
-  const missingMetricCount = [
-    row.nearestCpu,
-    row.nearestMemory,
-    row.nearestRtMs,
-  ].filter((v) => v == null).length;
-
-  if (
-    missingContextCount === 0 &&
-    missingMetricCount === 0 &&
-    row.deltaSec != null
-  ) {
-    return null;
-  }
-
-  const reasons: string[] = [];
-  if (!hasAnyContext) {
-    reasons.push("source absente");
-  } else if (missingContextCount > 0) {
-    reasons.push("champ manquant (contexte)");
-  }
-
-  if (!hasAnyMetric && row.deltaSec == null) {
-    reasons.push("hors fenêtre");
-  } else if (missingMetricCount > 0) {
-    reasons.push("champ manquant (métriques)");
-  }
-
-  return reasons.length > 0 ? reasons.join(" | ") : null;
-}
-
 function sortGlyph(active: boolean, direction: SortDirection): string {
   if (!active || direction == null) return "↕";
   return direction === "asc" ? "↑" : "↓";
-}
-
-function withMissingReason(
-  value: string | null | undefined,
-  reason: string | null,
-): string {
-  if (typeof value === "string" && value.trim().length > 0) return value;
-  return reason || "—";
 }
 
 function downsampleByStep<T>(rows: T[], max: number): T[] {
@@ -3374,49 +3307,36 @@ export default function PerformancesCorrelationPage() {
                                             {r.level}
                                           </td>
                                           <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
+                                            {formatIncidentTableCell(
                                               r.requestId,
-                                              r.emptyReason,
                                             )}
                                           </td>
                                           <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
+                                            {formatIncidentTableCell(
                                               r.endpoint,
-                                              r.emptyReason,
                                             )}
                                           </td>
                                           <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
-                                              r.ip,
-                                              r.emptyReason,
-                                            )}
+                                            {formatIncidentTableCell(r.ip)}
                                           </td>
                                           <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
+                                            {formatIncidentTableCell(
                                               r.httpStatus,
-                                              r.emptyReason,
                                             )}
                                           </td>
                                           <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
+                                            {formatIncidentTableCell(
                                               r.protocol,
-                                              r.emptyReason,
                                             )}
                                           </td>
                                           <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
-                                            {withMissingReason(
-                                              r.port,
-                                              r.emptyReason,
-                                            )}
+                                            {formatIncidentTableCell(r.port)}
                                           </td>
                                           <td className="px-2 py-1.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
                                             {!focusMetricsReady ? (
                                               <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                                             ) : r.nearestCpu == null ? (
-                                              withMissingReason(
-                                                null,
-                                                r.emptyReason,
-                                              )
+                                              "—"
                                             ) : (
                                               fmt1(r.nearestCpu)
                                             )}
@@ -3425,10 +3345,7 @@ export default function PerformancesCorrelationPage() {
                                             {!focusMetricsReady ? (
                                               <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                                             ) : r.nearestMemory == null ? (
-                                              withMissingReason(
-                                                null,
-                                                r.emptyReason,
-                                              )
+                                              "—"
                                             ) : (
                                               fmt1(r.nearestMemory)
                                             )}
@@ -3437,10 +3354,7 @@ export default function PerformancesCorrelationPage() {
                                             {!focusMetricsReady ? (
                                               <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                                             ) : r.nearestRtMs == null ? (
-                                              withMissingReason(
-                                                null,
-                                                r.emptyReason,
-                                              )
+                                              "—"
                                             ) : (
                                               fmt0(r.nearestRtMs)
                                             )}
@@ -3449,10 +3363,7 @@ export default function PerformancesCorrelationPage() {
                                             {!focusMetricsReady ? (
                                               <div className="ml-auto h-3 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                                             ) : r.deltaSec == null ? (
-                                              withMissingReason(
-                                                null,
-                                                r.emptyReason,
-                                              )
+                                              "—"
                                             ) : (
                                               r.deltaSec
                                             )}

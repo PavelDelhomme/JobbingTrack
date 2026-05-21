@@ -480,12 +480,15 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   </p>
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-                  <p className="font-semibold">À venir : réglages par graphique</p>
+                  <p className="font-semibold">
+                    À venir : réglages par graphique
+                  </p>
                   <p className="mt-1">
                     Les réglages actuels sont globaux par zone. Le prochain lot
                     doit permettre de régler l’actualisation par emplacement
                     précis, par exemple le graphe “temps de réponse” dans
-                    Performances → Synthèse, sans forcer tous les autres graphes.
+                    Performances → Synthèse, sans forcer tous les autres
+                    graphes.
                   </p>
                 </div>
               </div>
