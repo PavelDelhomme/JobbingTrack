@@ -4,7 +4,9 @@ Dernière mise à jour : 21 mai 2026
 
 ## Règle
 
-Ce fichier bloque la suite produit. Tant qu’une ligne **bloquante** est ouverte ici, l’agent ne doit pas avancer vers une nouvelle fonctionnalité hors correction de cette validation, mise à jour du pilotage, ou préparation de preuve.
+Ce fichier bloque la suite produit. Tant qu’une ligne **bloquante** est ouverte ici, l’agent ne doit pas avancer vers une nouvelle fonctionnalité.
+
+Règle d’ordre : l’agent et le porteur traitent **la première ligne ouverte uniquement**. Pas de validation suivante, pas de préparation parallèle, pas de “suite” tant que cette ligne n’est pas validée explicitement ou transformée en problème à corriger.
 
 Quand une ligne est validée par le porteur, la déplacer vers `TODOS_DONE.md` avec la date, l’environnement et la preuve.
 
