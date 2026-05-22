@@ -2,7 +2,7 @@
 
 > **Guide pas-à-pas** pour exécuter la migration dans Docker.
 
-**Branche** : `database/structure-revision`  
+**Branche archivée** : `finish-database/structure-revision`  
 **Date** : 2025-11-27
 
 ---
