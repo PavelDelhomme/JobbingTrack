@@ -3,7 +3,7 @@
 > **Documentation complète** de la Phase 1 de migration des enums vers des tables de statuts personnalisables.
 
 **Date de création** : 2025-11-27  
-**Branche** : `database/structure-revision`  
+**Branche archivée** : `finish-database/structure-revision`  
 **Statut** : ✅ **TERMINÉ**
 
 ---

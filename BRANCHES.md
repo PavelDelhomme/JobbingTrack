@@ -32,6 +32,22 @@ Exemples :
 - `chore/reports-artifact-cleanup`
 - `test/backend-service-centralization`
 
+## Branches terminees
+
+Quand une branche de travail est deja integree dans `dev` mais doit rester visible sur GitHub pour historique, la renommer avec le prefixe :
+
+```text
+finish-<type>/<sujet-court-kebab-case>
+```
+
+Exemples :
+
+- `finish-docs/monitoring-security-audit`
+- `finish-fix/admin-login-env-password`
+- `finish-feat/security-alert-email-ui`
+
+Ne pas appliquer ce prefixe aux branches de ligne de vie (`dev`, `main`, `prod`, `preprod`, `production`, `staging`) ni aux branches encore ouvertes.
+
 ## Commits
 
 Format :
@@ -92,6 +108,6 @@ Ordre conseille pour remettre le travail sur la branche principale de developpem
 
 1. Terminer la correction sur une branche prefixee (`fix/...`, `feat/...`, `docs/...`, etc.), pousser, ouvrir une PR vers **`dev`** (ou merger localement apres rebase sur `dev` si vous travaillez seul).
 2. Une branche secondaire (ex. `docs/security-p0-triage`, `fix/dev-https-api-centralization`) se merge dans **`dev`** quand le sujet est clos ; eviter de melanger deux chantiers sans lien sur la meme branche (voir regles de commits ci-dessus).
-3. Apres merge, supprimer la branche distante si elle ne sert plus, et tirer `dev` a jour sur les postes de travail.
+3. Apres merge, supprimer la branche distante si elle ne sert plus, ou la renommer en `finish-<type>/...` si elle doit rester consultable comme archive de travail ; tirer ensuite `dev` a jour sur les postes de travail.
 
 Les noms de branches historiques ou experimentaux ne remplacent pas ce schema : tout finit sur **`dev`** par merge ou PR, sauf politique equipe differente documentee ailleurs.
