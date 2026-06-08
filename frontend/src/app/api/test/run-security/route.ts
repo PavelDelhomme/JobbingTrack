@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { execSync } from "child_process";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import {
   getProjectRoot,
   isRunningInFrontendContainer,
 } from "../testRunnerUtils";
+import { getTestsResultsDir } from "@/lib/test-reports/paths";
 
 const RUN_TIMEOUT_MS = 120000;
 
@@ -12,6 +15,32 @@ const TESTS_TAG = "[TESTS SECURITY]";
 function extractReportId(stdout: string): string | null {
   const match = stdout.match(/\d{8}-\d{6}/);
   return match ? match[0] : null;
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+}
+
+function readSecurityCounts(reportId: string | null): {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+} {
+  if (!reportId) return { critical: 0, high: 0, medium: 0, low: 0 };
+  const reportPath = join(getTestsResultsDir(), reportId, "security-report.json");
+  if (!existsSync(reportPath)) return { critical: 0, high: 0, medium: 0, low: 0 };
+  try {
+    const parsed = JSON.parse(readFileSync(reportPath, "utf-8"));
+    return {
+      critical: Number(parsed.critical ?? 0),
+      high: Number(parsed.high ?? 0),
+      medium: Number(parsed.medium ?? 0),
+      low: Number(parsed.low ?? 0),
+    };
+  } catch {
+    return { critical: 0, high: 0, medium: 0, low: 0 };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -72,8 +101,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const hasCriticalHigh = /CRITIQUES:\s*[1-9]|HAUTES:\s*[1-9]/i.test(stdout);
-    const hasMediumLow = /MOYENNES:\s*[1-9]|BASSES:\s*[1-9]/i.test(stdout);
+    const counts = readSecurityCounts(reportId);
+    const hasCriticalHigh = counts.critical > 0 || counts.high > 0;
+    const hasMediumLow = counts.medium > 0 || counts.low > 0;
+    const outputTail = stripAnsi(stdout).slice(-2500);
 
     console.log(
       `${TESTS_TAG} Fin — ${new Date().toLocaleString("fr-FR", { timeZone: process.env.TZ || "Europe/Paris" })} — rapport: ${reportId ?? "N/A"}`,
@@ -89,8 +120,9 @@ export async function POST(request: NextRequest) {
       reportId,
       reportLocation: "tests/results/",
       reportKind: "security-app-tests",
+      counts,
       hint: "Pour le scan CVE dépendances (npm/Rust/Docker), utilisez « Scan CVE ».",
-      outputTail: stdout.slice(-2500),
+      outputTail,
     });
   } catch (error: unknown) {
     console.log(
