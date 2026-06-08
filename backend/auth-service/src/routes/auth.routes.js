@@ -51,6 +51,9 @@ router.post('/reset-password/:token', [
 
 // Routes protégées
 router.get('/profile', authenticate, authController.getProfile);
+router.post('/verify-password', authenticate, [
+  body('currentPassword').notEmpty().withMessage('Mot de passe actuel requis')
+], authController.verifyPassword);
 
 // ✅ SUPER_ADMIN - Générer un token de test permanent (user-journey)
 router.post('/generate-test-token', authenticate, authController.generateTestToken);
