@@ -1,4 +1,4 @@
-# Moteur UI JobbingTrack (`feat/ui-motor`)
+# Moteur UI JobbingTrack (`finish-feat/ui-motor`)
 
 **Objectif** : remplacer l’empilement actuel (`useCustomization`, `customization.css`, clés localStorage multiples) par un **moteur unique**, performant et réutilisable pour tout le frontend admin/backoffice.
 

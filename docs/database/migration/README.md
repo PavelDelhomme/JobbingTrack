@@ -2,7 +2,7 @@
 
 > **Documentation complète** du processus de migration des enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus` vers des tables de statuts personnalisables.
 
-**Branche** : `database/structure-revision`  
+**Branche archivée** : `finish-database/structure-revision`  
 **Date de début** : 2025-11-27
 
 ---
