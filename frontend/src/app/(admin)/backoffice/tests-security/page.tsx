@@ -30,6 +30,42 @@ interface CveLocateHit {
   package?: string;
   severity?: string;
   excerpt?: string;
+  lockfilePath?: string;
+  installedVersion?: string | null;
+}
+
+interface CveFindingCard {
+  id: string;
+  package: string;
+  installedVersion: string | null;
+  severity: string;
+  cveIds: string[];
+  advisoryTitle?: string | null;
+  advisoryUrl?: string | null;
+  surface: string;
+  service: string;
+  lockfilePath: string;
+  isDirect: boolean;
+  exposedSurface: string;
+  exploitability: string;
+  fix: {
+    type: string;
+    recommendation: string;
+    fixAvailable: boolean;
+  };
+  range?: string | null;
+  source: string;
+}
+
+function severityBadgeClass(severity: string): string {
+  switch (severity) {
+    case "critical":
+      return "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100";
+    case "high":
+      return "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+  }
 }
 
 function stripAnsi(value: string): string {
@@ -46,9 +82,13 @@ export default function SecurityTestsPage() {
   const [cveResult, setCveResult] = useState<{
     found: boolean;
     hits: CveLocateHit[];
+    findings?: CveFindingCard[];
     guidance?: string;
   } | null>(null);
   const [cveLoading, setCveLoading] = useState(false);
+  const [findings, setFindings] = useState<CveFindingCard[]>([]);
+  const [findingsLoading, setFindingsLoading] = useState(false);
+  const [findingsGuidance, setFindingsGuidance] = useState<string | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const availableTests: TestItem[] = [
@@ -204,7 +244,12 @@ export default function SecurityTestsPage() {
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Recherche CVE échouée");
-      setCveResult({ found: data.found, hits: data.hits ?? [], guidance: data.guidance });
+      setCveResult({
+        found: data.found,
+        hits: data.hits ?? [],
+        findings: data.findings ?? [],
+        guidance: data.guidance,
+      });
     } catch (error: unknown) {
       setCveResult({
         found: false,
@@ -216,6 +261,111 @@ export default function SecurityTestsPage() {
       setCveLoading(false);
     }
   };
+
+  const loadCriticalHighFindings = async () => {
+    if (!token) return;
+    setFindingsLoading(true);
+    setFindings([]);
+    setFindingsGuidance(null);
+    try {
+      const response = await fetch("/api/security/cve-findings?limit=40", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Chargement findings échoué");
+      setFindings(data.findings ?? []);
+      setFindingsGuidance(data.guidance ?? null);
+    } catch (error: unknown) {
+      setFindingsGuidance(
+        error instanceof Error ? error.message : "Erreur chargement findings",
+      );
+    } finally {
+      setFindingsLoading(false);
+    }
+  };
+
+  const renderFindingCard = (finding: CveFindingCard, key: string) => (
+    <div
+      key={key}
+      className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 space-y-2"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${severityBadgeClass(finding.severity)}`}
+        >
+          {finding.severity}
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white">
+          {finding.package}
+        </span>
+        {finding.installedVersion && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            v{finding.installedVersion}
+          </span>
+        )}
+        {finding.isDirect ? (
+          <span className="text-xs text-amber-700 dark:text-amber-300">direct</span>
+        ) : (
+          <span className="text-xs text-gray-500">transitive</span>
+        )}
+      </div>
+      {finding.cveIds.length > 0 && (
+        <p className="text-xs font-mono text-red-700 dark:text-red-300">
+          {finding.cveIds.join(", ")}
+        </p>
+      )}
+      {finding.advisoryTitle && (
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          {finding.advisoryTitle}
+        </p>
+      )}
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+        <div>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">Service</dt>
+          <dd>{finding.service}</dd>
+        </div>
+        <div>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">Surface</dt>
+          <dd>{finding.surface}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="font-medium text-gray-800 dark:text-gray-200">Lockfile</dt>
+          <dd className="font-mono break-all">{finding.lockfilePath}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Exposition
+          </dt>
+          <dd>{finding.exposedSurface}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Exploitabilité
+          </dt>
+          <dd>{finding.exploitability}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="font-medium text-gray-800 dark:text-gray-200">Correctif</dt>
+          <dd>
+            {finding.fix.recommendation}
+            {finding.fix.fixAvailable ? " (semver dispo)" : ""}
+          </dd>
+        </div>
+      </dl>
+      {finding.advisoryUrl && (
+        <a
+          href={finding.advisoryUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+        >
+          Advisory npm
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </div>
+  );
 
   if (authLoading) {
     return (
@@ -342,7 +492,9 @@ export default function SecurityTestsPage() {
                     </span>{" "}
                     — {hit.path}
                     {hit.package ? ` — ${hit.package}` : ""}
+                    {hit.installedVersion ? `@${hit.installedVersion}` : ""}
                     {hit.severity ? ` (${hit.severity})` : ""}
+                    {hit.lockfilePath ? ` — ${hit.lockfilePath}` : ""}
                     {hit.reportId && (
                       <>
                         {" "}
@@ -357,6 +509,47 @@ export default function SecurityTestsPage() {
                   </li>
                 ))}
               </ul>
+              {cveResult.findings && cveResult.findings.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    Fiches finding ({cveResult.findings.length})
+                  </h3>
+                  {cveResult.findings.map((f) => renderFindingCard(f, f.id))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            Findings critical / high (npm audit)
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Tri P0 : package, version installée, service, lockfile, surface
+            exposée, exploitabilité et correctif pour chaque finding (ex.{" "}
+            <code className="text-xs">js-cookie</code> côté frontend).
+          </p>
+          <button
+            type="button"
+            onClick={loadCriticalHighFindings}
+            disabled={findingsLoading || !token}
+            className="rounded-lg bg-red-800 text-white px-4 py-2 text-sm hover:bg-red-900 disabled:opacity-50"
+          >
+            {findingsLoading ? "Analyse npm audit…" : "Charger findings critical/high"}
+          </button>
+          {findingsGuidance && (
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+              {findingsGuidance}
+            </p>
+          )}
+          {findings.length > 0 && (
+            <div className="mt-4 space-y-3 max-h-[32rem] overflow-y-auto">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {findings.length} finding(s) — triés par sévérité
+              </p>
+              {findings.map((f) => renderFindingCard(f, f.id))}
             </div>
           )}
         </div>

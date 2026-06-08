@@ -8,6 +8,7 @@ import {
   getTestsResultsDir,
   IS_DOCKER,
 } from "./paths";
+import { normalizeSecurityStatusFromCounts } from "./securityStatus";
 
 const PROJECT_ROOT = getProjectRoot();
 
@@ -175,14 +176,24 @@ function parseSecuritySummaryMd(content: string): {
     const cells = splitMarkdownTableRow(line);
     if (cells.length < 8) continue;
 
+    const critical = parseNumberCell(cells[3]);
+    const high = parseNumberCell(cells[4]);
+    const medium = parseNumberCell(cells[5]);
+    const low = parseNumberCell(cells[6]);
     rows.push({
       kind: cells[0],
       surface: cells[1].replace(/^`|`$/g, ""),
-      status: cells[2],
-      critical: parseNumberCell(cells[3]),
-      high: parseNumberCell(cells[4]),
-      medium: parseNumberCell(cells[5]),
-      low: parseNumberCell(cells[6]),
+      status: normalizeSecurityStatusFromCounts(
+        cells[2],
+        critical,
+        high,
+        medium,
+        low,
+      ),
+      critical,
+      high,
+      medium,
+      low,
       info: parseNumberCell(cells[7]),
     });
   }
