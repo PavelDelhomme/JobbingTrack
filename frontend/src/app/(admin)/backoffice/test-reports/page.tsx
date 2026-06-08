@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { ReportIframe } from "./ReportIframe";
+import { securityStatusLabel } from "@/lib/test-reports/securityStatus";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -1137,7 +1138,8 @@ export default function TestReportsPage() {
                                                   : "OK"}
                                             </span>
                                             <span className="text-xs text-gray-500 dark:text-gray-400">
-                                              {cell.kind} · {cell.status}
+                                              {cell.kind} ·{" "}
+                                              {securityStatusLabel(cell.status)}
                                             </span>
                                           </div>
                                           <div className="grid grid-cols-2 gap-1 text-xs sm:grid-cols-5">
