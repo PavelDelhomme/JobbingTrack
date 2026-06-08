@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 21 mai 2026 — **Branche** `dev`.
+**Dernière mise à jour** : 8 juin 2026 — **Branche** `dev`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
+
+- **Alertes email critiques JobbingTrack** : demande porteur ajoutée au pilotage P1A — envoyer les reports/alertes `critical/high` depuis l’adresse mail JobbingTrack vers les adresses mail dev et admin du porteur, avec catégories explicites (`CVE`, `WAF/intrusion`, `service down`, `firewall`, `backup/restore`, `security report`) et vérification MailHog puis SMTP réel.
+- **CVE applicatives localisées** : nouveau P0 de tri sécurité — pour une CVE donnée (ex. `CVE-2026-49975`), identifier précisément le package/image/service touché, la version installée, le lockfile/image Docker, la surface réellement exposée dans JobbingTrack, l’exploitabilité et la correction ou justification `non applicable`.
+- **Comparaison CVE non encore exploitable** : retour porteur 08/06 — la comparaison affiche bien les surfaces mais produit des volumes énormes (`331 critical`, `3300 high`) difficiles à traiter, avec libellés trompeurs (`Échoué partout` pour skipped/0) et surfaces `Absent` peu explicites. À reprendre : regroupement Docker/node, tri par exploitabilité réelle, filtres par service/sévérité, explication des absents/skipped, priorité actionnable.
+- **Détails bruts sensibles sous réauth forte** : demande porteur ajoutée — notes brutes, payloads, preuves CVE et chemins sensibles doivent rester hors comparaison standard, mais être consultables via un flux séparé avec réauth/step-up auth, jeton court non rejouable, rôle élevé, audit append-only et `no-store`.
+- **Tests offensifs contrôlés par conteneur/service** : demande ajoutée à P1A/B15 — vérifier remote host, shell/command injection, URL injection, headers spoofing, path traversal et surfaces assimilées sur chaque conteneur/service exposé, uniquement en lab/préprod autorisée, sans action destructive.
+- **VPS/Portainer — réduction d’exposition / leurres contrôlés** : demande ajoutée au gate préprod/prod — minimiser bannières, versions, erreurs et métriques publiques ; ne pas exposer Docker/Portainer/metrics internes ; envisager des leurres/honeypots seulement isolés, audités et sans tromper l’admin.
 
 ## 21 mai 2026 (suite 3) — Hygiène Git + faux positifs Docker BRUTE_FORCE
 

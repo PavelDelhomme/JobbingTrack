@@ -30,7 +30,7 @@ const REPORT_DIRS = {
   "tests-results":
     process.env.TESTS_RESULTS_DIR ||
     (IS_DOCKER
-      ? "/app/tests/results"
+      ? "/tmp/tests/results"
       : join(PROJECT_ROOT_VIEW, "tests", "results")),
   "user-journey":
     process.env.USER_JOURNEY_REPORTS_DIR ||
@@ -42,7 +42,13 @@ const REPORT_DIRS = {
     ? "/app/tests/analytics-reports"
     : join(PROJECT_ROOT_VIEW, "tests", "analytics-reports"),
   "security-reports": join(PROJECT_ROOT_VIEW, "reports", "security"),
-  "security-results": join(PROJECT_ROOT_VIEW, "tests", "results", "security"),
+  "security-results": join(
+    process.env.TESTS_RESULTS_DIR ||
+      (IS_DOCKER
+        ? "/tmp/tests/results"
+        : join(PROJECT_ROOT_VIEW, "tests", "results")),
+    "security",
+  ),
 };
 
 async function firstExistingReportFile(dir: string): Promise<string | null> {

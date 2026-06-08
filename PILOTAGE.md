@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 8 juin 2026
 
 ## Règle principale
 

@@ -2,22 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { readdir, stat, readFile } from "fs/promises";
 import { join, resolve } from "path";
 import { existsSync } from "fs";
+import {
+  getProjectRoot,
+  getSecurityReportsDir,
+  getSecurityResultsDir,
+  getTestsResultsDir,
+  IS_DOCKER,
+} from "@/lib/test-reports/paths";
 
-// Racine projet : en Docker avec volume monté (PROJECT_ROOT=/workspace) ou en local
-const PROJECT_ROOT =
-  process.env.PROJECT_ROOT ||
-  (process.cwd().includes("frontend")
-    ? join(process.cwd(), "..")
-    : process.cwd());
-const IS_DOCKER = process.cwd() === "/app" || process.env.DOCKER === "true";
+const PROJECT_ROOT = getProjectRoot();
 
-// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR = /app/tests/results pour utiliser le volume monté)
+// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR = /tmp/tests/results, volume writable)
 const REPORT_DIRS = {
   "performance-backend": join(PROJECT_ROOT, "reports/performance/backend"),
   "performance-frontend": join(PROJECT_ROOT, "frontend", "performance-reports"),
   playwright: join(PROJECT_ROOT, "frontend", "playwright-report"),
-  "tests-results":
-    process.env.TESTS_RESULTS_DIR || join(PROJECT_ROOT, "tests", "results"),
+  "tests-results": getTestsResultsDir(),
   "tests-results-tmp":
     process.env.TESTS_RESULTS_DIR &&
     process.env.TESTS_RESULTS_DIR !== join(PROJECT_ROOT, "tests", "results")
@@ -31,8 +31,8 @@ const REPORT_DIRS = {
     join(PROJECT_ROOT, "tests", "user-journey-reports"),
   "user-journey-fallback": IS_DOCKER ? "/tmp/journey-reports" : "",
   analytics: join(PROJECT_ROOT, "tests", "analytics-reports"),
-  "security-reports": join(PROJECT_ROOT, "reports", "security"),
-  "security-results": join(PROJECT_ROOT, "tests", "results", "security"),
+  "security-reports": getSecurityReportsDir(),
+  "security-results": getSecurityResultsDir(),
 };
 
 interface TestReport {

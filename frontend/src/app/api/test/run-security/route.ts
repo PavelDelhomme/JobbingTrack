@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     let stdout = "";
     let reportId: string | null = null;
+    let exitCode = 0;
     try {
       stdout = execSync(command, {
         encoding: "utf-8",
@@ -38,45 +39,58 @@ export async function POST(request: NextRequest) {
         timeout: RUN_TIMEOUT_MS,
         env: {
           ...process.env,
+          API_GATEWAY_URL:
+            process.env.API_GATEWAY_URL ||
+            (inContainer ? "http://api-gateway:3000" : undefined),
           TESTS_RESULTS_DIR:
             process.env.TESTS_RESULTS_DIR ||
             (inContainer ? "/tmp/tests/results" : undefined),
+          METRICS_AGGREGATOR_INTERNAL_URL:
+            process.env.METRICS_AGGREGATOR_INTERNAL_URL ||
+            "http://jobbingtrack-metrics-aggregator:3014",
         },
       });
       reportId = extractReportId(stdout);
     } catch (err: unknown) {
-      const execErr = err as { stdout?: string; message?: string };
-      reportId = execErr.stdout ? extractReportId(execErr.stdout) : null;
+      const execErr = err as { stdout?: string; status?: number };
+      stdout = execErr.stdout ?? "";
+      reportId = stdout ? extractReportId(stdout) : null;
+      exitCode = execErr.status ?? 1;
       console.log(
-        `${TESTS_TAG} Fin (échec) — ${new Date().toLocaleString("fr-FR", { timeZone: process.env.TZ || "Europe/Paris" })} — rapport: ${reportId ?? "N/A"}`,
+        `${TESTS_TAG} Fin (exit ${exitCode}) — rapport: ${reportId ?? "N/A"}`,
       );
-      if (reportId) {
-        return NextResponse.json({
-          success: false,
-          message: "Tests terminés avec des échecs",
-          reportId,
-          reportLocation: "tests/results/",
-          error: (err as Error).message || "Erreur exécution tests sécurité",
-        });
+      if (!reportId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              (err as Error).message || "Erreur exécution tests sécurité",
+            outputTail: stdout.slice(-3000),
+          },
+          { status: 500 },
+        );
       }
-      return NextResponse.json(
-        {
-          success: false,
-          error: (err as Error).message || "Erreur exécution tests sécurité",
-          reportId: undefined,
-        },
-        { status: 500 },
-      );
     }
+
+    const hasCriticalHigh = /CRITIQUES:\s*[1-9]|HAUTES:\s*[1-9]/i.test(stdout);
+    const hasMediumLow = /MOYENNES:\s*[1-9]|BASSES:\s*[1-9]/i.test(stdout);
 
     console.log(
       `${TESTS_TAG} Fin — ${new Date().toLocaleString("fr-FR", { timeZone: process.env.TZ || "Europe/Paris" })} — rapport: ${reportId ?? "N/A"}`,
     );
     return NextResponse.json({
-      success: true,
-      message: "Rapport généré",
+      success: !hasCriticalHigh && exitCode === 0,
+      warning: hasMediumLow && !hasCriticalHigh,
+      message: hasCriticalHigh
+        ? "Tests terminés — vulnérabilités critical/high détectées"
+        : hasMediumLow
+          ? "Tests terminés — avertissements medium/low (niveau acceptable)"
+          : "Tests sécurité applicatifs terminés",
       reportId,
       reportLocation: "tests/results/",
+      reportKind: "security-app-tests",
+      hint: "Pour le scan CVE dépendances (npm/Rust/Docker), utilisez « Scan CVE ».",
+      outputTail: stdout.slice(-2500),
     });
   } catch (error: unknown) {
     console.log(

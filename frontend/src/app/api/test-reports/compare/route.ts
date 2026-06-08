@@ -1,5 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadCompareReport } from "@/lib/test-reports/resolveReport";
+import {
+  type CompareReportPayload,
+  loadCompareReport,
+  securityExploitScore,
+} from "@/lib/test-reports/resolveReport";
+
+function securityComparisonDiff(
+  reportsData: Array<{ id: string }>,
+  results: Record<string, "pass" | "fail" | "skip">,
+  details: Record<
+    string,
+    {
+      security?: {
+        critical: number;
+        high: number;
+        medium: number;
+        low: number;
+        status: string;
+      };
+    }
+  >,
+): string {
+  const presentIds = reportsData
+    .map((r) => r.id)
+    .filter((id) => details[id]?.security);
+  const absentCount = reportsData.length - presentIds.length;
+
+  if (presentIds.length === 0) {
+    return "Surface absente dans tous les rapports";
+  }
+  if (absentCount > 0) {
+    return `Absente dans ${absentCount} rapport(s) — comparaison partielle`;
+  }
+
+  const statuses = presentIds.map((id) => results[id]);
+  const allSkip = statuses.every((s) => s === "skip");
+  const allPass = statuses.every((s) => s === "pass");
+  const allFail = statuses.every((s) => s === "fail");
+
+  if (allSkip) return "Scan ignoré (skipped) — pas de CVE comptées";
+  if (allPass) return "OK — aucun critical/high";
+  if (allFail) return "À traiter — critical/high présents";
+
+  const scores = presentIds.map((id) => securityExploitScore(details[id]?.security));
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  if (min !== max) {
+    return `Écart exploitabilité (score ${min} → ${max})`;
+  }
+  return "Statuts ou sévérités mixtes";
+}
 
 function secureJson(body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
@@ -55,7 +105,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const reportsData = [];
+    const reportsData: CompareReportPayload[] = [];
     for (const id of ids) {
       const report = await loadCompareReport(id);
       if (!report) {
@@ -140,33 +190,56 @@ export async function GET(request: NextRequest) {
             };
           }
         }
-        const statuses = Object.values(results);
-        const allPass = statuses.every((s) => s === "pass");
-        const allFail = statuses.every((s) => s === "fail");
-        const mixed =
-          !allPass && !allFail && statuses.some((s) => s !== "skip");
+        const isSecurityRow = reportsData.some(
+          (r) => details[r.id]?.security !== undefined,
+        );
         let diff: string | undefined;
-        if (mixed) {
-          const parts = reportsData.map((r) => {
-            const d = details[r.id];
-            const st = results[r.id];
-            if (d?.security) {
-              const s = d.security;
-              return `${st}: C${s.critical}/H${s.high}/M${s.medium}/L${s.low}`;
-            }
-            if (d?.expected !== undefined || d?.actual !== undefined) {
-              return `${st}: attendu ${d.expected ?? "?"}, reçu ${d.actual ?? "?"}`;
-            }
-            return st;
-          });
-          diff = parts.join(" → ");
-        } else if (allPass) diff = "Réussi partout";
-        else if (allFail) diff = "Échoué partout";
+        if (isSecurityRow) {
+          diff = securityComparisonDiff(reportsData, results, details);
+        } else {
+          const statuses = Object.values(results);
+          const allPass = statuses.every((s) => s === "pass");
+          const allFail = statuses.every((s) => s === "fail");
+          const allSkip = statuses.every((s) => s === "skip");
+          const mixed =
+            !allPass && !allFail && !allSkip && statuses.some((s) => s !== "skip");
+          if (mixed) {
+            const parts = reportsData.map((r) => {
+              const d = details[r.id];
+              const st = results[r.id];
+              if (d?.expected !== undefined || d?.actual !== undefined) {
+                return `${st}: attendu ${d.expected ?? "?"}, reçu ${d.actual ?? "?"}`;
+              }
+              return st;
+            });
+            diff = parts.join(" → ");
+          } else if (allPass) diff = "Réussi partout";
+          else if (allSkip) diff = "Ignoré partout";
+          else if (allFail) diff = "Échoué partout";
+        }
         byTest.push({
           testName,
           results,
           details: Object.keys(details).length ? details : undefined,
           diff,
+        });
+      }
+
+      if (uniqueCategories[0] === "Sécurité") {
+        byTest.sort((a, b) => {
+          const scoreA = Math.max(
+            0,
+            ...reportsData.map((r) =>
+              securityExploitScore(a.details?.[r.id]?.security),
+            ),
+          );
+          const scoreB = Math.max(
+            0,
+            ...reportsData.map((r) =>
+              securityExploitScore(b.details?.[r.id]?.security),
+            ),
+          );
+          return scoreB - scoreA;
         });
       }
     }

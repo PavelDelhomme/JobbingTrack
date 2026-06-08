@@ -6,13 +6,14 @@ import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import {
   Play,
-  Square,
   Loader2,
   Shield,
   RefreshCw,
   CheckCircle2,
   ExternalLink,
   FileText,
+  Search,
+  AlertTriangle,
 } from "@/lib/icons";
 
 interface TestItem {
@@ -20,51 +21,61 @@ interface TestItem {
   name: string;
   description: string;
   category: string;
-  enabled: boolean;
+}
+
+interface CveLocateHit {
+  source: string;
+  path: string;
+  reportId?: string;
+  package?: string;
+  severity?: string;
+  excerpt?: string;
 }
 
 export default function SecurityTestsPage() {
-  const { user, loading: authLoading, isAuthenticated, token } = useAuth();
-  const [isRunning, setIsRunning] = useState(false);
+  const { loading: authLoading, isAuthenticated, token } = useAuth();
+  const [isRunningApp, setIsRunningApp] = useState(false);
+  const [isRunningCve, setIsRunningCve] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [reportId, setReportId] = useState<string | null>(null);
+  const [cveQuery, setCveQuery] = useState("CVE-2026-49975");
+  const [cveResult, setCveResult] = useState<{
+    found: boolean;
+    hits: CveLocateHit[];
+    guidance?: string;
+  } | null>(null);
+  const [cveLoading, setCveLoading] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const [availableTests] = useState<TestItem[]>([
+  const availableTests: TestItem[] = [
     {
       id: "waf",
       name: "WAF / Firewall",
       description: "Règles WAF et blocage des requêtes malveillantes",
       category: "Infrastructure",
-      enabled: true,
     },
     {
       id: "auth",
       name: "Authentification",
       description: "Tokens, sessions, permissions",
       category: "Auth",
-      enabled: true,
     },
     {
       id: "injection",
       name: "Injection",
       description: "SQL, XSS, commandes",
       category: "Vulnérabilités",
-      enabled: true,
     },
     {
       id: "headers",
       name: "En-têtes sécurité",
       description: "CSP, HSTS, X-Frame-Options",
       category: "Headers",
-      enabled: true,
     },
-  ]);
+  ];
 
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
   const addLog = (message: string) => {
@@ -72,17 +83,12 @@ export default function SecurityTestsPage() {
     setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const runSecurityTests = async () => {
-    if (isRunning) {
-      setIsRunning(false);
-      addLog("⏹️ Tests arrêtés");
-      return;
-    }
-
-    setIsRunning(true);
+  const runAppSecurityTests = async () => {
+    if (!token || isRunningApp) return;
+    setIsRunningApp(true);
     setLogs([]);
     setReportId(null);
-    addLog("🚀 Démarrage des tests sécurité...");
+    addLog("🚀 Tests sécurité applicatifs (XSS, SQLi, auth, headers…)…");
 
     try {
       const response = await fetch("/api/test/run-security", {
@@ -91,37 +97,127 @@ export default function SecurityTestsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ testName: "Tests Sécurité" }),
+        body: JSON.stringify({ testName: "Tests Sécurité applicatifs" }),
+        cache: "no-store",
       });
-
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || `Erreur API: ${response.status}`);
       }
 
-      addLog(`✅ ${data.message || "Rapport généré"}`);
+      if (data.outputTail) {
+        data.outputTail
+          .split("\n")
+          .slice(-12)
+          .forEach((line: string) => line.trim() && addLog(line));
+      }
+
+      if (data.warning) {
+        addLog("⚠️ Avertissements medium/low — voir rapport (statut AVERTISSEMENT)");
+      } else if (data.success) {
+        addLog("✅ Tests applicatifs terminés");
+      } else {
+        addLog("❌ Vulnérabilités critical/high — voir rapport");
+      }
+
       if (data.reportId) {
         setReportId(data.reportId);
         addLog(`📊 Rapport: ${data.reportId}`);
       }
-      addLog("🎉 Tests sécurité terminés. Consultez les rapports ci-dessous.");
+      if (data.hint) addLog(`💡 ${data.hint}`);
     } catch (error: unknown) {
       addLog(
         `❌ Erreur: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
       );
     } finally {
-      setIsRunning(false);
+      setIsRunningApp(false);
+    }
+  };
+
+  const runCveScan = async () => {
+    if (!token || isRunningCve) return;
+    setIsRunningCve(true);
+    setLogs([]);
+    setReportId(null);
+    addLog("🧬 Scan CVE dépendances (npm, Rust, Docker si activé)…");
+
+    try {
+      const response = await fetch("/api/test/run-cve-scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Erreur API: ${response.status}`);
+      }
+
+      if (data.outputTail) {
+        data.outputTail
+          .split("\n")
+          .slice(-8)
+          .forEach((line: string) => line.trim() && addLog(line));
+      }
+
+      addLog(
+        data.success
+          ? "✅ Scan CVE terminé"
+          : "⚠️ Scan CVE terminé avec alertes",
+      );
+      if (data.reportId) {
+        setReportId(data.reportId);
+        addLog(`📊 Rapport CVE: ${data.reportId}`);
+      }
+    } catch (error: unknown) {
+      addLog(
+        `❌ Erreur scan CVE: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
+      addLog(
+        "💡 Si python3 manque dans le conteneur frontend : make build-full puis recreate",
+      );
+    } finally {
+      setIsRunningCve(false);
+    }
+  };
+
+  const locateCve = async () => {
+    if (!token || !cveQuery.trim()) return;
+    setCveLoading(true);
+    setCveResult(null);
+    try {
+      const response = await fetch(
+        `/api/security/cve-locate?cve=${encodeURIComponent(cveQuery.trim())}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Recherche CVE échouée");
+      setCveResult({ found: data.found, hits: data.hits ?? [], guidance: data.guidance });
+    } catch (error: unknown) {
+      setCveResult({
+        found: false,
+        hits: [],
+        guidance:
+          error instanceof Error ? error.message : "Erreur recherche CVE",
+      });
+    } finally {
+      setCveLoading(false);
     }
   };
 
   if (authLoading) {
     return (
       <AdminLayout>
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-          </div>
+        <div className="p-6 flex justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         </div>
       </AdminLayout>
     );
@@ -131,55 +227,139 @@ export default function SecurityTestsPage() {
     return (
       <AdminLayout>
         <div className="p-6">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Vous devez être connecté.
-            </p>
-          </div>
+          <p className="text-yellow-800 dark:text-yellow-200">
+            Vous devez être connecté.
+          </p>
         </div>
       </AdminLayout>
     );
   }
 
+  const busy = isRunningApp || isRunningCve;
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Shield className="w-8 h-8 text-amber-600" />
               Tests Sécurité
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Exécuter les tests de sécurité et consulter les rapports
+            <p className="text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
+              Deux parcours distincts : <strong>tests applicatifs</strong> (API,
+              headers, injections) et <strong>scan CVE</strong> (dépendances,
+              images). Équivalent local de{" "}
+              <code className="text-sm">make test-security</code> +{" "}
+              <code className="text-sm">make test-cve-scan</code>.
             </p>
           </div>
-          <button
-            onClick={runSecurityTests}
-            disabled={!token}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isRunning
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-amber-600 text-white hover:bg-amber-700"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isRunning ? (
-              <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={runAppSecurityTests}
+              disabled={!token || busy}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {isRunningApp ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
-                En cours...
-              </>
-            ) : (
-              <>
+              ) : (
                 <Play className="h-5 w-5" />
-                Lancer les tests Sécurité
-              </>
-            )}
-          </button>
+              )}
+              Tests applicatifs
+            </button>
+            <button
+              type="button"
+              onClick={runCveScan}
+              disabled={!token || busy}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-700 text-white hover:bg-red-800 disabled:opacity-50"
+            >
+              {isRunningCve ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Shield className="h-5 w-5" />
+              )}
+              Scan CVE
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            Localiser une CVE dans JobbingTrack
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Recherche dans les rapports CVE archivés, lockfiles npm et npm audit
+            (ex. CVE-2026-49975).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              value={cveQuery}
+              onChange={(e) => setCveQuery(e.target.value)}
+              placeholder="CVE-2026-49975"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm min-w-[220px]"
+            />
+            <button
+              type="button"
+              onClick={locateCve}
+              disabled={cveLoading || !token}
+              className="rounded-lg bg-gray-800 text-white px-4 py-2 text-sm hover:bg-gray-900 disabled:opacity-50"
+            >
+              {cveLoading ? "Recherche…" : "Rechercher"}
+            </button>
+          </div>
+          {cveResult && (
+            <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-sm">
+              {cveResult.found ? (
+                <p className="text-green-700 dark:text-green-300 font-medium mb-2">
+                  CVE trouvée ({cveResult.hits.length} occurrence(s))
+                </p>
+              ) : (
+                <p className="text-amber-700 dark:text-amber-300 font-medium mb-2 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  CVE non trouvée dans les sources scannées
+                </p>
+              )}
+              {cveResult.guidance && (
+                <p className="text-gray-600 dark:text-gray-400 mb-2">
+                  {cveResult.guidance}
+                </p>
+              )}
+              <ul className="space-y-2">
+                {cveResult.hits.map((hit, i) => (
+                  <li
+                    key={i}
+                    className="rounded bg-gray-50 dark:bg-gray-900 p-2 font-mono text-xs"
+                  >
+                    <span className="text-amber-700 dark:text-amber-300">
+                      {hit.source}
+                    </span>{" "}
+                    — {hit.path}
+                    {hit.package ? ` — ${hit.package}` : ""}
+                    {hit.severity ? ` (${hit.severity})` : ""}
+                    {hit.reportId && (
+                      <>
+                        {" "}
+                        <Link
+                          href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(hit.reportId)}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          ouvrir
+                        </Link>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Couverture des tests
+            Couverture des tests applicatifs
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {availableTests.map((test) => (
@@ -209,9 +389,9 @@ export default function SecurityTestsPage() {
             >
               <FileText className="w-4 h-4" />
               Voir le rapport
+              <ExternalLink className="w-3 h-3" />
             </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Rapport :{" "}
               <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
                 {reportId}
               </code>
@@ -224,6 +404,7 @@ export default function SecurityTestsPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400">Terminal</span>
               <button
+                type="button"
                 onClick={() => {
                   setLogs([]);
                   setReportId(null);
@@ -241,17 +422,6 @@ export default function SecurityTestsPage() {
               ))}
               <div ref={logsEndRef} />
             </div>
-            {reportId && (
-              <div className="mt-3 pt-3 border-t border-gray-700">
-                <Link
-                  href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(reportId)}`}
-                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
-                >
-                  <FileText className="w-4 h-4" />
-                  Voir le rapport
-                </Link>
-              </div>
-            )}
           </div>
         )}
       </div>

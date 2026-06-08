@@ -7,6 +7,8 @@ RUN apk add --no-cache \
     libc6-compat \
     curl \
     wget \
+    jq \
+    python3 \
     dumb-init \
     chromium \
     nss \

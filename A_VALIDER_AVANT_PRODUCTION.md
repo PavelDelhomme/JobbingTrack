@@ -1,6 +1,6 @@
 # À valider avant préproduction / production
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 8 juin 2026
 
 ## Rôle
 
@@ -16,6 +16,9 @@ Pour l’instant, aucune production réelle n’est lancée sur serveur.
 | Suite complète locale récente verte (`scripts/run-all-tests-with-reports.sh`, exit 0, rapport `tests/results/<horodatage>/` lu) | [ ] |
 | Rapports sécurité P0 récupérés ou régénérés | [ ] |
 | Findings `critical/high` triés | [ ] |
+| Accès aux détails bruts sécurité protégé par réauth forte, audit et no-store | [ ] |
+| Alertes email critiques configurées vers adresses dev/admin porteur | [ ] |
+| Exposition publique serveur/conteneurs/réseau minimisée et stratégie leurres/masquage validée | [ ] |
 | Déploiement VPS/Portainer/NPM préparé hors secrets Git | [ ] |
 | Sauvegarde/restauration BDD testée au moins en simulation | [ ] |
 
@@ -29,6 +32,9 @@ Pour l’instant, aucune production réelle n’est lancée sur serveur.
 | Ports exposés | preprod | Seuls frontend/API/proxy publics ; Postgres/Redis/services internes non exposés Internet. | [ ] | |
 | Login admin et backoffice | preprod | Login OK, pages clés sans 401/403/500. | [ ] | |
 | Logs et alertes sécurité | preprod | WAF/logs/alertes mail critiques observables, sans fuite de secrets. | [ ] | |
+| Détails sensibles rapports sécurité | preprod | Notes brutes/payloads/proofs CVE accessibles seulement après réauth forte, jeton court non rejouable, rôle élevé, audit append-only, pas de cache. | [ ] | |
+| Tests offensifs contrôlés | preprod/lab | Shell/URL/command injection, headers spoofing, remote host/path traversal vérifiés par service exposé, uniquement en environnement autorisé. | [ ] | |
+| Masquage infos infra / leurres | preprod/prod | Erreurs/bannières/versions publiques génériques ; Docker/Portainer/metrics non exposés ; éventuels leurres isolés et documentés. | [ ] | |
 | Sauvegarde / restauration | preprod | Backup test, restauration testée, procédure rollback connue. | [ ] | |
 
 Quand une ligne est réellement déployée mais pas encore validée en environnement cible, la déplacer vers `DEPLOIEMENT_PRODUCTION.md`.
