@@ -145,7 +145,8 @@ services:
       - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=2048}
       - PORT=3000
       - PROJECT_ROOT=/app
-      - TESTS_RESULTS_DIR=/app/tests/results
+      # Writable : ./tests est monté :ro sur /app/tests — résultats dans /tmp (volume dédié)
+      - TESTS_RESULTS_DIR=/tmp/tests/results
       - TZ=${TZ:-Europe/Paris}
       - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
       - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
@@ -153,6 +154,7 @@ services:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
       - ./tests:/app/tests:ro
+      - ./tests/results:/tmp/tests/results
       - ./tests/user-journey-reports:/tmp/tests/user-journey-reports
       - /app/node_modules
     # Aligner l'utilisateur conteneur sur l'utilisateur hôte (pactivisme=1000)

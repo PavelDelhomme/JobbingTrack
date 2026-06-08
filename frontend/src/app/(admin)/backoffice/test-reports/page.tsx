@@ -185,6 +185,63 @@ function hasSecurityFindings(cell?: SecurityComparisonCell): boolean {
   return Boolean(cell && (cell.critical > 0 || cell.high > 0));
 }
 
+function normalizeSecurityKind(kind: string): string {
+  const k = kind.trim().toLowerCase();
+  if (k === "docker" || k === "container" || k === "image") return "docker";
+  if (k === "node" || k === "npm") return "node";
+  if (k === "rust" || k === "cargo") return "rust";
+  if (k === "flutter" || k === "dart") return "flutter";
+  return k || "autre";
+}
+
+function filterSecurityCompareRows(
+  rows: NonNullable<CompareResult["comparison"]>["byTest"],
+  reportIds: string[],
+  options: {
+    kind: string;
+    onlyExploitable: boolean;
+    hideAbsent: boolean;
+  },
+) {
+  if (!rows) return [];
+  return rows.filter((row) => {
+    const cells = reportIds
+      .map((id) => row.details?.[id]?.security)
+      .filter(Boolean) as SecurityComparisonCell[];
+    if (options.hideAbsent && cells.length === 0) return false;
+    if (options.hideAbsent && cells.length < reportIds.length) {
+      // garder les lignes partiellement absentes (info utile)
+    }
+    if (options.onlyExploitable && !cells.some((c) => hasSecurityFindings(c))) {
+      return false;
+    }
+    if (options.kind !== "all") {
+      const kinds = cells.map((c) => normalizeSecurityKind(c.kind));
+      if (cells.length > 0 && !kinds.some((k) => k === options.kind)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+interface SensitiveSurface {
+  kind: string;
+  surface: string;
+  status: string;
+  counts: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+  };
+  notes: string;
+  findings: string[];
+  command?: string;
+  error?: string | null;
+}
+
 interface TestReport {
   id: string;
   category?: string;
@@ -243,6 +300,17 @@ export default function TestReportsPage() {
     null,
   );
   const [loadingCompare, setLoadingCompare] = useState(false);
+  const [securityKindFilter, setSecurityKindFilter] = useState<string>("all");
+  const [securityOnlyExploitable, setSecurityOnlyExploitable] =
+    useState(false);
+  const [securityHideAbsent, setSecurityHideAbsent] = useState(false);
+  const [sensitiveModalOpen, setSensitiveModalOpen] = useState(false);
+  const [sensitivePassword, setSensitivePassword] = useState("");
+  const [sensitiveLoading, setSensitiveLoading] = useState(false);
+  const [sensitiveError, setSensitiveError] = useState<string | null>(null);
+  const [sensitiveSurfaces, setSensitiveSurfaces] = useState<
+    SensitiveSurface[] | null
+  >(null);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -269,6 +337,62 @@ export default function TestReportsPage() {
       return () => window.removeEventListener("keydown", handleEscape);
     }
   }, [isFullscreen]);
+
+  const openSensitiveDetails = async () => {
+    if (!compareResult?.reports?.length || !token) return;
+    const reportId = compareResult.reports[0]?.id;
+    if (!reportId?.startsWith("security-")) {
+      setSensitiveError(
+        "Disponible uniquement pour les rapports sécurité CVE.",
+      );
+      setSensitiveModalOpen(true);
+      return;
+    }
+    if (!sensitivePassword.trim()) {
+      setSensitiveError("Saisissez votre mot de passe administrateur.");
+      setSensitiveModalOpen(true);
+      return;
+    }
+    setSensitiveLoading(true);
+    setSensitiveError(null);
+    setSensitiveSurfaces(null);
+    try {
+      const stepUpRes = await fetch("/api/test-reports/sensitive-step-up", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reportId, password: sensitivePassword }),
+        cache: "no-store",
+      });
+      const stepUpData = await stepUpRes.json();
+      if (!stepUpRes.ok || !stepUpData.stepUpToken) {
+        throw new Error(stepUpData.error || "Échec de la réauthentification");
+      }
+
+      const detailsRes = await fetch(
+        `/api/test-reports/sensitive-details?reportId=${encodeURIComponent(reportId)}&stepUpToken=${encodeURIComponent(stepUpData.stepUpToken)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        },
+      );
+      const detailsData = await detailsRes.json();
+      if (!detailsRes.ok) {
+        throw new Error(detailsData.error || "Accès refusé");
+      }
+      setSensitiveSurfaces(detailsData.surfaces ?? []);
+      setSensitivePassword("");
+    } catch (error: unknown) {
+      setSensitiveError(
+        error instanceof Error ? error.message : "Erreur accès sensible",
+      );
+    } finally {
+      setSensitiveLoading(false);
+      setSensitiveModalOpen(true);
+    }
+  };
 
   const loadReports = async () => {
     try {
@@ -767,8 +891,25 @@ export default function TestReportsPage() {
                           {
                             compareResult.comparison.securitySummary
                               .sensitiveDataPolicy
-                          }
+                          }{" "}
+                          Les totaux élevés viennent souvent des scans
+                          Docker/images et dépendances npm — prioriser les
+                          lignes avec critical/high et statut ≠ skipped.
+                          « Absent » = surface scannée dans un seul rapport.
                         </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSensitiveError(null);
+                              setSensitiveSurfaces(null);
+                              setSensitiveModalOpen(true);
+                            }}
+                            className="rounded-md bg-red-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-900"
+                          >
+                            Voir détails sensibles (réauth)
+                          </button>
+                        </div>
                       </div>
                     )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -872,9 +1013,49 @@ export default function TestReportsPage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                           Chaque ligne affiche uniquement la surface, le type de
                           scan, le statut et les compteurs de sévérité par
-                          rapport. Les notes/payloads restent dans le rapport
-                          ouvert ou téléchargé, pas dans cette comparaison.
+                          rapport. Les notes/payloads nécessitent le bouton
+                          « détails sensibles » avec réauthentification.
                         </p>
+                        <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+                          <label className="flex items-center gap-2">
+                            <span className="text-gray-600 dark:text-gray-300">
+                              Type
+                            </span>
+                            <select
+                              value={securityKindFilter}
+                              onChange={(e) =>
+                                setSecurityKindFilter(e.target.value)
+                              }
+                              className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1"
+                            >
+                              <option value="all">Tous</option>
+                              <option value="docker">Docker</option>
+                              <option value="node">Node/npm</option>
+                              <option value="rust">Rust</option>
+                              <option value="flutter">Flutter</option>
+                            </select>
+                          </label>
+                          <label className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                            <input
+                              type="checkbox"
+                              checked={securityOnlyExploitable}
+                              onChange={(e) =>
+                                setSecurityOnlyExploitable(e.target.checked)
+                              }
+                            />
+                            Critical/high uniquement
+                          </label>
+                          <label className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                            <input
+                              type="checkbox"
+                              checked={securityHideAbsent}
+                              onChange={(e) =>
+                                setSecurityHideAbsent(e.target.checked)
+                              }
+                            />
+                            Masquer absents partout
+                          </label>
+                        </div>
                         <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                           <table className="w-full text-sm border-collapse">
                             <thead>
@@ -919,7 +1100,7 @@ export default function TestReportsPage() {
                                             key={r.id}
                                             className="py-3 px-3 align-top text-gray-400"
                                           >
-                                            Absent
+                                            Absent (non scanné)
                                           </td>
                                         );
                                       }
@@ -931,14 +1112,20 @@ export default function TestReportsPage() {
                                           <div className="mb-2 flex flex-wrap items-center gap-2">
                                             <span
                                               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                                hasSecurityFindings(cell)
-                                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
-                                                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                                                cell.status === "skipped" ||
+                                                cell.status === "skip"
+                                                  ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                                  : hasSecurityFindings(cell)
+                                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                                                    : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
                                               }`}
                                             >
-                                              {hasSecurityFindings(cell)
-                                                ? "À traiter"
-                                                : "OK"}
+                                              {cell.status === "skipped" ||
+                                              cell.status === "skip"
+                                                ? "Ignoré"
+                                                : hasSecurityFindings(cell)
+                                                  ? "À traiter"
+                                                  : "OK"}
                                             </span>
                                             <span className="text-xs text-gray-500 dark:text-gray-400">
                                               {cell.kind} · {cell.status}
@@ -1648,6 +1835,100 @@ export default function TestReportsPage() {
           </div>
         )}
       </div>
+
+      {sensitiveModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-red-300 bg-white p-5 shadow-xl dark:border-red-800 dark:bg-gray-900"
+            role="dialog"
+            aria-labelledby="sensitive-modal-title"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3
+                  id="sensitive-modal-title"
+                  className="text-lg font-semibold text-red-900 dark:text-red-100"
+                >
+                  Détails sensibles — réauthentification requise
+                </h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Jeton court, usage unique, pas de cache. Audit journalisé.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSensitiveModalOpen(false);
+                  setSensitivePassword("");
+                  setSensitiveError(null);
+                }}
+                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {!sensitiveSurfaces && (
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Mot de passe administrateur
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={sensitivePassword}
+                    onChange={(e) => setSensitivePassword(e.target.value)}
+                    className="mt-1 w-full rounded border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+                  />
+                </label>
+                {sensitiveError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {sensitiveError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  disabled={sensitiveLoading}
+                  onClick={openSensitiveDetails}
+                  className="rounded bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50"
+                >
+                  {sensitiveLoading ? "Vérification…" : "Confirmer et afficher"}
+                </button>
+              </div>
+            )}
+
+            {sensitiveSurfaces && (
+              <div className="space-y-4">
+                {sensitiveSurfaces.length === 0 ? (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Aucun détail sensible trouvé dans ce rapport.
+                  </p>
+                ) : (
+                  sensitiveSurfaces
+                    .filter((s) => s.notes || s.findings.length > 0)
+                    .slice(0, 50)
+                    .map((surface) => (
+                      <div
+                        key={`${surface.kind}-${surface.surface}`}
+                        className="rounded border border-gray-200 p-3 dark:border-gray-700"
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {surface.kind} — {surface.surface}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {surface.status} · C{surface.counts.critical} H
+                          {surface.counts.high}
+                        </div>
+                        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-gray-50 p-2 text-xs text-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                          {surface.notes || surface.findings.join("\n")}
+                        </pre>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

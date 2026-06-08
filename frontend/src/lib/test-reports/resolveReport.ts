@@ -1,13 +1,15 @@
 import { readFile, stat } from "fs/promises";
 import { existsSync } from "fs";
 import { isAbsolute, join, relative, resolve } from "path";
+import {
+  getProjectRoot,
+  getSecurityReportsDir,
+  getSecurityResultsDir,
+  getTestsResultsDir,
+  IS_DOCKER,
+} from "./paths";
 
-const IS_DOCKER = process.cwd() === "/app" || process.env.DOCKER === "true";
-const PROJECT_ROOT =
-  process.env.PROJECT_ROOT ||
-  (process.cwd().includes("frontend")
-    ? join(process.cwd(), "..")
-    : process.cwd());
+const PROJECT_ROOT = getProjectRoot();
 
 export const REPORT_DIRS = {
   "performance-backend": IS_DOCKER
@@ -19,11 +21,7 @@ export const REPORT_DIRS = {
   playwright: IS_DOCKER
     ? "/app/frontend/playwright-report"
     : join(PROJECT_ROOT, "frontend", "playwright-report"),
-  "tests-results":
-    process.env.TESTS_RESULTS_DIR ||
-    (IS_DOCKER
-      ? "/app/tests/results"
-      : join(PROJECT_ROOT, "tests", "results")),
+  "tests-results": getTestsResultsDir(),
   "user-journey":
     process.env.USER_JOURNEY_REPORTS_DIR ||
     (IS_DOCKER
@@ -32,8 +30,8 @@ export const REPORT_DIRS = {
   analytics: IS_DOCKER
     ? "/app/tests/analytics-reports"
     : join(PROJECT_ROOT, "tests", "analytics-reports"),
-  "security-reports": join(PROJECT_ROOT, "reports", "security"),
-  "security-results": join(PROJECT_ROOT, "tests", "results", "security"),
+  "security-reports": getSecurityReportsDir(),
+  "security-results": getSecurityResultsDir(),
 } as const;
 
 export function isWithinDirectory(baseDir: string, targetPath: string): boolean {
@@ -231,14 +229,38 @@ function parseSecuritySummaryMd(content: string): {
   };
 }
 
+export type CompareTestStatus = "pass" | "fail" | "skip";
+
 export interface CompareTestRow {
   num: number;
   name: string;
-  status: "pass" | "fail";
+  status: CompareTestStatus;
   expected: string;
   actual: string;
   response?: string;
   security?: SecurityCompareRow;
+}
+
+function securityRowStatus(row: SecurityCompareRow): CompareTestStatus {
+  if (row.status === "skipped" || row.status === "skip") return "skip";
+  if (row.critical > 0 || row.high > 0) return "fail";
+  return "pass";
+}
+
+export function securityExploitScore(
+  cell?: Pick<SecurityCompareRow, "critical" | "high" | "medium"> | null,
+): number {
+  if (!cell) return -1;
+  return cell.critical * 10000 + cell.high * 100 + cell.medium;
+}
+
+export function normalizeSecurityKind(kind: string): string {
+  const k = kind.trim().toLowerCase();
+  if (k === "docker" || k === "container" || k === "image") return "docker";
+  if (k === "node" || k === "npm") return "node";
+  if (k === "rust" || k === "cargo") return "rust";
+  if (k === "flutter" || k === "dart") return "flutter";
+  return k || "autre";
 }
 
 export interface CompareReportPayload {
@@ -380,12 +402,7 @@ export async function loadCompareReport(
     tests = parsed.rows.map((row, index) => ({
       num: index + 1,
       name: `${row.kind} — ${row.surface}`,
-      status:
-        row.critical > 0 || row.high > 0
-          ? "fail"
-          : row.status === "skipped"
-            ? "fail"
-            : "pass",
+      status: securityRowStatus(row),
       expected: "0 critical/high",
       actual: `Critical ${row.critical} · High ${row.high} · Medium ${row.medium} · Low ${row.low} · Info ${row.info}`,
       response: row.status,
@@ -415,4 +432,89 @@ export async function loadCompareReport(
     summary,
     tests,
   };
+}
+
+export interface SecuritySensitiveSurface {
+  kind: string;
+  surface: string;
+  status: string;
+  counts: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+  };
+  notes: string;
+  findings: string[];
+  command?: string;
+  error?: string | null;
+}
+
+/** Détails sensibles (notes, payloads, findings) — uniquement via step-up auth. */
+export async function loadSecuritySensitiveDetails(
+  reportId: string,
+  surfaceFilter?: string,
+): Promise<SecuritySensitiveSurface[] | null> {
+  if (
+    !reportId.startsWith("security-reports-") &&
+    !reportId.startsWith("security-results-")
+  ) {
+    return null;
+  }
+  const dirPath = await resolveReportDirectory(reportId);
+  if (!dirPath) return null;
+
+  const jsonPath = join(dirPath, "summary.json");
+  if (!existsSync(jsonPath)) return null;
+
+  const raw = await readFile(jsonPath, "utf-8");
+  const parsed = JSON.parse(raw) as {
+    results?: Array<Record<string, unknown>>;
+  };
+  const results = parsed.results ?? [];
+  const normalizedFilter = surfaceFilter?.trim().toLowerCase();
+
+  const surfaces: SecuritySensitiveSurface[] = [];
+  for (const result of results) {
+    const kind = String(result.kind ?? "");
+    const surface = String(result.name ?? result.surface ?? "");
+    const label = `${kind} — ${surface}`;
+    if (
+      normalizedFilter &&
+      label.toLowerCase() !== normalizedFilter &&
+      surface.toLowerCase() !== normalizedFilter
+    ) {
+      continue;
+    }
+    const counts = (result.counts ?? {}) as Record<string, number>;
+    const medium =
+      Number(counts.medium ?? 0) + Number(counts.moderate ?? 0);
+    const findings = Array.isArray(result.findings)
+      ? result.findings.map((item) => String(item))
+      : [];
+    let notes = String(result.error ?? "").trim();
+    if (findings.length > 0) {
+      notes = findings.slice(0, 20).join("\n");
+    }
+
+    surfaces.push({
+      kind,
+      surface,
+      status: String(result.status ?? "unknown"),
+      counts: {
+        critical: Number(counts.critical ?? 0),
+        high: Number(counts.high ?? 0),
+        medium,
+        low: Number(counts.low ?? 0),
+        info: Number(counts.info ?? 0),
+      },
+      notes,
+      findings,
+      command: result.command ? String(result.command) : undefined,
+      error: result.error ? String(result.error) : null,
+    });
+  }
+
+  return surfaces;
 }

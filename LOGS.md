@@ -1,10 +1,16 @@
 # Logs de pilotage
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 8 juin 2026
 
 ## Rôle
 
 Journal court des décisions de pilotage. Le journal projet détaillé reste `docs/STATUS.md`; les erreurs connues restent `docs/ERRORS.md`.
+
+## 8 juin 2026
+
+- Demandes sécurité porteur ajoutées au pilotage : alertes email critiques JobbingTrack vers adresses dev/admin porteur, localisation réelle des CVE dans JobbingTrack (ex. `CVE-2026-49975`), tests offensifs contrôlés par conteneur/service (remote host, shell/command injection, URL injection, headers spoofing), et stratégie VPS/Portainer de réduction d’exposition / leurres contrôlés.
+- `TODOS_A_VALIDER.md` garde la première ligne P0 **Comparaison de rapports sécurité (CVE)** ; les nouvelles demandes sont ajoutées à la suite (`P0` CVE applicatives, `P1A` sécurité ops, gates préprod/prod).
+- Retour porteur comparaison CVE : chiffres énormes et difficilement actionnables (`331 critical`, `3300 high`), `Absent/skipped` peu clairs, `Échoué partout` trompeur. À faire : tri/filtres par exploitabilité/service, regroupement Docker/node, et flux séparé détails bruts sous réauth forte (jeton court non rejouable, audit, no-store).
 
 ## 21 mai 2026 (suite)
 

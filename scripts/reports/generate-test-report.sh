@@ -33,9 +33,19 @@ fi
 export TZ="${TZ:-Europe/Paris}"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="$RESULTS_DIR/$TIMESTAMP"
-mkdir -p "$REPORT_DIR" || {
-    echo -e "${RED}❌ Impossible de créer le répertoire de résultats${NC}"
-    exit 1
+mkdir -p "$REPORT_DIR" 2>/dev/null || {
+    if [ "$RESULTS_DIR" != "/tmp/tests/results" ]; then
+        echo -e "${YELLOW}⚠️  $RESULTS_DIR en lecture seule — bascule vers /tmp/tests/results${NC}" >&2
+        RESULTS_DIR="/tmp/tests/results"
+        REPORT_DIR="$RESULTS_DIR/$TIMESTAMP"
+        mkdir -p "$REPORT_DIR" || {
+            echo -e "${RED}❌ Impossible de créer le répertoire de résultats${NC}"
+            exit 1
+        }
+    else
+        echo -e "${RED}❌ Impossible de créer le répertoire de résultats${NC}"
+        exit 1
+    fi
 }
 
 RESULT_FILE="$REPORT_DIR/${TEST_TYPE}.json"
@@ -120,7 +130,8 @@ if [ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null; then
     fi
 fi
 
-# Pattern 3: Compter les lignes "✓ PASS" et "✗ FAIL" (priorité si on a des lignes de résultat)
+# Pattern 3: Compter les lignes "✓ PASS" et "✗ FAIL" — ignoré pour security (stats via security-report.json)
+if [ "$TEST_TYPE" != "security" ]; then
 p3_passed=$(echo "$output" | grep -cE "✓ PASS|PASS - Status:" 2>/dev/null || echo "0")
 p3_failed=$(echo "$output" | grep -cE "✗ FAIL|FAIL - Status:" 2>/dev/null || echo "0")
 p3_skipped=$(echo "$output" | grep -cE "⊘ SKIP|SKIP|ignoré|skipped" 2>/dev/null || echo "0")
@@ -128,7 +139,6 @@ p3_skipped=$(echo "$output" | grep -cE "⊘ SKIP|SKIP|ignoré|skipped" 2>/dev/nu
 [ -z "$p3_failed" ] || ! [ "$p3_failed" -ge 0 ] 2>/dev/null && p3_failed=0
 [ -z "$p3_skipped" ] || ! [ "$p3_skipped" -ge 0 ] 2>/dev/null && p3_skipped=0
 p3_total=$((p3_passed + p3_failed + p3_skipped))
-# Utiliser les comptages réels (pattern 3) si on a au moins un test et que le résumé texte est vide ou incohérent
 if [ "$p3_total" -ge 1 ] && ([ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null); then
     total=$p3_total
     passed=$p3_passed
@@ -139,6 +149,7 @@ elif [ "$p3_total" -ge 1 ] && [ "$total" -eq 0 ]; then
     passed=$p3_passed
     failed=$p3_failed
     skipped=$p3_skipped
+fi
 fi
 
 # Pattern 4: Jest (Tests: X passed, Y failed, Z total — ordre variable)
@@ -154,10 +165,10 @@ if ([ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null) && echo "$output" | gre
   fi
 fi
 
-# Pattern 5: Tests sécurité — lire security-report.json (total = vérifications, passed = sécurisées, failed = vulnérabilités)
+# Pattern 5: Tests sécurité — lire security-report.json (vérifications / sécurisées / vulnérabilités)
 report_status_override=""
+sec_critical=0; sec_high=0; sec_medium=0; sec_low=0; sec_secure=0; sec_total=0
 if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ]; then
-  sec_critical=0; sec_high=0; sec_medium=0; sec_low=0; sec_secure=0; sec_total=0
   if command -v jq >/dev/null 2>&1; then
     sec_total=$(jq -r '.totalVulnerabilities // ( .critical + .high + .medium + .low + .secure )' "$REPORT_DIR/security-report.json" 2>/dev/null)
     sec_secure=$(jq -r '.secure // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
@@ -165,24 +176,33 @@ if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ]; t
     sec_high=$(jq -r '.high // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
     sec_medium=$(jq -r '.medium // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
     sec_low=$(jq -r '.low // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
-  else
-    # Fallback sans jq : extraire les champs du JSON avec grep/sed
-    sec_secure=$(grep -o '"secure"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
-    sec_critical=$(grep -o '"critical"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
-    sec_high=$(grep -o '"high"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
-    sec_medium=$(grep -o '"medium"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
-    sec_low=$(grep -o '"low"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
-    [ -z "$sec_secure" ] && sec_secure=0; [ -z "$sec_critical" ] && sec_critical=0; [ -z "$sec_high" ] && sec_high=0
-    [ -z "$sec_medium" ] && sec_medium=0; [ -z "$sec_low" ] && sec_low=0
+  elif command -v node >/dev/null 2>&1; then
+    _sec_line=$(node -e "
+      const fs=require('fs');
+      const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+      const t=d.totalVulnerabilities??((d.critical||0)+(d.high||0)+(d.medium||0)+(d.low||0)+(d.secure||0));
+      console.log([t,d.secure||0,d.critical||0,d.high||0,d.medium||0,d.low||0].join(' '));
+    " "$REPORT_DIR/security-report.json" 2>/dev/null || echo "")
+    if [ -n "$_sec_line" ]; then
+      read -r sec_total sec_secure sec_critical sec_high sec_medium sec_low <<< "$_sec_line"
+    fi
   fi
-  sec_failed=$((sec_critical + sec_high + sec_medium + sec_low))
-  [ -z "$sec_total" ] && sec_total=$((sec_secure + sec_failed))
-  [ -n "$sec_total" ] && [ "$sec_total" -ge 0 ] 2>/dev/null && total=$sec_total
-  [ -n "$sec_secure" ] && [ "$sec_secure" -ge 0 ] 2>/dev/null && passed=$sec_secure
-  [ -n "$sec_failed" ] && [ "$sec_failed" -ge 0 ] 2>/dev/null && failed=$sec_failed
-  # Statut rapport : failed si vulnérabilités (critical/high/medium/low > 0)
-  if [ "$sec_failed" -gt 0 ] 2>/dev/null; then
+  sec_secure=${sec_secure:-0}; sec_critical=${sec_critical:-0}; sec_high=${sec_high:-0}
+  sec_medium=${sec_medium:-0}; sec_low=${sec_low:-0}
+  sec_exploitable=$((sec_critical + sec_high))
+  sec_warnings=$((sec_medium + sec_low))
+  sec_failed=$sec_exploitable
+  [ -z "$sec_total" ] || ! [ "$sec_total" -ge 0 ] 2>/dev/null && sec_total=$((sec_secure + sec_exploitable + sec_warnings))
+  total=$sec_total
+  passed=$sec_secure
+  failed=$sec_exploitable
+  skipped=$sec_warnings
+  if [ "$sec_exploitable" -gt 0 ] 2>/dev/null; then
     report_status_override="failed"
+  elif [ "$sec_warnings" -gt 0 ] 2>/dev/null; then
+    report_status_override="warning"
+  else
+    report_status_override="success"
   fi
 fi
 
@@ -266,7 +286,7 @@ fi
 # Récupérer les logs des services (pendant l'exécution) depuis l'agrégateur
 # Strip ANSI (ESC[... et \u001b[...) pour un rapport lisible
 strip_ansi_logs() { sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' -e 's/\\u001b\[[0-9;]*[a-zA-Z]//g' -e 's/\\u001b\[[0-9;]*m//g'; }
-METRICS_AGGREGATOR_URL="${METRICS_AGGREGATOR_URL:-http://jobbingtrack-metrics-aggregator:3014}"
+METRICS_AGGREGATOR_URL="${METRICS_AGGREGATOR_INTERNAL_URL:-${METRICS_AGGREGATOR_URL:-http://jobbingtrack-metrics-aggregator:3014}}"
 logs_services_html=""
 for svc in api-gateway auth-service dashboard-service company-service application-service contact-service interview-service call-service event-service followup-service profile-service notification-service; do
     container_name="jobbingtrack-$svc"
@@ -383,10 +403,25 @@ cat > "$SUMMARY_FILE" <<EOF
 EOF
 
 # Enrichir summary.json avec le détail sécurité (CRITIQUES, HAUTES, etc.) si disponible
-if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ] && command -v jq >/dev/null 2>&1; then
-  jq --slurpfile sec "$REPORT_DIR/security-report.json" '
-    .summary.security = ($sec[0] | { critical, high, medium, low, secure })
-  ' "$SUMMARY_FILE" > "$SUMMARY_FILE.tmp" && mv "$SUMMARY_FILE.tmp" "$SUMMARY_FILE"
+if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    jq --slurpfile sec "$REPORT_DIR/security-report.json" '
+      .summary.security = ($sec[0] | { critical, high, medium, low, secure, totalVulnerabilities })
+    ' "$SUMMARY_FILE" > "$SUMMARY_FILE.tmp" && mv "$SUMMARY_FILE.tmp" "$SUMMARY_FILE"
+  elif command -v node >/dev/null 2>&1; then
+    node -e "
+      const fs=require('fs');
+      const summary=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+      const sec=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+      summary.summary.security={critical:sec.critical||0,high:sec.high||0,medium:sec.medium||0,low:sec.low||0,secure:sec.secure||0,totalVulnerabilities:sec.totalVulnerabilities||0};
+      summary.summary.totalTests=Number(process.argv[3])||summary.summary.totalTests;
+      summary.summary.totalPassed=Number(process.argv[4])||summary.summary.totalPassed;
+      summary.summary.totalFailed=Number(process.argv[5])||summary.summary.totalFailed;
+      summary.summary.totalSkipped=Number(process.argv[6])||summary.summary.totalSkipped;
+      summary.testResults[0].status=process.argv[7]||summary.testResults[0].status;
+      fs.writeFileSync(process.argv[1], JSON.stringify(summary,null,2));
+    " "$SUMMARY_FILE" "$REPORT_DIR/security-report.json" "$total" "$passed" "$failed" "$skipped" "$final_status"
+  fi
 fi
 
 # Générer le rapport HTML (structure lisible, capture terminal nommée, prêt pour téléchargement)
@@ -418,6 +453,7 @@ cat > "$HTML_REPORT" <<EOHTML
         .meta span { margin-right: 16px; }
         .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
         .badge-success { background: #c8e6c9; color: #2e7d32; }
+        .badge-warning { background: #fff3e0; color: #ef6c00; }
         .badge-failed { background: #ffcdd2; color: #c62828; }
         .section-terminal { margin-top: 8px; }
         .section-terminal summary { cursor: pointer; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 500; list-style: none; user-select: none; }
@@ -449,13 +485,13 @@ cat > "$HTML_REPORT" <<EOHTML
                 <div class="stats">
                     <div class="stat total"><span class="value">$total</span><span class="label">Tests exécutés</span></div>
                     <div class="stat passed"><span class="value">$passed</span><span class="label">Réussis</span></div>
-                    <div class="stat failed"><span class="value">$failed</span><span class="label">Échoués</span></div>
-                    $([ "$skipped" -gt 0 ] && echo "<div class=\"stat skipped\"><span class=\"value\">$skipped</span><span class=\"label\">Ignorés</span></div>" || echo "")
+                    <div class="stat failed"><span class="value">$failed</span><span class="label">$([ "$TEST_TYPE" = "security" ] && echo "Critical/High" || echo "Échoués")</span></div>
+                    $([ "$skipped" -gt 0 ] && echo "<div class=\"stat skipped\"><span class=\"value\">$skipped</span><span class=\"label\">$([ "$TEST_TYPE" = "security" ] && echo "Medium/Low" || echo "Ignorés")</span></div>" || echo "")
                 </div>
                 <div class="meta">
                     <span>Généré le <span id="report-generated-date" data-iso="$GENERATED_AT_ISO">$GENERATED_AT_ISO</span> (heure locale)</span>
                     <span>Durée : ${duration}s</span>
-                    <span>Statut : <span class="badge badge-$final_status">$([ "$final_status" = "success" ] && echo "SUCCÈS" || echo "ÉCHEC")</span></span>
+                    <span>Statut : <span class="badge badge-$final_status">$([ "$final_status" = "success" ] && echo "SUCCÈS" || ([ "$final_status" = "warning" ] && echo "AVERTISSEMENT" || echo "ÉCHEC"))</span></span>
                 </div>
             </div>
         </div>

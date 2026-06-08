@@ -1,6 +1,6 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 8 juin 2026
 
 ## Règle
 
@@ -15,9 +15,9 @@ Quand une ligne est validée par le porteur, la déplacer vers `TODOS_DONE.md` a
 | Niveau | Sens |
 |--------|------|
 | **P0** | Bloquant produit local : sécurité, rapports, menaces, HTTPS — à valider avant le reste. |
-| **P1A** | Données / sécurité / opérations sensibles : archives, restauration, alertes, actions avant purge. |
+| **P1A** | Sécurité / opérations sensibles : alertes, archives, restauration, tests offensifs contrôlés, actions avant purge. |
 | **P1B** | Observabilité métier : Statistics, logs, corrélation, chiffres cohérents. |
-| **P1C** | UX backoffice : thème, popup, graphes, navigation, lisibilité. |
+| **P1C** | UX backoffice et lisibilité sécurité : thème, popup, graphes, navigation, pages de sécurité non destructives. |
 | **P1D** | Gate de fin de journée / avant gros merge : suite complète et lecture rapports. |
 | **P2** | Utile mais non bloquant pour la file courte ; peut attendre la fin des P0/P1 ou aller dans `docs/BACKLOG.md` si reporté. |
 
@@ -31,12 +31,16 @@ L’agent ne coche pas à la place du porteur : après un `OK` explicite, il arc
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P0 | Comparaison de rapports sécurité (CVE) | local | Sur `/b4ck0ff1ce/test-reports`, mode comparaison : sélectionner **2** rapports catégorie **Sécurité** (ex. `security-results-cve-20260521-201336` + un autre CVE), lancer la comparaison → **pas** d’erreur « Rapport non trouvé » ; cartes Critical/High/Medium/Low/Info par rapport ; tableau par surface avec statut et écarts ; notes/payloads bruts non exposés dans la comparaison. | [ ] | **KO 21/05** : comparaison trop pauvre / 0 partout. Correctif agent appliqué : parsing `summary.md`, synthèse sévérités et affichage dédié sécurité. À revalider visuellement. |
+| P0 | Comparaison de rapports sécurité (CVE) | local | Sur `/b4ck0ff1ce/test-reports`, mode comparaison : sélectionner **2** rapports catégorie **Sécurité** (ex. `security-results-cve-20260521-201336` + un autre CVE), lancer la comparaison → **pas** d’erreur « Rapport non trouvé » ; cartes Critical/High/Medium/Low/Info par rapport ; tableau par surface avec statut et écarts ; notes/payloads bruts non exposés dans la comparaison par défaut ; explication claire des cas `Absent`, `skipped`, `fail`, doublons Docker/dépendances, et priorité exploitable. **Recreate** conteneur `frontend` si tests sécurité backoffice échouaient (volume `/tmp/tests/results`). | [ ] | **KO 21/05** : comparaison trop pauvre / 0 partout. **KO 08/06** : chiffres énormes, libellés trompeurs. **08/06 agent** : tri exploitabilité, filtres docker/node + critical/high, badges Ignoré/Absent, texte d’aide. À revalider navigateur. |
+| P0 | Détails bruts rapports sécurité sous réauth forte | local/preprod | Bouton « Voir détails sensibles » sur comparaison sécurité : mot de passe admin → jeton court usage unique → affichage notes/findings depuis `summary.json` ; audit `security-audit/step-up.jsonl` ; `no-store`. | [ ] | **08/06 agent** : APIs step-up + modal UI livrées. À valider : mauvais MDP refusé, bon MDP affiche findings, jeton non réutilisable. |
 | P0 | Menaces historiques/lab comprises avant nettoyage | local | Confirmer que `10.0.0.x`, `198.51.100.42`, `172.19.x/172.20.x` sont à classer lab/bruit avant toute purge. Page Menaces : lecture seule, **aucune suppression** sans `OK` explicite. | [ ] | Ne rien supprimer sans validation explicite. |
 | P0 | Rapports sécurité — ouverture et téléchargement (régression) | local | Liste catégorie Sécurité, ouverture HTML d’un `summary.md` CVE, téléchargement OK (complément après validation rendu CVE). | [ ] | Rendu CVE validé 21/05 ; garder en file si régression constatée. |
+| P0 | CVE applicatives localisées dans JobbingTrack | local/preprod | Sur `/b4ck0ff1ce/tests-security` : rechercher `CVE-2026-49975` (ou autre) → chemins lockfile/rapport CVE/npm audit ; lancer **Scan CVE** puis rechercher à nouveau. Rebuild frontend si scan CVE échoue (python3 dans image). | [ ] | **08/06 agent** : API `cve-locate` + UI livrées. À valider navigateur après rebuild frontend. |
 | P1A | Archive logs sécurité sans purge | local | Export JSONL gzip + `manifest.json` lisibles ; aucune suppression BDD. | [ ] | |
 | P1A | Restauration logs sécurité en staging | local | `security_logs_restore_staging` alimentée ; aucune écriture dans `security_logs`. | [ ] | |
-| P1A | Alertes email sécurité (MailHog / SMTP) | local | Déclencher une alerte `critical/high` test ; email visible MailHog ou SMTP configuré ; pas d’`AUTH PLAIN` vide. | [ ] | |
+| P1A | Alertes email critiques JobbingTrack | local/preprod | Configurer l’envoi des reports/alertes `critical/high` depuis l’adresse mail JobbingTrack vers les adresses dev et admin du porteur, avec catégories claires (CVE, WAF/intrusion, service down, firewall, backup) ; test MailHog/local puis SMTP réel ; pas d’`AUTH PLAIN` vide ni fuite de secrets. | [ ] | Remplace/complète l’ancienne ligne alertes email sécurité. |
+| P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Pour chaque conteneur/service exposé ou sensible : vérifier tentatives de remote host / shell injection / command injection / URL injection / headers spoofing / chemins suspects ; les tests doivent rester bornés, reproductibles, non destructifs et journalisés. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
+| P1A | Leurres / désinformation contrôlée VPS-Portainer | preprod/prod design | Définir un système sûr pour éviter d’exposer les vraies infos serveur/conteneurs/réseau à un attaquant : minimisation des erreurs, masquage versions/bannières, réponses génériques, honeypot/leurres éventuels isolés, sans polluer les logs internes ni tromper l’admin. | [ ] | À cadrer comme durcissement prod : défense par réduction d’exposition d’abord, leurres seulement si isolés et audités. |
 | P1B | Corrélation performances — KPI logs après login | local | `/b4ck0ff1ce/performances/correlation` : KPI logs / ERROR-WARN ≠ 0 sur un service focal (central logging 15/15). | [ ] | |
 | P1B | Statistics — onglet Sécurité cohérent avec `/security` | local | `/b4ck0ff1ce/statistics/security` : chiffres ≠ écran vide trompeur ; pas de doublon contradictoire avec `/b4ck0ff1ce/security`. | [ ] | |
 | P1B | Statistics — onglet Logs (`log-stats`) | local | Filtres service/niveau, sources actives/historiques, compteurs cohérents avec `/persistence/stats`. | [ ] | Partiellement validé 20/05 — reconfirmer après recreate. |
