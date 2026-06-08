@@ -65,6 +65,26 @@ async function firstExistingReportFile(dir: string): Promise<string | null> {
   return null;
 }
 
+async function firstExistingStandardReportFile(
+  dir: string,
+): Promise<string | null> {
+  for (const fileName of [
+    "report.html",
+    "summary.json",
+    "security.json",
+    "security-report.json",
+  ]) {
+    const filePath = join(dir, fileName);
+    try {
+      await stat(filePath);
+      return filePath;
+    } catch {
+      // Essayer le fichier suivant
+    }
+  }
+  return null;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -217,13 +237,29 @@ function generateSecurityMarkdownHTML(content: string, reportId: string): string
             : row.medium > 0
               ? "medium"
               : "ok";
+      const displayStatus =
+        row.critical > 0 || row.high > 0
+          ? "à traiter"
+          : row.status === "skipped"
+            ? "skipped"
+            : row.medium > 0 || row.low > 0
+              ? "à surveiller"
+              : "ok";
+      const statusClass =
+        row.critical > 0
+          ? "critical"
+          : row.high > 0
+            ? "high"
+            : row.medium > 0 || row.low > 0
+              ? "medium"
+              : row.status;
       return `
         <tr class="${severityClass}">
           <td>
             <div class="surface">${escapeHtml(row.surface)}</div>
             <div class="kind">${escapeHtml(row.kind)}</div>
           </td>
-          <td><span class="status ${escapeHtml(row.status)}">${escapeHtml(row.status)}</span></td>
+          <td><span class="status ${escapeHtml(statusClass)}">${escapeHtml(displayStatus)}</span></td>
           <td class="num critical-text">${row.critical}</td>
           <td class="num high-text">${row.high}</td>
           <td class="num medium-text">${row.medium}</td>
@@ -322,8 +358,9 @@ function generateSecurityMarkdownHTML(content: string, reportId: string): string
     .surface { font-weight: 800; }
     .kind { color: var(--muted); font-size: 12px; margin-top: 2px; }
     .priority-counts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-    .pill.critical, .status.failed { background: var(--critical-bg); color: var(--critical); }
-    .pill.high { background: var(--high-bg); color: var(--high); }
+    .pill.critical, .status.failed, .status.critical { background: var(--critical-bg); color: var(--critical); }
+    .pill.high, .status.high { background: var(--high-bg); color: var(--high); }
+    .status.medium { background: var(--medium-bg); color: var(--medium); }
     .status.ok { background: var(--ok-bg); color: var(--ok); }
     .status.skipped { background: #f1f5f9; color: #475569; }
     .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--line); background: #fff; }
@@ -531,7 +568,15 @@ export async function GET(request: NextRequest) {
             fullPath = join(REPORT_DIRS["tests-results"], id, "report.html");
           }
         } else {
-          fullPath = join(REPORT_DIRS["tests-results"], id, "report.html");
+          const reportDir = join(REPORT_DIRS["tests-results"], id);
+          if (!isWithinDirectory(REPORT_DIRS["tests-results"], reportDir)) {
+            return NextResponse.json(
+              { success: false, error: "Chemin non autorisé" },
+              { status: 403 },
+            );
+          }
+          const reportPath = await firstExistingStandardReportFile(reportDir);
+          fullPath = reportPath ?? join(reportDir, "report.html");
         }
       }
     } else if (filePath) {

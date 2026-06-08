@@ -32,6 +32,10 @@ interface CveLocateHit {
   excerpt?: string;
 }
 
+function stripAnsi(value: string): string {
+  return value.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+}
+
 export default function SecurityTestsPage() {
   const { loading: authLoading, isAuthenticated, token } = useAuth();
   const [isRunningApp, setIsRunningApp] = useState(false);
@@ -80,7 +84,7 @@ export default function SecurityTestsPage() {
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString("fr-FR");
-    setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
+    setLogs((prev) => [...prev, `[${timestamp}] ${stripAnsi(message)}`]);
   };
 
   const runAppSecurityTests = async () => {
@@ -118,7 +122,7 @@ export default function SecurityTestsPage() {
       } else if (data.success) {
         addLog("✅ Tests applicatifs terminés");
       } else {
-        addLog("❌ Vulnérabilités critical/high — voir rapport");
+        addLog("❌ Vulnérabilités critical/high détectées — voir rapport");
       }
 
       if (data.reportId) {
