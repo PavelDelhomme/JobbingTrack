@@ -42,7 +42,9 @@ function requireFirewallWafAccess(req, res, next) {
   try {
     const decoded = jwt.verify(token, jwtSecret);
     req.user = {
-      id: decoded.userId || decoded.id || decoded.sub || null
+      id: decoded.userId || decoded.id || decoded.sub || null,
+      email: decoded.email || null,
+      role: decoded.role || null
     };
     return next();
   } catch (e) {

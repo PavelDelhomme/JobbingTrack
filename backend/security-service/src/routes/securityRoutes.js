@@ -3,6 +3,7 @@ const router = express.Router();
 const securityController = require('../controllers/securityController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
 const { requireFirewallWafAccess } = require('../middleware/firewallWafAuth');
+const { requireAdminAccess } = require('../middleware/requireAdminAccess');
 
 // Récupérer les métriques de sécurité
 router.get('/metrics', securityController.getSecurityMetrics);
@@ -35,12 +36,20 @@ router.get('/alerts', securityController.getSecurityAlerts);
 router.get(
   '/notification-settings',
   requireFirewallWafAccess,
+  requireAdminAccess,
   notificationSettingsController.getNotificationSettings
 );
 router.put(
   '/notification-settings',
   requireFirewallWafAccess,
+  requireAdminAccess,
   notificationSettingsController.updateNotificationSettings
+);
+router.post(
+  '/notification-settings/test',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  notificationSettingsController.sendTestNotificationEmail
 );
 
 // Générer des données de développement (pour les tests)
