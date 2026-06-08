@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 7 juin 2026
 
 ## Rôle
 
@@ -19,6 +19,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P0 | Inventaire menaces lab/privées (lecture seule) | Script `scripts/security/security-threats-inventory-dry-run.cjs` : classe sans DELETE — `lab_test` (RFC 5737 `198.51.100.x`, `203.0.113.x`, `192.0.2.x`, `10.0.0.x`, metadata lab/test), `private_network` (`172.16–172.31.x`, `192.168.x`, autres `10.x`). Dry-run 21/05 (réf. `docs/TODOS.md`) : **228** lab_test (135 high/critical, 0 blocked), **11** private_network (2 high/critical, 1 blocked). **Aucune purge** tant que porteur n’a pas validé la ligne P0 dans `TODOS_A_VALIDER.md`. Rejouer localement : `node scripts/security/security-threats-inventory-dry-run.cjs --limit=25` (nécessite conteneur `jobbingtrack-postgres` up). | [x] |
 | P1 | UX rendu rapports sécurité | Rendu CVE Markdown amélioré dans `/api/test-reports/view` : cartes synthèse, priorités à trier, tableau responsive, markdown brut repliable ; `env npm run type-check` OK ; `env npm run lint` OK avec warnings historiques ; smoke API view OK. | [x] |
 | P1 | Validation frontend si fichier UI touché | `env npm run type-check` OK ; `env npm run lint` OK avec warnings historiques uniquement ; pas de Jest frontend ciblé existant pour `firewall/page.tsx`. | [x] |
+| P1A | Alertes email sécurité — réauth + test | `POST /api/v1/auth/verify-password` (auth-service) ; `PUT/POST .../security/notification-settings` exigent `currentPassword` + rôle ADMIN/SUPER_ADMIN ; audit `security_alert_email_settings_updated` / `security_alert_email_test_sent` avec diff et acteur ; UI `SecurityAlertEmailSettings.tsx` : champ mot de passe + bouton test. `npm test -- --testPathPattern=notification-settings` OK (4/4) ; `npm run type-check` frontend OK ; ESLint ciblé `SecurityAlertEmailSettings.tsx` OK. | [x] |
 
 ## Vérifications récurrentes
 

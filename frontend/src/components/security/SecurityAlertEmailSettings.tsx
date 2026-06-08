@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Shield, Mail, Save, Loader2 } from "lucide-react";
+import { Shield, Mail, Save, Loader2, Send } from "lucide-react";
 import axios from "axios";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { Button } from "@/components/ui";
@@ -24,6 +24,7 @@ type SettingsPayload = {
 export function SecurityAlertEmailSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(true);
@@ -31,6 +32,7 @@ export function SecurityAlertEmailSettings() {
   const [recipients, setRecipients] = useState<string[]>([]);
   const [levels, setLevels] = useState<string[]>(["critical", "high"]);
   const [source, setSource] = useState<string>("");
+  const [currentPassword, setCurrentPassword] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,7 +81,17 @@ export function SecurityAlertEmailSettings() {
     setError(null);
   };
 
+  const requirePassword = (): boolean => {
+    if (!currentPassword.trim()) {
+      setError("Saisissez votre mot de passe actuel pour confirmer l'action");
+      return false;
+    }
+    return true;
+  };
+
   const save = async () => {
+    if (!requirePassword()) return;
+
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -87,7 +99,7 @@ export function SecurityAlertEmailSettings() {
       const token = localStorage.getItem("token");
       const res = await axios.put(
         `${API_URL}/api/v1/security/notification-settings`,
-        { enabled, recipients, levels },
+        { enabled, recipients, levels, currentPassword },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.data?.success) {
@@ -95,6 +107,7 @@ export function SecurityAlertEmailSettings() {
           "Paramètres enregistrés. Les prochaines alertes utiliseront cette configuration.",
         );
         setSource("file");
+        setCurrentPassword("");
         await load();
       }
     } catch (e: unknown) {
@@ -105,6 +118,37 @@ export function SecurityAlertEmailSettings() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!requirePassword()) return;
+
+    setTesting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        `${API_URL}/api/v1/security/notification-settings/test`,
+        { currentPassword },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.data?.success) {
+        setMessage(
+          res.data.message ||
+            "Email de test envoyé — vérifiez MailHog ou votre boîte SMTP.",
+        );
+        setCurrentPassword("");
+      }
+    } catch (e: unknown) {
+      setError(
+        axios.isAxiosError(e)
+          ? e.response?.data?.error || e.message
+          : "Échec de l'envoi de test",
+      );
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -221,6 +265,24 @@ export function SecurityAlertEmailSettings() {
           )}
         </div>
 
+        <div className="space-y-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+          <Label htmlFor="security-alert-current-password">
+            Mot de passe actuel (réauthentification)
+          </Label>
+          <Input
+            id="security-alert-current-password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            Requis pour enregistrer ou envoyer un email de test. L&apos;action
+            est journalisée dans les logs de sécurité.
+          </p>
+        </div>
+
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
@@ -230,22 +292,33 @@ export function SecurityAlertEmailSettings() {
           </p>
         )}
 
-        <Button
-          onClick={save}
-          disabled={saving}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Enregistrer les alertes sécurité
-        </Button>
-        <p className="text-xs text-gray-500">
-          La réauthentification obligatoire avant modification sera ajoutée dans
-          une prochaine itération (voir checklist porteur).
-        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={save}
+            disabled={saving || testing}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Enregistrer les alertes sécurité
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={sendTestEmail}
+            disabled={saving || testing || !enabled || recipients.length === 0}
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Envoyer un email de test
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -412,6 +412,67 @@ const login = async (req, res, next) => {
   }
 };
 
+const verifyPassword = async (req, res, next) => {
+  try {
+    const { currentPassword } = req.body || {};
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Mot de passe actuel requis'
+      });
+    }
+
+    const userId = req.user.id;
+
+    if (userId === 'dev_fallback_1' && process.env.NODE_ENV !== 'production') {
+      const fallbackPassword = process.env.ADMIN_PASSWORD || 'password123';
+      if (currentPassword !== fallbackPassword) {
+        return res.status(401).json({ success: false, error: 'Mot de passe incorrect' });
+      }
+      return res.json({ success: true, message: 'Mot de passe vérifié' });
+    }
+
+    if (userId === 'dev_user_1' && process.env.NODE_ENV !== 'production') {
+      if (currentPassword !== 'password123') {
+        return res.status(401).json({ success: false, error: 'Mot de passe incorrect' });
+      }
+      return res.json({ success: true, message: 'Mot de passe vérifié' });
+    }
+
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, password: true }
+      });
+    } catch (dbError) {
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        const fallbackPassword = process.env.ADMIN_PASSWORD || 'password123';
+        if (currentPassword !== fallbackPassword) {
+          return res.status(401).json({ success: false, error: 'Mot de passe incorrect' });
+        }
+        return res.json({ success: true, message: 'Mot de passe vérifié' });
+      }
+      throw dbError;
+    }
+
+    if (!user?.password) {
+      return res.status(404).json({ success: false, error: 'Utilisateur non trouvé' });
+    }
+
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      logger.warn(`Échec vérification mot de passe pour ${user.email}`);
+      return res.status(401).json({ success: false, error: 'Mot de passe incorrect' });
+    }
+
+    return res.json({ success: true, message: 'Mot de passe vérifié' });
+  } catch (error) {
+    logger.error('Erreur vérification mot de passe:', error);
+    next(error);
+  }
+};
+
 const getProfile = async (req, res, next) => {
   try {
     const userId = req.user.id; // ✅ Corrigé : req.user.id au lieu de req.user.userId
@@ -1784,6 +1845,7 @@ const resendVerificationEmail = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  verifyPassword,
   getProfile,
   refreshToken,
   logout,
