@@ -141,6 +141,15 @@ function formatReportDateLocal(
   }
 }
 
+function formatReportSize(size?: number): string {
+  if (!size || size <= 0) return "Taille inconnue";
+  const mb = size / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(mb >= 10 ? 1 : 2)} Mo`;
+  const kb = size / 1024;
+  if (kb >= 1) return `${kb.toFixed(kb >= 10 ? 0 : 1)} Ko`;
+  return `${size} o`;
+}
+
 /** Retourne les lignes où les résultats diffèrent entre les rapports (régression ou amélioration). */
 function getDifferencesOnly(
   byTest: Array<{
@@ -1373,6 +1382,15 @@ export default function TestReportsPage() {
                     Rapports Disponibles ({filteredReports.length} /{" "}
                     {reports.length})
                   </h2>
+                  <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                    Volume affiché :{" "}
+                    {formatReportSize(
+                      filteredReports.reduce(
+                        (total, report) => total + (report.size ?? 0),
+                        0,
+                      ),
+                    )}
+                  </span>
                   {compareMode && selectedForCompare.length >= 2 && (
                     <button
                       onClick={runCompare}
@@ -1509,6 +1527,19 @@ export default function TestReportsPage() {
                                       </span>
                                     </>
                                   )}
+                                  <span className="text-gray-300 dark:text-gray-600">
+                                    •
+                                  </span>
+                                  <span
+                                    className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded"
+                                    title={
+                                      report.size
+                                        ? `${report.size.toLocaleString("fr-FR")} octets`
+                                        : "Taille non disponible"
+                                    }
+                                  >
+                                    {formatReportSize(report.size)}
+                                  </span>
                                 </div>
                               </div>
                             </div>

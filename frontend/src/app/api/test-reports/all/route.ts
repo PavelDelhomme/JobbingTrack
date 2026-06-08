@@ -35,6 +35,25 @@ const REPORT_DIRS = {
   "security-results": getSecurityResultsDir(),
 };
 
+async function getDirectorySize(dir: string): Promise<number> {
+  let total = 0;
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        total += await getDirectorySize(entryPath);
+      } else if (entry.isFile()) {
+        const entryStats = await stat(entryPath);
+        total += entryStats.size;
+      }
+    }
+  } catch {
+    // Taille informative seulement : ne pas masquer un rapport si un fichier disparaît.
+  }
+  return total;
+}
+
 interface TestReport {
   id: string;
   category: string;
@@ -419,6 +438,7 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
       const reportName = testNameFromSummary
         ? `${testNameFromSummary} - ${date} ${time}`
         : `${category} - ${date} ${time}`;
+      const reportSize = await getDirectorySize(dirPath);
 
       reports.push({
         id: dirEntry.name,
@@ -438,6 +458,7 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
         skipped: totalSkipped,
         status,
         type,
+        size: reportSize,
       });
     }
   } catch (error) {
@@ -706,6 +727,7 @@ async function scanSecurityReports(
         : dateObj.toTimeString().split(" ")[0];
       const idPrefix =
         source === "reports" ? "security-reports" : "security-results";
+      const reportSize = await getDirectorySize(dirPath);
 
       reports.push({
         id: `${idPrefix}-${dirEntry.name}`,
@@ -719,7 +741,7 @@ async function scanSecurityReports(
         jsonPath: reportFile.endsWith(".json") ? reportFile : undefined,
         type: "security",
         status: "partial",
-        size: stats.size,
+        size: reportSize || stats.size,
       });
     }
   } catch (error) {
