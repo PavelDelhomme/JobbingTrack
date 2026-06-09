@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const testCommand = inContainer
       ? "cd /app/tests && node security/test-security.js"
       : "make test-security";
-    const command = `cd "${projectRoot}" && sh "${scriptPath}" security "${testCommand}" "${testName}"`;
+    const command = `cd "${projectRoot}" && bash "${scriptPath}" security "${testCommand}" "${testName}"`;
 
     let stdout = "";
     let reportId: string | null = null;
