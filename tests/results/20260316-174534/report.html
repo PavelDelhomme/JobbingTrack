@@ -2005,22 +2005,22 @@ Running 271 tests using 8 workers
 
     Error: expect(locator).toBeVisible() failed
 
-    Locator: getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+    Locator: getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
     Expected: visible
     Timeout: 10000ms
     Error: element(s) not found
 
     Call log:
       - Expect &quot;toBeVisible&quot; with timeout 10000ms
-      - waiting for getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+      - waiting for getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
 
 
       56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-      57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
-    &gt; 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+      57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
+    &gt; 58 |     await expect(page.getByText(/À :\s*job-search-mailbox@example.invalid/i).first()).toBeVisible({ timeout: 10000 });
          |                                                                                     ^
-      59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-      60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
       61 |   });
         at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85
 
@@ -2038,22 +2038,22 @@ Running 271 tests using 8 workers
 
     Error: expect(locator).toBeVisible() failed
 
-    Locator: getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+    Locator: getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
     Expected: visible
     Timeout: 10000ms
     Error: element(s) not found
 
     Call log:
       - Expect &quot;toBeVisible&quot; with timeout 10000ms
-      - waiting for getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+      - waiting for getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
 
 
       56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-      57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
-    &gt; 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+      57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
+    &gt; 58 |     await expect(page.getByText(/À :\s*job-search-mailbox@example.invalid/i).first()).toBeVisible({ timeout: 10000 });
          |                                                                                     ^
-      59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-      60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
       61 |   });
         at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85
 
@@ -10951,11 +10951,11 @@ Call log:
                           &quot;line&quot;: 58
                         },
                         &quot;snippet&quot;: &quot;  56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });&quot;
                       },
                       &quot;errors&quot;: [
@@ -10978,11 +10978,11 @@ Call log:
 
 
   56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });
     at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85&quot;
                         }
@@ -11050,11 +11050,11 @@ Call log:
                           &quot;line&quot;: 58
                         },
                         &quot;snippet&quot;: &quot;  56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });&quot;
                       },
                       &quot;errors&quot;: [
@@ -11077,11 +11077,11 @@ Call log:
 
 
   56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });
     at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85&quot;
                         }
@@ -14580,22 +14580,22 @@ Running 271 tests using 8 workers
 
     Error: expect(locator).toBeVisible() failed
 
-    Locator: getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+    Locator: getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
     Expected: visible
     Timeout: 10000ms
     Error: element(s) not found
 
     Call log:
       - Expect &quot;toBeVisible&quot; with timeout 10000ms
-      - waiting for getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+      - waiting for getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
 
 
       56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-      57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
-    &gt; 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+      57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
+    &gt; 58 |     await expect(page.getByText(/À :\s*job-search-mailbox@example.invalid/i).first()).toBeVisible({ timeout: 10000 });
          |                                                                                     ^
-      59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-      60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
       61 |   });
         at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85
 
@@ -14613,22 +14613,22 @@ Running 271 tests using 8 workers
 
     Error: expect(locator).toBeVisible() failed
 
-    Locator: getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+    Locator: getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
     Expected: visible
     Timeout: 10000ms
     Error: element(s) not found
 
     Call log:
       - Expect &quot;toBeVisible&quot; with timeout 10000ms
-      - waiting for getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()
+      - waiting for getByText(/À :\s*job-search-mailbox@example.invalid/i).first()
 
 
       56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-      57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
-    &gt; 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
+      57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
+    &gt; 58 |     await expect(page.getByText(/À :\s*job-search-mailbox@example.invalid/i).first()).toBeVisible({ timeout: 10000 });
          |                                                                                     ^
-      59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-      60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+      60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
       61 |   });
         at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85
 
@@ -23925,11 +23925,11 @@ Call log:
                           &quot;line&quot;: 58
                         },
                         &quot;snippet&quot;: &quot;  56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });&quot;
                       },
                       &quot;errors&quot;: [
@@ -23952,11 +23952,11 @@ Call log:
 
 
   56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });
     at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85&quot;
                         }
@@ -24024,11 +24024,11 @@ Call log:
                           &quot;line&quot;: 58
                         },
                         &quot;snippet&quot;: &quot;  56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });&quot;
                       },
                       &quot;errors&quot;: [
@@ -24051,11 +24051,11 @@ Call log:
 
 
   56 |     // 5) Vérifier que chaque adresse apparaît au moins une fois (À : email)
-  57 |     // Note: le backend peut normaliser l'email (ex. redacted@example.invalid → redacted@example.invalid)
+  57 |     // Note: le backend peut normaliser l'email (ex. job-search-mailbox@example.invalid → redacted@example.invalid)
 &gt; 58 |     await expect(page.getByText(/À :\\s*paul\\.?jobbingtrack\\.?pro@gmail\\.com/i).first()).toBeVisible({ timeout: 10000 });
      |                                                                                     ^
-  59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
-  60 |     await expect(page.getByText('À : candidatures@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
+  60 |     await expect(page.getByText('À : applications-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
   61 |   });
     at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/email-verification-monitor.spec.ts:58:85&quot;
                         }

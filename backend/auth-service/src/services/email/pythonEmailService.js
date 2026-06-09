@@ -197,7 +197,7 @@ class PythonEmailService {
         
         const createData = {
           to,
-          from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          from: from || process.env.SMTP_FROM || 'redacted@example.invalid',
           subject,
           type,
           status: 'PENDING',
@@ -229,7 +229,7 @@ class PythonEmailService {
               data: {
                 userId: null,
                 to,
-                from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+                from: from || process.env.SMTP_FROM || 'redacted@example.invalid',
                 subject,
                 type,
                 status: 'PENDING',
@@ -305,7 +305,7 @@ class PythonEmailService {
       emailLog = await this.logEmail({
         userId,
         to: userEmail,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject: 'Réinitialisation de votre mot de passe - JobbingTrack',
         type: 'RESET_PASSWORD',
         emailContent: `Lien de réinitialisation: ${resetUrl}`,
@@ -367,7 +367,7 @@ class PythonEmailService {
       emailLog = await this.logEmail({
         userId,
         to: userEmail,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject: 'Vérifiez votre adresse email - JobbingTrack',
         type: 'VERIFICATION',
         emailContent: `Lien de vérification: ${verificationUrl}`,

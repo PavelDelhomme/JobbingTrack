@@ -143,7 +143,7 @@ Helpers centralisés :
 
 ### Email de test réel
 
-L'adresse `test@example.invalid` vérifie la **réception réelle** des emails. Credentials dans `.env` (gitignored) :
+L'adresse `test-recipient@example.invalid` vérifie la **réception réelle** des emails. Credentials dans `.env` (gitignored) :
 - `TEST_REAL_EMAIL`, `TEST_REAL_EMAIL_PASSWORD`, `TEST_REAL_EMAIL_IMAP_HOST`, `TEST_REAL_EMAIL_IMAP_PORT`
 
 ### Checklist

@@ -748,7 +748,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SERVICE_NAME=jobbingtrack-notification-service
-      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.test}
+      - SMTP_FROM=${SMTP_FROM:redacted@example.invalid}
       - SMTP_HOST=${SMTP_HOST:-mailhog}
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_PORT=${SMTP_PORT:-1025}

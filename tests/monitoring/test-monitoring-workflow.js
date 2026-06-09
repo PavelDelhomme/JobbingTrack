@@ -18,7 +18,7 @@ describe('Monitoring Stack Workflow', () => {
   beforeAll(() => {
     // Générer un token JWT valide
     validToken = jwt.sign(
-      { id: 1, email: 'test@jobbingtrack.test', role: 'admin' },
+      { id: 1, email: 'redacted@example.invalid', role: 'admin' },
       JWT_SECRET,
       { expiresIn: '1h' }
     );

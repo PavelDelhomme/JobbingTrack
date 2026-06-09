@@ -55,7 +55,7 @@ class SMTPEmailProvider extends BaseEmailProvider {
   async sendEmail({ to, subject, htmlContent, textContent, from, replyTo }) {
     try {
       // L'adresse d'affichage (from) peut être différente de l'authentification SMTP
-      // Exemple : authentification avec redacted@example.invalid mais affichage noreply@jobbingtrack.test
+      // Exemple : authentification avec redacted@example.invalid mais affichage redacted@example.invalid
       const displayFrom = from || this.config.from;
       const displayReplyTo = replyTo || this.config.replyTo || displayFrom;
       

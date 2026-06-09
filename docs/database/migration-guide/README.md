@@ -347,7 +347,7 @@ ORDER BY tc.table_name;
 curl -X POST http://localhost:8081/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@jobbingtrack.test",
+    "email": "redacted@example.invalid",
     "password": "Test123!",
     "firstName": "Test",
     "lastName": "User"

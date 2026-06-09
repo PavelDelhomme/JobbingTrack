@@ -16,7 +16,7 @@ describe('Metrics Aggregator API Tests', () => {
     validToken = jwt.sign(
       {
         id: 1,
-        email: 'test@jobbingtrack.test',
+        email: 'redacted@example.invalid',
         role: 'admin'
       },
       JWT_SECRET,

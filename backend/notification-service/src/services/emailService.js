@@ -29,7 +29,7 @@ class EmailService {
   async sendEmail(to, subject, html) {
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || 'JobbingTrack <noreply@jobbingtrack.test>',
+        from: process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>',
         to,
         subject,
         html

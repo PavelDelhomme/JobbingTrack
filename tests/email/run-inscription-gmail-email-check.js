@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Test automatisé : Inscription Gmail (redacted@example.invalid) via API
+ * Test automatisé : Inscription Gmail (job-search-mailbox@example.invalid) via API
  * puis vérification que l'email de vérification est bien loggé et envoyé à la bonne adresse.
  *
  * Usage: node tests/email/run-inscription-gmail-email-check.js

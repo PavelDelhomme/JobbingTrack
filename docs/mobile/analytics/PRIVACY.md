@@ -691,7 +691,7 @@ exports.requireAuth = async (req, res, next) => {
 class PrivacyConfig {
   static const String privacyPolicyUrl = 'https://jobbingtrack.com/privacy';
   static const String termsUrl = 'https://jobbingtrack.com/terms';
-  static const String supportEmail = 'support@jobbingtrack.test';
+  static const String supportEmail = 'redacted@example.invalid';
   
   static const Map<String, int> retentionDays = {
     'events': 90,

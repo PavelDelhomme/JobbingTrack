@@ -37,8 +37,8 @@ class EmailService:
             self.use_ssl = False  # Port 587 utilise STARTTLS, pas SSL direct
         self.username = os.getenv('SMTP_USER', '')
         self.password = os.getenv('SMTP_PASS', '')
-        self.from_email = os.getenv('SMTP_FROM', 'JobbingTrack <noreply@jobbingtrack.test>')
-        self.reply_to = os.getenv('SMTP_REPLY_TO', 'noreply@jobbingtrack.test')
+        self.from_email = os.getenv('SMTP_FROM', 'JobbingTrack <redacted@example.invalid>')
+        self.reply_to = os.getenv('SMTP_REPLY_TO', 'redacted@example.invalid')
         # Pour les liens dans les emails : si FRONTEND_URL est localhost et HOST_IP est défini, utiliser l'IP machine
         url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
         host_ip = os.getenv('HOST_IP', '').strip()

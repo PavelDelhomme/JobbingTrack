@@ -199,7 +199,7 @@
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|-------|------|------------------|------------------|
 | I1 | **Socle tâches utilisateur + Google Tasks** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et synchronisation Google Tasks | À faire | Non | Interface privée dédiée, pas publique ni mélangée au backoffice email transactionnel |
-| I2 | **Connexion email lecture seule** : OAuth Gmail `redacted@example.invalid`, boîte candidatures OVH à confirmer, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Worker planifié ; ne pas envoyer/supprimer d’email au départ |
+| I2 | **Connexion email lecture seule** : OAuth Gmail `job-search-mailbox@example.invalid`, boîte candidatures OVH à confirmer, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Worker planifié ; ne pas envoyer/supprimer d’email au départ |
 | I3 | **Classification emails emploi déterministe** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Règles mots-clés, expéditeurs, délais 7/10/14 jours ; IA locale seulement en renfort |
 | I4 | **Digest quotidien 18h** : urgent, tâches demain, retard, candidatures sans réponse, entretiens à préparer, événements, décisions proposées | À faire | Non | Email récapitulatif + liens JobbingTrack |
 | I5 | **Google Calendar + actions utilisateur** : créer tâche/relance/événement, archiver email, marquer refus, préparer entretien, rédiger brouillon de réponse | À faire | Non | Calendar obligatoire pour entretiens/job dating/salons ; confirmation avant tout envoi externe |

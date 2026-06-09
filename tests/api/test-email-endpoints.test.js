@@ -4,7 +4,7 @@
  *
  * ⚠️ Utilise le compte ADMIN (SUPER_ADMIN) car les endpoints email
  *     sont des fonctionnalités d'administration (logs, stats, test SMTP).
- *     L'adresse de réception test@example.invalid est configurée via
+ *     L'adresse de réception test-recipient@example.invalid est configurée via
  *     la variable d'environnement TEST_REAL_EMAIL (.env, gitignored).
  */
 

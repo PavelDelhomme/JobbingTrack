@@ -475,7 +475,7 @@ Utilisateur cree Entreprise (ou existante)
 - [x] test-config.js : `testUser` (USER) + `adminUser` (SUPER_ADMIN)
 - [x] test-data-helper.ts : `ensureTestUser()`, `getAdminToken()`, `loginAsAdmin()`, `getAdminCredentials()`, `REAL_TEST_EMAIL`
 - [x] Rapport de tests : texte lisible + HTML interactif, badge type utilisateur (ADMIN/USER/SYSTEM)
-- [x] Email de test reel (`test@example.invalid`) pour verifier la reception, via env var `TEST_REAL_EMAIL` (.env, gitignored)
+- [x] Email de test reel (`test-recipient@example.invalid`) pour verifier la reception, via env var `TEST_REAL_EMAIL` (.env, gitignored)
 - [x] Tests backoffice E2E autonomes avec `loginAsAdmin()` (6 fichiers corriges)
 - [x] `archive-interactions.spec.ts` utilise `getAdminToken` (fonctionnalite admin)
 
@@ -1188,7 +1188,7 @@ Le systeme de crash reporting collecte les erreurs, crashes et donnees d'utilisa
 2. App → collecte les donnees de tracking (boutons, ecrans, swipes, API calls, durees, monitoring appareil)
 3. App → POST `/api/v1/notifications/crashes` avec le rapport anonymise + analytics completes
 4. Backend → sauvegarde en BDD (type CRASH_REPORT dans table Notification)
-5. Backend → envoie email a `CRASH_REPORT_EMAIL` (par defaut: infos@example.invalid)
+5. Backend → envoie email a `CRASH_REPORT_EMAIL` (par defaut: alerts@example.invalid)
 
 **Modes de tracking** :
 - **Mode DEV** (`kDebugMode = true`) : tracking illimite — toutes les actions sont conservees sans limite
@@ -1272,8 +1272,8 @@ Le module `CrashReporter` (Flutter) offre un tracking detaille pour le debug et 
 ### 13.4 Email de rapport
 
 - Envoye automatiquement via le service email existant (SMTP)
-- Destinataire configurable via `CRASH_REPORT_EMAIL` (defaut: infos@example.invalid)
-- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL=candidatures@example.invalid` (ou autre boite accessible) pour recevoir les rapports de test
+- Destinataire configurable via `CRASH_REPORT_EMAIL` (defaut: alerts@example.invalid)
+- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL=applications-mailbox@example.invalid` (ou autre boite accessible) pour recevoir les rapports de test
 - Sujet : `[JobbingTrack Crash] {crashType} — {date}`
 - Contient : type, message, stack trace, infos appareil, actions recentes
 

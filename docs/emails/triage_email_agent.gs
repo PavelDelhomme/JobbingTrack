@@ -1,6 +1,6 @@
 /**
  * AGENT DE TRIAGE EMAIL — RECHERCHE D'EMPLOI
- * Paul JobbingTrack — redacted@example.invalid
+ * Compte de recherche emploi — job-search-mailbox@example.invalid
  * Version 2 — corrigée (emojis UTF-8, détection améliorée, dates FR)
  *
  * INSTALLATION :
@@ -14,7 +14,7 @@
 // CONFIGURATION — modifier ici si besoin
 // ============================================================
 var CONFIG = {
-  email: "redacted@example.invalid",
+  email: "job-search-mailbox@example.invalid",
   taskListName: "Recherche emploi",   // sans emoji pour éviter les problèmes d'encodage
   calendarId: "primary",
   heureDebutTaches: 16,              // tâches planifiées après 16h
@@ -610,7 +610,7 @@ function installerDeclencheur() {
 ================================================================
 INSTALLATION (5 min)
 ================================================================
-1. Aller sur https://script.google.com (avec redacted@example.invalid)
+1. Aller sur https://script.google.com (avec job-search-mailbox@example.invalid)
 2. Nouveau projet — coller ce fichier complet
 3. Services (+) > Tasks API v1 > identifiant : TasksAPI > Ajouter
 4. Selectionner installerDeclencheur > Executer > Accepter permissions

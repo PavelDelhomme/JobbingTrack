@@ -154,7 +154,7 @@ Les tests utilisent un token JWT généré automatiquement. Pour utiliser votre 
 
 ```javascript
 const token = jwt.sign(
-  { id: 1, email: 'test@jobbingtrack.test', role: 'admin' },
+  { id: 1, email: 'redacted@example.invalid', role: 'admin' },
   process.env.JWT_SECRET || 'your-secret-key',
   { expiresIn: '1h' }
 );

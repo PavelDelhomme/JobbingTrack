@@ -19,8 +19,8 @@ Le système doit aider le porteur à :
 
 ## Sources à connecter
 
-- Gmail `redacted@example.invalid` via OAuth et scopes minimaux.
-- Boîte JobbingTrack dédiée `candidatures@example.invalid` ou variante à confirmer si l’adresse réelle contient un autre domaine.
+- Gmail `job-search-mailbox@example.invalid` via OAuth et scopes minimaux.
+- Boîte JobbingTrack dédiée `applications-mailbox@example.invalid` ou variante à confirmer si l’adresse réelle contient un autre domaine.
 - Candidatures, entreprises, contacts, relances, appels, entretiens et événements déjà présents dans JobbingTrack.
 - Google Tasks et Google Calendar sont obligatoires pour le MVP : tâches de relance/préparation et événements d’entretien doivent être synchronisés proprement.
 - Emails transférés automatiquement depuis des plateformes emploi ou recruteurs.
@@ -80,7 +80,7 @@ P1 :
 
 - autocomplete poste/ville/plateformes et navigation clavier ARIA des combobox ;
 - token agent email + documentation endpoint API ;
-- adresse de transfert configurable (`candidatures@example.invalid`) ;
+- adresse de transfert configurable (`applications-mailbox@example.invalid`) ;
 - liste emails reçus dans l’interface, triés par candidature/relance ;
 - envoyer relance/email directement depuis l’interface avec identité choisie ;
 - audit des actions automatiques et confirmation avant envoi externe.
@@ -140,7 +140,7 @@ Approche recommandée :
 ## Intégrations techniques à prévoir
 
 - Gmail API : watch/history ou polling borné, labels, threads, pièces jointes sélectionnées.
-- IMAP/SMTP ou API fournisseur pour `candidatures@example.invalid`.
+- IMAP/SMTP ou API fournisseur pour `applications-mailbox@example.invalid`.
 - Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation.
 - Google Calendar API : événements entretien, job dating, salons, rappels.
 - Tables internes : `EmailAccount`, `EmailMessage`, `EmailThread`, `EmailClassification`, `UserTask`, `TaskReminder`, `AgentDecision`, `AgentDigest`.

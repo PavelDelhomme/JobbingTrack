@@ -1,7 +1,7 @@
 /**
  * Spec dédié : inscription + vérification email (BlueMail / OVH) — flux API uniquement.
  *
- * Lancer : cd tests && TEST_REAL_EMAILS=candidatures@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
+ * Lancer : cd tests && TEST_REAL_EMAILS=applications-mailbox@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
  */
 
 import { test, expect } from '@playwright/test';
@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 import { e2eGatewayBaseUrl } from '../../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
-const BLUEMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',').map((s) => s.trim()).find((e) => e.includes('example.invalid') || e.includes('bluemail')) || process.env.TEST_REAL_EMAIL || 'candidatures@example.invalid';
+const BLUEMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',').map((s) => s.trim()).find((e) => e.includes('applications') || e.includes('bluemail')) || process.env.TEST_REAL_EMAIL || 'applications-mailbox@example.invalid';
 const TEST_PASSWORD = process.env.TEST_VERIFICATION_PASSWORD || 'SecureP@ss123!';
 
 async function loginAdmin(request: any): Promise<string> {

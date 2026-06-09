@@ -16,7 +16,7 @@ function requireRuntimeValue(value: string, label: string): string {
   return value;
 }
 
-/** Identifiants du compte de test mobile (user1) — réception des mails si email réel (ex. redacted@example.invalid). */
+/** Identifiants du compte de test mobile (user1) — réception des mails si email réel (ex. verification-mailbox@example.invalid). */
 export function getMobileTestCredentials(): {
   email: string;
   password: string;

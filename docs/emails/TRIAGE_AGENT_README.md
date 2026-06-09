@@ -11,18 +11,18 @@
 
 Chaque soir à 19h, il :
 
-1. Lit les emails des 24 dernières heures dans Gmail (inclut les redirections de `candidatures@example.invalid`)
+1. Lit les emails des 24 dernières heures dans Gmail (inclut les redirections de `applications-mailbox@example.invalid`)
 2. Détecte et classe automatiquement : entretiens, offres, refus, confirmations, job dating, France Travail, contacts RH
 3. Crée des tâches dans Google Tasks (liste "Recherche emploi") pour le lendemain après 16h
 4. Crée des événements Google Calendar si entretien ou événement détecté
 5. Vérifie les tâches en retard non réalisées
-6. Envoie un récapitulatif HTML formaté à `redacted@example.invalid`
+6. Envoie un récapitulatif HTML formaté à `job-search-mailbox@example.invalid`
 
 ---
 
 ## Installation (5 minutes)
 
-> **Important** : se connecter avec `redacted@example.invalid`, pas `redacted@example.invalid`
+> **Important** : se connecter avec `job-search-mailbox@example.invalid`, pas `personal-mailbox@example.invalid`
 
 1. Aller sur [script.google.com](https://script.google.com)
 2. Cliquer **Nouveau projet**
@@ -38,7 +38,7 @@ Le script tourne ensuite automatiquement chaque soir à 19h.
 
 Le script est lié au **compte Google**, pas à l'appareil.  
 Sur un nouvel ordinateur :
-- Aller sur [script.google.com](https://script.google.com) avec `redacted@example.invalid`
+- Aller sur [script.google.com](https://script.google.com) avec `job-search-mailbox@example.invalid`
 - Le projet est déjà là, aucune réinstallation nécessaire
 
 ---
@@ -47,7 +47,7 @@ Sur un nouvel ordinateur :
 
 ```javascript
 var CONFIG = {
-  email: "redacted@example.invalid",    // destinataire du récap
+  email: "job-search-mailbox@example.invalid",    // destinataire du récap
   taskListName: "Recherche emploi",        // nom de la liste Google Tasks
   calendarId: "primary",                  // calendrier Google Calendar
   heureDebutTaches: 16,                   // tâches planifiées après 16h

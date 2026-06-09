@@ -79,9 +79,9 @@ test.describe("Inscription + vérification email (Email Monitor)", () => {
       bodyText.includes("Aucun email") ||
       bodyText.includes("Emails Envoyés") ||
       /Email Monitor/i.test(bodyText) ||
-      /À\s*:\s*paul\.?jobbingtrack\.?pro@gmail\.com/i.test(bodyText) ||
-      /À\s*:\s*paul\.?jobbingtrack\.?proton/i.test(bodyText) ||
-      /À\s*:\s*candidatures@jobbingtrack/i.test(bodyText);
+      /À\s*:\s*job-search-mailbox@example.invalid/i.test(bodyText) ||
+      /À\s*:\s*verification-mailbox@example.invalid/i.test(bodyText) ||
+      /À\s*:\s*applications-mailbox@example.invalid/i.test(bodyText);
     expect(
       hasListOrEmpty,
       'Email Monitor doit afficher la liste ou "Aucun email" ou la section Emails Envoyés',

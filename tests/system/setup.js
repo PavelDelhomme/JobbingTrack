@@ -150,13 +150,13 @@ JEST_VERBOSE=true
         role: 'user'
       },
       candidate: {
-        email: 'candidate@jobbingtrack.test',
+        email: 'redacted@example.invalid',
         password: 'candidate123',
         name: 'Candidate Test',
         role: 'candidate'
       },
       recruiter: {
-        email: 'recruiter@jobbingtrack.test',
+        email: 'redacted@example.invalid',
         password: 'recruiter123',
         name: 'Recruiter Test',
         role: 'recruiter'

@@ -7,7 +7,7 @@
 ## 9 juin 2026 — cadrage agent email / tâches recherche emploi
 
 - **Branche documentaire** : `docs/email-triage-agent-roadmap`, créée depuis `origin/dev` pour ne pas mélanger ce cadrage avec la PR P0 CVE `fix/security-cve-scan-full-scope`.
-- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, Gmail `redacted@example.invalid`, boîte candidatures OVH à confirmer, Google Tasks/Calendar obligatoires, interface privée dédiée hors backoffice email transactionnel, moteur déterministe d’abord et IA locale en renfort.
+- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, Gmail `job-search-mailbox@example.invalid`, boîte candidatures OVH à confirmer, Google Tasks/Calendar obligatoires, interface privée dédiée hors backoffice email transactionnel, moteur déterministe d’abord et IA locale en renfort.
 - **Décision architecture** : JobbingTrack reste le socle ; Make.com/Zapier ne doivent pas porter la logique métier. Worker planifié, stockage interne des emails utiles, règles de classification explicites, puis IA locale si elle apporte une valeur.
 - **Navigation backoffice Tests** : demande porteur ajoutée au pilotage P1C — clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests et Rapports de parcours, menu Développement/Tests moins long et mieux catégorisé.
 - **Document source** : `docs/features/EMAIL_TRIAGE_AGENT.md`.
@@ -735,7 +735,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 ## Recap rapide (ce qui fonctionne)
 
-Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playwright E2E 233, MailHog 3/3, Securite 64, Performance 15/15, Integration OK, 21 parcours, SMTP/MailHog, hub Tests, soft delete + corbeille + archivage 7 services, cascade statuts + archivage, auto-events, module ADB mobile reutilisable (28 scenarios, 100+ steps), parcours mobile dans journey-builder (30+ steps mobiles integres), crash reporting backend + email auto (infos@example.invalid), ADB shell command, test email sur appareil, tracking pousse utilisateur (boutons, ecrans, swipes, API calls, durees, monitoring appareil), mode DEV illimite / mode PROD 500 actions. Detail : `RESOLUTIONS.md`.
+Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playwright E2E 233, MailHog 3/3, Securite 64, Performance 15/15, Integration OK, 21 parcours, SMTP/MailHog, hub Tests, soft delete + corbeille + archivage 7 services, cascade statuts + archivage, auto-events, module ADB mobile reutilisable (28 scenarios, 100+ steps), parcours mobile dans journey-builder (30+ steps mobiles integres), crash reporting backend + email auto (alerts@example.invalid), ADB shell command, test email sur appareil, tracking pousse utilisateur (boutons, ecrans, swipes, API calls, durees, monitoring appareil), mode DEV illimite / mode PROD 500 actions. Detail : `RESOLUTIONS.md`.
 
 ---
 
@@ -857,7 +857,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Tests swipe et actions rapides sur listes mobiles
 - [ ] Tests export/import donnees
 - [ ] Tests verification email
-- [x] **Test automatisé inscription Gmail + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription `redacted@example.invalid` via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
+- [x] **Test automatisé inscription Gmail + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription `job-search-mailbox@example.invalid` via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
 - [ ] Tests pagination et tri
 
 #### 3.8 Architecture des tests — FAIT
@@ -970,7 +970,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 #### 5.4 Crash reporting & error detection
 - [x] Endpoint `POST /notifications/crashes` — sauvegarde + email auto
 - [x] Endpoint `GET /notifications/crashes` — lecture paginee des crash reports
-- [x] Email crash report a `infos@example.invalid`
+- [x] Email crash report a `alerts@example.invalid`
 - [x] Anonymisation des rapports
 - [x] Handler Flutter (`FlutterError.onError` + `PlatformDispatcher.onError`)
 - [x] Service `CrashReporter` dans l'app Flutter (queue, flush, tracking pousse)
@@ -986,7 +986,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [x] Parcours utilisateur : 6/6 (`tests/user-journey/modules/step-crash-reporting.js`)
 - [x] Parcours ADB test email sur appareil (`mobile_test_email`)
 - [x] Parcours predefini `crash_reporting` et `full_with_crash` dans journey-builder
-- [x] **CRASH_REPORT_EMAIL** : lu depuis l’env (defaut infos@example.invalid), documenté dans `.env.example` ; avec MailHog les emails crash sont visibles dans l’interface MailHog (http://localhost:8025).
+- [x] **CRASH_REPORT_EMAIL** : lu depuis l’env (defaut alerts@example.invalid), documenté dans `.env.example` ; avec MailHog les emails crash sont visibles dans l’interface MailHog (http://localhost:8025).
 
 #### 5.5 Parcours mobiles etendus (100+ steps)
 - [x] Notifications : `open_notifications`, `verify_notifications`, `mark_all_notifications_read`
@@ -1087,7 +1087,7 @@ Résumé : **724 tests**, **708 réussis**, **16 échoués** (97,8 %), **1 ignor
 
 **Prerequis** : `make emulator-controller` ou `make restart-emulator` (5055), appareil ADB connecte. **Verifications** : `make verify-mobile-emulator` (sante controleur + force-restart-app), `make verify-mobile-scenarios` (coherence scenarios vs steps).
 
-**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec le compte **user1** : par defaut **user1@jobbingtrack.test** / **password123**. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), ex. **redacted@example.invalid** ou **candidatures@alias.example.invalid** (voir `.env.example`).
+**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec le compte **user1** : par defaut **user1@jobbingtrack.test** / **password123**. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), ex. **verification-mailbox@example.invalid** ou **applications-alias@example.invalid** (voir `.env.example`).
 
 **Usage reel** : necessite un appareil/emulateur Android connecte. Sans appareil, seules les cibles make verify-mobile-* et la coherence du code sont testables.
 
@@ -1154,7 +1154,7 @@ Les rapports sont dans `tests/results/<timestamp>/`. Le backoffice affiche le ra
 ### Tracking pousse & correction BDD — FAIT (26/02/2026)
 - Tracking utilisateur pousse dans `CrashReporter` : boutons, ecrans, swipes, API calls, form submits, durees par ecran, monitoring appareil.
 - Mode DEV illimite, mode PROD 500 actions (FIFO).
-- Email crash report change : `infos@example.invalid` (corrigé).
+- Email crash report change : `alerts@example.invalid` (corrigé).
 - Correction massive BDD : tables droppees par `prisma db push` notification-service → repousse schema maitre auth-service (58 modeles) + ajout enum values SQL + restart monitoring-c.
 - Zero erreurs Postgres apres correction.
 

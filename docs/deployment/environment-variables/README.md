@@ -83,7 +83,7 @@ SMTP_HOST=smtp.gmail.com                      # Serveur SMTP
 SMTP_PORT=587                                 # Port SMTP
 SMTP_USER=redacted@example.invalid               # Email expéditeur
 SMTP_PASS=VOTRE_MOT_DE_PASSE_APP              # ⚠️ Mot de passe d'application
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>  # Email expéditeur formaté
+SMTP_FROM=JobbingTrack <redacted@example.invalid>  # Email expéditeur formaté
 ```
 
 ### 👤 Utilisateur Administrateur

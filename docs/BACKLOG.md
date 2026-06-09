@@ -44,7 +44,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [x] **Fix `api-e2e.spec.ts`** : credentials desynchronises → `_testCreds` direct. (26/02)
 - [x] **Fix 5 fichiers E2E** : imports, networkidle → domcontentloaded, resilience. (26/02)
 - [x] **4 nouvelles suites de test** : email-workflows, admin-data-crud, admin-users-crud, admin-security-complete. (26/02)
-- [x] **Email de test réel** : `test@example.invalid` (via env var `TEST_REAL_EMAIL`).
+- [x] **Email de test réel** : `test-recipient@example.invalid` (via env var `TEST_REAL_EMAIL`).
 - [x] **Tests backoffice E2E autonomes** : `loginAsAdmin()` dans 6 fichiers.
 - [x] **Rapports avec type d'utilisateur** : badge ADMIN/USER/SYSTEM.
 - [x] **Tests Playwright E2E** : pré-authentification `storageState`.
@@ -74,7 +74,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [ ] Pagination et tri cohérents sur toutes les listes.
 - [x] Tests E2E interactions approfondies (archivage, cascade, BDD relations, sécurité backoffice).
 - [x] Architecture tests USER/ADMIN et rapports avec badge type utilisateur.
-- [x] Email de test réel (`test@example.invalid`) pour vérification réception.
+- [x] Email de test réel (`test-recipient@example.invalid`) pour vérification réception.
 - [x] Tests sécurité backoffice complets (firewall CRUD, WAF, menaces, IPs bloquées, logs).
 
 ## Priorité moyenne – API et fonctionnalités

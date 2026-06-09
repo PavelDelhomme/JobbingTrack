@@ -352,7 +352,7 @@ const sendEmail = async (req, res, next) => {
       data: {
         userId,
         to,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject,
         body,
         status: 'PENDING',
@@ -397,7 +397,7 @@ const sendEmail = async (req, res, next) => {
 const sendInternalSecurityAlertEmail = async (req, res, next) => {
   try {
     const { to, subject, html, alert } = req.body;
-    const from = process.env.SMTP_FROM || 'noreply@jobbingtrack.test';
+    const from = process.env.SMTP_FROM || 'redacted@example.invalid';
     let emailLog = null;
 
     try {
@@ -635,7 +635,7 @@ const getStats = async (req, res, next) => {
   }
 };
 
-const CRASH_REPORT_EMAIL = process.env.CRASH_REPORT_EMAIL || 'infos@example.invalid';
+const CRASH_REPORT_EMAIL = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
 
 const reportCrash = async (req, res, next) => {
   try {

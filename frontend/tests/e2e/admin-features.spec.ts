@@ -19,7 +19,7 @@ test.describe("👑 Fonctionnalités Administrateur Avancées", () => {
       .click();
     await page.fill(
       'input[name="email"]',
-      "nouveau.recruteur@jobbingtrack.test",
+      "redacted@example.invalid",
     );
     await page.fill('input[name="firstName"]', "Marie");
     await page.fill('input[name="lastName"]', "Martin");
@@ -188,7 +188,7 @@ test.describe("👑 Fonctionnalités Administrateur Avancées", () => {
 
     // Configurer les paramètres généraux
     await page.fill('input[name="companyName"]', "JobbingTrack Enterprise");
-    await page.fill('input[name="supportEmail"]', "support@jobbingtrack.test");
+    await page.fill('input[name="supportEmail"]', "redacted@example.invalid");
     await page.locator('select[name="timezone"]').selectOption("Europe/Paris");
     await page.locator('input[name="maintenanceMode"]').check();
 

@@ -498,7 +498,7 @@ const sendTestEmail = async (req, res) => {
       try {
         const createData = {
           to,
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || 'redacted@example.invalid',
           subject: emailSubject,
           type: 'TEST',
           status: 'PENDING',
@@ -538,7 +538,7 @@ const sendTestEmail = async (req, res) => {
             emailLog = await prisma.emailLog.create({
               data: {
                 to,
-                from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+                from: process.env.SMTP_FROM || 'redacted@example.invalid',
                 subject: emailSubject,
                 type: 'TEST',
                 status: 'PENDING',
@@ -666,8 +666,8 @@ const resendEmail = async (req, res) => {
         to: emailLog.to,
         subject: emailLog.subject,
         htmlContent: emailLog.emailContent,
-        from: emailLog.from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+        from: emailLog.from || process.env.SMTP_FROM || 'redacted@example.invalid',
+        replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
       });
 
       await emailService.updateEmailLogStatus(newEmailLog.id, 'SENT');

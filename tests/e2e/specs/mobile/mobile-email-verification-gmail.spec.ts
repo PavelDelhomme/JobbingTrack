@@ -1,7 +1,7 @@
 /**
  * Spec dedie : inscription + verification email (Gmail) - flux API uniquement.
  * Lancer : cd tests && npx playwright test e2e/specs/mobile/mobile-email-verification-gmail.spec.ts --project=chromium
- * Avec email reel : TEST_REAL_EMAILS=redacted@example.invalid
+ * Avec email reel : TEST_REAL_EMAILS=job-search-mailbox@example.invalid
  */
 
 import { test, expect } from '@playwright/test';
@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 import { e2eGatewayBaseUrl } from '../../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
-const GMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',')[0]?.trim() || process.env.TEST_REAL_EMAIL || 'redacted@example.invalid';
+const GMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',')[0]?.trim() || process.env.TEST_REAL_EMAIL || 'job-search-mailbox@example.invalid';
 const TEST_PASSWORD = process.env.TEST_VERIFICATION_PASSWORD || 'SecureP@ss123!';
 
 async function loginAdmin(request: any): Promise<string> {

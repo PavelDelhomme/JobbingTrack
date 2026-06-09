@@ -83,8 +83,8 @@ TESTS ECHOUES
         Expected: visible
         Error: element(s) not found
           - Expect "toBeVisible" with timeout 10000ms
-        > 58 |     await expect(page.getByText(/À :\s*paul\.?jobbingtrack\.?pro@gmail\.com/i).first()).toBeVisible({ timeout: 10000 });
-          59 |     await expect(page.getByText('À : redacted@example.invalid').first()).toBeVisible({ timeout: 10000 });
+        > 58 |     await expect(page.getByText(/À :\s*job-search-mailbox@example.invalid/i).first()).toBeVisible({ timeout: 10000 });
+          59 |     await expect(page.getByText('À : verification-mailbox@example.invalid').first()).toBeVisible({ timeout: 10000 });
 
 ================================================================
   Rapports : tests/results/20260318-104827/
