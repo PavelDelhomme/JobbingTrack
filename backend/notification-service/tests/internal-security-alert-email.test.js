@@ -21,6 +21,9 @@ describe('Notification Service - email interne alerte sécurité', () => {
   beforeEach(() => {
     process.env.SECURITY_INTERNAL_SECRET = 'test-internal-security-secret';
     process.env.SMTP_FROM = 'security@jobbingtrack.test';
+    process.env.SMTP_REPLY_TO = 'noreply@jobbingtrack.test';
+    process.env.SECURITY_ALERT_FROM = 'JobbingTrack Security <security@jobbingtrack.test>';
+    process.env.SECURITY_ALERT_REPLY_TO = 'security@jobbingtrack.test';
     mockPrisma.emailLog.create.mockResolvedValue({ id: 'email-log-1' });
     mockPrisma.emailLog.update.mockResolvedValue({});
     emailService.sendEmail.mockResolvedValue({ messageId: 'message-1' });
@@ -61,7 +64,7 @@ describe('Notification Service - email interne alerte sécurité', () => {
       data: expect.objectContaining({
         userId: null,
         to: 'admin@jobbingtrack.test',
-        from: 'security@jobbingtrack.test',
+        from: 'JobbingTrack Security <security@jobbingtrack.test>',
         subject: '[Security] DDoS critique',
         type: 'NOTIFICATION',
         status: 'PENDING',
@@ -74,7 +77,11 @@ describe('Notification Service - email interne alerte sécurité', () => {
     expect(emailService.sendEmail).toHaveBeenCalledWith(
       'admin@jobbingtrack.test',
       '[Security] DDoS critique',
-      '<p>DDoS critique</p>'
+      '<p>DDoS critique</p>',
+      {
+        from: 'JobbingTrack Security <security@jobbingtrack.test>',
+        replyTo: 'security@jobbingtrack.test'
+      }
     );
     expect(mockPrisma.emailLog.update).toHaveBeenCalledWith({
       where: { id: 'email-log-1' },

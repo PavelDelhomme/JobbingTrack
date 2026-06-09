@@ -397,7 +397,8 @@ const sendEmail = async (req, res, next) => {
 const sendInternalSecurityAlertEmail = async (req, res, next) => {
   try {
     const { to, subject, html, alert } = req.body;
-    const from = process.env.SMTP_FROM || 'redacted@example.invalid';
+    const from = process.env.SECURITY_ALERT_FROM || process.env.SMTP_FROM || 'redacted@example.invalid';
+    const replyTo = process.env.SECURITY_ALERT_REPLY_TO || process.env.SMTP_REPLY_TO || undefined;
     let emailLog = null;
 
     try {
@@ -413,6 +414,7 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
             emailContent: html,
             metadata: {
               channel: 'security_alert',
+              replyTo: replyTo || null,
               alert: alert || null
             }
           }
@@ -423,7 +425,7 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
     }
 
     try {
-      await emailService.sendEmail(to, subject, html);
+      await emailService.sendEmail(to, subject, html, { from, replyTo });
 
       if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
         await prisma.emailLog.update({
@@ -635,8 +637,6 @@ const getStats = async (req, res, next) => {
   }
 };
 
-const CRASH_REPORT_EMAIL = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
-
 const reportCrash = async (req, res, next) => {
   try {
     const userId = req.user?.id || 'anonymous';
@@ -773,8 +773,15 @@ const reportCrash = async (req, res, next) => {
     ].join('\n');
 
     try {
-      await emailService.sendEmail(CRASH_REPORT_EMAIL, emailSubject, emailBody);
-      logger.info(`Crash report envoye a ${CRASH_REPORT_EMAIL}: ${crashType}`);
+      const crashReportEmail = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
+      const crashReportFrom = process.env.CRASH_REPORT_FROM || process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>';
+      const crashReportReplyTo = process.env.CRASH_REPORT_REPLY_TO || process.env.SMTP_REPLY_TO || undefined;
+
+      await emailService.sendEmail(crashReportEmail, emailSubject, emailBody, {
+        from: crashReportFrom,
+        replyTo: crashReportReplyTo
+      });
+      logger.info(`Crash report envoye au destinataire crash configure: ${crashType}`);
     } catch (emailError) {
       logger.warn('Envoi email crash echoue:', emailError.message);
     }

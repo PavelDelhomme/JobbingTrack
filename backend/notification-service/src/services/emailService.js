@@ -26,13 +26,14 @@ class EmailService {
     this.transporter = nodemailer.createTransport(transportConfig);
   }
 
-  async sendEmail(to, subject, html) {
+  async sendEmail(to, subject, html, options = {}) {
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>',
+        from: options.from || process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>',
         to,
         subject,
-        html
+        html,
+        replyTo: options.replyTo || process.env.SMTP_REPLY_TO || undefined
       };
 
       const info = await this.transporter.sendMail(mailOptions);

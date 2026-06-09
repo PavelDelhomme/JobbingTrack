@@ -19,7 +19,7 @@ Variables critiques à vérifier explicitement :
 - `TRUST_PROXY_HOPS`, `ALLOWED_ORIGINS`, URLs publiques `FRONTEND_URL` / API : alignés avec Nginx Proxy Manager et les domaines HTTPS.
 - `WAF_ENABLED`, `INTRUSION_DETECTION_ENABLED`, `INTRUSION_RELAX_HEURISTICS` : mode prod strict, pas de relax dev.
 - `POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL` : secrets forts, réseau privé, pas d’exposition Internet directe.
-- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : boîtes réelles et TLS SMTP validé.
+- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : TLS SMTP validé, compte SMTP technique séparé des alias visibles. Les destinataires publics (`CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)`) doivent être des alias du domaine JobbingTrack redirigés chez le fournisseur mail vers les boîtes privées réelles, hors Git.
 
 ---
 
@@ -84,6 +84,13 @@ SMTP_PORT=587                                 # Port SMTP
 SMTP_USER=redacted@example.invalid               # Email expéditeur
 SMTP_PASS=VOTRE_MOT_DE_PASSE_APP              # ⚠️ Mot de passe d'application
 SMTP_FROM=JobbingTrack <redacted@example.invalid>  # Email expéditeur formaté
+SMTP_REPLY_TO=redacted@example.invalid            # Réponse par défaut
+CRASH_REPORT_EMAIL=crash-report@jobbingtrack.test # Alias public, forwarding fournisseur hors Git
+CRASH_REPORT_FROM=JobbingTrack Crash Reports <report@jobbingtrack.test>
+CRASH_REPORT_REPLY_TO=report@jobbingtrack.test
+SECURITY_ALERT_EMAIL=security@jobbingtrack.test
+SECURITY_ALERT_FROM=JobbingTrack Security <security@jobbingtrack.test>
+SECURITY_ALERT_REPLY_TO=security@jobbingtrack.test
 ```
 
 ### 👤 Utilisateur Administrateur
