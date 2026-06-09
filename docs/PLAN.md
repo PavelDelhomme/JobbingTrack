@@ -206,12 +206,13 @@
 | I4 | **Classification emails emploi déterministe** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Règles mots-clés, expéditeurs, délais 7/10/14 jours ; IA locale seulement en renfort |
 | I5 | **Boîte de réception agent + actions email** : liste emails reçus, tri par candidature/relance/entreprise/contact, token agent email + doc endpoint API, adresse de transfert configurable | À faire | Non | Envoi relance/réponse depuis l’interface uniquement après validation explicite et identité choisie |
 | I6 | **Digest quotidien 18h + récap hebdomadaire** : urgent, tâches demain, retard, candidatures sans réponse, entretiens à préparer, événements, décisions proposées | À faire | Non | Email récapitulatif via le socle SMTP JobbingTrack (`SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EmailLog`) + liens JobbingTrack ; hebdo = vision large des tâches/appels/relances/événements |
-| I7 | **Google Calendar + vue calendrier agrégée** : créer tâches/relances/événements, entretiens, job dating, salons, rappels et calendrier unifié | À faire | Non | Calendar obligatoire pour entretiens/job dating/salons ; ne jamais créer `00:00` par défaut ; date seule = journée entière proposée ou tâche “horaire à confirmer” |
+| I7 | **Google Calendar + vue calendrier agrégée** : créer tâches/relances/événements, entretiens, job dating, salons, rappels et calendrier unifié | À faire | Non | Calendar obligatoire pour entretiens/job dating/salons ; ne jamais créer `00:00` par défaut ; aucun événement auto avant `05:00` ou après `23:00` ; date seule = journée entière proposée ou tâche “horaire à confirmer” |
 | I8 | **UX recherche et accessibilité** : autocomplete poste/ville/plateforme, navigation clavier ARIA sur toutes les combobox, formulaires rapides mobiles | À faire | Non | Aligner avec les écrans existants candidatures/contacts/entreprises |
 | I8b | **Recherche v2 espace utilisateur + admin** : barre de recherche emails/candidatures/entreprises/contacts/tâches/événements, réutilisable ensuite dans le backoffice | À faire | Non | À pousser dans une seconde version après MVP ; permissions séparées utilisateur/admin et index commun contrôlé |
 | I9 | **Fiches métier enrichies + actions manuelles programmables** : relances uniquement depuis fiche candidature, appels contact/entreprise date/heure préremplies, programmation manuelle d’appel/tâche/rappel/événement, page détail entreprise complète, gestion intérim entreprise/agence, préparation entretien | À faire | Non | Entreprise : candidatures, contacts, relances, appels, missions intérim, informations utiles ; action manuelle rattachable à candidature/contact/entreprise |
 | I10 | **Imports et enrichissements** : import Google Contacts CSV/vCard, sauvegarde PDF offre depuis URL, enrichissement entreprise (site, secteur, taille, actualités), salons emploi par ville/région | À faire | Non | Rennes/Bretagne comme première configuration de veille ; sources contrôlées et auditables |
 | I11 | **IA locale** : résumé, tri, suggestions de réponse, enrichissement entreprise ; pas de dépendance payante obligatoire | À faire | Non | Ollama/modèle local/cache/batch ; anonymisation si fournisseur externe |
+| I12 | **Suites de tests agent email + rapports** : tests moteur de règles, permissions, Gmail/IMAP lecture seule, digest SMTP, Calendar/Tasks et limites horaires | À faire | Non | Variables `.env` locales hors Git ; fixtures non sensibles ; rapports `tests/results/email-triage/<timestamp>` JSON/HTML/TXT ; skip explicite si secrets de test absents |
 
 **Garde-fous** :
 
@@ -223,8 +224,9 @@
 6. Make.com/Zapier ne portent pas la logique métier : ils restent hors socle, au mieux outils temporaires de prototypage.
 7. Aucun placeholder `.invalid` / `.test` ne doit être utilisé en runtime : les adresses réelles restent dans `.env` gitignoré, le profil utilisateur ou les paramètres admin.
 8. Le frontend utilisateur et le backoffice peuvent partager la même base de code et les mêmes composants, mais doivent rester séparés en routage, permissions et configuration d’URL.
-9. Calendar/Tasks ne doivent pas inventer d’horaire : pas d’événement à minuit sans heure explicite ou validation utilisateur.
+9. Calendar/Tasks ne doivent pas inventer d’horaire : pas d’événement à minuit sans heure explicite ou validation utilisateur, et pas de création automatique avant `05:00` ni après `23:00`.
 10. L’agent email/recherche doit être activable pour un utilisateur standard autorisé, mais jamais disponible par défaut pour tout compte inscrit.
+11. Les tests agent email doivent produire des rapports exploitables sans afficher de secrets, et ne doivent utiliser les vrais comptes de test que via `.env` gitignoré.
 
 ---
 

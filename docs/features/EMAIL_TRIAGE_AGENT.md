@@ -115,6 +115,7 @@ P0 :
 - stockage interne des emails utiles, threads, classifications et décisions ;
 - synchronisation Google Tasks et Google Calendar obligatoire pour les relances, préparations d’entretien et événements ;
 - garde-fou Calendar : ne jamais créer d’événement à `00:00` par défaut. Si l’email ne contient qu’une date sans heure, créer une tâche à planifier ou un événement journée entière/proposé, jamais un horaire inventé ;
+- fenêtre horaire Calendar : ne jamais créer automatiquement un événement avant `05:00` ou après `23:00` ; créer une tâche “horaire à vérifier” ou demander validation utilisateur ;
 - classification minimale déterministe : refus, entretien, relance nécessaire, événement emploi, newsletter/bruit.
 
 P1 :
@@ -161,6 +162,31 @@ P4 :
 - Candidature sans réponse depuis 7/10/14 jours : tâche Google Tasks de relance et recommandation dans le digest.
 - Email ou alerte contenant `job dating`, `salon`, `forum emploi` : événement emploi à vérifier, puis création Calendar si validé.
 - Si une date est détectée sans heure exploitable : ne pas créer un événement à minuit ; demander confirmation ou créer une tâche “horaire à confirmer”.
+- Si une heure détectée est avant `05:00` ou après `23:00` : ne pas créer automatiquement l’événement ; créer une tâche “horaire à vérifier” ou demander validation. Exception uniquement si l’utilisateur confirme explicitement un événement exceptionnel.
+- Les formulations ambiguës (`ce soir`, `demain matin`, `fin de journée`, timezone absente) doivent rester en proposition/tâche à confirmer, pas en événement Calendar confirmé.
+
+## Fenêtre horaire Calendar
+
+Les événements créés automatiquement par l’agent email doivent respecter une fenêtre humaine réaliste :
+
+- créneau automatique autorisé : `05:00` inclus à `23:00` inclus, fuseau utilisateur explicite ;
+- avant `05:00` : proposer une tâche ou une confirmation, car l’utilisateur risque de ne pas être disponible ;
+- après `23:00` : proposer une tâche ou une confirmation, pas de rendez-vous confirmé sans accord ;
+- date seule : proposer un événement journée entière ou une tâche “horaire à confirmer”, jamais `00:00` ;
+- heure détectée mais douteuse : conserver la preuve extraite de l’email et demander validation dans l’interface ;
+- digest : signaler les invitations ambiguës dans une section “À confirmer” plutôt que les masquer.
+
+## Tests agent email à prévoir
+
+La suite de test dédiée doit être créée avec des fixtures non sensibles et des variables `.env` locales configurées hors Git :
+
+- tests unitaires du moteur de règles : refus, entretien, relance 7/10/14 jours, événement emploi, bruit/newsletter, ambiguïtés de date ;
+- tests dates/heures : pas de Calendar à `00:00`, pas d’événement auto avant `05:00`, pas d’événement auto après `23:00`, timezone explicite, date seule convertie en tâche/événement proposé ;
+- tests d’intégration avec boîtes de test : lecture Gmail/IMAP en lecture seule si variables présentes, skip explicite sinon, aucun secret affiché dans les logs ;
+- tests digest : email quotidien généré via le socle SMTP JobbingTrack ou mock SMTP, sections attendues, liens JobbingTrack, absence d’envoi externe automatique ;
+- tests permissions : compte sans `JOB_SEARCH_AGENT_ENABLED` bloqué, compte personnel autorisé OK, admin sans consentement utilisateur incapable de lire le contenu email personnel ;
+- rapports : produire un dossier `tests/results/email-triage/<timestamp>` avec résumé JSON/HTML/TXT, scénarios exécutés, variables manquantes masquées et décisions Calendar/Tasks expliquées.
+- socle de tests déjà amorcé : `tests/email-triage/README.md`, politique horaire `tests/email-triage/lib/calendar-time-policy.js`, lancement `bash tests/email-triage/run-with-report.sh`.
 
 ## Agent IA et coût
 
@@ -189,7 +215,7 @@ Approche recommandée :
 - Envoi digest : notification-service/auth-service ou service email partagé, en réutilisant `SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO` et `EmailLog`; aucune adresse d’expéditeur ou de destinataire ne doit être codée en dur.
 - Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation.
 - Google Calendar API : événements entretien, job dating, salons, rappels.
-- Normalisation dates/heures : timezone explicite, distinction `date seule` / `date+heure`, refus des horaires implicites à `00:00`, confirmation utilisateur avant création si ambigu.
+- Normalisation dates/heures : timezone explicite, distinction `date seule` / `date+heure`, refus des horaires implicites à `00:00`, refus des créneaux automatiques avant `05:00` ou après `23:00`, confirmation utilisateur avant création si ambigu.
 - Tables internes : `EmailAccount`, `EmailMessage`, `EmailThread`, `EmailClassification`, `UserTask`, `TaskReminder`, `AgentDecision`, `AgentDigest`.
 - Tables/relations actions manuelles à prévoir : appel/tâche/rappel/événement rattachable à candidature, contact ou entreprise, même sans email source.
 - Worker planifié : digest 18h, tri périodique, relances en retard.
@@ -202,7 +228,7 @@ Approche recommandée :
 - Un digest 18h est envoyé via le socle SMTP JobbingTrack configuré, avec au moins 5 sections : urgent, aujourd’hui/demain, retard, candidatures, entretiens/événements.
 - Un récapitulatif hebdomadaire peut agréger tâches, événements, relances, appels, emails importants, candidatures sans réponse et actions manuelles programmées.
 - Un refus reçu par email peut être relié à une candidature et proposé en archivage.
-- Une invitation à entretien crée une tâche Google Tasks de préparation et un événement Google Calendar proposé/validé seulement si l’horaire est explicite ; sinon l’action reste à confirmer.
+- Une invitation à entretien crée une tâche Google Tasks de préparation et un événement Google Calendar proposé/validé seulement si l’horaire est explicite, dans la fenêtre `05:00`-`23:00` et dans le bon fuseau ; sinon l’action reste à confirmer.
 - Une candidature sans réponse depuis N jours déclenche une tâche Google Tasks de relance et une recommandation digest.
 - L’utilisateur peut programmer manuellement un appel ou une tâche depuis une fiche candidature/contact/entreprise, et cette action apparaît dans le dashboard, le digest et le calendrier/tâches si synchronisée.
 - L’utilisateur peut corriger une classification, et cette correction est conservée.

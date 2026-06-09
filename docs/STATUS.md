@@ -24,6 +24,7 @@
 - **Emails crash/sécurité** : `notification-service` peut séparer compte SMTP technique, destinataire alias public et identité visible par canal. Variables ajoutées : `CRASH_REPORT_FROM`, `CRASH_REPORT_REPLY_TO`, `SECURITY_ALERT_FROM`, `SECURITY_ALERT_REPLY_TO`. Les vraies redirections alias public -> boîte privée restent chez le fournisseur mail et hors Git.
 - **Agent email — précisions MVP** : le cadrage prévoit OAuth Gmail multi-comptes, révocation/statut de synchronisation, digest quotidien utile sans IA, IA locale gratuite seulement en renfort, recherche v2 réutilisable ensuite dans le backoffice/admin, et garde-fou Calendar : aucun événement à `00:00` par défaut si l’email ne fournit pas d’heure fiable.
 - **Agent email — accès personnel sécurisé** : le premier usage cible est le compte personnel non-admin du porteur, activé explicitement par droit/feature flag. Les comptes créés par d’autres utilisateurs ne doivent pas obtenir l’agent email automatiquement ; le rôle admin ne doit pas donner par défaut la lecture des emails personnels.
+- **Agent email — Calendar et tests** : nouvelle contrainte porteur : aucun événement automatique avant `05:00`, après `23:00` ou à `00:00` par défaut. Les cas ambigus doivent devenir tâches/propositions à confirmer et rester visibles dans le digest. La future suite de tests devra couvrir règles de tri, permissions, Gmail/IMAP de test, digest SMTP/mock, Calendar/Tasks et rapports `tests/results/email-triage/<timestamp>`.
 
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 

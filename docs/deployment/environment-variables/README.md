@@ -93,6 +93,33 @@ SECURITY_ALERT_FROM=JobbingTrack Security <security@jobbingtrack.test>
 SECURITY_ALERT_REPLY_TO=security@jobbingtrack.test
 ```
 
+### 📬 Agent email / tâches recherche emploi (futur lot I)
+
+Valeurs réelles uniquement dans `.env` gitignoré ou paramètres admin. Les placeholders Git ne doivent jamais être utilisés en runtime.
+
+```bash
+# Runtime agent (hors tests)
+EMAIL_TRIAGE_DIGEST_RECIPIENT=           # Destinataire digest quotidien/hebdo
+EMAIL_TRIAGE_READ_ACCOUNT=               # Compte/boîte lecture principale (hors Git)
+EMAIL_TRIAGE_FORWARD_ADDRESS=            # Adresse de transfert configurable
+
+# Tests agent email — intégration locale optionnelle
+TEST_EMAIL_TRIAGE_ENABLED=false
+TEST_EMAIL_TRIAGE_USER_EMAIL=redacted@example.invalid
+TEST_EMAIL_TRIAGE_USER_PASSWORD=
+TEST_EMAIL_TRIAGE_GMAIL_ACCOUNT=
+TEST_EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=
+TEST_EMAIL_TRIAGE_IMAP_EMAIL=redacted@example.invalid
+TEST_EMAIL_TRIAGE_IMAP_HOST=imap.example.com
+TEST_EMAIL_TRIAGE_IMAP_PORT=993
+TEST_EMAIL_TRIAGE_IMAP_PASSWORD=
+TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT=redacted@example.invalid
+TEST_EMAIL_TRIAGE_CALENDAR_MIN_HOUR=05:00
+TEST_EMAIL_TRIAGE_CALENDAR_MAX_HOUR=23:00
+```
+
+Les tests d’intégration Gmail/IMAP/digest doivent **skip** explicitement si les secrets sont absents. Détail : `docs/features/EMAIL_TRIAGE_AGENT.md` et `tests/email-triage/README.md`.
+
 ### 👤 Utilisateur Administrateur
 
 ```bash
