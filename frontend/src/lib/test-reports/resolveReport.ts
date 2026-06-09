@@ -240,6 +240,109 @@ function parseSecuritySummaryMd(content: string): {
   };
 }
 
+function parseSecuritySummaryJson(parsed: {
+  meta?: { scan_type?: string; report_type?: string };
+  results?: Array<{
+    kind?: string;
+    name?: string;
+    surface?: string;
+    status?: string;
+    counts?: {
+      critical?: number;
+      high?: number;
+      medium?: number;
+      moderate?: number;
+      low?: number;
+      info?: number;
+    };
+  }>;
+}): {
+  category: string;
+  testName: string;
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+  };
+  rows: SecurityCompareRow[];
+} | null {
+  const results = Array.isArray(parsed.results) ? parsed.results : [];
+  if (results.length === 0) return null;
+
+  const rows = results.map((result) => {
+    const counts = result.counts ?? {};
+    const critical = Number(counts.critical ?? 0);
+    const high = Number(counts.high ?? 0);
+    const medium = Number(counts.medium ?? counts.moderate ?? 0);
+    const low = Number(counts.low ?? 0);
+    return {
+      kind: String(result.kind ?? "autre"),
+      surface: String(result.name ?? result.surface ?? "surface inconnue"),
+      status: normalizeSecurityStatusFromCounts(
+        String(result.status ?? "ok"),
+        critical,
+        high,
+        medium,
+        low,
+      ),
+      critical,
+      high,
+      medium,
+      low,
+      info: Number(counts.info ?? 0),
+    };
+  });
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      critical: acc.critical + row.critical,
+      high: acc.high + row.high,
+      medium: acc.medium + row.medium,
+      low: acc.low + row.low,
+      info: acc.info + row.info,
+      skipped: acc.skipped + (row.status === "skipped" ? 1 : 0),
+      surfaces: acc.surfaces + 1,
+    }),
+    {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      info: 0,
+      skipped: 0,
+      surfaces: 0,
+    },
+  );
+  const failed = rows.filter((row) => row.critical > 0 || row.high > 0).length;
+  const passed = Math.max(0, totals.surfaces - failed - totals.skipped);
+
+  return {
+    category: "Sécurité",
+    testName:
+      parsed.meta?.scan_type ||
+      parsed.meta?.report_type ||
+      "Rapport sécurité CVE",
+    summary: {
+      total: totals.surfaces,
+      passed,
+      failed,
+      skipped: totals.skipped,
+      critical: totals.critical,
+      high: totals.high,
+      medium: totals.medium,
+      low: totals.low,
+      info: totals.info,
+    },
+    rows,
+  };
+}
+
 export type CompareTestStatus = "pass" | "fail" | "skip";
 
 export interface CompareTestRow {
@@ -385,15 +488,34 @@ export async function loadCompareReport(
     try {
       const raw = await readFile(summaryJsonPath, "utf-8");
       const parsed = JSON.parse(raw);
-      const s = parsed.summary || parsed;
-      category = parsed.category || category;
-      testName = parsed.testName || testName;
-      summary = {
-        total: s.totalTests ?? s.total ?? 0,
-        passed: s.totalPassed ?? s.passed ?? 0,
-        failed: s.totalFailed ?? s.failed ?? 0,
-        skipped: s.totalSkipped ?? s.skipped ?? 0,
-      };
+      const securityJson =
+        id.startsWith("security-reports-") || id.startsWith("security-results-")
+          ? parseSecuritySummaryJson(parsed)
+          : null;
+      if (securityJson) {
+        category = securityJson.category;
+        testName = securityJson.testName;
+        summary = securityJson.summary;
+        tests = securityJson.rows.map((row, index) => ({
+          num: index + 1,
+          name: `${row.kind} — ${row.surface}`,
+          status: securityRowStatus(row),
+          expected: "0 critical/high",
+          actual: `Critical ${row.critical} · High ${row.high} · Medium ${row.medium} · Low ${row.low} · Info ${row.info}`,
+          response: row.status,
+          security: row,
+        }));
+      } else {
+        const s = parsed.summary || parsed;
+        category = parsed.category || category;
+        testName = parsed.testName || testName;
+        summary = {
+          total: s.totalTests ?? s.total ?? 0,
+          passed: s.totalPassed ?? s.passed ?? 0,
+          failed: s.totalFailed ?? s.failed ?? 0,
+          skipped: s.totalSkipped ?? s.skipped ?? 0,
+        };
+      }
     } catch {
       // ignore
     }
