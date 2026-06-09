@@ -1,13 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { getAdminCredentials } from "./test-data-helper";
 
-const ADMIN_EMAIL =
-  process.env.TEST_ADMIN_EMAIL ||
-  process.env.ADMIN_EMAIL ||
-  "admin@jobbingtrack.test";
-const ADMIN_PASSWORD =
-  process.env.TEST_ADMIN_PASSWORD ||
-  process.env.ADMIN_PASSWORD ||
-  "password123";
+const ADMIN_CREDENTIALS = getAdminCredentials();
 
 /** Desactive les tests UI sensibles au timing auth (CI lent ou cookie sans localStorage). API reste couverte par api-e2e.spec.ts */
 const skipLoginUi =
@@ -108,7 +102,7 @@ test.describe("🔐 Authentification - Page de connexion", () => {
     page,
   }) => {
     await expect(page.getByText("Compte de test")).toHaveCount(0);
-    await expect(page.getByText("password123")).toHaveCount(0);
+    await expect(page.getByText(ADMIN_CREDENTIALS.password)).toHaveCount(0);
     await expect(page.getByText("Les champs sont pré-remplis")).toHaveCount(0);
   });
 
@@ -117,8 +111,10 @@ test.describe("🔐 Authentification - Page de connexion", () => {
   }) => {
     test.skip(skipLoginUi, "E2E_SKIP_LOGIN_UI=1 ou E2E_SKIP_FLAKY_LOGIN=1");
     test.setTimeout(60_000);
-    await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
-    await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
+    await page.locator('input[type="email"]').fill(ADMIN_CREDENTIALS.email);
+    await page
+      .locator('input[type="password"]')
+      .fill(ADMIN_CREDENTIALS.password);
     await page.locator('button[type="submit"]').click();
     const outcome = await detectLoginOutcome(page, 25_000);
     if (outcome === "network_error" || outcome === "timeout") {

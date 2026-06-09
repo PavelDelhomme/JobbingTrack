@@ -20,10 +20,19 @@ Le système doit aider le porteur à :
 ## Sources à connecter
 
 - Gmail `redacted@example.invalid` via OAuth et scopes minimaux.
-- Boîte JobbingTrack dédiée, par exemple `candidatures@example.invalid`.
+- Boîte JobbingTrack dédiée `candidatures@example.invalid` ou variante à confirmer si l’adresse réelle contient un autre domaine.
 - Candidatures, entreprises, contacts, relances, appels, entretiens et événements déjà présents dans JobbingTrack.
-- Google Tasks et Google Calendar si le porteur confirme l’usage.
+- Google Tasks et Google Calendar sont obligatoires pour le MVP : tâches de relance/préparation et événements d’entretien doivent être synchronisés proprement.
 - Emails transférés automatiquement depuis des plateformes emploi ou recruteurs.
+
+## Décisions d’architecture
+
+- JobbingTrack reste le système central : Make.com/Zapier peuvent dépanner ponctuellement, mais ne doivent pas porter la logique métier ni les décisions de tri.
+- Worker planifié interne : import/polling borné, classification, création de tâches/événements et digest quotidien vers 18h.
+- Stockage interne des emails utiles uniquement : messages, threads, métadonnées, rattachements et décisions d’agent.
+- Moteur déterministe d’abord, sans IA payante obligatoire : règles, dates, statuts, délais de relance, labels et correction manuelle.
+- IA locale ensuite, en renfort du moteur de règles : résumé, aide à la rédaction, priorisation et détection de cas ambigus.
+- Aucun envoi d’email externe ni archivage massif sans validation utilisateur explicite.
 
 ## Récapitulatif quotidien
 
@@ -42,7 +51,7 @@ Le digest doit être compréhensible sans ouvrir l’application, mais chaque li
 
 ## Interface utilisateur dédiée
 
-Ne pas mettre cette expérience dans le backoffice admin. Prévoir une interface produit dédiée, accessible à l’utilisateur, orientée recherche d’emploi :
+Ne pas mélanger cette expérience avec le backoffice email transactionnel qui sert aux resets de mot de passe, validations d’inscription et notifications système. Prévoir une interface privée JobbingTrack dédiée, accessible après connexion, orientée recherche d’emploi :
 
 - tableau de bord du jour ;
 - file d’emails à traiter ;
@@ -53,6 +62,8 @@ Ne pas mettre cette expérience dans le backoffice admin. Prévoir une interface
 - configuration des comptes et adresses de transfert ;
 - historique des décisions de l’agent et possibilité de corriger.
 
+Décision produit à confirmer avant implémentation : cette interface peut être exposée comme espace connecté utilisateur distinct du backoffice admin, ou comme section privée réservée à l’administrateur tant que JobbingTrack reste utilisé par le porteur seul. Dans tous les cas, elle ne doit pas être publique et ne doit pas réutiliser les écrans de gestion des emails système.
+
 ## Priorités produit
 
 P0 :
@@ -61,7 +72,9 @@ P0 :
 - socle tâches JobbingTrack : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email ;
 - digest quotidien 18h basé sur données internes existantes, même sans IA ;
 - lecture Gmail/boîte candidatures en lecture seule avec consentement explicite ;
-- classification minimale : refus, entretien, relance nécessaire, événement emploi, newsletter/bruit.
+- stockage interne des emails utiles, threads, classifications et décisions ;
+- synchronisation Google Tasks et Google Calendar obligatoire pour les relances, préparations d’entretien et événements ;
+- classification minimale déterministe : refus, entretien, relance nécessaire, événement emploi, newsletter/bruit.
 
 P1 :
 
@@ -71,6 +84,7 @@ P1 :
 - liste emails reçus dans l’interface, triés par candidature/relance ;
 - envoyer relance/email directement depuis l’interface avec identité choisie ;
 - audit des actions automatiques et confirmation avant envoi externe.
+- moteur de règles enrichi : mots-clés, expéditeurs connus, délais 7/10/14 jours, rattachement plateforme/candidature.
 
 P2 :
 
@@ -93,15 +107,23 @@ P4 :
 
 - récupération automatique salons emploi Rennes/Bretagne ;
 - recommandation proactive d’événements pertinents ;
-- amélioration IA locale ou hybride si le coût, la confidentialité et la qualité sont acceptables.
+- amélioration IA locale d’abord, puis hybride seulement si le coût, la confidentialité et la qualité sont acceptables.
+
+## Règles déterministes MVP
+
+- Email contenant `entretien`, `rendez-vous`, `disponibilités` : proposer entretien, tâche de préparation et événement Google Calendar.
+- Email contenant `malheureusement`, `retenu`, `suite à votre candidature` : probable refus, rattachement candidature et proposition d’archivage.
+- Email venant de plateformes emploi comme Indeed, LinkedIn, France Travail ou recruteurs connus : rattachement candidature, entreprise ou veille.
+- Candidature sans réponse depuis 7/10/14 jours : tâche Google Tasks de relance et recommandation dans le digest.
+- Email ou alerte contenant `job dating`, `salon`, `forum emploi` : événement emploi à vérifier, puis création Calendar si validé.
 
 ## Agent IA et coût
 
 Approche recommandée :
 
 1. D’abord un moteur déterministe fiable : règles, dates, statuts, délais de relance, parsing email, labels.
-2. Ajouter ensuite une couche IA optionnelle pour résumer, classer et proposer une réponse.
-3. Favoriser une IA locale ou auto-hébergée quand c’est réaliste : Ollama, modèle léger, cache de résultats, batch quotidien.
+2. Ajouter ensuite une couche IA locale pour résumer, classer et proposer une réponse, sans remplacer les règles métier.
+3. Favoriser une IA locale ou auto-hébergée : Ollama, modèle léger, cache de résultats, batch quotidien.
 4. Prévoir un mode sans IA payante qui reste utile : digest + tâches + règles.
 5. Si un fournisseur externe est utilisé, limiter strictement les données envoyées, demander validation explicite, journaliser le coût et anonymiser autant que possible.
 
@@ -119,8 +141,8 @@ Approche recommandée :
 
 - Gmail API : watch/history ou polling borné, labels, threads, pièces jointes sélectionnées.
 - IMAP/SMTP ou API fournisseur pour `candidatures@example.invalid`.
-- Google Tasks API : création et synchronisation des tâches.
-- Google Calendar API : événements entretien, job dating, rappels.
+- Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation.
+- Google Calendar API : événements entretien, job dating, salons, rappels.
 - Tables internes : `EmailAccount`, `EmailMessage`, `EmailThread`, `EmailClassification`, `UserTask`, `TaskReminder`, `AgentDecision`, `AgentDigest`.
 - Worker planifié : digest 18h, tri périodique, relances en retard.
 - API JobbingTrack : endpoints utilisateur, pas backoffice admin.
@@ -130,8 +152,8 @@ Approche recommandée :
 - L’utilisateur connecte Gmail sans exposer de secret.
 - Un digest 18h est envoyé avec au moins 5 sections : urgent, aujourd’hui/demain, retard, candidatures, entretiens/événements.
 - Un refus reçu par email peut être relié à une candidature et proposé en archivage.
-- Une invitation à entretien crée une tâche de préparation et une proposition d’événement calendrier.
-- Une candidature sans réponse depuis N jours déclenche une relance recommandée.
+- Une invitation à entretien crée une tâche Google Tasks de préparation et un événement Google Calendar proposé/validé.
+- Une candidature sans réponse depuis N jours déclenche une tâche Google Tasks de relance et une recommandation digest.
 - L’utilisateur peut corriger une classification, et cette correction est conservée.
 - Aucun email externe n’est envoyé automatiquement sans validation explicite.
 

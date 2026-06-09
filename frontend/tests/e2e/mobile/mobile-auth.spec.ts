@@ -1,13 +1,13 @@
 // Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
-import { test, expect, Page } from "@playwright/test";
-import { ensureTestUser } from "../test-data-helper";
-
+import { test, expect } from "@playwright/test";
+import { process } from "process";
+import { ensureTestUser, requireTestCredentials } from "../test-data-helper";
 /**
  * Tests Mobile - Authentification
  * Inscription, connexion, déconnexion, réinitialisation mot de passe
  */
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5003";
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 test.describe("📱 Mobile - Authentification", () => {
   let testCredentials: { email: string; password: string } | null = null;
@@ -36,16 +36,11 @@ test.describe("📱 Mobile - Authentification", () => {
 
   test("Connexion - Formulaire mobile", async ({ page }) => {
     await page.goto("/login");
+    const credentials = requireTestCredentials(testCredentials);
 
     // Remplir et soumettre
-    await page.fill(
-      'input[type="email"]',
-      testCredentials?.email || "admin@jobbingtrack.test",
-    );
-    await page.fill(
-      'input[type="password"]',
-      testCredentials?.password || "password123",
-    );
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
     await page.click('button[type="submit"]');
 
     // Vérifier la redirection (legacy /dashboard ou backoffice actuel)
@@ -55,14 +50,9 @@ test.describe("📱 Mobile - Authentification", () => {
   test("Déconnexion - Mobile", async ({ page }) => {
     // Se connecter d'abord
     await page.goto("/login");
-    await page.fill(
-      'input[type="email"]',
-      testCredentials?.email || "admin@jobbingtrack.test",
-    );
-    await page.fill(
-      'input[type="password"]',
-      testCredentials?.password || "password123",
-    );
+    const credentials = requireTestCredentials(testCredentials);
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/(backoffice|dashboard)(\/|$)/, { timeout: 15000 });
 

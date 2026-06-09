@@ -1,6 +1,6 @@
 // Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 import { test, expect } from "@playwright/test";
-import { ensureTestUser } from "../test-data-helper";
+import { ensureTestUser, requireTestCredentials } from "../test-data-helper";
 
 /**
  * Tests Mobile - Gestion des Candidatures
@@ -18,15 +18,10 @@ test.describe("📱 Mobile - Gestion Candidatures", () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     // Connexion
+    const credentials = requireTestCredentials(testCredentials);
     await page.goto("/login");
-    await page.fill(
-      'input[type="email"]',
-      testCredentials?.email || "admin@jobbingtrack.test",
-    );
-    await page.fill(
-      'input[type="password"]',
-      testCredentials?.password || "password123",
-    );
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/(backoffice|dashboard)(\/|$)/, { timeout: 30000 });
   });

@@ -10,6 +10,14 @@ const API_URL =
 /** Lance un test email minimal (vérification du service). Pas de rapport généré. */
 export async function POST(request: NextRequest) {
   try {
+    const testRecipient = process.env.TEST_EMAIL_RECIPIENT?.trim();
+    if (!testRecipient) {
+      return NextResponse.json(
+        { success: false, error: "TEST_EMAIL_RECIPIENT requis" },
+        { status: 400 },
+      );
+    }
+
     const auth = request.headers.get("authorization");
     const res = await fetch(`${API_URL}/api/v1/emails/test`, {
       method: "POST",
@@ -18,7 +26,7 @@ export async function POST(request: NextRequest) {
         ...(auth ? { Authorization: auth } : {}),
       },
       body: JSON.stringify({
-        to: "redacted@example.invalid",
+        to: testRecipient,
         subject: "🧪 Test JobbingTrack (hub)",
         content: "<p>Test lancé depuis le hub Tests.</p>",
       }),

@@ -194,16 +194,16 @@
 
 **Synthèse (indicatif)** — Technique **0 %** · **Validé porteur** : **0/6** — cadrage initial uniquement, source détaillée : `docs/features/EMAIL_TRIAGE_AGENT.md`.
 
-**Objectif** : offrir à l’utilisateur un assistant JobbingTrack dédié à la recherche d’emploi : tri des emails, tâches, relances, préparation entretiens, digest quotidien 18h, et intégrations Gmail/boîte candidatures/Google Tasks/Calendar avec sécurité forte.
+**Objectif** : offrir à l’utilisateur un assistant JobbingTrack dédié à la recherche d’emploi : tri des emails, tâches, relances, préparation entretiens, digest quotidien 18h, Gmail/boîte candidatures, Google Tasks/Calendar obligatoires, moteur déterministe d’abord et IA locale en renfort.
 
 | # | Tâche | État | Validé (porteur) | Fichiers / notes |
 |---|-------|------|------------------|------------------|
-| I1 | **Socle tâches utilisateur** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et digest | À faire | Non | Interface utilisateur dédiée, pas backoffice admin |
-| I2 | **Connexion email lecture seule** : OAuth Gmail `redacted@example.invalid`, boîte `candidatures@example.invalid`, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Ne pas envoyer/supprimer d’email au départ |
-| I3 | **Classification emails emploi** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Moteur déterministe d’abord, IA ensuite |
+| I1 | **Socle tâches utilisateur + Google Tasks** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et synchronisation Google Tasks | À faire | Non | Interface privée dédiée, pas publique ni mélangée au backoffice email transactionnel |
+| I2 | **Connexion email lecture seule** : OAuth Gmail `redacted@example.invalid`, boîte candidatures OVH à confirmer, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Worker planifié ; ne pas envoyer/supprimer d’email au départ |
+| I3 | **Classification emails emploi déterministe** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Règles mots-clés, expéditeurs, délais 7/10/14 jours ; IA locale seulement en renfort |
 | I4 | **Digest quotidien 18h** : urgent, tâches demain, retard, candidatures sans réponse, entretiens à préparer, événements, décisions proposées | À faire | Non | Email récapitulatif + liens JobbingTrack |
-| I5 | **Actions utilisateur** : créer tâche/relance/événement, archiver email, marquer refus, préparer entretien, rédiger brouillon de réponse | À faire | Non | Confirmation obligatoire avant tout envoi externe |
-| I6 | **IA locale ou optionnelle** : résumé, tri, suggestions de réponse, enrichissement entreprise ; pas de dépendance payante obligatoire | À faire | Non | Ollama/modèle local/cache/batch ; anonymisation si fournisseur externe |
+| I5 | **Google Calendar + actions utilisateur** : créer tâche/relance/événement, archiver email, marquer refus, préparer entretien, rédiger brouillon de réponse | À faire | Non | Calendar obligatoire pour entretiens/job dating/salons ; confirmation avant tout envoi externe |
+| I6 | **IA locale** : résumé, tri, suggestions de réponse, enrichissement entreprise ; pas de dépendance payante obligatoire | À faire | Non | Ollama/modèle local/cache/batch ; anonymisation si fournisseur externe |
 
 **Garde-fous** :
 
@@ -212,6 +212,7 @@
 3. Aucune dépendance obligatoire à un service IA payant.
 4. Les données personnelles envoyées à une IA externe sont minimisées et soumises à accord explicite.
 5. Le chantier attend la clôture ou le reclassement des P0/P1 bloquants avant implémentation.
+6. Make.com/Zapier ne portent pas la logique métier : ils restent hors socle, au mieux outils temporaires de prototypage.
 
 ---
 
@@ -256,7 +257,7 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 6. **F** en gate avant de considérer le chantier « clos ».
 7. **G** (sauvegardes / continuité) : **après** stabilisation des lots **A/B** et clarification des contraintes hébergeur ; ne pas ralentir le socle monitoring/sécurité sans cadrage **G1**.
 8. **H** (release / préprod / conformité) : préparer en parallèle par documentation et CI, mais exécuter réellement avant toute bascule `dev` → prod.
-9. **I** (agent email / tâches recherche emploi) : cadrer puis implémenter après les P0/P1 bloquants ; commencer par tâches + lecture email + digest déterministe avant IA.
+9. **I** (agent email / tâches recherche emploi) : cadrer puis implémenter après les P0/P1 bloquants ; commencer par tâches + lecture email + digest déterministe + Google Tasks/Calendar avant IA locale.
 10. **Vision DHT / overlay (hors scope actuel)** : annuaire distribué, relais chiffrés, échange pair-à-pair sans exposition d’IP — **recherche / fin de projet** uniquement ; voir **`TODOS.md`** § **Vision données décentralisées (DHT)**.
 
 Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (aligné sur ce plan et sur **`ERRORS.md`** / **`project/FONCTIONNALITES.md`**). **Phase porteur immédiate** : **`TODOS.md`** § **Phase validation porteur** (login, SecuritySubNav, pagination, corrélation, lecture logs WAF).

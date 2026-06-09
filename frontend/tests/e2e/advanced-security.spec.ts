@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { getAdminCredentials } from "./test-data-helper";
+
+const adminCredentials = getAdminCredentials();
 
 test.describe("🔐 Tests de Sécurité Avancés", () => {
   test("devrait protéger contre les attaques par injection JWT", async ({
@@ -15,7 +18,7 @@ test.describe("🔐 Tests de Sécurité Avancés", () => {
           success: true,
           user: {
             id: "1",
-            email: "admin@jobbingtrack.test",
+            email: adminCredentials.email,
             firstName: "Admin",
             lastName: "JobbingTrack",
             role: "SUPER_ADMIN",
@@ -27,8 +30,8 @@ test.describe("🔐 Tests de Sécurité Avancés", () => {
       });
     });
 
-    await page.fill('input[type="email"]', "admin@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', adminCredentials.email);
+    await page.fill('input[type="password"]', adminCredentials.password);
     await page.locator('button[type="submit"]').click();
 
     // Devrait détecter le token invalide et rediriger vers login
@@ -457,7 +460,7 @@ test.describe("🔐 Tests de Sécurité Avancés", () => {
           success: true,
           user: {
             id: "1",
-            email: "admin@jobbingtrack.test",
+            email: adminCredentials.email,
             role: "SUPER_ADMIN",
           },
         }),
@@ -708,7 +711,7 @@ test.describe("🔐 Tests de Sécurité Avancés", () => {
           success: true,
           user: {
             id: "1",
-            email: "admin@jobbingtrack.test",
+            email: adminCredentials.email,
             role: "SUPER_ADMIN",
           },
         }),

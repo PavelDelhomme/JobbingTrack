@@ -7,7 +7,9 @@
 ## 9 juin 2026 — cadrage agent email / tâches recherche emploi
 
 - **Branche documentaire** : `docs/email-triage-agent-roadmap`, créée depuis `origin/dev` pour ne pas mélanger ce cadrage avec la PR P0 CVE `fix/security-cve-scan-full-scope`.
-- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, Gmail `redacted@example.invalid`, boîte `candidatures@example.invalid`, Google Tasks/Calendar optionnels, interface utilisateur dédiée hors backoffice, IA locale/gratuite ou optionnelle si possible.
+- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, Gmail `redacted@example.invalid`, boîte candidatures OVH à confirmer, Google Tasks/Calendar obligatoires, interface privée dédiée hors backoffice email transactionnel, moteur déterministe d’abord et IA locale en renfort.
+- **Décision architecture** : JobbingTrack reste le socle ; Make.com/Zapier ne doivent pas porter la logique métier. Worker planifié, stockage interne des emails utiles, règles de classification explicites, puis IA locale si elle apporte une valeur.
+- **Navigation backoffice Tests** : demande porteur ajoutée au pilotage P1C — clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests et Rapports de parcours, menu Développement/Tests moins long et mieux catégorisé.
 - **Document source** : `docs/features/EMAIL_TRIAGE_AGENT.md`.
 - **Pilotage** : entrée ajoutée dans `docs/TODOS.md`, `docs/BACKLOG.md`, `docs/PLAN.md` (lot I) et `TODOS_A_VALIDER.md` en P2 futur. L’implémentation n’est pas démarrée tant que la première ligne P0 de `TODOS_A_VALIDER.md` reste ouverte.
 

@@ -2,12 +2,9 @@
  * E2E : Inscription avec les 3 comptes email (Gmail, Proton, BlueMail)
  * puis vérification dans le backoffice Email Monitor que les emails de vérification
  * sont bien créés/envoyés et visibles.
- *
- * - redacted@example.invalid (Gmail)
- * - redacted@example.invalid (Proton Mail)
- * - candidatures@example.invalid (BlueMail)
  */
 import { test, expect } from "@playwright/test";
+import { requireEnvValue } from "./test-data-helper";
 
 const API_URL =
   process.env.API_URL ||
@@ -15,12 +12,15 @@ const API_URL =
   "http://localhost:5002";
 
 const VERIFICATION_EMAILS = [
-  "redacted@example.invalid",
-  "redacted@example.invalid",
-  "candidatures@example.invalid",
+  requireEnvValue(["TEST_VERIFICATION_GMAIL_EMAIL"], "Email vérification Gmail"),
+  requireEnvValue(["TEST_VERIFICATION_PROTON_EMAIL"], "Email vérification Proton"),
+  requireEnvValue(["TEST_VERIFICATION_BLUEMAIL_EMAIL"], "Email vérification BlueMail"),
 ] as const;
 
-const PASSWORD = "password123";
+const PASSWORD = requireEnvValue(
+  ["TEST_VERIFICATION_EMAIL_PASSWORD"],
+  "Mot de passe comptes vérification email",
+);
 
 test.describe("Inscription + vérification email (Email Monitor)", () => {
   // Skip si pas de MailHog / SMTP configuré ou emails de test non disponibles (CI, env sans données)

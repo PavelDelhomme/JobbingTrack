@@ -1,7 +1,10 @@
 // Tests d'impersonation — utilise un administrateur (SUPER_ADMIN)
 import { test, expect } from "@playwright/test";
-import config from "./test-config.js";
-import { loginAsAdmin } from "./test-data-helper";
+import { getGeneratedUserPassword, loginAsAdmin } from "./test-data-helper";
+
+const createdUserPassword = getGeneratedUserPassword(
+  "Mot de passe utilisateurs créés par tests impersonation",
+);
 
 test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)", () => {
   test("👤 Création d'utilisateur de test via interface", async ({ page }) => {
@@ -14,7 +17,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     // Remplir le formulaire
     const testEmail = `testuser_${Date.now()}@jobbingtrack.test`;
     await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', "testpassword123");
+    await page.fill('input[name="password"]', createdUserPassword);
     await page.fill('input[name="firstName"]', "Test");
     await page.fill('input[name="lastName"]', "User");
     await page.selectOption('select[name="role"]', "USER");
@@ -35,7 +38,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     await page.click('button:has-text("Créer Utilisateur Test")');
     const testEmail = `testuser_${Date.now()}@jobbingtrack.test`;
     await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', "testpassword123");
+    await page.fill('input[name="password"]', createdUserPassword);
     await page.fill('input[name="firstName"]', "Test");
     await page.fill('input[name="lastName"]', "User");
     await page.selectOption('select[name="role"]', "USER");
@@ -47,7 +50,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     // Maintenant se connecter avec cet utilisateur
     await page.goto("http://localhost:8080/login");
     await page.fill('input[type="email"]', testEmail);
-    await page.fill('input[type="password"]', "testpassword123");
+    await page.fill('input[type="password"]', createdUserPassword);
     await page.click('button[type="submit"]');
 
     // Vérifier qu'on est connecté comme utilisateur normal
@@ -70,7 +73,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     await page.click('button:has-text("Créer Utilisateur Test")');
     const adminEmail = `admin_${Date.now()}@jobbingtrack.test`;
     await page.fill('input[name="email"]', adminEmail);
-    await page.fill('input[name="password"]', "adminpassword123");
+    await page.fill('input[name="password"]', createdUserPassword);
     await page.fill('input[name="firstName"]', "Admin");
     await page.fill('input[name="lastName"]', "Test");
     await page.selectOption('select[name="role"]', "ADMIN");
@@ -82,7 +85,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     // Se connecter avec l'admin de test
     await page.goto("http://localhost:8080/login");
     await page.fill('input[type="email"]', adminEmail);
-    await page.fill('input[type="password"]', "adminpassword123");
+    await page.fill('input[type="password"]', createdUserPassword);
     await page.click('button[type="submit"]');
 
     // Vérifier qu'on est connecté comme administrateur
@@ -118,7 +121,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
       // Créer l'utilisateur
       await page.click('button:has-text("Créer Utilisateur Test")');
       await page.fill('input[name="email"]', testUser.email);
-      await page.fill('input[name="password"]', "rolepassword123");
+      await page.fill('input[name="password"]', createdUserPassword);
       await page.fill('input[name="firstName"]', "Role");
       await page.fill('input[name="lastName"]', "Test");
       await page.selectOption('select[name="role"]', testUser.role);
@@ -130,7 +133,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
       // Se connecter avec cet utilisateur
       await page.goto("http://localhost:8080/login");
       await page.fill('input[type="email"]', testUser.email);
-      await page.fill('input[type="password"]', "rolepassword123");
+      await page.fill('input[type="password"]', createdUserPassword);
       await page.click('button[type="submit"]');
 
       // Vérifier qu'on est connecté
@@ -157,7 +160,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     await page.click('button:has-text("Créer Utilisateur Test")');
     const deleteEmail = `deleteuser_${Date.now()}@jobbingtrack.test`;
     await page.fill('input[name="email"]', deleteEmail);
-    await page.fill('input[name="password"]', "deletepassword123");
+    await page.fill('input[name="password"]', createdUserPassword);
     await page.fill('input[name="firstName"]', "Delete");
     await page.fill('input[name="lastName"]', "Test");
     await page.selectOption('select[name="role"]', "USER");
@@ -169,7 +172,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     // Tenter de se connecter avec l'utilisateur (pour vérifier qu'il existe)
     await page.goto("http://localhost:8080/login");
     await page.fill('input[type="email"]', deleteEmail);
-    await page.fill('input[type="password"]', "deletepassword123");
+    await page.fill('input[type="password"]', createdUserPassword);
     await page.click('button[type="submit"]');
 
     // Vérifier qu'on est connecté

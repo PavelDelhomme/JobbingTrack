@@ -2,15 +2,8 @@ import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { e2eGatewayBaseUrl } from "../../../tests/e2e/helpers/gatewayUrl";
+import { getAdminCredentials } from "./test-data-helper";
 
-const ADMIN_EMAIL =
-  process.env.TEST_ADMIN_EMAIL ||
-  process.env.ADMIN_EMAIL ||
-  "admin@jobbingtrack.test";
-const ADMIN_PASSWORD =
-  process.env.TEST_ADMIN_PASSWORD ||
-  process.env.ADMIN_PASSWORD ||
-  "password123";
 const API_GATEWAY_URL = e2eGatewayBaseUrl();
 
 export const AUTH_FILE = path.join(__dirname, ".auth", "admin.json");
@@ -24,8 +17,9 @@ test("authenticate as admin", async ({ page, request }) => {
   }
 
   // Évite la fragilité UI du setup: login API puis injection token/cookie.
+  const adminCredentials = getAdminCredentials();
   const loginRes = await request.post(`${API_GATEWAY_URL}/api/v1/auth/login`, {
-    data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+    data: adminCredentials,
   });
   expect(
     loginRes.ok(),

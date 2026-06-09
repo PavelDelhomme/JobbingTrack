@@ -4,13 +4,15 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { getAdminCredentials, getGeneratedUserPassword } from "./test-data-helper";
 
 const TEST_USER = {
   email: `test.user.${Date.now()}@jobbing track.test`,
-  password: "TestPassword123!",
+  password: getGeneratedUserPassword("Mot de passe parcours utilisateur complet"),
   firstName: "Jean",
   lastName: "Test",
 };
+const ADMIN_CREDENTIALS = getAdminCredentials();
 
 test.describe("Parcours utilisateur complet - JobbingTrack", () => {
   test("Parcours complet: Inscription → Connexion → Création candidature → Gestion complète", async ({
@@ -514,8 +516,8 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
 
     // Se connecter avec un compte test existant
     await page.goto("http://localhost:3000/login");
-    await page.fill('input[name="email"]', "admin@jobbingtrack.test");
-    await page.fill('input[name="password"]', "admin123");
+    await page.fill('input[name="email"]', ADMIN_CREDENTIALS.email);
+    await page.fill('input[name="password"]', ADMIN_CREDENTIALS.password);
     await page.click('button[type="submit"]');
     await page.waitForTimeout(2000);
 

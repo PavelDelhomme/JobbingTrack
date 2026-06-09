@@ -1,6 +1,6 @@
 // Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 import { test, expect } from "@playwright/test";
-import { ensureTestUser } from "../test-data-helper";
+import { ensureTestUser, requireTestCredentials } from "../test-data-helper";
 
 /**
  * Tests Mobile - Gestion des Contacts
@@ -15,14 +15,15 @@ test.describe("📱 Mobile - Gestion Contacts", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
+    const credentials = requireTestCredentials(testCredentials);
     await page.goto("/login");
     await page.fill(
       'input[type="email"]',
-      testCredentials?.email || "admin@jobbingtrack.test",
+      credentials.email,
     );
     await page.fill(
       'input[type="password"]',
-      testCredentials?.password || "password123",
+      credentials.password,
     );
     await page.click('button[type="submit"]');
     await page.waitForURL("**/dashboard**");
