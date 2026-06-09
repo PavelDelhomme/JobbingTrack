@@ -57,6 +57,7 @@ L’agent ne coche pas à la place du porteur : après un `OK` explicite, il arc
 | P2 | Performances — Disque stockage BDD | local | Page Disque : cartes + Block I/O ; validation données réelles. | [ ] | |
 | P2 | Préférences refresh par graphique | local | Vérifier héritage zone globale vs override local (si UI exposée). | [ ] | |
 | P2 | Mobile — source officielle | décision | Choisir `mobile/` vs `flutter-mobile-app/` avant archivage doublon. | [ ] | |
+| P2 | Agent email / tâches recherche emploi — cadrage produit | local | Après clôture/reclassement des P0/P1 bloquants : relire `docs/features/EMAIL_TRIAGE_AGENT.md`, confirmer le périmètre MVP (tâches, OAuth Gmail lecture seule, boîte `candidatures@example.invalid`, digest 18h, interface utilisateur hors backoffice, Google Tasks/Calendar optionnels, IA locale/optionnelle), puis décider si on ouvre une branche `feat/` d’implémentation. | [ ] | **09/06 porteur** : besoin prioritaire noté ; ne pas démarrer l’implémentation tant que la comparaison CVE P0 reste ouverte. |
 
 ## Gate technique fin de journée / avant push majeur
 

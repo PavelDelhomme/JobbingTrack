@@ -6,6 +6,8 @@
 
 **Release / préprod / prod** : voir **`operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`** pour la séquence branche tests complets → préprod → bêta mobile → production, incluant licences, RGPD, retours utilisateurs, déploiements et décision mono-repo vs multi-repo.
 
+**Agent email / tâches recherche emploi** : cadrage produit ajouté le 09/06 dans **`features/EMAIL_TRIAGE_AGENT.md`**. Ce futur lot ne doit pas interrompre les P0 de `TODOS_A_VALIDER.md` : il sera planifié après validation/reclassement des blocages sécurité/rapports.
+
 **Plan Cursor (IDE)** : le fichier `.cursor/plans/chantier_securite_data_docs_2c0a63b7.plan.md` peut encore nommer les lots dans l’**ancien** ordre ; **source de vérité** : ce **`PLAN.md`** (lots **A** = monitoring, **B** = sécurité, **G** = backup / continuité, avril 2026).
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.
@@ -188,6 +190,31 @@
 
 ---
 
+## Lot I — Agent email, tâches et accompagnement recherche
+
+**Synthèse (indicatif)** — Technique **0 %** · **Validé porteur** : **0/6** — cadrage initial uniquement, source détaillée : `docs/features/EMAIL_TRIAGE_AGENT.md`.
+
+**Objectif** : offrir à l’utilisateur un assistant JobbingTrack dédié à la recherche d’emploi : tri des emails, tâches, relances, préparation entretiens, digest quotidien 18h, et intégrations Gmail/boîte candidatures/Google Tasks/Calendar avec sécurité forte.
+
+| # | Tâche | État | Validé (porteur) | Fichiers / notes |
+|---|-------|------|------------------|------------------|
+| I1 | **Socle tâches utilisateur** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et digest | À faire | Non | Interface utilisateur dédiée, pas backoffice admin |
+| I2 | **Connexion email lecture seule** : OAuth Gmail `redacted@example.invalid`, boîte `candidatures@example.invalid`, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Ne pas envoyer/supprimer d’email au départ |
+| I3 | **Classification emails emploi** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Moteur déterministe d’abord, IA ensuite |
+| I4 | **Digest quotidien 18h** : urgent, tâches demain, retard, candidatures sans réponse, entretiens à préparer, événements, décisions proposées | À faire | Non | Email récapitulatif + liens JobbingTrack |
+| I5 | **Actions utilisateur** : créer tâche/relance/événement, archiver email, marquer refus, préparer entretien, rédiger brouillon de réponse | À faire | Non | Confirmation obligatoire avant tout envoi externe |
+| I6 | **IA locale ou optionnelle** : résumé, tri, suggestions de réponse, enrichissement entreprise ; pas de dépendance payante obligatoire | À faire | Non | Ollama/modèle local/cache/batch ; anonymisation si fournisseur externe |
+
+**Garde-fous** :
+
+1. Aucun email externe envoyé automatiquement sans validation explicite.
+2. Aucun secret OAuth/SMTP dans les logs.
+3. Aucune dépendance obligatoire à un service IA payant.
+4. Les données personnelles envoyées à une IA externe sont minimisées et soumises à accord explicite.
+5. Le chantier attend la clôture ou le reclassement des P0/P1 bloquants avant implémentation.
+
+---
+
 ## Avancement ponctuel déjà réalisé (vue d’ensemble `/backoffice`)
 
 Ces points **ne remplacent pas** les lots ci-dessus ; ils clarifient le tableau de bord admin :
@@ -229,7 +256,8 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 6. **F** en gate avant de considérer le chantier « clos ».
 7. **G** (sauvegardes / continuité) : **après** stabilisation des lots **A/B** et clarification des contraintes hébergeur ; ne pas ralentir le socle monitoring/sécurité sans cadrage **G1**.
 8. **H** (release / préprod / conformité) : préparer en parallèle par documentation et CI, mais exécuter réellement avant toute bascule `dev` → prod.
-9. **Vision DHT / overlay (hors scope actuel)** : annuaire distribué, relais chiffrés, échange pair-à-pair sans exposition d’IP — **recherche / fin de projet** uniquement ; voir **`TODOS.md`** § **Vision données décentralisées (DHT)**.
+9. **I** (agent email / tâches recherche emploi) : cadrer puis implémenter après les P0/P1 bloquants ; commencer par tâches + lecture email + digest déterministe avant IA.
+10. **Vision DHT / overlay (hors scope actuel)** : annuaire distribué, relais chiffrés, échange pair-à-pair sans exposition d’IP — **recherche / fin de projet** uniquement ; voir **`TODOS.md`** § **Vision données décentralisées (DHT)**.
 
 Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (aligné sur ce plan et sur **`ERRORS.md`** / **`project/FONCTIONNALITES.md`**). **Phase porteur immédiate** : **`TODOS.md`** § **Phase validation porteur** (login, SecuritySubNav, pagination, corrélation, lecture logs WAF).
 

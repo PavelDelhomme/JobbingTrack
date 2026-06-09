@@ -14,6 +14,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Analytics application & utilisateurs (20/05/2026)** : à reprendre après Statistics. Clarifier deux axes : analytics **application/mobile** (activité, traces, retours, signalements, parcours) et analytics **utilisateurs admin** (comptes, activité, cohortes, rôles, rétention). Ne pas confondre avec performances live infra.
 
+**Agent email / tâches recherche emploi (09/06/2026)** : cadrage porteur ajouté dans `docs/features/EMAIL_TRIAGE_AGENT.md`. Objectif : assistant JobbingTrack capable de lire/triager Gmail et `candidatures@example.invalid`, relier les emails aux candidatures/entreprises, créer tâches/relances/événements, préparer les entretiens, envoyer un digest quotidien à 18h et proposer des réponses sans envoi automatique. À traiter comme chantier produit dédié après les P0/P1 bloquants, avec OAuth/scopes minimaux, audit, tokens chiffrés, Google Tasks/Calendar optionnels et IA locale/gratuite ou optionnelle si possible.
+
 **Contrôles période sticky (20/05/2026)** : sur Performances/Statistics/Analytics, les barres de période doivent rester visibles en haut lors du scroll profond dans les graphes (dropdown, plage actuelle, précédent/suivant/actuelle), avec comportement cohérent clair/sombre.
 
 **Performances — transitions de période (21/05/2026)** : le comportement sans flash vide est traité dans le chantier court : les graphes restent visibles pendant le fetch d’une nouvelle plage. Reste backlog séparé : barre période sticky au scroll profond, comparaison de périodes, brush/zoom partagé et export des séries.

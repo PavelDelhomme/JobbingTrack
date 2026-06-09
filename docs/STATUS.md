@@ -2,7 +2,14 @@
 
 **Dernière mise à jour** : 8 juin 2026 — **Branche** `dev`.
 
-**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 9 juin 2026 — cadrage agent email / tâches recherche emploi
+
+- **Branche documentaire** : `docs/email-triage-agent-roadmap`, créée depuis `origin/dev` pour ne pas mélanger ce cadrage avec la PR P0 CVE `fix/security-cve-scan-full-scope`.
+- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, Gmail `redacted@example.invalid`, boîte `candidatures@example.invalid`, Google Tasks/Calendar optionnels, interface utilisateur dédiée hors backoffice, IA locale/gratuite ou optionnelle si possible.
+- **Document source** : `docs/features/EMAIL_TRIAGE_AGENT.md`.
+- **Pilotage** : entrée ajoutée dans `docs/TODOS.md`, `docs/BACKLOG.md`, `docs/PLAN.md` (lot I) et `TODOS_A_VALIDER.md` en P2 futur. L’implémentation n’est pas démarrée tant que la première ligne P0 de `TODOS_A_VALIDER.md` reste ouverte.
 
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 
