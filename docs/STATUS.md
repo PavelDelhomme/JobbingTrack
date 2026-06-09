@@ -22,6 +22,7 @@
 - **Dette validation frontend** : `npm run type-check` et `npm run lint` peuvent sortir code 1 sans sortie exploitable alors que les commandes directes sous-jacentes passent ; une tâche de diagnostic est ouverte pour retrouver une sortie fiable.
 - **Env émulateur** : `.env.example` clarifie que `EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055` convient aux scripts lancés depuis l’hôte, tandis que `http://host.docker.internal:5055` peut rester nécessaire pour un appel direct depuis un conteneur.
 - **Emails crash/sécurité** : `notification-service` peut séparer compte SMTP technique, destinataire alias public et identité visible par canal. Variables ajoutées : `CRASH_REPORT_FROM`, `CRASH_REPORT_REPLY_TO`, `SECURITY_ALERT_FROM`, `SECURITY_ALERT_REPLY_TO`. Les vraies redirections alias public -> boîte privée restent chez le fournisseur mail et hors Git.
+- **Agent email — précisions MVP** : le cadrage prévoit OAuth Gmail multi-comptes, révocation/statut de synchronisation, digest quotidien utile sans IA, IA locale gratuite seulement en renfort, recherche v2 réutilisable ensuite dans le backoffice/admin, et garde-fou Calendar : aucun événement à `00:00` par défaut si l’email ne fournit pas d’heure fiable.
 
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 

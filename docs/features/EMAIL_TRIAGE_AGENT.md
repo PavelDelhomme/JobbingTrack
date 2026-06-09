@@ -19,7 +19,7 @@ Le système doit aider le porteur à :
 
 ## Sources à connecter
 
-- Compte Gmail de recherche connecté via OAuth et scopes minimaux, configuré hors Git.
+- Un ou plusieurs comptes Gmail de recherche connectés via OAuth et scopes minimaux, configurés hors Git.
 - Boîte JobbingTrack dédiée aux candidatures, alias ou transfert, configurée hors Git.
 - Candidatures, entreprises, contacts, relances, appels, entretiens et événements déjà présents dans JobbingTrack.
 - Google Tasks et Google Calendar sont obligatoires pour le MVP : tâches de relance/préparation et événements d’entretien doivent être synchronisés proprement.
@@ -61,6 +61,7 @@ Ne pas mélanger cette expérience avec le backoffice email transactionnel qui s
 - dashboard responsive mobile pour consulter rapidement tâches, emails importants, relances, entretiens, appels et événements ;
 - file d’emails à traiter ;
 - fiches emails reliées à une candidature, entreprise ou contact ;
+- recherche simple dans les emails, candidatures, entreprises, contacts, tâches et événements liés ;
 - actions rapides : créer tâche, programmer appel, créer relance, créer événement, archiver, marquer refus, marquer entretien ;
 - demandes de revalidation sensibles dans l’interface avec PIN de connexion et clavier numérique affiché automatiquement ;
 - rédaction assistée de réponse ;
@@ -90,6 +91,7 @@ Décision produit à confirmer avant implémentation : cette interface doit êtr
 - Calendrier : vue calendrier agrégée pour entretiens, relances, appels, salons, job dating et événements emploi.
 - Veille emploi : récupération automatique de salons/job dating/forums avec ville/région configurables, par exemple Rennes/Bretagne.
 - UX formulaires : autocomplete poste/ville/plateforme, navigation clavier et ARIA sur toutes les combobox.
+- Recherche v2 : prévoir une barre de recherche opérationnelle dans l’espace utilisateur puis réutilisable aussi dans le backoffice/admin, avec permissions séparées et index commun contrôlé.
 
 ## Priorités produit
 
@@ -100,8 +102,10 @@ P0 :
 - digest quotidien 18h basé sur données internes existantes, même sans IA ;
 - cadrage récapitulatif hebdomadaire : tâches réalisées/restantes, relances à venir, candidatures sans réponse, entretiens, salons et actions manuelles programmées ;
 - lecture Gmail/boîte candidatures en lecture seule avec consentement explicite ;
+- connexion OAuth d’un ou plusieurs comptes Gmail, avec liste des comptes connectés, statut de synchronisation, révocation et revalidation PIN ;
 - stockage interne des emails utiles, threads, classifications et décisions ;
 - synchronisation Google Tasks et Google Calendar obligatoire pour les relances, préparations d’entretien et événements ;
+- garde-fou Calendar : ne jamais créer d’événement à `00:00` par défaut. Si l’email ne contient qu’une date sans heure, créer une tâche à planifier ou un événement journée entière/proposé, jamais un horaire inventé ;
 - classification minimale déterministe : refus, entretien, relance nécessaire, événement emploi, newsletter/bruit.
 
 P1 :
@@ -114,6 +118,7 @@ P1 :
 - préparer/envoyer relance/email directement depuis l’interface avec identité choisie, uniquement après validation explicite ;
 - audit des actions automatiques et confirmation avant envoi externe.
 - moteur de règles enrichi : mots-clés, expéditeurs connus, délais 7/10/14 jours, rattachement plateforme/candidature.
+- barre de recherche v2 réutilisable dans l’espace utilisateur puis dans le backoffice/admin.
 
 P2 :
 
@@ -141,11 +146,12 @@ P4 :
 
 ## Règles déterministes MVP
 
-- Email contenant `entretien`, `rendez-vous`, `disponibilités` : proposer entretien, tâche de préparation et événement Google Calendar.
+- Email contenant `entretien`, `rendez-vous`, `disponibilités` : proposer entretien, tâche de préparation et événement Google Calendar uniquement si la date/heure est fiable.
 - Email contenant `malheureusement`, `retenu`, `suite à votre candidature` : probable refus, rattachement candidature et proposition d’archivage.
 - Email venant de plateformes emploi comme Indeed, LinkedIn, France Travail ou recruteurs connus : rattachement candidature, entreprise ou veille.
 - Candidature sans réponse depuis 7/10/14 jours : tâche Google Tasks de relance et recommandation dans le digest.
 - Email ou alerte contenant `job dating`, `salon`, `forum emploi` : événement emploi à vérifier, puis création Calendar si validé.
+- Si une date est détectée sans heure exploitable : ne pas créer un événement à minuit ; demander confirmation ou créer une tâche “horaire à confirmer”.
 
 ## Agent IA et coût
 
@@ -169,11 +175,12 @@ Approche recommandée :
 
 ## Intégrations techniques à prévoir
 
-- Gmail API : watch/history ou polling borné, labels, threads, pièces jointes sélectionnées.
+- Gmail API : OAuth multi-comptes, watch/history ou polling borné, labels, threads, pièces jointes sélectionnées.
 - IMAP/API fournisseur pour la boîte candidatures configurée hors Git, en lecture seule au départ.
 - Envoi digest : notification-service/auth-service ou service email partagé, en réutilisant `SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO` et `EmailLog`; aucune adresse d’expéditeur ou de destinataire ne doit être codée en dur.
 - Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation.
 - Google Calendar API : événements entretien, job dating, salons, rappels.
+- Normalisation dates/heures : timezone explicite, distinction `date seule` / `date+heure`, refus des horaires implicites à `00:00`, confirmation utilisateur avant création si ambigu.
 - Tables internes : `EmailAccount`, `EmailMessage`, `EmailThread`, `EmailClassification`, `UserTask`, `TaskReminder`, `AgentDecision`, `AgentDigest`.
 - Tables/relations actions manuelles à prévoir : appel/tâche/rappel/événement rattachable à candidature, contact ou entreprise, même sans email source.
 - Worker planifié : digest 18h, tri périodique, relances en retard.
@@ -182,10 +189,11 @@ Approche recommandée :
 ## Critères d’acceptation initiaux
 
 - L’utilisateur connecte Gmail sans exposer de secret.
+- L’utilisateur peut connecter, voir et révoquer un ou plusieurs comptes Gmail sans exposer de secret.
 - Un digest 18h est envoyé via le socle SMTP JobbingTrack configuré, avec au moins 5 sections : urgent, aujourd’hui/demain, retard, candidatures, entretiens/événements.
 - Un récapitulatif hebdomadaire peut agréger tâches, événements, relances, appels, emails importants, candidatures sans réponse et actions manuelles programmées.
 - Un refus reçu par email peut être relié à une candidature et proposé en archivage.
-- Une invitation à entretien crée une tâche Google Tasks de préparation et un événement Google Calendar proposé/validé.
+- Une invitation à entretien crée une tâche Google Tasks de préparation et un événement Google Calendar proposé/validé seulement si l’horaire est explicite ; sinon l’action reste à confirmer.
 - Une candidature sans réponse depuis N jours déclenche une tâche Google Tasks de relance et une recommandation digest.
 - L’utilisateur peut programmer manuellement un appel ou une tâche depuis une fiche candidature/contact/entreprise, et cette action apparaît dans le dashboard, le digest et le calendrier/tâches si synchronisée.
 - L’utilisateur peut corriger une classification, et cette correction est conservée.
