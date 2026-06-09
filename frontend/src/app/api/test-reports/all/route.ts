@@ -87,6 +87,17 @@ interface TestReport {
     | "other";
 }
 
+interface SecuritySummaryJson {
+  generatedAtISO?: string;
+  meta?: {
+    generated_at?: string;
+  };
+  results?: Array<{
+    status?: string;
+    counts?: Record<string, number | string | null | undefined>;
+  }>;
+}
+
 /**
  * Scanner un dossier de rapports de performance backend
  */
@@ -728,6 +739,34 @@ async function scanSecurityReports(
       const idPrefix =
         source === "reports" ? "security-reports" : "security-results";
       const reportSize = await getDirectorySize(dirPath);
+      let summary: SecuritySummaryJson | null = null;
+      let generatedAtISO: string | undefined;
+      let totalTests = 0;
+      let passed = 0;
+      let failed = 0;
+      let skipped = 0;
+      let status: TestReport["status"] = "partial";
+      const summaryJsonPath = join(dirPath, "summary.json");
+      if (existsSync(summaryJsonPath)) {
+        try {
+          summary = JSON.parse(await readFile(summaryJsonPath, "utf-8"));
+          generatedAtISO = summary.generatedAtISO || summary.meta?.generated_at;
+          const results = Array.isArray(summary.results) ? summary.results : [];
+          if (results.length > 0) {
+            totalTests = results.length;
+            skipped = results.filter((r) => r.status === "skipped").length;
+            failed = results.filter((r) => {
+              const counts = r.counts || {};
+              return Number(counts.critical || 0) + Number(counts.high || 0) > 0;
+            }).length;
+            passed = Math.max(0, totalTests - failed - skipped);
+            if (failed > 0) status = passed > 0 ? "partial" : "failed";
+            else if (totalTests > 0) status = "success";
+          }
+        } catch {
+          // Rapport listable même si le JSON est partiel ou corrompu.
+        }
+      }
 
       reports.push({
         id: `${idPrefix}-${dirEntry.name}`,
@@ -736,11 +775,17 @@ async function scanSecurityReports(
         timestamp: dirEntry.name,
         date,
         time,
+        ...(generatedAtISO && { generatedAtISO }),
         path: filePath,
         summaryPath: filePath,
         jsonPath: reportFile.endsWith(".json") ? reportFile : undefined,
+        summary,
+        totalTests,
+        passed,
+        failed,
+        skipped,
         type: "security",
-        status: "partial",
+        status,
         size: reportSize || stats.size,
       });
     }

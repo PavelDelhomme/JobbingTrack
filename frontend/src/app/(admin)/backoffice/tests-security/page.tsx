@@ -57,6 +57,25 @@ interface CveFindingCard {
   source: string;
 }
 
+interface SecurityJobResult {
+  success?: boolean;
+  warning?: boolean;
+  done?: boolean;
+  status?: "running" | "success" | "failed";
+  jobId?: string;
+  reportId?: string | null;
+  reportKind?: string;
+  counts?: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  hint?: string;
+  error?: string;
+  logs?: string[];
+}
+
 function severityBadgeClass(severity: string): string {
   switch (severity) {
     case "critical":
@@ -89,6 +108,8 @@ export default function SecurityTestsPage() {
   const [findings, setFindings] = useState<CveFindingCard[]>([]);
   const [findingsLoading, setFindingsLoading] = useState(false);
   const [findingsGuidance, setFindingsGuidance] = useState<string | null>(null);
+  const [activeJobLabel, setActiveJobLabel] = useState<string | null>(null);
+  const [activeJobStatus, setActiveJobStatus] = useState<string | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const availableTests: TestItem[] = [
@@ -127,12 +148,44 @@ export default function SecurityTestsPage() {
     setLogs((prev) => [...prev, `[${timestamp}] ${stripAnsi(message)}`]);
   };
 
+  const pollSecurityJob = async (
+    endpoint: string,
+    jobId: string,
+  ): Promise<SecurityJobResult> => {
+    let lastResult: SecurityJobResult = { jobId, status: "running" };
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(`${endpoint}?jobId=${encodeURIComponent(jobId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: "no-store",
+      });
+      const data = (await response.json()) as SecurityJobResult;
+      if (!response.ok) {
+        throw new Error(data.error || `Suivi job impossible: ${response.status}`);
+      }
+      lastResult = data;
+      setActiveJobStatus(data.status ?? "running");
+      if (data.logs?.length) {
+        setLogs(data.logs.map(stripAnsi));
+      }
+      if (data.reportId) {
+        setReportId(data.reportId);
+      }
+      if (data.done) {
+        return data;
+      }
+    }
+    return lastResult;
+  };
+
   const runAppSecurityTests = async () => {
     if (!token || isRunningApp) return;
     setIsRunningApp(true);
+    setActiveJobLabel("Tests sécurité applicatifs");
+    setActiveJobStatus("running");
     setLogs([]);
     setReportId(null);
-    addLog("🚀 Tests sécurité applicatifs (XSS, SQLi, auth, headers…)…");
+    addLog("🚀 Lancement tests sécurité applicatifs (XSS, SQLi, auth, headers…)…");
 
     try {
       const response = await fetch("/api/test/run-security", {
@@ -150,41 +203,46 @@ export default function SecurityTestsPage() {
         throw new Error(data.error || `Erreur API: ${response.status}`);
       }
 
-      if (data.outputTail) {
-        data.outputTail
-          .split("\n")
-          .slice(-12)
-          .forEach((line: string) => line.trim() && addLog(line));
+      const finalData = data.jobId
+        ? await pollSecurityJob("/api/test/run-security", data.jobId)
+        : data;
+
+      if (finalData.logs?.length) {
+        setLogs(finalData.logs.map(stripAnsi));
       }
 
-      if (data.warning) {
+      if (finalData.warning) {
         addLog("⚠️ Avertissements medium/low — voir rapport (statut AVERTISSEMENT)");
-      } else if (data.success) {
+      } else if (finalData.success) {
         addLog("✅ Tests applicatifs terminés");
       } else {
         addLog("❌ Vulnérabilités critical/high détectées — voir rapport");
       }
 
-      if (data.reportId) {
-        setReportId(data.reportId);
-        addLog(`📊 Rapport: ${data.reportId}`);
+      if (finalData.reportId) {
+        setReportId(finalData.reportId);
+        addLog(`📊 Rapport: ${finalData.reportId}`);
       }
-      if (data.hint) addLog(`💡 ${data.hint}`);
+      if (finalData.hint) addLog(`💡 ${finalData.hint}`);
     } catch (error: unknown) {
       addLog(
         `❌ Erreur: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
       );
     } finally {
       setIsRunningApp(false);
+      setActiveJobLabel(null);
+      setActiveJobStatus(null);
     }
   };
 
   const runCveScan = async () => {
     if (!token || isRunningCve) return;
     setIsRunningCve(true);
+    setActiveJobLabel("Scan CVE dépendances");
+    setActiveJobStatus("running");
     setLogs([]);
     setReportId(null);
-    addLog("🧬 Scan CVE dépendances (npm, Rust, Docker si activé)…");
+    addLog("🧬 Lancement scan CVE dépendances (npm, Rust, Flutter, Docker si activé)…");
 
     try {
       const response = await fetch("/api/test/run-cve-scan", {
@@ -202,21 +260,22 @@ export default function SecurityTestsPage() {
         throw new Error(data.error || `Erreur API: ${response.status}`);
       }
 
-      if (data.outputTail) {
-        data.outputTail
-          .split("\n")
-          .slice(-8)
-          .forEach((line: string) => line.trim() && addLog(line));
+      const finalData = data.jobId
+        ? await pollSecurityJob("/api/test/run-cve-scan", data.jobId)
+        : data;
+
+      if (finalData.logs?.length) {
+        setLogs(finalData.logs.map(stripAnsi));
       }
 
       addLog(
-        data.success
+        finalData.success
           ? "✅ Scan CVE terminé"
           : "⚠️ Scan CVE terminé avec alertes",
       );
-      if (data.reportId) {
-        setReportId(data.reportId);
-        addLog(`📊 Rapport CVE: ${data.reportId}`);
+      if (finalData.reportId) {
+        setReportId(finalData.reportId);
+        addLog(`📊 Rapport CVE: ${finalData.reportId}`);
       }
     } catch (error: unknown) {
       addLog(
@@ -227,6 +286,8 @@ export default function SecurityTestsPage() {
       );
     } finally {
       setIsRunningCve(false);
+      setActiveJobLabel(null);
+      setActiveJobStatus(null);
     }
   };
 
@@ -599,7 +660,11 @@ export default function SecurityTestsPage() {
         {logs.length > 0 && (
           <div className="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400">Terminal</span>
+              <span className="text-gray-400">
+                Terminal
+                {activeJobLabel ? ` — ${activeJobLabel}` : ""}
+                {activeJobStatus ? ` (${activeJobStatus})` : ""}
+              </span>
               <button
                 type="button"
                 onClick={() => {
