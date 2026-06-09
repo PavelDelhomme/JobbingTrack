@@ -35,6 +35,15 @@ Le système doit aider le porteur à :
 - Moteur déterministe d’abord, sans IA payante obligatoire : règles, dates, statuts, délais de relance, labels et correction manuelle.
 - IA locale ensuite, en renfort du moteur de règles : résumé, aide à la rédaction, priorisation et détection de cas ambigus.
 - Le cœur de l’agent est la création et la planification de tâches/événements à faire par l’utilisateur. Aucun envoi d’email externe ni archivage massif sans validation utilisateur explicite.
+- Le premier usage cible est le compte personnel non-admin du porteur : l’agent recherche d’emploi doit fonctionner pour un utilisateur standard autorisé, pas seulement pour un administrateur. En revanche, cette capacité ne doit pas être activée automatiquement pour tout compte créé.
+
+## Accès et permissions
+
+- Prévoir un droit explicite de type `JOB_SEARCH_AGENT_ENABLED` / feature flag utilisateur, attribué par un administrateur au compte personnel du porteur.
+- Un compte nouvellement inscrit, même non-admin valide, ne doit pas pouvoir connecter Gmail, lire des emails, voir les données de recherche d’emploi ou lancer le worker sans activation explicite.
+- L’administrateur garde la gouvernance : activation/révocation du droit, audit des changements, visualisation technique limitée, mais ne lit pas les emails personnels par défaut.
+- Le compte utilisateur autorisé garde le contrôle de ses comptes Gmail/OAuth : connexion, révocation, revalidation PIN, choix des boîtes lues, choix du destinataire digest, correction des classifications.
+- Séparer les permissions backoffice admin des permissions utilisateur : le rôle admin ne donne pas automatiquement accès au contenu email personnel ; le compte personnel non-admin n’obtient pas les droits backoffice.
 
 ## Récapitulatifs
 

@@ -18,6 +18,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Agent email — recherche v2 et Calendar (09/06/2026)** : prévoir après le MVP une barre de recherche réutilisable dans l’espace utilisateur puis dans le backoffice/admin, couvrant emails, candidatures, entreprises, contacts, tâches et événements selon permissions. Côté Google Calendar, ne jamais convertir une date sans heure en événement à `00:00` : créer une tâche “horaire à confirmer”, proposer un événement journée entière ou demander validation utilisateur.
 
+**Agent email — compte personnel autorisé (10/06/2026)** : l’agent recherche d’emploi doit pouvoir être utilisé par le compte personnel non-admin du porteur, mais seulement après activation explicite. Prévoir un droit/feature flag utilisateur, une révocation admin auditée, et une séparation stricte entre rôle admin et accès au contenu email personnel.
+
 **Backoffice Développement → Tests — navigation (09/06/2026)** : demande porteur de réorganiser le sous-menu Tests, trop long et peu lisible. Cible : clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests + Rapports de parcours, regroupement plus clair des tests Playwright/API/Backend/Frontend/Backoffice/Sécurité/Performance, programmation et parcours. Suivi en validation P1C après P0 CVE.
 
 **Sécurité réseau avancée (09/06/2026)** : compléter la stratégie sécurité avec HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, session hijacking, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding, VLAN hopping, port scan/SYN scan/SYN flood contrôlé. Le détail opérationnel est dans `docs/security/SECURITY_TESTING_MATRIX.md`; le traitement doit rester lab/préprod autorisé, borné et non destructif.

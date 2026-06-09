@@ -23,6 +23,7 @@
 - **Env émulateur** : `.env.example` clarifie que `EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055` convient aux scripts lancés depuis l’hôte, tandis que `http://host.docker.internal:5055` peut rester nécessaire pour un appel direct depuis un conteneur.
 - **Emails crash/sécurité** : `notification-service` peut séparer compte SMTP technique, destinataire alias public et identité visible par canal. Variables ajoutées : `CRASH_REPORT_FROM`, `CRASH_REPORT_REPLY_TO`, `SECURITY_ALERT_FROM`, `SECURITY_ALERT_REPLY_TO`. Les vraies redirections alias public -> boîte privée restent chez le fournisseur mail et hors Git.
 - **Agent email — précisions MVP** : le cadrage prévoit OAuth Gmail multi-comptes, révocation/statut de synchronisation, digest quotidien utile sans IA, IA locale gratuite seulement en renfort, recherche v2 réutilisable ensuite dans le backoffice/admin, et garde-fou Calendar : aucun événement à `00:00` par défaut si l’email ne fournit pas d’heure fiable.
+- **Agent email — accès personnel sécurisé** : le premier usage cible est le compte personnel non-admin du porteur, activé explicitement par droit/feature flag. Les comptes créés par d’autres utilisateurs ne doivent pas obtenir l’agent email automatiquement ; le rôle admin ne doit pas donner par défaut la lecture des emails personnels.
 
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 

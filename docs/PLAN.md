@@ -200,6 +200,7 @@
 |---|-------|------|------------------|------------------|
 | I1 | **Socle interface utilisateur + architecture frontend** : espace connecté dédié sur `/`, dashboard responsive mobile, séparation claire avec le backoffice `/b4ck0ff1ce`, composants partagés | À faire | Non | Court terme : même base Next.js avec routes séparées ; moyen terme : préparer `user-frontend` et `backoffice-frontend` avec bibliothèque commune |
 | I1b | **Sécurité UX espace agent** : revalidation PIN avec clavier numérique pour actions sensibles | À faire | Non | PIN pour connexion boîte, destinataire digest, envoi externe, révocation OAuth, archivage/suppression massif |
+| I1c | **Accès compte personnel autorisé** : permettre au compte personnel non-admin du porteur d’utiliser l’agent email/recherche d’emploi, sans l’ouvrir automatiquement aux autres comptes | À faire | Non | Feature flag/droit `JOB_SEARCH_AGENT_ENABLED`, activation admin, audit, révocation ; admin ≠ lecture automatique des emails personnels |
 | I2 | **Socle tâches utilisateur + Google Tasks** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et synchronisation Google Tasks | À faire | Non | Relances/préparations obligatoirement synchronisées Google Tasks ; création manuelle possible même sans email déclencheur |
 | I3 | **Connexion email lecture seule** : OAuth Gmail multi-comptes et boîte candidatures configurés hors Git, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Liste comptes connectés, statut sync, révocation, revalidation PIN ; worker planifié ; ne pas envoyer/supprimer d’email au départ |
 | I4 | **Classification emails emploi déterministe** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Règles mots-clés, expéditeurs, délais 7/10/14 jours ; IA locale seulement en renfort |
@@ -223,6 +224,7 @@
 7. Aucun placeholder `.invalid` / `.test` ne doit être utilisé en runtime : les adresses réelles restent dans `.env` gitignoré, le profil utilisateur ou les paramètres admin.
 8. Le frontend utilisateur et le backoffice peuvent partager la même base de code et les mêmes composants, mais doivent rester séparés en routage, permissions et configuration d’URL.
 9. Calendar/Tasks ne doivent pas inventer d’horaire : pas d’événement à minuit sans heure explicite ou validation utilisateur.
+10. L’agent email/recherche doit être activable pour un utilisateur standard autorisé, mais jamais disponible par défaut pour tout compte inscrit.
 
 ---
 
