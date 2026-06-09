@@ -6,8 +6,8 @@ Objectif : cadrer les tests de sécurité à réaliser sur JobbingTrack, côté 
 
 ## État actuel
 
-- **Partiellement couvert** : WAF, détection intrusion, rate limiting gateway, corrélation `requestId` / `correlationId`, logs sécurité, CVE continu, alertes email critiques, durcissement Docker en cours.
-- **À renforcer** : énumération d’URL, fuzzing de paramètres, mass assignment, JWT manipulation, IDOR/privilege escalation, scans massifs, protections DB, secrets, TLS, spoofing/réseau, tests mobiles.
+- **Partiellement couvert** : WAF, détection intrusion, rate limiting gateway, corrélation `requestId` / `correlationId`, logs sécurité, CVE continu, alertes email critiques, scan de ports/SYN flood à confirmer, durcissement Docker en cours.
+- **À renforcer** : énumération d’URL, fuzzing de paramètres, mass assignment, JWT manipulation, session hijacking, IDOR/privilege escalation, scans massifs, protections DB, secrets, TLS, HTTP forgé, spoofing/réseau, DNS poisoning, UPnP abuse, ICMP redirect, BGP hijack, MAC flooding, VLAN hopping, tests mobiles.
 - **Cible produit** : pouvoir lancer/consulter une partie des contrôles depuis le backoffice sécurité (mode non destructif), garder les commandes projet reproductibles, et produire des rapports lisibles dans `tests/results/` ou `reports/security/`.
 
 ## Règles de test
@@ -57,6 +57,7 @@ Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé
 | IDOR / privilege escalation | Burp Suite, tests E2E rôles | RBAC serveur, vérification propriétaire/tenant, routes admin protégées | Matrice rôle → route → statut attendu |
 | Session fixation / hijacking | Burp Suite, tests navigateur | Rotation tokens, cookies sûrs, refresh révoqué, logout global | Scénarios session documentés |
 | CORS mal configuré | ZAP, curl, tests OPTIONS | Origines allowlistées, credentials maîtrisés, headers minimaux | Rapport origines autorisées/refusées |
+| Requêtes HTTP forgées / smuggling léger | Burp Suite, `curl`, ZAP, payloads headers/body incohérents | Normalisation gateway/proxy, limites body, rejet headers interdits, logs corrélés sans fuite | Cas `Host`, `Origin`, `Content-Length`, `Transfer-Encoding`, méthodes et chemins encodés documentés |
 | Rate limiting absent / scraping | ZAP, scripts charge contrôlée | Limites par IP/compte/route, backoff, logs et alertes | Courbes 429, logs sécurité |
 | DoS HTTP lent / volumétrie | `slowloris`, load testing contrôlé | Timeouts proxy/gateway, limites body, circuit breaker, quotas | Test court borné + métriques ressources |
 | File upload / path traversal | ZAP, payloads traversal | Types/tailles allowlistés, stockage hors webroot, antivirus futur, noms normalisés | Cas rejetés et logs |
@@ -67,7 +68,15 @@ Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé
 | TLS faible | `sslscan`, `testssl.sh` | TLS 1.2+, HSTS, certificats valides, redirection HTTPS | Rapport TLS préprod/prod |
 | Logs sensibles | tests payloads + audit logs | Redaction tokens/passwords, rétention maîtrisée, accès logs ultra-protégé | Exemples logs masqués |
 | Spoofing IP / headers | curl/Burp, tests proxy | `TRUST_PROXY_HOPS` strict, extraction IP fiable, rejet headers non fiables hors proxy | Cas `X-Forwarded-For` documentés |
-| Paquets IP modifiés / scans réseau | `nmap`, règles firewall, IDS futur | WAF en bordure, firewall hôte, détection scans, logs séparés interne/externe | Événements réseau visibles en backoffice |
+| IP spoofing / paquets IP forgés | `hping3`, `scapy`, règles firewall, lab isolé | Filtrage anti-spoofing au niveau hôte/VPS, reverse proxy fiable, pas de confiance directe dans IP déclarative | Rapport lab montrant paquets rejetés ou non routables, aucune attribution fausse en backoffice |
+| Port scan / SYN scan / SYN flood contrôlé | `nmap`, `hping3`, `tcpreplay` lab | Firewall hôte, rate limit edge, détection scans, seuils DoS bornés, pas de blocage du trafic légitime | Événements réseau visibles en backoffice, métriques ressources et faux positifs documentés |
+| DNS poisoning / DNS spoofing | `dig`, `dnsspoof`/`mitmproxy` en lab, audit résolveur | DNSSEC si disponible, résolveurs fiables, validation TLS/hostnames, pas de secrets sur HTTP clair | Résolution attendue vs empoisonnée, échec TLS/host mismatch, absence de fuite |
+| UPnP abuse / ouverture de ports involontaire | `nmap`, `upnpc`, audit routeur/VPS | UPnP désactivé côté infra exposée, ports publiés uniquement par Compose/proxy/firewall | Inventaire ports avant/après, aucune ouverture automatique non voulue |
+| ICMP redirect / route spoofing | `scapy`, `hping3`, audit sysctl | ICMP redirect ignoré, forwarding contrôlé, routes statiques/non modifiées | Vérification sysctl + tentative lab sans changement de route |
+| BGP hijack / détournement route Internet | Audit fournisseur, monitoring disponibilité/TLS, RPKI/ROA si domaine critique | HTTPS strict, monitoring externe, dépendance registrar/DNS documentée, RPKI côté opérateur si applicable | Runbook incident réseau, contrôle DNS/TLS externe, limites du périmètre applicatif explicites |
+| ARP spoofing / MITM LAN | `arp-scan`, `ettercap`/`bettercap` en lab local | HTTPS partout, segmentation réseau, pas de services admin en clair, alerte sur gateway/MAC inconnue si supervisée | Tentative MITM ne déchiffre rien, services sensibles restent TLS/auth |
+| MAC flooding / saturation switch | Lab réseau dédié uniquement | Switch/bridge isolé, limites port-security si matériel le permet, aucune exécution sur réseau réel non autorisé | Cadrage ou justification hors périmètre si infra VPS ne permet pas le test |
+| VLAN hopping | Lab réseau dédié uniquement | Pas de trunk inutile, VLAN natif non exposé, segmentation documentée | Cadrage ou test lab, jamais sur réseau tiers |
 | Reverse engineering mobile | MobSF, jadx/apktool plus tard | Pas de secrets dans l’app, certificate pinning à évaluer, obfuscation, détection root non bloquante seule | Rapport mobile dédié avant release |
 
 ## Interface et commandes à prévoir

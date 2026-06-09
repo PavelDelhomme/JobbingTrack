@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Test automatisé : Inscription Gmail (job-search-mailbox@example.invalid) via API
+ * Test automatisé : inscription email via API avec adresse configurée hors Git
  * puis vérification que l'email de vérification est bien loggé et envoyé à la bonne adresse.
  *
  * Usage: node tests/email/run-inscription-gmail-email-check.js
@@ -12,11 +12,20 @@ const path = require('path');
 const axios = require('axios');
 
 const API_URL = process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002';
+
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} doit être défini pour lancer ce test.`);
+  }
+  return value;
+}
+
 // Email unique à chaque run (normalizeEmail() sur /register peut enlever le +xxx de Gmail → 409)
 const GMAIL_EMAIL = process.env.TEST_GMAIL_EMAIL || `jt-inscription-${Date.now()}@jobbingtrack.test`;
-const GMAIL_PASSWORD = 'password123';
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.test';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
+const GMAIL_PASSWORD = requireEnv('TEST_VERIFICATION_PASSWORD');
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || requireEnv('ADMIN_EMAIL');
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || requireEnv('ADMIN_PASSWORD');
 
 const outPath = path.join(__dirname, 'results', 'inscription-gmail-check.log');
 function log(msg) {

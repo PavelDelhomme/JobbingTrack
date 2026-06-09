@@ -618,7 +618,7 @@ function installerDeclencheur() {
 ================================================================
 INSTALLATION (5 min)
 ================================================================
-1. Aller sur https://script.google.com (avec job-search-mailbox@example.invalid)
+1. Aller sur https://script.google.com avec le compte Google de recherche configuré hors Git
 2. Nouveau projet — coller ce fichier complet
 3. Services (+) > Tasks API v1 > identifiant : TasksAPI > Ajouter
 4. Selectionner installerDeclencheur > Executer > Accepter permissions

@@ -15,6 +15,13 @@
 - **Document source** : `docs/features/EMAIL_TRIAGE_AGENT.md`.
 - **Pilotage** : entrée ajoutée dans `docs/TODOS.md`, `docs/BACKLOG.md`, `docs/PLAN.md` (lot I) et `TODOS_A_VALIDER.md` en P2 futur. L’implémentation n’est pas démarrée tant que la première ligne P0 de `TODOS_A_VALIDER.md` reste ouverte.
 
+## 9 juin 2026 — cadrage sécurité réseau et dettes env/frontend
+
+- **Menaces réseau avancées à ne pas oublier** : ajout au cadrage sécurité de HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, session hijacking, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding et VLAN hopping, en plus des scans de ports/SYN scan/SYN flood déjà évoqués. Les tests doivent rester séparés entre local, préprod VPS et sujets fournisseur/Internet, avec exécution uniquement lab/préprod autorisée.
+- **Matrice sécurité** : `docs/security/SECURITY_TESTING_MATRIX.md` détaille désormais outils, protections attendues et preuves pour ces menaces ; `ROADMAP_SECURITE_API_ET_BACKOFFICE.md`, `docs/TODOS.md` et `TODOS_A_VALIDER.md` renvoient vers ce cadrage.
+- **Dette validation frontend** : `npm run type-check` et `npm run lint` peuvent sortir code 1 sans sortie exploitable alors que les commandes directes sous-jacentes passent ; une tâche de diagnostic est ouverte pour retrouver une sortie fiable.
+- **Env émulateur** : `.env.example` clarifie que `EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055` convient aux scripts lancés depuis l’hôte, tandis que `http://host.docker.internal:5055` peut rester nécessaire pour un appel direct depuis un conteneur.
+
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 
 - **Alertes email critiques JobbingTrack** : demande porteur ajoutée au pilotage P1A — envoyer les reports/alertes `critical/high` depuis l’adresse mail JobbingTrack vers les adresses mail dev et admin du porteur, avec catégories explicites (`CVE`, `WAF/intrusion`, `service down`, `firewall`, `backup/restore`, `security report`) et vérification MailHog puis SMTP réel.
@@ -859,7 +866,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Tests swipe et actions rapides sur listes mobiles
 - [ ] Tests export/import donnees
 - [ ] Tests verification email
-- [x] **Test automatisé inscription Gmail + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription `job-search-mailbox@example.invalid` via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
+- [x] **Test automatisé inscription email + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription avec adresse configurée hors Git via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
 - [ ] Tests pagination et tri
 
 #### 3.8 Architecture des tests — FAIT
@@ -1089,7 +1096,7 @@ Résumé : **724 tests**, **708 réussis**, **16 échoués** (97,8 %), **1 ignor
 
 **Prerequis** : `make emulator-controller` ou `make restart-emulator` (5055), appareil ADB connecte. **Verifications** : `make verify-mobile-emulator` (sante controleur + force-restart-app), `make verify-mobile-scenarios` (coherence scenarios vs steps).
 
-**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec le compte **user1** : par defaut **user1@jobbingtrack.test** / **password123**. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), ex. **verification-mailbox@example.invalid** ou **applications-alias@example.invalid** (voir `.env.example`).
+**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec les identifiants de test configurés hors Git. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), sans écrire l’adresse réelle dans les fichiers suivis.
 
 **Usage reel** : necessite un appareil/emulateur Android connecte. Sans appareil, seules les cibles make verify-mobile-* et la coherence du code sont testables.
 

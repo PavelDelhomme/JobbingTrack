@@ -18,6 +18,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Backoffice Développement → Tests — navigation (09/06/2026)** : demande porteur de réorganiser le sous-menu Tests, trop long et peu lisible. Cible : clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests + Rapports de parcours, regroupement plus clair des tests Playwright/API/Backend/Frontend/Backoffice/Sécurité/Performance, programmation et parcours. Suivi en validation P1C après P0 CVE.
 
+**Sécurité réseau avancée (09/06/2026)** : compléter la stratégie sécurité avec HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, session hijacking, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding, VLAN hopping, port scan/SYN scan/SYN flood contrôlé. Le détail opérationnel est dans `docs/security/SECURITY_TESTING_MATRIX.md`; le traitement doit rester lab/préprod autorisé, borné et non destructif.
+
 **Contrôles période sticky (20/05/2026)** : sur Performances/Statistics/Analytics, les barres de période doivent rester visibles en haut lors du scroll profond dans les graphes (dropdown, plage actuelle, précédent/suivant/actuelle), avec comportement cohérent clair/sombre.
 
 **Performances — transitions de période (21/05/2026)** : le comportement sans flash vide est traité dans le chantier court : les graphes restent visibles pendant le fetch d’une nouvelle plage. Reste backlog séparé : barre période sticky au scroll profond, comparaison de périodes, brush/zoom partagé et export des séries.

@@ -1273,7 +1273,7 @@ Le module `CrashReporter` (Flutter) offre un tracking detaille pour le debug et 
 
 - Envoye automatiquement via le service email existant (SMTP)
 - Destinataire configurable via `CRASH_REPORT_EMAIL` (defaut: alerts@example.invalid)
-- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL=applications-mailbox@example.invalid` (ou autre boite accessible) pour recevoir les rapports de test
+- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL` avec une boîte accessible renseignée hors Git pour recevoir les rapports de test
 - Sujet : `[JobbingTrack Crash] {crashType} — {date}`
 - Contient : type, message, stack trace, infos appareil, actions recentes
 
