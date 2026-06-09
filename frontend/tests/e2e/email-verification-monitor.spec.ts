@@ -6,6 +6,10 @@
 import { test, expect } from "@playwright/test";
 import { requireEnvValue } from "./test-data-helper";
 
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
 const API_URL =
   process.env.API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -79,9 +83,8 @@ test.describe("Inscription + vérification email (Email Monitor)", () => {
       bodyText.includes("Aucun email") ||
       bodyText.includes("Emails Envoyés") ||
       /Email Monitor/i.test(bodyText) ||
-      /À\s*:\s*job-search-mailbox@example.invalid/i.test(bodyText) ||
-      /À\s*:\s*verification-mailbox@example.invalid/i.test(bodyText) ||
-      /À\s*:\s*applications-mailbox@example.invalid/i.test(bodyText);
+      /À\s*:\s*[A-Za-z0-9._%+-]+@example\.invalid/i.test(bodyText) ||
+      /À\s*:\s*[A-Za-z0-9._%+-]+@jobbingtrack\.test/i.test(bodyText);
     expect(
       hasListOrEmpty,
       'Email Monitor doit afficher la liste ou "Aucun email" ou la section Emails Envoyés',

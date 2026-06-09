@@ -1,6 +1,6 @@
 /**
  * AGENT DE TRIAGE EMAIL — RECHERCHE D'EMPLOI
- * Compte de recherche emploi — job-search-mailbox@example.invalid
+ * Compte de recherche emploi — destinataire configuré via Script Properties
  * Version 2 — corrigée (emojis UTF-8, détection améliorée, dates FR)
  *
  * INSTALLATION :
@@ -14,7 +14,6 @@
 // CONFIGURATION — modifier ici si besoin
 // ============================================================
 var CONFIG = {
-  email: "job-search-mailbox@example.invalid",
   taskListName: "Recherche emploi",   // sans emoji pour éviter les problèmes d'encodage
   calendarId: "primary",
   heureDebutTaches: 16,              // tâches planifiées après 16h
@@ -39,6 +38,14 @@ var CONFIG = {
     "axia-interim", "manpower", "adecco", "fastt"
   ]
 };
+
+function getDigestRecipient() {
+  var recipient = PropertiesService.getScriptProperties().getProperty("TRIAGE_DIGEST_RECIPIENT");
+  if (!recipient) {
+    throw new Error("TRIAGE_DIGEST_RECIPIENT manquant dans les propriétés du script. Renseigner la vraie adresse de réception hors Git.");
+  }
+  return recipient;
+}
 
 // Jours et mois en français (Apps Script n'a pas de locale FR)
 var JOURS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
@@ -546,8 +553,9 @@ function envoyerRecapitulatif(emails, tachesCreees, tachesEnRetard, candidatures
     '</table></td></tr></table></body></html>';
 
   var sujet = "Triage Emploi - " + dateAuj;
-  GmailApp.sendEmail(CONFIG.email, sujet, "", { htmlBody: html });
-  Logger.log("Email envoye a " + CONFIG.email);
+  var recipient = getDigestRecipient();
+  GmailApp.sendEmail(recipient, sujet, "", { htmlBody: html });
+  Logger.log("Email recapitulatif envoye au destinataire configure.");
 }
 
 // ============================================================
