@@ -749,9 +749,15 @@ async function scanSecurityReports(
       const summaryJsonPath = join(dirPath, "summary.json");
       if (existsSync(summaryJsonPath)) {
         try {
-          summary = JSON.parse(await readFile(summaryJsonPath, "utf-8"));
-          generatedAtISO = summary.generatedAtISO || summary.meta?.generated_at;
-          const results = Array.isArray(summary.results) ? summary.results : [];
+          const parsedSummary = JSON.parse(
+            await readFile(summaryJsonPath, "utf-8"),
+          ) as SecuritySummaryJson;
+          summary = parsedSummary;
+          generatedAtISO =
+            parsedSummary.generatedAtISO || parsedSummary.meta?.generated_at;
+          const results = Array.isArray(parsedSummary.results)
+            ? parsedSummary.results
+            : [];
           if (results.length > 0) {
             totalTests = results.length;
             skipped = results.filter((r) => r.status === "skipped").length;

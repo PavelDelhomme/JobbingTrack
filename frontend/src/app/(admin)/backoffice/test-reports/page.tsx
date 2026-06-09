@@ -1370,14 +1370,12 @@ export default function TestReportsPage() {
           </div>
         ) : (
           <div
-            className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}
-            style={{ minHeight: "calc(100vh - 250px)" }}
+            className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2 lg:h-[calc(100vh-18rem)] lg:min-h-[34rem]"}`}
           >
             {/* Liste des rapports */}
             {!isFullscreen && (
               <div
-                className="space-y-4 flex flex-col"
-                style={{ minHeight: "calc(100vh - 250px)" }}
+                className="min-h-0 space-y-4 flex flex-col rounded-lg border border-gray-200 bg-white/60 p-3 dark:border-gray-700 dark:bg-gray-900/30"
               >
                 <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -1416,8 +1414,7 @@ export default function TestReportsPage() {
                 )}
 
                 <div
-                  className="space-y-3 overflow-y-auto flex-1"
-                  style={{ maxHeight: "calc(100vh - 350px)" }}
+                  className="min-h-[28rem] flex-1 space-y-3 overflow-y-auto pr-1 lg:min-h-0"
                 >
                   {filteredReports.length === 0 ? (
                     <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
@@ -1718,9 +1715,9 @@ export default function TestReportsPage() {
             )}
 
             {/* Aperçu du rapport sélectionné */}
-            <div className="space-y-4">
+            <div className="min-h-0 flex flex-col">
               {loadingReport ? (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center border border-gray-200 dark:border-gray-700">
                   <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
                   <p className="text-gray-600 dark:text-gray-400">
                     Chargement du rapport...
@@ -1728,7 +1725,7 @@ export default function TestReportsPage() {
                 </div>
               ) : selectedReport && reportContent ? (
                 <div
-                  className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? "fixed inset-2 sm:inset-4 z-50" : ""}`}
+                  className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? "fixed inset-2 sm:inset-4 z-50" : "min-h-0 flex flex-1 flex-col"}`}
                 >
                   <div className="p-2 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -1848,7 +1845,7 @@ export default function TestReportsPage() {
                     </div>
                   </div>
                   <div
-                    className={`p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]" : ""}`}
+                    className={`min-h-0 p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]" : "flex-1 overflow-hidden"}`}
                   >
                     <ReportIframe
                       content={reportContent}
@@ -1857,7 +1854,7 @@ export default function TestReportsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-900">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">
                     Sélectionnez un rapport pour l'afficher
