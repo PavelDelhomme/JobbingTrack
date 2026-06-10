@@ -1,8 +1,33 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 10 juin 2026 — **Branche** `dev`.
+**Dernière mise à jour** : 10 juin 2026 — **Branche** `docs/email-triage-agent-roadmap`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 10 juin 2026 — gate validation des 6 commits P1A alertes email
+
+Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
+
+| Commit | Sujet | Fichiers clés |
+|--------|-------|---------------|
+| `8a6b38b2` | crash-report SMTP + test admin | `emailService.js`, Jest SMTP |
+| `9ee70895` | alertes enrichies + miroir tracé | `securityAlertEmailNotifier.js`, Email Monitor |
+| `cf449049` | mount `src` notification-service | `docker-compose.yml` |
+| `1e61bf30` | panneau diagnostic alertes | `SecurityAlertEmailDiagnostics.tsx` |
+| `076b5222` | encart admin mis en avant | diagnostic `admin@delhomme.ovh` |
+| `ac057bf5` | pilotage relance validation | `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md` |
+
+**Validations techniques (10/06 soir)** :
+
+- Jest notification-service `email-service-smtp-config` : **5/5 OK** (`../../tests/node_modules/jest/bin/jest.js`).
+- Jest security-service `security-alert-email-payload` + `service-availability-alerts` : **6/6 OK**.
+- Frontend : `tsc --noEmit` OK ; ESLint ciblé (`SecurityAlertEmailDiagnostics`, `security/alerts`, `email-monitor`) OK — 4 warnings historiques `email-monitor` uniquement.
+- Conteneurs critiques : `notification-service`, `security-service`, `frontend`, `postgres`, `mailhog` **Up (healthy)**.
+- Volume dev actif : `./backend/notification-service/src` → `/app/src` confirmé par `docker inspect`.
+- Smoke API : sujet `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z` → HTTP `202`, BDD `EmailLog.metadata.mirror.sent=true`, `messageId @maily.ovh`.
+- `npm run type-check` / `npm run lint` (frontend) : exit `1` sans sortie — problème projet connu, non régressif.
+
+**Bloquant porteur inchangé** : confirmation réception boîte réelle `admin@delhomme.ovh` (dernier sujet smoke ci-dessus ou `VALIDATION PORTEUR P1A 2026-06-10T19:40:40Z`).
 
 ## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
 

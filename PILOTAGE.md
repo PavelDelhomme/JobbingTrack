@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 10 juin 2026
+Dernière mise à jour : 10 juin 2026 (gate validation 6 commits P1A alertes email — Jest 11/11, smoke OK)
 
 ## Règle principale
 
