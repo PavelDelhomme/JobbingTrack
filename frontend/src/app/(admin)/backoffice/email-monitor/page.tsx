@@ -361,15 +361,15 @@ export default function EmailMonitorPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6 overflow-x-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Mail className="h-8 w-8" />
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <h1 className="flex min-w-0 items-center gap-2 text-2xl font-bold sm:text-3xl">
+              <Mail className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
               Email Monitor
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="mt-1 max-w-3xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
               Suivez les emails envoyés par JobbingTrack : statut, destinataire,
               date et contenu. Utilisez <strong>Notification</strong> pour les
               alertes sécurité et <strong>Vérification</strong> pour les parcours
@@ -377,13 +377,13 @@ export default function EmailMonitorPage() {
             </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
             {lastRefreshAt && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
                 Dernière MAJ : {lastRefreshAt.toLocaleTimeString("fr-FR")}
               </span>
             )}
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer sm:whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={autoRefresh}
@@ -393,7 +393,7 @@ export default function EmailMonitorPage() {
               Temps réel (toutes les 3 s)
             </label>
             {autoRefresh && lastRefreshAt && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
                 <span
                   className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
                   aria-hidden
@@ -405,20 +405,21 @@ export default function EmailMonitorPage() {
               onClick={refreshEmails}
               disabled={isLoading}
               variant="outline"
+              className="w-full sm:w-auto"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
               />
               Actualiser
             </Button>
-            <Button onClick={exportLogs} variant="outline">
+            <Button onClick={exportLogs} variant="outline" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               Exporter
             </Button>
             <Button
               onClick={deleteFailedEmails}
               variant="outline"
-              className="text-orange-600"
+              className="w-full text-orange-600 sm:w-auto"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Supprimer Échoués
@@ -426,7 +427,7 @@ export default function EmailMonitorPage() {
             <Button
               onClick={clearLogs}
               variant="outline"
-              className="text-red-600"
+              className="w-full text-red-600 sm:w-auto"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Effacer Tout
@@ -435,7 +436,7 @@ export default function EmailMonitorPage() {
         </div>
 
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -498,9 +499,9 @@ export default function EmailMonitorPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
               {/* Recherche */}
-              <div className="min-w-[260px] flex-1">
+              <div className="min-w-0">
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
                   Recherche
                 </label>
@@ -514,7 +515,7 @@ export default function EmailMonitorPage() {
                       setSearchTerm(event.target.value);
                     }}
                     placeholder="Destinataire, expéditeur ou sujet..."
-                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    className="w-full min-w-0 rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                   />
                 </div>
                 {searchTerm.trim() && (
@@ -524,19 +525,21 @@ export default function EmailMonitorPage() {
                       setPage(1);
                       setSearchTerm("");
                     }}
-                    className="mt-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200"
+                    className="mt-2 inline-flex max-w-full items-center rounded-full bg-blue-100 px-2.5 py-1 text-left text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200"
                   >
-                    Recherche : {searchTerm.trim()} ×
+                    <span className="min-w-0 truncate">
+                      Recherche : {searchTerm.trim()} ×
+                    </span>
                   </button>
                 )}
               </div>
 
               {/* Filtre Statut */}
-              <div>
+              <div className="min-w-0">
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
                   Statut
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex min-w-0 flex-wrap gap-2">
                   {[
                     "all",
                     "SENT",
@@ -550,7 +553,7 @@ export default function EmailMonitorPage() {
                       key={f}
                       onClick={() => changeStatusFilter(f as any)}
                       className={`
-                        px-3 py-1 rounded text-sm font-medium transition-colors
+                        rounded px-3 py-1 text-sm font-medium transition-colors
                         ${
                           filter === f
                             ? "bg-blue-500 text-white dark:bg-blue-600 dark:text-white"
@@ -565,11 +568,11 @@ export default function EmailMonitorPage() {
               </div>
 
               {/* Filtre Type */}
-              <div>
+              <div className="min-w-0">
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
                   Type d&apos;email
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex min-w-0 flex-wrap gap-2">
                   {[
                     "all",
                     "WELCOME",
@@ -603,8 +606,8 @@ export default function EmailMonitorPage() {
         {/* Liste des Emails */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>
+            <CardTitle className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <span className="min-w-0 break-words">
                 Emails Envoyés ({filteredEmails.length} / {total})
               </span>
               {isLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
@@ -644,13 +647,13 @@ export default function EmailMonitorPage() {
                 filteredEmails.map((email) => (
                   <div
                     key={email.id}
-                    className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-all bg-white dark:bg-gray-800"
+                    className="min-w-0 rounded-lg border-2 border-gray-200 bg-white p-3 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 sm:p-4"
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                       {/* Icône Statut */}
                       <div
                         className={`
-                        flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
+                        flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12
                         ${email.status === "SENT" ? "bg-green-100 dark:bg-green-900/30" : ""}
                         ${email.status === "DELIVERED" ? "bg-blue-100 dark:bg-blue-900/30" : ""}
                         ${email.status === "READ" ? "bg-purple-100 dark:bg-purple-900/30" : ""}
@@ -680,12 +683,12 @@ export default function EmailMonitorPage() {
                       </div>
 
                       {/* Contenu */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="text-2xl flex-shrink-0">
                             {getTypeIcon(email.type)}
                           </span>
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                          <h3 className="min-w-0 flex-[1_1_100%] break-words font-semibold text-gray-900 dark:text-gray-100 sm:flex-1">
                             {email.subject}
                           </h3>
                           <Badge
@@ -710,23 +713,23 @@ export default function EmailMonitorPage() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            <span>À : {email.to}</span>
+                        <div className="grid min-w-0 grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400 lg:grid-cols-2">
+                          <div className="flex min-w-0 items-start gap-1">
+                            <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span className="min-w-0 break-all">À : {email.to}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Send className="h-4 w-4" />
-                            <span>De : {email.from}</span>
+                          <div className="flex min-w-0 items-start gap-1">
+                            <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span className="min-w-0 break-all">De : {email.from}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
+                          <div className="flex min-w-0 items-start gap-1">
+                            <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
                             {email.status === "FAILED" ? (
-                              <span className="text-red-600 dark:text-red-400">
+                              <span className="min-w-0 break-words text-red-600 dark:text-red-400">
                                 Échoué : {email.error || "Erreur inconnue"}
                               </span>
                             ) : email.sentAt ? (
-                              <span>
+                              <span className="min-w-0 break-words">
                                 Envoyé : {formatLocalDateTime(email.sentAt)}
                               </span>
                             ) : (
@@ -736,18 +739,18 @@ export default function EmailMonitorPage() {
                             )}
                           </div>
                           {email.openedAt && (
-                            <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                              <Eye className="h-4 w-4" />
-                              <span>
+                            <div className="flex min-w-0 items-start gap-1 text-purple-600 dark:text-purple-400">
+                              <Eye className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                              <span className="min-w-0 break-words">
                                 Ouvert : {formatLocalDateTime(email.openedAt)} (
                                 {email.openCount || 0}x)
                               </span>
                             </div>
                           )}
                           {email.clickedAt && (
-                            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                              <Send className="h-4 w-4" />
-                              <span>
+                            <div className="flex min-w-0 items-start gap-1 text-blue-600 dark:text-blue-400">
+                              <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                              <span className="min-w-0 break-words">
                                 Cliqué : {formatLocalDateTime(email.clickedAt)}{" "}
                                 ({email.clickCount || 0}x)
                               </span>
@@ -757,17 +760,18 @@ export default function EmailMonitorPage() {
 
                         {/* Erreur */}
                         {email.error && (
-                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          <div className="mt-2 break-words rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
                             ❌ {email.error}
                           </div>
                         )}
 
                         {/* Actions */}
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-3 flex min-w-0 flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedEmail(email)}
+                            className="w-full sm:w-auto"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Voir le contenu
@@ -798,15 +802,15 @@ export default function EmailMonitorPage() {
 
         {/* Modal Visualisation Email */}
         {selectedEmail && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4">
+            <div className="max-h-[90vh] w-full max-w-4xl min-w-0 overflow-auto rounded-lg bg-white dark:bg-gray-800">
+              <div className="min-w-0 p-4 sm:p-6">
+                <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="break-words text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
                       {selectedEmail.subject}
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="mt-1 break-all text-sm text-gray-600 dark:text-gray-400 sm:text-base">
                       De : {selectedEmail.from} → À : {selectedEmail.to}
                     </p>
                   </div>
@@ -821,7 +825,7 @@ export default function EmailMonitorPage() {
                 <div className="border-t dark:border-gray-700 pt-4">
                   {selectedEmail.emailContent ? (
                     <div
-                      className="prose max-w-none dark:prose-invert"
+                      className="prose max-w-none overflow-x-auto break-words dark:prose-invert"
                       dangerouslySetInnerHTML={{
                         __html: selectedEmail.emailContent,
                       }}
@@ -838,7 +842,7 @@ export default function EmailMonitorPage() {
         )}
 
         {/* Info Box */}
-        <Card className="border-blue-300 bg-blue-50">
+        <Card className="min-w-0 border-blue-300 bg-blue-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-blue-600" />
@@ -846,7 +850,7 @@ export default function EmailMonitorPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-sm">
+            <div className="min-w-0 space-y-2 break-words text-sm">
               <p>
                 <strong>Voir les emails envoyés</strong> : Cette page affiche
                 tous les emails envoyés par JobbingTrack. Avec « Temps réel »
@@ -856,14 +860,14 @@ export default function EmailMonitorPage() {
               </p>
               <p>
                 <strong>Configuration actuelle</strong> :{" "}
-                <code className="bg-gray-200 px-2 py-1 rounded">
+                <code className="break-all rounded bg-gray-200 px-2 py-1">
                   {process.env.SMTP_HOST || "Non configuré"}
                 </code>
               </p>
               <p>
                 <strong>Pour tester</strong> :
               </p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
+              <ul className="ml-4 list-inside list-disc space-y-1">
                 <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
                 <li>
                   Utiliser <strong>Emails → Configuration</strong> ou{" "}
@@ -871,8 +875,8 @@ export default function EmailMonitorPage() {
                   emails de test
                 </li>
                 <li>
-                  Utiliser le scénario "Vérification Email et Reset Password"
-                  dans User Journey
+                  Utiliser le scénario &quot;Vérification Email et Reset
+                  Password&quot; dans User Journey
                 </li>
               </ul>
               <p className="mt-4 text-blue-700">

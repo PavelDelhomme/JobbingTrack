@@ -176,6 +176,8 @@ docker exec jobbingtrack-postgres sh -lc \
 
 **Note** : l’ancien accès via `/settings` onglet Notifications reste possible, mais la validation porteur doit utiliser la page dédiée Sécurité → Alertes email pour éviter toute ambiguïté.
 
+**Limite connue** : ces alertes passent encore par la stack JobbingTrack (`security-service` / `notification-service`). Elles ne suffisent pas si toute la stack tombe. Un watcher externe léger, séparé de Docker/JobbingTrack, doit être prévu pour vérifier l’indisponibilité complète et envoyer une alerte mail directement via SMTP/fournisseur.
+
 #### B. Critères OK / KO
 
 | OK si | KO si |
@@ -185,6 +187,7 @@ docker exec jobbingtrack-postgres sh -lc \
 | Diagnostic visible dans **Gestion des emails → Historique** filtre **Notification** | Impossible de retrouver l’email dans l’admin |
 | Expéditeur = alias public JobbingTrack | Adresse perso dans Git/UI/rapport |
 | Si miroir SMTP activé : logs `miroir SMTP envoyé` et réception réelle confirmée | Miroir bloquant ou erreur SMTP réelle non expliquée |
+| Email d’alerte enrichi avec contexte utile : service touché, sévérité, horodatage, derniers logs ciblés redigés, lien diagnostic admin | Email trop vague sans élément d’enquête ou avec secrets/payloads sensibles bruts |
 
 #### C. Réponse
 
@@ -253,6 +256,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 | Logs | [http://localhost:5003/b4ck0ff1ce/statistics/log-stats](http://localhost:5003/b4ck0ff1ce/statistics/log-stats) | Filtres service/niveau ; compteurs cohérents. |
 | Données applicatives | [http://localhost:5003/b4ck0ff1ce/statistics/app-data](http://localhost:5003/b4ck0ff1ce/statistics/app-data) | Pas de `undefined`. |
 | Vue d’ensemble | [http://localhost:5003/b4ck0ff1ce/statistics](http://localhost:5003/b4ck0ff1ce/statistics) | Graphes dispo/erreur ; bascule 24 h ↔ 7 j. |
+| Temps de réponse endpoints | Statistics / Performances selon route exposée | Services critiques visibles ou état explicite : `auth-service`, `deployment-service`, `call-service`, `notification-service`, `followup-service`, `application-service`, `postgres` ; source claire `monitoring-agent-rs` / `metrics-aggregator`, moyenne instantanée/agrégée non trompeuse. |
 
 **Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · etc. (ou `KO` + route).
 
@@ -268,6 +272,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 | Sécurité FR | Sous-onglets Sécurité | [Politiques](http://localhost:5003/b4ck0ff1ce/security/policies) [Menaces](http://localhost:5003/b4ck0ff1ce/security/threats) [Firewall](http://localhost:5003/b4ck0ff1ce/security/firewall) [Logs](http://localhost:5003/b4ck0ff1ce/security/logs) [Analyse](http://localhost:5003/b4ck0ff1ce/security/analysis) [Réseau](http://localhost:5003/b4ck0ff1ce/security/network) |
 | Comparaison rapports | [test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) | 2 rapports non sécurité → **Comparer** → tableau. |
 | Menu Tests | **Développement** → **Tests** | Clic = vue d’ensemble ; **Rapports de tests** dans sous-menu. |
+| Responsive backoffice complet | DevTools navigateur ou écran réel | Vérifier petit écran, écran moyen et largeur intermédiaire sur `/b4ck0ff1ce`, Email Monitor, Utilisateurs, Sécurité, Performances, Statistics et Rapports : menu utilisable, pas de débordement horizontal, tableaux/listes lisibles, filtres empilés, boutons accessibles. |
 
 **Réponses** : `OK <nom exact ligne tableau>` ou `KO <nom exact>` + ce que tu vois.
 
@@ -275,7 +280,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P1A | Alertes email critiques JobbingTrack | local/preprod | Suivre § “P1A — Alertes email critiques JobbingTrack” : page `/b4ck0ff1ce/security/alerts`, alias publics, réauth admin, bouton test, email MailHog + miroir SMTP réel si activé, diagnostic `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. | [ ] | KO navigation/MailHog corrigé ; destinataires actifs `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; agent a validé MailHog + miroir OVH (`202`, +3 MailHog, 3 messageId OVH) ; porteur confirme voir les derniers emails dans Email Monitor. Attendre confirmation porteur boîte réelle admin/dev. |
+| P1A | Alertes email critiques JobbingTrack | local/preprod | Suivre § “P1A — Alertes email critiques JobbingTrack” : page `/b4ck0ff1ce/security/alerts`, alias publics, réauth admin, bouton test, email MailHog + miroir SMTP réel si activé, diagnostic `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. | [ ] | KO navigation/MailHog corrigé ; destinataires actifs `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; porteur confirme voir les derniers emails dans Email Monitor mais pas le dernier mail admin réel. Correctif 20:15 : miroir local réactivé (`SECURITY_ALERT_SMTP_MIRROR_ENABLED=true`), expéditeur miroir aligné sur le compte SMTP authentifié, test admin isolé `202`, MailHog OK, miroir OVH accepté (`messageId @maily.ovh`). Attendre confirmation boîte réelle admin. |
 | P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Suivre § “P1A — Tests offensifs contrôlés par conteneur” : matrice bornée/non destructive, séparation local/préprod/fournisseur, aucun test agressif sur prod. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
 | P1A | Leurres / désinformation contrôlée VPS-Portainer | preprod/prod design | Suivre § “P1A — Leurres / désinformation contrôlée VPS-Portainer” : valider le design de réduction d’exposition, pas un déploiement honeypot immédiat. | [ ] | Défense par réduction d’exposition d’abord ; leurres seulement si isolés et audités. |
 | P1B | Corrélation performances — KPI logs après login | local | Suivre § “P1B — Corrélation performances” : `/b4ck0ff1ce/performances/correlation`, service focal, KPI logs cohérents ou état vide explicite. | [ ] | |
@@ -283,6 +288,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 | P1B | Statistics — onglet Logs (`log-stats`) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : filtres service/niveau, sources actives/historiques, compteurs cohérents. | [ ] | Partiellement validé 20/05 — reconfirmer après recreate. |
 | P1B | Statistics — onglet Données applicatives (`app-data`) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : totaux, timeline, états vides lisibles, pas de `undefined`. | [ ] | |
 | P1B | Statistics — graphes disponibilité / erreur (vue d’ensemble) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : courbes chargées, légende source visible, plage 24h↔7j OK. | [ ] | Technique 21/05 OK — validation navigateur porteur. |
+| P1B | Statistics / Performances — temps de réponse endpoints services | local | Suivre § “P1B — Statistics” : vérifier temps de réponse instantanés/moyens par service, source `monitoring-agent-rs` / `metrics-aggregator`, services manquants visibles ou justifiés (`auth`, `deployment`, `call`, `notification`, `followup`, `application`, `postgres`). | [ ] | **10/06 porteur** : vue actuelle jugée incomplète/trompeuse ; à reprendre après P1A. |
 | P1C | Mode sombre persistant après refresh | local | Suivre § “P1C — UX backoffice” : choisir sombre, rafraîchir login/backoffice, le thème reste sombre. | [ ] | |
 | P1C | Popup paramètres fermeture | local | Suivre § “P1C — UX backoffice” : clic extérieur et `Escape` ferment la mini-fenêtre sans perte de clic interne. | [ ] | |
 | P1C | Graphes conteneurs multi-séries lisibles | local | Suivre § “P1C — UX backoffice” : Performances → Conteneurs → Tous les conteneurs, couleurs distinctes/stables CPU/mémoire. | [ ] | |
@@ -291,6 +297,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 | P1C | Sécurité — titres FR et navigation | local | Suivre § “P1C — UX backoffice” : Politiques, Menaces, Firewall, Logs, Analyse, Réseau avec titres FR et sous-nav cohérente. | [ ] | Playwright 8/8 — validation visuelle porteur. |
 | P1C | Comparaison rapports tests agrégés (non sécurité) | local | Suivre § “P1C — UX backoffice” : comparer 2 rapports non sécurité de même catégorie ; tableau de comparaison visible. | [ ] | |
 | P1C | Backoffice Développement → Tests — navigation et regroupement rapports | local | Suivre § “P1C — UX backoffice” : clic Tests = vue d’ensemble ; sous-menu Rapports ; toutes les entrées Tests restent accessibles. | [ ] | **09/06 porteur** : menu Tests trop long et pas assez sous-catégorisé ; à traiter après P1A/P1B selon ordre. |
+| P1C | Responsive backoffice complet petit/moyen écran | local | Suivre § “P1C — UX backoffice” : tester petit écran, écran moyen et largeurs intermédiaires sur les pages backoffice principales ; lister les routes avec débordement horizontal, filtres/tableaux cassés, menu inutilisable ou boutons hors écran. | [ ] | **10/06 porteur** : interface pas encore assez optimisée sur petit et moyen écran ; chantier global à traiter après la validation email bloquante. |
 | P2 | Rapports tests — taille et compression | local | `/b4ck0ff1ce/test-reports` affiche la taille de chaque rapport (Ko/Mo) et le volume total filtré ; cadrer ensuite une compression/archivage des anciens rapports sans casser l’ouverture, le téléchargement ni les détails sensibles. | [ ] | Taille affichée ajoutée côté agent ; compression à traiter après P0 CVE. |
 | P2 | Mode clair backoffice — lisibilité page par page | local | Si une page est illisible en clair, noter la route exacte (ne bloque plus le lot global). | [ ] | Acceptation provisoire 21/05. |
 | P2 | Performances — Disque stockage BDD | local | Page Disque : cartes + Block I/O ; validation données réelles. | [ ] | |

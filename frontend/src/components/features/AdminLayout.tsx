@@ -955,12 +955,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
         <div
-          className={`transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72 md:ml-80"}`}
+          className={`transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72"}`}
         >
           {/* Top bar */}
           <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
             <div
-              className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
+              className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
             >
               {/* Section gauche - Navigation et titre */}
               <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
@@ -1226,7 +1226,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
           <main
-            className={`backoffice-content p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
+            className={`backoffice-content p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
           >
             {children}
           </main>

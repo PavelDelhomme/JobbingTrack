@@ -73,6 +73,8 @@ describe('Notification Service - configuration SMTP', () => {
     process.env.SECURITY_ALERT_MIRROR_SMTP_SECURE = 'true';
     process.env.SECURITY_ALERT_MIRROR_SMTP_USER = 'noreply@example.test';
     process.env.SECURITY_ALERT_MIRROR_SMTP_PASS = 'secret';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_FROM = 'JobbingTrack Security <security@example.test>';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO = 'security@example.test';
 
     const primarySendMail = jest.fn().mockResolvedValue({ messageId: 'mailhog-id' });
     const mirrorSendMail = jest.fn().mockResolvedValue({ messageId: 'mirror-id' });
@@ -113,6 +115,13 @@ describe('Notification Service - configuration SMTP', () => {
     expect(primarySendMail).toHaveBeenCalledTimes(1);
     await new Promise((resolve) => setImmediate(resolve));
     expect(mirrorSendMail).toHaveBeenCalledTimes(1);
+    expect(mirrorSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'JobbingTrack Security <noreply@example.test>',
+        replyTo: 'security@example.test',
+        to: 'security@example.test'
+      })
+    );
     expect(result.securityAlertMirror).toEqual({
       queued: true
     });

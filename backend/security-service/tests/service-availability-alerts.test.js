@@ -33,6 +33,7 @@ describe('SecurityScheduler - alertes disponibilité services', () => {
     process.env = {
       ...originalEnv,
       METRICS_SERVICE_URL: 'http://metrics.local',
+      METRICS_API_KEY: 'metrics-test-key',
       SECURITY_CRITICAL_SERVICES: 'jobbingtrack-api-gateway,jobbingtrack-redis',
       SECURITY_SERVICE_DOWN_DEDUP_MINUTES: '30'
     };
@@ -75,7 +76,10 @@ describe('SecurityScheduler - alertes disponibilité services', () => {
     expect(result).toEqual({ checked: 3, alerts: 1 });
     expect(axios.get).toHaveBeenCalledWith(
       'http://metrics.local/api/v1/docker/services/all',
-      { timeout: 5000 }
+      {
+        timeout: 5000,
+        headers: { 'X-API-Key': 'metrics-test-key' }
+      }
     );
     expect(securityService.createSecurityAlert).toHaveBeenCalledTimes(1);
     expect(securityService.createSecurityAlert).toHaveBeenCalledWith({

@@ -113,6 +113,35 @@ class EmailService {
     return '';
   }
 
+  formatSenderWithAddress(sender, fallbackAddress) {
+    const address = this.pickUsableEnvValue(fallbackAddress);
+    if (!address) {
+      return sender;
+    }
+
+    const match = String(sender || '').match(/^\s*(.*?)\s*<[^>]+>\s*$/);
+    const displayName = match && match[1] ? match[1].trim() : '';
+    return displayName ? `${displayName} <${address}>` : address;
+  }
+
+  resolveSecurityAlertMirrorFrom(options = {}) {
+    if (options.mirrorFrom) {
+      return options.mirrorFrom;
+    }
+
+    const configuredFrom = process.env.SECURITY_ALERT_MIRROR_SMTP_FROM;
+    const smtpUser = this.pickUsableEnvValue(
+      process.env.SECURITY_ALERT_MIRROR_SMTP_USER,
+      process.env.SMTP_REAL_USER
+    );
+
+    if (process.env.SECURITY_ALERT_MIRROR_SMTP_FORCE_FROM_ALIAS === 'true') {
+      return configuredFrom || smtpUser;
+    }
+
+    return this.formatSenderWithAddress(configuredFrom, smtpUser) || smtpUser;
+  }
+
   async sendEmail(to, subject, html, options = {}) {
     try {
       const mailOptions = {
@@ -145,18 +174,19 @@ class EmailService {
   }
 
   async sendSecurityAlertMirror(to, mailOptions, options = {}) {
-    const mirrorInfo = await this.securityAlertMirrorTransporter.sendMail({
+    const mirrorMailOptions = {
       ...mailOptions,
-      from:
-        options.mirrorFrom ||
-        process.env.SECURITY_ALERT_MIRROR_SMTP_FROM ||
-        mailOptions.from,
+      from: this.resolveSecurityAlertMirrorFrom(options) || mailOptions.from,
       replyTo:
         options.mirrorReplyTo ||
         process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO ||
         mailOptions.replyTo
+    };
+    const mirrorInfo = await this.securityAlertMirrorTransporter.sendMail(mirrorMailOptions);
+    logger.info(`Email alerte sécurité miroir SMTP envoyé à ${to}: ${mirrorInfo.messageId}`, {
+      from: mirrorMailOptions.from,
+      replyTo: mirrorMailOptions.replyTo || null
     });
-    logger.info(`Email alerte sécurité miroir SMTP envoyé à ${to}: ${mirrorInfo.messageId}`);
     return mirrorInfo;
   }
 

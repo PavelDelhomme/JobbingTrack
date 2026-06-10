@@ -83,15 +83,17 @@ SMTP_HOST=smtp.gmail.com                      # Serveur SMTP
 SMTP_PORT=587                                 # Port SMTP
 SMTP_USER=redacted@example.invalid               # Email expéditeur
 SMTP_PASS=VOTRE_MOT_DE_PASSE_APP              # ⚠️ Mot de passe d'application
-SMTP_FROM=JobbingTrack <redacted@example.invalid>  # Email expéditeur formaté
+SMTP_FROM=JobbingTrack <redacted@example.invalid>  # Email expéditeur formaté (compte SMTP authentifié si le fournisseur l'exige)
 SMTP_REPLY_TO=redacted@example.invalid            # Réponse par défaut
 CRASH_REPORT_EMAIL=crash-report@jobbingtrack.test # Alias public, forwarding fournisseur hors Git
-CRASH_REPORT_FROM=JobbingTrack Crash Reports <report@jobbingtrack.test>
-CRASH_REPORT_REPLY_TO=report@jobbingtrack.test
+CRASH_REPORT_FROM=JobbingTrack Crash Reports <redacted@example.invalid>
+CRASH_REPORT_REPLY_TO=crash-report@jobbingtrack.test
 SECURITY_ALERT_EMAIL=security@jobbingtrack.test
 SECURITY_ALERT_FROM=JobbingTrack Security <security@jobbingtrack.test>
 SECURITY_ALERT_REPLY_TO=security@jobbingtrack.test
 ```
+
+Pour les fournisseurs stricts (ex. SMTP OVH selon configuration), privilégier `*_FROM` sur le compte SMTP authentifié (`SMTP_USER`) et mettre l’alias métier (`crash-report@…`, `security@…`) dans `*_REPLY_TO` ou dans les redirections fournisseur. Cela améliore la délivrabilité tout en gardant une adresse de réponse lisible.
 
 ### 📬 Agent email / tâches recherche emploi (futur lot I)
 
