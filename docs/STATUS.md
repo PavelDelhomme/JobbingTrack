@@ -38,6 +38,13 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Frontend P1A** : encart cadrage tests offensifs sur `/b4ck0ff1ce/tests-security` (consultation uniquement).
 - **Validations** : `tsc --noEmit` OK ; ESLint ciblé OK (warnings historiques) ; smoke API services prioritaires healthy avec `responseTime` > 0 sauf postgres.
 
+## 11 juin 2026 (suite) — panneau P1B, menu Tests, design VPS
+
+- **Statistics** : composant `PriorityResponseServicesSummary` (services prioritaires P1B, source, lien latence).
+- **Menu Tests** : sections **Automatisés** / **Sécurité & charge** ; rapports de parcours centralisés sous **Rapports**.
+- **Tests sécurité** : tableau périmètre contrôlé (lecture seule) dans l’encart P1A.
+- **Doc** : `docs/security/VPS_EXPOSURE_REDUCTION.md` pour la ligne P1A leurres/exposition VPS.
+
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
 - **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).

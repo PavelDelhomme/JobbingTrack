@@ -70,6 +70,10 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P1B | UI Statistics / Performances — temps de réponse P1B | `responseTimePresentation.ts` : services prioritaires, label « Santé Docker » postgres/redis, note source ; `serviceHealthOverview.ts` : `responseTimeLabel`, `nonHttpDependency` ; encarts source sur `/b4ck0ff1ce/statistics` et `/b4ck0ff1ce/performances/latency`. `./node_modules/.bin/tsc --noEmit` OK ; ESLint ciblé 6 fichiers OK (warnings historiques `statistics/page.tsx` uniquement). | [x] |
 | P1C | Menu Développement → Tests / Rapports | `AdminLayout.tsx` : sous-menu **Rapports** (`Rapports de tests`, `Rapports de parcours`) séparé ; entrée « Rapports de tests » retirée du sous-menu Tests. Validation navigateur porteur en attente. | [x] |
 | P1A | Tests offensifs — encart cadrage UI | `/b4ck0ff1ce/tests-security` : encart « Tests offensifs contrôlés (cadrage P1A) » avec liens matrice `SECURITY_TESTING_MATRIX.md`, durcissement Compose, rapports sécurité — **aucun scan offensif lancé**. | [x] |
+| P1B | Statistics — panneau services prioritaires temps de réponse | Composant `PriorityResponseServicesSummary` sur vue d’ensemble Statistics + onglet services ; `responseTimeLabel` par carte ; lien Performances → Latence. `./node_modules/.bin/tsc --noEmit` OK. | [x] |
+| P1C | Menu Tests — sections Automatisés / Sécurité & charge | `AdminLayout` : `sectionLabel` pour en-têtes non cliquables ; doublon « Rapports de parcours » retiré du menu Parcours (accès via sous-menu Rapports). | [x] |
+| P1A | Leurres VPS — design réduction d’exposition | `docs/security/VPS_EXPOSURE_REDUCTION.md` : priorité réduction ports/réseaux, leurres en phase ultérieure isolée, critères validation porteur. | [x] |
+| P1A | Tests offensifs — tableau périmètre UI | `/b4ck0ff1ce/tests-security` : `<details>` tableau lecture seule (WAF, CVE, réseau lab, ZAP, leurres) — aucun bouton scan agressif ajouté. | [x] |
 
 ## Vérifications récurrentes
 

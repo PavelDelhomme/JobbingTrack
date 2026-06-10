@@ -27,6 +27,8 @@ interface NavItem {
   icon: string;
   onClick?: () => void;
   subItems?: NavItem[];
+  /** Libellé de section non cliquable dans un sous-menu */
+  sectionLabel?: boolean;
   /** Si true, ouvre le lien dans un nouvel onglet (pour liens externes ex. MailHog) */
   external?: boolean;
 }
@@ -474,6 +476,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           subItems: [
             { name: "Vue d'ensemble", href: "/b4ck0ff1ce/tests", icon: "📋" },
             {
+              name: "Automatisés",
+              icon: "🤖",
+              sectionLabel: true,
+            },
+            {
               name: "Tests Playwright",
               href: "/b4ck0ff1ce/playwright-tests",
               icon: "🎭",
@@ -493,6 +500,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               name: "Tests Backoffice",
               href: "/b4ck0ff1ce/tests-backoffice",
               icon: "🛡️",
+            },
+            {
+              name: "Sécurité & charge",
+              icon: "🔒",
+              sectionLabel: true,
             },
             {
               name: "Tests Sécurité",
@@ -542,11 +554,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               name: "Parcours personnalisé",
               href: "/b4ck0ff1ce/user-journey/custom",
               icon: "🎯",
-            },
-            {
-              name: "Rapports de parcours",
-              href: "/b4ck0ff1ce/user-journey/reports",
-              icon: "📄",
             },
           ],
         },
@@ -848,6 +855,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 {hasSubItems && showItemSubItems && (
                                   <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                                     {(item.subItems ?? []).map((subItem) => {
+                                      if (subItem.sectionLabel) {
+                                        return (
+                                          <div
+                                            key={subItem.name}
+                                            className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 select-none"
+                                          >
+                                            {subItem.icon ? (
+                                              <span className="mr-1 normal-case">
+                                                {subItem.icon}
+                                              </span>
+                                            ) : null}
+                                            {subItem.name}
+                                          </div>
+                                        );
+                                      }
                                       const isSubActive =
                                         !subItem.external &&
                                         navItemMatchesPath(pathname, subItem);

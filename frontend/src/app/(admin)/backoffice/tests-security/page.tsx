@@ -462,6 +462,49 @@ export default function SecurityTestsPage() {
             <li>Rapports : <Link href="/b4ck0ff1ce/test-reports" className="underline">Rapports de tests</Link> (catégorie Sécurité).</li>
             <li>Validation porteur : confirmer le cadrage, pas lancer une campagne agressive depuis l’UI.</li>
           </ul>
+          <details className="text-xs text-amber-950/90 dark:text-amber-100/90">
+            <summary className="cursor-pointer font-medium mt-2">
+              Périmètre contrôlé par conteneur (lecture seule)
+            </summary>
+            <div className="mt-2 overflow-x-auto rounded border border-amber-200/80 dark:border-amber-800/80">
+              <table className="min-w-full text-left text-[11px]">
+                <thead className="bg-amber-100/60 dark:bg-amber-950/50">
+                  <tr>
+                    <th className="px-2 py-1.5 font-semibold">Surface</th>
+                    <th className="px-2 py-1.5 font-semibold">Mode</th>
+                    <th className="px-2 py-1.5 font-semibold">Où</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-200/60 dark:divide-amber-900/50">
+                  <tr>
+                    <td className="px-2 py-1.5">WAF / injection / headers</td>
+                    <td className="px-2 py-1.5">Passif + payloads bornés</td>
+                    <td className="px-2 py-1.5">API gateway, backoffice</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">CVE applicatives / images</td>
+                    <td className="px-2 py-1.5">Scan non destructif</td>
+                    <td className="px-2 py-1.5">Cette page + rapports</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Ports / SYN / réseau</td>
+                    <td className="px-2 py-1.5">Lab uniquement</td>
+                    <td className="px-2 py-1.5">Scripts matrice, pas l’UI</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">ZAP actif / fuzzing massif</td>
+                    <td className="px-2 py-1.5">Fenêtre dédiée</td>
+                    <td className="px-2 py-1.5">Préprod autorisée</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Leurres / honeypot VPS</td>
+                    <td className="px-2 py-1.5">Design seulement</td>
+                    <td className="px-2 py-1.5">docs/security/VPS_EXPOSURE_REDUCTION.md</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
 
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
