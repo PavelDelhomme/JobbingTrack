@@ -792,8 +792,8 @@ const reportCrash = async (req, res, next) => {
 
     try {
       const crashReportEmail = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
-      const crashReportFrom = process.env.CRASH_REPORT_FROM || process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>';
-      const crashReportReplyTo = process.env.CRASH_REPORT_REPLY_TO || process.env.SMTP_REPLY_TO || undefined;
+      const { from: crashReportFrom, replyTo: crashReportReplyTo } =
+        emailService.getCrashReportIdentity();
 
       await emailService.sendEmail(crashReportEmail, emailSubject, emailBody, {
         from: crashReportFrom,

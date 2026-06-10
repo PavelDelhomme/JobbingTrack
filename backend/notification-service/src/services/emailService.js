@@ -142,6 +142,35 @@ class EmailService {
     return this.formatSenderWithAddress(configuredFrom, smtpUser) || smtpUser;
   }
 
+  resolvePublicSenderIdentity({
+    configuredFrom,
+    configuredReplyTo,
+    smtpUser,
+    forceAlias = false
+  } = {}) {
+    const authUser = this.pickUsableEnvValue(smtpUser);
+    const from = forceAlias
+      ? (configuredFrom || authUser)
+      : (this.formatSenderWithAddress(configuredFrom, authUser) || configuredFrom || authUser);
+    const replyTo = this.pickUsableEnvValue(configuredReplyTo) || undefined;
+
+    return { from, replyTo };
+  }
+
+  getCrashReportIdentity() {
+    return this.resolvePublicSenderIdentity({
+      configuredFrom:
+        process.env.CRASH_REPORT_FROM ||
+        process.env.SMTP_FROM ||
+        'JobbingTrack Crash Reports <redacted@example.invalid>',
+      configuredReplyTo:
+        process.env.CRASH_REPORT_REPLY_TO ||
+        process.env.SMTP_REPLY_TO,
+      smtpUser: process.env.SMTP_USER,
+      forceAlias: process.env.CRASH_REPORT_FORCE_FROM_ALIAS === 'true'
+    });
+  }
+
   async sendEmail(to, subject, html, options = {}) {
     try {
       const mailOptions = {

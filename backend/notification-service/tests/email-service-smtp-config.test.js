@@ -163,5 +163,26 @@ describe('Notification Service - configuration SMTP', () => {
       queued: true
     });
   });
+
+  test('aligne l’identité crash-report sur le compte SMTP authentifié', () => {
+    process.env.SMTP_USER = 'noreply@example.test';
+    process.env.CRASH_REPORT_FROM = 'JobbingTrack Crash Reports <crash-report@jobbingtrack.test>';
+    process.env.CRASH_REPORT_REPLY_TO = 'crash-report@jobbingtrack.test';
+
+    const createTransport = jest.fn(() => ({ sendMail: jest.fn() }));
+    jest.doMock('nodemailer', () => ({ createTransport }));
+    jest.doMock('../src/utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
+    }));
+
+    const emailService = require('../src/services/emailService');
+
+    expect(emailService.getCrashReportIdentity()).toEqual({
+      from: 'JobbingTrack Crash Reports <noreply@example.test>',
+      replyTo: 'crash-report@jobbingtrack.test'
+    });
+  });
 });
 
