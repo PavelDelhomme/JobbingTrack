@@ -41,9 +41,12 @@ import { useTracking } from "@/components/tracking/TrackingProvider";
 import { DashboardLayoutRegion } from "@/lib/ui";
 import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
 import {
+  buildStatisticsServicesFromDocker,
+  filterMetricsListToActive,
   summarizeDockerServiceHealth,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
+import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -342,6 +345,15 @@ export default function BackofficePage() {
   const serviceHealthSummary = useMemo(
     () => summarizeDockerServiceHealth(dockerServicesSnapshot),
     [dockerServicesSnapshot],
+  );
+
+  const priorityStatisticsServices = useMemo(
+    () =>
+      buildStatisticsServicesFromDocker(
+        dockerServicesSnapshot,
+        filterMetricsListToActive(servicesWithMetrics),
+      ),
+    [dockerServicesSnapshot, servicesWithMetrics],
   );
 
   /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
@@ -1298,6 +1310,10 @@ export default function BackofficePage() {
             <ServiceHealthKpiCards
               dockerServices={dockerServicesSnapshot}
               hideHint
+              className="mb-4"
+            />
+            <PriorityResponseServicesSummary
+              services={priorityStatisticsServices}
               className="mb-4"
             />
             <div className="mb-4 flex flex-wrap gap-3 text-sm">

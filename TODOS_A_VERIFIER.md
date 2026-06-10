@@ -74,6 +74,10 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P1C | Menu Tests — sections Automatisés / Sécurité & charge | `AdminLayout` : `sectionLabel` pour en-têtes non cliquables ; doublon « Rapports de parcours » retiré du menu Parcours (accès via sous-menu Rapports). | [x] |
 | P1A | Leurres VPS — design réduction d’exposition | `docs/security/VPS_EXPOSURE_REDUCTION.md` : priorité réduction ports/réseaux, leurres en phase ultérieure isolée, critères validation porteur. | [x] |
 | P1A | Tests offensifs — tableau périmètre UI | `/b4ck0ff1ce/tests-security` : `<details>` tableau lecture seule (WAF, CVE, réseau lab, ZAP, leurres) — aucun bouton scan agressif ajouté. | [x] |
+| P1B | monitoring-agent-rs — rebuild image health paths | `docker compose build monitoring-agent-rs` + `--force-recreate` OK ; conteneur healthy ; smoke deployment/security/auth/notification via metrics-aggregator (rt 7–8 ms, http=healthy). | [x] |
+| P1B | Hub backoffice — panneau latence prioritaire | `/b4ck0ff1ce` : `PriorityResponseServicesSummary` sous KPI santé services. `tsc --noEmit` OK. | [x] |
+| P2 | Mobile Flutter — smoke widget sans appareil | `flutter test test/widget_test.dart` dans `mobile/` : **1/1 OK** (écran connexion). | [x] |
+| P2 | ADB appareil physique S21 FE | **11/06** : `adb devices` vide ; `emulator-controller` `:5055` OK mais `devices:[]`. USB non détecté (`lsusb` sans Samsung). **Blocage** : autoriser débogage USB sur le téléphone ou pairing sans fil (`adb pair` / `adb connect IP:port`). Prêt à relancer `tools/adb-lib` dès qu’un ID apparaît. | [ ] |
 
 ## Vérifications récurrentes
 

@@ -45,6 +45,13 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Tests sécurité** : tableau périmètre contrôlé (lecture seule) dans l’encart P1A.
 - **Doc** : `docs/security/VPS_EXPOSURE_REDUCTION.md` pour la ligne P1A leurres/exposition VPS.
 
+## 11 juin 2026 (suite 2) — monitoring-agent, hub, mobile
+
+- **monitoring-agent-rs** : image rebuild + recreate (chemins `/health` profile/workflow/deployment/security).
+- **Hub `/b4ck0ff1ce`** : panneau services prioritaires temps de réponse (même composant que Statistics).
+- **Mobile** : `flutter test mobile/test/widget_test.dart` **1/1 OK** sans appareil.
+- **ADB S21 FE** : non visible (`adb devices` vide) — emulator-controller actif sur `:5055` ; en attente autorisation USB ou pairing sans fil porteur.
+
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
 - **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).
