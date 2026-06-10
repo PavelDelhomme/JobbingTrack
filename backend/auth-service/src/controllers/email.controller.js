@@ -19,6 +19,7 @@ const getEmailLogs = async (req, res) => {
       type,
       status,
       to,
+      q,
       startDate,
       endDate
     } = req.query;
@@ -30,6 +31,16 @@ const getEmailLogs = async (req, res) => {
     if (type) where.type = type;
     if (status) where.status = status;
     if (to) where.to = { contains: to, mode: 'insensitive' };
+    if (q) {
+      const query = String(q).trim();
+      if (query) {
+        where.OR = [
+          { to: { contains: query, mode: 'insensitive' } },
+          { from: { contains: query, mode: 'insensitive' } },
+          { subject: { contains: query, mode: 'insensitive' } }
+        ];
+      }
+    }
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);

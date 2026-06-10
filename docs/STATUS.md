@@ -7,6 +7,8 @@
 ## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
 
 - **Diagnostic alertes email** : page `/b4ck0ff1ce/security/alerts` enrichie avec accès direct à MailHog et à `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. Le menu **Gestion des emails → Historique** pointe maintenant vers l’Email Monitor filtré Notification ; le filtre `NOTIFICATION` est sélectionnable et exploitable pour vérifier destinataire, statut, date et contenu.
+- **Email Monitor** : pagination serveur visible avec le composant `Pagination`, recherche `q` sur destinataire/expéditeur/sujet, badge de recherche et reset page 1 sur changement de filtre. Test API `q=admin@delhomme.ovh` → `8` résultats ; UI vérifiée avec champ + pagination.
+- **Nettoyage EmailLog local** : mesure avant purge `8971` lignes / `19 MB`; suppression contrôlée des anciens `FAILED`/`PENDING` avant aujourd’hui (`8722` lignes), conservation des `SENT` et notifications récentes, puis `VACUUM FULL ANALYZE` → `249` lignes / `720 kB`. Le chantier long terme reste une vraie rétention avec export compressé, manifest/hash et restauration.
 - **Nettoyage utilisateurs de test** : test navigateur sur `/b4ck0ff1ce/users` avec le bouton **Nettoyer les utilisateurs de test** ; confirmation acceptée, alerte succès `2441 utilisateur(s) de test supprimé(s)`, compteur BDD `isTestData=true OR @jobbingtrack.test` passé de `2441` à `0`.
 - **Validation frontend** : diagnostics IDE OK ; `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur les fichiers modifiés OK avec warnings historiques uniquement. Les scripts `npm run type-check`, `npm run lint` et Jest ciblé reproduisent encore le problème connu : code `1` sans sortie exploitable.
 

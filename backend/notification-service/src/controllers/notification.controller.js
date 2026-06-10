@@ -303,17 +303,30 @@ const deleteNotification = async (req, res, next) => {
 // Récupérer les logs d'emails
 const getEmailLogs = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 20, status, type, q } = req.query;
     const userId = req.user.id;
+    const role = String(req.user.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
     const where = {
-      userId,
-      ...(status && { status })
+      ...(isAdmin ? {} : { userId }),
+      ...(status && { status }),
+      ...(type && { type })
     };
+    if (q) {
+      const query = String(q).trim();
+      if (query) {
+        where.OR = [
+          { to: { contains: query, mode: 'insensitive' } },
+          { from: { contains: query, mode: 'insensitive' } },
+          { subject: { contains: query, mode: 'insensitive' } }
+        ];
+      }
+    }
 
     const [emailLogs, total] = await Promise.all([
       prisma.emailLog.findMany({
@@ -327,6 +340,7 @@ const getEmailLogs = async (req, res, next) => {
 
     res.json({
       success: true,
+      data: emailLogs,
       emailLogs,
       pagination: {
         page: pageNum,

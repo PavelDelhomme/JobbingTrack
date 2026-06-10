@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/features";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/Pagination";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
@@ -20,6 +21,7 @@ import {
   Eye,
   Filter,
   Download,
+  Search,
 } from "lucide-react";
 
 type EmailLog = {
@@ -80,6 +82,7 @@ export default function EmailMonitorPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(50);
+  const [searchTerm, setSearchTerm] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -113,6 +116,9 @@ export default function EmailMonitorPage() {
       }
       if (typeFilter !== "all") {
         params.append("type", typeFilter);
+      }
+      if (searchTerm.trim()) {
+        params.append("q", searchTerm.trim());
       }
 
       const response = await fetch(`${API_URL}/api/v1/emails/logs?${params}`, {
@@ -162,7 +168,7 @@ export default function EmailMonitorPage() {
   // Chargement initial et quand on change page/filtres
   useEffect(() => {
     loadEmails();
-  }, [page, filter, typeFilter]);
+  }, [page, filter, typeFilter, searchTerm]);
 
   // Rafraîchir dès que l'onglet redevient visible (pour voir les mails envoyés pendant qu'on était ailleurs)
   useEffect(() => {
@@ -341,6 +347,17 @@ export default function EmailMonitorPage() {
     pending: emails.filter((e) => e.status === "PENDING").length,
     bounced: emails.filter((e) => e.status === "BOUNCED").length,
   };
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const startIndex = total === 0 ? 0 : (page - 1) * limit + 1;
+  const endIndex = Math.min(page * limit, total);
+  const changeStatusFilter = (nextFilter: typeof filter) => {
+    setPage(1);
+    setFilter(nextFilter);
+  };
+  const changeTypeFilter = (nextFilter: typeof typeFilter) => {
+    setPage(1);
+    setTypeFilter(nextFilter);
+  };
 
   return (
     <AdminLayout>
@@ -353,11 +370,10 @@ export default function EmailMonitorPage() {
               Email Monitor
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Surveillez tous les emails envoyés par JobbingTrack. Pour les
-              parcours « Inscription + vérif. email » (Gmail/Proton/BlueMail),
-              filtrez par type <strong>Vérification</strong>. Pour les alertes
-              sécurité, filtrez par <strong>Notification</strong> et ouvrez
-              MailHog si vous voulez lire le contenu capturé localement.
+              Suivez les emails envoyés par JobbingTrack : statut, destinataire,
+              date et contenu. Utilisez <strong>Notification</strong> pour les
+              alertes sécurité et <strong>Vérification</strong> pour les parcours
+              inscription.
             </p>
           </div>
 
@@ -483,6 +499,38 @@ export default function EmailMonitorPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
+              {/* Recherche */}
+              <div className="min-w-[260px] flex-1">
+                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
+                  Recherche
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => {
+                      setPage(1);
+                      setSearchTerm(event.target.value);
+                    }}
+                    placeholder="Destinataire, expéditeur ou sujet..."
+                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </div>
+                {searchTerm.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPage(1);
+                      setSearchTerm("");
+                    }}
+                    className="mt-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200"
+                  >
+                    Recherche : {searchTerm.trim()} ×
+                  </button>
+                )}
+              </div>
+
               {/* Filtre Statut */}
               <div>
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
@@ -500,7 +548,7 @@ export default function EmailMonitorPage() {
                   ].map((f) => (
                     <button
                       key={f}
-                      onClick={() => setFilter(f as any)}
+                      onClick={() => changeStatusFilter(f as any)}
                       className={`
                         px-3 py-1 rounded text-sm font-medium transition-colors
                         ${
@@ -533,7 +581,7 @@ export default function EmailMonitorPage() {
                   ].map((t) => (
                     <button
                       key={t}
-                      onClick={() => setTypeFilter(t as any)}
+                      onClick={() => changeTypeFilter(t as any)}
                       className={`
                         px-3 py-1 rounded text-sm font-medium transition-colors
                         ${
@@ -731,6 +779,20 @@ export default function EmailMonitorPage() {
                 ))
               )}
             </div>
+            <Pagination
+              className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700"
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              itemsPerPage={limit}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              onPageChange={setPage}
+              onNext={() => setPage((current) => Math.min(current + 1, totalPages))}
+              onPrevious={() => setPage((current) => Math.max(current - 1, 1))}
+              canGoNext={page < totalPages}
+              canGoPrevious={page > 1}
+            />
           </CardContent>
         </Card>
 
