@@ -1,6 +1,6 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 10 juin 2026
+Dernière mise à jour : 11 juin 2026
 
 ## Rôle
 

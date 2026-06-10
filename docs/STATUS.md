@@ -29,6 +29,13 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 
 **Validation porteur 11/06** : alertes email critiques validées. Le porteur confirme la réception réelle dans `admin@delhomme.ovh` du smoke `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z`, de `VALIDATION PORTEUR P1A` et de l’alerte E2E `TEST P1A E2E security-service`, non classées spam. `From` affiché `noreply@maily.ovh` accepté provisoirement ; objectif futur noté : bascule vers `security@jobbingtrack.com` quand le domaine, SPF/DKIM/DMARC et le fournisseur SMTP le permettent. Prochaine ligne bloquante : **Tests offensifs contrôlés par conteneur JobbingTrack**.
 
+## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
+
+- **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).
+- **Backlog noté** : synchronisation Google Tasks bidirectionnelle (détection tâches terminées/modifiées côté Google) ; expéditeur `security@jobbingtrack.com` reporté en fin de programme.
+- **Non-régression** : Jest alertes email **11/11**, `tsc --noEmit` OK, conteneurs clés healthy.
+- **Suite** : préparation validation porteur **Tests offensifs contrôlés** — pages `/b4ck0ff1ce/tests-security` et `/b4ck0ff1ce/test-reports` accessibles, sans scan offensif lancé.
+
 ## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
 
 - **Diagnostic alertes email** : page `/b4ck0ff1ce/security/alerts` enrichie avec accès direct à MailHog et à `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. Le menu **Gestion des emails → Historique** pointe maintenant vers l’Email Monitor filtré Notification ; le filtre `NOTIFICATION` est sélectionnable et exploitable pour vérifier destinataire, statut, date et contenu.
