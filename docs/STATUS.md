@@ -61,6 +61,13 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Bouton backoffice** : `/b4ck0ff1ce/tests` expose **Lancer suite P1B latence** + carte dédiée. API `POST /api/test/run-metrics-p1b` validée par smoke : rapport `20260610-231609`.
 - **Générateur rapports** : `scripts/reports/generate-test-report.sh` reste compatible `sh` dans le conteneur frontend (remplacement du here-string bash par affectations POSIX), ce qui évite l’erreur `unexpected redirection`.
 
+## 11 juin 2026 (suite 4) — programme validation A-Z + email validation agent
+
+- **Programme A-Z** : `docs/operations/VALIDATION_A_Z_AGENT.md` ajouté pour piloter les validations agent par lots : Docker, API, backend, emails, frontend, backoffice, mobile, sécurité non destructive, documentation.
+- **Email validation agent** : sujet `VALIDATION AGENT P1 LOT TESTS 2026-06-10T23:21:52.461Z`, envoyé via `security-service` aux 3 destinataires configurés ; MailHog `total=59`; `EmailLog` `SENT`; miroir SMTP réel OK (`metadata.mirror.sent=true`, `messageId @maily.ovh`).
+- **Passe technique A-Z sûre** : conteneurs JobbingTrack healthy (monitoring-agent-rs encore `starting` dans `docker ps` mais `/health` OK), HTTP `gateway/frontend/metrics/monitoring` OK, metrics services prioritaires OK, frontend `tsc` + P1B Jest **12/12**, notification SMTP **5/5**, security email **6/6**, metrics-aggregator backend **6/6**, mobile Flutter **1/1**.
+- **Mobile physique** : S21 FE détecté (`R5CT7263YJL`, `SM-G990B2`, Android 16), emulator-controller `:5055` OK, UI dump brut OK sur l’écran de connexion mobile. Reste à diagnostiquer `tools/adb-lib/examples/inspect-ui.js` qui sort code 1 sans sortie exploitable.
+
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
 - **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).
