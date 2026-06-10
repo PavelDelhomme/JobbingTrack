@@ -11,6 +11,7 @@ const TABS = [
   { href: "/b4ck0ff1ce/security/firewall", label: "Firewall" },
   { href: "/b4ck0ff1ce/security/network", label: "Réseau" },
   { href: "/b4ck0ff1ce/security/incidents", label: "Incidents" },
+  { href: "/b4ck0ff1ce/security/alerts", label: "Alertes email" },
   { href: "/b4ck0ff1ce/security/policies", label: "Politiques" },
 ] as const;
 

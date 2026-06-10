@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 8 juin 2026
+Dernière mise à jour : 10 juin 2026
 
 ## Règle principale
 
@@ -32,15 +32,15 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité et Rapports sécurité (affichage CVE) validés le 21/05/2026.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab et localisation CVE validés localement.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Comparaison de rapports sécurité (CVE)** (régression porteur 21/05).
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Alertes email critiques JobbingTrack**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
-4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (menaces lab, puis P1A/P1B/P1C, une ligne à la fois).
-5. Reprendre `docs/TODOS.md` uniquement quand les P0 porteur sont validés ou explicitement reclassés.
+4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C, une ligne à la fois).
+5. Reprendre `docs/TODOS.md` uniquement quand les validations porteur bloquantes sont validées ou explicitement reclassées.
 
 ## Flux de travail
 

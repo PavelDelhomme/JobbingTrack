@@ -1,8 +1,23 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 8 juin 2026 — **Branche** `dev`.
+**Dernière mise à jour** : 10 juin 2026 — **Branche** `dev`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
+
+- **Diagnostic alertes email** : page `/b4ck0ff1ce/security/alerts` enrichie avec accès direct à MailHog et à `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. Le menu **Gestion des emails → Historique** pointe maintenant vers l’Email Monitor filtré Notification ; le filtre `NOTIFICATION` est sélectionnable et exploitable pour vérifier destinataire, statut, date et contenu.
+- **Nettoyage utilisateurs de test** : test navigateur sur `/b4ck0ff1ce/users` avec le bouton **Nettoyer les utilisateurs de test** ; confirmation acceptée, alerte succès `2441 utilisateur(s) de test supprimé(s)`, compteur BDD `isTestData=true OR @jobbingtrack.test` passé de `2441` à `0`.
+- **Validation frontend** : diagnostics IDE OK ; `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur les fichiers modifiés OK avec warnings historiques uniquement. Les scripts `npm run type-check`, `npm run lint` et Jest ciblé reproduisent encore le problème connu : code `1` sans sortie exploitable.
+
+## 10 juin 2026 — clôture P0 CVE et localisation runtime Node
+
+- **Validations porteur P0** : comparaison de rapports sécurité CVE, menaces historiques/lab avant nettoyage, et ouverture/téléchargement rapports sécurité validés explicitement puis archivés dans `TODOS_DONE.md`.
+- **Localisation `CVE-2026-21710`** : `scripts/security/cve-locate.mjs` localise désormais les CVE runtime Node déclarées dans les Dockerfiles. Pour `CVE-2026-21710`, les images `node:20.18.0` sont remontées comme `node-runtime`, sévérité `high`, correctif `20.20.2+`, surface HTTP Node.
+- **Tests sécurité** : ajout de `tests/security/cve-locate-runtime.test.js` ; validation `/usr/bin/node tests/node_modules/jest/bin/jest.js --config tests/jest.config.js tests/security/cve-locate-runtime.test.js --runInBand` → **1/1 OK**.
+- **UI tests sécurité** : `/b4ck0ff1ce/tests-security` affiche aussi les hits runtime (`image`, version installée, version corrigée, surface, correctif), pas seulement npm audit.
+- **Rapports test-reports** : suppression du bouton Télécharger doublon dans l’en-tête fullscreen ; un seul bouton reste dans la barre d’actions.
+- **Validation frontend ciblée** : `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur `tests-security/page.tsx` et `test-reports/page.tsx` OK avec warnings historiques uniquement. `npm run type-check` et `npm run lint` reproduisent encore le problème connu : code 1 sans stdout/stderr exploitable.
 
 ## 9 juin 2026 — cadrage agent email / tâches recherche emploi
 

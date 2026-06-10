@@ -3,27 +3,114 @@ const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    this.transporter = nodemailer.createTransport(
+      this.buildTransportConfig({
+        host: process.env.SMTP_HOST || 'mailhog',
+        port: process.env.SMTP_PORT || 1025,
+        secure: process.env.SMTP_SECURE,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }, 'SMTP')
+    );
+
+    this.securityAlertMirrorTransporter = this.buildSecurityAlertMirrorTransporter();
+  }
+
+  buildTransportConfig(config, label) {
     const transportConfig = {
-      host: process.env.SMTP_HOST || 'mailhog',
-      port: Number(process.env.SMTP_PORT || 1025),
-      secure: process.env.SMTP_SECURE === 'true',
+      host: config.host,
+      port: Number(config.port),
+      secure: config.secure === 'true',
+      connectionTimeout: Number(config.timeoutMs || 8000),
+      greetingTimeout: Number(config.timeoutMs || 8000),
+      socketTimeout: Number(config.timeoutMs || 8000),
       tls: {
         rejectUnauthorized: false
       }
     };
 
-    if (smtpUser && smtpPass) {
+    if (config.user && config.pass) {
       transportConfig.auth = {
-        user: smtpUser,
-        pass: smtpPass
+        user: config.user,
+        pass: config.pass
       };
-    } else if (smtpUser || smtpPass) {
-      logger.warn('Configuration SMTP incomplète: auth désactivée car SMTP_USER ou SMTP_PASS manque');
+    } else if (config.user || config.pass) {
+      logger.warn(`Configuration ${label} incomplète: auth désactivée car USER ou PASS manque`);
     }
 
-    this.transporter = nodemailer.createTransport(transportConfig);
+    return transportConfig;
+  }
+
+  buildSecurityAlertMirrorTransporter() {
+    if (process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED !== 'true') {
+      return null;
+    }
+
+    const host = this.pickUsableEnvValue(
+      process.env.SECURITY_ALERT_MIRROR_SMTP_HOST,
+      process.env.SMTP_REAL_HOST
+    );
+    const port = this.pickUsableEnvValue(
+      process.env.SECURITY_ALERT_MIRROR_SMTP_PORT,
+      process.env.SMTP_REAL_PORT,
+      '587'
+    );
+    const useSsl = this.pickUsableEnvValue(
+      process.env.SECURITY_ALERT_MIRROR_SMTP_USE_SSL,
+      process.env.SMTP_REAL_USE_SSL
+    );
+    const secure =
+      process.env.SECURITY_ALERT_MIRROR_SMTP_FORCE_SSL === 'true'
+        ? 'true'
+        : String(port) === '587'
+          ? 'false'
+          : useSsl === 'true'
+            ? 'true'
+            : String(port) === '465'
+              ? 'true'
+              : 'false';
+
+    if (!host || !port) {
+      logger.warn('Miroir SMTP alertes sécurité activé mais host/port manquant');
+      return null;
+    }
+
+    return nodemailer.createTransport(
+      this.buildTransportConfig({
+        host,
+        port,
+        secure,
+        user: this.pickUsableEnvValue(
+          process.env.SECURITY_ALERT_MIRROR_SMTP_USER,
+          process.env.SMTP_REAL_USER
+        ),
+        pass: this.pickUsableEnvValue(
+          process.env.SECURITY_ALERT_MIRROR_SMTP_PASS,
+          process.env.SMTP_REAL_PASS
+        ),
+        timeoutMs: process.env.SECURITY_ALERT_MIRROR_SMTP_TIMEOUT_MS
+      }, 'SECURITY_ALERT_MIRROR_SMTP')
+    );
+  }
+
+  isPlaceholderValue(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return (
+      !normalized ||
+      normalized.includes('example.invalid') ||
+      normalized.includes('xxx') ||
+      normalized === 'changeme' ||
+      normalized === 'change-me'
+    );
+  }
+
+  pickUsableEnvValue(...values) {
+    for (const value of values) {
+      if (!this.isPlaceholderValue(value)) {
+        return String(value).trim();
+      }
+    }
+    return '';
   }
 
   async sendEmail(to, subject, html, options = {}) {
@@ -38,11 +125,39 @@ class EmailService {
 
       const info = await this.transporter.sendMail(mailOptions);
       logger.info(`Email envoyé à ${to}: ${info.messageId}`);
+
+      if (options.securityAlertMirror === true && this.securityAlertMirrorTransporter) {
+        logger.info(`Email alerte sécurité miroir SMTP planifié pour ${to}`);
+        this.sendSecurityAlertMirror(to, mailOptions, options).catch((mirrorError) => {
+          logger.warn('Envoi miroir SMTP alerte sécurité échoué', {
+            to,
+            error: mirrorError.message
+          });
+        });
+        info.securityAlertMirror = { queued: true };
+      }
+
       return info;
     } catch (error) {
       logger.error('Erreur envoi email:', error);
       throw error;
     }
+  }
+
+  async sendSecurityAlertMirror(to, mailOptions, options = {}) {
+    const mirrorInfo = await this.securityAlertMirrorTransporter.sendMail({
+      ...mailOptions,
+      from:
+        options.mirrorFrom ||
+        process.env.SECURITY_ALERT_MIRROR_SMTP_FROM ||
+        mailOptions.from,
+      replyTo:
+        options.mirrorReplyTo ||
+        process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO ||
+        mailOptions.replyTo
+    });
+    logger.info(`Email alerte sécurité miroir SMTP envoyé à ${to}: ${mirrorInfo.messageId}`);
+    return mirrorInfo;
   }
 
   async sendNotificationEmail(user, notification) {

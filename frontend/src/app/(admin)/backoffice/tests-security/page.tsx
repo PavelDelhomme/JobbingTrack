@@ -26,12 +26,18 @@ interface TestItem {
 interface CveLocateHit {
   source: string;
   path: string;
+  line?: number;
   reportId?: string;
   package?: string;
   severity?: string;
   excerpt?: string;
   lockfilePath?: string;
   installedVersion?: string | null;
+  image?: string;
+  patchedVersion?: string;
+  affectedRange?: string;
+  exposedSurface?: string;
+  fix?: string;
 }
 
 interface CveFindingCard {
@@ -78,7 +84,7 @@ export default function SecurityTestsPage() {
   const [isRunningCve, setIsRunningCve] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [reportId, setReportId] = useState<string | null>(null);
-  const [cveQuery, setCveQuery] = useState("CVE-2026-49975");
+  const [cveQuery, setCveQuery] = useState("CVE-2026-21710");
   const [cveResult, setCveResult] = useState<{
     found: boolean;
     hits: CveLocateHit[];
@@ -444,15 +450,15 @@ export default function SecurityTestsPage() {
             Localiser une CVE dans JobbingTrack
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Recherche dans les rapports CVE archivés, lockfiles npm et npm audit
-            (ex. CVE-2026-49975).
+            Recherche dans les rapports CVE archivés, lockfiles npm, npm audit et
+            runtimes déclarés dans les Dockerfiles (ex. CVE-2026-21710).
           </p>
           <div className="flex flex-wrap gap-2">
             <input
               type="text"
               value={cveQuery}
               onChange={(e) => setCveQuery(e.target.value)}
-              placeholder="CVE-2026-49975"
+              placeholder="CVE-2026-21710"
               className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm min-w-[220px]"
             />
             <button
@@ -491,10 +497,14 @@ export default function SecurityTestsPage() {
                       {hit.source}
                     </span>{" "}
                     — {hit.path}
+                    {hit.line ? `:${hit.line}` : ""}
+                    {hit.image ? ` — ${hit.image}` : ""}
                     {hit.package ? ` — ${hit.package}` : ""}
                     {hit.installedVersion ? `@${hit.installedVersion}` : ""}
                     {hit.severity ? ` (${hit.severity})` : ""}
                     {hit.lockfilePath ? ` — ${hit.lockfilePath}` : ""}
+                    {hit.affectedRange ? ` — affecté ${hit.affectedRange}` : ""}
+                    {hit.patchedVersion ? ` — correctif ${hit.patchedVersion}+` : ""}
                     {hit.reportId && (
                       <>
                         {" "}
@@ -505,6 +515,16 @@ export default function SecurityTestsPage() {
                           ouvrir
                         </Link>
                       </>
+                    )}
+                    {hit.exposedSurface && (
+                      <p className="mt-1 whitespace-normal text-gray-600 dark:text-gray-400">
+                        Surface : {hit.exposedSurface}
+                      </p>
+                    )}
+                    {hit.fix && (
+                      <p className="mt-1 whitespace-normal text-gray-600 dark:text-gray-400">
+                        Correctif : {hit.fix}
+                      </p>
                     )}
                   </li>
                 ))}

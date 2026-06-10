@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/lib/hooks/theme";
 import { useAuth } from "@/lib/hooks/auth";
@@ -500,6 +501,23 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Notifications
                 </h4>
+
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                  <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                    Alertes email sécurité (menaces, CVE, indisponibilité)
+                  </p>
+                  <p className="mt-1 text-sm text-red-800/90 dark:text-red-200/90">
+                    Destinataires, niveaux critical/high, réauth admin et envoi
+                    de test — page dédiée hors de cette popup.
+                  </p>
+                  <Link
+                    href="/b4ck0ff1ce/security/alerts"
+                    onClick={onClose}
+                    className="mt-3 inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    Ouvrir Alertes email sécurité
+                  </Link>
+                </div>
 
                 <div className="space-y-4">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">

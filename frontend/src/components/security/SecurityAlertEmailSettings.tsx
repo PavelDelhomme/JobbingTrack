@@ -176,19 +176,19 @@ export function SecurityAlertEmailSettings() {
           <Shield className="h-5 w-5" />
           Alertes email — menaces &amp; disponibilité
         </CardTitle>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
           Destinataires pour les alertes <strong>critical</strong> /{" "}
           <strong>high</strong> (menaces réseau, CVE, service down). En
           l&apos;absence d&apos;adresse ici, repli sur{" "}
           <code className="text-xs">SECURITY_ALERT_EMAIL</code> ou{" "}
           <code className="text-xs">CRASH_REPORT_EMAIL</code> du{" "}
           <code className="text-xs">.env</code>.
-          {source && (
-            <Badge variant="outline" className="ml-2">
+          {source ? (
+            <Badge variant="outline" className="ml-2 align-middle">
               source: {source}
             </Badge>
-          )}
-        </p>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">

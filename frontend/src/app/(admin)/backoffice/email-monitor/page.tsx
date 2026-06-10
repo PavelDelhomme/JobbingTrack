@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ type EmailLog = {
 };
 
 export default function EmailMonitorPage() {
+  const searchParams = useSearchParams();
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [filteredEmails, setFilteredEmails] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,8 +65,17 @@ export default function EmailMonitorPage() {
     "all" | "SENT" | "DELIVERED" | "READ" | "FAILED" | "PENDING" | "BOUNCED"
   >("all");
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "WELCOME" | "VERIFICATION" | "RESET_PASSWORD" | "TEST"
-  >("all");
+    | "all"
+    | "WELCOME"
+    | "VERIFICATION"
+    | "RESET_PASSWORD"
+    | "CONFIRMATION"
+    | "NOTIFICATION"
+    | "TEST"
+  >(() => {
+    const type = searchParams.get("type");
+    return type === "NOTIFICATION" ? "NOTIFICATION" : "all";
+  });
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -344,8 +355,9 @@ export default function EmailMonitorPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Surveillez tous les emails envoyés par JobbingTrack. Pour les
               parcours « Inscription + vérif. email » (Gmail/Proton/BlueMail),
-              filtrez par type <strong>Vérification</strong> pour vérifier que
-              l&apos;email a bien été envoyé.
+              filtrez par type <strong>Vérification</strong>. Pour les alertes
+              sécurité, filtrez par <strong>Notification</strong> et ouvrez
+              MailHog si vous voulez lire le contenu capturé localement.
             </p>
           </div>
 
@@ -507,7 +519,7 @@ export default function EmailMonitorPage() {
               {/* Filtre Type */}
               <div>
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
-                  Type d'Email
+                  Type d&apos;email
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {[
@@ -515,6 +527,8 @@ export default function EmailMonitorPage() {
                     "WELCOME",
                     "VERIFICATION",
                     "RESET_PASSWORD",
+                    "CONFIRMATION",
+                    "NOTIFICATION",
                     "TEST",
                   ].map((t) => (
                     <button
@@ -567,7 +581,7 @@ export default function EmailMonitorPage() {
                     <>
                       <p className="text-sm mt-2">
                         Les emails envoyés (inscription, vérification, reset
-                        password) apparaîtront ici.
+                        password, notifications sécurité) apparaîtront ici.
                       </p>
                       <p className="text-xs mt-2 text-gray-400">
                         Après un parcours « Inscription + vérif. email » réussi,

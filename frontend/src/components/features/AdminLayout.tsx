@@ -379,6 +379,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: "🚨",
         },
         {
+          name: "Alertes email",
+          href: "/b4ck0ff1ce/security/alerts",
+          icon: "📧",
+        },
+        {
           name: "Politiques",
           href: "/b4ck0ff1ce/security/policies",
           icon: "⚙️",
@@ -547,7 +552,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/b4ck0ff1ce/email-monitor",
           icon: "📈",
         },
-        { name: "Historique", href: "/b4ck0ff1ce/emails/logs", icon: "📋" },
+        {
+          name: "Historique",
+          href: "/b4ck0ff1ce/email-monitor?type=NOTIFICATION",
+          icon: "📋",
+        },
         { name: "Templates", href: "/b4ck0ff1ce/emails/templates", icon: "📝" },
         {
           name: "Configuration",

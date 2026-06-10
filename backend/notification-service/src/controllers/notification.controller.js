@@ -425,7 +425,11 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
     }
 
     try {
-      await emailService.sendEmail(to, subject, html, { from, replyTo });
+      await emailService.sendEmail(to, subject, html, {
+        from,
+        replyTo,
+        securityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true'
+      });
 
       if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
         await prisma.emailLog.update({

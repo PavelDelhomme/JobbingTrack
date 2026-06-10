@@ -63,5 +63,96 @@ describe('Notification Service - configuration SMTP', () => {
       })
     );
   });
+
+  test('configure un miroir SMTP réel optionnel pour les alertes sécurité', async () => {
+    process.env.SMTP_HOST = 'mailhog';
+    process.env.SMTP_PORT = '1025';
+    process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED = 'true';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_HOST = 'smtp.example.test';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_PORT = '587';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_SECURE = 'true';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_USER = 'noreply@example.test';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_PASS = 'secret';
+
+    const primarySendMail = jest.fn().mockResolvedValue({ messageId: 'mailhog-id' });
+    const mirrorSendMail = jest.fn().mockResolvedValue({ messageId: 'mirror-id' });
+    const createTransport = jest
+      .fn()
+      .mockReturnValueOnce({ sendMail: primarySendMail })
+      .mockReturnValueOnce({ sendMail: mirrorSendMail });
+    jest.doMock('nodemailer', () => ({ createTransport }));
+    jest.doMock('../src/utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
+    }));
+
+    const emailService = require('../src/services/emailService');
+    const result = await emailService.sendEmail(
+      'security@example.test',
+      'Test sécurité',
+      '<p>ok</p>',
+      { securityAlertMirror: true }
+    );
+
+    expect(createTransport).toHaveBeenCalledTimes(2);
+    expect(createTransport.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ host: 'mailhog', port: 1025 })
+    );
+    expect(createTransport.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        host: 'smtp.example.test',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'noreply@example.test',
+          pass: 'secret'
+        }
+      })
+    );
+    expect(primarySendMail).toHaveBeenCalledTimes(1);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(mirrorSendMail).toHaveBeenCalledTimes(1);
+    expect(result.securityAlertMirror).toEqual({
+      queued: true
+    });
+  });
+
+  test('ne fait pas échouer MailHog si le miroir SMTP réel échoue', async () => {
+    process.env.SMTP_HOST = 'mailhog';
+    process.env.SMTP_PORT = '1025';
+    process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED = 'true';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_HOST = 'smtp.example.test';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_PORT = '587';
+
+    const primarySendMail = jest.fn().mockResolvedValue({ messageId: 'mailhog-id' });
+    const mirrorSendMail = jest.fn().mockRejectedValue(new Error('SMTP mirror down'));
+    const createTransport = jest
+      .fn()
+      .mockReturnValueOnce({ sendMail: primarySendMail })
+      .mockReturnValueOnce({ sendMail: mirrorSendMail });
+    jest.doMock('nodemailer', () => ({ createTransport }));
+    jest.doMock('../src/utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
+    }));
+
+    const emailService = require('../src/services/emailService');
+    const result = await emailService.sendEmail(
+      'security@example.test',
+      'Test sécurité',
+      '<p>ok</p>',
+      { securityAlertMirror: true }
+    );
+
+    expect(primarySendMail).toHaveBeenCalledTimes(1);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(mirrorSendMail).toHaveBeenCalledTimes(1);
+    expect(result.messageId).toBe('mailhog-id');
+    expect(result.securityAlertMirror).toEqual({
+      queued: true
+    });
+  });
 });
 
