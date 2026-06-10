@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecurityAlertEmailDiagnostics } from "@/components/security/SecurityAlertEmailDiagnostics";
 import { SecurityAlertEmailSettings } from "@/components/security/SecurityAlertEmailSettings";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { SecuritySubNav } from "../SecuritySubNav";
@@ -73,6 +74,8 @@ export default function SecurityAlertsPage() {
             </p>
           </a>
         </div>
+
+        <SecurityAlertEmailDiagnostics />
 
         <SecurityAlertEmailSettings />
       </div>
