@@ -736,6 +736,9 @@ services:
     container_name: jobbingtrack-notification-service
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
+    volumes:
+      # Même principe que security-service : le code src sur l'hôte est pris en compte sans rebuild image
+      - ./backend/notification-service/src:/app/src
     environment:
       - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public

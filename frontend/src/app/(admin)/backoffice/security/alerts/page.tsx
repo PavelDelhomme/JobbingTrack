@@ -36,6 +36,16 @@ export default function SecurityAlertsPage() {
               Diagnostiquer les statuts dans Gestion des emails → Historique
               avec le filtre « Notification ».
             </li>
+            <li>
+              Si le miroir SMTP réel est activé, vérifier le badge{" "}
+              <strong>Miroir SMTP OK</strong> et le détail (`messageId`,
+              `From`, `Reply-To`) dans la modal Email Monitor.
+            </li>
+            <li>
+              Confirmer aussi la réception dans la boîte réelle
+              (`admin@…`, `dev@…`) — MailHog seul ne suffit pas pour valider
+              P1A.
+            </li>
           </ol>
         </div>
 
