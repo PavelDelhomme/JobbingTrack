@@ -50,10 +50,13 @@ function mirrorLabel(mirror?: MirrorMeta) {
   return { text: "Miroir N/A", variant: "outline" as const };
 }
 
+const ADMIN_PROBE = "admin@delhomme.ovh";
+
 export function SecurityAlertEmailDiagnostics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<NotificationEmailLog[]>([]);
+  const [adminLogs, setAdminLogs] = useState<NotificationEmailLog[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,18 +69,27 @@ export function SecurityAlertEmailDiagnostics() {
         return;
       }
 
-      const params = new URLSearchParams({
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
+      const baseParams = new URLSearchParams({
         type: "NOTIFICATION",
         limit: "8",
         page: "1",
       });
-
-      const response = await fetch(`${API_URL}/api/v1/emails/logs?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const adminParams = new URLSearchParams({
+        type: "NOTIFICATION",
+        q: ADMIN_PROBE,
+        limit: "5",
+        page: "1",
       });
+
+      const [response, adminResponse] = await Promise.all([
+        fetch(`${API_URL}/api/v1/emails/logs?${baseParams}`, { headers }),
+        fetch(`${API_URL}/api/v1/emails/logs?${adminParams}`, { headers }),
+      ]);
 
       if (!response.ok) {
         throw new Error(`API ${response.status}`);
@@ -85,6 +97,13 @@ export function SecurityAlertEmailDiagnostics() {
 
       const data = await response.json();
       setLogs(Array.isArray(data?.data) ? data.data : []);
+
+      if (adminResponse.ok) {
+        const adminData = await adminResponse.json();
+        setAdminLogs(Array.isArray(adminData?.data) ? adminData.data : []);
+      } else {
+        setAdminLogs([]);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Chargement impossible");
       setLogs([]);
@@ -125,8 +144,30 @@ export function SecurityAlertEmailDiagnostics() {
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Source `EmailLog` type <strong>NOTIFICATION</strong>. Le badge miroir
           confirme l&apos;acceptation SMTP OVH côté serveur ; la boîte réelle
-          reste à valider manuellement.
+          reste à valider manuellement (y compris dossier indésirables / spam).
         </p>
+
+        {adminLogs[0] && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Dernier envoi vers {ADMIN_PROBE}</p>
+            <p className="mt-1 break-words">{adminLogs[0].subject}</p>
+            <p className="mt-1">
+              {formatWhen(adminLogs[0].sentAt || adminLogs[0].createdAt)} —{" "}
+              {mirrorLabel(adminLogs[0].metadata?.mirror).text}
+            </p>
+            {adminLogs[0].metadata?.mirror?.messageId && (
+              <p className="mt-1 break-all text-xs opacity-90">
+                {adminLogs[0].metadata.mirror.messageId}
+              </p>
+            )}
+            <p className="mt-2 text-xs opacity-90">
+              Si miroir OK mais rien en boîte : vérifier spam, délai fournisseur
+              (5–15 min), puis répondre{" "}
+              <strong>OK Alertes email critiques</strong> ou{" "}
+              <strong>KO Alertes email critiques</strong> avec ce sujet.
+            </p>
+          </div>
+        )}
 
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -145,10 +186,15 @@ export function SecurityAlertEmailDiagnostics() {
           <div className="space-y-3">
             {logs.map((log) => {
               const mirror = mirrorLabel(log.metadata?.mirror);
+              const isAdmin = log.to.toLowerCase().includes(ADMIN_PROBE);
               return (
                 <div
                   key={log.id}
-                  className="min-w-0 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                  className={`min-w-0 rounded-lg border p-3 ${
+                    isAdmin
+                      ? "border-amber-300 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20"
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
                 >
                   <div className="flex min-w-0 flex-wrap items-start gap-2">
                     <p className="min-w-0 flex-[1_1_100%] break-words font-medium text-gray-900 dark:text-gray-100 sm:flex-1">
