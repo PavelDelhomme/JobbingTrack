@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 10 juin 2026 — **Branche** `docs/email-triage-agent-roadmap`.
+**Dernière mise à jour** : 11 juin 2026 — **Branche** `docs/email-triage-agent-roadmap`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -27,7 +27,7 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - Smoke API : sujet `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z` → HTTP `202`, BDD `EmailLog.metadata.mirror.sent=true`, `messageId @maily.ovh`.
 - `npm run type-check` / `npm run lint` (frontend) : exit `1` sans sortie — problème projet connu, non régressif.
 
-**Bloquant porteur inchangé** : confirmation réception boîte réelle `admin@delhomme.ovh` (dernier sujet smoke ci-dessus ou `VALIDATION PORTEUR P1A 2026-06-10T19:40:40Z`).
+**Validation porteur 11/06** : alertes email critiques validées. Le porteur confirme la réception réelle dans `admin@delhomme.ovh` du smoke `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z`, de `VALIDATION PORTEUR P1A` et de l’alerte E2E `TEST P1A E2E security-service`, non classées spam. `From` affiché `noreply@maily.ovh` accepté provisoirement ; objectif futur noté : bascule vers `security@jobbingtrack.com` quand le domaine, SPF/DKIM/DMARC et le fournisseur SMTP le permettent. Prochaine ligne bloquante : **Tests offensifs contrôlés par conteneur JobbingTrack**.
 
 ## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
 

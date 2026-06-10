@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 10 juin 2026 (gate validation 6 commits P1A alertes email — Jest 11/11, smoke OK)
+Dernière mise à jour : 11 juin 2026 (P1A alertes email validé porteur ; prochaine ligne : tests offensifs contrôlés)
 
 ## Règle principale
 
@@ -32,11 +32,11 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab et localisation CVE validés localement.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE et alertes email critiques validés localement.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Alertes email critiques JobbingTrack**.
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Tests offensifs contrôlés par conteneur JobbingTrack**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
 4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C, une ligne à la fois).

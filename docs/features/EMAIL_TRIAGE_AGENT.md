@@ -160,6 +160,7 @@ P4 :
 - Email contenant `malheureusement`, `retenu`, `suite à votre candidature` : probable refus, rattachement candidature et proposition d’archivage.
 - Email venant de plateformes emploi comme Indeed, LinkedIn, France Travail ou recruteurs connus : rattachement candidature, entreprise ou veille.
 - Candidature sans réponse depuis 7/10/14 jours : tâche Google Tasks de relance et recommandation dans le digest.
+- Tâche Google marquée terminée, déplacée ou modifiée côté Google : synchroniser le statut dans JobbingTrack, rattacher l’action à la candidature/contact, puis planifier la suite si nécessaire (`fait`, `à relancer`, `à vérifier`, conflit à confirmer).
 - Email ou alerte contenant `job dating`, `salon`, `forum emploi` : événement emploi à vérifier, puis création Calendar si validé.
 - Si une date est détectée sans heure exploitable : ne pas créer un événement à minuit ; demander confirmation ou créer une tâche “horaire à confirmer”.
 - Si une heure détectée est avant `05:00` ou après `23:00` : ne pas créer automatiquement l’événement ; créer une tâche “horaire à vérifier” ou demander validation. Exception uniquement si l’utilisateur confirme explicitement un événement exceptionnel.
@@ -213,7 +214,7 @@ Approche recommandée :
 - Gmail API : OAuth multi-comptes, watch/history ou polling borné, labels, threads, pièces jointes sélectionnées.
 - IMAP/API fournisseur pour la boîte candidatures configurée hors Git, en lecture seule au départ.
 - Envoi digest : notification-service/auth-service ou service email partagé, en réutilisant `SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO` et `EmailLog`; aucune adresse d’expéditeur ou de destinataire ne doit être codée en dur.
-- Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation.
+- Google Tasks API : création et synchronisation obligatoire des tâches de relance/préparation, avec lecture périodique des statuts Google (`completed`, déplacement, suppression, modification titre/date) pour détecter ce qui a été réellement fait hors JobbingTrack.
 - Google Calendar API : événements entretien, job dating, salons, rappels.
 - Normalisation dates/heures : timezone explicite, distinction `date seule` / `date+heure`, refus des horaires implicites à `00:00`, refus des créneaux automatiques avant `05:00` ou après `23:00`, confirmation utilisateur avant création si ambigu.
 - Tables internes : `EmailAccount`, `EmailMessage`, `EmailThread`, `EmailClassification`, `UserTask`, `TaskReminder`, `AgentDecision`, `AgentDigest`.
