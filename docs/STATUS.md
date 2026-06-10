@@ -52,6 +52,13 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Mobile** : `flutter test mobile/test/widget_test.dart` **1/1 OK** sans appareil.
 - **ADB S21 FE** : non visible (`adb devices` vide) — emulator-controller actif sur `:5055` ; en attente autorisation USB ou pairing sans fil porteur.
 
+## 11 juin 2026 (suite 3) — tests ciblés et surveillance emails
+
+- **Suite P1B ajoutée** : `PriorityResponseServicesSummary.test.tsx` + cas `serviceHealthOverview.test.ts` pour services prioritaires, ordre d’affichage, Postgres « Santé Docker », lien Latence et état vide. Commande directe Jest : **2 suites / 12 tests OK**.
+- **Script frontend** : `test:metrics-p1b` ajouté dans `frontend/package.json`. Note : le wrapper `npm run` reproduit encore la dette connue de sortie vide ; la commande directe `./node_modules/.bin/jest ...` passe.
+- **Emails surveillés** : Jest SMTP notification **5/5 OK** ; Jest alertes sécurité payload + disponibilité **6/6 OK** ; MailHog liste les derniers emails P1A ; `EmailLog` Postgres confirme les derniers `NOTIFICATION` en `SENT`.
+- **Validation frontend** : `tsc --noEmit` OK ; ESLint ciblé sur les fichiers touchés OK (warnings historiques uniquement sur `backoffice/page.tsx`) ; diagnostics IDE sans erreur.
+
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
 - **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).

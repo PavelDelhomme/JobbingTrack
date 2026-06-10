@@ -7,6 +7,11 @@ import {
   getRunningServicesForStats,
   summarizeDockerServiceHealth,
 } from "../serviceHealthOverview";
+import {
+  formatServiceResponseTime,
+  isNonHttpDependency,
+  isPriorityResponseService,
+} from "../responseTimePresentation";
 
 describe("serviceHealthOverview", () => {
   it("déduplique et préfère le conteneur running", () => {
@@ -130,8 +135,29 @@ describe("serviceHealthOverview", () => {
       cpu: 12,
       memory: 34,
       responseTime: 123,
+      responseTimeLabel: "123ms",
+      nonHttpDependency: false,
       errorRate: 0.4,
       availability: 50,
+    });
+  });
+
+  it("présente Postgres comme dépendance santé Docker et non endpoint HTTP", () => {
+    const entries = buildStatisticsServicesFromDocker([
+      {
+        name: "jobbingtrack-postgres",
+        is_running: true,
+        health_status: "healthy",
+        health: { responseTime: null },
+      },
+    ]);
+
+    expect(entries[0]).toMatchObject({
+      name: "jobbingtrack-postgres",
+      responseTime: 0,
+      responseTimeLabel: "Santé Docker",
+      nonHttpDependency: true,
+      status: "healthy",
     });
   });
 
@@ -143,5 +169,17 @@ describe("serviceHealthOverview", () => {
       { name: "legacy", status: "unknown" },
     ]);
     expect(active.map((s) => s.name)).toEqual(["api-gateway", "auth"]);
+  });
+
+  it("identifie les services prioritaires P1B et formate les temps de réponse", () => {
+    expect(isPriorityResponseService("jobbingtrack-auth-service")).toBe(true);
+    expect(isPriorityResponseService("jobbingtrack-postgres")).toBe(true);
+    expect(isPriorityResponseService("jobbingtrack-company-service")).toBe(
+      false,
+    );
+    expect(isNonHttpDependency("jobbingtrack-postgres")).toBe(true);
+    expect(formatServiceResponseTime(7.4, "notification-service")).toBe("7ms");
+    expect(formatServiceResponseTime(0, "auth-service")).toBe("N/A");
+    expect(formatServiceResponseTime(0, "postgres")).toBe("Santé Docker");
   });
 });
