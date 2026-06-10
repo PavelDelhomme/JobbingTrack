@@ -32,6 +32,7 @@ const RUNNABLE_IDS = [
   "database",
   "security",
   "performance",
+  "metrics-p1b",
   "playwright",
   "emails",
   "emails-mailhog",
@@ -48,6 +49,7 @@ const RUN_API: Record<string, string | string[]> = {
     "/api/test/run-performance-backend",
     "/api/test/run-performance-frontend",
   ],
+  "metrics-p1b": "/api/test/run-metrics-p1b",
   playwright: "/api/test/run-playwright",
   emails: "/api/test/run-emails",
   "emails-mailhog": "/api/test/run-playwright-mailhog",
@@ -151,6 +153,18 @@ const CATEGORIES = [
     iconClass: "text-amber-600 dark:text-amber-400",
   },
   {
+    id: "metrics-p1b",
+    name: "Suite P1B latence",
+    description:
+      "Jest ciblé : services prioritaires, Postgres santé Docker, panneau latence",
+    href: "/b4ck0ff1ce/statistics",
+    icon: BarChart3,
+    color: "sky",
+    bgClass: "bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800",
+    textClass: "text-sky-700 dark:text-sky-300",
+    iconClass: "text-sky-600 dark:text-sky-400",
+  },
+  {
     id: "playwright",
     name: "Tests Playwright",
     description: "Tests E2E Playwright (scénarios complets)",
@@ -223,8 +237,9 @@ export default function TestsHubPage() {
     );
   };
 
-  const runSelected = async () => {
-    if (selectedIds.length === 0 || isRunning) return;
+  const runSelected = async (forcedIds?: string[]) => {
+    const idsToRun = forcedIds ?? selectedIds;
+    if (idsToRun.length === 0 || isRunning) return;
     setIsRunning(true);
     setRunLog([]);
     setLastReportId(null);
@@ -242,7 +257,7 @@ export default function TestsHubPage() {
     };
     // Liste plate des étapes (chaque appel API = 1 étape ; performance = 2 étapes)
     const steps: { url: string; name: string; subLabel?: string }[] = [];
-    for (const id of selectedIds) {
+    for (const id of idsToRun) {
       const api = RUN_API[id];
       if (!api) continue;
       const name = CATEGORIES.find((c) => c.id === id)?.name || id;
@@ -387,7 +402,6 @@ export default function TestsHubPage() {
                   </div>
                   {runSteps.map((s, i) => {
                     const stepNum = i + 1;
-                    const total = runSteps.length;
                     const isDone = currentStep
                       ? stepNum < currentStep.step
                       : false;
@@ -434,7 +448,7 @@ export default function TestsHubPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={runSelected}
+            onClick={() => runSelected()}
             disabled={selectedIds.length === 0 || isRunning}
             className="gap-2"
           >
@@ -466,6 +480,17 @@ export default function TestsHubPage() {
           >
             <Circle className="w-4 h-4" />
             Tout décocher
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => runSelected(["metrics-p1b"])}
+            disabled={isRunning}
+            className="gap-1.5 border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/30"
+            title="Lance uniquement la suite Jest P1B temps de réponse"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Lancer suite P1B latence
           </Button>
           <Link href="/b4ck0ff1ce/test-reports">
             <Button variant="outline" className="gap-2">

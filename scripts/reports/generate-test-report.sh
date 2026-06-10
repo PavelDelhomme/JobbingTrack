@@ -184,7 +184,13 @@ if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ]; t
       console.log([t,d.secure||0,d.critical||0,d.high||0,d.medium||0,d.low||0].join(' '));
     " "$REPORT_DIR/security-report.json" 2>/dev/null || echo "")
     if [ -n "$_sec_line" ]; then
-      read -r sec_total sec_secure sec_critical sec_high sec_medium sec_low <<< "$_sec_line"
+      set -- $_sec_line
+      sec_total="${1:-0}"
+      sec_secure="${2:-0}"
+      sec_critical="${3:-0}"
+      sec_high="${4:-0}"
+      sec_medium="${5:-0}"
+      sec_low="${6:-0}"
     fi
   fi
   sec_secure=${sec_secure:-0}; sec_critical=${sec_critical:-0}; sec_high=${sec_high:-0}

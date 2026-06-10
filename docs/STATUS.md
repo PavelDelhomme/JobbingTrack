@@ -58,6 +58,8 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Script frontend** : `test:metrics-p1b` ajouté dans `frontend/package.json`. Note : le wrapper `npm run` reproduit encore la dette connue de sortie vide ; la commande directe `./node_modules/.bin/jest ...` passe.
 - **Emails surveillés** : Jest SMTP notification **5/5 OK** ; Jest alertes sécurité payload + disponibilité **6/6 OK** ; MailHog liste les derniers emails P1A ; `EmailLog` Postgres confirme les derniers `NOTIFICATION` en `SENT`.
 - **Validation frontend** : `tsc --noEmit` OK ; ESLint ciblé sur les fichiers touchés OK (warnings historiques uniquement sur `backoffice/page.tsx`) ; diagnostics IDE sans erreur.
+- **Bouton backoffice** : `/b4ck0ff1ce/tests` expose **Lancer suite P1B latence** + carte dédiée. API `POST /api/test/run-metrics-p1b` validée par smoke : rapport `20260610-231609`.
+- **Générateur rapports** : `scripts/reports/generate-test-report.sh` reste compatible `sh` dans le conteneur frontend (remplacement du here-string bash par affectations POSIX), ce qui évite l’erreur `unexpected redirection`.
 
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
