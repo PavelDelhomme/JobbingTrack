@@ -185,14 +185,39 @@ class EmailService {
       logger.info(`Email envoyé à ${to}: ${info.messageId}`);
 
       if (options.securityAlertMirror === true && this.securityAlertMirrorTransporter) {
-        logger.info(`Email alerte sécurité miroir SMTP planifié pour ${to}`);
-        this.sendSecurityAlertMirror(to, mailOptions, options).catch((mirrorError) => {
-          logger.warn('Envoi miroir SMTP alerte sécurité échoué', {
-            to,
-            error: mirrorError.message
+        if (options.awaitSecurityAlertMirror) {
+          try {
+            const mirrorInfo = await this.sendSecurityAlertMirror(to, mailOptions, options);
+            info.securityAlertMirror = {
+              sent: true,
+              messageId: mirrorInfo.messageId || null,
+              from: this.resolveSecurityAlertMirrorFrom(options) || mailOptions.from,
+              replyTo:
+                options.mirrorReplyTo ||
+                process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO ||
+                mailOptions.replyTo ||
+                null
+            };
+          } catch (mirrorError) {
+            logger.warn('Envoi miroir SMTP alerte sécurité échoué', {
+              to,
+              error: mirrorError.message
+            });
+            info.securityAlertMirror = {
+              sent: false,
+              error: mirrorError.message
+            };
+          }
+        } else {
+          logger.info(`Email alerte sécurité miroir SMTP planifié pour ${to}`);
+          this.sendSecurityAlertMirror(to, mailOptions, options).catch((mirrorError) => {
+            logger.warn('Envoi miroir SMTP alerte sécurité échoué', {
+              to,
+              error: mirrorError.message
+            });
           });
-        });
-        info.securityAlertMirror = { queued: true };
+          info.securityAlertMirror = { queued: true };
+        }
       }
 
       return info;

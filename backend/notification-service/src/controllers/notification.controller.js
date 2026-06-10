@@ -439,10 +439,11 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
     }
 
     try {
-      await emailService.sendEmail(to, subject, html, {
+      const deliveryInfo = await emailService.sendEmail(to, subject, html, {
         from,
         replyTo,
-        securityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true'
+        securityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true',
+        awaitSecurityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true'
       });
 
       if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
@@ -450,7 +451,13 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
           where: { id: emailLog.id },
           data: {
             status: 'SENT',
-            sentAt: new Date()
+            sentAt: new Date(),
+            metadata: {
+              channel: 'security_alert',
+              replyTo: replyTo || null,
+              alert: alert || null,
+              mirror: deliveryInfo?.securityAlertMirror || null
+            }
           }
         });
       }

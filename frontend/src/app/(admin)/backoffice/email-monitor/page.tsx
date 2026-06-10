@@ -711,6 +711,15 @@ export default function EmailMonitorPage() {
                           <Badge variant="outline">
                             {getTypeLabel(email.type)}
                           </Badge>
+                          {email.metadata?.mirror?.sent === true && (
+                            <Badge variant="secondary">Miroir SMTP OK</Badge>
+                          )}
+                          {email.metadata?.mirror?.sent === false && (
+                            <Badge variant="destructive">Miroir SMTP KO</Badge>
+                          )}
+                          {email.metadata?.mirror?.queued === true && (
+                            <Badge variant="secondary">Miroir SMTP…</Badge>
+                          )}
                         </div>
 
                         <div className="grid min-w-0 grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400 lg:grid-cols-2">
@@ -821,6 +830,40 @@ export default function EmailMonitorPage() {
                     Fermer
                   </Button>
                 </div>
+
+                {selectedEmail.metadata?.mirror && (
+                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-900/40">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      Miroir SMTP réel
+                    </p>
+                    <div className="mt-2 space-y-1 break-all text-gray-600 dark:text-gray-400">
+                      <p>
+                        Statut :{" "}
+                        {selectedEmail.metadata.mirror.sent === true
+                          ? "envoyé"
+                          : selectedEmail.metadata.mirror.sent === false
+                            ? "échec"
+                            : selectedEmail.metadata.mirror.queued
+                              ? "en file"
+                              : "inconnu"}
+                      </p>
+                      {selectedEmail.metadata.mirror.messageId && (
+                        <p>Message ID : {selectedEmail.metadata.mirror.messageId}</p>
+                      )}
+                      {selectedEmail.metadata.mirror.from && (
+                        <p>From miroir : {selectedEmail.metadata.mirror.from}</p>
+                      )}
+                      {selectedEmail.metadata.mirror.replyTo && (
+                        <p>Reply-To : {selectedEmail.metadata.mirror.replyTo}</p>
+                      )}
+                      {selectedEmail.metadata.mirror.error && (
+                        <p className="text-red-600 dark:text-red-400">
+                          Erreur : {selectedEmail.metadata.mirror.error}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="border-t dark:border-gray-700 pt-4">
                   {selectedEmail.emailContent ? (
