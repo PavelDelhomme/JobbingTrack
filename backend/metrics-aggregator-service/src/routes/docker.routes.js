@@ -6,27 +6,18 @@ const metricsHistory = require('../services/metricsHistory.service');
 const lokiService = require('../services/loki.service');
 const persistenceService = require('../services/persistence.service');
 
-const SERVICE_HEALTH_CONFIG = {
-  'jobbingtrack-auth-service': { port: 8001, path: '/api/v1/auth/health' },
-  'jobbingtrack-application-service': { port: 8002, path: '/api/v1/applications/health' },
-  'jobbingtrack-company-service': { port: 8003, path: '/api/v1/companies/health' },
-  'jobbingtrack-contact-service': { port: 8004, path: '/api/v1/contacts/health' },
-  'jobbingtrack-interview-service': { port: 8005, path: '/api/v1/interviews/health' },
-  'jobbingtrack-call-service': { port: 8006, path: '/api/v1/calls/health' },
-  'jobbingtrack-event-service': { port: 8007, path: '/api/v1/events/health' },
-  'jobbingtrack-followup-service': { port: 8008, path: '/api/v1/followups/health' },
-  'jobbingtrack-profile-service': { port: 8009, path: '/api/v1/profile/health' },
-  'jobbingtrack-notification-service': { port: 8010, path: '/api/v1/notifications/health' },
-  'jobbingtrack-workflow-service': { port: 8011, path: '/api/v1/workflow/health' },
-  'jobbingtrack-dashboard-service': { port: 8012, path: '/api/v1/dashboard/health' },
-  'jobbingtrack-deployment-service': { port: 8016, path: '/health' },
-  'jobbingtrack-security-service': { port: 8017, path: '/health' },
-  'jobbingtrack-metrics-aggregator': { port: 8014, path: '/api/v1/health' },
-  'jobbingtrack-frontend': { port: 8080, path: '/' },
-  'jobbingtrack-api-gateway': { port: 3000, path: '/api/v1/health' }
-  // Note: PostgreSQL et Redis n'ont pas d'endpoint HTTP /health
-  // Leurs statuts sont récupérés via Docker health checks natifs
-};
+const {
+  SERVICE_HEALTH_ENDPOINTS,
+  isNonHttpProbe,
+  resolveProbeHost,
+} = require('../config/serviceHealthEndpoints');
+
+/** Sondes HTTP uniquement — ports réseau Docker internes (300x), pas les mappings hôte 800x. */
+const SERVICE_HEALTH_CONFIG = Object.fromEntries(
+  Object.entries(SERVICE_HEALTH_ENDPOINTS)
+    .filter(([, cfg]) => !isNonHttpProbe(cfg))
+    .map(([name, cfg]) => [name, { port: cfg.port, path: cfg.path || '/health' }]),
+);
 
 const FIVE_MINUTES_IN_MINUTES = 5;
 const SERVICES_ALL_CACHE_TTL_MS = Number(process.env.DOCKER_SERVICES_ALL_CACHE_TTL_MS || 60000);
@@ -83,8 +74,7 @@ async function probeServiceHealth(containerName, containerStats = null) {
   const config = SERVICE_HEALTH_CONFIG[key];
   // Depuis le conteneur metrics-aggregator, localhost ≠ les autres services : utiliser le nom
   // Docker (même clé que dans SERVICE_HEALTH_CONFIG), sauf override explicite pour un run hors réseau compose.
-  const probeHost =
-    process.env.METRICS_HTTP_PROBE_USE_LOCALHOST === 'true' ? 'localhost' : key;
+  const probeHost = resolveProbeHost(key);
   const url = `http://${probeHost}:${config.port}${config.path}`;
 
   const startTime = Date.now();

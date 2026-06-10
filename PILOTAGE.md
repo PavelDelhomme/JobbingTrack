@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 11 juin 2026 (P1A alertes email validé porteur ; prochaine ligne : tests offensifs contrôlés)
+Dernière mise à jour : 11 juin 2026 (mode avance rapide porteur — validations groupées en fin de lot)
 
 ## Règle principale
 
@@ -12,7 +12,7 @@ Avant toute nouvelle tâche, lire dans cet ordre :
 4. `docs/TODOS.md`
 5. `BRANCHES.md`
 
-Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité. L’agent doit traiter **uniquement la première ligne ouverte** de `TODOS_A_VALIDER.md`. Exceptions autorisées : corriger un problème remonté par le porteur sur cette ligne, mettre à jour le pilotage, ou préparer une preuve nécessaire à cette validation précise. Ne pas lancer les validations suivantes en parallèle.
+Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité **sauf demande explicite du porteur de valider en lot plus tard**. Mode actuel (11/06) : le porteur autorise l’agent à **préparer plusieurs lignes P1** (preuves dans `TODOS_A_VERIFIER.md`) sans archiver dans `TODOS_DONE.md` tant que le OK explicite n’est pas donné. L’ordre de `TODOS_A_VALIDER.md` reste la file de validation ; l’agent peut implémenter/corriger en parallèle les sujets déjà ouverts (P1A tests offensifs, P1B temps de réponse, P1C menu Tests/Rapports, responsive).
 
 ## Rôle des fichiers
 

@@ -5,6 +5,10 @@
  */
 
 import { formatServiceName } from "@/lib/utils/metricsUtils";
+import {
+  formatServiceResponseTime,
+  isNonHttpDependency,
+} from "@/lib/metrics/responseTimePresentation";
 
 export type ServiceHealthBucket = "healthy" | "degraded" | "offline";
 
@@ -146,6 +150,8 @@ export interface StatisticsServiceEntry {
   cpu: number;
   memory: number;
   responseTime: number;
+  responseTimeLabel: string;
+  nonHttpDependency: boolean;
   errorRate: number;
   requests: number;
   availability: number;
@@ -222,6 +228,8 @@ export function mapDockerServiceToStatisticsEntry(
     cpu: Number.isFinite(cpu) ? cpu : 0,
     memory: Number.isFinite(memory) ? memory : 0,
     responseTime,
+    responseTimeLabel: formatServiceResponseTime(responseTime, rawName),
+    nonHttpDependency: isNonHttpDependency(rawName),
     errorRate: parseFloat(String(metricsSvc?.errorRatePerMin ?? "0")) || 0,
     requests: 0,
     availability: bucket === "healthy" ? 100 : bucket === "degraded" ? 50 : 0,

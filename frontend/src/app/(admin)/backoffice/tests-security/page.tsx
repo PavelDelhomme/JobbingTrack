@@ -444,6 +444,26 @@ export default function SecurityTestsPage() {
           </div>
         </div>
 
+        <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/30 p-4 sm:p-5 space-y-2">
+          <h2 className="text-base font-semibold text-amber-950 dark:text-amber-100 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            Tests offensifs contrôlés (cadrage P1A)
+          </h2>
+          <p className="text-sm text-amber-950/90 dark:text-amber-100/90">
+            Cette page lance des audits applicatifs et CVE <strong>non destructifs</strong> en
+            local/lab uniquement. Les campagnes agressives (ZAP actif, nmap, SYN flood, spoofing)
+            sont documentées dans{" "}
+            <code className="text-xs">docs/security/SECURITY_TESTING_MATRIX.md</code> et{" "}
+            <code className="text-xs">docs/security/COMPOSE_RUNTIME_HARDENING.md</code> —{" "}
+            <strong>jamais sur prod réelle</strong> sans fenêtre autorisée.
+          </p>
+          <ul className="text-xs text-amber-900/90 dark:text-amber-100/80 list-disc pl-5 space-y-1">
+            <li>Cible lab : <code>localhost:5002</code> / stack locale HTTPS.</li>
+            <li>Rapports : <Link href="/b4ck0ff1ce/test-reports" className="underline">Rapports de tests</Link> (catégorie Sécurité).</li>
+            <li>Validation porteur : confirmer le cadrage, pas lancer une campagne agressive depuis l’UI.</li>
+          </ul>
+        </div>
+
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <Search className="w-5 h-5" />

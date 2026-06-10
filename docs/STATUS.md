@@ -29,6 +29,15 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 
 **Validation porteur 11/06** : alertes email critiques validées. Le porteur confirme la réception réelle dans `admin@delhomme.ovh` du smoke `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z`, de `VALIDATION PORTEUR P1A` et de l’alerte E2E `TEST P1A E2E security-service`, non classées spam. `From` affiché `noreply@maily.ovh` accepté provisoirement ; objectif futur noté : bascule vers `security@jobbingtrack.com` quand le domaine, SPF/DKIM/DMARC et le fournisseur SMTP le permettent. Prochaine ligne bloquante : **Tests offensifs contrôlés par conteneur JobbingTrack**.
 
+## 11 juin 2026 — lot avance rapide P1B/P1C/P1A (preuves agent, validation porteur groupée en attente)
+
+- **Cause racine latence trompeuse** : ports/chemins health désalignés entre `metrics-aggregator`, `monitoring-agent-rs` et ports hôte `800x`. Correctif : `serviceHealthEndpoints.js` (source unique), sondes HTTP via réseau Docker interne, chemins `/health` corrigés pour deployment/profile/workflow/security.
+- **Compose dev** : volume `./backend/metrics-aggregator-service/src:/app/src` (comme notification-service).
+- **Frontend P1B** : `responseTimePresentation.ts`, labels postgres « Santé Docker », note source sur Statistics et Performances → Latence.
+- **Frontend P1C** : sous-menu Rapports séparé dans `AdminLayout.tsx`.
+- **Frontend P1A** : encart cadrage tests offensifs sur `/b4ck0ff1ce/tests-security` (consultation uniquement).
+- **Validations** : `tsc --noEmit` OK ; ESLint ciblé OK (warnings historiques) ; smoke API services prioritaires healthy avec `responseTime` > 0 sauf postgres.
+
 ## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
 
 - **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).

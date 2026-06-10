@@ -26,6 +26,10 @@ import {
 import { analyticsService } from "@/lib/api/analytics.service";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
+import {
+  PRIORITY_RESPONSE_SERVICES,
+  RESPONSE_TIME_SOURCE_NOTE,
+} from "@/lib/metrics/responseTimePresentation";
 import type { MetricsData } from "@/lib/interfaces";
 import {
   ResponsiveContainer,
@@ -47,12 +51,6 @@ type LatencyRow = {
   timestamp: string;
   timeMs: number;
   responseTimeMs: number | null;
-};
-
-type LiveEndpointRow = {
-  name: string;
-  ms: number | null;
-  status?: string;
 };
 
 export default function PerformancesLatencyPage() {
@@ -326,6 +324,16 @@ export default function PerformancesLatencyPage() {
             Vue détaillée latence : historique agrégé + instantané par
             endpoint/service.
           </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 max-w-3xl">
+            {RESPONSE_TIME_SOURCE_NOTE}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/30 px-3 py-2 text-xs text-blue-900 dark:text-blue-100">
+          <span className="font-medium">Services prioritaires P1B : </span>
+          {PRIORITY_RESPONSE_SERVICES.map((s) => s.replace(/-/g, " ")).join(
+            " · ",
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">

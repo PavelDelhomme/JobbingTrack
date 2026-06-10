@@ -127,32 +127,14 @@ const authenticateMetrics = (req, res, next) => {
 
 // Docker non accessible depuis les conteneurs
 
-// Configuration des services connus
-const KNOWN_SERVICES = {
-  'jobbingtrack-api-gateway': { port: 3000, healthPath: '/api/v1/health' },
-  'jobbingtrack-auth-service': { port: 3001, healthPath: '/api/v1/auth/health' },
-  'jobbingtrack-application-service': { port: 3002, healthPath: '/api/v1/applications/health' },
-  'jobbingtrack-company-service': { port: 3003, healthPath: '/api/v1/companies/health' },
-  'jobbingtrack-contact-service': { port: 3004, healthPath: '/api/v1/contacts/health' },
-  'jobbingtrack-interview-service': { port: 3005, healthPath: '/api/v1/interviews/health' },
-  'jobbingtrack-notification-service': { port: 3006, healthPath: '/api/v1/notifications/health' },
-  'jobbingtrack-dashboard-service': { port: 3007, healthPath: '/api/v1/dashboard/health' },
-  'jobbingtrack-call-service': { port: 3008, healthPath: '/api/v1/calls/health' },
-  'jobbingtrack-event-service': { port: 3009, healthPath: '/api/v1/events/health' },
-  'jobbingtrack-followup-service': { port: 3010, healthPath: '/api/v1/followups/health' },
-  'jobbingtrack-profile-service': { port: 3011, healthPath: '/api/v1/profile/health' },
-  'jobbingtrack-workflow-service': { port: 3013, healthPath: '/api/v1/workflow/health' },
-  'jobbingtrack-metrics-aggregator': { port: 3014, healthPath: '/api/v1/health' },
-  'jobbingtrack-security-service': { port: 3017, healthPath: '/api/v1/security/health' },
-  'jobbingtrack-deployment-service': { port: 3016, healthPath: '/api/v1/health' },
-  'jobbingtrack-monitoring-c': { port: 8015, healthPath: '/api/v1/health' },
-  'jobbingtrack-log-collector-c': { port: 3019, healthPath: '/health' },
-  'jobbingtrack-frontend': { port: 3000, healthPath: '/health' },
-  'jobbingtrack-postgres': { port: 5432, type: 'database' },
-  'jobbingtrack-redis': { port: 6379, type: 'cache' },
-  'jobbingtrack-cadvisor': { port: 8080, type: 'monitoring' },
-  'jobbingtrack-prometheus': { port: 9090, type: 'monitoring' }
-}
+const {
+  buildKnownServicesMap,
+  isNonHttpProbe,
+  resolveProbeHost,
+} = require('./config/serviceHealthEndpoints')
+
+// Configuration des services connus (alignée docker-compose + sondes réseau interne)
+const KNOWN_SERVICES = buildKnownServicesMap()
 
 // Stockage des métriques
 let servicesMetrics = {}
@@ -205,11 +187,19 @@ async function discoverServices() {
 async function testServiceHealth(serviceName, serviceConfig) {
   const startTime = Date.now()
 
+  if (isNonHttpProbe(serviceConfig)) {
+    return {
+      status: 'healthy',
+      responseTime: null,
+      responseTimeMs: null,
+      statusCode: null,
+      nonHttp: true,
+    }
+  }
+
   try {
-    // Test HTTP pour les services web
-    const baseUrl = process.env.NODE_ENV === 'production'
-      ? `http://${serviceName}:${serviceConfig.port}`
-      : `http://localhost:${serviceConfig.port}`
+    const probeHost = resolveProbeHost(serviceName)
+    const baseUrl = `http://${probeHost}:${serviceConfig.port}`
 
     const response = await axios.get(`${baseUrl}${serviceConfig.healthPath}`, {
       timeout: 5000,

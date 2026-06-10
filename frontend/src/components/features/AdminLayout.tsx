@@ -509,10 +509,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               href: "/b4ck0ff1ce/performance-tests/schedule",
               icon: "📅",
             },
+          ],
+        },
+        {
+          name: "Rapports",
+          href: "/b4ck0ff1ce/test-reports",
+          icon: "📊",
+          subItems: [
             {
               name: "Rapports de tests",
               href: "/b4ck0ff1ce/test-reports",
               icon: "📊",
+            },
+            {
+              name: "Rapports de parcours",
+              href: "/b4ck0ff1ce/user-journey/reports",
+              icon: "📄",
             },
           ],
         },

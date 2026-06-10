@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 10 juin 2026
+Dernière mise à jour : 11 juin 2026
 
 ## Rôle
 
@@ -65,6 +65,11 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P2 | Agent email — accès compte personnel non-admin | Cadrage ajouté : premier usage via compte personnel non-admin explicitement autorisé du porteur, pas activation automatique pour tout compte inscrit ; droit/feature flag utilisateur, activation/révocation admin auditée, séparation stricte entre rôle admin/backoffice et lecture des emails personnels. | [x] |
 | P2 | Agent email — fenêtres Calendar et suite de tests | Cadrage ajouté : pas d’événement Calendar automatique à `00:00`, avant `05:00` ou après `23:00`; date seule ou horaire hors fenêtre = tâche/proposition à confirmer. Suite de tests future cadrée : règles de tri, permissions, Gmail/IMAP lecture seule, digest SMTP/mock, Calendar/Tasks, rapports `tests/results/email-triage/<timestamp>`, secrets uniquement via `.env` gitignoré et skip explicite si absents. | [x] |
 | P2 | Agent email — socle tests Calendar unitaire | `tests/email-triage/lib/calendar-time-policy.js` + `calendar-time-policy.test.js` + `run-with-report.sh` + README ; variables documentées dans `.env.example` et `docs/deployment/environment-variables/README.md`. Validation 10/06 : `/usr/bin/node tests/node_modules/jest/bin/jest.js --config tests/jest.config.js tests/email-triage/calendar-time-policy.test.js --runInBand` **7/7 OK** ; `npm run` / `npx jest` peuvent encore sortir code 1 sans sortie dans ce terminal. | [x] |
+| P1B | Alignement sondes temps de réponse metrics-aggregator | Source unique `backend/metrics-aggregator-service/src/config/serviceHealthEndpoints.js` ; `server.js` + `docker.routes.js` importent la config ; sondes via nom conteneur Docker (pas `localhost:800x`) ; postgres/redis sans sonde HTTP ; mount dev `./backend/metrics-aggregator-service/src:/app/src` dans `docker-compose.yml` + recreate conteneur. Smoke `GET /api/v1/docker/services/all` (depuis conteneur) : auth **5ms**, notification **13ms**, followup **11ms**, application **6ms**, call **6ms**, deployment **10ms** (après fix chemin `/health`), postgres `responseTime=null` (attendu). `/usr/bin/node --check` OK sur `server.js`, `docker.routes.js`, `serviceHealthEndpoints.js`. | [x] |
+| P1B | monitoring-agent-rs — chemins health alignés | `monitoring/rust/crates/monitoring-agent/src/constants.rs` : notification **3008** `/health`, profile/workflow/deployment/security **`/health`**, log-collector **3019** `/health`. Rebuild image requis pour prise en compte runtime (hors scope smoke immédiat metrics-aggregator). | [x] |
+| P1B | UI Statistics / Performances — temps de réponse P1B | `responseTimePresentation.ts` : services prioritaires, label « Santé Docker » postgres/redis, note source ; `serviceHealthOverview.ts` : `responseTimeLabel`, `nonHttpDependency` ; encarts source sur `/b4ck0ff1ce/statistics` et `/b4ck0ff1ce/performances/latency`. `./node_modules/.bin/tsc --noEmit` OK ; ESLint ciblé 6 fichiers OK (warnings historiques `statistics/page.tsx` uniquement). | [x] |
+| P1C | Menu Développement → Tests / Rapports | `AdminLayout.tsx` : sous-menu **Rapports** (`Rapports de tests`, `Rapports de parcours`) séparé ; entrée « Rapports de tests » retirée du sous-menu Tests. Validation navigateur porteur en attente. | [x] |
+| P1A | Tests offensifs — encart cadrage UI | `/b4ck0ff1ce/tests-security` : encart « Tests offensifs contrôlés (cadrage P1A) » avec liens matrice `SECURITY_TESTING_MATRIX.md`, durcissement Compose, rapports sécurité — **aucun scan offensif lancé**. | [x] |
 
 ## Vérifications récurrentes
 

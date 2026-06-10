@@ -340,6 +340,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - jobbingtrack_metrics_data:/tmp/metrics
+      # Même principe que notification-service : le code src sur l'hôte est pris en compte sans rebuild image
+      - ./backend/metrics-aggregator-service/src:/app/src
     networks:
       - jobbingtrack-network
     depends_on:
