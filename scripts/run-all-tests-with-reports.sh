@@ -1089,6 +1089,16 @@ if [ -f "tests/security/test-rate-limiting.js" ]; then
         "$REPORT_DIR/security-rate-limiting.json"
 fi
 
+# 34b. Suite Agent email / triage (classification, digest, identité expéditeur)
+if [ -f "tests/email-triage/classification-rules.test.js" ]; then
+    JEST_EMAIL_TRIAGE="${ROOT_DIR}/tests/node_modules/jest/bin/jest.js"
+    if [ -f "$JEST_EMAIL_TRIAGE" ]; then
+        run_test "Suite Agent email / triage" \
+            "/usr/bin/node \"$JEST_EMAIL_TRIAGE\" --config tests/jest.config.js tests/email-triage/classification-rules.test.js tests/email-triage/calendar-time-policy.test.js tests/email-triage/digest-schedule-policy.test.js tests/email-triage/digest-identity-policy.test.js --runInBand 2>&1" \
+            "$REPORT_DIR/email-triage.json"
+    fi
+fi
+
 # ==============================================================================
 # CATÉGORIE 8 : TESTS PERFORMANCE AVANCÉS
 # ==============================================================================

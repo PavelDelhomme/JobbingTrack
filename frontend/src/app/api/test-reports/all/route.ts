@@ -468,6 +468,74 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
   return reports;
 }
 
+async function scanEmailTriageResults(resultsRoot: string): Promise<TestReport[]> {
+  const reports: TestReport[] = [];
+  const dir = join(resultsRoot, "email-triage");
+
+  if (!existsSync(dir)) return reports;
+
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const reportDirs = entries
+      .filter(
+        (entry) => entry.isDirectory() && /^\d{8}-\d{6}$/.test(entry.name),
+      )
+      .sort()
+      .reverse();
+
+    for (const dirEntry of reportDirs) {
+      const dirPath = join(dir, dirEntry.name);
+      const summaryPath = join(dirPath, "summary.json");
+      const [datePart, timePart] = dirEntry.name.split("-");
+      const date = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}`;
+      const time = `${timePart.substring(0, 2)}:${timePart.substring(2, 4)}:${timePart.substring(4, 6)}`;
+
+      let summary: any = null;
+      try {
+        summary = JSON.parse(await readFile(summaryPath, "utf-8"));
+      } catch {
+        continue;
+      }
+
+      const totalTests = summary?.totals?.tests ?? 0;
+      const passed = summary?.totals?.passed ?? 0;
+      const failed = summary?.totals?.failed ?? 0;
+      const skipped = summary?.totals?.skipped ?? 0;
+
+      reports.push({
+        id: `email-triage-${dirEntry.name}`,
+        category: "Agent email / triage",
+        name: `Agent email / triage - ${date} ${time}`,
+        timestamp: dirEntry.name,
+        date,
+        time,
+        generatedAtISO: summary?.timestamp,
+        path: dirPath,
+        summaryPath,
+        summary,
+        totalTests,
+        passed,
+        failed,
+        skipped,
+        status:
+          failed === 0 && passed > 0
+            ? "success"
+            : failed > 0 && passed > 0
+              ? "partial"
+              : failed > 0
+                ? "failed"
+                : "unknown",
+        type: "unitaire",
+        size: await getDirectorySize(dirPath),
+      });
+    }
+  } catch (error) {
+    console.error("Erreur scan email-triage:", error);
+  }
+
+  return reports;
+}
+
 /**
  * Scanner les rapports User Journey
  */
@@ -761,6 +829,7 @@ export async function GET(request: NextRequest) {
       perfFrontend,
       testsResults,
       testsResultsTmp,
+      emailTriageResults,
       playwright,
       userJourney,
       analytics,
@@ -773,6 +842,7 @@ export async function GET(request: NextRequest) {
       REPORT_DIRS["tests-results-tmp"]
         ? scanTestsResults(REPORT_DIRS["tests-results-tmp"])
         : Promise.resolve([]),
+      scanEmailTriageResults(REPORT_DIRS["tests-results"]),
       scanPlaywrightReports(REPORT_DIRS["playwright"]),
       scanUserJourneyReports(REPORT_DIRS["user-journey"]),
       scanAnalyticsReports(REPORT_DIRS["analytics"]),
@@ -786,6 +856,7 @@ export async function GET(request: NextRequest) {
       ...perfFrontend,
       ...testsResults,
       ...testsResultsTmp,
+      ...emailTriageResults,
       ...playwright,
       ...userJourney,
       ...analytics,

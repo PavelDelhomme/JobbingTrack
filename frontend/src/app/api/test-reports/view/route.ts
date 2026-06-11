@@ -552,6 +552,20 @@ export async function GET(request: NextRequest) {
           );
         }
         fullPath = reportPath;
+      } else if (id.startsWith("email-triage-")) {
+        const suffix = id.replace("email-triage-", "");
+        const reportDir = join(
+          REPORT_DIRS["tests-results"],
+          "email-triage",
+          suffix,
+        );
+        if (!isWithinDirectory(REPORT_DIRS["tests-results"], reportDir)) {
+          return NextResponse.json(
+            { success: false, error: "Chemin non autorisé" },
+            { status: 403 },
+          );
+        }
+        fullPath = join(reportDir, "summary.json");
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         if (playwrightReport) {

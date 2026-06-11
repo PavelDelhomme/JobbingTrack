@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-OUT_DIR="${ROOT_DIR}/tests/results/email-triage/${TIMESTAMP}"
+RESULTS_ROOT="${TESTS_RESULTS_DIR:-${ROOT_DIR}/tests/results}"
+OUT_DIR="${RESULTS_ROOT}/email-triage/${TIMESTAMP}"
 mkdir -p "${OUT_DIR}"
 
 cd "${ROOT_DIR}"

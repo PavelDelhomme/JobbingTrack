@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 12 juin 2026 — **Branche** `feat/email-triage-digest-schedule`.
+**Dernière mise à jour** : 12 juin 2026 — **Branche** `feat/backoffice-email-triage-tests`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -10,6 +10,8 @@
 - **Planification** : politique de digest quotidien activé par défaut à `18:00`, fuseau `Europe/Paris`, hebdomadaire optionnel (`EMAIL_TRIAGE_DIGEST_WEEKLY_*`), horaires validés dans la fenêtre `05:00`–`23:00`.
 - **Classification déterministe** : ajout d’un premier moteur de règles testable pour les emails recherche d’emploi : refus sans/après entretien, invitation entretien, deuxième entretien, test technique, salon/job event, relance après 7 jours, newsletter/bruit et revue manuelle.
 - **Tests** : ajout `classification-rules`, `digest-schedule-policy` + `digest-identity-policy` dans `tests/email-triage/`; suite dédiée **4 suites / 28 tests OK** ; rapport `tests/results/email-triage/20260612-001512` généré par `run-with-report.sh`.
+- **Interface tests JobbingTrack** : `/b4ck0ff1ce/tests` expose maintenant la suite **Agent email / triage** (carte sélectionnable + bouton rapide), via `POST /api/test/run-email-triage`. Les rapports `tests/results/email-triage/<timestamp>` sont listés dans `/b4ck0ff1ce/test-reports` avec la catégorie **Agent email / triage** et ouvrables via `email-triage-<timestamp>`. Validation : Jest catalogue hub Tests **2/2 OK**, rapport `20260612-004238` **28/28 OK**, `npm run type-check` OK, `npm run lint` OK (warnings historiques).
+- **Suite CLI globale** : `scripts/run-all-tests-with-reports.sh` inclut la section **34b Suite Agent email / triage** (4 fichiers Jest, parsing stats Jest standard).
 - **Docs/env** : `.env.example`, `docs/features/EMAIL_TRIAGE_AGENT.md`, `docs/deployment/environment-variables/README.md` et `tests/email-triage/README.md` alignés sur les variables digest et la règle `@jobbingtrack.com`.
 
 ## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)
