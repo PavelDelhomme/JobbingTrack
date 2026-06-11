@@ -237,6 +237,8 @@ docker exec jobbingtrack-postgres sh -lc \
 - Admin : [http://localhost:5003/b4ck0ff1ce/security](http://localhost:5003/b4ck0ff1ce/security) — les vraies alertes restent visibles.
 - Public : Portainer / Postgres / metrics ne doivent pas être accessibles hors ports prévus.
 
+**Preuve agent fraîche (12/06 01h40)** : documents relus (`docs/security/VPS_EXPOSURE_REDUCTION.md`, `docs/security/COMPOSE_RUNTIME_HARDENING.md`, `docs/deployment/VPS_PORTAINER_NPM_OVH.md`) ; conclusion conservatrice : réduction d’exposition d’abord, Portainer/NPM admin via IP allowlist/VPN/tunnel, NPM réseau partagé seulement avec `frontend`/`api-gateway`, pas de leurre/honeypot sur domaine utilisateur réel. Aucune action offensive ou déploiement de leurre lancé.
+
 #### C. Réponse
 
 - OK : `OK Leurres/désinformation design`
