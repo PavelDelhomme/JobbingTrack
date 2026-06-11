@@ -21,6 +21,7 @@ fi
 set +e
 /usr/bin/node "${JEST_BIN}" \
   --config tests/jest.config.js \
+  tests/email-triage/classification-rules.test.js \
   tests/email-triage/calendar-time-policy.test.js \
   tests/email-triage/digest-schedule-policy.test.js \
   tests/email-triage/digest-identity-policy.test.js \
@@ -51,6 +52,7 @@ const summary = {
     skipped: jest.numPendingTests || 0,
   },
   suites: [
+    'tests/email-triage/classification-rules.test.js',
     'tests/email-triage/calendar-time-policy.test.js',
     'tests/email-triage/digest-schedule-policy.test.js',
     'tests/email-triage/digest-identity-policy.test.js',

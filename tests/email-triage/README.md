@@ -38,6 +38,7 @@ Depuis la racine du dépôt :
 ```bash
 /usr/bin/node tests/node_modules/jest/bin/jest.js \
   --config tests/jest.config.js \
+  tests/email-triage/classification-rules.test.js \
   tests/email-triage/calendar-time-policy.test.js \
   tests/email-triage/digest-schedule-policy.test.js \
   tests/email-triage/digest-identity-policy.test.js \
@@ -58,6 +59,7 @@ Sortie : `tests/results/email-triage/<timestamp>/`
 tests/email-triage/
 ├── README.md
 ├── run-with-report.sh
+├── classification-rules.test.js
 ├── calendar-time-policy.test.js
 ├── digest-schedule-policy.test.js
 ├── digest-identity-policy.test.js
@@ -65,6 +67,7 @@ tests/email-triage/
 │   └── require-env.js
 ├── lib/
 │   ├── calendar-time-policy.js
+│   ├── classification-rules.js
 │   ├── digest-schedule-policy.js
 │   └── digest-identity-policy.js
 └── fixtures/
@@ -83,8 +86,7 @@ Les secrets et adresses réelles ne doivent jamais apparaître dans les rapports
 
 ## Prochaines étapes (après P0)
 
-1. Tests unitaires moteur de règles (`classification-rules.test.js`).
-2. Tests permissions API (`JOB_SEARCH_AGENT_ENABLED`).
-3. Tests digest SMTP mockés avec rendu HTML/text et liens JobbingTrack.
-4. Tests intégration Gmail/IMAP conditionnels (`TEST_EMAIL_TRIAGE_ENABLED=true`).
-5. Intégration au backoffice **Développement → Tests** et à `scripts/run-all-tests-with-reports.sh`.
+1. Tests permissions API (`JOB_SEARCH_AGENT_ENABLED`).
+2. Tests digest SMTP mockés avec rendu HTML/text et liens JobbingTrack.
+3. Tests intégration Gmail/IMAP conditionnels (`TEST_EMAIL_TRIAGE_ENABLED=true`).
+4. Intégration au backoffice **Développement → Tests** et à `scripts/run-all-tests-with-reports.sh`.

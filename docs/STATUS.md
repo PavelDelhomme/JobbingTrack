@@ -8,7 +8,8 @@
 
 - **Expéditeur digest** : règle posée pour le futur digest recherche d’emploi : l’expéditeur visible doit venir du domaine `jobbingtrack.com` (`EMAIL_TRIAGE_DIGEST_FROM`, défaut `JobbingTrack <noreply@jobbingtrack.com>`). Une adresse Gmail personnelle peut être lue ou utilisée comme destinataire configuré par l’utilisateur, mais pas comme expéditeur applicatif par défaut.
 - **Planification** : politique de digest quotidien activé par défaut à `18:00`, fuseau `Europe/Paris`, hebdomadaire optionnel (`EMAIL_TRIAGE_DIGEST_WEEKLY_*`), horaires validés dans la fenêtre `05:00`–`23:00`.
-- **Tests** : ajout `digest-schedule-policy` + `digest-identity-policy` dans `tests/email-triage/`; suite dédiée **3 suites / 18 tests OK** ; rapport `tests/results/email-triage/20260612-000859` généré par `run-with-report.sh`.
+- **Classification déterministe** : ajout d’un premier moteur de règles testable pour les emails recherche d’emploi : refus sans/après entretien, invitation entretien, deuxième entretien, test technique, salon/job event, relance après 7 jours, newsletter/bruit et revue manuelle.
+- **Tests** : ajout `classification-rules`, `digest-schedule-policy` + `digest-identity-policy` dans `tests/email-triage/`; suite dédiée **4 suites / 28 tests OK** ; rapport `tests/results/email-triage/20260612-001512` généré par `run-with-report.sh`.
 - **Docs/env** : `.env.example`, `docs/features/EMAIL_TRIAGE_AGENT.md`, `docs/deployment/environment-variables/README.md` et `tests/email-triage/README.md` alignés sur les variables digest et la règle `@jobbingtrack.com`.
 
 ## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)

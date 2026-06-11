@@ -192,7 +192,7 @@ La suite de test dédiée doit être créée avec des fixtures non sensibles et 
 - tests programmation digest : quotidien 18h par défaut, horaire paramétrable, hebdomadaire optionnel, refus des heures hors fenêtre ;
 - tests permissions : compte sans `JOB_SEARCH_AGENT_ENABLED` bloqué, compte personnel autorisé OK, admin sans consentement utilisateur incapable de lire le contenu email personnel ;
 - rapports : produire un dossier `tests/results/email-triage/<timestamp>` avec résumé JSON/HTML/TXT, scénarios exécutés, variables manquantes masquées et décisions Calendar/Tasks expliquées.
-- socle de tests déjà amorcé : `tests/email-triage/README.md`, politique horaire `tests/email-triage/lib/calendar-time-policy.js`, lancement `bash tests/email-triage/run-with-report.sh`.
+- socle de tests déjà amorcé : `tests/email-triage/README.md`, moteur de classification `tests/email-triage/lib/classification-rules.js`, politique horaire `tests/email-triage/lib/calendar-time-policy.js`, digest planifié/identité d’envoi, lancement `bash tests/email-triage/run-with-report.sh`.
 
 ## Agent IA et coût
 
