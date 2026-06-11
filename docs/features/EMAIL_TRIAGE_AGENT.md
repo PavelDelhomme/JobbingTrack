@@ -31,6 +31,7 @@ Le système doit aider le porteur à :
 - Worker planifié interne : import/polling borné, classification, création de tâches/événements et digest quotidien vers 18h.
 - Stockage interne des emails utiles uniquement : messages, threads, métadonnées, rattachements et décisions d’agent.
 - Envoi du digest par le service email JobbingTrack existant, avec la même configuration SMTP que les emails de reset de mot de passe, validation d’inscription et notifications système (`SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EmailLog`).
+- Identité visible du digest : utiliser un expéditeur du domaine JobbingTrack, configurable via `EMAIL_TRIAGE_DIGEST_FROM` (ex. `JobbingTrack <noreply@jobbingtrack.com>`). Une adresse Gmail personnelle peut être lue ou recevoir un digest si l’utilisateur la configure, mais elle ne doit pas devenir l’expéditeur applicatif par défaut.
 - Les placeholders `example.invalid` / `jobbingtrack.test` servent uniquement à la documentation et aux tests suivis par Git. En runtime, les adresses réelles viennent du profil utilisateur, d’un réglage admin ou du `.env` gitignoré.
 - Moteur déterministe d’abord, sans IA payante obligatoire : règles, dates, statuts, délais de relance, labels et correction manuelle.
 - IA locale ensuite, en renfort du moteur de règles : résumé, aide à la rédaction, priorisation et détection de cas ambigus.
@@ -59,6 +60,8 @@ Envoyer un email récapitulatif clair, au minimum quotidien vers 18h, avec possi
 - décisions proposées : créer une tâche, programmer un appel, préparer un entretien, créer un événement, relancer, archiver, rédiger une réponse.
 
 Le digest doit être compréhensible sans ouvrir l’application, mais chaque ligne doit pointer vers l’action JobbingTrack correspondante.
+
+La planification doit être paramétrable par utilisateur à terme : heure quotidienne (`EMAIL_TRIAGE_DIGEST_DAILY_TIME` par défaut `18:00`), activation quotidienne, récapitulatif hebdomadaire optionnel (`EMAIL_TRIAGE_DIGEST_WEEKLY_ENABLED`, jour et heure), fuseau horaire utilisateur. Les horaires proposés doivent rester dans une fenêtre raisonnable `05:00`-`23:00` et être validés avant activation.
 
 Les actions du digest ne doivent pas dépendre uniquement des emails : l’utilisateur doit pouvoir créer manuellement une action à programmer, par exemple appeler un contact ou une entreprise à une date/heure donnée, avec rappel, lien candidature/entreprise/contact, note et synchronisation Google Tasks/Calendar si souhaitée.
 
@@ -185,6 +188,8 @@ La suite de test dédiée doit être créée avec des fixtures non sensibles et 
 - tests dates/heures : pas de Calendar à `00:00`, pas d’événement auto avant `05:00`, pas d’événement auto après `23:00`, timezone explicite, date seule convertie en tâche/événement proposé ;
 - tests d’intégration avec boîtes de test : lecture Gmail/IMAP en lecture seule si variables présentes, skip explicite sinon, aucun secret affiché dans les logs ;
 - tests digest : email quotidien généré via le socle SMTP JobbingTrack ou mock SMTP, sections attendues, liens JobbingTrack, absence d’envoi externe automatique ;
+- tests identité digest : expéditeur `@jobbingtrack.com`, destinataire configuré hors Git, refus des placeholders et des expéditeurs personnels ;
+- tests programmation digest : quotidien 18h par défaut, horaire paramétrable, hebdomadaire optionnel, refus des heures hors fenêtre ;
 - tests permissions : compte sans `JOB_SEARCH_AGENT_ENABLED` bloqué, compte personnel autorisé OK, admin sans consentement utilisateur incapable de lire le contenu email personnel ;
 - rapports : produire un dossier `tests/results/email-triage/<timestamp>` avec résumé JSON/HTML/TXT, scénarios exécutés, variables manquantes masquées et décisions Calendar/Tasks expliquées.
 - socle de tests déjà amorcé : `tests/email-triage/README.md`, politique horaire `tests/email-triage/lib/calendar-time-policy.js`, lancement `bash tests/email-triage/run-with-report.sh`.

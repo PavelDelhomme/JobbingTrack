@@ -101,7 +101,15 @@ Valeurs réelles uniquement dans `.env` gitignoré ou paramètres admin. Les pla
 
 ```bash
 # Runtime agent (hors tests)
-EMAIL_TRIAGE_DIGEST_RECIPIENT=           # Destinataire digest quotidien/hebdo
+EMAIL_TRIAGE_DIGEST_DAILY_ENABLED=true  # Active le rapport quotidien
+EMAIL_TRIAGE_DIGEST_DAILY_TIME=18:00    # Heure locale du rapport quotidien
+EMAIL_TRIAGE_DIGEST_FROM=JobbingTrack <noreply@jobbingtrack.com> # Expéditeur visible du digest
+EMAIL_TRIAGE_DIGEST_RECIPIENT=           # Destinataire digest quotidien/hebdo (profil utilisateur ou .env)
+EMAIL_TRIAGE_DIGEST_REPLY_TO=            # Réponse optionnelle
+EMAIL_TRIAGE_DIGEST_TIMEZONE=Europe/Paris
+EMAIL_TRIAGE_DIGEST_WEEKLY_DAY=sunday
+EMAIL_TRIAGE_DIGEST_WEEKLY_ENABLED=false
+EMAIL_TRIAGE_DIGEST_WEEKLY_TIME=18:00
 EMAIL_TRIAGE_READ_ACCOUNT=               # Compte/boîte lecture principale (hors Git)
 EMAIL_TRIAGE_FORWARD_ADDRESS=            # Adresse de transfert configurable
 
@@ -115,12 +123,15 @@ TEST_EMAIL_TRIAGE_IMAP_EMAIL=redacted@example.invalid
 TEST_EMAIL_TRIAGE_IMAP_HOST=imap.example.com
 TEST_EMAIL_TRIAGE_IMAP_PORT=993
 TEST_EMAIL_TRIAGE_IMAP_PASSWORD=
+TEST_EMAIL_TRIAGE_DIGEST_FROM=JobbingTrack <noreply@jobbingtrack.com>
 TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT=redacted@example.invalid
+TEST_EMAIL_TRIAGE_DIGEST_DAILY_TIME=18:00
+TEST_EMAIL_TRIAGE_DIGEST_WEEKLY_DAY=sunday
 TEST_EMAIL_TRIAGE_CALENDAR_MIN_HOUR=05:00
 TEST_EMAIL_TRIAGE_CALENDAR_MAX_HOUR=23:00
 ```
 
-Les tests d’intégration Gmail/IMAP/digest doivent **skip** explicitement si les secrets sont absents. Détail : `docs/features/EMAIL_TRIAGE_AGENT.md` et `tests/email-triage/README.md`.
+Le digest de triage doit utiliser une identité visible du domaine `jobbingtrack.com` (ex. `noreply@jobbingtrack.com`) ; l’adresse Gmail personnelle sert de compte lu ou de destinataire si l’utilisateur la configure, jamais d’expéditeur applicatif par défaut. Les tests d’intégration Gmail/IMAP/digest doivent **skip** explicitement si les secrets sont absents. Détail : `docs/features/EMAIL_TRIAGE_AGENT.md` et `tests/email-triage/README.md`.
 
 ### 👤 Utilisateur Administrateur
 
