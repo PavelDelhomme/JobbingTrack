@@ -26,7 +26,7 @@ const authenticate = async (req, res, next) => {
       logger.info('🔐 Mode développement: token de bypass env accepté');
       req.user = {
         id: 'dev_user_1',
-        email: 'dev@jobbingtrack.test',
+        email: 'redacted@example.invalid',
         role: 'USER'
       };
       req.token = token;

@@ -13,7 +13,7 @@ const axios = require('axios');
  */
 const generateToken = () => {
   return jwt.sign(
-    { id: 1, email: 'test@jobbingtrack.test', role: 'admin' },
+    { id: 1, email: 'redacted@example.invalid', role: 'admin' },
     JWT_SECRET,
     { expiresIn: '1h' }
   );

@@ -17,8 +17,8 @@ Ce document décrit l’ensemble du système mail : objectif, infra OVH (jobbing
 
 ## 2. Infra OVH (envoi SMTP)
 
-- **Option recommandée** : **redacted@example.invalid** — MX Plan **maily.ovh** actif (offre MX Plan 5), compte « noreply » créé. On utilise ce compte pour l’authentification SMTP ; on met `SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>` pour que le destinataire voie jobbingtrack.com comme expéditeur.
-- **Option alternative** : **noreply@jobbingtrack.test** — si un MX Plan ou un compte existe sur jobbingtrack.com (champs MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net), tu peux mettre ce compte en `SMTP_USER` / `SMTP_PASS`.
+- **Option recommandée** : **redacted@example.invalid** — MX Plan **maily.ovh** actif (offre MX Plan 5), compte « noreply » créé. On utilise ce compte pour l’authentification SMTP ; on met `SMTP_FROM=JobbingTrack <redacted@example.invalid>` pour que le destinataire voie jobbingtrack.com comme expéditeur.
+- **Option alternative** : **redacted@example.invalid** — si un MX Plan ou un compte existe sur jobbingtrack.com (champs MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net), tu peux mettre ce compte en `SMTP_USER` / `SMTP_PASS`.
 - **Stockage** : tous les envois sont loggés dans **notre BDD** (EmailLog, stats), pas dans la boîte mail OVH.
 
 ---
@@ -38,12 +38,12 @@ SMTP_SECURE=true
 SMTP_USE_SSL=false
 SMTP_USER=redacted@example.invalid
 SMTP_PASS=<mot_de_passe_compte_maily.ovh>
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>
+SMTP_FROM=JobbingTrack <redacted@example.invalid>
 SMTP_REPLY_TO=redacted@example.invalid
 EMAIL_PROVIDER=SMTP
 ```
 
-- **Alternative** : si tu as un compte **noreply@jobbingtrack.test**, mets `SMTP_USER=noreply@jobbingtrack.test` et `SMTP_PASS` correspondant.
+- **Alternative** : si tu as un compte **redacted@example.invalid**, mets `SMTP_USER=redacted@example.invalid` et `SMTP_PASS` correspondant.
 - **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=false`, `SMTP_USE_SSL=true`.
 
 Détail des variables et commandes de test : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
@@ -138,7 +138,7 @@ Commandes utiles (auth-service) : voir **`backend/auth-service/PYTHON_EMAIL_SETU
 ## 8. État actuel et récap
 
 - **Tests DNS** : OK (MX, SPF). **Connexion SMTP** : OK (redacted@example.invalid, ssl0.ovh.net:587). **Envoi de test** : les emails arrivent en boîte mail, mais l’interface affiche une erreur car la table **EmailLog** n’existe pas. **Solution** : `make db-push-all` pour créer la table.
-- **Reply-To** : `noreply@jobbingtrack.test` (pas de réponse attendue). Headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` ajoutés.
+- **Reply-To** : `redacted@example.invalid` (pas de réponse attendue). Headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` ajoutés.
 
 ### Récap – quoi faire
 

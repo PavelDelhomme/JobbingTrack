@@ -1,12 +1,14 @@
 import { test, expect } from "@playwright/test";
 import config from "./test-config.js";
 import { devBypassExtraHeaders } from "./envDevBypass";
+import { getSeededUserCredentials } from "./test-data-helper";
 
 // UA de test (diagnostic) + jeton secret aligné sur la gateway (voir DEV_TEST_BYPASS_TOKEN).
 const testHeaders = {
   "User-Agent": "Playwright-Test/1.0",
   ...devBypassExtraHeaders(),
 };
+const seededUser = getSeededUserCredentials("Identifiants utilisateur API E2E");
 
 // Tests API fonctionnels — utilise un utilisateur classique (rôle USER)
 test.describe("🔗 Tests API uniquement - Fonctionnalités Backend", () => {
@@ -366,8 +368,8 @@ test.describe("🚫 Tests de sécurité API", () => {
       `${config.apiUrl}/api/v1/auth/login`,
       {
         data: {
-          email: "user1@jobbingtrack.test",
-          password: "password123",
+          email: seededUser.email,
+          password: seededUser.password,
         },
         headers: testHeaders,
       },

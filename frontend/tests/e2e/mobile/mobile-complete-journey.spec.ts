@@ -1,5 +1,10 @@
+import fs from "fs";
 import { test, expect, Page } from "@playwright/test";
-import { ensureTestUser } from "../test-data-helper";
+import {
+  ensureTestUser,
+  getGeneratedUserPassword,
+  requireTestCredentials,
+} from "../test-data-helper";
 
 // Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 
@@ -23,7 +28,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5003";
 // Données de test — utilisateur classique (rôle USER)
 const testUser = {
   email: `test-mobile-${Date.now()}@jobbingtrack.test`,
-  password: "TestPassword123!",
+  password: getGeneratedUserPassword("Mot de passe compte mobile créé par test"),
   firstName: "Test",
   lastName: "Mobile",
   phone: "0612345678",
@@ -53,6 +58,10 @@ async function loginUser(page: Page, email: string, password: string) {
 
   // Vérifier que l'utilisateur est connecté
   await expect(page.locator("text=/Dashboard|Tableau de bord/i")).toBeVisible();
+}
+
+function currentTestCredentials(): { email: string; password: string } {
+  return requireTestCredentials(testCredentials);
 }
 
 /**
@@ -115,8 +124,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
     // Utiliser l'utilisateur admin par défaut pour les tests
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Vérifier que le dashboard est accessible
@@ -128,8 +137,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("3. 🏢 Création d'Entreprise - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers la création d'entreprise
@@ -171,8 +180,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("4. 📋 Création de Candidature - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers les candidatures
@@ -215,8 +224,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("5. 👥 Création de Contact - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers les contacts
@@ -260,8 +269,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("6. 📞 Création d'Appel - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers les appels
@@ -301,8 +310,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("7. 📅 Création d'Entretien - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers les entretiens
@@ -343,8 +352,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("8. 🔔 Création de Relance - Mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Naviguer vers les relances
@@ -386,8 +395,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Vérifier l'icône de notifications
@@ -411,8 +420,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("10. 🔍 Recherche - Fonctionnalité mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Trouver le champ de recherche
@@ -436,8 +445,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("11. 📊 Dashboard - Affichage mobile", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Vérifier les éléments du dashboard
@@ -454,8 +463,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("12. 🎨 Navigation Mobile - Menu hamburger", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Chercher le menu hamburger
@@ -477,8 +486,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("13. 📱 Gestes Tactiles - Swipe et tap", async ({ page }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Tester le swipe (simulation)
@@ -496,8 +505,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   test("14. 🔄 Synchronisation Offline - Mobile", async ({ page, context }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Simuler le mode offline
@@ -522,8 +531,8 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
   }) => {
     await loginUser(
       page,
-      testCredentials?.email || testUser.email,
-      testCredentials?.password || testUser.password,
+      currentTestCredentials().email,
+      currentTestCredentials().password,
     );
 
     // Prendre une capture d'écran du dashboard mobile
@@ -533,7 +542,6 @@ test.describe("📱 Tests Mobile - Parcours Utilisateur Complet", () => {
     });
 
     // Vérifier que la capture a été créée
-    const fs = require("fs");
     expect(fs.existsSync("test-results/mobile-dashboard.png")).toBeTruthy();
   });
 });

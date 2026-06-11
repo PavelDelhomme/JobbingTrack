@@ -1,6 +1,6 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 8 juin 2026
+Dernière mise à jour : 10 juin 2026
 
 ## Règle
 
@@ -27,36 +27,283 @@ Le porteur valide la première ligne ouverte soit en répondant dans le chat ave
 
 L’agent ne coche pas à la place du porteur : après un `OK` explicite, il archive la ligne dans `TODOS_DONE.md` ; après un `KO`, il corrige ou crée la tâche de correction avant toute suite.
 
+## Mode opératoire détaillé pour valider
+
+Guide pas à pas : **où cliquer**, **quelles commandes lancer**, **quoi regarder**, **quoi répondre**. Une ligne du tableau = une validation à la fois.
+
+### Prérequis communs (toutes les validations UI)
+
+| Étape | Action |
+|-------|--------|
+| 1 | Stack locale up : conteneurs `jobbingtrack-postgres` et `jobbingtrack-frontend` **healthy** (`docker ps --filter name=jobbingtrack`). Si down : cible Make documentée **`up-full`** (équivalent `docker compose up -d` depuis la racine du repo). |
+| 2 | Connexion : [https://jobbingtrack.localhost:5443/login](https://jobbingtrack.localhost:5443/login) (ou [http://localhost:5003/login](http://localhost:5003/login)) avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env`. |
+| 3 | Hub backoffice : [https://jobbingtrack.localhost:5443/b4ck0ff1ce](https://jobbingtrack.localhost:5443/b4ck0ff1ce) — menu latéral gauche. |
+| 4 | Terminal : se placer à la racine du repo (`cd …/JobbingTrack`). Préférer `/usr/bin/env node …` si la commande `node` échoue silencieusement (shell `lazynvm`). |
+
+---
+
+### P1A — Archive logs sécurité sans purge
+
+**But** : exporter des logs en archive gzip + manifest, **sans** `DELETE` ni baisse du compteur `security_logs`.
+
+> **Important — pas de bouton dans l’interface** : l’archivage ne se fait **pas** depuis `/b4ck0ff1ce/security/logs`. C’est un **script terminal** (`security-logs-archive-export.cjs`). L’UI sert seulement à **vérifier** que les logs sont toujours visibles après l’export. La page Statistics → Sécurité mentionne les scripts mais ne les lance pas.
+
+#### A. Interface (contrôle visuel uniquement — pas d’action « Archiver »)
+
+| # | Où aller | URL directe | Quoi vérifier |
+|---|----------|-------------|---------------|
+| 1 | Menu **Sécurité** → **Logs** | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/logs](https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/logs) | La liste des logs s’affiche (pagination OK). **Aucun bouton « Archiver » attendu ici.** |
+| 2 | Menu **Sécurité** → **Vue d’ensemble** | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/security](https://jobbingtrack.localhost:5443/b4ck0ff1ce/security) | Bandeau éventuel « résultat tronqué » si > 2000 lignes sur 30 j — normal. |
+| 3 | Menu **Statistics** → **Sécurité** | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/statistics/security](https://jobbingtrack.localhost:5443/b4ck0ff1ce/statistics/security) | Carte ambre « Volume logs sécurité » + **noms** des scripts (info seulement). |
+
+#### B. Terminal (export sans purge)
+
+Copier-coller depuis la racine du projet :
+
+```bash
+# 0 — Postgres accessible
+docker ps --filter name=jobbingtrack-postgres --format '{{.Names}} {{.Status}}'
+
+# 1 — Compteur AVANT export (noter le chiffre)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*) FROM security_logs;"'
+
+# 2 — Dry-run lecture seule (optionnel, aucune écriture)
+/usr/bin/env node scripts/security/security-logs-retention-dry-run.cjs
+
+# 3 — Export archive SANS purge (commencer petit si erreur ENOBUFS)
+/usr/bin/env node scripts/security/security-logs-archive-export.cjs --class=noise --limit=50
+
+# 4 — Compteur APRÈS export (doit être IDENTIQUE à l’étape 1)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*) FROM security_logs;"'
+
+# 5 — Lire le manifest produit aujourd’hui
+cat "data/archives/security-logs/$(date -I)/manifest.json"
+ls -la "data/archives/security-logs/$(date -I)/"
+```
+
+**Fichiers attendus** (gitignorés, sur disque local) :
+
+- Dossier : `data/archives/security-logs/YYYY-MM-DD/`
+- `manifest.json` — champ `"note": "Export only — no rows deleted from security_logs"`
+- `noise.jsonl.gz` (ou autre classe : `critical.jsonl.gz`, `high.jsonl.gz`, `standard.jsonl.gz`)
+
+**Preuve agent déjà prête (10/06)** : export `noise` 50 lignes → `data/archives/security-logs/2026-06-10/` ; compteur `security_logs` **42311** avant et après.
+
+#### C. Critères OK / KO
+
+| OK si | KO si |
+|-------|-------|
+| `manifest.json` lisible, `exportedRows` > 0 | Pas de dossier `data/archives/security-logs/…` |
+| Fichier `.jsonl.gz` présent | `manifest` illisible ou vide |
+| Compteur étape 1 = compteur étape 4 | Compteur `security_logs` a baissé |
+| UI logs toujours accessibles après export | Erreur script sans archive utilisable |
+
+#### D. Réponse à copier dans le chat
+
+- OK : `OK Archive logs sécurité sans purge`
+- KO : `KO Archive logs sécurité` + chemin manquant ou compteur avant/après
+
+### P1A — Restauration logs sécurité en staging
+
+**But** : recharger une archive dans **`security_logs_restore_staging` uniquement**, jamais dans `security_logs`.
+
+#### A. Interface (contrôle visuel)
+
+| # | Où aller | URL | Quoi vérifier |
+|---|----------|-----|---------------|
+| 1 | **Sécurité** → **Logs** | [http://localhost:5003/b4ck0ff1ce/security/logs](http://localhost:5003/b4ck0ff1ce/security/logs) | Les logs normaux sont toujours là, inchangés. |
+
+#### B. Terminal (restauration staging)
+
+**Prérequis** : avoir fait l’export P1A (dossier `data/archives/security-logs/YYYY-MM-DD/`).
+
+```bash
+# 1 — Compteur table réelle (ne doit PAS changer après restore)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*) FROM security_logs;"'
+
+# 2 — Restauration en staging uniquement
+/usr/bin/env node scripts/security/security-logs-archive-restore.cjs \
+  --class=noise --load-staging
+
+# 3 — Compteur staging (doit être > 0 si export non vide)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*) FROM security_logs_restore_staging;"'
+
+# 4 — Recompter table réelle (identique à l’étape 1)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*) FROM security_logs;"'
+
+# 5 — Aperçu staging (optionnel)
+docker exec jobbingtrack-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT row_id, retention_class, source_file FROM security_logs_restore_staging LIMIT 3;"'
+```
+
+**Sortie attendue du script** : lignes `No write to public.security_logs` et `Target table: public.security_logs_restore_staging`.
+
+**Preuve agent déjà prête (10/06)** : `staging_loaded=50`, `security_logs` reste **42311**.
+
+#### C. Critères OK / KO
+
+| OK si | KO si |
+|-------|-------|
+| Script affiche « No write to public.security_logs » | Message d’insert dans `security_logs` |
+| `security_logs_restore_staging` > 0 | Staging vide après export non vide |
+| Compteur `security_logs` inchangé | Compteur `security_logs` modifié |
+| UI logs inchangée | Logs manquants ou différents en UI |
+
+#### D. Réponse
+
+- OK : `OK Restauration staging logs sécurité`
+- KO : `KO Restauration staging` + compteur ou table concernée
+
+### P1A — Alertes email critiques JobbingTrack
+
+**But** : alias publics visibles, réauth admin pour modifier, email de test reçu dans MailHog.
+
+#### A. Interface
+
+| # | Où aller | URL / chemin | Action |
+|---|----------|--------------|--------|
+| 1 | **Menu latéral Sécurité → Alertes email** (ou sous-nav sur une page Sécurité) | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/alerts](https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/alerts) | Page dédiée avec le bloc **Alertes email — menaces & disponibilité**. Accès aussi via **Paramètres** (popup ou `/settings`) → onglet **Notifications** → bouton rouge **Ouvrir Alertes email sécurité**. |
+| 2 | Bloc **Destinataires** | même page | Vérifier destinataires (`@jobbingtrack.test` ou alias publics, pas d’adresse perso). |
+| 3 | Modifier / tester | champ **Mot de passe actuel** obligatoire | Saisir `ADMIN_PASSWORD`, **Enregistrer les alertes sécurité** puis **Envoyer un email de test**. |
+| 4 | Boîte mail locale | [http://localhost:8025](http://localhost:8025) (MailHog) | Email reçu ; expéditeur = alias (`SECURITY_ALERT_FROM` / `SMTP_FROM`). |
+| 5 | Boîtes réelles si miroir SMTP activé | SMTP OVH / fournisseur | Vérifier aussi la réception sur les destinataires réels attendus (`dev@…`, `admin@…`) ; MailHog reste la preuve locale principale. |
+| 6 | Diagnostic admin | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/email-monitor?type=NOTIFICATION](https://jobbingtrack.localhost:5443/b4ck0ff1ce/email-monitor?type=NOTIFICATION) | Filtre **Notification** actif ; vérifier statut, destinataire, date et bouton **Voir le contenu** si la boîte réelle ne reçoit pas. |
+| 7 | Panneau diagnostic page Alertes | [https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/alerts](https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/alerts) — bloc **Derniers envois alertes** | Encart **Dernier envoi vers admin** avec sujet/horodatage/miroir ; cartes `admin@delhomme.ovh` surlignées ; rappel spam/délai fournisseur. |
+
+**Note** : l’ancien accès via `/settings` onglet Notifications reste possible, mais la validation porteur doit utiliser la page dédiée Sécurité → Alertes email pour éviter toute ambiguïté.
+
+**Limite connue** : ces alertes passent encore par la stack JobbingTrack (`security-service` / `notification-service`). Elles ne suffisent pas si toute la stack tombe. Un watcher externe léger, séparé de Docker/JobbingTrack, doit être prévu pour vérifier l’indisponibilité complète et envoyer une alerte mail directement via SMTP/fournisseur.
+
+#### B. Critères OK / KO
+
+| OK si | KO si |
+|-------|-------|
+| Réauth demandée avant sauvegarde/test | Modification sans mot de passe |
+| Email visible dans MailHog :8025 | Pas d’email / erreur SMTP |
+| Diagnostic visible dans **Gestion des emails → Historique** filtre **Notification** | Impossible de retrouver l’email dans l’admin |
+| Expéditeur = alias public JobbingTrack | Adresse perso dans Git/UI/rapport |
+| Si miroir SMTP activé : logs `miroir SMTP envoyé` et réception réelle confirmée | Miroir bloquant ou erreur SMTP réelle non expliquée |
+| Email d’alerte enrichi avec contexte utile : service touché, sévérité, horodatage, derniers logs ciblés redigés, lien diagnostic admin | Email trop vague sans élément d’enquête ou avec secrets/payloads sensibles bruts |
+
+#### C. Réponse
+
+- OK : `OK Alertes email critiques`
+- KO : `KO Alertes email critiques` + capture ou erreur UI
+
+### P1A — Tests offensifs contrôlés par conteneur
+
+**But** : valider le **cadrage** (matrice + bornes), pas lancer une campagne agressive.
+
+#### A. Documents à lire (5–10 min)
+
+- `docs/security/SECURITY_TESTING_MATRIX.md`
+- `docs/security/COMPOSE_RUNTIME_HARDENING.md`
+
+#### B. Interface (consultation)
+
+| # | Où aller | URL |
+|---|----------|-----|
+| 1 | **Développement** → **Tests** → **Tests Sécurité** | [http://localhost:5003/b4ck0ff1ce/tests-security](http://localhost:5003/b4ck0ff1ce/tests-security) |
+| 2 | **Développement** → **Rapports de tests** | [http://localhost:5003/b4ck0ff1ce/test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) |
+
+**Interdit** : ZAP actif, nmap, SYN flood, spoofing sur prod. Cibles lab : `localhost:5002` uniquement.
+
+#### C. Réponse
+
+- OK : `OK Tests offensifs contrôlés`
+- KO : `KO Tests offensifs` + menace ou cible problématique
+
+### P1A — Leurres / désinformation contrôlée VPS-Portainer
+
+**But** : valider le **design** de réduction d’exposition — **pas** déployer de honeypot.
+
+#### A. Documents à lire
+
+- `docs/deployment/VPS_PORTAINER_NPM_OVH.md`
+- `docs/security/COMPOSE_RUNTIME_HARDENING.md`
+- `A_VALIDER_AVANT_PRODUCTION.md` (gate « Masquage infos infra / leurres »)
+
+#### B. Vérif rapide
+
+- Admin : [http://localhost:5003/b4ck0ff1ce/security](http://localhost:5003/b4ck0ff1ce/security) — les vraies alertes restent visibles.
+- Public : Portainer / Postgres / metrics ne doivent pas être accessibles hors ports prévus.
+
+#### C. Réponse
+
+- OK : `OK Leurres/désinformation design`
+- KO : `KO Leurres/désinformation` + risque identifié
+
+### P1B — Corrélation performances
+
+| # | Menu | URL | Action |
+|---|------|-----|--------|
+| 1 | **Performances** → **Corrélation** | [http://localhost:5003/b4ck0ff1ce/performances/correlation](http://localhost:5003/b4ck0ff1ce/performances/correlation) | Choisir un service (ex. `api-gateway`). |
+| 2 | Même page | — | KPI logs/erreurs non tous à 0 si stack active ; sinon message « pas de données » explicite. |
+
+**Réponse** : `OK Corrélation performances` ou `KO Corrélation performances` + service + détail.
+
+### P1B — Statistics (4 validations séparées)
+
+Menu **Statistics** → sous-onglets en haut de page.
+
+| Validation | URL | Vérifications |
+|------------|-----|---------------|
+| Sécurité | [http://localhost:5003/b4ck0ff1ce/statistics/security](http://localhost:5003/b4ck0ff1ce/statistics/security) | Cohérent avec [http://localhost:5003/b4ck0ff1ce/security](http://localhost:5003/b4ck0ff1ce/security). |
+| Logs | [http://localhost:5003/b4ck0ff1ce/statistics/log-stats](http://localhost:5003/b4ck0ff1ce/statistics/log-stats) | Filtres service/niveau ; compteurs cohérents. |
+| Données applicatives | [http://localhost:5003/b4ck0ff1ce/statistics/app-data](http://localhost:5003/b4ck0ff1ce/statistics/app-data) | Pas de `undefined`. |
+| Vue d’ensemble | [http://localhost:5003/b4ck0ff1ce/statistics](http://localhost:5003/b4ck0ff1ce/statistics) | Graphes dispo/erreur ; bascule 24 h ↔ 7 j. |
+| Temps de réponse endpoints | Statistics / Performances selon route exposée | Services critiques visibles ou état explicite : `auth-service`, `deployment-service`, `call-service`, `notification-service`, `followup-service`, `application-service`, `postgres` ; source claire `monitoring-agent-rs` / `metrics-aggregator`, moyenne instantanée/agrégée non trompeuse. |
+
+**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · etc. (ou `KO` + route).
+
+### P1C — UX backoffice (une validation = une réponse)
+
+| Validation | Navigation | Étapes |
+|------------|------------|--------|
+| Mode sombre | Barre haute → icône 🌙/☀️ | Passer sombre → F5 sur `/b4ck0ff1ce` → reste sombre. |
+| Popup paramètres | Bouton **Paramètres** barre haute | Clic hors popup / `Escape` ferme ; clic dedans OK. |
+| Graphes conteneurs | **Performances** → **Conteneurs** [lien](http://localhost:5003/b4ck0ff1ce/performances/containers) | « Tous les conteneurs » : couleurs CPU/RAM distinctes. |
+| Plages temporelles | Sous-pages Performances | 24 h → 7 j → personnalisé : pas de vide durable. |
+| 1re navigation perf. | Hub → **Performances** | Délai + graphes présents. |
+| Sécurité FR | Sous-onglets Sécurité | [Politiques](http://localhost:5003/b4ck0ff1ce/security/policies) [Menaces](http://localhost:5003/b4ck0ff1ce/security/threats) [Firewall](http://localhost:5003/b4ck0ff1ce/security/firewall) [Logs](http://localhost:5003/b4ck0ff1ce/security/logs) [Analyse](http://localhost:5003/b4ck0ff1ce/security/analysis) [Réseau](http://localhost:5003/b4ck0ff1ce/security/network) |
+| Comparaison rapports | [test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) | 2 rapports non sécurité → **Comparer** → tableau. |
+| Menu Tests | **Développement** → **Tests** | Clic = vue d’ensemble ; **Rapports de tests** dans sous-menu. |
+| Responsive backoffice complet | DevTools navigateur ou écran réel | Vérifier petit écran, écran moyen et largeur intermédiaire sur `/b4ck0ff1ce`, Email Monitor, Utilisateurs, Sécurité, Performances, Statistics et Rapports : menu utilisable, pas de débordement horizontal, tableaux/listes lisibles, filtres empilés, boutons accessibles. |
+
+**Réponses** : `OK <nom exact ligne tableau>` ou `KO <nom exact>` + ce que tu vois.
+
 ## À valider maintenant (ordre strict — une ligne à la fois)
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P0 | Comparaison de rapports sécurité (CVE) | local | Sur `/b4ck0ff1ce/test-reports`, mode comparaison : sélectionner **2** rapports catégorie **Sécurité** (ex. `security-results-cve-20260521-201336` + un autre CVE), lancer la comparaison → **pas** d’erreur « Rapport non trouvé » ; cartes Critical/High/Medium/Low/Info par rapport ; tableau par surface avec statut et écarts ; notes/payloads bruts non exposés dans la comparaison par défaut ; explication claire des cas `Absent`, `skipped`, `fail/vulnerable`, doublons Docker/dépendances, et priorité exploitable. Les surfaces avec `critical/high` doivent être marquées **à traiter/vulnerable**, jamais `OK`. | [ ] | **KO 21/05** : comparaison trop pauvre / 0 partout. **KO 08/06** : chiffres énormes, libellés trompeurs. **08/06 agent** : tri exploitabilité, filtres docker/node + critical/high, badges Ignoré/Absent, texte d’aide. **08/06 porteur 16h** : `node .` avec `high js-cookie` affiché `ok`. **08/06 agent** : statut dérivé des compteurs + libellés comparaison ; à revalider après merge PR #4 et recreate frontend. |
-| P0 | Menaces historiques/lab comprises avant nettoyage | local | Confirmer que `10.0.0.x`, `198.51.100.42`, `172.19.x/172.20.x` sont à classer lab/bruit avant toute purge. Page Menaces : lecture seule, **aucune suppression** sans `OK` explicite. | [ ] | Ne rien supprimer sans validation explicite. |
-| P0 | Rapports sécurité — ouverture et téléchargement (régression) | local | Liste catégorie Sécurité, ouverture HTML d’un `summary.md` CVE, téléchargement OK ; rapport applicatif `tests/results/<timestamp>` ouvrable même si seul `security-report.json` existe. | [ ] | Rendu CVE validé 21/05. **08/06 porteur 16h** : `20260608-140148` non trouvé depuis lien direct ; fallback JSON ajouté, à revalider. |
-| P0 | CVE applicatives localisées dans JobbingTrack | local/preprod | Sur `/b4ck0ff1ce/tests-security` : rechercher `CVE-2026-49975` (ou autre) → chemins lockfile/rapport CVE/npm audit ; lancer **Scan CVE** puis rechercher à nouveau. Pour chaque `critical/high` visible (ex. `js-cookie` frontend) : package, version, lockfile/service, surface exposée, exploitabilité réelle, correctif ou justification `non applicable`. | [ ] | **08/06 agent** : API `cve-locate` + UI livrées. **08/06 suite** : fiches finding (`cve-findings` + cartes UI) ; valider `js-cookie` / CVE demandée avec version lockfile et correctif proposé. |
-| P1A | Archive logs sécurité sans purge | local | Export JSONL gzip + `manifest.json` lisibles ; aucune suppression BDD. | [ ] | |
-| P1A | Restauration logs sécurité en staging | local | `security_logs_restore_staging` alimentée ; aucune écriture dans `security_logs`. | [ ] | |
-| P1A | Alertes email critiques JobbingTrack | local/preprod | Configurer l’envoi des reports/alertes `critical/high` depuis l’adresse mail JobbingTrack vers les adresses dev et admin du porteur, avec catégories claires (CVE, WAF/intrusion, service down, firewall, backup) ; vérifier Paramètres → Notifications (activation, niveaux, destinataires), réauth mot de passe admin, bouton test, email visible MailHog ou SMTP configuré ; pas d’`AUTH PLAIN` vide ni fuite de secrets ; `EmailLog.status=SENT` si table disponible. | [ ] | Réauth + audit + bouton test implémentés côté origin (07/06) ; remplace/complète l’ancienne ligne alertes email sécurité. Validation porteur à faire après P0. |
-| P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Pour chaque conteneur/service exposé ou sensible : vérifier tentatives de remote host / shell injection / command injection / URL injection / headers spoofing / chemins suspects ; les tests doivent rester bornés, reproductibles, non destructifs et journalisés. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
-| P1A | Leurres / désinformation contrôlée VPS-Portainer | preprod/prod design | Définir un système sûr pour éviter d’exposer les vraies infos serveur/conteneurs/réseau à un attaquant : minimisation des erreurs, masquage versions/bannières, réponses génériques, honeypot/leurres éventuels isolés, sans polluer les logs internes ni tromper l’admin. | [ ] | À cadrer comme durcissement prod : défense par réduction d’exposition d’abord, leurres seulement si isolés et audités. |
-| P1B | Corrélation performances — KPI logs après login | local | `/b4ck0ff1ce/performances/correlation` : KPI logs / ERROR-WARN ≠ 0 sur un service focal (central logging 15/15). | [ ] | |
-| P1B | Statistics — onglet Sécurité cohérent avec `/security` | local | `/b4ck0ff1ce/statistics/security` : chiffres ≠ écran vide trompeur ; pas de doublon contradictoire avec `/b4ck0ff1ce/security`. | [ ] | |
-| P1B | Statistics — onglet Logs (`log-stats`) | local | Filtres service/niveau, sources actives/historiques, compteurs cohérents avec `/persistence/stats`. | [ ] | Partiellement validé 20/05 — reconfirmer après recreate. |
-| P1B | Statistics — onglet Données applicatives (`app-data`) | local | Totaux, timeline, états vides « Non renseigné », pas de `undefined` brut. | [ ] | |
-| P1B | Statistics — graphes disponibilité / erreur (vue d’ensemble) | local | Onglet Vue d’ensemble : courbes chargent, légende source visible, plage 24h↔7j OK. | [ ] | Technique 21/05 OK — validation navigateur porteur. |
-| P1C | Mode sombre persistant après refresh | local | Choisir sombre, rafraîchir login/backoffice, le thème reste sombre. | [ ] | |
-| P1C | Popup paramètres fermeture | local | Clic extérieur et `Escape` ferment la mini-fenêtre sans perte de clic interne. | [ ] | |
-| P1C | Graphes conteneurs multi-séries lisibles | local | Performances → Conteneurs, mode « Tous les conteneurs » : couleurs distinctes et stables CPU/mémoire. | [ ] | |
-| P1C | Performances — plages temporelles sans flash vide | local | Synthèse / Réseau / Disque / Conteneurs / Latence : changement 24h→7j→personnalisé sans écran vide ni Network Error. | [ ] | Playwright 21/05 OK — reconfirmer si besoin. |
-| P1C | Performances — première navigation depuis hub | local | Clic `/b4ck0ff1ce` → Performances : délai acceptable, graphes présents (dette ~6s notée). | [ ] | |
-| P1C | Sécurité — titres FR et navigation | local | Parcours Politiques, Menaces, Firewall, Logs, Analyse, Réseau : titres navigateur FR, sous-nav cohérente. | [ ] | Playwright 8/8 — validation visuelle porteur. |
-| P1C | Comparaison rapports tests agrégés (non sécurité) | local | Comparer 2 rapports `tests/results` même catégorie (ex. Tests API) : succès, tableau par test. | [ ] | |
+| P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Suivre § “P1A — Tests offensifs contrôlés par conteneur” : matrice bornée/non destructive, séparation local/préprod/fournisseur, aucun test agressif sur prod. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
+| P1A | Leurres / désinformation contrôlée VPS-Portainer | preprod/prod design | Suivre § “P1A — Leurres / désinformation contrôlée VPS-Portainer” : valider le design de réduction d’exposition, pas un déploiement honeypot immédiat. | [ ] | Défense par réduction d’exposition d’abord ; leurres seulement si isolés et audités. |
+| P1B | Corrélation performances — KPI logs après login | local | Suivre § “P1B — Corrélation performances” : `/b4ck0ff1ce/performances/correlation`, service focal, KPI logs cohérents ou état vide explicite. | [ ] | |
+| P1B | Statistics — onglet Sécurité cohérent avec `/security` | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : chiffres sécurité cohérents avec `/security`, pas d’écran vide trompeur. | [ ] | |
+| P1B | Statistics — onglet Logs (`log-stats`) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : filtres service/niveau, sources actives/historiques, compteurs cohérents. | [ ] | Partiellement validé 20/05 — reconfirmer après recreate. |
+| P1B | Statistics — onglet Données applicatives (`app-data`) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : totaux, timeline, états vides lisibles, pas de `undefined`. | [ ] | |
+| P1B | Statistics — graphes disponibilité / erreur (vue d’ensemble) | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : courbes chargées, légende source visible, plage 24h↔7j OK. | [ ] | Technique 21/05 OK — validation navigateur porteur. |
+| P1B | Statistics / Performances — temps de réponse endpoints services | local | Suivre § “P1B — Statistics” : vérifier temps de réponse instantanés/moyens par service, source `monitoring-agent-rs` / `metrics-aggregator`, services manquants visibles ou justifiés (`auth`, `deployment`, `call`, `notification`, `followup`, `application`, `postgres`). | [ ] | **10/06 porteur** : vue actuelle jugée incomplète/trompeuse ; à reprendre après P1A. |
+| P1C | Mode sombre persistant après refresh | local | Suivre § “P1C — UX backoffice” : choisir sombre, rafraîchir login/backoffice, le thème reste sombre. | [ ] | |
+| P1C | Popup paramètres fermeture | local | Suivre § “P1C — UX backoffice” : clic extérieur et `Escape` ferment la mini-fenêtre sans perte de clic interne. | [ ] | |
+| P1C | Graphes conteneurs multi-séries lisibles | local | Suivre § “P1C — UX backoffice” : Performances → Conteneurs → Tous les conteneurs, couleurs distinctes/stables CPU/mémoire. | [ ] | |
+| P1C | Performances — plages temporelles sans flash vide | local | Suivre § “P1C — UX backoffice” : Synthèse/Réseau/Disque/Conteneurs/Latence, changement 24h→7j→personnalisé sans écran vide durable. | [ ] | Playwright 21/05 OK — reconfirmer si besoin. |
+| P1C | Performances — première navigation depuis hub | local | Suivre § “P1C — UX backoffice” : clic `/b4ck0ff1ce` → Performances, noter délai et présence des graphes. | [ ] | |
+| P1C | Sécurité — titres FR et navigation | local | Suivre § “P1C — UX backoffice” : Politiques, Menaces, Firewall, Logs, Analyse, Réseau avec titres FR et sous-nav cohérente. | [ ] | Playwright 8/8 — validation visuelle porteur. |
+| P1C | Comparaison rapports tests agrégés (non sécurité) | local | Suivre § “P1C — UX backoffice” : comparer 2 rapports non sécurité de même catégorie ; tableau de comparaison visible. | [ ] | |
+| P1C | Backoffice Développement → Tests — navigation et regroupement rapports | local | Suivre § “P1C — UX backoffice” : clic Tests = vue d’ensemble ; sous-menu Rapports ; toutes les entrées Tests restent accessibles. | [ ] | **09/06 porteur** : menu Tests trop long et pas assez sous-catégorisé ; à traiter après P1A/P1B selon ordre. |
+| P1C | Responsive backoffice complet petit/moyen écran | local | Suivre § “P1C — UX backoffice” : tester petit écran, écran moyen et largeurs intermédiaires sur les pages backoffice principales ; lister les routes avec débordement horizontal, filtres/tableaux cassés, menu inutilisable ou boutons hors écran. | [ ] | **10/06 porteur** : interface pas encore assez optimisée sur petit et moyen écran ; chantier global à traiter après la validation email bloquante. |
 | P2 | Rapports tests — taille et compression | local | `/b4ck0ff1ce/test-reports` affiche la taille de chaque rapport (Ko/Mo) et le volume total filtré ; cadrer ensuite une compression/archivage des anciens rapports sans casser l’ouverture, le téléchargement ni les détails sensibles. | [ ] | Taille affichée ajoutée côté agent ; compression à traiter après P0 CVE. |
 | P2 | Mode clair backoffice — lisibilité page par page | local | Si une page est illisible en clair, noter la route exacte (ne bloque plus le lot global). | [ ] | Acceptation provisoire 21/05. |
 | P2 | Performances — Disque stockage BDD | local | Page Disque : cartes + Block I/O ; validation données réelles. | [ ] | |
 | P2 | Préférences refresh par graphique | local | Vérifier héritage zone globale vs override local (si UI exposée). | [ ] | |
 | P2 | Mobile — source officielle | décision | Choisir `mobile/` vs `flutter-mobile-app/` avant archivage doublon. | [ ] | |
+| P2 | Agent email / tâches recherche emploi — cadrage produit | local | Après clôture/reclassement des P0/P1 bloquants : relire `docs/features/EMAIL_TRIAGE_AGENT.md`, confirmer le périmètre MVP (worker planifié, tâches internes, compte personnel non-admin explicitement autorisé, OAuth Gmail lecture seule multi-comptes, boîtes configurées hors Git, stockage interne emails utiles, règles déterministes, digest 18h + récap hebdomadaire via le socle SMTP JobbingTrack, interface utilisateur `/` dédiée et backoffice `/b4ck0ff1ce` séparé, Google Tasks/Calendar obligatoires sans création d’événement à `00:00` si l’heure est inconnue, sans création automatique avant `05:00` ni après `23:00`, IA locale en renfort) et le périmètre élargi (feature flag/droit `JOB_SEARCH_AGENT_ENABLED`, activation/révocation admin auditée, séparation admin vs lecture emails personnels, base de composants partagée, option future `user-frontend` / `backoffice-frontend`, recherche v2 utilisateur puis backoffice/admin, dashboard mobile, revalidation PIN, autocomplete accessible, boîte de réception agent, préparation/envoi relance-email contrôlé, calendrier agrégé, programmation manuelle d’appels/tâches/rappels/événements même sans email déclencheur, fiches candidature/entreprise enrichies, suivi intérim, import contacts, PDF offre depuis URL, enrichissement entreprise, salons/job dating par ville/région, suites de tests agent email avec rapports), puis décider si on ouvre une branche `feat/` d’implémentation. | [ ] | **09/06 porteur** : besoin prioritaire noté ; Make.com ne doit pas être le socle ; ne pas démarrer l’implémentation tant que la comparaison CVE P0 reste ouverte. |
 
 ## Gate technique fin de journée / avant push majeur
 

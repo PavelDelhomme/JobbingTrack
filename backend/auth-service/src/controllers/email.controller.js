@@ -19,6 +19,7 @@ const getEmailLogs = async (req, res) => {
       type,
       status,
       to,
+      q,
       startDate,
       endDate
     } = req.query;
@@ -30,6 +31,16 @@ const getEmailLogs = async (req, res) => {
     if (type) where.type = type;
     if (status) where.status = status;
     if (to) where.to = { contains: to, mode: 'insensitive' };
+    if (q) {
+      const query = String(q).trim();
+      if (query) {
+        where.OR = [
+          { to: { contains: query, mode: 'insensitive' } },
+          { from: { contains: query, mode: 'insensitive' } },
+          { subject: { contains: query, mode: 'insensitive' } }
+        ];
+      }
+    }
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
@@ -498,7 +509,7 @@ const sendTestEmail = async (req, res) => {
       try {
         const createData = {
           to,
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || 'redacted@example.invalid',
           subject: emailSubject,
           type: 'TEST',
           status: 'PENDING',
@@ -538,7 +549,7 @@ const sendTestEmail = async (req, res) => {
             emailLog = await prisma.emailLog.create({
               data: {
                 to,
-                from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+                from: process.env.SMTP_FROM || 'redacted@example.invalid',
                 subject: emailSubject,
                 type: 'TEST',
                 status: 'PENDING',
@@ -666,8 +677,8 @@ const resendEmail = async (req, res) => {
         to: emailLog.to,
         subject: emailLog.subject,
         htmlContent: emailLog.emailContent,
-        from: emailLog.from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+        from: emailLog.from || process.env.SMTP_FROM || 'redacted@example.invalid',
+        replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
       });
 
       await emailService.updateEmailLogStatus(newEmailLog.id, 'SENT');

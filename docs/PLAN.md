@@ -6,6 +6,8 @@
 
 **Release / préprod / prod** : voir **`operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`** pour la séquence branche tests complets → préprod → bêta mobile → production, incluant licences, RGPD, retours utilisateurs, déploiements et décision mono-repo vs multi-repo.
 
+**Agent email / tâches recherche emploi** : cadrage produit ajouté le 09/06 dans **`features/EMAIL_TRIAGE_AGENT.md`**. Ce futur lot ne doit pas interrompre les P0 de `TODOS_A_VALIDER.md` : il sera planifié après validation/reclassement des blocages sécurité/rapports.
+
 **Plan Cursor (IDE)** : le fichier `.cursor/plans/chantier_securite_data_docs_2c0a63b7.plan.md` peut encore nommer les lots dans l’**ancien** ordre ; **source de vérité** : ce **`PLAN.md`** (lots **A** = monitoring, **B** = sécurité, **G** = backup / continuité, avril 2026).
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.
@@ -188,6 +190,46 @@
 
 ---
 
+## Lot I — Agent email, tâches et accompagnement recherche
+
+**Synthèse (indicatif)** — Technique **0 %** · **Validé porteur** : **0/6** — cadrage initial uniquement, source détaillée : `docs/features/EMAIL_TRIAGE_AGENT.md`.
+
+**Objectif** : offrir à l’utilisateur un assistant JobbingTrack dédié à la recherche d’emploi : tri des emails, tâches, relances, préparation entretiens, digest quotidien 18h, comptes/boîtes configurés hors Git, Google Tasks/Calendar obligatoires, moteur déterministe d’abord et IA locale en renfort.
+
+| # | Tâche | État | Validé (porteur) | Fichiers / notes |
+|---|-------|------|------------------|------------------|
+| I1 | **Socle interface utilisateur + architecture frontend** : espace connecté dédié sur `/`, dashboard responsive mobile, séparation claire avec le backoffice `/b4ck0ff1ce`, composants partagés | À faire | Non | Court terme : même base Next.js avec routes séparées ; moyen terme : préparer `user-frontend` et `backoffice-frontend` avec bibliothèque commune |
+| I1b | **Sécurité UX espace agent** : revalidation PIN avec clavier numérique pour actions sensibles | À faire | Non | PIN pour connexion boîte, destinataire digest, envoi externe, révocation OAuth, archivage/suppression massif |
+| I1c | **Accès compte personnel autorisé** : permettre au compte personnel non-admin du porteur d’utiliser l’agent email/recherche d’emploi, sans l’ouvrir automatiquement aux autres comptes | À faire | Non | Feature flag/droit `JOB_SEARCH_AGENT_ENABLED`, activation admin, audit, révocation ; admin ≠ lecture automatique des emails personnels |
+| I2 | **Socle tâches utilisateur + Google Tasks** : tâche, échéance, priorité, statut, lien candidature/entreprise/contact/email, rappels et synchronisation Google Tasks | À faire | Non | Relances/préparations obligatoirement synchronisées Google Tasks ; création manuelle possible même sans email déclencheur |
+| I3 | **Connexion email lecture seule** : OAuth Gmail multi-comptes et boîte candidatures configurés hors Git, scopes minimaux, tokens chiffrés, révocation visible | À faire | Non | Liste comptes connectés, statut sync, révocation, revalidation PIN ; worker planifié ; ne pas envoyer/supprimer d’email au départ |
+| I4 | **Classification emails emploi déterministe** : refus, entretien, demande d’information, événement emploi, relance, bruit/newsletter ; correction manuelle mémorisée | À faire | Non | Règles mots-clés, expéditeurs, délais 7/10/14 jours ; IA locale seulement en renfort |
+| I5 | **Boîte de réception agent + actions email** : liste emails reçus, tri par candidature/relance/entreprise/contact, token agent email + doc endpoint API, adresse de transfert configurable | À faire | Non | Envoi relance/réponse depuis l’interface uniquement après validation explicite et identité choisie |
+| I6 | **Digest quotidien 18h + récap hebdomadaire** : urgent, tâches demain, retard, candidatures sans réponse, entretiens à préparer, événements, décisions proposées | À faire | Non | Email récapitulatif via le socle SMTP JobbingTrack (`SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EmailLog`) + liens JobbingTrack ; hebdo = vision large des tâches/appels/relances/événements |
+| I7 | **Google Calendar + vue calendrier agrégée** : créer tâches/relances/événements, entretiens, job dating, salons, rappels et calendrier unifié | À faire | Non | Calendar obligatoire pour entretiens/job dating/salons ; ne jamais créer `00:00` par défaut ; aucun événement auto avant `05:00` ou après `23:00` ; date seule = journée entière proposée ou tâche “horaire à confirmer” |
+| I8 | **UX recherche et accessibilité** : autocomplete poste/ville/plateforme, navigation clavier ARIA sur toutes les combobox, formulaires rapides mobiles | À faire | Non | Aligner avec les écrans existants candidatures/contacts/entreprises |
+| I8b | **Recherche v2 espace utilisateur + admin** : barre de recherche emails/candidatures/entreprises/contacts/tâches/événements, réutilisable ensuite dans le backoffice | À faire | Non | À pousser dans une seconde version après MVP ; permissions séparées utilisateur/admin et index commun contrôlé |
+| I9 | **Fiches métier enrichies + actions manuelles programmables** : relances uniquement depuis fiche candidature, appels contact/entreprise date/heure préremplies, programmation manuelle d’appel/tâche/rappel/événement, page détail entreprise complète, gestion intérim entreprise/agence, préparation entretien | À faire | Non | Entreprise : candidatures, contacts, relances, appels, missions intérim, informations utiles ; action manuelle rattachable à candidature/contact/entreprise |
+| I10 | **Imports et enrichissements** : import Google Contacts CSV/vCard, sauvegarde PDF offre depuis URL, enrichissement entreprise (site, secteur, taille, actualités), salons emploi par ville/région | À faire | Non | Rennes/Bretagne comme première configuration de veille ; sources contrôlées et auditables |
+| I11 | **IA locale** : résumé, tri, suggestions de réponse, enrichissement entreprise ; pas de dépendance payante obligatoire | À faire | Non | Ollama/modèle local/cache/batch ; anonymisation si fournisseur externe |
+| I12 | **Suites de tests agent email + rapports** : tests moteur de règles, permissions, Gmail/IMAP lecture seule, digest SMTP, Calendar/Tasks et limites horaires | À faire | Non | Variables `.env` locales hors Git ; fixtures non sensibles ; rapports `tests/results/email-triage/<timestamp>` JSON/HTML/TXT ; skip explicite si secrets de test absents |
+
+**Garde-fous** :
+
+1. Aucun email externe envoyé automatiquement sans validation explicite.
+2. Aucun secret OAuth/SMTP dans les logs.
+3. Aucune dépendance obligatoire à un service IA payant.
+4. Les données personnelles envoyées à une IA externe sont minimisées et soumises à accord explicite.
+5. Le chantier attend la clôture ou le reclassement des P0/P1 bloquants avant implémentation.
+6. Make.com/Zapier ne portent pas la logique métier : ils restent hors socle, au mieux outils temporaires de prototypage.
+7. Aucun placeholder `.invalid` / `.test` ne doit être utilisé en runtime : les adresses réelles restent dans `.env` gitignoré, le profil utilisateur ou les paramètres admin.
+8. Le frontend utilisateur et le backoffice peuvent partager la même base de code et les mêmes composants, mais doivent rester séparés en routage, permissions et configuration d’URL.
+9. Calendar/Tasks ne doivent pas inventer d’horaire : pas d’événement à minuit sans heure explicite ou validation utilisateur, et pas de création automatique avant `05:00` ni après `23:00`.
+10. L’agent email/recherche doit être activable pour un utilisateur standard autorisé, mais jamais disponible par défaut pour tout compte inscrit.
+11. Les tests agent email doivent produire des rapports exploitables sans afficher de secrets, et ne doivent utiliser les vrais comptes de test que via `.env` gitignoré.
+
+---
+
 ## Avancement ponctuel déjà réalisé (vue d’ensemble `/backoffice`)
 
 Ces points **ne remplacent pas** les lots ci-dessus ; ils clarifient le tableau de bord admin :
@@ -229,7 +271,8 @@ Fichier principal : `frontend/src/app/(admin)/backoffice/page.tsx`.
 6. **F** en gate avant de considérer le chantier « clos ».
 7. **G** (sauvegardes / continuité) : **après** stabilisation des lots **A/B** et clarification des contraintes hébergeur ; ne pas ralentir le socle monitoring/sécurité sans cadrage **G1**.
 8. **H** (release / préprod / conformité) : préparer en parallèle par documentation et CI, mais exécuter réellement avant toute bascule `dev` → prod.
-9. **Vision DHT / overlay (hors scope actuel)** : annuaire distribué, relais chiffrés, échange pair-à-pair sans exposition d’IP — **recherche / fin de projet** uniquement ; voir **`TODOS.md`** § **Vision données décentralisées (DHT)**.
+9. **I** (agent email / tâches recherche emploi) : cadrer puis implémenter après les P0/P1 bloquants ; commencer par tâches + lecture email + digest déterministe + Google Tasks/Calendar avant IA locale.
+10. **Vision DHT / overlay (hors scope actuel)** : annuaire distribué, relais chiffrés, échange pair-à-pair sans exposition d’IP — **recherche / fin de projet** uniquement ; voir **`TODOS.md`** § **Vision données décentralisées (DHT)**.
 
 Pour le détail des cases à cocher au jour le jour, voir **`TODOS.md`** (aligné sur ce plan et sur **`ERRORS.md`** / **`project/FONCTIONNALITES.md`**). **Phase porteur immédiate** : **`TODOS.md`** § **Phase validation porteur** (login, SecuritySubNav, pagination, corrélation, lecture logs WAF).
 

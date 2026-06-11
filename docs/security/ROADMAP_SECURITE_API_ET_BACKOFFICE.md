@@ -53,6 +53,7 @@
 - [ ] TLS/HSTS prod ; headers sécurité ; pas de `.env` / `.git` exposés.
 - [ ] **Misconfiguration** : debug off, staging non exposé, ports `0.0.0.0` réduits (`COMPOSE_RUNTIME_HARDENING`).
 - [ ] Secrets : pas en localStorage (préférer cookies httpOnly ou pattern documenté), rotation clés API.
+- [ ] **Menaces réseau avancées à cadrer/tester en lab** : HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding, VLAN hopping, avec séparation claire entre ce qui est testable sur la stack Docker, ce qui relève du VPS/réseau, et ce qui relève du fournisseur/Internet.
 
 ---
 

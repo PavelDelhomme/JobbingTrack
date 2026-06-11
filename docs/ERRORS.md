@@ -359,7 +359,7 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 | User inexistant dans la table locale lors du crash report | Ajout `upsert` pour creer l'utilisateur avant le crash report |
 | JWT_SECRET manquant dans notification-service Docker | Ajout dans `docker-compose.yml` |
 | Tables droppees par `prisma db push` du notification-service | Repousse le schema maitre `auth-service` (58 modeles) + ajout enum values via SQL |
-| `CRASH_REPORT_EMAIL` = mauvaise adresse | Change `infos@example.invalid` (corrigé) |
+| `CRASH_REPORT_EMAIL` = mauvaise adresse | Change `alerts@example.invalid` (corrigé) |
 | Tracking limite a 30 actions | Mode dev = illimite, mode prod = 500 (FIFO) |
 
 ## Erreurs resolues (Fevrier 2026 – Schema BDD partagée)
@@ -386,7 +386,7 @@ Les tests **complets** pour le système de mise à jour automatique (changement 
 | Fonctionnalite | Statut | Detail |
 |----------------|--------|--------|
 | Crash reporting backend | Implemente | `POST /notifications/crashes` — rapport anonymise + email auto |
-| Email crash reports | Implemente | Envoi auto a `infos@example.invalid` via SMTP |
+| Email crash reports | Implemente | Envoi auto a `alerts@example.invalid` via SMTP |
 | Tracking pousse utilisateur | Implemente | Boutons, ecrans, swipes, API calls, durees, monitoring appareil — mode DEV illimite |
 | Diagnostic complet | Implemente | `collectFullDiagnostic()` — device + analytics + action log + pending reports |
 | Steps ADB notifications | Implemente | `open_notifications`, `verify_notifications`, `mark_all_notifications_read` |

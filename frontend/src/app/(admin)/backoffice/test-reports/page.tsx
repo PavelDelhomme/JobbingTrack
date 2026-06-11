@@ -1763,14 +1763,6 @@ export default function TestReportsPage() {
                             <X className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span>Réduire</span>
                           </button>
-                          <a
-                            href={`/api/test-reports/download?id=${encodeURIComponent(selectedReport)}`}
-                            download
-                            className="flex items-center gap-1 px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md"
-                          >
-                            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span>Télécharger</span>
-                          </a>
                         </>
                       ) : (
                         <>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import {
   mergeCustomizationSettings,
@@ -135,9 +136,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2"
             >
               <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {t("settings.notifications")}
-              </span>
+              <span>{t("settings.notifications")}</span>
             </TabsTrigger>
             <TabsTrigger
               value="accessibility"
@@ -380,6 +379,22 @@ export default function SettingsPage() {
 
           {/* Onglet Notifications */}
           <TabsContent value="notifications" className="space-y-6">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                Alertes email sécurité
+              </p>
+              <p className="mt-1 text-sm text-red-800/90 dark:text-red-200/90">
+                Configuration des destinataires, test SMTP et réauth admin sur la
+                page dédiée Sécurité.
+              </p>
+              <Link
+                href="/b4ck0ff1ce/security/alerts"
+                className="mt-3 inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Ouvrir Alertes email sécurité
+              </Link>
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

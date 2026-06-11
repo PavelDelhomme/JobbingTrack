@@ -31,7 +31,7 @@ describe('Auth Middleware Tests', () => {
     it('should call next() with valid token', () => {
       // Générer un token valide
       const validToken = jwt.sign(
-        { id: 1, email: 'test@jobbingtrack.test' },
+        { id: 1, email: 'redacted@example.invalid' },
         JWT_SECRET,
         { expiresIn: '1h' }
       );
@@ -44,7 +44,7 @@ describe('Auth Middleware Tests', () => {
       expect(next).toHaveBeenCalledTimes(1);
       expect(req.user).toBeDefined();
       expect(req.user.id).toBe(1);
-      expect(req.user.email).toBe('test@jobbingtrack.test');
+      expect(req.user.email).toBe('redacted@example.invalid');
     });
 
     it('should return 401 when no token is provided', () => {
@@ -92,7 +92,7 @@ describe('Auth Middleware Tests', () => {
     it('should return 403 with expired token', () => {
       // Créer un token déjà expiré
       const expiredToken = jwt.sign(
-        { id: 1, email: 'test@jobbingtrack.test' },
+        { id: 1, email: 'redacted@example.invalid' },
         JWT_SECRET,
         { expiresIn: '-1h' } // Expiré depuis 1 heure
       );
@@ -113,7 +113,7 @@ describe('Auth Middleware Tests', () => {
     it('should return 403 with token signed with wrong secret', () => {
       // Token signé avec un secret différent
       const tokenWithWrongSecret = jwt.sign(
-        { id: 1, email: 'test@jobbingtrack.test' },
+        { id: 1, email: 'redacted@example.invalid' },
         'wrong-secret-key',
         { expiresIn: '1h' }
       );
@@ -133,7 +133,7 @@ describe('Auth Middleware Tests', () => {
 
     it('should accept token in lowercase "bearer"', () => {
       const validToken = jwt.sign(
-        { id: 1, email: 'test@jobbingtrack.test' },
+        { id: 1, email: 'redacted@example.invalid' },
         JWT_SECRET,
         { expiresIn: '1h' }
       );
@@ -151,7 +151,7 @@ describe('Auth Middleware Tests', () => {
       const validToken = jwt.sign(
         {
           id: 1,
-          email: 'test@jobbingtrack.test',
+          email: 'redacted@example.invalid',
           role: 'admin',
           permissions: ['read', 'write']
         },
@@ -165,7 +165,7 @@ describe('Auth Middleware Tests', () => {
 
       expect(next).toHaveBeenCalled();
       expect(req.user.id).toBe(1);
-      expect(req.user.email).toBe('test@jobbingtrack.test');
+      expect(req.user.email).toBe('redacted@example.invalid');
       expect(req.user.role).toBe('admin');
       expect(req.user.permissions).toEqual(['read', 'write']);
     });

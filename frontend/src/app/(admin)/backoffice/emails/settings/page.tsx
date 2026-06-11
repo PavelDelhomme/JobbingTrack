@@ -65,7 +65,7 @@ export default function EmailSettingsPage() {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Configuration actuelle : OVH jobbingtrack.com
-            (noreply@jobbingtrack.test)
+            (redacted@example.invalid)
           </p>
         </div>
 

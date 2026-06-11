@@ -19,7 +19,7 @@ Variables critiques à vérifier explicitement :
 - `TRUST_PROXY_HOPS`, `ALLOWED_ORIGINS`, URLs publiques `FRONTEND_URL` / API : alignés avec Nginx Proxy Manager et les domaines HTTPS.
 - `WAF_ENABLED`, `INTRUSION_DETECTION_ENABLED`, `INTRUSION_RELAX_HEURISTICS` : mode prod strict, pas de relax dev.
 - `POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL` : secrets forts, réseau privé, pas d’exposition Internet directe.
-- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : boîtes réelles et TLS SMTP validé.
+- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : TLS SMTP validé, compte SMTP technique séparé des alias visibles. Les destinataires publics (`CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)`) doivent être des alias du domaine JobbingTrack redirigés chez le fournisseur mail vers les boîtes privées réelles, hors Git.
 
 ---
 
@@ -83,8 +83,44 @@ SMTP_HOST=smtp.gmail.com                      # Serveur SMTP
 SMTP_PORT=587                                 # Port SMTP
 SMTP_USER=redacted@example.invalid               # Email expéditeur
 SMTP_PASS=VOTRE_MOT_DE_PASSE_APP              # ⚠️ Mot de passe d'application
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>  # Email expéditeur formaté
+SMTP_FROM=JobbingTrack <redacted@example.invalid>  # Email expéditeur formaté (compte SMTP authentifié si le fournisseur l'exige)
+SMTP_REPLY_TO=redacted@example.invalid            # Réponse par défaut
+CRASH_REPORT_EMAIL=crash-report@jobbingtrack.test # Alias public, forwarding fournisseur hors Git
+CRASH_REPORT_FROM=JobbingTrack Crash Reports <redacted@example.invalid>
+CRASH_REPORT_REPLY_TO=crash-report@jobbingtrack.test
+SECURITY_ALERT_EMAIL=security@jobbingtrack.test
+SECURITY_ALERT_FROM=JobbingTrack Security <security@jobbingtrack.test>
+SECURITY_ALERT_REPLY_TO=security@jobbingtrack.test
 ```
+
+Pour les fournisseurs stricts (ex. SMTP OVH selon configuration), privilégier `*_FROM` sur le compte SMTP authentifié (`SMTP_USER`) et mettre l’alias métier (`crash-report@…`, `security@…`) dans `*_REPLY_TO` ou dans les redirections fournisseur. Cela améliore la délivrabilité tout en gardant une adresse de réponse lisible.
+
+### 📬 Agent email / tâches recherche emploi (futur lot I)
+
+Valeurs réelles uniquement dans `.env` gitignoré ou paramètres admin. Les placeholders Git ne doivent jamais être utilisés en runtime.
+
+```bash
+# Runtime agent (hors tests)
+EMAIL_TRIAGE_DIGEST_RECIPIENT=           # Destinataire digest quotidien/hebdo
+EMAIL_TRIAGE_READ_ACCOUNT=               # Compte/boîte lecture principale (hors Git)
+EMAIL_TRIAGE_FORWARD_ADDRESS=            # Adresse de transfert configurable
+
+# Tests agent email — intégration locale optionnelle
+TEST_EMAIL_TRIAGE_ENABLED=false
+TEST_EMAIL_TRIAGE_USER_EMAIL=redacted@example.invalid
+TEST_EMAIL_TRIAGE_USER_PASSWORD=
+TEST_EMAIL_TRIAGE_GMAIL_ACCOUNT=
+TEST_EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=
+TEST_EMAIL_TRIAGE_IMAP_EMAIL=redacted@example.invalid
+TEST_EMAIL_TRIAGE_IMAP_HOST=imap.example.com
+TEST_EMAIL_TRIAGE_IMAP_PORT=993
+TEST_EMAIL_TRIAGE_IMAP_PASSWORD=
+TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT=redacted@example.invalid
+TEST_EMAIL_TRIAGE_CALENDAR_MIN_HOUR=05:00
+TEST_EMAIL_TRIAGE_CALENDAR_MAX_HOUR=23:00
+```
+
+Les tests d’intégration Gmail/IMAP/digest doivent **skip** explicitement si les secrets sont absents. Détail : `docs/features/EMAIL_TRIAGE_AGENT.md` et `tests/email-triage/README.md`.
 
 ### 👤 Utilisateur Administrateur
 

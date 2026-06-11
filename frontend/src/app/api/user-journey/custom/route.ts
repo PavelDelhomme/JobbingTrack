@@ -48,7 +48,16 @@ export async function POST(request: NextRequest) {
 
     if (userMode === "user") {
       env.TEST_EMAIL = `testuser-journey-${Date.now()}@jobbingtrack.test`;
-      env.TEST_PASSWORD = "TestPassword123!";
+      env.TEST_PASSWORD = process.env.E2E_GENERATED_USER_PASSWORD;
+      if (!env.TEST_PASSWORD) {
+        return NextResponse.json(
+          {
+            error:
+              "E2E_GENERATED_USER_PASSWORD requis pour lancer un parcours user",
+          },
+          { status: 400 },
+        );
+      }
     } else if (token) {
       env.TEST_TOKEN = token;
     }

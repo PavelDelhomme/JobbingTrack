@@ -61,7 +61,7 @@ const authenticate = async (req, res, next) => {
           // Créer un utilisateur mock pour le développement
           user = {
             id: decoded.userId,
-            email: decoded.email || 'dev@jobbingtrack.test',
+            email: decoded.email || 'redacted@example.invalid',
             firstName: 'Dev',
             lastName: 'User',
             role: decoded.role || 'ADMIN'
@@ -82,7 +82,7 @@ const authenticate = async (req, res, next) => {
           }
           user = {
             id: decoded.userId,
-            email: decoded.email || 'dev@jobbingtrack.test',
+            email: decoded.email || 'redacted@example.invalid',
             firstName: 'Dev',
             lastName: 'User',
             role: decoded.role || 'ADMIN'

@@ -1369,7 +1369,7 @@ Force exiting Jest: Have you considered using `--detectOpenHandles` to detect as
  cmotu9fpy00132jdle9stoe4y | e2e-admin-crud-1778058733336@jobbingtrack.test | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |                         | 2026-05-06 09:12:14.038
  cmotu9fpw00112jdluzjkvs80 | e2e-admin-crud-1778058733336@jobbingtrack.test | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | FAILED  |                         | 2026-05-06 09:12:14.037
  cmotu9c9e000y2jdl2pvx2p26 | redacted@example.invalid       | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |                         | 2026-05-06 09:12:09.554
- cmotu9c09000x2jdlc1s09ve4 | test+e2e-1778058723957@example.invalid            | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-05-06 09:12:21.258 | 2026-05-06 09:12:09.225
+ cmotu9c09000x2jdlc1s09ve4 | redacted@example.invalid            | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-05-06 09:12:21.258 | 2026-05-06 09:12:09.225
  cmotu9bsp000w2jdl0u7rns5v | redacted@example.invalid          | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | FAILED  |                         | 2026-05-06 09:12:08.954
  cmotu98ef000v2jdlskw3ip71 | redacted@example.invalid       | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | PENDING |                         | 2026-05-06 09:12:04.551
 (10 rows)</pre>
@@ -3350,7 +3350,7 @@ Running 5 tests using 4 workers
 (node:43436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
   ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:227:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (120ms)
-  -  3 [chromium] › e2e/specs/email-workflows.spec.ts:109:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (test@example.invalid)
+  -  3 [chromium] › e2e/specs/email-workflows.spec.ts:109:11 › Workflows Email Complets › Inscription avec vérification email › inscription → email de vérification → vérif → login (test-recipient@example.invalid)
   ✓  5 [chromium] › e2e/specs/email-workflows.spec.ts:185:9 › Workflows Email Complets › Inscription avec vérification email › sans vérification email, le login est refusé (401) (268ms)
   ✓  1 [chromium] › e2e/specs/email-workflows.spec.ts:271:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (2.3s)
   ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:284:11 › Workflows Email Complets › Envoi email vers adresse réelle › envoi email de test vers TEST_REAL_EMAIL (5.1s)

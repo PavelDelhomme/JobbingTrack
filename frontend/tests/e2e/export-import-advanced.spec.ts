@@ -179,7 +179,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
 
     // Créer un fichier CSV de test
     const csvContent =
-      "id,name,email,is_active\n1,Test User,redacted@example.invalid,true\n2,Another User,redacted@example.invalid,false";
+      "id,name,email,is_active\n1,Test User,test-user@example.invalid,true\n2,Another User,another-user@example.invalid,false";
 
     // Simuler le téléchargement de fichier
     await page.evaluate((csvContent) => {

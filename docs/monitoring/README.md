@@ -173,7 +173,7 @@ receivers:
   - name: 'default'
     email_configs:
       - to: 'admin@jobbingtrack.test'
-        from: 'alerts@jobbingtrack.test'
+        from: 'redacted@example.invalid'
     slack_configs:
       - api_url: 'https://hooks.slack.com/services/xxx'
         channel: '#alerts'

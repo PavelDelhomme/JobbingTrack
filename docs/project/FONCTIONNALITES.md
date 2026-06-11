@@ -195,6 +195,7 @@ Le systeme utilise **deux mecanismes distincts** :
 - Services (liste, onglets, details, demarrer/arreter/redemarrer)
 - **Détail service** (`/backoffice/services/[nom]`, avril 2026) : métriques **Docker stats** avec précision affichée (CPU faible, mémoire usage/limites, réseau cumulé, **disque block I/O**), **historique** combinant fichiers agrégateur + points collectés pendant la session, **auto-rafraîchissement** paramétrable (10–60 s) et aide sur le compteur **PIDs** — lot **A1** dans `PLAN.md` (tâche **A5** pour persistance multi-pages). **Lot A3 (partiel)** : encart **sécurité** + lien vers **logs multi-services** filtrés pour rapprocher logs conteneur et événements firewall / menaces. **Forensics (mai 2026)** : la majorité des microservices HTTP et l’**API Gateway** enrichissent les logs **WARN/ERROR** avec **requestId** / corrélation, IP, endpoint, port (voir **`PLAN.md`** A3 / **B6**, **`TODOS.md`**, **`TRUST_PROXY_HOPS`** côté gateway) pour alimenter la corrélation perf / incidents ; **workflow-service** et QA bout-en-bout sur **`/backoffice/performances/correlation`** restent à cadrer si besoin.
 - Emails (envoi test, templates, configuration SMTP, delivrabilite, historique)
+- **Agent email / tâches recherche emploi** (prévu — lot **I**, non implémenté) : espace utilisateur privé JobbingTrack sur `/`, séparé du backoffice admin `/b4ck0ff1ce`, utilisable par le compte personnel non-admin explicitement autorisé, pour tri des emails depuis comptes/boîtes configurés hors Git, liaison aux candidatures/entreprises/contacts, stockage interne des emails utiles, tâches/relances/événements, digest quotidien à 18h et récap hebdomadaire via le socle SMTP JobbingTrack, préparation entretiens, Google Tasks/Calendar obligatoires, moteur déterministe puis IA locale en renfort. Calendar ne doit pas créer automatiquement d’événement à `00:00`, avant `05:00` ou après `23:00` : ces cas restent en tâche/proposition à confirmer. Le périmètre prévu inclut dashboard responsive mobile, base de composants partagée avec le backoffice, option future `user-frontend` / `backoffice-frontend`, revalidation PIN avec clavier numérique pour actions sensibles, autocomplete poste/ville/plateforme accessible clavier/ARIA, boîte de réception agent triée, préparation/envoi relance-email depuis l’interface après validation, calendrier agrégé, programmation manuelle d’appels/tâches/rappels/événements même sans email déclencheur, appels préremplis par contact/entreprise, relances créées depuis fiche candidature, détail entreprise enrichi avec candidatures/contacts/relances/appels/missions intérim, import Google Contacts CSV/vCard, sauvegarde PDF d’offre depuis URL, veille salons/job dating par ville/région et suite de tests dédiée avec rapports. Cadrage : `docs/features/EMAIL_TRIAGE_AGENT.md`.
 - Tests (hub, API, backend, frontend, securite, performance, Playwright, rapports) — suite **`make tests`** : prérequis **`make up-full`**, **`API_GATEWAY_URL`** joignable depuis la machine qui lance les scripts (souvent **`http://127.0.0.1:5002`**, pas les noms Docker seuls) ; le résumé « tout vert » peut masquer des étapes partielles — lire **`tests/results/<id>/report.html`**. Gate Jest front : **`npm run test:unit-and-analytics`** (**`PLAN.md`** lot **F1**). Détail des écarts actuels : **`ERRORS.md`**, **`STATUS.md`** (17/04/2026).
 - Parcours (predefinis, personnalise, rapports)
 - Archives / Corbeille
@@ -474,7 +475,7 @@ Utilisateur cree Entreprise (ou existante)
 - [x] test-config.js : `testUser` (USER) + `adminUser` (SUPER_ADMIN)
 - [x] test-data-helper.ts : `ensureTestUser()`, `getAdminToken()`, `loginAsAdmin()`, `getAdminCredentials()`, `REAL_TEST_EMAIL`
 - [x] Rapport de tests : texte lisible + HTML interactif, badge type utilisateur (ADMIN/USER/SYSTEM)
-- [x] Email de test reel (`test@example.invalid`) pour verifier la reception, via env var `TEST_REAL_EMAIL` (.env, gitignored)
+- [x] Email de test reel (`test-recipient@example.invalid`) pour verifier la reception, via env var `TEST_REAL_EMAIL` (.env, gitignored)
 - [x] Tests backoffice E2E autonomes avec `loginAsAdmin()` (6 fichiers corriges)
 - [x] `archive-interactions.spec.ts` utilise `getAdminToken` (fonctionnalite admin)
 
@@ -1187,7 +1188,7 @@ Le systeme de crash reporting collecte les erreurs, crashes et donnees d'utilisa
 2. App → collecte les donnees de tracking (boutons, ecrans, swipes, API calls, durees, monitoring appareil)
 3. App → POST `/api/v1/notifications/crashes` avec le rapport anonymise + analytics completes
 4. Backend → sauvegarde en BDD (type CRASH_REPORT dans table Notification)
-5. Backend → envoie email a `CRASH_REPORT_EMAIL` (par defaut: infos@example.invalid)
+5. Backend → envoie email a `CRASH_REPORT_EMAIL` (par defaut: alerts@example.invalid)
 
 **Modes de tracking** :
 - **Mode DEV** (`kDebugMode = true`) : tracking illimite — toutes les actions sont conservees sans limite
@@ -1271,8 +1272,9 @@ Le module `CrashReporter` (Flutter) offre un tracking detaille pour le debug et 
 ### 13.4 Email de rapport
 
 - Envoye automatiquement via le service email existant (SMTP)
-- Destinataire configurable via `CRASH_REPORT_EMAIL` (defaut: infos@example.invalid)
-- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL=candidatures@example.invalid` (ou autre boite accessible) pour recevoir les rapports de test
+- Destinataire configurable via `CRASH_REPORT_EMAIL` : en production, utiliser un alias public du domaine JobbingTrack redirigé chez le fournisseur mail vers la boîte privée réelle, hors Git
+- Identité visible configurable via `CRASH_REPORT_FROM` et `CRASH_REPORT_REPLY_TO`, séparée du compte SMTP technique (`SMTP_USER`)
+- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL` avec une boîte accessible renseignée hors Git pour recevoir les rapports de test
 - Sujet : `[JobbingTrack Crash] {crashType} — {date}`
 - Contient : type, message, stack trace, infos appareil, actions recentes
 

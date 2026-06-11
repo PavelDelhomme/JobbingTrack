@@ -138,10 +138,10 @@ export default function TrashManagementPage() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
+        <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               🗑️ Gestion de la Corbeille
             </h1>
@@ -152,7 +152,7 @@ export default function TrashManagementPage() {
 
           <button
             onClick={handleEmptyTrash}
-            className="px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors sm:w-auto"
           >
             <span>🗑️</span>
             <span>Vider la corbeille</span>
@@ -421,23 +421,23 @@ function DeletedItemRow({
   );
 
   return (
-    <div className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 flex-1">
+    <div className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 xl:flex-1">
           {/* Type Badge */}
           <div
-            className={`px-3 py-1 rounded-lg text-sm font-medium ${typeColors[item.type]}`}
+            className={`inline-flex w-fit px-3 py-1 rounded-lg text-sm font-medium ${typeColors[item.type]}`}
           >
             <span className="mr-1">{typeIcons[item.type]}</span>
             {item.type}
           </div>
 
           {/* Infos */}
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+          <div className="min-w-0 flex-1">
+            <h3 className="break-words font-semibold text-gray-900 dark:text-gray-100">
               {item.title || item.id || "Sans titre"}
             </h3>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-400">
               <span>
                 Supprimé il y a {daysSinceDeleted} jour
                 {daysSinceDeleted > 1 ? "s" : ""}
@@ -458,7 +458,7 @@ function DeletedItemRow({
           </div>
 
           {/* Statut restauration */}
-          <div className="text-center">
+          <div className="text-left sm:text-center">
             {item.canRestore ? (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-medium">
                 <span>♻️</span>
@@ -474,11 +474,11 @@ function DeletedItemRow({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex w-full flex-col gap-2 sm:flex-row xl:ml-4 xl:w-auto xl:items-center">
           {item.canRestore && (
             <button
               onClick={onRestore}
-              className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors sm:w-auto"
             >
               <span>♻️</span>
               <span>Restaurer</span>
@@ -487,7 +487,7 @@ function DeletedItemRow({
 
           <button
             onClick={onPermanentDelete}
-            className="px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors sm:w-auto"
           >
             <span>🗑️</span>
             <span>Supprimer définitivement</span>

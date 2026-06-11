@@ -1,8 +1,140 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 8 juin 2026 — **Branche** `dev`.
+**Dernière mise à jour** : 11 juin 2026 — **Branche** `docs/email-triage-agent-roadmap`.
 
-**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–H**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 10 juin 2026 — gate validation des 6 commits P1A alertes email
+
+Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
+
+| Commit | Sujet | Fichiers clés |
+|--------|-------|---------------|
+| `8a6b38b2` | crash-report SMTP + test admin | `emailService.js`, Jest SMTP |
+| `9ee70895` | alertes enrichies + miroir tracé | `securityAlertEmailNotifier.js`, Email Monitor |
+| `cf449049` | mount `src` notification-service | `docker-compose.yml` |
+| `1e61bf30` | panneau diagnostic alertes | `SecurityAlertEmailDiagnostics.tsx` |
+| `076b5222` | encart admin mis en avant | diagnostic `admin@delhomme.ovh` |
+| `ac057bf5` | pilotage relance validation | `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md` |
+
+**Validations techniques (10/06 soir)** :
+
+- Jest notification-service `email-service-smtp-config` : **5/5 OK** (`../../tests/node_modules/jest/bin/jest.js`).
+- Jest security-service `security-alert-email-payload` + `service-availability-alerts` : **6/6 OK**.
+- Frontend : `tsc --noEmit` OK ; ESLint ciblé (`SecurityAlertEmailDiagnostics`, `security/alerts`, `email-monitor`) OK — 4 warnings historiques `email-monitor` uniquement.
+- Conteneurs critiques : `notification-service`, `security-service`, `frontend`, `postgres`, `mailhog` **Up (healthy)**.
+- Volume dev actif : `./backend/notification-service/src` → `/app/src` confirmé par `docker inspect`.
+- Smoke API : sujet `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z` → HTTP `202`, BDD `EmailLog.metadata.mirror.sent=true`, `messageId @maily.ovh`.
+- `npm run type-check` / `npm run lint` (frontend) : exit `1` sans sortie — problème projet connu, non régressif.
+
+**Validation porteur 11/06** : alertes email critiques validées. Le porteur confirme la réception réelle dans `admin@delhomme.ovh` du smoke `BATCH VALIDATION 6 COMMITS 2026-06-10T19:46:11Z`, de `VALIDATION PORTEUR P1A` et de l’alerte E2E `TEST P1A E2E security-service`, non classées spam. `From` affiché `noreply@maily.ovh` accepté provisoirement ; objectif futur noté : bascule vers `security@jobbingtrack.com` quand le domaine, SPF/DKIM/DMARC et le fournisseur SMTP le permettent. Prochaine ligne bloquante : **Tests offensifs contrôlés par conteneur JobbingTrack**.
+
+## 11 juin 2026 — lot avance rapide P1B/P1C/P1A (preuves agent, validation porteur groupée en attente)
+
+- **Cause racine latence trompeuse** : ports/chemins health désalignés entre `metrics-aggregator`, `monitoring-agent-rs` et ports hôte `800x`. Correctif : `serviceHealthEndpoints.js` (source unique), sondes HTTP via réseau Docker interne, chemins `/health` corrigés pour deployment/profile/workflow/security.
+- **Compose dev** : volume `./backend/metrics-aggregator-service/src:/app/src` (comme notification-service).
+- **Frontend P1B** : `responseTimePresentation.ts`, labels postgres « Santé Docker », note source sur Statistics et Performances → Latence.
+- **Frontend P1C** : sous-menu Rapports séparé dans `AdminLayout.tsx`.
+- **Frontend P1A** : encart cadrage tests offensifs sur `/b4ck0ff1ce/tests-security` (consultation uniquement).
+- **Validations** : `tsc --noEmit` OK ; ESLint ciblé OK (warnings historiques) ; smoke API services prioritaires healthy avec `responseTime` > 0 sauf postgres.
+
+## 11 juin 2026 (suite) — panneau P1B, menu Tests, design VPS
+
+- **Statistics** : composant `PriorityResponseServicesSummary` (services prioritaires P1B, source, lien latence).
+- **Menu Tests** : sections **Automatisés** / **Sécurité & charge** ; rapports de parcours centralisés sous **Rapports**.
+- **Tests sécurité** : tableau périmètre contrôlé (lecture seule) dans l’encart P1A.
+- **Doc** : `docs/security/VPS_EXPOSURE_REDUCTION.md` pour la ligne P1A leurres/exposition VPS.
+
+## 11 juin 2026 (suite 2) — monitoring-agent, hub, mobile
+
+- **monitoring-agent-rs** : image rebuild + recreate (chemins `/health` profile/workflow/deployment/security).
+- **Hub `/b4ck0ff1ce`** : panneau services prioritaires temps de réponse (même composant que Statistics).
+- **Mobile** : `flutter test mobile/test/widget_test.dart` **1/1 OK** sans appareil.
+- **ADB S21 FE** : non visible (`adb devices` vide) — emulator-controller actif sur `:5055` ; en attente autorisation USB ou pairing sans fil porteur.
+
+## 11 juin 2026 (suite 3) — tests ciblés et surveillance emails
+
+- **Suite P1B ajoutée** : `PriorityResponseServicesSummary.test.tsx` + cas `serviceHealthOverview.test.ts` pour services prioritaires, ordre d’affichage, Postgres « Santé Docker », lien Latence et état vide. Commande directe Jest : **2 suites / 12 tests OK**.
+- **Script frontend** : `test:metrics-p1b` ajouté dans `frontend/package.json`. Note : le wrapper `npm run` reproduit encore la dette connue de sortie vide ; la commande directe `./node_modules/.bin/jest ...` passe.
+- **Emails surveillés** : Jest SMTP notification **5/5 OK** ; Jest alertes sécurité payload + disponibilité **6/6 OK** ; MailHog liste les derniers emails P1A ; `EmailLog` Postgres confirme les derniers `NOTIFICATION` en `SENT`.
+- **Validation frontend** : `tsc --noEmit` OK ; ESLint ciblé sur les fichiers touchés OK (warnings historiques uniquement sur `backoffice/page.tsx`) ; diagnostics IDE sans erreur.
+- **Bouton backoffice** : `/b4ck0ff1ce/tests` expose **Lancer suite P1B latence** + carte dédiée. API `POST /api/test/run-metrics-p1b` validée par smoke : rapport `20260610-231609`.
+- **Générateur rapports** : `scripts/reports/generate-test-report.sh` reste compatible `sh` dans le conteneur frontend (remplacement du here-string bash par affectations POSIX), ce qui évite l’erreur `unexpected redirection`.
+
+## 11 juin 2026 (suite 4) — programme validation A-Z + email validation agent
+
+- **Programme A-Z** : `docs/operations/VALIDATION_A_Z_AGENT.md` ajouté pour piloter les validations agent par lots : Docker, API, backend, emails, frontend, backoffice, mobile, sécurité non destructive, documentation.
+- **Email validation agent** : sujet `VALIDATION AGENT P1 LOT TESTS 2026-06-10T23:21:52.461Z`, envoyé via `security-service` aux 3 destinataires configurés ; MailHog `total=59`; `EmailLog` `SENT`; miroir SMTP réel OK (`metadata.mirror.sent=true`, `messageId @maily.ovh`).
+- **Passe technique A-Z sûre** : conteneurs JobbingTrack healthy (monitoring-agent-rs encore `starting` dans `docker ps` mais `/health` OK), HTTP `gateway/frontend/metrics/monitoring` OK, metrics services prioritaires OK, frontend `tsc` + P1B Jest **12/12**, notification SMTP **5/5**, security email **6/6**, metrics-aggregator backend **6/6**, mobile Flutter **1/1**.
+- **Mobile physique** : S21 FE détecté (`R5CT7263YJL`, `SM-G990B2`, Android 16), emulator-controller `:5055` OK, UI dump brut OK sur l’écran de connexion mobile. Reste à diagnostiquer `tools/adb-lib/examples/inspect-ui.js` qui sort code 1 sans sortie exploitable.
+
+## 11 juin 2026 — clôture P1A alertes email et ouverture tests offensifs
+
+- **Archivage pilotage** : ligne P1A alertes email retirée de `TODOS_A_VALIDER.md`, ajoutée à `TODOS_DONE.md` (commits `800e9d08`, `b6ff92d0`).
+- **Backlog noté** : synchronisation Google Tasks bidirectionnelle (détection tâches terminées/modifiées côté Google) ; expéditeur `security@jobbingtrack.com` reporté en fin de programme.
+- **Non-régression** : Jest alertes email **11/11**, `tsc --noEmit` OK, conteneurs clés healthy.
+- **Suite** : préparation validation porteur **Tests offensifs contrôlés** — pages `/b4ck0ff1ce/tests-security` et `/b4ck0ff1ce/test-reports` accessibles, sans scan offensif lancé.
+- **Nettoyage UI post-validation** : `/b4ck0ff1ce/security/alerts` ne contient plus d’encart spécifique “Dernier envoi vers admin” ni de requête dédiée à une adresse personnelle. Le panneau garde uniquement le système clair : derniers emails `NOTIFICATION`, statut, miroir SMTP et lien Email Monitor. État produit : **OK Alertes email critiques**.
+
+## 11 juin 2026 — responsive backoffice P1C page par page
+
+- **Audit Playwright dédié** : `frontend/tests/e2e/backoffice-responsive-audit.spec.ts` parcourt les routes backoffice statiques sur `390x844`, `820x900`, `1280x900`, `1680x1000` et vérifie absence d’actions interactives hors viewport (les tableaux restent scrollables dans leur conteneur).
+- **Correctifs UI** : headers/actions empilables, boutons pleine largeur sur mobile, filtres en grille, onglets scrollables, cartes/lignes `min-w-0`, corbeille en layout vertical mobile, WAF/firewall isolés dans wrappers scrollables, `AdminLayout` protégé contre le scroll horizontal global.
+- **Validation 11/06** : Playwright `--grep smartphone` **2/2 OK** ; Playwright `--grep moyen` **2/2 OK** ; audit complet précédent avait déjà validé `petit-pc` et `grand-ecran`, les KO smartphone/moyen ont été corrigés ensuite.
+- **Validation frontend directe** : `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur 19 fichiers **0 erreur** / warnings historiques uniquement ; diagnostics IDE sans erreur.
+- **Email suivi envoyé** : sujet `VALIDATION AGENT RESPONSIVE BACKOFFICE 2026-06-11T09:21:51.634Z` vers `security@jobbingtrack.com`; MailHog OK ; `EmailLog` `SENT`; miroir SMTP réel OK (`metadata.mirror.sent=true`, `messageId @maily.ovh`).
+
+## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
+
+- **Diagnostic alertes email** : page `/b4ck0ff1ce/security/alerts` enrichie avec accès direct à MailHog et à `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. Le menu **Gestion des emails → Historique** pointe maintenant vers l’Email Monitor filtré Notification ; le filtre `NOTIFICATION` est sélectionnable et exploitable pour vérifier destinataire, statut, date et contenu.
+- **Miroir SMTP réel** : correction du KO “MailHog OK mais boîte réelle sans dernier email”. La config locale avait désactivé le miroir (`SECURITY_ALERT_SMTP_MIRROR_ENABLED=false`) après rebuild ; elle est réactivée pour la validation. Le `From` miroir est aligné par défaut sur le compte SMTP authentifié et l’alias sécurité reste en `Reply-To` pour réduire les rejets silencieux. Test isolé à `20:15:03` : API `202`, MailHog OK, miroir accepté avec `messageId @maily.ovh`; validation porteur ensuite confirmée.
+- **Contenu utile des emails d’alerte** : exigence ajoutée. Les alertes sécurité/disponibilité devront inclure un contexte d’enquête court et utile : service touché, sévérité, horodatage, requestId/correlationId si disponible, derniers logs ciblés redigés, statut disponibilité et lien diagnostic. Le watchdog externe devra inclure cible testée, erreur réseau/TLS/HTTP, durée, nombre d’échecs consécutifs et derniers logs locaux. Secrets, tokens, mots de passe et payloads sensibles doivent être retirés.
+- **Limite alertes internes / watchdog externe** : retour porteur noté. Les alertes actuelles dépendent encore de la stack JobbingTrack ; un watchdog séparé, hors Compose/BDD/services JobbingTrack, devra surveiller disponibilité publique/TLS/health et envoyer une alerte directe via SMTP/fournisseur même si toute la stack tombe. Contraintes retenues : faible consommation, anti-flap, recovery, heartbeat, secrets hors Git et test de coupure contrôlé.
+- **GitGuardian / ggshield** : demande porteur ajoutée au backlog sécurité. Objectif futur : installer/configurer `ggshield`, activer hooks Git `pre-commit` / `pre-push` / `pre-receive`, scanner repo et images Docker, puis étudier GitGuardian API/webhooks pour remonter les incidents secrets dans le backoffice sécurité et envoyer des emails d’alerte sans stocker les secrets bruts.
+- **Email Monitor** : pagination serveur visible avec le composant `Pagination`, recherche `q` sur destinataire/expéditeur/sujet, badge de recherche et reset page 1 sur changement de filtre. Correctif responsive ciblé : header/actions empilables, filtres sans largeur minimale bloquante, cartes emails qui cassent les sujets/adresses longues, pagination qui revient à la ligne et suppression de la marge `md` du layout backoffice quand la sidebar est encore mobile/overlay. Validation navigateur `390x844` puis `820x844` : contenu non poussé/coupé sur le côté.
+- **Popup Paramètres responsive** : `SettingsPopup` corrigée pour petit/moyen écran : onglets horizontaux scrollables en mobile, sidebar interne seulement à partir de `md`, contenu `min-w-0`, grilles système en une colonne, toggles non compressés et scroll vertical dans la popup. Vérification navigateur `390x844` OK : popup ouverte depuis `/b4ck0ff1ce`, contenu visible, capture `/tmp/cursor/screenshots/settings-popup-mobile.png`.
+- **Alerte metrics-aggregator** : diagnostic du mail “Metrics aggregator indisponible” : les conteneurs critiques étaient `Up (healthy)` et `/api/v1/health` répondait `200`; le faux positif venait d’un appel `security-service` sans `X-API-Key` vers `/api/v1/docker/services/all`, rejeté en `401`. `securityScheduler` transmet désormais `METRICS_API_KEY`; `security-service` redémarré ; smoke depuis le conteneur OK (`200`, `23` services).
+- **Crash-report SMTP** : documentation alignée sur la règle de délivrabilité : `CRASH_REPORT_FROM` sur le compte SMTP authentifié si le fournisseur l’exige, `CRASH_REPORT_REPLY_TO` et `CRASH_REPORT_EMAIL` sur l’alias métier `crash-report@...` redirigé hors Git. Code : `emailService.getCrashReportIdentity()` applique cette règle côté `notification-service` (Jest SMTP `5/5`).
+- **Test P1A relancé** : envoi isolé sujet `TEST ADMIN OVH P1A 2026-06-10T19:19:49Z` — API `202`, MailHog OK, miroir accepté (`messageId @maily.ovh`). Validation porteur boîte réelle confirmée ensuite.
+- **Contenu alertes enrichi** : emails sécurité/disponibilité incluent service touché, type, horodatage, erreur/statut, liens diagnostic et métadonnées redigées. Email Monitor affiche le statut miroir SMTP (`OK`/`KO`, `messageId`, `From`, `Reply-To`) pour les notifications.
+- **Diagnostic alertes sur page Sécurité** : panneau « Derniers envois alertes » sur `/b4ck0ff1ce/security/alerts` (statut + miroir SMTP + messageId). Après OK porteur, l’encart dédié à une adresse admin et la requête ciblée ont été retirés ; il reste la liste générique des derniers emails. Test E2E `security-service` → `notification-service` OK pour les destinataires actifs.
+- **notification-service dev mount** : ajout du volume `src` dans `docker-compose.yml` (comme `security-service`) ; sans cela le conteneur gardait une image figée et ignorait les correctifs SMTP/miroir. Preuve post-recreate : `EmailLog.metadata.mirror` rempli (`TEST ADMIN P1A MIRROR META …`, `messageId @maily.ovh`).
+- **Statistics temps de réponse** : demande porteur ajoutée au pilotage : reprendre les temps de réponse instantanés/moyens par endpoint/service, avec source claire `monitoring-agent-rs` / `metrics-aggregator`, et couvrir explicitement `auth`, `deployment`, `call`, `notification`, `followup`, `application`, `postgres` ou expliquer les états vides.
+- **Dette responsive backoffice** : retour porteur ajouté au pilotage P1C et au backlog technique. L’interface admin doit être auditée sur petit écran, écran moyen et largeurs intermédiaires, avec focus menu, listes/tableaux, filtres, graphes, popups, pagination et absence de débordement horizontal. Chantier à traiter après la validation email bloquante.
+- **Nettoyage EmailLog local** : mesure avant purge `8971` lignes / `19 MB`; suppression contrôlée des anciens `FAILED`/`PENDING` avant aujourd’hui (`8722` lignes), conservation des `SENT` et notifications récentes, puis `VACUUM FULL ANALYZE` → `249` lignes / `720 kB`. Le chantier long terme reste une vraie rétention avec export compressé, manifest/hash et restauration.
+- **Nettoyage utilisateurs de test** : test navigateur sur `/b4ck0ff1ce/users` avec le bouton **Nettoyer les utilisateurs de test** ; confirmation acceptée, alerte succès `2441 utilisateur(s) de test supprimé(s)`, compteur BDD `isTestData=true OR @jobbingtrack.test` passé de `2441` à `0`.
+- **Validation frontend** : diagnostics IDE OK ; `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur les fichiers modifiés OK avec warnings historiques uniquement. Les scripts `npm run type-check`, `npm run lint` et Jest ciblé reproduisent encore le problème connu : code `1` sans sortie exploitable.
+
+## 10 juin 2026 — clôture P0 CVE et localisation runtime Node
+
+- **Validations porteur P0** : comparaison de rapports sécurité CVE, menaces historiques/lab avant nettoyage, et ouverture/téléchargement rapports sécurité validés explicitement puis archivés dans `TODOS_DONE.md`.
+- **Localisation `CVE-2026-21710`** : `scripts/security/cve-locate.mjs` localise désormais les CVE runtime Node déclarées dans les Dockerfiles. Pour `CVE-2026-21710`, les images `node:20.18.0` sont remontées comme `node-runtime`, sévérité `high`, correctif `20.20.2+`, surface HTTP Node.
+- **Tests sécurité** : ajout de `tests/security/cve-locate-runtime.test.js` ; validation `/usr/bin/node tests/node_modules/jest/bin/jest.js --config tests/jest.config.js tests/security/cve-locate-runtime.test.js --runInBand` → **1/1 OK**.
+- **UI tests sécurité** : `/b4ck0ff1ce/tests-security` affiche aussi les hits runtime (`image`, version installée, version corrigée, surface, correctif), pas seulement npm audit.
+- **Rapports test-reports** : suppression du bouton Télécharger doublon dans l’en-tête fullscreen ; un seul bouton reste dans la barre d’actions.
+- **Validation frontend ciblée** : `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur `tests-security/page.tsx` et `test-reports/page.tsx` OK avec warnings historiques uniquement. `npm run type-check` et `npm run lint` reproduisent encore le problème connu : code 1 sans stdout/stderr exploitable.
+
+## 9 juin 2026 — cadrage agent email / tâches recherche emploi
+
+- **Branche documentaire** : `docs/email-triage-agent-roadmap`, créée depuis `origin/dev` pour ne pas mélanger ce cadrage avec la PR P0 CVE `fix/security-cve-scan-full-scope`.
+- **Besoin porteur** : assistant JobbingTrack pour tri automatique des emails de recherche d’emploi, digest quotidien à 18h, tâches/relances/événements, préparation d’entretiens, comptes/boîtes configurés hors Git, Google Tasks/Calendar obligatoires, interface privée dédiée hors backoffice email transactionnel, moteur déterministe d’abord et IA locale en renfort.
+- **Décision architecture** : JobbingTrack reste le socle ; Make.com/Zapier ne doivent pas porter la logique métier. Worker planifié, stockage interne des emails utiles, règles de classification explicites, puis IA locale si elle apporte une valeur. Le digest doit partir via le socle SMTP JobbingTrack déjà utilisé pour reset/validation/notifications (`SMTP_*`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EmailLog`) ; les placeholders Git ne sont jamais des valeurs runtime.
+- **Architecture frontend cible** : espace utilisateur connecté sur `/`, backoffice admin sur `/b4ck0ff1ce`, base de composants partagée. Court terme : une base Next.js avec routes séparées ; moyen terme : préparer la possibilité `user-frontend` / `backoffice-frontend` sans dupliquer les composants communs. `.env.example` et `.env.production.example` exposent désormais `USER_FRONTEND_URL`, `BACKOFFICE_FRONTEND_URL`, `NEXT_PUBLIC_USER_FRONTEND_URL`, `NEXT_PUBLIC_BACKOFFICE_URL` et un commentaire `ALLOWED_ORIGINS` orienté origines, pas chemins.
+- **Extension périmètre produit** : noter dans le lot I l’interface web/mobile de suivi avec dashboard responsive, revalidation PIN + clavier numérique, autocomplete poste/ville/plateforme accessible clavier/ARIA, token agent email + doc endpoint API, adresse de transfert configurable, liste emails reçus triée par candidature/relance, préparation/envoi relance-email depuis l’interface après validation, calendrier agrégé, programmation manuelle d’appels/tâches/rappels/événements même sans email déclencheur, appels préremplis par contact/entreprise, relances uniquement depuis fiche candidature, page détail entreprise enrichie, import Google Contacts CSV/vCard, suivi intérim agence/mission, préparation entretien, sauvegarde PDF d’offre depuis URL, enrichissement entreprise, digest quotidien + récap hebdomadaire, et veille salons/job dating par ville/région.
+- **Navigation backoffice Tests** : demande porteur ajoutée au pilotage P1C — clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests et Rapports de parcours, menu Développement/Tests moins long et mieux catégorisé.
+- **Document source** : `docs/features/EMAIL_TRIAGE_AGENT.md`.
+- **Pilotage** : entrée ajoutée dans `docs/TODOS.md`, `docs/BACKLOG.md`, `docs/PLAN.md` (lot I) et `TODOS_A_VALIDER.md` en P2 futur. L’implémentation n’est pas démarrée tant que la première ligne P0 de `TODOS_A_VALIDER.md` reste ouverte.
+
+## 9 juin 2026 — cadrage sécurité réseau et dettes env/frontend
+
+- **Menaces réseau avancées à ne pas oublier** : ajout au cadrage sécurité de HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, session hijacking, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding et VLAN hopping, en plus des scans de ports/SYN scan/SYN flood déjà évoqués. Les tests doivent rester séparés entre local, préprod VPS et sujets fournisseur/Internet, avec exécution uniquement lab/préprod autorisée.
+- **Matrice sécurité** : `docs/security/SECURITY_TESTING_MATRIX.md` détaille désormais outils, protections attendues et preuves pour ces menaces ; `ROADMAP_SECURITE_API_ET_BACKOFFICE.md`, `docs/TODOS.md` et `TODOS_A_VALIDER.md` renvoient vers ce cadrage.
+- **Dette validation frontend** : `npm run type-check` et `npm run lint` peuvent sortir code 1 sans sortie exploitable alors que les commandes directes sous-jacentes passent ; une tâche de diagnostic est ouverte pour retrouver une sortie fiable.
+- **Env émulateur** : `.env.example` clarifie que `EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055` convient aux scripts lancés depuis l’hôte, tandis que `http://host.docker.internal:5055` peut rester nécessaire pour un appel direct depuis un conteneur.
+- **Emails crash/sécurité** : `notification-service` peut séparer compte SMTP technique, destinataire alias public et identité visible par canal. Variables ajoutées : `CRASH_REPORT_FROM`, `CRASH_REPORT_REPLY_TO`, `SECURITY_ALERT_FROM`, `SECURITY_ALERT_REPLY_TO`. Les vraies redirections alias public -> boîte privée restent chez le fournisseur mail et hors Git.
+- **Agent email — précisions MVP** : le cadrage prévoit OAuth Gmail multi-comptes, révocation/statut de synchronisation, digest quotidien utile sans IA, IA locale gratuite seulement en renfort, recherche v2 réutilisable ensuite dans le backoffice/admin, et garde-fou Calendar : aucun événement à `00:00` par défaut si l’email ne fournit pas d’heure fiable.
+- **Agent email — accès personnel sécurisé** : le premier usage cible est le compte personnel non-admin du porteur, activé explicitement par droit/feature flag. Les comptes créés par d’autres utilisateurs ne doivent pas obtenir l’agent email automatiquement ; le rôle admin ne doit pas donner par défaut la lecture des emails personnels.
+- **Agent email — Calendar et tests** : nouvelle contrainte porteur : aucun événement automatique avant `05:00`, après `23:00` ou à `00:00` par défaut. Les cas ambigus doivent devenir tâches/propositions à confirmer et rester visibles dans le digest. La future suite de tests devra couvrir règles de tri, permissions, Gmail/IMAP de test, digest SMTP/mock, Calendar/Tasks et rapports `tests/results/email-triage/<timestamp>`.
 
 ## 8 juin 2026 — cadrage sécurité à ajouter au pilotage
 
@@ -726,7 +858,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 ## Recap rapide (ce qui fonctionne)
 
-Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playwright E2E 233, MailHog 3/3, Securite 64, Performance 15/15, Integration OK, 21 parcours, SMTP/MailHog, hub Tests, soft delete + corbeille + archivage 7 services, cascade statuts + archivage, auto-events, module ADB mobile reutilisable (28 scenarios, 100+ steps), parcours mobile dans journey-builder (30+ steps mobiles integres), crash reporting backend + email auto (infos@example.invalid), ADB shell command, test email sur appareil, tracking pousse utilisateur (boutons, ecrans, swipes, API calls, durees, monitoring appareil), mode DEV illimite / mode PROD 500 actions. Detail : `RESOLUTIONS.md`.
+Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playwright E2E 233, MailHog 3/3, Securite 64, Performance 15/15, Integration OK, 21 parcours, SMTP/MailHog, hub Tests, soft delete + corbeille + archivage 7 services, cascade statuts + archivage, auto-events, module ADB mobile reutilisable (28 scenarios, 100+ steps), parcours mobile dans journey-builder (30+ steps mobiles integres), crash reporting backend + email auto (alerts@example.invalid), ADB shell command, test email sur appareil, tracking pousse utilisateur (boutons, ecrans, swipes, API calls, durees, monitoring appareil), mode DEV illimite / mode PROD 500 actions. Detail : `RESOLUTIONS.md`.
 
 ---
 
@@ -848,7 +980,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Tests swipe et actions rapides sur listes mobiles
 - [ ] Tests export/import donnees
 - [ ] Tests verification email
-- [x] **Test automatisé inscription Gmail + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription `redacted@example.invalid` via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
+- [x] **Test automatisé inscription email + log email** : script `tests/email/run-inscription-gmail-email-check.js` — inscription avec adresse configurée hors Git via API puis vérification que l’email de vérification est loggé à la bonne adresse. À lancer avec la gateway + auth-service démarrés : `cd tests && npm run test:inscription-gmail`. E2E Playwright (inscription 3 comptes + Email Monitor) : `frontend/tests/e2e/email-verification-monitor.spec.ts` (nécessite frontend + API + auth admin).
 - [ ] Tests pagination et tri
 
 #### 3.8 Architecture des tests — FAIT
@@ -961,7 +1093,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 #### 5.4 Crash reporting & error detection
 - [x] Endpoint `POST /notifications/crashes` — sauvegarde + email auto
 - [x] Endpoint `GET /notifications/crashes` — lecture paginee des crash reports
-- [x] Email crash report a `infos@example.invalid`
+- [x] Email crash report a `alerts@example.invalid`
 - [x] Anonymisation des rapports
 - [x] Handler Flutter (`FlutterError.onError` + `PlatformDispatcher.onError`)
 - [x] Service `CrashReporter` dans l'app Flutter (queue, flush, tracking pousse)
@@ -977,7 +1109,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [x] Parcours utilisateur : 6/6 (`tests/user-journey/modules/step-crash-reporting.js`)
 - [x] Parcours ADB test email sur appareil (`mobile_test_email`)
 - [x] Parcours predefini `crash_reporting` et `full_with_crash` dans journey-builder
-- [x] **CRASH_REPORT_EMAIL** : lu depuis l’env (defaut infos@example.invalid), documenté dans `.env.example` ; avec MailHog les emails crash sont visibles dans l’interface MailHog (http://localhost:8025).
+- [x] **CRASH_REPORT_EMAIL** : lu depuis l’env (defaut alerts@example.invalid), documenté dans `.env.example` ; avec MailHog les emails crash sont visibles dans l’interface MailHog (http://localhost:8025).
 
 #### 5.5 Parcours mobiles etendus (100+ steps)
 - [x] Notifications : `open_notifications`, `verify_notifications`, `mark_all_notifications_read`
@@ -1078,7 +1210,7 @@ Résumé : **724 tests**, **708 réussis**, **16 échoués** (97,8 %), **1 ignor
 
 **Prerequis** : `make emulator-controller` ou `make restart-emulator` (5055), appareil ADB connecte. **Verifications** : `make verify-mobile-emulator` (sante controleur + force-restart-app), `make verify-mobile-scenarios` (coherence scenarios vs steps).
 
-**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec le compte **user1** : par defaut **user1@jobbingtrack.test** / **password123**. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), ex. **redacted@example.invalid** ou **candidatures@alias.example.invalid** (voir `.env.example`).
+**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec les identifiants de test configurés hors Git. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), sans écrire l’adresse réelle dans les fichiers suivis.
 
 **Usage reel** : necessite un appareil/emulateur Android connecte. Sans appareil, seules les cibles make verify-mobile-* et la coherence du code sont testables.
 
@@ -1145,7 +1277,7 @@ Les rapports sont dans `tests/results/<timestamp>/`. Le backoffice affiche le ra
 ### Tracking pousse & correction BDD — FAIT (26/02/2026)
 - Tracking utilisateur pousse dans `CrashReporter` : boutons, ecrans, swipes, API calls, form submits, durees par ecran, monitoring appareil.
 - Mode DEV illimite, mode PROD 500 actions (FIFO).
-- Email crash report change : `infos@example.invalid` (corrigé).
+- Email crash report change : `alerts@example.invalid` (corrigé).
 - Correction massive BDD : tables droppees par `prisma db push` notification-service → repousse schema maitre auth-service (58 modeles) + ajout enum values SQL + restart monitoring-c.
 - Zero erreurs Postgres apres correction.
 

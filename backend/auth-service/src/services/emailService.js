@@ -43,8 +43,8 @@ class EmailService {
         logger.info('📧 [EmailService] Initializing Resend provider');
         this.provider = new ResendEmailProvider({
           apiKey: process.env.RESEND_API_KEY,
-          from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jobbingtrack.test',
-          replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'redacted@example.invalid',
+          replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
         });
         break;
 
@@ -53,7 +53,7 @@ class EmailService {
         logger.info('📧 [EmailService] Initializing SMTP provider');
         // Configuration SMTP :
         // - user/password : authentification SMTP (ex: redacted@example.invalid)
-        // - from : adresse d'affichage pour le destinataire (ex: noreply@jobbingtrack.test)
+        // - from : adresse d'affichage pour le destinataire (ex: redacted@example.invalid)
         // Note: Certains serveurs SMTP (OVH) peuvent rejeter si le domaine From diffère
         // Dans ce cas, utiliser le format "JobbingTrack <redacted@example.invalid>" pour from
         this.provider = new SMTPEmailProvider({
@@ -64,8 +64,8 @@ class EmailService {
           user: process.env.SMTP_USER, // ex: redacted@example.invalid
           password: process.env.SMTP_PASS,
           // Adresse d'affichage (ce que voit le destinataire)
-          from: process.env.SMTP_FROM || 'JobbingTrack <noreply@jobbingtrack.test>',
-          replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || 'JobbingTrack <redacted@example.invalid>',
+          replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
           tls: {
             rejectUnauthorized: false, // Pour dev
           },
@@ -122,7 +122,7 @@ class EmailService {
           data: {
             userId: userId || null,
             to,
-            from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+            from: from || process.env.SMTP_FROM || 'redacted@example.invalid',
             subject,
             type,
             status: 'PENDING',
@@ -241,7 +241,7 @@ class EmailService {
       const emailLog = await this.logEmail({
         userId: user.id,
         to: user.email,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject,
         type: 'WELCOME',
         emailContent: html,
@@ -254,8 +254,8 @@ class EmailService {
         subject,
         htmlContent: html,
         textContent: text,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
+        replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
       });
 
       // Mettre à jour le statut
@@ -287,7 +287,7 @@ class EmailService {
         emailLog = await this.logEmail({
           userId: user.id,
           to: user.email,
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || 'redacted@example.invalid',
           subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
           type: 'RESET_PASSWORD',
           emailContent: `Reset password email for ${user.email}`,
@@ -341,7 +341,7 @@ class EmailService {
         emailLog = await this.logEmail({
           userId: user.id,
           to: user.email,
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          from: process.env.SMTP_FROM || 'redacted@example.invalid',
           subject: '✅ Vérifiez votre adresse email - JobbingTrack',
           type: 'VERIFICATION',
           emailContent: `Verification email for ${user.email}`,
@@ -445,7 +445,7 @@ class EmailService {
       const emailLog = await this.logEmail({
         userId: user.id,
         to: user.email,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject,
         type: 'PASSWORD_CHANGED',
         emailContent: html,
@@ -458,8 +458,8 @@ class EmailService {
         subject,
         htmlContent: html,
         textContent: text,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
+        replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
       });
 
       // Mettre à jour le statut
@@ -489,8 +489,8 @@ class EmailService {
         subject,
         htmlContent,
         textContent,
-        from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: replyTo || process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
+        from: from || process.env.SMTP_FROM || 'redacted@example.invalid',
+        replyTo: replyTo || process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
       });
 
       logger.info(`Email générique envoyé à ${to}`);

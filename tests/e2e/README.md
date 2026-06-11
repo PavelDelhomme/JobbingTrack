@@ -26,14 +26,14 @@ cd tests && npx playwright test e2e/specs --project=chromium
 # Workflows email (MailHog ou TEST_REAL_EMAILS)
 cd tests && npx playwright test e2e/specs/email-workflows.spec.ts --project=chromium
 
-# Spec mobile Gmail uniquement (email réel)
-cd tests && TEST_REAL_EMAILS=redacted@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-gmail.spec.ts --project=chromium
+# Spec mobile Gmail uniquement (email réel configuré hors Git)
+cd tests && TEST_REAL_EMAILS="<adresse-configuree-hors-git>" npx playwright test e2e/specs/mobile/mobile-email-verification-gmail.spec.ts --project=chromium
 
 # Spec mobile Proton
-cd tests && TEST_REAL_EMAILS=redacted@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-proton.spec.ts --project=chromium
+cd tests && TEST_REAL_EMAILS="<adresse-configuree-hors-git>" npx playwright test e2e/specs/mobile/mobile-email-verification-proton.spec.ts --project=chromium
 
 # Spec mobile BlueMail
-cd tests && TEST_REAL_EMAILS=candidatures@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
+cd tests && TEST_REAL_EMAILS="<adresse-configuree-hors-git>" npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
 ```
 
 ## Prérequis

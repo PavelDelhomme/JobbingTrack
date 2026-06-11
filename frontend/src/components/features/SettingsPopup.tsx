@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "@/lib/hooks/theme";
 import { useAuth } from "@/lib/hooks/auth";
@@ -229,20 +230,20 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4"
       role="presentation"
       onMouseDown={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="flex max-h-[92vh] w-full max-w-4xl min-w-0 flex-col overflow-hidden rounded-lg bg-white shadow-xl dark:bg-gray-800 sm:max-h-[90vh]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-popup-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <h3
                 id="settings-popup-title"
                 className="text-lg font-bold text-gray-900 dark:text-gray-100"
@@ -253,7 +254,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              className="flex-shrink-0 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              aria-label="Fermer les paramètres"
             >
               <svg
                 className="w-6 h-6"
@@ -270,15 +272,15 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
               </svg>
             </button>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             💡 Les modifications sont enregistrées automatiquement
           </p>
         </div>
 
-        <div className="flex h-[calc(100vh-200px)]">
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           {/* Sidebar des onglets */}
-          <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4">
-            <nav className="space-y-2">
+          <div className="border-b border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 md:w-64 md:flex-shrink-0 md:border-b-0 md:border-r md:p-4">
+            <nav className="flex gap-2 overflow-x-auto pb-1 md:block md:space-y-2 md:overflow-visible md:pb-0">
               {[
                 { id: "appearance", label: "🎨 Apparence", icon: "🎨" },
                 { id: "refresh", label: "🔄 Rafraîchissement", icon: "🔄" },
@@ -290,7 +292,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                  className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors md:w-full ${
                     activeTab === tab.id
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800"
@@ -303,7 +305,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
           </div>
 
           {/* Contenu des onglets */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
             {/* Onglet Apparence */}
             {activeTab === "appearance" && (
               <div className="space-y-6">
@@ -316,7 +318,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Thème
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {["light", "dark", "system"].map((mode) => (
                         <button
                           key={mode}
@@ -324,7 +326,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                             setThemeMode(mode as any);
                             updatePreferences({ theme: mode });
                           }}
-                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                             theme === mode
                               ? "bg-blue-600 text-white"
                               : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
@@ -347,7 +349,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       onChange={(e) =>
                         updatePreferences({ language: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value="fr">🇫🇷 Français</option>
                       <option value="en">🇬🇧 English</option>
@@ -364,7 +366,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       onChange={(e) =>
                         updatePreferences({ timezone: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value="Europe/Paris">
                         🇫🇷 Europe/Paris (CET)
@@ -441,11 +443,11 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       (preferences.refreshInterval?.[key] || 30000) / 1000;
                     return (
                       <div key={key}>
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
                           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             {label}
                           </label>
-                          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          <span className="flex-shrink-0 text-sm font-bold text-blue-600 dark:text-blue-400">
                             {formatInterval(value * 1000)}
                           </span>
                         </div>
@@ -501,6 +503,23 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   Notifications
                 </h4>
 
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                  <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                    Alertes email sécurité (menaces, CVE, indisponibilité)
+                  </p>
+                  <p className="mt-1 text-sm text-red-800/90 dark:text-red-200/90">
+                    Destinataires, niveaux critical/high, réauth admin et envoi
+                    de test — page dédiée hors de cette popup.
+                  </p>
+                  <Link
+                    href="/b4ck0ff1ce/security/alerts"
+                    onClick={onClose}
+                    className="mt-3 inline-flex max-w-full items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    Ouvrir Alertes email sécurité
+                  </Link>
+                </div>
+
                 <div className="space-y-4">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-3">
@@ -525,9 +544,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     ].map(({ key, label, desc }) => (
                       <div
                         key={key}
-                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg mb-2"
+                        className="mb-2 flex min-w-0 items-start justify-between gap-3 rounded-lg bg-white p-3 dark:bg-gray-800"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-medium text-gray-900 dark:text-gray-100">
                             {label}
                           </div>
@@ -535,7 +554,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                             {desc}
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex flex-shrink-0 cursor-pointer items-center">
                           <input
                             type="checkbox"
                             checked={preferences.notifications?.[key] || false}
@@ -583,9 +602,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     ].map(({ key, label, desc }) => (
                       <div
                         key={key}
-                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg mb-2"
+                        className="mb-2 flex min-w-0 items-start justify-between gap-3 rounded-lg bg-white p-3 dark:bg-gray-700"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-medium text-gray-900 dark:text-gray-100">
                             {label}
                           </div>
@@ -593,7 +612,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                             {desc}
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex flex-shrink-0 cursor-pointer items-center">
                           <input
                             type="checkbox"
                             checked={preferences.notifications?.[key] !== false}
@@ -628,7 +647,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       onChange={(e) =>
                         updateDisplay("itemsPerPage", parseInt(e.target.value))
                       }
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value="10">10</option>
                       <option value="20">20</option>
@@ -661,9 +680,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   ].map(({ key, label, desc }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                      className="flex min-w-0 items-start justify-between gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-700"
                     >
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-medium text-gray-900 dark:text-gray-100">
                           {label}
                         </div>
@@ -671,7 +690,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                           {desc}
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label className="relative inline-flex flex-shrink-0 cursor-pointer items-center">
                         <input
                           type="checkbox"
                           checked={preferences.display?.[key] !== false}
@@ -683,8 +702,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     </div>
                   ))}
 
-                  <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <div>
+                  <div className="flex min-w-0 items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                    <div className="min-w-0">
                       <div className="font-medium text-gray-900 dark:text-gray-100">
                         Mode intérim
                       </div>
@@ -693,7 +712,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                         calendrier (événements via agence)
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex flex-shrink-0 cursor-pointer items-center">
                       <input
                         type="checkbox"
                         checked={interimMode}
@@ -743,7 +762,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                           updatePreferences({ metricsRetentionDays: days });
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value="7">7 jours (minimum)</option>
                       <option value="14">14 jours</option>
@@ -771,7 +790,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                           updatePreferences({ logsRetentionDays: days });
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value="7">7 jours (minimum)</option>
                       <option value="14">14 jours</option>
@@ -785,8 +804,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div>
+                  <div className="flex min-w-0 items-start justify-between gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+                    <div className="min-w-0">
                       <div className="font-medium text-gray-900 dark:text-gray-100">
                         Nettoyage automatique
                       </div>
@@ -794,7 +813,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                         Supprimer automatiquement les données expirées
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex flex-shrink-0 cursor-pointer items-center">
                       <input
                         type="checkbox"
                         checked={preferences.autoCleanupHistory !== false}
@@ -828,17 +847,17 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 </h4>
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="min-w-0 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         Utilisateur
                       </div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                      <div className="break-all font-medium text-gray-900 dark:text-gray-100">
                         {user?.email}
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="min-w-0 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         Rôle
                       </div>
@@ -850,8 +869,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="min-w-0 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         Version
                       </div>
@@ -860,7 +879,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="min-w-0 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         Environnement
                       </div>
@@ -872,24 +891,24 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="min-w-0 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                       Informations Navigateur
                     </div>
                     <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                      <div>
+                      <div className="break-all">
                         User Agent:{" "}
                         {typeof window !== "undefined"
                           ? navigator.userAgent.substring(0, 50) + "..."
                           : "N/A"}
                       </div>
-                      <div>
+                      <div className="break-words">
                         Langue:{" "}
                         {typeof window !== "undefined"
                           ? navigator.language
                           : "N/A"}
                       </div>
-                      <div>
+                      <div className="break-words">
                         Résolution:{" "}
                         {typeof window !== "undefined"
                           ? `${window.screen.width}x${window.screen.height}`
@@ -903,7 +922,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       Gestion des Préférences
                     </h5>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <button
                         onClick={async () => {
                           try {
@@ -922,13 +941,13 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                             setTimeout(() => setMessage(null), 3000);
                           }
                         }}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
                       >
                         <Download className="h-4 w-4" />
                         Exporter
                       </button>
 
-                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors cursor-pointer">
+                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700">
                         <Upload className="h-4 w-4" />
                         Importer
                         <input

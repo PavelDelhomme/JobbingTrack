@@ -52,7 +52,6 @@ export const MOBILE_ACTIONS: MobileAction[] = [
         key: "email",
         label: "Email",
         type: "text",
-        default: "admin@jobbingtrack.test",
         placeholder: "Email de connexion",
         required: true,
       },
@@ -60,7 +59,6 @@ export const MOBILE_ACTIONS: MobileAction[] = [
         key: "password",
         label: "Mot de passe",
         type: "text",
-        default: "password123",
         placeholder: "Mot de passe",
         required: true,
       },
@@ -188,7 +186,7 @@ export const MOBILE_ACTIONS: MobileAction[] = [
         key: "value",
         label: "Texte a saisir",
         type: "text",
-        placeholder: "Ex: admin@jobbingtrack.test",
+        placeholder: "Texte à saisir",
         required: true,
       },
     ],
@@ -378,8 +376,11 @@ export async function executeMobileAction(
     }
 
     case "mob_login": {
-      const email = params.email || "admin@jobbingtrack.test";
-      const password = params.password || "password123";
+      const email = String(params.email || "").trim();
+      const password = String(params.password || "");
+      if (!email || !password) {
+        throw new Error("Paramètres email/password obligatoires pour mob_login");
+      }
       await adb.wait(500);
       await adb.typeInField("Email", email);
       await adb.wait(800);

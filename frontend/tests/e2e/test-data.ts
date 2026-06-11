@@ -1,5 +1,9 @@
+import { getAdminCredentials } from "./test-data-helper";
+
+const adminCredentials = getAdminCredentials();
+
 export const testUsers = [
-  { email: "admin@jobbingtrack.test", password: "password123" },
+  { email: adminCredentials.email, password: adminCredentials.password },
 ];
 
 export const testCompanies = [

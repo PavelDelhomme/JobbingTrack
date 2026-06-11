@@ -80,6 +80,7 @@ Les dossiers `archive/` et certains rapports PDF sont historiques ou generes. Ne
 
 ### Produit et pilotage
 
+- [Agent email / tâches recherche emploi](features/EMAIL_TRIAGE_AGENT.md)
 - [Fonctionnalites](project/FONCTIONNALITES.md)
 - [Historique](project/HISTORIQUE.md)
 - [Recapitulatif projet](project/RECAPITULATIF_PROJET_COMPLET.md)

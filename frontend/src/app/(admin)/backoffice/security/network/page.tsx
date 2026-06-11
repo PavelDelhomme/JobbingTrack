@@ -514,19 +514,19 @@ export default function NetworkStatsPage() {
 
         {/* Top 10 Ports Destination */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">Top 10 Ports Destination</h2>
             <input
               value={portFilter}
               onChange={(e) => setPortFilter(e.target.value)}
               placeholder="Filtrer un port"
-              className="px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 sm:w-auto"
             />
           </div>
           {stats?.topDestinationPorts &&
           Object.keys(stats.topDestinationPorts).length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-[760px] w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left p-3">Port</th>

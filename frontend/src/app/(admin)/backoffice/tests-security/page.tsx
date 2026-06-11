@@ -26,12 +26,18 @@ interface TestItem {
 interface CveLocateHit {
   source: string;
   path: string;
+  line?: number;
   reportId?: string;
   package?: string;
   severity?: string;
   excerpt?: string;
   lockfilePath?: string;
   installedVersion?: string | null;
+  image?: string;
+  patchedVersion?: string;
+  affectedRange?: string;
+  exposedSurface?: string;
+  fix?: string;
 }
 
 interface CveFindingCard {
@@ -78,7 +84,7 @@ export default function SecurityTestsPage() {
   const [isRunningCve, setIsRunningCve] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [reportId, setReportId] = useState<string | null>(null);
-  const [cveQuery, setCveQuery] = useState("CVE-2026-49975");
+  const [cveQuery, setCveQuery] = useState("CVE-2026-21710");
   const [cveResult, setCveResult] = useState<{
     found: boolean;
     hits: CveLocateHit[];
@@ -438,21 +444,84 @@ export default function SecurityTestsPage() {
           </div>
         </div>
 
+        <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/30 p-4 sm:p-5 space-y-2">
+          <h2 className="text-base font-semibold text-amber-950 dark:text-amber-100 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            Tests offensifs contrôlés (cadrage P1A)
+          </h2>
+          <p className="text-sm text-amber-950/90 dark:text-amber-100/90">
+            Cette page lance des audits applicatifs et CVE <strong>non destructifs</strong> en
+            local/lab uniquement. Les campagnes agressives (ZAP actif, nmap, SYN flood, spoofing)
+            sont documentées dans{" "}
+            <code className="text-xs">docs/security/SECURITY_TESTING_MATRIX.md</code> et{" "}
+            <code className="text-xs">docs/security/COMPOSE_RUNTIME_HARDENING.md</code> —{" "}
+            <strong>jamais sur prod réelle</strong> sans fenêtre autorisée.
+          </p>
+          <ul className="text-xs text-amber-900/90 dark:text-amber-100/80 list-disc pl-5 space-y-1">
+            <li>Cible lab : <code>localhost:5002</code> / stack locale HTTPS.</li>
+            <li>Rapports : <Link href="/b4ck0ff1ce/test-reports" className="underline">Rapports de tests</Link> (catégorie Sécurité).</li>
+            <li>Validation porteur : confirmer le cadrage, pas lancer une campagne agressive depuis l’UI.</li>
+          </ul>
+          <details className="text-xs text-amber-950/90 dark:text-amber-100/90">
+            <summary className="cursor-pointer font-medium mt-2">
+              Périmètre contrôlé par conteneur (lecture seule)
+            </summary>
+            <div className="mt-2 overflow-x-auto rounded border border-amber-200/80 dark:border-amber-800/80">
+              <table className="min-w-full text-left text-[11px]">
+                <thead className="bg-amber-100/60 dark:bg-amber-950/50">
+                  <tr>
+                    <th className="px-2 py-1.5 font-semibold">Surface</th>
+                    <th className="px-2 py-1.5 font-semibold">Mode</th>
+                    <th className="px-2 py-1.5 font-semibold">Où</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-200/60 dark:divide-amber-900/50">
+                  <tr>
+                    <td className="px-2 py-1.5">WAF / injection / headers</td>
+                    <td className="px-2 py-1.5">Passif + payloads bornés</td>
+                    <td className="px-2 py-1.5">API gateway, backoffice</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">CVE applicatives / images</td>
+                    <td className="px-2 py-1.5">Scan non destructif</td>
+                    <td className="px-2 py-1.5">Cette page + rapports</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Ports / SYN / réseau</td>
+                    <td className="px-2 py-1.5">Lab uniquement</td>
+                    <td className="px-2 py-1.5">Scripts matrice, pas l’UI</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">ZAP actif / fuzzing massif</td>
+                    <td className="px-2 py-1.5">Fenêtre dédiée</td>
+                    <td className="px-2 py-1.5">Préprod autorisée</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Leurres / honeypot VPS</td>
+                    <td className="px-2 py-1.5">Design seulement</td>
+                    <td className="px-2 py-1.5">docs/security/VPS_EXPOSURE_REDUCTION.md</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <Search className="w-5 h-5" />
             Localiser une CVE dans JobbingTrack
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Recherche dans les rapports CVE archivés, lockfiles npm et npm audit
-            (ex. CVE-2026-49975).
+            Recherche dans les rapports CVE archivés, lockfiles npm, npm audit et
+            runtimes déclarés dans les Dockerfiles (ex. CVE-2026-21710).
           </p>
           <div className="flex flex-wrap gap-2">
             <input
               type="text"
               value={cveQuery}
               onChange={(e) => setCveQuery(e.target.value)}
-              placeholder="CVE-2026-49975"
+              placeholder="CVE-2026-21710"
               className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm min-w-[220px]"
             />
             <button
@@ -491,10 +560,14 @@ export default function SecurityTestsPage() {
                       {hit.source}
                     </span>{" "}
                     — {hit.path}
+                    {hit.line ? `:${hit.line}` : ""}
+                    {hit.image ? ` — ${hit.image}` : ""}
                     {hit.package ? ` — ${hit.package}` : ""}
                     {hit.installedVersion ? `@${hit.installedVersion}` : ""}
                     {hit.severity ? ` (${hit.severity})` : ""}
                     {hit.lockfilePath ? ` — ${hit.lockfilePath}` : ""}
+                    {hit.affectedRange ? ` — affecté ${hit.affectedRange}` : ""}
+                    {hit.patchedVersion ? ` — correctif ${hit.patchedVersion}+` : ""}
                     {hit.reportId && (
                       <>
                         {" "}
@@ -505,6 +578,16 @@ export default function SecurityTestsPage() {
                           ouvrir
                         </Link>
                       </>
+                    )}
+                    {hit.exposedSurface && (
+                      <p className="mt-1 whitespace-normal text-gray-600 dark:text-gray-400">
+                        Surface : {hit.exposedSurface}
+                      </p>
+                    )}
+                    {hit.fix && (
+                      <p className="mt-1 whitespace-normal text-gray-600 dark:text-gray-400">
+                        Correctif : {hit.fix}
+                      </p>
                     )}
                   </li>
                 ))}

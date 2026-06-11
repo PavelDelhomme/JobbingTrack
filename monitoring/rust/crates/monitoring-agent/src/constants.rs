@@ -92,32 +92,32 @@ pub const HEALTH_TARGETS: &[HealthTarget] = &[
     HealthTarget {
         needle: "profile-service",
         port: 3009,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "notification-service",
         port: 3008,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "dashboard-service",
         port: 3000,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/api/v1/dashboard/health",
     },
     HealthTarget {
         needle: "workflow-service",
         port: 3013,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "security-service",
         port: 3017,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "deployment-service",
         port: 3016,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "metrics-aggregator",
@@ -125,14 +125,14 @@ pub const HEALTH_TARGETS: &[HealthTarget] = &[
         path: "/api/v1/health",
     },
     HealthTarget {
-        needle: "monitoring-c",
+        needle: "monitoring-agent-rs",
         port: 8015,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
-        needle: "log-collector-c",
+        needle: "log-collector-rs",
         port: 3019,
-        path: HEALTH_DEFAULT_PATH,
+        path: "/health",
     },
     HealthTarget {
         needle: "frontend",

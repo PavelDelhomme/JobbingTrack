@@ -65,8 +65,8 @@ Le service lit les variables d'environnement suivantes :
 | `SMTP_USE_SSL` | Utiliser SSL (port 465) | `false` |
 | `SMTP_USER` | Nom d'utilisateur SMTP | - |
 | `SMTP_PASS` | Mot de passe SMTP | - |
-| `SMTP_FROM` | Adresse d'expéditeur | `JobbingTrack <noreply@jobbingtrack.test>` |
-| `SMTP_REPLY_TO` | Adresse de réponse | `noreply@jobbingtrack.test` |
+| `SMTP_FROM` | Adresse d'expéditeur | `JobbingTrack <redacted@example.invalid>` |
+| `SMTP_REPLY_TO` | Adresse de réponse | `redacted@example.invalid` |
 | `FRONTEND_URL` | URL du frontend | `http://localhost:8080` |
 
 ### Configuration OVH (Production)
@@ -78,8 +78,8 @@ SMTP_SECURE=true
 SMTP_USE_SSL=false
 SMTP_USER=redacted@example.invalid
 SMTP_PASS=votre-mot-de-passe
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>
-SMTP_REPLY_TO=noreply@jobbingtrack.test
+SMTP_FROM=JobbingTrack <redacted@example.invalid>
+SMTP_REPLY_TO=redacted@example.invalid
 ```
 
 ### Configuration MailHog (Développement)

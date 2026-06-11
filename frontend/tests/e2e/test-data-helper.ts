@@ -7,6 +7,41 @@ let _cachedAdminToken = "";
 let _cachedUserToken = "";
 let _cachedUserCredentials: { email: string; password: string } | null = null;
 
+function firstEnvValue(keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
+export function requireEnvValue(keys: string[], label: string): string {
+  const value = firstEnvValue(keys);
+  if (!value) {
+    throw new Error(
+      `${label} manquant: renseigner une des variables ${keys.join(", ")}`,
+    );
+  }
+  return value;
+}
+
+export function requireTestCredentials(
+  credentials: { email: string; password: string } | null,
+  label = "Identifiants utilisateur E2E",
+): { email: string; password: string } {
+  if (credentials?.email && credentials.password) return credentials;
+  return getSeededUserCredentials(label);
+}
+
+export function getGeneratedUserPassword(
+  label = "Mot de passe utilisateur créé par test E2E",
+): string {
+  return requireEnvValue(
+    ["E2E_GENERATED_USER_PASSWORD", "TEST_USER_PASSWORD", "E2E_USER_PASSWORD"],
+    label,
+  );
+}
+
 /**
  * Token admin — pour les tests backoffice / administration.
  */
@@ -14,18 +49,10 @@ export async function getAdminToken(
   request: APIRequestContext,
 ): Promise<string> {
   if (_cachedAdminToken) return _cachedAdminToken;
+  const credentials = getAdminCredentials();
   try {
     const resp = await request.post(`${API_URL}/api/v1/auth/login`, {
-      data: {
-        email:
-          process.env.TEST_ADMIN_EMAIL ||
-          process.env.ADMIN_EMAIL ||
-          "admin@jobbingtrack.test",
-        password:
-          process.env.TEST_ADMIN_PASSWORD ||
-          process.env.ADMIN_PASSWORD ||
-          "password123",
-      },
+      data: credentials,
     });
     if (!resp.ok()) return "";
     const body = await resp.json();
@@ -36,11 +63,45 @@ export async function getAdminToken(
   }
 }
 
-/** Email/mot de passe de l'utilisateur seedé (make seed-auth). Utiliser en fallback quand ensureTestUser échoue. */
-export const SEEDED_USER_EMAIL =
-  process.env.TEST_USER_EMAIL || "testuser@jobbingtrack.test";
-export const SEEDED_USER_PASSWORD =
-  process.env.TEST_USER_PASSWORD || "TestPassword123!";
+/** Email/mot de passe de l'utilisateur seedé : variables env obligatoires, aucun secret en dur. */
+export function getSeededUserCredentials(label = "Identifiants utilisateur seedé"): {
+  email: string;
+  password: string;
+} {
+  return {
+    email: requireEnvValue(["TEST_USER_EMAIL", "E2E_USER_EMAIL"], `${label} email`),
+    password: requireEnvValue(
+      ["TEST_USER_PASSWORD", "E2E_USER_PASSWORD"],
+      `${label} mot de passe`,
+    ),
+  };
+}
+
+export function getSeededUserAccounts(): Array<{
+  email: string;
+  password: string;
+  name: string;
+}> {
+  const password = requireEnvValue(
+    ["TEST_USER_PASSWORD", "E2E_USER_PASSWORD"],
+    "Mot de passe comptes utilisateurs E2E",
+  );
+  const emails = firstEnvValue(["TEST_USER_EMAILS", "E2E_USER_EMAILS"])
+    ?.split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  if (emails?.length) {
+    return emails.map((email, index) => ({
+      email,
+      password,
+      name: `User ${index + 1}`,
+    }));
+  }
+
+  const user = getSeededUserCredentials();
+  return [{ email: user.email, password: user.password, name: "User 1" }];
+}
 
 /**
  * Token utilisateur seedé — login direct sans inscription.
@@ -49,9 +110,10 @@ export const SEEDED_USER_PASSWORD =
 export async function getSeededUserToken(
   request: APIRequestContext,
 ): Promise<string> {
+  const credentials = getSeededUserCredentials();
   try {
     const resp = await request.post(`${API_URL}/api/v1/auth/login`, {
-      data: { email: SEEDED_USER_EMAIL, password: SEEDED_USER_PASSWORD },
+      data: credentials,
     });
     if (!resp.ok()) return "";
     const body = await resp.json();
@@ -85,7 +147,10 @@ export async function ensureTestUser(
 ): Promise<{ email: string; password: string } | null> {
   if (_cachedUserCredentials && _cachedUserToken) return _cachedUserCredentials;
   const email = `e2e-user-${Date.now()}@jobbingtrack.test`;
-  const password = "TestPassword123!";
+  const password = requireEnvValue(
+    ["E2E_GENERATED_USER_PASSWORD", "TEST_USER_PASSWORD", "E2E_USER_PASSWORD"],
+    "Mot de passe utilisateur E2E généré",
+  );
   try {
     const regResp = await request.post(`${API_URL}/api/v1/auth/register`, {
       data: {
@@ -113,18 +178,15 @@ export async function ensureTestUser(
 
 /**
  * Credentials admin pour le login UI (formulaire Playwright).
- * Ne contient PAS le mot de passe en dur : lit .env ou utilise les défauts de dev.
+ * Ne contient PAS le mot de passe en dur : variables env obligatoires.
  */
 export function getAdminCredentials(): { email: string; password: string } {
   return {
-    email:
-      process.env.TEST_ADMIN_EMAIL ||
-      process.env.ADMIN_EMAIL ||
-      "admin@jobbingtrack.test",
-    password:
-      process.env.TEST_ADMIN_PASSWORD ||
-      process.env.ADMIN_PASSWORD ||
-      "password123",
+    email: requireEnvValue(["TEST_ADMIN_EMAIL", "ADMIN_EMAIL"], "Email admin E2E"),
+    password: requireEnvValue(
+      ["TEST_ADMIN_PASSWORD", "ADMIN_PASSWORD"],
+      "Mot de passe admin E2E",
+    ),
   };
 }
 
@@ -148,8 +210,7 @@ export async function loginAsAdmin(
  * Adresse email réelle pour tester la réception des mails.
  * Configurée via TEST_REAL_EMAIL dans .env (gitignored).
  */
-export const REAL_TEST_EMAIL =
-  process.env.TEST_REAL_EMAIL || "redacted@example.invalid";
+export const REAL_TEST_EMAIL = process.env.TEST_REAL_EMAIL?.trim() ?? "";
 
 /**
  * @deprecated Utiliser getAdminToken() ou getUserToken() selon le contexte.

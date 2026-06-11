@@ -269,7 +269,7 @@ tests/temp/                # Fichiers temporaires
     "role": "user"
   },
   "candidate": {
-    "email": "candidate@jobbingtrack.test",
+    "email": "redacted@example.invalid",
     "password": "candidate123",
     "role": "candidate"
   }

@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import config from "./test-config.js";
+import { getSeededUserAccounts, getSeededUserCredentials } from "./test-data-helper";
+
+const mobileUser = getSeededUserCredentials("Identifiants utilisateur mobile E2E");
+const mobileAccounts = getSeededUserAccounts();
 
 test.describe("📱 Application Mobile Flutter", () => {
   test.beforeEach(async ({ page }) => {
@@ -37,8 +41,8 @@ test.describe("📱 Application Mobile Flutter", () => {
     await expect(page.locator('input[type="password"]')).toBeVisible();
 
     // Remplir le formulaire de connexion
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
 
     // Cliquer sur le bouton de connexion
     await page.click('button:has-text("Se connecter")');
@@ -59,8 +63,8 @@ test.describe("📱 Application Mobile Flutter", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter d'abord
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -84,8 +88,8 @@ test.describe("📱 Application Mobile Flutter", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -137,8 +141,8 @@ test.describe("📱 Application Mobile Flutter", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -176,8 +180,8 @@ test.describe("📱 Application Mobile Flutter", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -211,11 +215,7 @@ test.describe("📱 Application Mobile Flutter", () => {
     await page.goto("http://localhost:8090");
 
     // Tester les différents comptes utilisateur mentionnés dans l'interface
-    const testAccounts = [
-      { email: "user1@jobbingtrack.test", name: "User 1" },
-      { email: "user2@jobbingtrack.test", name: "User 2" },
-      { email: "user3@jobbingtrack.test", name: "User 3" },
-    ];
+    const testAccounts = mobileAccounts;
 
     for (const account of testAccounts) {
       // Recharger la page pour chaque test
@@ -223,7 +223,7 @@ test.describe("📱 Application Mobile Flutter", () => {
 
       // Se connecter avec le compte actuel
       await page.fill('input[type="email"]', account.email);
-      await page.fill('input[type="password"]', "password123");
+      await page.fill('input[type="password"]', account.password);
       await page.click('button:has-text("Se connecter")');
 
       // Vérifier la connexion réussie
@@ -243,15 +243,15 @@ test.describe("🔗 Intégration API Mobile", () => {
     // Tester l'API directement avec les credentials mobile
     const response = await request.post(`${config.apiUrl}/api/v1/auth/login`, {
       data: {
-        email: "user1@jobbingtrack.test",
-        password: "password123",
+        email: mobileUser.email,
+        password: mobileUser.password,
       },
     });
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(data.user.email).toBe("user1@jobbingtrack.test");
+    expect(data.user.email).toBe(mobileUser.email);
   });
 
   test("📋 Récupération des données utilisateur mobile", async ({
@@ -262,8 +262,8 @@ test.describe("🔗 Intégration API Mobile", () => {
       `${config.apiUrl}/api/v1/auth/login`,
       {
         data: {
-          email: "user1@jobbingtrack.test",
-          password: "password123",
+          email: mobileUser.email,
+          password: mobileUser.password,
         },
       },
     );
@@ -283,7 +283,7 @@ test.describe("🔗 Intégration API Mobile", () => {
 
     expect(profileResponse.ok()).toBeTruthy();
     const profileData = await profileResponse.json();
-    expect(profileData.user.email).toBe("user1@jobbingtrack.test");
+    expect(profileData.user.email).toBe(mobileUser.email);
   });
 
   test("🏢 Récupération des entreprises mobile", async ({ request }) => {
@@ -292,8 +292,8 @@ test.describe("🔗 Intégration API Mobile", () => {
       `${config.apiUrl}/api/v1/auth/login`,
       {
         data: {
-          email: "user1@jobbingtrack.test",
-          password: "password123",
+          email: mobileUser.email,
+          password: mobileUser.password,
         },
       },
     );
@@ -337,8 +337,8 @@ test.describe("🎯 Tests de performance mobile", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -363,8 +363,8 @@ test.describe("🎯 Tests de performance mobile", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -392,15 +392,15 @@ test.describe("🧪 Tests d'intégration mobile", () => {
 
     // Se connecter sur le web
     await webPage.goto("http://localhost:8080/login");
-    await webPage.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await webPage.fill('input[type="password"]', "password123");
+    await webPage.fill('input[type="email"]', mobileUser.email);
+    await webPage.fill('input[type="password"]', mobileUser.password);
     await webPage.click('button[type="submit"]');
     await webPage.waitForURL("**/b4ck0ff1ce");
 
     // Se connecter sur le mobile
     await mobilePage.goto("http://localhost:8090");
-    await mobilePage.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await mobilePage.fill('input[type="password"]', "password123");
+    await mobilePage.fill('input[type="email"]', mobileUser.email);
+    await mobilePage.fill('input[type="password"]', mobileUser.password);
     await mobilePage.click('button:has-text("Se connecter")');
 
     // Vérifier que les deux interfaces sont connectées
@@ -413,8 +413,8 @@ test.describe("🧪 Tests d'intégration mobile", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection

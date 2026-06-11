@@ -27,6 +27,8 @@ interface NavItem {
   icon: string;
   onClick?: () => void;
   subItems?: NavItem[];
+  /** Libellé de section non cliquable dans un sous-menu */
+  sectionLabel?: boolean;
   /** Si true, ouvre le lien dans un nouvel onglet (pour liens externes ex. MailHog) */
   external?: boolean;
 }
@@ -379,6 +381,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: "🚨",
         },
         {
+          name: "Alertes email",
+          href: "/b4ck0ff1ce/security/alerts",
+          icon: "📧",
+        },
+        {
           name: "Politiques",
           href: "/b4ck0ff1ce/security/policies",
           icon: "⚙️",
@@ -469,6 +476,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           subItems: [
             { name: "Vue d'ensemble", href: "/b4ck0ff1ce/tests", icon: "📋" },
             {
+              name: "Automatisés",
+              icon: "🤖",
+              sectionLabel: true,
+            },
+            {
               name: "Tests Playwright",
               href: "/b4ck0ff1ce/playwright-tests",
               icon: "🎭",
@@ -490,6 +502,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               icon: "🛡️",
             },
             {
+              name: "Sécurité & charge",
+              icon: "🔒",
+              sectionLabel: true,
+            },
+            {
               name: "Tests Sécurité",
               href: "/b4ck0ff1ce/tests-security",
               icon: "🔒",
@@ -504,10 +521,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               href: "/b4ck0ff1ce/performance-tests/schedule",
               icon: "📅",
             },
+          ],
+        },
+        {
+          name: "Rapports",
+          href: "/b4ck0ff1ce/test-reports",
+          icon: "📊",
+          subItems: [
             {
               name: "Rapports de tests",
               href: "/b4ck0ff1ce/test-reports",
               icon: "📊",
+            },
+            {
+              name: "Rapports de parcours",
+              href: "/b4ck0ff1ce/user-journey/reports",
+              icon: "📄",
             },
           ],
         },
@@ -526,11 +555,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               href: "/b4ck0ff1ce/user-journey/custom",
               icon: "🎯",
             },
-            {
-              name: "Rapports de parcours",
-              href: "/b4ck0ff1ce/user-journey/reports",
-              icon: "📄",
-            },
           ],
         },
       ],
@@ -547,7 +571,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/b4ck0ff1ce/email-monitor",
           icon: "📈",
         },
-        { name: "Historique", href: "/b4ck0ff1ce/emails/logs", icon: "📋" },
+        {
+          name: "Historique",
+          href: "/b4ck0ff1ce/email-monitor?type=NOTIFICATION",
+          icon: "📋",
+        },
         { name: "Templates", href: "/b4ck0ff1ce/emails/templates", icon: "📝" },
         {
           name: "Configuration",
@@ -571,7 +599,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <style jsx>{`
         /* Effet de survol amélioré */
         .nav-item-hover {
@@ -599,7 +627,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           border-radius: 2px;
         }
       `}</style>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+      <style jsx global>{`
+        html,
+        body {
+          overflow-x: hidden;
+        }
+      `}</style>
+      <div className="min-h-screen overflow-x-hidden bg-gray-50 dark:bg-gray-950 transition-colors">
         {/* ✅ Overlay mobile - Ferme la sidebar quand on clique dessus */}
         {isSidebarOpen && (
           <div
@@ -827,6 +861,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 {hasSubItems && showItemSubItems && (
                                   <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                                     {(item.subItems ?? []).map((subItem) => {
+                                      if (subItem.sectionLabel) {
+                                        return (
+                                          <div
+                                            key={subItem.name}
+                                            className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 select-none"
+                                          >
+                                            {subItem.icon ? (
+                                              <span className="mr-1 normal-case">
+                                                {subItem.icon}
+                                              </span>
+                                            ) : null}
+                                            {subItem.name}
+                                          </div>
+                                        );
+                                      }
                                       const isSubActive =
                                         !subItem.external &&
                                         navItemMatchesPath(pathname, subItem);
@@ -946,12 +995,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
         <div
-          className={`transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72 md:ml-80"}`}
+          className={`overflow-x-hidden transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72"}`}
         >
           {/* Top bar */}
           <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
             <div
-              className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
+              className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
             >
               {/* Section gauche - Navigation et titre */}
               <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
@@ -1217,7 +1266,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
           <main
-            className={`backoffice-content p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12 md:pl-12"}`}
+            className={`backoffice-content overflow-x-hidden p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
           >
             {children}
           </main>

@@ -667,8 +667,8 @@ ${scenario.steps
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Tests Playwright
             </h1>
@@ -676,7 +676,7 @@ ${scenario.steps
               Créez, gérez et exécutez des tests end-to-end personnalisés
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             <button
               onClick={() => {
                 setNewScenario({
@@ -688,7 +688,7 @@ ${scenario.steps
                 });
                 setShowCreateModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
             >
               <Plus className="h-5 w-5" />
               Nouveau test
@@ -697,7 +697,7 @@ ${scenario.steps
               onClick={runFullSuite}
               disabled={running}
               title="Exécute toute la suite Playwright (tests/e2e) et génère un rapport"
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
             >
               {running ? (
                 <>
@@ -714,7 +714,7 @@ ${scenario.steps
             <button
               onClick={runTests}
               disabled={running || selectedScenarios.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
             >
               {running ? (
                 <>

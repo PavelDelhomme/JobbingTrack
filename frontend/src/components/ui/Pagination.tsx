@@ -25,7 +25,7 @@ export function Pagination({
   currentPage,
   totalPages,
   totalItems,
-  itemsPerPage,
+  itemsPerPage: _itemsPerPage,
   startIndex,
   endIndex,
   onPageChange,
@@ -83,10 +83,10 @@ export function Pagination({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}
+      className={`flex min-w-0 flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4 ${className}`}
     >
       {/* Informations */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-center text-sm text-gray-600 dark:text-gray-400 sm:text-left">
         Affichage de{" "}
         <span className="font-medium text-gray-900 dark:text-gray-100">
           {startIndex}
@@ -103,12 +103,12 @@ export function Pagination({
       </div>
 
       {/* Contrôles de pagination */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 sm:gap-2">
         {/* Bouton Précédent */}
         <button
           onClick={onPrevious}
           disabled={!canGoPrevious}
-          className={`px-3 py-2 rounded-lg border transition-colors ${
+          className={`rounded-lg border px-2.5 py-2 transition-colors sm:px-3 ${
             canGoPrevious
               ? "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
@@ -118,13 +118,13 @@ export function Pagination({
         </button>
 
         {/* Numéros de page */}
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-1">
           {getPageNumbers().map((page, index) => {
             if (page === "...") {
               return (
                 <span
                   key={`ellipsis-${index}`}
-                  className="px-2 text-gray-400 dark:text-gray-600"
+                  className="px-1 text-gray-400 dark:text-gray-600 sm:px-2"
                 >
                   ...
                 </span>
@@ -138,7 +138,7 @@ export function Pagination({
               <button
                 key={pageNumber}
                 onClick={() => onPageChange(pageNumber)}
-                className={`px-3 py-2 rounded-lg border transition-colors ${
+                className={`rounded-lg border px-2.5 py-2 text-sm transition-colors sm:px-3 ${
                   isActive
                     ? "border-blue-600 dark:border-blue-500 bg-blue-600 dark:bg-blue-500 text-white"
                     : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -154,7 +154,7 @@ export function Pagination({
         <button
           onClick={onNext}
           disabled={!canGoNext}
-          className={`px-3 py-2 rounded-lg border transition-colors ${
+          className={`rounded-lg border px-2.5 py-2 transition-colors sm:px-3 ${
             canGoNext
               ? "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"

@@ -1,7 +1,7 @@
 /**
  * Spec dédié : inscription + vérification email (BlueMail / OVH) — flux API uniquement.
  *
- * Lancer : cd tests && TEST_REAL_EMAILS=candidatures@example.invalid npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
+ * Lancer : cd tests && TEST_REAL_EMAILS=<adresse configuree hors Git> npx playwright test e2e/specs/mobile/mobile-email-verification-bluemail.spec.ts --project=chromium
  */
 
 import { test, expect } from '@playwright/test';
@@ -9,14 +9,21 @@ import { test, expect } from '@playwright/test';
 import { e2eGatewayBaseUrl } from '../../helpers/gatewayUrl';
 
 const GATEWAY_URL = e2eGatewayBaseUrl();
-const BLUEMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',').map((s) => s.trim()).find((e) => e.includes('example.invalid') || e.includes('bluemail')) || process.env.TEST_REAL_EMAIL || 'candidatures@example.invalid';
-const TEST_PASSWORD = process.env.TEST_VERIFICATION_PASSWORD || 'SecureP@ss123!';
+
+function requireEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} doit etre defini pour lancer ce test email reel.`);
+  return value;
+}
+
+const BLUEMAIL_EMAIL = process.env.TEST_REAL_EMAILS?.split(',').map((s) => s.trim()).find(Boolean) || requireEnv('TEST_REAL_EMAIL');
+const TEST_PASSWORD = requireEnv('TEST_VERIFICATION_PASSWORD');
 
 async function loginAdmin(request: any): Promise<string> {
   const res = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
     data: {
-      email: process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test',
-      password: process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123'
+      email: process.env.TEST_ADMIN_EMAIL || requireEnv('ADMIN_EMAIL'),
+      password: process.env.TEST_ADMIN_PASSWORD || requireEnv('ADMIN_PASSWORD')
     },
   });
   expect(res.status()).toBe(200);

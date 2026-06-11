@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 8 juin 2026
+Dernière mise à jour : 11 juin 2026 (mode avance rapide porteur — validations groupées en fin de lot)
 
 ## Règle principale
 
@@ -12,7 +12,7 @@ Avant toute nouvelle tâche, lire dans cet ordre :
 4. `docs/TODOS.md`
 5. `BRANCHES.md`
 
-Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité. L’agent doit traiter **uniquement la première ligne ouverte** de `TODOS_A_VALIDER.md`. Exceptions autorisées : corriger un problème remonté par le porteur sur cette ligne, mettre à jour le pilotage, ou préparer une preuve nécessaire à cette validation précise. Ne pas lancer les validations suivantes en parallèle.
+Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité **sauf demande explicite du porteur de valider en lot plus tard**. Mode actuel (11/06) : le porteur autorise l’agent à **préparer plusieurs lignes P1** (preuves dans `TODOS_A_VERIFIER.md`) sans archiver dans `TODOS_DONE.md` tant que le OK explicite n’est pas donné. L’ordre de `TODOS_A_VALIDER.md` reste la file de validation ; l’agent peut implémenter/corriger en parallèle les sujets déjà ouverts (P1A tests offensifs, P1B temps de réponse, P1C menu Tests/Rapports, responsive).
 
 ## Rôle des fichiers
 
@@ -32,15 +32,15 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité et Rapports sécurité (affichage CVE) validés le 21/05/2026.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE et alertes email critiques validés localement.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Comparaison de rapports sécurité (CVE)** (régression porteur 21/05).
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Tests offensifs contrôlés par conteneur JobbingTrack**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
-4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (menaces lab, puis P1A/P1B/P1C, une ligne à la fois).
-5. Reprendre `docs/TODOS.md` uniquement quand les P0 porteur sont validés ou explicitement reclassés.
+4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C, une ligne à la fois).
+5. Reprendre `docs/TODOS.md` uniquement quand les validations porteur bloquantes sont validées ou explicitement reclassées.
 
 ## Flux de travail
 

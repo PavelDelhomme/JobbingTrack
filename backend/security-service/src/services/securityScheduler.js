@@ -403,10 +403,16 @@ class SecurityScheduler {
     const baseUrl = process.env.METRICS_SERVICE_URL || process.env.METRICS_AGGREGATOR_URL || 'http://jobbingtrack-metrics-aggregator:3014';
     const timeout = Number(process.env.SECURITY_SERVICE_DOWN_ALERT_TIMEOUT_MS || 5000);
     const criticalServices = this.getCriticalServiceNames();
+    const headers = process.env.METRICS_API_KEY
+      ? { 'X-API-Key': process.env.METRICS_API_KEY }
+      : undefined;
 
     let payload;
     try {
-      const response = await axios.get(`${baseUrl.replace(/\/$/, '')}/api/v1/docker/services/all`, { timeout });
+      const response = await axios.get(`${baseUrl.replace(/\/$/, '')}/api/v1/docker/services/all`, {
+        timeout,
+        headers
+      });
       payload = response.data;
     } catch (error) {
       await this.createAvailabilityAlert({

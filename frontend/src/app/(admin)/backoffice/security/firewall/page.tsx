@@ -446,10 +446,10 @@ export default function FirewallPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         <SecuritySubNav />
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Shield className="h-8 w-8" />
               Firewall
@@ -463,7 +463,7 @@ export default function FirewallPage() {
               loadRules();
               loadBlockedIps();
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto"
           >
             <RefreshCw className="h-5 w-5" />
             Actualiser
@@ -479,14 +479,14 @@ export default function FirewallPage() {
         )}
 
         {/* Règles de Firewall */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="min-w-0 overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Règles de Firewall
             </h2>
             <button
               onClick={() => setShowAddRule(!showAddRule)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 sm:w-auto"
             >
               <Plus className="h-5 w-5" />
               Ajouter une règle
@@ -831,8 +831,8 @@ export default function FirewallPage() {
               Aucune règle de firewall
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="max-w-full overflow-x-auto">
+              <table className="min-w-[780px] w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left p-3">Nom</th>
@@ -1013,7 +1013,7 @@ export default function FirewallPage() {
               Aucune IP bloquée
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               {blockedIps.map((item, index) => {
                 const o = String(item.blockOrigin || "");
                 const originLabel =
@@ -1031,7 +1031,7 @@ export default function FirewallPage() {
                 return (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg gap-3"
+                    className="flex flex-col gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1256,7 +1256,7 @@ function WAFConfigSection() {
   }, [loadWAFConfig]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="min-w-0 overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Configuration WAF (Web Application Firewall)
       </h2>
@@ -1264,7 +1264,7 @@ function WAFConfigSection() {
       {loadingWaf ? (
         <TableSkeleton rows={6} columns={4} />
       ) : (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
               <p className="text-red-800 dark:text-red-200">{error}</p>
@@ -1272,8 +1272,8 @@ function WAFConfigSection() {
           )}
 
           {/* Toggle WAF */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h3 className="text-lg font-semibold mb-2">État du WAF</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Activez ou désactivez le Web Application Firewall
@@ -1333,12 +1333,12 @@ function WAFConfigSection() {
 
           {/* Règles WAF */}
           {wafEnabled && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
+            <div className="min-w-0">
+              <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-lg font-semibold">
                   Règles de Protection WAF
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <button
                     onClick={() => handleSetAllWafRules(true)}
                     disabled={wafActionLoading}
@@ -1360,8 +1360,8 @@ function WAFConfigSection() {
                   Aucune règle WAF configurée
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="max-w-full overflow-x-auto">
+                  <table className="min-w-[760px] w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700">
                         <th className="text-left p-3">Règle WAF</th>

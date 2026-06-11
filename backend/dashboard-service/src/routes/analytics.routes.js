@@ -19,7 +19,7 @@ const optionalAuth = async (req, res, next) => {
         if (process.env.NODE_ENV !== 'production' && devBypassToken && token === devBypassToken) {
           req.user = {
             id: 'dev_user_1',
-            email: 'dev@jobbingtrack.test',
+            email: 'redacted@example.invalid',
             role: 'USER'
           };
           req.token = token;

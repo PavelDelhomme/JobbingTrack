@@ -14,6 +14,18 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Analytics application & utilisateurs (20/05/2026)** : à reprendre après Statistics. Clarifier deux axes : analytics **application/mobile** (activité, traces, retours, signalements, parcours) et analytics **utilisateurs admin** (comptes, activité, cohortes, rôles, rétention). Ne pas confondre avec performances live infra.
 
+**Agent email / tâches recherche emploi (09/06/2026)** : cadrage porteur ajouté dans `docs/features/EMAIL_TRIAGE_AGENT.md`. Objectif : assistant JobbingTrack capable de lire/triager Gmail et la boîte candidatures configurées hors Git, relier les emails aux candidatures/entreprises, créer tâches/relances/événements, préparer les entretiens, envoyer un digest quotidien à 18h et un récap hebdomadaire via le socle SMTP JobbingTrack, sans envoi automatique. À traiter comme chantier produit dédié après les P0/P1 bloquants, avec OAuth/scopes minimaux, audit, tokens chiffrés, Google Tasks/Calendar obligatoires, worker planifié, stockage interne des emails utiles, moteur déterministe d’abord et IA locale en renfort. Périmètre élargi noté : espace utilisateur connecté sur `/`, backoffice admin sur `/b4ck0ff1ce`, base de composants partagée, option future `user-frontend` / `backoffice-frontend`, interface web/mobile responsive, revalidation PIN, autocomplete accessible, boîte de réception agent, préparation/envoi relance-email contrôlé, calendrier agrégé, programmation manuelle d’appels/tâches/rappels/événements même sans email déclencheur, fiches candidature/entreprise enrichies, suivi intérim, imports Google Contacts CSV/vCard, PDF d’offre depuis URL, enrichissement entreprise et veille salons/job dating par ville/région. Make.com/Zapier ne sont pas le socle.
+
+**Agent email — recherche v2 et Calendar (09/06/2026)** : prévoir après le MVP une barre de recherche réutilisable dans l’espace utilisateur puis dans le backoffice/admin, couvrant emails, candidatures, entreprises, contacts, tâches et événements selon permissions. Côté Google Calendar, ne jamais convertir une date sans heure en événement à `00:00`, ni créer automatiquement avant `05:00` ou après `23:00` : créer une tâche “horaire à confirmer/vérifier”, proposer un événement journée entière ou demander validation utilisateur.
+
+**Agent email — compte personnel autorisé (10/06/2026)** : l’agent recherche d’emploi doit pouvoir être utilisé par le compte personnel non-admin du porteur, mais seulement après activation explicite. Prévoir un droit/feature flag utilisateur, une révocation admin auditée, et une séparation stricte entre rôle admin et accès au contenu email personnel.
+
+**Agent email — tests et limites horaires Calendar (10/06/2026)** : ne jamais créer automatiquement un événement Google Calendar avant `05:00`, après `23:00` ou à `00:00` par défaut. Les tests devront couvrir ces bornes, les dates seules, les fuseaux horaires, les permissions d’accès, Gmail/IMAP lecture seule, digest SMTP/mock et génération de rapports dédiés.
+
+**Backoffice Développement → Tests — navigation (09/06/2026)** : demande porteur de réorganiser le sous-menu Tests, trop long et peu lisible. Cible : clic direct sur Tests = vue d’ensemble, sous-menu Rapports regroupant Rapports de tests + Rapports de parcours, regroupement plus clair des tests Playwright/API/Backend/Frontend/Backoffice/Sécurité/Performance, programmation et parcours. Suivi en validation P1C après P0 CVE.
+
+**Sécurité réseau avancée (09/06/2026)** : compléter la stratégie sécurité avec HTTP forgé/smuggling léger, DNS poisoning, UPnP abuse, session hijacking, IP spoofing, ICMP redirect, BGP hijack, ARP spoofing, MAC flooding, VLAN hopping, port scan/SYN scan/SYN flood contrôlé. Le détail opérationnel est dans `docs/security/SECURITY_TESTING_MATRIX.md`; le traitement doit rester lab/préprod autorisé, borné et non destructif.
+
 **Contrôles période sticky (20/05/2026)** : sur Performances/Statistics/Analytics, les barres de période doivent rester visibles en haut lors du scroll profond dans les graphes (dropdown, plage actuelle, précédent/suivant/actuelle), avec comportement cohérent clair/sombre.
 
 **Performances — transitions de période (21/05/2026)** : le comportement sans flash vide est traité dans le chantier court : les graphes restent visibles pendant le fetch d’une nouvelle plage. Reste backlog séparé : barre période sticky au scroll profond, comparaison de périodes, brush/zoom partagé et export des séries.
@@ -40,7 +52,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [x] **Fix `api-e2e.spec.ts`** : credentials desynchronises → `_testCreds` direct. (26/02)
 - [x] **Fix 5 fichiers E2E** : imports, networkidle → domcontentloaded, resilience. (26/02)
 - [x] **4 nouvelles suites de test** : email-workflows, admin-data-crud, admin-users-crud, admin-security-complete. (26/02)
-- [x] **Email de test réel** : `test@example.invalid` (via env var `TEST_REAL_EMAIL`).
+- [x] **Email de test réel** : `test-recipient@example.invalid` (via env var `TEST_REAL_EMAIL`).
 - [x] **Tests backoffice E2E autonomes** : `loginAsAdmin()` dans 6 fichiers.
 - [x] **Rapports avec type d'utilisateur** : badge ADMIN/USER/SYSTEM.
 - [x] **Tests Playwright E2E** : pré-authentification `storageState`.
@@ -70,7 +82,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [ ] Pagination et tri cohérents sur toutes les listes.
 - [x] Tests E2E interactions approfondies (archivage, cascade, BDD relations, sécurité backoffice).
 - [x] Architecture tests USER/ADMIN et rapports avec badge type utilisateur.
-- [x] Email de test réel (`test@example.invalid`) pour vérification réception.
+- [x] Email de test réel (`test-recipient@example.invalid`) pour vérification réception.
 - [x] Tests sécurité backoffice complets (firewall CRUD, WAF, menaces, IPs bloquées, logs).
 
 ## Priorité moyenne – API et fonctionnalités

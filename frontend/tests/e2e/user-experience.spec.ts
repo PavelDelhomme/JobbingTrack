@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import config from "./test-config.js";
+import { getSeededUserAccounts, getSeededUserCredentials } from "./test-data-helper";
+
+const mobileUser = getSeededUserCredentials("Identifiants utilisateur mobile E2E");
+const mobileAccounts = getSeededUserAccounts();
 
 test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", () => {
   test("📱 Application mobile accessible aux utilisateurs", async ({
@@ -14,8 +18,8 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     });
 
     // Tester la connexion avec un utilisateur normal (pas admin)
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Vérifier la redirection vers l'accueil utilisateur
@@ -29,8 +33,8 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     await page.goto("http://localhost:8090");
 
     // Se connecter comme utilisateur normal
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Vérifier la redirection
@@ -54,8 +58,8 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     await page.goto("http://localhost:8090");
 
     // Se connecter comme utilisateur normal
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Vérifier la redirection
@@ -93,11 +97,7 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     await page.goto("http://localhost:8090");
 
     // Tester les différents comptes utilisateur normaux
-    const testAccounts = [
-      { email: "user1@jobbingtrack.test", name: "User 1" },
-      { email: "user2@jobbingtrack.test", name: "User 2" },
-      { email: "user3@jobbingtrack.test", name: "User 3" },
-    ];
+    const testAccounts = mobileAccounts;
 
     for (const account of testAccounts) {
       // Recharger la page pour chaque test
@@ -105,7 +105,7 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
 
       // Se connecter avec le compte actuel
       await page.fill('input[type="email"]', account.email);
-      await page.fill('input[type="password"]', "password123");
+      await page.fill('input[type="password"]', account.password);
       await page.click('button:has-text("Se connecter")');
 
       // Vérifier la connexion réussie
@@ -128,8 +128,8 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     await page.goto("http://localhost:8090");
 
     // Se connecter comme utilisateur normal
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -153,8 +153,8 @@ test.describe("👤 Expérience Utilisateur - Tests pour utilisateurs normaux", 
     await page.goto("http://localhost:8090");
 
     // Se connecter comme utilisateur normal
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection
@@ -193,15 +193,15 @@ test.describe("🔗 API pour utilisateurs normaux", () => {
     // Tester l'API avec un utilisateur normal (pas admin)
     const response = await request.post(`${config.apiUrl}/api/v1/auth/login`, {
       data: {
-        email: "user1@jobbingtrack.test",
-        password: "password123",
+        email: mobileUser.email,
+        password: mobileUser.password,
       },
     });
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(data.user.email).toBe("user1@jobbingtrack.test");
+    expect(data.user.email).toBe(mobileUser.email);
     expect(data.user.role).not.toBe("SUPER_ADMIN"); // Pas admin
   });
 
@@ -211,8 +211,8 @@ test.describe("🔗 API pour utilisateurs normaux", () => {
       `${config.apiUrl}/api/v1/auth/login`,
       {
         data: {
-          email: "user1@jobbingtrack.test",
-          password: "password123",
+          email: mobileUser.email,
+          password: mobileUser.password,
         },
       },
     );
@@ -239,8 +239,8 @@ test.describe("🔗 API pour utilisateurs normaux", () => {
       `${config.apiUrl}/api/v1/auth/login`,
       {
         data: {
-          email: "user1@jobbingtrack.test",
-          password: "password123",
+          email: mobileUser.email,
+          password: mobileUser.password,
         },
       },
     );
@@ -285,8 +285,8 @@ test.describe("🎯 Performance utilisateur", () => {
     await page.goto("http://localhost:8090");
 
     // Se connecter comme utilisateur normal
-    await page.fill('input[type="email"]', "user1@jobbingtrack.test");
-    await page.fill('input[type="password"]', "password123");
+    await page.fill('input[type="email"]', mobileUser.email);
+    await page.fill('input[type="password"]', mobileUser.password);
     await page.click('button:has-text("Se connecter")');
 
     // Attendre la redirection

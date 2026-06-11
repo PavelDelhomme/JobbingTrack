@@ -199,7 +199,7 @@ docs/
 
 ## 📞 Support
 
-- **📧 Email** : support@jobbingtrack.test
+- **📧 Email** : redacted@example.invalid
 - **🐛 Issues** : [GitHub Issues](https://github.com/votre-repo/jobbingtrack/issues)
 - **📖 Documentation** : Tous les guides mis à jour
 - **🔄 Migration** : Guide dans chaque document

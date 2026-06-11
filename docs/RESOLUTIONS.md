@@ -608,7 +608,7 @@
 - Credentials admin hardcodes dans `test-email-endpoints.test.js`.
 
 ### Solution
-1. **`.env`** (gitignored) : ajout `TEST_REAL_EMAIL=test@example.invalid`, `TEST_REAL_EMAIL_PASSWORD`, `TEST_REAL_EMAIL_IMAP_HOST=ssl0.ovh.net`, `TEST_REAL_EMAIL_IMAP_PORT=993`.
+1. **`.env`** (gitignored) : ajout `TEST_REAL_EMAIL=test-recipient@example.invalid`, `TEST_REAL_EMAIL_PASSWORD`, `TEST_REAL_EMAIL_IMAP_HOST=ssl0.ovh.net`, `TEST_REAL_EMAIL_IMAP_PORT=993`.
 2. **`test-email-endpoints.test.js`** : utilise `getAdminUser()` au lieu de credentials hardcodes, envoie vers `REAL_TEST_EMAIL`.
 3. **`test-data-helper.ts`** : exporte `REAL_TEST_EMAIL` pour usage dans les tests E2E Playwright.
 4. Les credentials ne sont **jamais** committes (`.env` est dans `.gitignore`).
@@ -794,7 +794,7 @@
 
 - Table `EmailLog` creee par `make db-push-all`. Envoi de test OK apres.
 - Config SMTP : redacted@example.invalid, SMTP_FROM entre guillemets dans .env.
-- Reply-To : `SMTP_REPLY_TO=noreply@jobbingtrack.test` + headers auto-generated.
+- Reply-To : `SMTP_REPLY_TO=redacted@example.invalid` + headers auto-generated.
 
 ---
 

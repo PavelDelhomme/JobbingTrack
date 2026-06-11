@@ -4,18 +4,32 @@
  */
 import { AdbClient } from "./adb-client";
 
-/** Identifiants du compte de test mobile (user1) — réception des mails si email réel (ex. redacted@example.invalid). */
+function envValue(key: string): string {
+  if (typeof process === "undefined") return "";
+  return process.env?.[key]?.trim() ?? "";
+}
+
+function requireRuntimeValue(value: string, label: string): string {
+  if (!value) {
+    throw new Error(`${label} manquant: renseigner la variable d'environnement dédiée.`);
+  }
+  return value;
+}
+
+/** Identifiants du compte de test mobile — réception des mails si une adresse réelle est configurée hors Git. */
 export function getMobileTestCredentials(): {
   email: string;
   password: string;
 } {
   return {
-    email:
-      typeof process !== "undefined" &&
-      process.env?.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
-        ? process.env.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
-        : "user1@jobbingtrack.test",
-    password: getMobileTestPassword(),
+    email: requireRuntimeValue(
+      envValue("NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL"),
+      "Email utilisateur mobile de test",
+    ),
+    password: requireRuntimeValue(
+      getMobileTestPassword(),
+      "Mot de passe utilisateur mobile de test",
+    ),
   };
 }
 
@@ -25,60 +39,39 @@ function getMobileTestPassword(): string {
       window.sessionStorage.getItem("jobbingtrack:mobile-test-password") || ""
     );
   }
-  if (
-    typeof process !== "undefined" &&
-    process.env?.MOBILE_TEST_USER_PASSWORD
-  ) {
-    return process.env.MOBILE_TEST_USER_PASSWORD;
-  }
+  const password = envValue("MOBILE_TEST_USER_PASSWORD");
+  if (password) return password;
   return "";
 }
 
 /** Emails utilisés pour les parcours inscription + vérification email (Gmail, Proton, BlueMail). */
 export const VERIFICATION_EMAIL_ACCOUNTS = {
   gmail: {
-    email: sanitizeEmailForInput(
-      typeof process !== "undefined" &&
-        process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL
-        ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL
-        : "redacted@example.invalid",
-    ),
-    password:
-      typeof process !== "undefined" &&
-      process.env?.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD
-        ? process.env.NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD
-        : "password123",
+    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL")),
+    password: envValue("NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD"),
     app: "Gmail",
   },
   proton: {
-    email: sanitizeEmailForInput(
-      typeof process !== "undefined" &&
-        process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL
-        ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL
-        : "redacted@example.invalid",
-    ),
-    password:
-      typeof process !== "undefined" &&
-      process.env?.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD
-        ? process.env.NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD
-        : "password123",
+    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL")),
+    password: envValue("NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD"),
     app: "Proton Mail",
   },
   bluemail: {
-    email: sanitizeEmailForInput(
-      typeof process !== "undefined" &&
-        process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL
-        ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL
-        : "candidatures@example.invalid",
-    ),
-    password:
-      typeof process !== "undefined" &&
-      process.env?.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD
-        ? process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD
-        : "password123",
+    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL")),
+    password: envValue("NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD"),
     app: "BlueMail",
   },
 } as const;
+
+function requireVerificationAccount(
+  account: { email: string; password: string; app: string },
+): { email: string; password: string; app: string } {
+  return {
+    ...account,
+    email: requireRuntimeValue(account.email, `Email ${account.app}`),
+    password: requireRuntimeValue(account.password, `Mot de passe ${account.app}`),
+  };
+}
 
 /** Supprime les chiffres en fin d'email (évite .com6 envoyé par erreur ou par le clavier). */
 function sanitizeEmailForInput(email: string): string {
@@ -418,7 +411,9 @@ export async function executeStep(
     }
 
     case "fill_register_form_gmail": {
-      const { email: rawEmail, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      const { email: rawEmail, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.gmail,
+      );
       const email = normalizeEmailForTyping(rawEmail);
       if (email !== rawEmail)
         adb.logMessage(
@@ -457,7 +452,9 @@ export async function executeStep(
     }
 
     case "fill_register_form_proton": {
-      const { email: rawEmail, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      const { email: rawEmail, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.proton,
+      );
       const email = normalizeEmailForTyping(rawEmail);
       if (email !== rawEmail)
         adb.logMessage(
@@ -482,8 +479,9 @@ export async function executeStep(
     }
 
     case "fill_register_form_bluemail": {
-      const { email: rawEmail, password } =
-        VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      const { email: rawEmail, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.bluemail,
+      );
       const email = normalizeEmailForTyping(rawEmail);
       if (email !== rawEmail)
         adb.logMessage(
@@ -609,10 +607,11 @@ export async function executeStep(
     // ═══════════════════════════════════════════════════════════════
 
     case "fill_login_form": {
+      const { email, password } = getMobileTestCredentials();
       await adb.wait(500);
-      await adb.typeInField("Email", "admin@jobbingtrack.test");
+      await adb.typeInField("Email", email);
       await adb.wait(800);
-      await adb.typeInField("Mot de passe", "password123");
+      await adb.typeInField("Mot de passe", password);
       await adb.wait(500);
       await adb.closeKeyboard();
       await adb.wait(800);
@@ -636,7 +635,9 @@ export async function executeStep(
     }
 
     case "fill_login_form_gmail": {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.gmail;
+      const { email, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.gmail,
+      );
       await adb.wait(500);
       await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
       await adb.wait(800);
@@ -648,7 +649,9 @@ export async function executeStep(
     }
 
     case "fill_login_form_proton": {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.proton;
+      const { email, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.proton,
+      );
       await adb.wait(500);
       await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
       await adb.wait(800);
@@ -660,7 +663,9 @@ export async function executeStep(
     }
 
     case "fill_login_form_bluemail": {
-      const { email, password } = VERIFICATION_EMAIL_ACCOUNTS.bluemail;
+      const { email, password } = requireVerificationAccount(
+        VERIFICATION_EMAIL_ACCOUNTS.bluemail,
+      );
       await adb.wait(500);
       await typeInFieldWithHints(adb, REGISTER_EMAIL_HINTS, email);
       await adb.wait(800);

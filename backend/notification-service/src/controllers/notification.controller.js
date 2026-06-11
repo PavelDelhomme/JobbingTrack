@@ -303,17 +303,30 @@ const deleteNotification = async (req, res, next) => {
 // Récupérer les logs d'emails
 const getEmailLogs = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 20, status, type, q } = req.query;
     const userId = req.user.id;
+    const role = String(req.user.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
     const where = {
-      userId,
-      ...(status && { status })
+      ...(isAdmin ? {} : { userId }),
+      ...(status && { status }),
+      ...(type && { type })
     };
+    if (q) {
+      const query = String(q).trim();
+      if (query) {
+        where.OR = [
+          { to: { contains: query, mode: 'insensitive' } },
+          { from: { contains: query, mode: 'insensitive' } },
+          { subject: { contains: query, mode: 'insensitive' } }
+        ];
+      }
+    }
 
     const [emailLogs, total] = await Promise.all([
       prisma.emailLog.findMany({
@@ -327,6 +340,7 @@ const getEmailLogs = async (req, res, next) => {
 
     res.json({
       success: true,
+      data: emailLogs,
       emailLogs,
       pagination: {
         page: pageNum,
@@ -352,7 +366,7 @@ const sendEmail = async (req, res, next) => {
       data: {
         userId,
         to,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+        from: process.env.SMTP_FROM || 'redacted@example.invalid',
         subject,
         body,
         status: 'PENDING',
@@ -397,7 +411,8 @@ const sendEmail = async (req, res, next) => {
 const sendInternalSecurityAlertEmail = async (req, res, next) => {
   try {
     const { to, subject, html, alert } = req.body;
-    const from = process.env.SMTP_FROM || 'noreply@jobbingtrack.test';
+    const from = process.env.SECURITY_ALERT_FROM || process.env.SMTP_FROM || 'redacted@example.invalid';
+    const replyTo = process.env.SECURITY_ALERT_REPLY_TO || process.env.SMTP_REPLY_TO || undefined;
     let emailLog = null;
 
     try {
@@ -413,6 +428,7 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
             emailContent: html,
             metadata: {
               channel: 'security_alert',
+              replyTo: replyTo || null,
               alert: alert || null
             }
           }
@@ -423,14 +439,25 @@ const sendInternalSecurityAlertEmail = async (req, res, next) => {
     }
 
     try {
-      await emailService.sendEmail(to, subject, html);
+      const deliveryInfo = await emailService.sendEmail(to, subject, html, {
+        from,
+        replyTo,
+        securityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true',
+        awaitSecurityAlertMirror: process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true'
+      });
 
       if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
         await prisma.emailLog.update({
           where: { id: emailLog.id },
           data: {
             status: 'SENT',
-            sentAt: new Date()
+            sentAt: new Date(),
+            metadata: {
+              channel: 'security_alert',
+              replyTo: replyTo || null,
+              alert: alert || null,
+              mirror: deliveryInfo?.securityAlertMirror || null
+            }
           }
         });
       }
@@ -635,8 +662,6 @@ const getStats = async (req, res, next) => {
   }
 };
 
-const CRASH_REPORT_EMAIL = process.env.CRASH_REPORT_EMAIL || 'infos@example.invalid';
-
 const reportCrash = async (req, res, next) => {
   try {
     const userId = req.user?.id || 'anonymous';
@@ -773,8 +798,15 @@ const reportCrash = async (req, res, next) => {
     ].join('\n');
 
     try {
-      await emailService.sendEmail(CRASH_REPORT_EMAIL, emailSubject, emailBody);
-      logger.info(`Crash report envoye a ${CRASH_REPORT_EMAIL}: ${crashType}`);
+      const crashReportEmail = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
+      const { from: crashReportFrom, replyTo: crashReportReplyTo } =
+        emailService.getCrashReportIdentity();
+
+      await emailService.sendEmail(crashReportEmail, emailSubject, emailBody, {
+        from: crashReportFrom,
+        replyTo: crashReportReplyTo
+      });
+      logger.info(`Crash report envoye au destinataire crash configure: ${crashType}`);
     } catch (emailError) {
       logger.warn('Envoi email crash echoue:', emailError.message);
     }

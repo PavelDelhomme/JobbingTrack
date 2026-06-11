@@ -142,9 +142,9 @@ export default function EventsPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="space-y-6 min-w-0">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Gestion des Événements
             </h1>
@@ -152,7 +152,7 @@ export default function EventsPage() {
               Gérez vos événements (candidatures, relances, entretiens, appels)
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
             <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("list")}
@@ -177,7 +177,7 @@ export default function EventsPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors sm:w-auto"
             >
               <Plus className="h-5 w-5" />
               Nouvel événement
@@ -197,7 +197,7 @@ export default function EventsPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input

@@ -23,7 +23,7 @@
 **Statut** : ✅ **TERMINÉ**
 
 **Réalisations** :
-- ✅ Compte email `noreply@jobbingtrack.test` créé et opérationnel
+- ✅ Compte email `redacted@example.invalid` créé et opérationnel
 - ✅ Service Python d'envoi d'emails intégré (`email_service.py`)
 - ✅ Wrapper Node.js `pythonEmailService.js` pour intégration
 - ✅ Tracking des emails (ouverture, clics) avec pixel de tracking
@@ -352,7 +352,7 @@
 **Améliorations 27/11/2025** :
 - ✅ Service Python d'envoi d'emails intégré
 - ✅ Email Monitor créé avec tracking complet
-- ✅ Compte `noreply@jobbingtrack.test` configuré
+- ✅ Compte `redacted@example.invalid` configuré
 - ✅ MailHog supprimé
 - ✅ Mode sombre amélioré
 

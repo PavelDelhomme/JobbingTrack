@@ -145,7 +145,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=redacted@example.invalid
 SMTP_PASS=your-app-password
-SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>
+SMTP_FROM=JobbingTrack <redacted@example.invalid>
 ```
 
 ### Configuration Docker

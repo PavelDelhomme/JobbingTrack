@@ -40,7 +40,7 @@ describe('application-service auth middleware', () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(req.user).toEqual({
       id: 'dev_user_1',
-      email: 'dev@jobbingtrack.test',
+      email: 'redacted@example.invalid',
       role: 'USER'
     });
   });

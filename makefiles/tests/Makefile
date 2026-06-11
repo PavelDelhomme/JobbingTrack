@@ -827,7 +827,7 @@ test-e2e-email-workflows: ## Tests E2E workflows email (MailHog + emails réels 
 	@echo "   • STACK démarrée (make up-full)"
 	@echo "   • Auth-service avec EmailLog synchronisé (make db-push-auth ou make db-push-all)"
 	@echo "   • Pour tester des boîtes réelles :"
-	@echo "       make test-e2e-email-workflows TEST_REAL_EMAILS=\"redacted@example.invalid,redacted@example.invalid,test@example.invalid\""
+	@echo "       make test-e2e-email-workflows TEST_REAL_EMAILS=\"<adresse-1-hors-git>,<adresse-2-hors-git>\""
 	@echo ""
 	@cd tests && TEST_REAL_EMAILS="$(TEST_REAL_EMAILS)" npx playwright test e2e/specs/email-workflows.spec.ts --project=chromium
 	@echo ""

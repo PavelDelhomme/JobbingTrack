@@ -22,6 +22,8 @@ import {
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
 import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
+import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
+import { RESPONSE_TIME_SOURCE_NOTE } from "@/lib/metrics/responseTimePresentation";
 import {
   availabilityChartDomain,
   buildStatisticsChartData,
@@ -1165,6 +1167,7 @@ const OverviewTab = memo(function OverviewTab({
   return (
     <div className="space-y-6">
       <ServiceHealthKpiCards dockerServices={dockerServices} />
+      <PriorityResponseServicesSummary services={stats.services} />
       <MetricsSeriesCaption
         pointCount={historySeriesMeta?.pointCount ?? 0}
         errorDerived={historySeriesMeta?.errorDerived}
@@ -1932,6 +1935,18 @@ function ServicesTab({
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-gray-600 dark:text-gray-400 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 px-3 py-2">
+        {RESPONSE_TIME_SOURCE_NOTE} Historique par service non persisté — courbe
+        globale dans{" "}
+        <Link
+          href="/b4ck0ff1ce/performances/latency"
+          className="text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Performances → Temps de réponse
+        </Link>
+        .
+      </p>
+      <PriorityResponseServicesSummary services={stats.services} />
       {/* Liste des services */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.services.map((service: any) => (
@@ -1994,12 +2009,16 @@ function ServicesTab({
 
               <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  Temps réponse
+                  {service.nonHttpDependency ? "Disponibilité" : "Temps réponse"}
                 </span>
-                <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                  {service.responseTime > 0
-                    ? `${service.responseTime.toFixed(0)}ms`
-                    : "N/A"}
+                <span
+                  className={`text-sm font-semibold ${
+                    service.nonHttpDependency
+                      ? "text-gray-700 dark:text-gray-300"
+                      : "text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  {service.responseTimeLabel ?? "N/A"}
                 </span>
               </div>
 

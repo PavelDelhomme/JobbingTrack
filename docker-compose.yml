@@ -340,6 +340,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - jobbingtrack_metrics_data:/tmp/metrics
+      # Même principe que notification-service : le code src sur l'hôte est pris en compte sans rebuild image
+      - ./backend/metrics-aggregator-service/src:/app/src
     networks:
       - jobbingtrack-network
     depends_on:
@@ -736,6 +738,9 @@ services:
     container_name: jobbingtrack-notification-service
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
+    volumes:
+      # Même principe que security-service : le code src sur l'hôte est pris en compte sans rebuild image
+      - ./backend/notification-service/src:/app/src
     environment:
       - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -746,14 +751,35 @@ services:
       - NODE_ENV=development
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - REDIS_URL=redis://redis:6379
+      - SECURITY_ALERT_MIRROR_SMTP_FROM=${SECURITY_ALERT_MIRROR_SMTP_FROM:-${SMTP_USER:-${SECURITY_ALERT_FROM:-${SMTP_FROM}}}}
+      - SECURITY_ALERT_MIRROR_SMTP_HOST=${SECURITY_ALERT_MIRROR_SMTP_HOST:-${SMTP_HOST:-}}
+      - SECURITY_ALERT_MIRROR_SMTP_PASS=${SECURITY_ALERT_MIRROR_SMTP_PASS:-${SMTP_PASS:-}}
+      - SECURITY_ALERT_MIRROR_SMTP_PORT=${SECURITY_ALERT_MIRROR_SMTP_PORT:-${SMTP_PORT:-587}}
+      - SECURITY_ALERT_MIRROR_SMTP_REPLY_TO=${SECURITY_ALERT_MIRROR_SMTP_REPLY_TO:-${SECURITY_ALERT_REPLY_TO:-${SMTP_REPLY_TO:-}}}
+      - SECURITY_ALERT_MIRROR_SMTP_SECURE=${SECURITY_ALERT_MIRROR_SMTP_SECURE:-${SMTP_SECURE:-true}}
+      - SECURITY_ALERT_MIRROR_SMTP_TIMEOUT_MS=${SECURITY_ALERT_MIRROR_SMTP_TIMEOUT_MS:-8000}
+      - SECURITY_ALERT_MIRROR_SMTP_USE_SSL=${SECURITY_ALERT_MIRROR_SMTP_USE_SSL:-${SMTP_USE_SSL:-false}}
+      - SECURITY_ALERT_MIRROR_SMTP_USER=${SECURITY_ALERT_MIRROR_SMTP_USER:-${SMTP_USER:-}}
+      - SECURITY_ALERT_SMTP_MIRROR_ENABLED=${SECURITY_ALERT_SMTP_MIRROR_ENABLED:-true}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET}
       - SERVICE_NAME=jobbingtrack-notification-service
-      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.test}
-      - SMTP_HOST=${SMTP_HOST:-mailhog}
-      - SMTP_PASS=${SMTP_PASS:-}
-      - SMTP_PORT=${SMTP_PORT:-1025}
-      - SMTP_SECURE=${SMTP_SECURE:-false}
-      - SMTP_USER=${SMTP_USER:-}
+      # Copie des SMTP_* réels avant remplacement du transport principal par MailHog.
+      - SMTP_REAL_FROM=${SMTP_FROM:-}
+      - SMTP_REAL_HOST=${SMTP_HOST:-}
+      - SMTP_REAL_PASS=${SMTP_PASS:-}
+      - SMTP_REAL_PORT=${SMTP_PORT:-587}
+      - SMTP_REAL_REPLY_TO=${SMTP_REPLY_TO:-}
+      - SMTP_REAL_SECURE=${SMTP_SECURE:-true}
+      - SMTP_REAL_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_REAL_USER=${SMTP_USER:-}
+      # En local, les alertes/notifications doivent être capturées par MailHog.
+      # Les identités visibles restent pilotées par SMTP_FROM / SECURITY_ALERT_FROM.
+      - SMTP_FROM=${SMTP_FROM:-redacted@example.invalid}
+      - SMTP_HOST=${NOTIFICATION_SMTP_HOST:-mailhog}
+      - SMTP_PASS=${NOTIFICATION_SMTP_PASS:-}
+      - SMTP_PORT=${NOTIFICATION_SMTP_PORT:-1025}
+      - SMTP_SECURE=${NOTIFICATION_SMTP_SECURE:-false}
+      - SMTP_USER=${NOTIFICATION_SMTP_USER:-}
     depends_on:
       postgres:
         condition: service_healthy
