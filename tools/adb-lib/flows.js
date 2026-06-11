@@ -36,7 +36,29 @@ async function ensureLoggedOut(adb) {
   return 'Tentative navigation vers login';
 }
 
-async function login(adb, email = 'admin@jobbingtrack.test', password = 'password123') {
+function resolveTestCredentials(overrides = {}) {
+  const email =
+    overrides.email ||
+    process.env.TEST_USER_EMAIL ||
+    process.env.TEST_ADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL;
+  const password =
+    overrides.password ||
+    process.env.TEST_USER_PASSWORD ||
+    process.env.TEST_ADMIN_PASSWORD ||
+    process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      'Credentials mobile manquants: definir TEST_USER_EMAIL/TEST_USER_PASSWORD ou TEST_ADMIN_EMAIL/TEST_ADMIN_PASSWORD',
+    );
+  }
+  return { email, password };
+}
+
+async function login(adb, email, password) {
+  const creds = resolveTestCredentials({ email, password });
+  email = creds.email;
+  password = creds.password;
   await adb.wait(500);
   await adb.typeInField('Email', email);
   await adb.wait(800);

@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 11 juin 2026 — **Branche** `security/controlled-offensive-tests`.
+**Dernière mise à jour** : 11 juin 2026 — **Branche** `feat/mobile-adb-physical-device`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 11 juin 2026 — mobile physique ADB (S21 FE)
+
+- **Script setup** : `scripts/mobile/setup-physical-device.sh` attend l'appareil, configure `adb reverse` (5002/5003/3000), build l'APK avec `MOBILE_DEV_LAN_HOST` auto-détectée, installe et lance `com.example.jobbingtrack_mobile`.
+- **API mobile** : `ApiService` persiste l'URL choisie (`shared_preferences`), sonde URL sauvegardée puis `127.0.0.1` / IP LAN build / `10.0.2.2` / `localhost`.
+- **Smoke ADB** : `scripts/mobile/smoke-login-adb.js` + `tools/adb-lib/flows.js` lisent les credentials depuis `.env` (`TEST_USER_*` ou `TEST_ADMIN_*`).
+- **Validations** : `flutter test test/widget_test.dart` **1/1 OK** ; APK debug buildé avec `--dart-define=MOBILE_DEV_LAN_HOST=192.168.1.134`.
+- **Reste** : `adb devices` vide dans la session agent au moment du build — vérifier câble données + autorisation RSA sur le téléphone, puis relancer le script setup ou le backoffice **Mobile → Installer et lancer**.
 
 ## 11 juin 2026 — P1A préflight tests offensifs contrôlés
 

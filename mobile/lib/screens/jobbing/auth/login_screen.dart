@@ -88,10 +88,13 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               final host = controller.text.trim();
               if (host.isNotEmpty) {
-                ApiService.baseUrl = 'http://$host:5002';
+                final next = host.contains(':')
+                    ? (host.startsWith('http') ? host : 'http://$host')
+                    : 'http://$host:5002';
+                ApiService.baseUrl = next;
                 Navigator.of(ctx).pop();
                 setState(() {});
-                _showSnackBar('API: $host:5002');
+                _showSnackBar('API: $next');
               }
             },
             child: const Text('Appliquer'),

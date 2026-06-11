@@ -1,7 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jobbingtrack_mobile/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('L’application monte puis affiche l’écran de connexion', (WidgetTester tester) async {
     await tester.pumpWidget(const JobbingTrackMobileApp());
     await tester.pump();

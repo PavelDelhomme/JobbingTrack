@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
@@ -23,10 +23,44 @@ class ApiService {
     return 'http://127.0.0.1:$_apiPort';
   }
 
-  static set baseUrl(String url) => _resolvedBaseUrl = url;
+  static set baseUrl(String url) {
+    _resolvedBaseUrl = url;
+    ApiConfigStore.saveBaseUrl(url);
+  }
+
+  static Future<bool> _probeHealth(String url) async {
+    try {
+      debugPrint('[API] Test: $url/health');
+      final res = await http
+          .get(Uri.parse('$url/health'))
+          .timeout(const Duration(seconds: 2));
+      if (res.statusCode == 200) {
+        _resolvedBaseUrl = url;
+        debugPrint('[API] OK: $url');
+        return true;
+      }
+    } catch (_) {
+      debugPrint('[API] Echec: $url');
+    }
+    return false;
+  }
+
+  static List<String> _localCandidates() {
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    const lanHost = String.fromEnvironment('MOBILE_DEV_LAN_HOST', defaultValue: '');
+    final candidates = <String>[];
+    if (fromEnv.isNotEmpty) candidates.add(fromEnv);
+    if (lanHost.isNotEmpty) candidates.add('http://$lanHost:$_apiPort');
+    candidates.addAll([
+      'http://127.0.0.1:$_apiPort', // Appareil physique avec adb reverse
+      'http://10.0.2.2:$_apiPort', // Émulateur Android
+      'http://localhost:$_apiPort',
+    ]);
+    return candidates;
+  }
 
   /// Tente de trouver un baseUrl fonctionnel.
-  /// Ordre : 127.0.0.1 (appareil avec adb reverse), 10.0.2.2 (émulateur), localhost.
+  /// Ordre : dart-define, URL sauvegardée, 127.0.0.1, IP LAN build, 10.0.2.2, localhost.
   /// Si aucune ne répond, on passe quand même à l'écran de connexion (pas de blocage).
   static Future<bool> autoDetectApi() async {
     const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
@@ -35,27 +69,17 @@ class ApiService {
       debugPrint('[API] URL prod (dart-define): $fromEnv');
       return true;
     }
-    const localCandidates = [
-      'http://127.0.0.1:$_apiPort',  // Appareil physique avec adb reverse tcp:5002 tcp:5002
-      'http://10.0.2.2:$_apiPort',   // Émulateur Android : machine hôte
-      'http://localhost:$_apiPort',
-    ];
-    for (final url in localCandidates) {
-      try {
-        debugPrint('[API] Test: $url/health');
-        final res = await http
-            .get(Uri.parse('$url/health'))
-            .timeout(const Duration(seconds: 2));
-        if (res.statusCode == 200) {
-          _resolvedBaseUrl = url;
-          debugPrint('[API] OK: $url');
-          return true;
-        }
-      } catch (_) {
-        debugPrint('[API] Echec: $url');
-      }
+
+    final saved = await ApiConfigStore.loadBaseUrl();
+    if (saved != null && await _probeHealth(saved)) {
+      return true;
     }
-    _resolvedBaseUrl = localCandidates.first;
+
+    for (final url in _localCandidates()) {
+      if (await _probeHealth(url)) return true;
+    }
+
+    _resolvedBaseUrl = 'http://127.0.0.1:$_apiPort';
     debugPrint('[API] Aucune URL OK, passage à l\'écran connexion avec: $_resolvedBaseUrl');
     return true;
   }
