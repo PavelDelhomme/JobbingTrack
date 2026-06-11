@@ -4,6 +4,13 @@
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
+## 11 juin 2026 — correctif monitoring-agent-rs (boucle `starting`)
+
+- **Symptôme** : `jobbingtrack-monitoring-agent-rs` en `health: starting` permanent avec redémarrages (`RestartCount` > 2600), logs `Broken pipe` en boucle.
+- **Cause** : le serveur HTTP Rust quittait sur `BrokenPipe` quand le healthcheck Docker (`curl`) fermait la connexion après `GET /health`.
+- **Correctif** : isoler les erreurs par requête dans `http.rs` ; ignorer `BrokenPipe` / `ConnectionReset` / `UnexpectedEof` côté client ; `start_period: 30s` sur le healthcheck Compose.
+- **Validation** : recreate conteneur → `healthy`, `RestartCount=0`, `/health` → `{"status":"ok",...}`.
+
 ## 11 juin 2026 — mobile physique ADB (S21 FE)
 
 - **Script setup** : `scripts/mobile/setup-physical-device.sh` attend l'appareil, configure `adb reverse` (5002/5003/3000), build l'APK avec `MOBILE_DEV_LAN_HOST` auto-détectée, installe et lance `com.example.jobbingtrack_mobile`.
