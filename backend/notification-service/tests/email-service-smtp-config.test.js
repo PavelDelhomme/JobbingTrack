@@ -184,5 +184,50 @@ describe('Notification Service - configuration SMTP', () => {
       replyTo: 'crash-report@jobbingtrack.test'
     });
   });
+
+  test('n’utilise pas SMTP_FROM générique pour les alertes sécurité', () => {
+    process.env.SMTP_USER = 'noreply@maily.ovh';
+    process.env.SMTP_FROM = 'JobbingTrack <noreply@maily.ovh>';
+    delete process.env.SECURITY_ALERT_FROM;
+
+    const createTransport = jest.fn(() => ({ sendMail: jest.fn() }));
+    jest.doMock('nodemailer', () => ({ createTransport }));
+    jest.doMock('../src/utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
+    }));
+
+    const emailService = require('../src/services/emailService');
+
+    expect(emailService.getSecurityAlertIdentity().from).toBe(
+      'JobbingTrack Security <noreply@maily.ovh>'
+    );
+  });
+
+  test('affiche JobbingTrack Security même si le compte SMTP est noreply@maily.ovh', () => {
+    process.env.SMTP_USER = 'noreply@maily.ovh';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_USER = 'noreply@maily.ovh';
+    process.env.SECURITY_ALERT_MIRROR_SMTP_FROM = 'noreply@maily.ovh';
+    process.env.SECURITY_ALERT_REPLY_TO = 'security@jobbingtrack.test';
+
+    const createTransport = jest.fn(() => ({ sendMail: jest.fn() }));
+    jest.doMock('nodemailer', () => ({ createTransport }));
+    jest.doMock('../src/utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
+    }));
+
+    const emailService = require('../src/services/emailService');
+
+    expect(emailService.getSecurityAlertIdentity()).toEqual({
+      from: 'JobbingTrack Security <noreply@maily.ovh>',
+      replyTo: 'security@jobbingtrack.test'
+    });
+    expect(emailService.resolveSecurityAlertMirrorFrom()).toBe(
+      'JobbingTrack Security <noreply@maily.ovh>'
+    );
+  });
 });
 

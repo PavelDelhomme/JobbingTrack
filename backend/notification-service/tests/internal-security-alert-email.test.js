@@ -10,7 +10,8 @@ jest.mock('@prisma/client', () => ({
 }));
 
 jest.mock('../src/services/emailService', () => ({
-  sendEmail: jest.fn()
+  sendEmail: jest.fn(),
+  getSecurityAlertIdentity: jest.fn()
 }));
 
 const request = require('supertest');
@@ -27,6 +28,10 @@ describe('Notification Service - email interne alerte sécurité', () => {
     mockPrisma.emailLog.create.mockResolvedValue({ id: 'email-log-1' });
     mockPrisma.emailLog.update.mockResolvedValue({});
     emailService.sendEmail.mockResolvedValue({ messageId: 'message-1' });
+    emailService.getSecurityAlertIdentity.mockReturnValue({
+      from: 'JobbingTrack Security <security@jobbingtrack.test>',
+      replyTo: 'security@jobbingtrack.test'
+    });
   });
 
   test('refuse un appel sans secret interne valide', async () => {
@@ -80,7 +85,9 @@ describe('Notification Service - email interne alerte sécurité', () => {
       '<p>DDoS critique</p>',
       {
         from: 'JobbingTrack Security <security@jobbingtrack.test>',
-        replyTo: 'security@jobbingtrack.test'
+        replyTo: 'security@jobbingtrack.test',
+        securityAlertMirror: false,
+        awaitSecurityAlertMirror: false
       }
     );
     expect(mockPrisma.emailLog.update).toHaveBeenCalledWith({

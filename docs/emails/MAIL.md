@@ -83,7 +83,7 @@ Routes auth : `backend/auth-service/src/routes/email.routes.js` et `template.rou
 
 ## 6. MailHog (développement et tests E2E)
 
-En **dev/test**, vous pouvez utiliser **MailHog** pour capturer tous les emails sans envoyer de vrais mails :
+En **dev/test**, vous pouvez utiliser **MailHog** pour capturer tous les emails sans envoyer de vrais mails. MailHog ne doit pas être utilisé comme transport final en préproduction ou production.
 
 - **Démarrage** : MailHog est inclus dans le profil **full** (`make up-full`) ou le profil **mail** :
   - `COMPOSE_PROFILES=mail docker compose up -d` pour n’avoir que MailHog + les services essentiels, ou
@@ -97,6 +97,17 @@ En **dev/test**, vous pouvez utiliser **MailHog** pour capturer tous les emails 
 - **Tests E2E Playwright** : `tests/e2e/specs/admin-emails-mailhog.spec.ts` envoie un email de test via l’API, vérifie la réception dans MailHog (API), ouvre l’interface MailHog et peut extraire les liens (ex. reset password) pour ouvrir la page et simuler le clic. Prérequis : stack avec MailHog + auth-service configuré en SMTP vers MailHog.
 
 Variables optionnelles : `MAILHOG_WEB_URL` (défaut http://localhost:8025), `MAILHOG_SMTP_PORT` / `MAILHOG_WEB_PORT` dans docker-compose.
+
+### Préprod / production : MailHog interdit comme transport final
+
+Avant préprod/prod :
+
+- `SMTP_HOST` doit pointer vers un fournisseur réel (OVH, Brevo, SendGrid, Mailgun, etc.), jamais `mailhog`, `localhost` ou `127.0.0.1`.
+- `SMTP_USER` / `SMTP_PASS` doivent être renseignés via l'environnement serveur, Portainer ou secret manager, hors Git.
+- `SMTP_FROM` doit être accepté par le fournisseur ; si le fournisseur impose le compte authentifié comme expéditeur, garder l'alias métier dans `SMTP_REPLY_TO`.
+- `CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)` et futurs emails de digest doivent viser des alias/listes dédiés du domaine JobbingTrack, redirigés chez le fournisseur mail.
+- Un smoke préprod doit prouver : réception réelle, ligne `EmailLog` en `SENT`, sujet lisible, absence de secret dans le contenu, et `messageId` fournisseur quand disponible.
+- MailHog peut rester documenté pour les tests locaux, mais ne doit pas être lancé ni exposé publiquement en prod.
 
 ---
 
@@ -114,7 +125,13 @@ Points de configuration importants :
 - `NOTIFICATION_SERVICE_URL` : URL interne du notification-service.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` : doivent aussi être disponibles dans **notification-service**, pas seulement dans auth-service.
 
-En dev avec MailHog, `SMTP_HOST=mailhog`, `SMTP_PORT=1025`, sans `SMTP_USER`/`SMTP_PASS`. Le notification-service ne doit pas envoyer `AUTH PLAIN` vide. En prod/préprod avec OVH ou fournisseur SMTP réel, renseigner `SMTP_USER` et `SMTP_PASS` dans `.env`, puis redémarrer notification-service.
+En dev avec MailHog, `SMTP_HOST=mailhog`, `SMTP_PORT=1025`, sans `SMTP_USER`/`SMTP_PASS`. Le notification-service ne doit pas envoyer `AUTH PLAIN` vide.
+
+En préprod/prod avec OVH ou fournisseur SMTP réel :
+
+- renseigner `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USE_SSL`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` et `SMTP_REPLY_TO` dans l'environnement serveur ;
+- laisser `NOTIFICATION_SMTP_HOST` vide sauf besoin très précis : dans le compose local, cette variable force MailHog pour `notification-service`, ce qui est voulu en dev mais dangereux en prod ;
+- vérifier que les alertes critiques ne dépendent plus du miroir local `SECURITY_ALERT_SMTP_MIRROR_*` : le transport principal doit déjà être le SMTP réel.
 
 Erreur connue :
 

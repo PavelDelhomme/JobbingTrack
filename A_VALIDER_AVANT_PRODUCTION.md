@@ -27,6 +27,7 @@ Pour l’instant, aucune production réelle n’est lancée sur serveur.
 | Validation | Environnement cible | Preuve attendue | Statut | Retour |
 |------------|---------------------|-----------------|--------|--------|
 | Variables prod strictes | preprod | Pas de secret faible/fallback dev, `.env` hors Git, `SECURITY_INTERNAL_SECRET`, `METRICS_API_KEY`, SMTP, Redis, Postgres validés. | [ ] | |
+| Emails SMTP réels | preprod | `SMTP_HOST` fournisseur réel (pas MailHog/localhost), TLS cohérent, secrets hors Git, reset/vérification + alerte sécurité reçus dans une boîte réelle, `EmailLog` `SENT`. | [ ] | |
 | HTTPS public / reverse proxy | preprod | Domaine API/front en HTTPS public, `TRUST_PROXY_HOPS` cohérent, WAF inspecte le trafic public. | [ ] | |
 | Security Audit GitHub images prod | GitHub/preprod | Workflow manuel `scan_prod_images=true`, artefact `trivy-prod-image-reports`, décisions `HIGH/CRITICAL`. | [ ] | |
 | Ports exposés | preprod | Seuls frontend/API/proxy publics ; Postgres/Redis/services internes non exposés Internet. | [ ] | |

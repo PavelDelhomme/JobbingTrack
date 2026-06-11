@@ -1,6 +1,26 @@
 # Configuration SMTP pour l'envoi d'emails
 
-Ce document explique comment configurer l'envoi d'emails pour le service d'authentification (reset de mot de passe, emails de bienvenue, etc.). Service concerné : `backend/auth-service`.
+Ce document explique comment configurer l'envoi d'emails JobbingTrack selon l'environnement.
+
+Services concernés :
+
+- `backend/auth-service` : reset password, vérification de compte, emails applicatifs historiques.
+- `backend/notification-service` : alertes sécurité, notifications internes, futurs digests/rapports.
+
+Règle centrale : **MailHog est uniquement local/dev/test**. En préproduction et production, les emails doivent passer par un SMTP réel validé (OVH, Brevo, SendGrid, Mailgun, etc.) avec logs `EmailLog` et preuve de réception.
+
+---
+
+## Matrice par environnement
+
+| Environnement | Transport principal | Objectif | Règle |
+|---------------|---------------------|----------|-------|
+| Local / dev | MailHog (`mailhog:1025`) | Capturer les emails sans envoyer vers Internet | OK pour tests UI/E2E, reset, notifications et alertes simulées. |
+| Local avec test délivrabilité | MailHog + miroir SMTP réel optionnel | Capturer localement et vérifier qu'un vrai fournisseur accepte l'email | Réservé aux alertes critiques/test porteur, jamais obligatoire pour dev quotidien. |
+| Préproduction | SMTP réel | Valider TLS, identités, alias, logs et réception réelle | MailHog interdit comme transport final ; un smoke email doit arriver dans une boîte réelle. |
+| Production | SMTP réel durci | Envoyer les vrais emails utilisateurs et alertes | MailHog absent/non exposé ; secrets hors Git ; rate-limit et observabilité actifs. |
+
+---
 
 ## Configuration
 
@@ -12,7 +32,42 @@ cp .env.example .env
 
 ## Options de Configuration
 
-### 1. Gmail (Recommandé pour le développement)
+### 1. MailHog (développement et tests locaux)
+
+MailHog capture les emails sans les envoyer réellement. Il doit rester limité au local/dev/test.
+
+Docker Compose inclut déjà le service `mailhog` dans les profils `mail` et `full` :
+
+```yaml
+mailhog:
+  image: mailhog/mailhog
+  ports:
+    - "${MAILHOG_SMTP_PORT:-2525}:1025"
+    - "${MAILHOG_WEB_PORT:-8025}:8025"
+```
+
+Configuration depuis un conteneur :
+
+```env
+SMTP_HOST=mailhog
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USE_SSL=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@example.invalid>
+SMTP_REPLY_TO=noreply@example.invalid
+```
+
+Interface web locale : http://localhost:8025.
+
+Notes :
+
+- Depuis l'hôte, le port SMTP exposé par défaut est `2525` (`MAILHOG_SMTP_PORT`).
+- Depuis un conteneur Docker, utiliser toujours `mailhog:1025`.
+- Ne jamais configurer `SMTP_HOST=mailhog` dans un environnement préprod/prod.
+
+### 2. Gmail (développement ponctuel uniquement)
 
 1. Activez l'authentification à 2 facteurs sur votre compte Gmail
 2. Générez un "App Password" : https://myaccount.google.com/apppasswords
@@ -27,7 +82,9 @@ SMTP_PASS="votre-app-password-16-caracteres"
 SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 ```
 
-### 2. OVH (Production - maily.ovh)
+Gmail ne doit pas devenir le SMTP applicatif de production. Il peut servir à un test ponctuel ou à la lecture Gmail de l'agent email, pas à l'identité d'envoi officielle JobbingTrack.
+
+### 3. OVH (préproduction / production - maily.ovh)
 
 Configuration pour utiliser OVH avec authentification `redacted@example.invalid` mais affichage `redacted@example.invalid` :
 
@@ -41,7 +98,7 @@ SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 SMTP_REPLY_TO="redacted@example.invalid"
 ```
 
-**Note importante** : Certains serveurs SMTP (comme OVH) peuvent rejeter les emails si le domaine `From` (`jobbingtrack.com`) diffère du domaine d'authentification (`maily.ovh`). 
+**Note importante** : certains serveurs SMTP (comme OVH selon l'offre et le domaine) peuvent rejeter les emails si le domaine `From` (`jobbingtrack.com`) diffère du compte authentifié.
 
 **Si les emails sont rejetés**, utilisez plutôt :
 ```env
@@ -55,39 +112,7 @@ SMTP_USER="redacted@example.invalid"
 SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 ```
 
----
-
-### 3. MailHog (Pour les tests locaux)
-
-MailHog est un serveur SMTP de test qui capture tous les emails sans les envoyer réellement.
-
-1. Ajoutez MailHog au docker-compose.yml :
-
-```yaml
-services:
-  mailhog:
-    image: mailhog/mailhog
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    networks:
-      - jobbingtrack-network
-```
-
-2. Configurez dans `.env` :
-
-```env
-SMTP_HOST="mailhog"
-SMTP_PORT="1025"
-SMTP_SECURE="false"
-SMTP_USER=""
-SMTP_PASS=""
-SMTP_FROM="JobbingTrack <redacted@example.invalid>"
-```
-
-3. Accédez à l'interface web : http://localhost:8025
-
-### 4. Sendinblue / Brevo (Recommandé pour la production)
+### 4. Brevo (préproduction / production)
 
 Service gratuit jusqu'à 300 emails/jour.
 
@@ -104,7 +129,7 @@ SMTP_PASS="votre-cle-smtp-brevo"
 SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 ```
 
-### 5. SendGrid
+### 5. SendGrid (préproduction / production)
 
 Service avec 100 emails/jour gratuits.
 
@@ -117,7 +142,7 @@ SMTP_PASS="votre-api-key-sendgrid"
 SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 ```
 
-### 6. Mailgun
+### 6. Mailgun (préproduction / production)
 
 ```env
 SMTP_HOST="smtp.mailgun.org"
@@ -152,7 +177,23 @@ curl -X POST http://localhost:3001/api/v1/auth/forgot-password \
   -d '{"email":"redacted@example.invalid"}'
 ```
 
-Si la configuration est correcte, vous devriez recevoir un email (ou le voir dans MailHog).
+Résultat attendu :
+
+- Local/dev : email visible dans MailHog et ligne `EmailLog` en `SENT`.
+- Préprod/prod : email reçu dans une boîte réelle, ligne `EmailLog` en `SENT`, `messageId` fournisseur présent si le service le journalise.
+
+## Checklist préprod / production
+
+Avant une bascule préprod/prod :
+
+1. `SMTP_HOST` ne vaut pas `mailhog`, `localhost`, `127.0.0.1` ni un host Docker de test.
+2. `SMTP_USER` / `SMTP_PASS` sont réels, forts et stockés hors Git.
+3. `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USE_SSL` correspondent à la doc fournisseur.
+4. `SMTP_FROM` est accepté par le fournisseur ; si le fournisseur impose l'expéditeur authentifié, utiliser l'alias métier en `SMTP_REPLY_TO`.
+5. `CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)` et futurs destinataires digest sont des alias/listes dédiés, pas une boîte personnelle unique codée dans Git.
+6. Un test reset/vérification, un test alerte sécurité et un test digest/notification critique sont reçus réellement.
+7. Les envois apparaissent dans le backoffice Email Monitor / `EmailLog`.
+8. MailHog n'est ni lancé comme dépendance prod, ni exposé publiquement.
 
 ## Troubleshooting
 
@@ -172,7 +213,8 @@ Si la configuration est correcte, vous devriez recevoir un email (ou le voir dan
 
 - Vérifiez le dossier spam
 - Vérifiez les logs du service : `docker logs jobbingtrack-auth-service`
-- Pour MailHog, vérifiez http://localhost:8025
+- En local MailHog, vérifiez http://localhost:8025
+- En préprod/prod, vérifiez les logs fournisseur, SPF/DKIM/DMARC, les quotas et la réputation du domaine.
 
 ## Sécurité
 

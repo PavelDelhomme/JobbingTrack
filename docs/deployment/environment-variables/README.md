@@ -19,7 +19,7 @@ Variables critiques à vérifier explicitement :
 - `TRUST_PROXY_HOPS`, `ALLOWED_ORIGINS`, URLs publiques `FRONTEND_URL` / API : alignés avec Nginx Proxy Manager et les domaines HTTPS.
 - `WAF_ENABLED`, `INTRUSION_DETECTION_ENABLED`, `INTRUSION_RELAX_HEURISTICS` : mode prod strict, pas de relax dev.
 - `POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL` : secrets forts, réseau privé, pas d’exposition Internet directe.
-- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : TLS SMTP validé, compte SMTP technique séparé des alias visibles. Les destinataires publics (`CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)`) doivent être des alias du domaine JobbingTrack redirigés chez le fournisseur mail vers les boîtes privées réelles, hors Git.
+- `SMTP_*`, `SECURITY_ALERT_EMAIL(S)`, `CRASH_REPORT_EMAIL` : TLS SMTP validé, compte SMTP technique séparé des alias visibles. Les destinataires publics (`CRASH_REPORT_EMAIL`, `SECURITY_ALERT_EMAIL(S)`) doivent être des alias du domaine JobbingTrack redirigés chez le fournisseur mail vers les boîtes privées réelles, hors Git. En préprod/prod, `SMTP_HOST` ne doit jamais valoir `mailhog`, `localhost` ou `127.0.0.1`.
 
 ---
 
@@ -78,6 +78,8 @@ REDIS_URL=redis://localhost:6379  # URL Redis pour le cache
 
 ### 📧 Email (SMTP)
 
+MailHog est réservé au local/dev/test. En préproduction et production, renseigner un fournisseur SMTP réel et prouver la réception dans une boîte réelle.
+
 ```bash
 SMTP_HOST=smtp.gmail.com                      # Serveur SMTP
 SMTP_PORT=587                                 # Port SMTP
@@ -94,6 +96,14 @@ SECURITY_ALERT_REPLY_TO=security@jobbingtrack.test
 ```
 
 Pour les fournisseurs stricts (ex. SMTP OVH selon configuration), privilégier `*_FROM` sur le compte SMTP authentifié (`SMTP_USER`) et mettre l’alias métier (`crash-report@…`, `security@…`) dans `*_REPLY_TO` ou dans les redirections fournisseur. Cela améliore la délivrabilité tout en gardant une adresse de réponse lisible.
+
+Contrôles préprod/prod :
+
+- `SMTP_HOST` = host fournisseur réel (`ssl0.ovh.net`, `smtp-relay.brevo.com`, etc.), pas MailHog.
+- `SMTP_USER` / `SMTP_PASS` présents hors Git.
+- `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USE_SSL` alignés avec le fournisseur (`587` STARTTLS ou `465` SSL implicite).
+- `NOTIFICATION_SMTP_HOST` / `NOTIFICATION_SMTP_PORT` non utilisés pour forcer MailHog en prod.
+- Smoke reset/vérification + alerte sécurité + digest/notification critique : reçu réel + `EmailLog` `SENT`.
 
 ### 📬 Agent email / tâches recherche emploi (futur lot I)
 

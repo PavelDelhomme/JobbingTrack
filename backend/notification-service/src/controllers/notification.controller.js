@@ -411,8 +411,7 @@ const sendEmail = async (req, res, next) => {
 const sendInternalSecurityAlertEmail = async (req, res, next) => {
   try {
     const { to, subject, html, alert } = req.body;
-    const from = process.env.SECURITY_ALERT_FROM || process.env.SMTP_FROM || 'redacted@example.invalid';
-    const replyTo = process.env.SECURITY_ALERT_REPLY_TO || process.env.SMTP_REPLY_TO || undefined;
+    const { from, replyTo } = emailService.getSecurityAlertIdentity();
     let emailLog = null;
 
     try {

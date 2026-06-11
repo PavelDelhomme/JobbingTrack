@@ -39,10 +39,12 @@
 
 ## F. Courriel (SMTP) et rapports de crash
 
+- [ ] **MailHog absent du chemin préprod/prod** : `SMTP_HOST` ne vaut pas `mailhog`, `localhost`, `127.0.0.1` ou un service Docker de test ; `NOTIFICATION_SMTP_HOST` ne force pas MailHog ; MailHog n’est pas exposé publiquement.
 - [ ] **`SMTP_USER`** et **`SMTP_PASS`** : renseigner les **identifiants réels** du fournisseur (OVH, SendGrid, etc.) — **jamais** de placeholders en prod ; le **`.env`** reste hors Git.
 - [ ] **TLS / SSL** : aligner **`SMTP_PORT`**, **`SMTP_SECURE`**, **`SMTP_USE_SSL`** (et évent. `TLS_REJECT_UNAUTHORIZED` si besoin) sur la **doc officielle** du fournisseur (ex. **465** implicit TLS vs **587** STARTTLS).
 - [ ] **`CRASH_REPORT_EMAIL`** : utiliser une **adresse dédiée** (boîte fonctionnelle, filtrage, quota) digne d’un **flux crash report** (sujet lisible, pas une boîte personnelle unique sans tri) ; vérifier que les services qui envoient les rapports (auth / gateway / mobile selon config) **pointent** bien vers cette adresse en prod.
-- [ ] **(Roadmap — lot B11 / `TODOS.md`)** Alertes **email** sur **incidents critiques** (sécurité très grave, firewall, **down** service ou partie du projet) : quand implémenté, prévoir **boîtes / listes dédiées**, **seuils** et **rate-limit** côté produit pour ne pas saturer la même file que les crash reports ; réutiliser la même **base SMTP** et les mêmes exigences TLS que ci-dessus.
+- [ ] **Smoke emails réels** : reset/vérification compte, crash report ou test notification, alerte sécurité critique, puis futur digest agent email ; chaque smoke doit produire réception réelle + ligne `EmailLog` `SENT` + sujet lisible + absence de secret dans le contenu.
+- [ ] **(Roadmap — lot B11 / `TODOS.md`)** Alertes **email** sur **incidents critiques** (sécurité très grave, firewall, **down** service ou partie du projet) : prévoir **boîtes / listes dédiées**, **seuils** et **rate-limit** côté produit pour ne pas saturer la même file que les crash reports ; réutiliser la même **base SMTP** et les mêmes exigences TLS que ci-dessus.
 - [ ] En dev **MailHog** : conserver une valeur de test cohérente ; voir **`docs/emails/`** et **`.env.example`**.
 
 ---

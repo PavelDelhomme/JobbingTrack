@@ -89,6 +89,19 @@ function hasAny(values, keys) {
   return keys.some((key) => values.has(key) && String(values.get(key) || '').trim() !== '');
 }
 
+function isLocalSmtpHost(value) {
+  const host = String(value || '').trim().toLowerCase();
+  if (!host) return false;
+  return [
+    'mailhog',
+    'mailpit',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    'host.docker.internal'
+  ].includes(host);
+}
+
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
@@ -188,6 +201,18 @@ function main() {
     }
     if (String(values.get('DEV_AUTH_BYPASS_TOKEN') || '').trim() !== '') {
       errors.push('DEV_AUTH_BYPASS_TOKEN doit être vide ou absent en production');
+    }
+    if (isLocalSmtpHost(values.get('SMTP_HOST'))) {
+      errors.push('SMTP_HOST doit pointer vers un fournisseur SMTP réel en production, jamais MailHog/localhost');
+    }
+    if (values.has('NOTIFICATION_SMTP_HOST') && isLocalSmtpHost(values.get('NOTIFICATION_SMTP_HOST'))) {
+      errors.push('NOTIFICATION_SMTP_HOST ne doit pas forcer MailHog/localhost en production');
+    }
+    if (
+      isTruthy(values.get('SECURITY_ALERT_SMTP_MIRROR_ENABLED')) &&
+      isLocalSmtpHost(values.get('SECURITY_ALERT_MIRROR_SMTP_HOST'))
+    ) {
+      errors.push('SECURITY_ALERT_MIRROR_SMTP_HOST ne doit pas viser MailHog/localhost en production');
     }
   }
 

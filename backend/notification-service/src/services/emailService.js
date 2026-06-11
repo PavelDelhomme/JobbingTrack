@@ -1,6 +1,9 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
 
+const DEFAULT_SECURITY_ALERT_FROM =
+  'JobbingTrack Security <security@jobbingtrack.test>';
+
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport(
@@ -124,22 +127,97 @@ class EmailService {
     return displayName ? `${displayName} <${address}>` : address;
   }
 
+  ensureSecurityAlertDisplayName(sender) {
+    const value = String(sender || '').trim();
+    if (!value) {
+      return DEFAULT_SECURITY_ALERT_FROM;
+    }
+    if (value.includes('<') && value.includes('>')) {
+      return value;
+    }
+    return `JobbingTrack Security <${value}>`;
+  }
+
+  getSecurityAlertConfiguredFrom({ preferMirror = false } = {}) {
+    if (preferMirror) {
+      return (
+        process.env.SECURITY_ALERT_MIRROR_SMTP_FROM ||
+        process.env.SECURITY_ALERT_FROM ||
+        DEFAULT_SECURITY_ALERT_FROM
+      );
+    }
+
+    return process.env.SECURITY_ALERT_FROM || DEFAULT_SECURITY_ALERT_FROM;
+  }
+
+  resolveSecurityAlertSenderIdentity({
+    smtpUser,
+    forceAlias = false,
+    preferMirror = false,
+    mirrorFrom = null
+  } = {}) {
+    if (mirrorFrom) {
+      return {
+        from: mirrorFrom,
+        replyTo:
+          this.pickUsableEnvValue(
+            process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO,
+            process.env.SECURITY_ALERT_REPLY_TO,
+            process.env.SMTP_REPLY_TO
+          ) || undefined
+      };
+    }
+
+    const configuredFrom = this.ensureSecurityAlertDisplayName(
+      this.getSecurityAlertConfiguredFrom({ preferMirror })
+    );
+    const configuredReplyTo = this.pickUsableEnvValue(
+      preferMirror
+        ? process.env.SECURITY_ALERT_MIRROR_SMTP_REPLY_TO
+        : process.env.SECURITY_ALERT_REPLY_TO,
+      process.env.SECURITY_ALERT_REPLY_TO,
+      process.env.SMTP_REPLY_TO
+    );
+
+    return this.resolvePublicSenderIdentity({
+      configuredFrom,
+      configuredReplyTo,
+      smtpUser,
+      forceAlias:
+        forceAlias ||
+        process.env.SECURITY_ALERT_FORCE_FROM_ALIAS === 'true' ||
+        (preferMirror &&
+          process.env.SECURITY_ALERT_MIRROR_SMTP_FORCE_FROM_ALIAS === 'true')
+    });
+  }
+
+  getSecurityAlertIdentity() {
+    return this.resolveSecurityAlertSenderIdentity({
+      smtpUser: this.pickUsableEnvValue(
+        process.env.SMTP_REAL_USER,
+        process.env.SMTP_USER
+      )
+    });
+  }
+
   resolveSecurityAlertMirrorFrom(options = {}) {
     if (options.mirrorFrom) {
       return options.mirrorFrom;
     }
 
-    const configuredFrom = process.env.SECURITY_ALERT_MIRROR_SMTP_FROM;
     const smtpUser = this.pickUsableEnvValue(
       process.env.SECURITY_ALERT_MIRROR_SMTP_USER,
       process.env.SMTP_REAL_USER
     );
 
-    if (process.env.SECURITY_ALERT_MIRROR_SMTP_FORCE_FROM_ALIAS === 'true') {
-      return configuredFrom || smtpUser;
-    }
-
-    return this.formatSenderWithAddress(configuredFrom, smtpUser) || smtpUser;
+    return (
+      this.resolveSecurityAlertSenderIdentity({
+        smtpUser,
+        preferMirror: true,
+        forceAlias:
+          process.env.SECURITY_ALERT_MIRROR_SMTP_FORCE_FROM_ALIAS === 'true'
+      }).from || smtpUser
+    );
   }
 
   resolvePublicSenderIdentity({
