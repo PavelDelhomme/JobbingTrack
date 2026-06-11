@@ -204,8 +204,8 @@ app.use(cors({
     // Autoriser les requêtes sans origine (Postman, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Autoriser les IPs locales du réseau (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-    const localNetworkPattern = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
+    // Dev uniquement : autoriser les origines LAN HTTP/HTTPS pour tests téléphone/tablette.
+    const localNetworkPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
     
     if (ALLOWED_CORS_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && localNetworkPattern.test(origin))) {
       callback(null, true);

@@ -154,6 +154,7 @@ Les variables publiques du frontend doivent rester en HTTPS :
 
 ```env
 DEV_HTTPS_PORT=5443
+DEV_HTTPS_LAN_IP=192.168.1.134 # optionnel ; vide = auto-détection
 DEV_HTTPS_FRONTEND_URL=https://jobbingtrack.localhost:5443
 DEV_HTTPS_API_URL=https://api.jobbingtrack.localhost:5443
 NEXT_PUBLIC_FRONTEND_URL=https://jobbingtrack.localhost:5443
@@ -164,6 +165,25 @@ ALLOWED_ORIGINS=https://jobbingtrack.localhost:5443,https://api.jobbingtrack.loc
 ```
 
 `localhost` HTTP peut rester en fin de liste pour certains scripts hôte, mais le navigateur/backoffice doit utiliser les URLs HTTPS ci-dessus.
+
+### Accès depuis un téléphone sur le LAN
+
+En développement uniquement, le proxy HTTPS accepte aussi l’accès par IP du PC, par exemple :
+
+```text
+https://192.168.1.134:5443/login
+```
+
+Dans ce mode, le frontend n’utilise pas `api.jobbingtrack.localhost` (non résolu par le téléphone) : les appels API restent sur la même origine via `https://<IP_PC>:5443/api/*`, puis Nginx relaie vers l’API gateway. Le CORS gateway accepte les origines LAN privées HTTP/HTTPS seulement hors production.
+
+Pour régénérer le certificat avec l’IP LAN actuelle :
+
+```bash
+DEV_HTTPS_LAN_IP=192.168.1.134 bash scripts/ops/dev-https-certs.sh
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --force-recreate api-gateway dev-https-proxy
+```
+
+Si le téléphone affiche une alerte certificat, importer/faire confiance à la CA locale `JobbingTrack Local Dev Root CA` sur l’appareil, ou accepter l’exception uniquement en développement.
 
 ## Certificats
 
@@ -178,7 +198,7 @@ Les fichiers générés ne sont pas versionnés :
 
 Après **`make dev-https-install-ca`**, si `sudo trust anchor` a réussi, le script tente aussi **`trust extract-compat`** (bundles `/etc/ssl/certs` pour les clients qui ne lisent que ce chemin). **Redémarrez** ensuite **`dev-https-proxy`** pour que Nginx charge le **`fullchain`**.
 
-Le certificat feuille contient les SAN `jobbingtrack.localhost`, `api.jobbingtrack.localhost`, `localhost`, `127.0.0.1` et `::1`.
+Le certificat feuille contient les SAN `jobbingtrack.localhost`, `api.jobbingtrack.localhost`, `localhost`, `127.0.0.1`, `::1` et, si détectée ou fournie via `DEV_HTTPS_LAN_IP` / `HOST_IP`, l’IP LAN du PC.
 
 ## Diagnostic navigateur
 

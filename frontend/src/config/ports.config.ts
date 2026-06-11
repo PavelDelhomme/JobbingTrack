@@ -65,18 +65,33 @@ function devHttpsApiOrigin(): string {
   return `https://api.jobbingtrack.localhost:${devHttpsPort()}`;
 }
 
-const getApiUrl = () => {
-  const fromEnv =
-    envPublicUrl("NEXT_PUBLIC_API_URL") ||
-    envPublicUrl("NEXT_PUBLIC_API_GATEWAY_URL");
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
+function isPrivateLanHostname(hostname: string): boolean {
+  return (
+    /^192\.168\.\d+\.\d+$/.test(hostname) ||
+    /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(hostname)
+  );
+}
 
+const getApiUrl = () => {
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
     const isJobbingtrackHost =
       hostname === "jobbingtrack.localhost" ||
       hostname.endsWith(".jobbingtrack.localhost");
     const httpsDevPort = devHttpsPort();
+
+    // Accès depuis un téléphone/tablette sur le réseau local :
+    // le device ne résout pas `api.jobbingtrack.localhost`, donc l'API passe
+    // par la même origine Nginx HTTPS (`/api/*` → api-gateway), en dev uniquement.
+    if (
+      process.env.NODE_ENV !== "production" &&
+      protocol === "https:" &&
+      port === httpsDevPort &&
+      isPrivateLanHostname(hostname)
+    ) {
+      return `${protocol}//${hostname}:${port}`;
+    }
 
     // Page servie en HTTPS (ex. https://jobbingtrack.localhost:5443) → API TLS sur sous-domaine api.*
     if (
@@ -96,6 +111,11 @@ const getApiUrl = () => {
       return `http://${hostname}:${EXTERNAL_PORTS.API_GATEWAY}`;
     }
   }
+
+  const fromEnv =
+    envPublicUrl("NEXT_PUBLIC_API_URL") ||
+    envPublicUrl("NEXT_PUBLIC_API_GATEWAY_URL");
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
 
   // SSR / premier paint : défaut documenté (.env.example / docker-compose)
   return devHttpsApiOrigin();
