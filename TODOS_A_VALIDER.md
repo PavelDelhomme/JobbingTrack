@@ -281,7 +281,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 | Priorité | Validation porteur | Environnement | Preuve attendue | Statut | Retour porteur |
 |----------|--------------------|---------------|-----------------|--------|----------------|
-| P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Suivre § “P1A — Tests offensifs contrôlés par conteneur” : matrice bornée/non destructive, séparation local/préprod/fournisseur, aucun test agressif sur prod. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
+| P1A | Tests offensifs contrôlés par conteneur JobbingTrack | lab autorisé | Suivre § “P1A — Tests offensifs contrôlés par conteneur” : matrice bornée/non destructive, séparation local/préprod/fournisseur, préflight `scripts/security/controlled-offensive-preflight.cjs`, aucun test agressif sur prod. | [ ] | À rattacher à B15 ; ne pas lancer sur prod réelle sans autorisation et fenêtre dédiée. |
 | P1A | Leurres / désinformation contrôlée VPS-Portainer | preprod/prod design | Suivre § “P1A — Leurres / désinformation contrôlée VPS-Portainer” : valider le design de réduction d’exposition, pas un déploiement honeypot immédiat. | [ ] | Défense par réduction d’exposition d’abord ; leurres seulement si isolés et audités. |
 | P1B | Corrélation performances — KPI logs après login | local | Suivre § “P1B — Corrélation performances” : `/b4ck0ff1ce/performances/correlation`, service focal, KPI logs cohérents ou état vide explicite. | [ ] | |
 | P1B | Statistics — onglet Sécurité cohérent avec `/security` | local | Suivre § “P1B — Statistics sécurité/logs/données applicatives/vue d’ensemble” : chiffres sécurité cohérents avec `/security`, pas d’écran vide trompeur. | [ ] | |
