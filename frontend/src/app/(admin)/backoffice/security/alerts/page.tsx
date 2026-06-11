@@ -26,26 +26,19 @@ export default function SecurityAlertsPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-          <p className="font-semibold">Validation attendue</p>
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-950 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-100">
+          <p className="font-semibold">Alertes email critiques OK</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li>Vérifier que les destinataires sont des alias publics ou de test.</li>
-            <li>Saisir le mot de passe admin actuel.</li>
-            <li>Cliquer sur « Envoyer un email de test ».</li>
-            <li>Contrôler la réception dans MailHog : http://localhost:8025.</li>
+            <li>Réception réelle validée par le porteur.</li>
+            <li>MailHog et `EmailLog` restent disponibles pour contrôle local.</li>
             <li>
-              Diagnostiquer les statuts dans Gestion des emails → Historique
+              Suivre les statuts dans Gestion des emails → Historique
               avec le filtre « Notification ».
             </li>
             <li>
-              Si le miroir SMTP réel est activé, vérifier le badge{" "}
-              <strong>Miroir SMTP OK</strong> et le détail (`messageId`,
-              `From`, `Reply-To`) dans la modal Email Monitor.
-            </li>
-            <li>
-              Confirmer aussi la réception dans la boîte réelle
-              (`admin@…`, `dev@…`) — MailHog seul ne suffit pas pour valider
-              P1A.
+              Le miroir SMTP réel est considéré OK quand le badge{" "}
+              <strong>Miroir SMTP OK</strong> et le `messageId` sont visibles
+              dans les derniers envois.
             </li>
           </ol>
         </div>
