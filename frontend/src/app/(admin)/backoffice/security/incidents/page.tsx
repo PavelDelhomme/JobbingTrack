@@ -336,8 +336,8 @@ export default function SecurityIncidentsPage() {
             </p>
           </div>
         ) : (
-          <div className={uiSurfaces.tableWrap}>
-            <table className="w-full text-sm">
+          <div className={`${uiSurfaces.tableWrap} overflow-x-auto`}>
+            <table className="min-w-[780px] w-full text-sm">
               <thead className={uiSurfaces.tableHead}>
                 <tr>
                   <th className="p-3">Type</th>

@@ -597,17 +597,17 @@ export default function EmailDeliverabilityPage() {
               <Label htmlFor="test-email-deliverability">
                 Votre adresse email
               </Label>
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-col gap-2 mt-2 sm:flex-row">
                 <Input
                   id="test-email-deliverability"
                   type="email"
                   placeholder="redacted@example.invalid"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
-                  className="flex-1"
+                  className="min-w-0 flex-1"
                 />
               </div>
-              <div className="flex gap-2 mt-3">
+              <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Button
                   onClick={() => handleSendTestEmail("test")}
                   disabled={
@@ -617,7 +617,7 @@ export default function EmailDeliverabilityPage() {
                     !testEmail
                   }
                   variant="outline"
-                  className="flex-1"
+                  className="w-full"
                 >
                   {sendingTest ? (
                     <>
@@ -640,7 +640,7 @@ export default function EmailDeliverabilityPage() {
                     !testEmail
                   }
                   variant="outline"
-                  className="flex-1"
+                  className="w-full"
                 >
                   {sendingReset ? (
                     <>
@@ -663,7 +663,7 @@ export default function EmailDeliverabilityPage() {
                     !testEmail
                   }
                   variant="outline"
-                  className="flex-1"
+                  className="w-full"
                 >
                   {sendingVerification ? (
                     <>

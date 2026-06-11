@@ -417,8 +417,8 @@ export default function ServicesPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Services JobbingTrack
             </h1>
@@ -426,18 +426,18 @@ export default function ServicesPage() {
               Gestion et monitoring des services
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             {/* ✅ NOUVEAU : Lien vers Services & Logs */}
             <Link
               href="/b4ck0ff1ce/services/logs"
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
             >
               <FileText className="w-4 h-4" />
               Services & Logs
             </Link>
             <button
               onClick={() => loadServices()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto"
             >
               <RefreshCw className="h-4 w-4" />
               Rafraîchir

@@ -2141,7 +2141,7 @@ function MobileJourneyPanel({
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:flex-wrap sm:items-center">
         <button
           data-testid="run-journey-btn"
           onClick={runJourney}
@@ -2153,7 +2153,7 @@ function MobileJourneyPanel({
                 ? "Contrôleur injoignable"
                 : "Build APK + installation + étapes du parcours"
           }
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition"
+          className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition sm:w-auto"
         >
           {running ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -2167,33 +2167,33 @@ function MobileJourneyPanel({
             onClick={() => {
               runnerRef.current?.cancel();
             }}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-red-700 transition"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition sm:w-auto"
           >
             <Square className="h-4 w-4" /> Annuler
           </button>
         )}
-        <div className="flex gap-2 ml-auto">
+        <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
           <a
             href="/b4ck0ff1ce/user-journey"
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition"
+            className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Tous les parcours
           </a>
           <a
             href="/b4ck0ff1ce/user-journey/custom"
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition"
+            className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Personnalise
           </a>
           <a
             href="/b4ck0ff1ce/user-journey/reports"
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition"
+            className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Rapports
           </a>
           <a
             href="/b4ck0ff1ce/email-monitor"
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition"
+            className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Email Monitor
           </a>

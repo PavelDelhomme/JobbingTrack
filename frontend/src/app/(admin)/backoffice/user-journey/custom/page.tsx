@@ -504,9 +504,9 @@ export default function CustomJourneyPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               🎯 Parcours Utilisateur Personnalisé
             </h1>
@@ -514,9 +514,9 @@ export default function CustomJourneyPage() {
               Construisez votre propre parcours étape par étape
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/b4ck0ff1ce/user-journey/reports">
-              <Button variant="outline" className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <Link href="/b4ck0ff1ce/user-journey/reports" className="w-full sm:w-auto">
+              <Button variant="outline" className="flex w-full items-center justify-center gap-2">
                 <FileText className="w-4 h-4" />
                 Voir les rapports de parcours
               </Button>
@@ -524,7 +524,7 @@ export default function CustomJourneyPage() {
             <Button
               onClick={executeJourney}
               disabled={isRunning || steps.length === 0}
-              className="flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 sm:w-auto"
             >
               <Play className="w-4 h-4" />
               {isRunning ? "Exécution..." : "Lancer le Parcours"}

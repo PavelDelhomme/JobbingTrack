@@ -588,7 +588,7 @@ export default function SecurityOverviewPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Score de sécurité global
@@ -597,7 +597,7 @@ export default function SecurityOverviewPage() {
                 {loading ? "..." : `${securityScore}%`}
               </div>
             </div>
-            <div className="text-right text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-left text-sm text-gray-600 dark:text-gray-400 sm:text-right">
               <div>
                 WAF:{" "}
                 {overview.wafEnabled === null
@@ -792,15 +792,15 @@ export default function SecurityOverviewPage() {
                 <Link
                   key={i.id}
                   href={i.href}
-                  className="flex items-center justify-between text-sm border border-gray-200 dark:border-gray-700 rounded p-2 hover:border-red-400 hover:bg-red-50/30 dark:hover:border-red-600 dark:hover:bg-red-950/20 transition-colors"
+                  className="flex flex-col gap-2 text-sm border border-gray-200 dark:border-gray-700 rounded p-2 hover:border-red-400 hover:bg-red-50/30 dark:hover:border-red-600 dark:hover:bg-red-950/20 transition-colors sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span
                       className={`px-2 py-0.5 rounded text-xs ${i.kind === "threat" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"}`}
                     >
                       {i.kind}
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="min-w-0 break-words font-medium text-gray-900 dark:text-gray-100">
                       {i.title}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">

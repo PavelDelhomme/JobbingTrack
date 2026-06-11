@@ -841,7 +841,7 @@ export default function APITesterPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Terminal className="h-8 w-8" />
@@ -1206,11 +1206,11 @@ export default function APITesterPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="space-y-4">
             {/* Method + Endpoint */}
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <select
                 value={method}
                 onChange={(e) => setMethod(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 sm:w-auto"
               >
                 <option>GET</option>
                 <option>POST</option>
@@ -1224,13 +1224,13 @@ export default function APITesterPage() {
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
                 placeholder={`${API_GATEWAY_URL}/api/v1/...`}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                className="min-w-0 flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               />
 
               <button
                 onClick={handleTest}
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="flex w-full items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 sm:w-auto"
               >
                 <Play className="h-5 w-5" />
                 {loading ? "Test..." : "Tester"}
@@ -1267,7 +1267,7 @@ export default function APITesterPage() {
                   return (
                     <div
                       key={index}
-                      className={`flex gap-2 items-center p-2 rounded-lg border-2 transition-all ${
+                      className={`flex flex-col gap-2 p-2 rounded-lg border-2 transition-all sm:flex-row sm:items-center ${
                         isActive
                           ? "bg-green-50 dark:bg-green-900/10 border-green-300 dark:border-green-700"
                           : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-60"
@@ -1295,7 +1295,7 @@ export default function APITesterPage() {
                           updateQueryParam(index, "key", e.target.value)
                         }
                         placeholder="Clé (ex: page, limit, status)"
-                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 ${
+                        className={`w-full min-w-0 flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 ${
                           isActive
                             ? "border-green-300 dark:border-green-700 bg-white dark:bg-gray-800"
                             : "border-gray-300 dark:border-gray-600"
@@ -1313,7 +1313,7 @@ export default function APITesterPage() {
                           updateQueryParam(index, "value", e.target.value)
                         }
                         placeholder="Valeur"
-                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 ${
+                        className={`w-full min-w-0 flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 ${
                           isActive
                             ? "border-green-300 dark:border-green-700 bg-white dark:bg-gray-800"
                             : "border-gray-300 dark:border-gray-600"
@@ -1331,10 +1331,10 @@ export default function APITesterPage() {
                     </div>
                   );
                 })}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <button
                     onClick={addQueryParam}
-                    className="flex-1 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"
+                    className="flex flex-1 items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                     Ajouter un paramètre

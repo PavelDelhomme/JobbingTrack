@@ -503,8 +503,8 @@ export default function PerformanceTestsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Zap className="h-8 w-8 text-yellow-500" />
               Tests de Performance
@@ -513,19 +513,19 @@ export default function PerformanceTestsPage() {
               Analysez et optimisez les performances de votre application
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             {isRunning && (
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>En cours...</span>
               </div>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               {!isRunning && (
                 <select
                   value={selectedTestType}
                   onChange={(e) => setSelectedTestType(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white sm:w-auto"
                 >
                   <option value="both">Backend + Frontend</option>
                   <option value="performance-backend">
@@ -542,7 +542,7 @@ export default function PerformanceTestsPage() {
               <button
                 onClick={() => startTests()}
                 disabled={!token}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors sm:w-auto ${
                   isRunning
                     ? "bg-red-600 text-white hover:bg-red-700"
                     : "bg-blue-600 text-white hover:bg-blue-700"

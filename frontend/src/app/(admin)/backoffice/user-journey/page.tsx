@@ -3069,7 +3069,7 @@ export default function UserJourneyPage() {
             {/* Mode + Scénario : compact */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Mode de test (inline) */}
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
+              <div className="flex w-full flex-wrap items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 sm:w-auto">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Mode :
                 </span>
@@ -3100,7 +3100,7 @@ export default function UserJourneyPage() {
               </div>
 
               {/* Filtres catégorie (inline) */}
-              <div className="flex items-center gap-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
+              <div className="flex w-full flex-wrap items-center gap-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 sm:w-auto">
                 {(
                   Object.entries(SCENARIO_CATEGORIES) as [
                     ScenarioFilter,
@@ -3110,7 +3110,7 @@ export default function UserJourneyPage() {
                   <button
                     key={filterKey}
                     onClick={() => setScenarioFilter(filterKey)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                    className={`flex-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all sm:flex-none ${
                       scenarioFilter === filterKey
                         ? "bg-blue-600 text-white"
                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"

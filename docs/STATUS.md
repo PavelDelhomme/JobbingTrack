@@ -75,6 +75,14 @@ Lot vérifié après push (`8a6b38b2` → `ac057bf5`) :
 - **Non-régression** : Jest alertes email **11/11**, `tsc --noEmit` OK, conteneurs clés healthy.
 - **Suite** : préparation validation porteur **Tests offensifs contrôlés** — pages `/b4ck0ff1ce/tests-security` et `/b4ck0ff1ce/test-reports` accessibles, sans scan offensif lancé.
 
+## 11 juin 2026 — responsive backoffice P1C page par page
+
+- **Audit Playwright dédié** : `frontend/tests/e2e/backoffice-responsive-audit.spec.ts` parcourt les routes backoffice statiques sur `390x844`, `820x900`, `1280x900`, `1680x1000` et vérifie absence d’actions interactives hors viewport (les tableaux restent scrollables dans leur conteneur).
+- **Correctifs UI** : headers/actions empilables, boutons pleine largeur sur mobile, filtres en grille, onglets scrollables, cartes/lignes `min-w-0`, corbeille en layout vertical mobile, WAF/firewall isolés dans wrappers scrollables, `AdminLayout` protégé contre le scroll horizontal global.
+- **Validation 11/06** : Playwright `--grep smartphone` **2/2 OK** ; Playwright `--grep moyen` **2/2 OK** ; audit complet précédent avait déjà validé `petit-pc` et `grand-ecran`, les KO smartphone/moyen ont été corrigés ensuite.
+- **Validation frontend directe** : `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé sur 19 fichiers **0 erreur** / warnings historiques uniquement ; diagnostics IDE sans erreur.
+- **Email suivi envoyé** : sujet `VALIDATION AGENT RESPONSIVE BACKOFFICE 2026-06-11T09:21:51.634Z` vers `security@jobbingtrack.com`; MailHog OK ; `EmailLog` `SENT`; miroir SMTP réel OK (`metadata.mirror.sent=true`, `messageId @maily.ovh`).
+
 ## 10 juin 2026 — alertes email critiques et nettoyage comptes E2E
 
 - **Diagnostic alertes email** : page `/b4ck0ff1ce/security/alerts` enrichie avec accès direct à MailHog et à `/b4ck0ff1ce/email-monitor?type=NOTIFICATION`. Le menu **Gestion des emails → Historique** pointe maintenant vers l’Email Monitor filtré Notification ; le filtre `NOTIFICATION` est sélectionnable et exploitable pour vérifier destinataire, statut, date et contenu.

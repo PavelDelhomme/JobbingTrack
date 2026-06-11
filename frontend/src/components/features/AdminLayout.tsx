@@ -599,7 +599,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <style jsx>{`
         /* Effet de survol amélioré */
         .nav-item-hover {
@@ -627,7 +627,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           border-radius: 2px;
         }
       `}</style>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+      <style jsx global>{`
+        html,
+        body {
+          overflow-x: hidden;
+        }
+      `}</style>
+      <div className="min-h-screen overflow-x-hidden bg-gray-50 dark:bg-gray-950 transition-colors">
         {/* ✅ Overlay mobile - Ferme la sidebar quand on clique dessus */}
         {isSidebarOpen && (
           <div
@@ -989,7 +995,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
         <div
-          className={`transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72"}`}
+          className={`overflow-x-hidden transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-0" : "lg:ml-72"}`}
         >
           {/* Top bar */}
           <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
@@ -1260,7 +1266,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
           <main
-            className={`backoffice-content p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
+            className={`backoffice-content overflow-x-hidden p-4 lg:p-8 bg-gray-100 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? "" : "lg:pl-12"}`}
           >
             {children}
           </main>

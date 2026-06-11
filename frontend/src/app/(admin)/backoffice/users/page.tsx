@@ -345,10 +345,10 @@ export default function UsersManagementPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Gestion des Utilisateurs
             </h1>
@@ -358,7 +358,7 @@ export default function UsersManagementPage() {
           </div>
           <button
             onClick={() => router.push("/b4ck0ff1ce/users/new")}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors sm:w-auto"
           >
             <Plus className="h-5 w-5" />
             Nouvel utilisateur
@@ -430,8 +430,8 @@ export default function UsersManagementPage() {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto_auto]">
+            <div className="min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -447,7 +447,7 @@ export default function UsersManagementPage() {
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 lg:w-auto"
             >
               <option value="all">Tous les rôles</option>
               <option value="SUPER_ADMIN">Super Administrateurs</option>
@@ -463,7 +463,7 @@ export default function UsersManagementPage() {
                   e.target.value as "all" | "test" | "nottest",
                 )
               }
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 lg:w-auto"
               title="Filtrer par origine (test E2E / données de test)"
             >
               <option value="all">Tous</option>
@@ -482,7 +482,7 @@ export default function UsersManagementPage() {
                       u.email?.toLowerCase().endsWith("@jobbingtrack.test")),
                 )
               }
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed lg:w-auto"
               title="Supprimer les utilisateurs créés par les tests E2E / données de test (isTestData ou @jobbingtrack.test)"
             >
               <TestTube className="h-5 w-5" />
@@ -493,7 +493,7 @@ export default function UsersManagementPage() {
 
             <button
               onClick={loadUsers}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors lg:w-auto"
             >
               <RefreshCw className="h-5 w-5" />
               Actualiser
