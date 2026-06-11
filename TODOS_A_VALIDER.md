@@ -251,6 +251,8 @@ docker exec jobbingtrack-postgres sh -lc \
 | 1 | **Performances** → **Corrélation** | [http://localhost:5003/b4ck0ff1ce/performances/correlation](http://localhost:5003/b4ck0ff1ce/performances/correlation) | Choisir un service (ex. `api-gateway`). |
 | 2 | Même page | — | KPI logs/erreurs non tous à 0 si stack active ; sinon message « pas de données » explicite. |
 
+**Preuve agent fraîche (12/06 01h51)** : `scripts/ops/run-performance-correlation-validation-with-report.sh` → `tests/results/performance-correlation/20260612-015102` (**5/5 étapes OK**) ; central logging runtime **15/15** ; `aggregated_logs` contient **27604** lignes / **18** services ; endpoints metrics et page `/b4ck0ff1ce/performances/correlation` répondent **200** ; rapport ouvrable via `performance-correlation-20260612-015102`.
+
 **Réponse** : `OK Corrélation performances` ou `KO Corrélation performances` + service + détail.
 
 ### P1B — Statistics (4 validations séparées)
