@@ -26,6 +26,10 @@ set +e
   tests/email-triage/calendar-time-policy.test.js \
   tests/email-triage/digest-schedule-policy.test.js \
   tests/email-triage/digest-identity-policy.test.js \
+  tests/email-triage/agent-access-policy.test.js \
+  tests/email-triage/digest-renderer.test.js \
+  tests/email-triage/mail-connection-policy.test.js \
+  tests/email-triage/mail-connection.integration.test.js \
   --runInBand \
   --json \
   --outputFile="${JEST_JSON}" \
@@ -57,6 +61,10 @@ const summary = {
     'tests/email-triage/calendar-time-policy.test.js',
     'tests/email-triage/digest-schedule-policy.test.js',
     'tests/email-triage/digest-identity-policy.test.js',
+    'tests/email-triage/agent-access-policy.test.js',
+    'tests/email-triage/digest-renderer.test.js',
+    'tests/email-triage/mail-connection-policy.test.js',
+    'tests/email-triage/mail-connection.integration.test.js',
   ],
 };
 

@@ -1089,12 +1089,12 @@ if [ -f "tests/security/test-rate-limiting.js" ]; then
         "$REPORT_DIR/security-rate-limiting.json"
 fi
 
-# 34b. Suite Agent email / triage (classification, digest, identité expéditeur)
+# 34b. Suite Agent email / triage (classification, digest, permissions, connexion boîte)
 if [ -f "tests/email-triage/classification-rules.test.js" ]; then
     JEST_EMAIL_TRIAGE="${ROOT_DIR}/tests/node_modules/jest/bin/jest.js"
     if [ -f "$JEST_EMAIL_TRIAGE" ]; then
         run_test "Suite Agent email / triage" \
-            "/usr/bin/node \"$JEST_EMAIL_TRIAGE\" --config tests/jest.config.js tests/email-triage/classification-rules.test.js tests/email-triage/calendar-time-policy.test.js tests/email-triage/digest-schedule-policy.test.js tests/email-triage/digest-identity-policy.test.js --runInBand 2>&1" \
+            "/usr/bin/node \"$JEST_EMAIL_TRIAGE\" --config tests/jest.config.js tests/email-triage/classification-rules.test.js tests/email-triage/calendar-time-policy.test.js tests/email-triage/digest-schedule-policy.test.js tests/email-triage/digest-identity-policy.test.js tests/email-triage/agent-access-policy.test.js tests/email-triage/digest-renderer.test.js tests/email-triage/mail-connection-policy.test.js tests/email-triage/mail-connection.integration.test.js --runInBand 2>&1" \
             "$REPORT_DIR/email-triage.json"
     fi
 fi

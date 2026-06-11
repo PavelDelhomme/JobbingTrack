@@ -1,6 +1,6 @@
 # Tests agent email / recherche d'emploi
 
-Statut : **préparation** — socle de tests unitaires et plan d'intégration. L'implémentation produit complète reste bloquée tant que le P0 CVE de `TODOS_A_VALIDER.md` est ouvert.
+Statut : **socle tests étendu** — unitaires + politique connexion boîte mail. L'implémentation produit complète (worker, UI `/`, OAuth réel) reste en backlog.
 
 Source fonctionnelle : [`docs/features/EMAIL_TRIAGE_AGENT.md`](../../docs/features/EMAIL_TRIAGE_AGENT.md)
 
@@ -10,8 +10,10 @@ Valider sans secrets dans Git :
 
 - le moteur de règles déterministe (refus, entretien, relance, événement emploi, bruit) ;
 - la politique horaire Google Calendar : pas de `00:00` par défaut, pas d'événement auto avant `05:00` ni après `23:00` ;
-- les permissions `JOB_SEARCH_AGENT_ENABLED` ;
-- le digest SMTP JobbingTrack (mock ou boîte de test), son expéditeur `@jobbingtrack.com` et sa planification ;
+- les permissions `JOB_SEARCH_AGENT_ENABLED` (compte activé, admin sans consentement bloqué) ;
+- le rendu digest HTML/texte JobbingTrack (mock SMTP, liens internes, pas de fuite de secret) ;
+- la politique de connexion Gmail/IMAP : skip explicite si `TEST_EMAIL_TRIAGE_ENABLED=false` ou credentials placeholder ;
+- le digest SMTP JobbingTrack, son expéditeur `@jobbingtrack.com` et sa planification ;
 - la lecture Gmail/IMAP en lecture seule **uniquement** si les variables `.env` locales sont présentes.
 
 ## Variables d'environnement
@@ -31,6 +33,8 @@ Voir `.env.example` section **Tests agent email recherche**. Les vraies valeurs 
 | `TEST_EMAIL_TRIAGE_CALENDAR_MIN_HOUR` | Borne basse auto (`05:00`) |
 | `TEST_EMAIL_TRIAGE_CALENDAR_MAX_HOUR` | Borne haute auto (`23:00`) |
 
+Le droit produit `JOB_SEARCH_AGENT_ENABLED` est un feature flag **utilisateur** (activation admin), pas une variable d'environnement.
+
 ## Lancer les tests
 
 Depuis la racine du dépôt :
@@ -38,10 +42,7 @@ Depuis la racine du dépôt :
 ```bash
 /usr/bin/node tests/node_modules/jest/bin/jest.js \
   --config tests/jest.config.js \
-  tests/email-triage/classification-rules.test.js \
-  tests/email-triage/calendar-time-policy.test.js \
-  tests/email-triage/digest-schedule-policy.test.js \
-  tests/email-triage/digest-identity-policy.test.js \
+  tests/email-triage/ \
   --runInBand
 ```
 
@@ -53,6 +54,8 @@ bash tests/email-triage/run-with-report.sh
 
 Sortie : `tests/results/email-triage/<timestamp>/`
 
+Backoffice : `/b4ck0ff1ce/tests` → carte **Agent email / triage** → `POST /api/test/run-email-triage`.
+
 ## Structure
 
 ```text
@@ -63,13 +66,20 @@ tests/email-triage/
 ├── calendar-time-policy.test.js
 ├── digest-schedule-policy.test.js
 ├── digest-identity-policy.test.js
+├── agent-access-policy.test.js
+├── digest-renderer.test.js
+├── mail-connection-policy.test.js
+├── mail-connection.integration.test.js
 ├── helpers/
 │   └── require-env.js
 ├── lib/
+│   ├── agent-access-policy.js
 │   ├── calendar-time-policy.js
 │   ├── classification-rules.js
+│   ├── digest-renderer.js
 │   ├── digest-schedule-policy.js
-│   └── digest-identity-policy.js
+│   ├── digest-identity-policy.js
+│   └── mail-connection-policy.js
 └── fixtures/
     └── emails/
 ```
@@ -84,9 +94,9 @@ Chaque campagne doit produire :
 
 Les secrets et adresses réelles ne doivent jamais apparaître dans les rapports.
 
-## Prochaines étapes (après P0)
+## Prochaines étapes (backlog produit)
 
-1. Tests permissions API (`JOB_SEARCH_AGENT_ENABLED`).
-2. Tests digest SMTP mockés avec rendu HTML/text et liens JobbingTrack.
-3. Tests intégration Gmail/IMAP conditionnels (`TEST_EMAIL_TRIAGE_ENABLED=true`).
-4. Intégration au backoffice **Développement → Tests** et à `scripts/run-all-tests-with-reports.sh`.
+1. API permissions réelles (`JOB_SEARCH_AGENT_ENABLED` côté auth/user-service).
+2. Worker digest 18h + envoi SMTP via notification-service.
+3. OAuth Gmail lecture seule multi-comptes + stockage tokens chiffrés.
+4. Interface utilisateur `/` (boîte agent, tâches, calendrier agrégé).
