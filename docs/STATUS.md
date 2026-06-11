@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 11 juin 2026 — **Branche** `feat/mobile-adb-physical-device`.
+**Dernière mise à jour** : 11 juin 2026 — **Branche** `fix/dev-lan-https-origin`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)
+
+- **Symptôme** : ouverture depuis un téléphone sur `https://192.168.1.134:5443` avec chargement en boucle ; le frontend pouvait reconstruire l’API vers `https://api.jobbingtrack.localhost:5443`, non résolu côté téléphone.
+- **Correctif frontend** : si la page est servie en HTTPS sur une IP privée LAN et le port dev `5443`, l’API devient same-origin (`https://<IP_PC>:5443/api/v1`) avant les `NEXT_PUBLIC_*`.
+- **Correctif proxy / CORS** : Nginx dev relaie `/api/*` vers l’API gateway sur le vhost frontend ; la gateway accepte les origines LAN privées `http/https` uniquement hors production.
+- **Certificat dev** : `scripts/ops/dev-https-certs.sh` inclut automatiquement `DEV_HTTPS_LAN_IP` / `HOST_IP` / IP LAN auto-détectée dans les SAN et régénère si elle manque.
+- **Validation** : certificat SAN contient `IP Address:192.168.1.134`; `curl -k https://192.168.1.134:5443/login` → `200`; `curl -k https://192.168.1.134:5443/api/v1/auth/health` → `200`; préflight CORS `Origin: https://192.168.1.134:5443` → `Access-Control-Allow-Origin` correct.
 
 ## 11 juin 2026 — correctif monitoring-agent-rs (boucle `starting`)
 

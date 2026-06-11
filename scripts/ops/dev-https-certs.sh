@@ -9,6 +9,23 @@ CA_DIR="$CERT_DIR/ca"
 CA_CERT="$CA_DIR/jobbingtrack-dev-root-ca.pem"
 CA_KEY="$CA_DIR/jobbingtrack-dev-root-ca-key.pem"
 FULLCHAIN_FILE="$CERT_DIR/jobbingtrack-dev-fullchain.pem"
+
+detect_lan_ip() {
+  if [ -n "${DEV_HTTPS_LAN_IP:-}" ]; then
+    printf '%s\n' "$DEV_HTTPS_LAN_IP"
+    return 0
+  fi
+  if [ -n "${HOST_IP:-}" ]; then
+    printf '%s\n' "$HOST_IP"
+    return 0
+  fi
+  ip -4 -o addr show scope global 2>/dev/null \
+    | awk '!/ docker| br-| veth| tun| wg/ { split($4, a, "/"); print a[1] }' \
+    | grep -E '^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)' \
+    | head -n1
+}
+
+DEV_LAN_IP="$(detect_lan_ip || true)"
 DOMAINS=(
   "jobbingtrack.localhost"
   "api.jobbingtrack.localhost"
@@ -16,6 +33,9 @@ DOMAINS=(
   "127.0.0.1"
   "::1"
 )
+if [ -n "$DEV_LAN_IP" ]; then
+  DOMAINS+=("$DEV_LAN_IP")
+fi
 
 mkdir -p "$CERT_DIR" "$CA_DIR"
 chmod 700 "$CERT_DIR" "$CA_DIR"
@@ -121,6 +141,9 @@ if [ "${FORCE:-0}" = "1" ] || [ ! -s "$CERT_FILE" ] || [ ! -s "$KEY_FILE" ]; the
   needs_regen=1
 elif ! openssl x509 -checkend "$((30 * 24 * 3600))" -noout -in "$CERT_FILE" >/dev/null 2>&1; then
   needs_regen=1
+elif [ -n "$DEV_LAN_IP" ] && ! openssl x509 -checkip "$DEV_LAN_IP" -noout -in "$CERT_FILE" >/dev/null 2>&1; then
+  echo "Certificat HTTPS dev sans IP LAN $DEV_LAN_IP : régénération."
+  needs_regen=1
 fi
 
 if [ "$needs_regen" = "0" ]; then
@@ -177,6 +200,12 @@ DNS.3=localhost
 IP.1=127.0.0.1
 IP.2=::1
 CONF
+
+    if [ -n "$DEV_LAN_IP" ]; then
+      cat >> "$OPENSSL_CONF" <<CONF
+IP.3=$DEV_LAN_IP
+CONF
+    fi
 
     CSR_FILE="$CERT_DIR/jobbingtrack-dev.csr"
     openssl req -new -newkey rsa:2048 -nodes \
