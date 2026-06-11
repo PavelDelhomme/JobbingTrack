@@ -23,6 +23,7 @@ export const RUNNABLE_IDS = [
   "performance",
   "metrics-p1b",
   "email-triage",
+  "controlled-offensive",
   "playwright",
   "emails",
   "emails-mailhog",
@@ -42,6 +43,7 @@ export const RUN_API: Record<string, string | string[]> = {
   ],
   "metrics-p1b": "/api/test/run-metrics-p1b",
   "email-triage": "/api/test/run-email-triage",
+  "controlled-offensive": "/api/test/run-controlled-offensive-lab-scope",
   playwright: "/api/test/run-playwright",
   emails: "/api/test/run-emails",
   "emails-mailhog": "/api/test/run-playwright-mailhog",
@@ -158,6 +160,18 @@ export const CATEGORIES = [
       "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800",
     textClass: "text-teal-700 dark:text-teal-300",
     iconClass: "text-teal-600 dark:text-teal-400",
+  },
+  {
+    id: "controlled-offensive",
+    name: "Tests offensifs contrôlés",
+    description:
+      "Préflight + manifeste périmètre lab plan-only (aucun payload, dryRun)",
+    href: "/b4ck0ff1ce/tests-security",
+    icon: Shield,
+    bgClass:
+      "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800",
+    textClass: "text-rose-700 dark:text-rose-300",
+    iconClass: "text-rose-600 dark:text-rose-400",
   },
   {
     id: "playwright",

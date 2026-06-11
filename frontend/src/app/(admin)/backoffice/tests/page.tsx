@@ -12,6 +12,7 @@ import {
   Check,
   Circle,
   MailCheck,
+  Shield,
 } from "lucide-react";
 import { Loader2 } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
@@ -316,6 +317,17 @@ export default function TestsHubPage() {
           >
             <MailCheck className="w-4 h-4" />
             Lancer suite agent email
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => runSelected(["controlled-offensive"])}
+            disabled={isRunning}
+            className="gap-1.5 border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/30"
+            title="Génère le manifeste périmètre tests offensifs contrôlés (plan-only)"
+          >
+            <Shield className="w-4 h-4" />
+            Périmètre offensif lab
           </Button>
           <Link href="/b4ck0ff1ce/test-reports">
             <Button variant="outline" className="gap-2">
