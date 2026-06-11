@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 12 juin 2026 — **Branche** `feat/backoffice-email-triage-tests`.
+**Dernière mise à jour** : 12 juin 2026 — **Branche** `chore/merge-controlled-offensive-into-dev`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -15,6 +15,7 @@
 - **Docs/env** : `.env.example`, `docs/features/EMAIL_TRIAGE_AGENT.md`, `docs/deployment/environment-variables/README.md` et `tests/email-triage/README.md` alignés sur les variables digest et la règle `@jobbingtrack.com`.
 - **Mail local vs préprod/prod** : documentation SMTP alignée et garde-fou automatisé ajouté. MailHog reste local/dev/test uniquement ; préprod/prod doivent utiliser un SMTP réel, sans `SMTP_HOST=mailhog` ni `NOTIFICATION_SMTP_HOST` forçant MailHog. `env-validate-runtime.cjs --production` refuse ces configurations ; test Jest dédié **3/3 OK**. Gates ajoutés : smoke reset/vérification + alerte sécurité + futur digest, réception réelle et `EmailLog` `SENT`.
 - **Identité alertes sécurité** : `notification-service` expose `getSecurityAlertIdentity()` ; si seul le compte SMTP authentifié est renseigné (ex. `noreply@maily.ovh`), l’expéditeur visible devient `JobbingTrack Security <noreply@maily.ovh>` au lieu d’une adresse nue. Tests notification-service **8/8 OK** ; mail récap envoyé.
+- **Validation 01h33** : stack `jobbingtrack-*` healthy ; `/b4ck0ff1ce/tests`, `/b4ck0ff1ce/test-reports`, `/api/test-reports/all` répondent **200** ; vues rapports `email-triage-20260612-013307` et `controlled-offensive-20260612-013308` OK. Validations : `npm run type-check` OK, `npm run lint` OK (**0 erreur**, warnings historiques), email-triage **45 passed / 1 skipped**, tests offensifs contrôlés **9/9 OK**, catalogue hub Tests **3/3 OK**. Email récap validation envoyé vers `pauldelhomme.pro@gmail.com`, `dev@delhomme.ovh`, `test@delhomme.ovh`, `EmailLog` **SENT** x3.
 
 ## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)
 

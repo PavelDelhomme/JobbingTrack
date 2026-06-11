@@ -208,10 +208,14 @@ docker exec jobbingtrack-postgres sh -lc \
 
 | # | Où aller | URL |
 |---|----------|-----|
-| 1 | **Développement** → **Tests** → **Tests Sécurité** | [http://localhost:5003/b4ck0ff1ce/tests-security](http://localhost:5003/b4ck0ff1ce/tests-security) |
-| 2 | **Développement** → **Rapports de tests** | [http://localhost:5003/b4ck0ff1ce/test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) |
+| 1 | **Développement** → **Tests** | [http://localhost:5003/b4ck0ff1ce/tests](http://localhost:5003/b4ck0ff1ce/tests) |
+| 2 | Carte **Tests offensifs contrôlés** | même page — vérifier le bouton **Périmètre offensif lab** ; il génère un rapport plan-only, sans payload |
+| 3 | **Développement** → **Tests** → **Tests Sécurité** | [http://localhost:5003/b4ck0ff1ce/tests-security](http://localhost:5003/b4ck0ff1ce/tests-security) |
+| 4 | **Développement** → **Rapports de tests** | [http://localhost:5003/b4ck0ff1ce/test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) — vérifier `controlled-offensive-20260612-013308` |
 
 **Interdit** : ZAP actif, nmap, SYN flood, spoofing sur prod. Cibles lab : `localhost:5002` uniquement.
+
+**Preuve agent fraîche (12/06 01h33)** : `bash scripts/security/run-controlled-offensive-lab-scope-with-report.sh` → `tests/results/controlled-offensive/20260612-013308`, `dryRun=true`, `willRunPayload=false`, Jest préflight/lab-scope **9/9 OK**.
 
 #### C. Réponse
 
