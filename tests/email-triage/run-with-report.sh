@@ -21,7 +21,10 @@ fi
 set +e
 /usr/bin/node "${JEST_BIN}" \
   --config tests/jest.config.js \
+  tests/email-triage/classification-rules.test.js \
   tests/email-triage/calendar-time-policy.test.js \
+  tests/email-triage/digest-schedule-policy.test.js \
+  tests/email-triage/digest-identity-policy.test.js \
   --runInBand \
   --json \
   --outputFile="${JEST_JSON}" \
@@ -48,7 +51,12 @@ const summary = {
     failed: jest.numFailedTests || 0,
     skipped: jest.numPendingTests || 0,
   },
-  calendarPolicy: 'tests/email-triage/calendar-time-policy.test.js',
+  suites: [
+    'tests/email-triage/classification-rules.test.js',
+    'tests/email-triage/calendar-time-policy.test.js',
+    'tests/email-triage/digest-schedule-policy.test.js',
+    'tests/email-triage/digest-identity-policy.test.js',
+  ],
 };
 
 fs.writeFileSync(summaryJsonPath, JSON.stringify(summary, null, 2));
@@ -59,7 +67,7 @@ fs.writeFileSync(
     `timestamp: ${summary.timestamp}`,
     `exit: ${summary.exitCode}`,
     `tests: ${summary.totals.tests} | passed: ${summary.totals.passed} | failed: ${summary.totals.failed} | skipped: ${summary.totals.skipped}`,
-    'scope: calendar-time-policy (unit)',
+    `scope: ${summary.suites.join(', ')}`,
   ].join('\n') + '\n'
 );
 NODE
