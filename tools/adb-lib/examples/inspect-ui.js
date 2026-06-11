@@ -37,4 +37,16 @@ const searchText = process.argv[2];
       console.log(`  ${label}${click}  (${n.className})  bounds=${n.bounds}`);
     });
   }
-})().catch(err => { console.error('Erreur:', err.message); process.exit(1); });
+})().catch((err) => {
+  console.error('Erreur:', err.message);
+  if (/Aucun appareil ADB/i.test(err.message)) {
+    console.error('');
+    console.error('Checklist:');
+    console.error('  1. Cable USB données (pas charge seule)');
+    console.error('  2. Options developpeur + debogage USB actifs');
+    console.error('  3. Autoriser la cle RSA sur le telephone');
+    console.error('  4. Verifier: adb devices -l');
+    console.error('  5. Script: bash scripts/mobile/setup-physical-device.sh');
+  }
+  process.exit(1);
+});

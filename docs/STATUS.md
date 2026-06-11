@@ -1,8 +1,30 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 11 juin 2026 — **Branche** `docs/email-triage-agent-roadmap`.
+**Dernière mise à jour** : 11 juin 2026 — **Branche** `feat/mobile-adb-physical-device`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 11 juin 2026 — correctif monitoring-agent-rs (boucle `starting`)
+
+- **Symptôme** : `jobbingtrack-monitoring-agent-rs` en `health: starting` permanent avec redémarrages (`RestartCount` > 2600), logs `Broken pipe` en boucle.
+- **Cause** : le serveur HTTP Rust quittait sur `BrokenPipe` quand le healthcheck Docker (`curl`) fermait la connexion après `GET /health`.
+- **Correctif** : isoler les erreurs par requête dans `http.rs` ; ignorer `BrokenPipe` / `ConnectionReset` / `UnexpectedEof` côté client ; `start_period: 30s` sur le healthcheck Compose.
+- **Validation** : recreate conteneur → `healthy`, `RestartCount=0`, `/health` → `{"status":"ok",...}`.
+
+## 11 juin 2026 — mobile physique ADB (S21 FE)
+
+- **Script setup** : `scripts/mobile/setup-physical-device.sh` attend l'appareil, configure `adb reverse` (5002/5003/3000), build l'APK avec `MOBILE_DEV_LAN_HOST` auto-détectée, installe et lance `com.example.jobbingtrack_mobile`.
+- **API mobile** : `ApiService` persiste l'URL choisie (`shared_preferences`), sonde URL sauvegardée puis `127.0.0.1` / IP LAN build / `10.0.2.2` / `localhost`.
+- **Smoke ADB** : `scripts/mobile/smoke-login-adb.js` + `tools/adb-lib/flows.js` lisent les credentials depuis `.env` (`TEST_USER_*` ou `TEST_ADMIN_*`).
+- **Validations** : `flutter test test/widget_test.dart` **1/1 OK** ; APK debug buildé avec `--dart-define=MOBILE_DEV_LAN_HOST=192.168.1.134`.
+- **Reste** : `adb devices` vide dans la session agent au moment du build — vérifier câble données + autorisation RSA sur le téléphone, puis relancer le script setup ou le backoffice **Mobile → Installer et lancer**.
+
+## 11 juin 2026 — P1A préflight tests offensifs contrôlés
+
+- **Git** : lot alertes email critiques nettoyé puis poussé (`7e2341f0`), branche `docs/email-triage-agent-roadmap` mergée vers `dev` via `a3a59df5`, puis nouvelle branche `security/controlled-offensive-tests`.
+- **Préflight non destructif** : `scripts/security/controlled-offensive-preflight.cjs` ajouté pour classer les cibles `allowed` / `needs_approval` / `blocked` avant tout test actif. Le script reste `dryRun=true`, bloque la prod sans fenêtre explicite et demande approbation pour les cibles publiques externes.
+- **Backoffice / doc** : encart `/b4ck0ff1ce/tests-security` et `docs/security/SECURITY_TESTING_MATRIX.md` mentionnent le préflight lecture seule avant ZAP/nmap/fuzzing.
+- **Validations** : préflight local `localhost:5002` → `allowed`; Jest direct `controlled-offensive-preflight.test.js` **5/5 OK** ; `frontend npm run type-check` OK ; `frontend npm run lint` OK ; diagnostics IDE sans erreur sur fichiers touchés.
 
 ## 10 juin 2026 — gate validation des 6 commits P1A alertes email
 

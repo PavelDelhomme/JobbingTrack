@@ -21,6 +21,20 @@ Les API renvoient des horodatages **ISO 8601** (souvent en UTC). Pour l’affich
 
 Puis elle affiche toujours l'écran de connexion. Si l'API ne répond pas, depuis l'écran de connexion vous pouvez **tapper sur « API: ... »** en bas pour saisir l'IP du PC (ex. 192.168.1.42).
 
+**Appareil physique (S21, etc.)** — script tout-en-un :
+
+```bash
+bash scripts/mobile/setup-physical-device.sh
+```
+
+Le script attend l'appareil ADB, active `adb reverse` sur les ports API, build l'APK avec l'IP LAN du PC en fallback, installe et lance l'app.
+
+Smoke UI / login (credentials depuis `.env`) :
+
+```bash
+node scripts/mobile/smoke-login-adb.js
+```
+
 **Rebuild obligatoire** après ces changements : `flutter build apk --debug` puis « Installer et lancer » depuis l'émulateur backoffice.
 
 **En production** :

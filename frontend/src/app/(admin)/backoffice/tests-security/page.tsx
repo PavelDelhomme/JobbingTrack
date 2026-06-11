@@ -459,6 +459,7 @@ export default function SecurityTestsPage() {
           </p>
           <ul className="text-xs text-amber-900/90 dark:text-amber-100/80 list-disc pl-5 space-y-1">
             <li>Cible lab : <code>localhost:5002</code> / stack locale HTTPS.</li>
+            <li>Préflight lecture seule : <code>node scripts/security/controlled-offensive-preflight.cjs --target=http://localhost:5002 --environment=local</code>.</li>
             <li>Rapports : <Link href="/b4ck0ff1ce/test-reports" className="underline">Rapports de tests</Link> (catégorie Sécurité).</li>
             <li>Validation porteur : confirmer le cadrage, pas lancer une campagne agressive depuis l’UI.</li>
           </ul>
@@ -476,6 +477,11 @@ export default function SecurityTestsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-200/60 dark:divide-amber-900/50">
+                  <tr>
+                    <td className="px-2 py-1.5">Préflight périmètre</td>
+                    <td className="px-2 py-1.5">Lecture seule</td>
+                    <td className="px-2 py-1.5">Script `controlled-offensive-preflight.cjs`</td>
+                  </tr>
                   <tr>
                     <td className="px-2 py-1.5">WAF / injection / headers</td>
                     <td className="px-2 py-1.5">Passif + payloads bornés</td>

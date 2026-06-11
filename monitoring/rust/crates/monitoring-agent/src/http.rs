@@ -6,7 +6,7 @@ use crate::metrics::MetricsCollector;
 use crate::storage::HistoryQuery;
 use serde_json::json;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 
 pub fn serve(config: Config, collector: MetricsCollector) -> std::io::Result<()> {
@@ -15,11 +15,24 @@ pub fn serve(config: Config, collector: MetricsCollector) -> std::io::Result<()>
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => handle_stream(&mut stream, &collector)?,
+            Ok(mut stream) => {
+                if let Err(error) = handle_stream(&mut stream, &collector) {
+                    if !is_benign_client_disconnect(&error) {
+                        eprintln!("monitoring-agent request error: {error}");
+                    }
+                }
+            }
             Err(error) => eprintln!("monitoring-agent accept error: {error}"),
         }
     }
     Ok(())
+}
+
+fn is_benign_client_disconnect(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        ErrorKind::BrokenPipe | ErrorKind::ConnectionReset | ErrorKind::UnexpectedEof
+    )
 }
 
 fn handle_stream(stream: &mut TcpStream, collector: &MetricsCollector) -> std::io::Result<()> {
@@ -179,9 +192,13 @@ fn write_json(stream: &mut TcpStream, status: u16, body: &str) -> std::io::Resul
         HTTP_INTERNAL_ERROR => "Internal Server Error",
         _ => "OK",
     };
-    write!(
+    match write!(
         stream,
         "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
         body.len()
-    )
+    ) {
+        Ok(_) => Ok(()),
+        Err(error) if is_benign_client_disconnect(&error) => Ok(()),
+        Err(error) => Err(error),
+    }
 }
