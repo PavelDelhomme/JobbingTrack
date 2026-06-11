@@ -35,11 +35,12 @@ Ces commandes ne doivent viser que `localhost`, un environnement de test ou une 
 | Contrôle | Cible projet | Variables minimales |
 |----------|--------------|---------------------|
 | Préflight offensif contrôlé (lecture seule) | `scripts/security/controlled-offensive-preflight.cjs` | `SECURITY_TEST_TARGET=http://localhost:5002`, `SECURITY_TEST_ENV=local` |
+| Manifeste périmètre lab (plan-only) | `scripts/security/controlled-offensive-lab-scope.cjs` | `SECURITY_TEST_TARGET=http://localhost:5002`, `SECURITY_TEST_ENV=local` |
 | Ports exposés | `security-scan-ports` | `SECURITY_NMAP_TARGET=preprod-api.example.test` |
 | JWT lab | `security-scan-jwt` | `JWT_AUDIT_TOKEN=<token-lab-court-vivant>` |
 | ZAP actif borné | `security-zap-active` | `SECURITY_ACTIVE_SCAN=1`, `ZAP_TARGET=http://localhost:5002`, `ZAP_MAX_MINUTES=10` |
 
-Le préflight ne lance aucun payload : il classe la cible `allowed`, `needs_approval` ou `blocked` avant toute campagne active. Ces cibles ne doivent pas être lancées contre une production réelle sans fenêtre validée et sauvegarde/rollback prêts.
+Le préflight ne lance aucun payload : il classe la cible `allowed`, `needs_approval` ou `blocked` avant toute campagne active. Le manifeste lab liste ensuite les services/scénarios en `plan-only` (`willRunPayload=false`) afin de valider le périmètre avant d’autoriser un runner explicite. Ces cibles ne doivent pas être lancées contre une production réelle sans fenêtre validée et sauvegarde/rollback prêts.
 
 Pré-requis locaux : `nmap` installé pour le scan réseau, `jwt_tool` installé pour l’audit JWT, Docker/ZAP disponible pour `security-zap-active`. Si l’outil manque, noter `skipped` dans le rapport plutôt que simuler un succès.
 

@@ -23,6 +23,7 @@
 
 - **Git** : lot alertes email critiques nettoyé puis poussé (`7e2341f0`), branche `docs/email-triage-agent-roadmap` mergée vers `dev` via `a3a59df5`, puis nouvelle branche `security/controlled-offensive-tests`.
 - **Préflight non destructif** : `scripts/security/controlled-offensive-preflight.cjs` ajouté pour classer les cibles `allowed` / `needs_approval` / `blocked` avant tout test actif. Le script reste `dryRun=true`, bloque la prod sans fenêtre explicite et demande approbation pour les cibles publiques externes.
+- **Manifeste lab plan-only** : `scripts/security/controlled-offensive-lab-scope.cjs` liste les services/scénarios en `plan-only` (`willRunPayload=false`) : gateway, auth, applications, notification, sécurité et monitoring-agent-rs. Il sert de périmètre à valider avant tout runner actif.
 - **Backoffice / doc** : encart `/b4ck0ff1ce/tests-security` et `docs/security/SECURITY_TESTING_MATRIX.md` mentionnent le préflight lecture seule avant ZAP/nmap/fuzzing.
 - **Validations** : préflight local `localhost:5002` → `allowed`; Jest direct `controlled-offensive-preflight.test.js` **5/5 OK** ; `frontend npm run type-check` OK ; `frontend npm run lint` OK ; diagnostics IDE sans erreur sur fichiers touchés.
 
