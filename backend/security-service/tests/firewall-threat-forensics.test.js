@@ -215,6 +215,8 @@ describe('Firewall threats - détails forensics', () => {
     expect(body.data.investigation.application.logs).toEqual(
       expect.objectContaining({
         total: 2,
+        intrusionAttempts: 0,
+        ddosAttacks: 1,
         blockedEvents: 1,
         maxRiskScore: 95,
         effectiveRiskScore: 95,
@@ -279,12 +281,16 @@ describe('Firewall threats - détails forensics', () => {
     expect(investigation.application.logs).toEqual(
       expect.objectContaining({
         total: 0,
-        maxRiskScore: 0,
-        effectiveRiskScore: 75,
-        riskSource: 'threat_severity',
+        intrusionAttempts: 1,
+        ddosAttacks: 0,
+        maxRiskScore: 82,
+        effectiveRiskScore: 82,
+        riskSource: 'intrusion_attempts',
         threatSeverityRiskScore: 75
       })
     );
+    expect(investigation.application.logs.endpoints).toEqual(['/api/v1/admin']);
+    expect(investigation.application.logs.methods).toEqual(['POST']);
     const isPrivateSource =
       sourceIp.startsWith('10.') ||
       sourceIp.startsWith('172.') ||

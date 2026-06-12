@@ -86,32 +86,60 @@ function enrichThreatForApi(threat) {
   return { ...threat, destIp };
 }
 
-function summarizeSecurityLogs(logs) {
+function summarizeApplicationContext(logs, intrusionAttempts = [], ddosAttacks = []) {
   const endpoints = new Set();
   const methods = new Set();
   const services = new Set();
   const impactedUsers = new Set();
+  const correlationSources = new Set();
   let blockedEvents = 0;
   let maxRiskScore = 0;
+  let maxRiskSource = null;
+
+  const registerRisk = (score, source) => {
+    const numericScore = Number(score || 0);
+    if (numericScore > maxRiskScore) {
+      maxRiskScore = numericScore;
+      maxRiskSource = source;
+    }
+  };
 
   for (const log of logs) {
+    correlationSources.add('security_logs');
     if (log.endpoint) endpoints.add(log.endpoint);
     if (log.method) methods.add(log.method);
     if (log.userId) impactedUsers.add(log.userId);
     if (log.isBlocked) blockedEvents += 1;
-    if (Number(log.riskScore || 0) > maxRiskScore) maxRiskScore = Number(log.riskScore || 0);
+    registerRisk(log.riskScore, 'security_logs');
     const serviceName = log.metadata?.serviceName || log.metadata?.service || log.metadata?.containerName;
     if (serviceName) services.add(String(serviceName));
   }
 
+  for (const attempt of intrusionAttempts) {
+    correlationSources.add('intrusion_attempts');
+    if (attempt.targetEndpoint) endpoints.add(attempt.targetEndpoint);
+    if (attempt.method) methods.add(attempt.method);
+    if (attempt.isBlocked) blockedEvents += 1;
+    registerRisk(attempt.riskScore, 'intrusion_attempts');
+  }
+
+  for (const attack of ddosAttacks) {
+    correlationSources.add('ddos_attacks');
+    if (attack.targetEndpoint) endpoints.add(attack.targetEndpoint);
+  }
+
   return {
     total: logs.length,
+    intrusionAttempts: intrusionAttempts.length,
+    ddosAttacks: ddosAttacks.length,
     blockedEvents,
     maxRiskScore,
+    maxRiskSource,
     endpoints: Array.from(endpoints).slice(0, 12),
     methods: Array.from(methods).slice(0, 8),
     impactedUsers: Array.from(impactedUsers).slice(0, 12),
-    services: Array.from(services).slice(0, 12)
+    services: Array.from(services).slice(0, 12),
+    correlationSources: Array.from(correlationSources)
   };
 }
 
@@ -148,12 +176,16 @@ async function buildThreatInvestigation(threat, related) {
   const enriched = enrichThreatForApi(threat);
   const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
   const geo = await lookupGeoIp(enriched.sourceIp);
-  const logsSummary = summarizeSecurityLogs(related.securityLogs);
+  const logsSummary = summarizeApplicationContext(
+    related.securityLogs,
+    related.intrusionAttempts,
+    related.ddosAttacks
+  );
   const threatSeverityRiskScore = riskScoreFromThreatSeverity(enriched.severity);
   const effectiveRiskScore = Math.max(logsSummary.maxRiskScore, threatSeverityRiskScore);
   const riskSource =
     logsSummary.maxRiskScore > 0
-      ? 'security_logs'
+      ? logsSummary.maxRiskSource || 'security_logs'
       : threatSeverityRiskScore > 0
         ? 'threat_severity'
         : 'unknown';

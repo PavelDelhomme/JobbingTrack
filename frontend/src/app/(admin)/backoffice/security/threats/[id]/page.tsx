@@ -53,6 +53,8 @@ interface NetworkThreat {
     application?: {
       logs?: {
         total?: number;
+        intrusionAttempts?: number;
+        ddosAttacks?: number;
         blockedEvents?: number;
         maxRiskScore?: number;
         effectiveRiskScore?: number;
@@ -242,7 +244,11 @@ export default function ThreatDetailsPage() {
       ? "Estimé depuis la sévérité de la menace, faute de log corrélé."
       : appLogs?.riskSource === "security_logs"
         ? "Calculé depuis les logs sécurité corrélés."
-        : "Source du score non déterminée.";
+        : appLogs?.riskSource === "intrusion_attempts"
+          ? "Calculé depuis les tentatives d’intrusion corrélées."
+          : appLogs?.riskSource === "ddos_attacks"
+            ? "Calculé depuis les attaques DDoS corrélées."
+            : "Source du score non déterminée.";
   const recentEvents = investigation.application?.recentEvents || [];
   const missingTelemetry = investigation.missingTelemetry || [];
   const networkConnectionDetails =
@@ -782,6 +788,15 @@ export default function ThreatDetailsPage() {
                   {appLogs?.total ?? 0} logs · {appLogs?.blockedEvents ?? 0}{" "}
                   blocage(s)
                 </p>
+                {Boolean(
+                  (appLogs?.intrusionAttempts ?? 0) +
+                    (appLogs?.ddosAttacks ?? 0),
+                ) && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {appLogs?.intrusionAttempts ?? 0} tentative(s)
+                    intrusion · {appLogs?.ddosAttacks ?? 0} attaque(s) DDoS
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-gray-500 dark:text-gray-400">
