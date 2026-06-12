@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
@@ -19,6 +19,28 @@ import { RefreshCw, ShieldAlert } from "lucide-react";
 
 const API_URL = FRONTEND_URLS.api;
 const PAGE_SIZE = 50;
+
+const KNOWN_LOG_CATEGORIES = [
+  "auth",
+  "ddos",
+  "firewall",
+  "intrusion",
+  "network",
+  "security",
+  "system",
+  "waf",
+];
+
+const KNOWN_EVENT_TYPES = [
+  "network_threat_detected",
+  "threat_blocked",
+  "ip_blocked_automatically",
+  "waf_blocked",
+  "brute_force_detected",
+  "login_failed",
+  "rate_limit_exceeded",
+  "security_alert_created",
+];
 
 type SecurityLogRow = {
   id: string;
@@ -53,6 +75,12 @@ function readMetadataThreatId(
 ): string | null {
   const id = metadata?.threatId;
   return id ? String(id) : null;
+}
+
+function uniqueSortedValues(values: Array<string | undefined>): string[] {
+  return Array.from(
+    new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
+  ).sort((a, b) => a.localeCompare(b, "fr"));
 }
 
 export default function SecurityLogsPage() {
@@ -141,6 +169,46 @@ export default function SecurityLogsPage() {
   const canGoNext = total ? page < totalPages : logs.length === PAGE_SIZE;
   const startIndex = logs.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const endIndex = (page - 1) * PAGE_SIZE + logs.length;
+  const categorySuggestions = useMemo(
+    () =>
+      uniqueSortedValues([
+        ...KNOWN_LOG_CATEGORIES,
+        ...logs.map((log) => log.category),
+      ]),
+    [logs],
+  );
+  const eventTypeSuggestions = useMemo(
+    () =>
+      uniqueSortedValues([
+        ...KNOWN_EVENT_TYPES,
+        ...logs.map((log) => log.eventType),
+      ]),
+    [logs],
+  );
+  const searchSuggestions = useMemo(
+    () =>
+      uniqueSortedValues(
+        logs.flatMap((log) => [
+          log.sourceIP,
+          log.endpoint,
+          log.message,
+          log.method ? `${log.method} ${log.endpoint || ""}`.trim() : undefined,
+        ]),
+      ).slice(0, 80),
+    [logs],
+  );
+  const activeFilterLabels = [
+    level ? `niveau ${formatSecuritySeverity(level)}` : null,
+    category ? `catégorie ${category}` : null,
+    eventType ? `type ${formatSecurityEventTypeLabel(eventType)}` : null,
+    query.trim() ? `recherche "${query.trim()}"` : null,
+    `${days} jour${days > 1 ? "s" : ""}`,
+  ].filter((label): label is string => Boolean(label));
+
+  const toggleSortOrder = () => {
+    setPage(1);
+    setOrder((current) => (current === "desc" ? "asc" : "desc"));
+  };
 
   return (
     <AdminLayout>
@@ -196,6 +264,7 @@ export default function SecurityLogsPage() {
             <label className="flex flex-col gap-1 text-sm font-medium">
               Catégorie
               <input
+                list="security-log-category-options"
                 value={category}
                 onChange={(e) => {
                   setPage(1);
@@ -204,10 +273,16 @@ export default function SecurityLogsPage() {
                 placeholder="auth, firewall, intrusion..."
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
+              <datalist id="security-log-category-options">
+                {categorySuggestions.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
               Type d’événement
               <input
+                list="security-log-event-type-options"
                 value={eventType}
                 onChange={(e) => {
                   setPage(1);
@@ -216,6 +291,15 @@ export default function SecurityLogsPage() {
                 placeholder="network_threat_detected"
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
+              <datalist id="security-log-event-type-options">
+                {eventTypeSuggestions.map((option) => (
+                  <option
+                    key={option}
+                    value={option}
+                    label={formatSecurityEventTypeLabel(option)}
+                  />
+                ))}
+              </datalist>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
               Tri
@@ -250,6 +334,7 @@ export default function SecurityLogsPage() {
             <label className="flex flex-col gap-1 text-sm font-medium">
               Recherche
               <input
+                list="security-log-search-options"
                 value={query}
                 onChange={(e) => {
                   setPage(1);
@@ -258,7 +343,26 @@ export default function SecurityLogsPage() {
                 placeholder="IP, endpoint, message..."
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
+              <datalist id="security-log-search-options">
+                {searchSuggestions.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
             </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">
+              Tri Date :{" "}
+              {order === "desc" ? "plus récent d’abord" : "plus ancien d’abord"}
+            </span>
+            {activeFilterLabels.map((label) => (
+              <span
+                key={label}
+                className="rounded-full bg-gray-100 px-2 py-1 dark:bg-gray-700"
+              >
+                {label}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -287,7 +391,24 @@ export default function SecurityLogsPage() {
                     <th className="p-3 text-left">Message</th>
                     <th className="p-3 text-left">Source</th>
                     <th className="p-3 text-left">Endpoint</th>
-                    <th className="p-3 text-left">Date</th>
+                    <th className="p-3 text-left">
+                      <button
+                        type="button"
+                        onClick={toggleSortOrder}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-left font-semibold hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Inverser le tri par date"
+                      >
+                        Date
+                        <span aria-hidden="true">
+                          {order === "desc" ? "↓" : "↑"}
+                        </span>
+                        <span className="sr-only">
+                          {order === "desc"
+                            ? "plus récent d’abord"
+                            : "plus ancien d’abord"}
+                        </span>
+                      </button>
+                    </th>
                     <th className="p-3 text-left">Liens</th>
                   </tr>
                 </thead>
