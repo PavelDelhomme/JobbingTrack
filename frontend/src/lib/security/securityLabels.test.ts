@@ -4,6 +4,9 @@ import {
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
   formatThreatTypeLabel,
+  getSecuritySeverityFilterOptions,
+  getThreatSeverityFilterOptions,
+  getThreatTypeFilterOptions,
   isHighOrCriticalSeverity,
 } from "./securityLabels";
 
@@ -46,5 +49,21 @@ describe("securityLabels", () => {
     expect(formatFirewallActionLabel("DENY")).toBe("Bloquer (DROP)");
     expect(formatFirewallActionLabel("REJECT")).toBe("Rejeter");
     expect(formatFirewallActionLabel("ALLOW")).toBe("Autoriser");
+  });
+
+  it("expose les options de filtres sécurité sans hardcoder les pages", () => {
+    expect(getSecuritySeverityFilterOptions().map((option) => option.value)).toEqual(
+      ["critical", "error", "warning", "info"],
+    );
+    expect(getThreatSeverityFilterOptions()[0]).toEqual({
+      value: "CRITICAL",
+      label: "Critique",
+    });
+    expect(
+      getThreatTypeFilterOptions().some(
+        (option) =>
+          option.value === "BRUTE_FORCE" && option.label === "Force brute",
+      ),
+    ).toBe(true);
   });
 });
