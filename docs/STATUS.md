@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 12 juin 2026 — **Branche** `fix/security-b10-forensics-score`.
+**Dernière mise à jour** : 12 juin 2026 — **Branche** `dev` + suite `fix/security-b10-forensics-score`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
