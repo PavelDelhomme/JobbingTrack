@@ -13,7 +13,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues, mergeFacetSuggestions } from "@/lib/filters/facetUtils";
-import { SecuritySubNav } from "../SecuritySubNav";
+import { SecurityIncidentsTabs } from "../SecurityIncidentsTabs";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -412,25 +412,13 @@ export default function ThreatsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
+        <SecurityIncidentsTabs />
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <AlertTriangle className="h-8 w-8" />
-              Menaces
+              Menaces réseau
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Toutes les menaces détectées (réseau, WAF, firewall, intrusions) —
-              tri par date/heure de détection. La colonne Statut est croisée
-              avec la{" "}
-              <Link
-                href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
-                className="text-blue-600 hover:underline"
-              >
-                liste consolidée des IPs bloquées
-              </Link>
-              .
-            </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {highOrCriticalCount} menace(s) haute(s) ou critique(s) sur la
               page courante

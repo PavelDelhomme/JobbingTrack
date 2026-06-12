@@ -4,6 +4,7 @@ export type SecurityLogLinkReason =
   | "metadata_threat_id"
   | "correlation_ip_temps"
   | "lab_non_rattache"
+  | "menace_introuvable"
   | "aucune_menace_ip"
   | "aucune_menace_proche"
   | "ip_absente"
@@ -19,12 +20,22 @@ export type SecurityLogLinkFields = {
   linkReason?: SecurityLogLinkReason | null;
 };
 
+/** Identifiant Prisma CUID — rejette les IDs synthétiques lab. */
+export function isPersistedThreatId(id: unknown): boolean {
+  const value = String(id ?? "").trim();
+  return /^c[a-z0-9]{15,}$/i.test(value);
+}
+
 export function readSecurityLogThreatId(
   log: SecurityLogLinkFields,
 ): string | null {
+  if (log.correlatedThreatId && isPersistedThreatId(log.correlatedThreatId)) {
+    return String(log.correlatedThreatId);
+  }
   const metadataId = log.metadata?.threatId;
-  if (metadataId) return String(metadataId);
-  if (log.correlatedThreatId) return String(log.correlatedThreatId);
+  if (metadataId && isPersistedThreatId(metadataId)) {
+    return String(metadataId);
+  }
   return null;
 }
 
@@ -38,6 +49,8 @@ export function formatSecurityLogLinkReason(
       return "Menace corrélée par IP et horodatage";
     case "lab_non_rattache":
       return "Log lab sans menace rattachée";
+    case "menace_introuvable":
+      return "Menace référencée introuvable";
     case "aucune_menace_ip":
       return "Aucune menace pour cette IP";
     case "aucune_menace_proche":

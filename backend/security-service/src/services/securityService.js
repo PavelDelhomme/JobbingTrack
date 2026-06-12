@@ -10,8 +10,10 @@ const { lookupGeoIp } = require('../utils/geoipProvider');
 const {
   buildThreatLookupWindow,
   collectCorrelationSourceIps,
+  collectMetadataThreatIds,
   enrichSecurityLogsWithThreatLinks
 } = require('../utils/securityLogThreatCorrelation');
+const { maybeCreateThreatForSecurityLog } = require('../utils/securityLogAutoThreat');
 
 const CVE_SCAN_RELATIVE_PATH = path.join('scripts', 'security', 'cve-scan.py');
 const CVE_SCAN_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -189,22 +191,31 @@ class SecurityService {
       ]);
 
       const sourceIps = collectCorrelationSourceIps(logs);
+      const metadataThreatIds = collectMetadataThreatIds(logs);
       let enrichedLogs = logs;
 
       if (
-        sourceIps.length > 0 &&
+        (sourceIps.length > 0 || metadataThreatIds.length > 0) &&
         prisma.networkThreat &&
         typeof prisma.networkThreat.findMany === 'function'
       ) {
         const window = buildThreatLookupWindow(logs);
-        const threats = await prisma.networkThreat.findMany({
-          where: {
+        const orClauses = [];
+        if (sourceIps.length > 0) {
+          orClauses.push({
             sourceIp: { in: sourceIps },
             detectedAt: {
               gte: window.gte,
               lte: window.lte
             }
-          },
+          });
+        }
+        if (metadataThreatIds.length > 0) {
+          orClauses.push({ id: { in: metadataThreatIds } });
+        }
+
+        const threats = await prisma.networkThreat.findMany({
+          where: { OR: orClauses },
           select: {
             id: true,
             sourceIp: true,
@@ -214,6 +225,8 @@ class SecurityService {
           }
         });
         enrichedLogs = enrichSecurityLogsWithThreatLinks(logs, threats);
+      } else if (metadataThreatIds.length > 0) {
+        enrichedLogs = enrichSecurityLogsWithThreatLinks(logs, []);
       }
 
       return { logs: enrichedLogs, total };
@@ -383,7 +396,12 @@ class SecurityService {
         });
       }
 
-      return log;
+      const logWithThreat = await maybeCreateThreatForSecurityLog(
+        { ...logData, metadata: normalizedMetadata },
+        log
+      );
+
+      return logWithThreat;
     } catch (error) {
       // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {

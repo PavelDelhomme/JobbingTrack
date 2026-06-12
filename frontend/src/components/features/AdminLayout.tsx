@@ -373,14 +373,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/b4ck0ff1ce/security/logs",
           icon: "📋",
         },
-        { name: "Menaces", href: "/b4ck0ff1ce/security/threats", icon: "⚠️" },
-        { name: "Firewall", href: "/b4ck0ff1ce/security/firewall", icon: "🔥" },
-        { name: "Réseau", href: "/b4ck0ff1ce/security/network", icon: "🌐" },
         {
-          name: "Incidents",
+          name: "Incidents & menaces",
           href: "/b4ck0ff1ce/security/incidents",
           icon: "🚨",
         },
+        { name: "Firewall", href: "/b4ck0ff1ce/security/firewall", icon: "🔥" },
+        { name: "Réseau", href: "/b4ck0ff1ce/security/network", icon: "🌐" },
         {
           name: "Alertes email",
           href: "/b4ck0ff1ce/security/alerts",
@@ -572,11 +571,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/b4ck0ff1ce/email-monitor",
           icon: "📈",
         },
-        {
-          name: "Historique",
-          href: "/b4ck0ff1ce/email-monitor?type=NOTIFICATION",
-          icon: "📋",
-        },
         { name: "Templates", href: "/b4ck0ff1ce/emails/templates", icon: "📝" },
         {
           name: "Configuration",
@@ -590,10 +584,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
           name: "MailHog (interface)",
-          href:
-            process.env.NEXT_PUBLIC_MAILHOG_UI_URL || "http://localhost:8025",
+          href: "/b4ck0ff1ce/emails/mailhog",
           icon: "📬",
-          external: true,
         },
       ],
     },

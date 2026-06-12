@@ -22,10 +22,18 @@ const CORRELATABLE_CATEGORIES = new Set([
 
 const DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+/** Identifiant Prisma CUID persisté — rejette les IDs synthétiques lab (`lab-autocomplete-threat`, etc.). */
+function isPersistedThreatId(id) {
+  const value = String(id || "").trim();
+  return /^c[a-z0-9]{15,}$/i.test(value);
+}
+
 function readThreatIdFromMetadata(metadata) {
   if (!metadata || typeof metadata !== "object") return null;
   const id = metadata.threatId;
-  return id ? String(id) : null;
+  if (!id) return null;
+  const normalized = String(id).trim();
+  return isPersistedThreatId(normalized) ? normalized : null;
 }
 
 function shouldAttemptCorrelation(log) {
@@ -60,6 +68,12 @@ function resolveCorrelationReason(log, threatId, linkSource) {
   return "aucune_menace_proche";
 }
 
+function readRawThreatIdFromMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object") return null;
+  const id = metadata.threatId;
+  return id ? String(id).trim() : null;
+}
+
 function correlateLogWithThreats(log, threatsByIp, windowMs = DEFAULT_WINDOW_MS) {
   const explicitThreatId = readThreatIdFromMetadata(log?.metadata);
   if (explicitThreatId) {
@@ -67,6 +81,22 @@ function correlateLogWithThreats(log, threatsByIp, windowMs = DEFAULT_WINDOW_MS)
       correlatedThreatId: explicitThreatId,
       linkSource: "metadata",
       linkReason: resolveCorrelationReason(log, explicitThreatId, "metadata"),
+    };
+  }
+
+  const rawThreatId = readRawThreatIdFromMetadata(log?.metadata);
+  if (rawThreatId && !isPersistedThreatId(rawThreatId)) {
+    if (isLabAutocompleteLog(log)) {
+      return {
+        correlatedThreatId: null,
+        linkSource: null,
+        linkReason: "lab_non_rattache",
+      };
+    }
+    return {
+      correlatedThreatId: null,
+      linkSource: null,
+      linkReason: "menace_introuvable",
     };
   }
 
@@ -142,8 +172,31 @@ function buildThreatsByIp(threats) {
 
 function enrichSecurityLogsWithThreatLinks(logs, threats, windowMs = DEFAULT_WINDOW_MS) {
   const threatsByIp = buildThreatsByIp(threats);
+  const validThreatIds = new Set((threats || []).map((threat) => String(threat.id)));
   return (logs || []).map((log) => {
     const link = correlateLogWithThreats(log, threatsByIp, windowMs);
+    if (
+      link.correlatedThreatId &&
+      validThreatIds.size > 0 &&
+      !validThreatIds.has(link.correlatedThreatId)
+    ) {
+      const stripped = {
+        ...log,
+        metadata:
+          log.metadata && typeof log.metadata === "object"
+            ? { ...log.metadata, threatId: undefined }
+            : log.metadata,
+      };
+      const fallback = correlateLogWithThreats(stripped, threatsByIp, windowMs);
+      return {
+        ...log,
+        correlatedThreatId: fallback.correlatedThreatId,
+        linkSource: fallback.linkSource,
+        linkReason: fallback.correlatedThreatId
+          ? fallback.linkReason
+          : "menace_introuvable",
+      };
+    }
     return {
       ...log,
       correlatedThreatId: link.correlatedThreatId,
@@ -151,6 +204,15 @@ function enrichSecurityLogsWithThreatLinks(logs, threats, windowMs = DEFAULT_WIN
       linkReason: link.linkReason,
     };
   });
+}
+
+function collectMetadataThreatIds(logs) {
+  const ids = new Set();
+  for (const log of logs || []) {
+    const id = readThreatIdFromMetadata(log?.metadata);
+    if (id) ids.add(id);
+  }
+  return Array.from(ids);
 }
 
 function collectCorrelationSourceIps(logs) {
@@ -189,8 +251,11 @@ module.exports = {
   CORRELATABLE_EVENT_TYPES,
   buildThreatLookupWindow,
   collectCorrelationSourceIps,
+  collectMetadataThreatIds,
   correlateLogWithThreats,
   enrichSecurityLogsWithThreatLinks,
+  isPersistedThreatId,
+  readRawThreatIdFromMetadata,
   readThreatIdFromMetadata,
   resolveCorrelationReason,
   shouldAttemptCorrelation,

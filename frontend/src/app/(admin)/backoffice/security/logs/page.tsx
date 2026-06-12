@@ -27,7 +27,6 @@ import {
 } from "@/lib/security/securityLogFacets";
 import { resolveSecurityLogLink } from "@/lib/security/securityLogLinks";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import { SecuritySubNav } from "../SecuritySubNav";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 
 const API_URL = FRONTEND_URLS.api;
@@ -294,23 +293,12 @@ export default function SecurityLogsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
-
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
               <ShieldAlert className="h-8 w-8" />
               Logs sécurité
             </h1>
-            <p className="mt-1 max-w-3xl text-gray-600 dark:text-gray-400">
-              Événements sécurité persistés par le security-service. Les liens
-              depuis Incidents peuvent surligner un log précis via{" "}
-              <code className="text-xs">highlight</code>. Tri actuel :{" "}
-              {applied.order === "desc"
-                ? "plus récent d’abord"
-                : "plus ancien d’abord"}
-              .
-            </p>
           </div>
           <button
             type="button"

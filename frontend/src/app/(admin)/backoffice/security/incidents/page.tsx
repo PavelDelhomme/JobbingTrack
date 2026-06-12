@@ -8,7 +8,7 @@ import {
   FilterBar,
   FilterSelectField,
 } from "@/components/filters";
-import { SecuritySubNav } from "../SecuritySubNav";
+import { SecurityIncidentsTabs } from "../SecurityIncidentsTabs";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import type { FilterBadge } from "@/lib/filters/types";
@@ -70,7 +70,7 @@ function kindLabel(kind: IncidentRow["kind"]): string {
 }
 
 export default function SecurityIncidentsPage() {
-  useDocumentTitle("Incidents sécurité");
+  useDocumentTitle("Incidents & menaces");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -323,25 +323,14 @@ export default function SecurityIncidentsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
+        <SecurityIncidentsTabs />
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <AlertTriangle className="h-7 w-7 text-red-600" />
-              Incidents de sécurité
+              Incidents & menaces
             </h1>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-3xl">
-              Vue opérationnelle : <strong>menaces réseau</strong>,{" "}
-              <strong>alertes</strong> (CVE, dispo, sévérité) et{" "}
-              <strong>événements</strong> (WAF, blocages, intrusions). Les logs
-              « health » /{" "}
-              <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800 dark:text-gray-300">
-                api_access
-              </code>{" "}
-              ne sont pas listés ici. Cliquez une ligne pour ouvrir la fiche
-              adaptée.
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -535,14 +524,6 @@ export default function SecurityIncidentsPage() {
           </div>
         )}
 
-        <p className={`text-xs ${uiText.subtle}`}>
-          Configuration des emails d&apos;alerte :{" "}
-          <Link href="/settings" className={uiText.link}>
-            Paramètres → Notifications → Alertes sécurité
-          </Link>
-          . Checklist porteur :{" "}
-          <code className="text-xs">TODOS_A_VALIDER.md</code>.
-        </p>
       </div>
     </AdminLayout>
   );

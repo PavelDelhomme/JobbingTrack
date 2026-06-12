@@ -1,52 +1,69 @@
 import {
   formatSecurityLogLinkReason,
+  isPersistedThreatId,
   readSecurityLogThreatId,
   resolveSecurityLogLink,
 } from "./securityLogLinks";
 
+const VALID_CUID = "c1234567890abcdefghijkl";
+
 describe("securityLogLinks", () => {
-  it("priorise metadata.threatId puis correlatedThreatId", () => {
+  it("priorise correlatedThreatId valide puis metadata CUID", () => {
     expect(
       readSecurityLogThreatId({
-        metadata: { threatId: "meta-1" },
-        correlatedThreatId: "corr-1",
+        metadata: { threatId: VALID_CUID },
+        correlatedThreatId: "c9876543210zyxwvutsrqpon",
       }),
-    ).toBe("meta-1");
+    ).toBe("c9876543210zyxwvutsrqpon");
     expect(
       readSecurityLogThreatId({
-        correlatedThreatId: "corr-1",
-        linkSource: "correlation",
+        metadata: { threatId: VALID_CUID },
       }),
-    ).toBe("corr-1");
+    ).toBe(VALID_CUID);
+  });
+
+  it("rejette les IDs synthétiques lab", () => {
+    expect(isPersistedThreatId("lab-autocomplete-threat")).toBe(false);
+    expect(
+      readSecurityLogThreatId({
+        metadata: { threatId: "lab-autocomplete-threat" },
+        linkReason: "lab_non_rattache",
+      }),
+    ).toBeNull();
+
+    const missing = resolveSecurityLogLink({
+      metadata: { threatId: "lab-autocomplete-threat" },
+      linkReason: "lab_non_rattache",
+    });
+    expect(missing.href).toBeNull();
+    expect(missing.title).toBe("Log lab sans menace rattachée");
   });
 
   it("construit un lien menace ou une raison explicite", () => {
     expect(
       resolveSecurityLogLink({
-        metadata: { threatId: "threat-1" },
+        metadata: { threatId: VALID_CUID },
         linkReason: "metadata_threat_id",
       }),
     ).toMatchObject({
-      href: "/b4ck0ff1ce/security/threats/threat-1",
+      href: `/b4ck0ff1ce/security/threats/${VALID_CUID}`,
       label: "Menace liée",
     });
 
     expect(
       resolveSecurityLogLink({
-        correlatedThreatId: "threat-2",
+        correlatedThreatId: "c9876543210zyxwvutsrqpon",
         linkSource: "correlation",
         linkReason: "correlation_ip_temps",
       }),
     ).toMatchObject({
-      href: "/b4ck0ff1ce/security/threats/threat-2",
+      href: "/b4ck0ff1ce/security/threats/c9876543210zyxwvutsrqpon",
       label: "Menace corrélée",
     });
 
-    const missing = resolveSecurityLogLink({
-      linkReason: "lab_non_rattache",
-    });
-    expect(missing.href).toBeNull();
-    expect(missing.title).toBe("Log lab sans menace rattachée");
+    expect(formatSecurityLogLinkReason("menace_introuvable")).toBe(
+      "Menace référencée introuvable",
+    );
     expect(formatSecurityLogLinkReason("aucune_menace_ip")).toBe(
       "Aucune menace pour cette IP",
     );
