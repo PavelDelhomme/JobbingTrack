@@ -1,13 +1,19 @@
 /**
  * AGENT DE TRIAGE EMAIL — RECHERCHE D'EMPLOI
  * Paul Delhomme — pauldelhomme.pro@gmail.com
- * Version 3.2 — Corrections categorisation + regles calendrier strictes
+ * Version 3.3 — Auth par token agent (plus de PIN hardcode)
  *
  * INSTALLATION :
  * 1. script.google.com → Ouvrir le projet existant → remplacer tout le contenu de Code.gs
  * 2. Services (+) → Tasks API v1 → identifiant : TasksAPI (si pas encore fait)
- * 3. Executer : installerDeclencheur (accepter toutes les permissions)
- * 4. Tester : executer lancerTriageQuotidien
+ * 3. JobBingTrack → Parametres → Agent API → copier le token → le coller dans CONFIG.jobbingtrackToken
+ * 4. Executer : installerDeclencheur (accepter toutes les permissions)
+ * 5. Tester : executer lancerTriageQuotidien
+ *
+ * NOUVEAUTE v3.3 — Auth token (remplace PIN) :
+ * - Plus de jobbingtrackPin dans CONFIG
+ * - Utilise jobbingtrackToken (copier depuis Parametres > Agent API)
+ * - Le token est envoye via X-Agent-Token header (machine-to-machine)
  *
  * CORRECTIFS v3.2 :
  * - FASTT newsletter (événement bien-être) → classé [EVENEMENT] et jamais candidature
@@ -31,7 +37,9 @@ var CONFIG = {
 
   jobbingtrackUrl: "https://jobbingtrack.pplx.app",
   jobbingtrackApiBase: "https://jobbingtrack.pplx.app/port/5000/api",
-  jobbingtrackPin: "1234",
+  // Token agent — copier depuis JobBingTrack > Parametres > Agent API
+  // Ne pas utiliser le PIN, le token est plus securise et ne change pas au redemarrage
+  jobbingtrackToken: "METTRE_LE_TOKEN_ICI",
 
   motsClesEmploi: [
     "candidature", "emploi", "recrutement", "entretien", "alternance",
@@ -512,33 +520,26 @@ function extraireEntrepriseDepuisSujet(sujet) {
 // API JOBBINGTRACK — AUTHENTIFICATION
 // ============================================================
 function jbtAuthentifier() {
-  try {
-    var options = {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify({ pin: CONFIG.jobbingtrackPin }),
-      muteHttpExceptions: true
-    };
-    var response = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/auth/login", options);
-    if (response.getResponseCode() !== 200) {
-      Logger.log("Erreur auth JBT : HTTP " + response.getResponseCode());
-      return null;
-    }
-    var data = JSON.parse(response.getContentText());
-    if (!data.ok || !data.token) return null;
-    Logger.log("JobBingTrack : connecte");
-    return data.token;
-  } catch (err) {
-    Logger.log("Exception auth JBT : " + err);
+  // Utilise le token agent directement (pas de login par PIN)
+  // Configurer CONFIG.jobbingtrackToken depuis Parametres > Agent API dans JobBingTrack
+  if (!CONFIG.jobbingtrackToken || CONFIG.jobbingtrackToken === "METTRE_LE_TOKEN_ICI") {
+    Logger.log("ATTENTION : jobbingtrackToken non configure dans CONFIG. Aller dans JobBingTrack > Parametres > Agent API.");
     return null;
   }
+  Logger.log("JobBingTrack : token agent configure");
+  return CONFIG.jobbingtrackToken;
+}
+
+function jbtHeaders(token) {
+  // Envoie le token comme X-Agent-Token (pas Bearer JWT) pour l'auth machine-to-machine
+  return { "X-Agent-Token": token, "Content-Type": "application/json" };
 }
 
 function jbtGetCompanies(token) {
   try {
     var r = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/companies", {
       method: "get",
-      headers: { "Authorization": "Bearer " + token },
+      headers: jbtHeaders(token),
       muteHttpExceptions: true
     });
     if (r.getResponseCode() !== 200) return [];
@@ -550,7 +551,7 @@ function jbtGetApplications(token) {
   try {
     var r = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/applications", {
       method: "get",
-      headers: { "Authorization": "Bearer " + token },
+      headers: jbtHeaders(token),
       muteHttpExceptions: true
     });
     if (r.getResponseCode() !== 200) return [];
@@ -563,7 +564,7 @@ function jbtCreerEntreprise(token, nom) {
     var r = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/companies", {
       method: "post",
       contentType: "application/json",
-      headers: { "Authorization": "Bearer " + token },
+      headers: jbtHeaders(token),
       payload: JSON.stringify({ name: nom, website: extraireWebsiteDepuisNom(nom), location: "Rennes, France" }),
       muteHttpExceptions: true
     });
@@ -594,7 +595,7 @@ function jbtCreerCandidature(token, companyId, poste, statut, date, notes) {
     var r = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/applications", {
       method: "post",
       contentType: "application/json",
-      headers: { "Authorization": "Bearer " + token },
+      headers: jbtHeaders(token),
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     });
@@ -617,7 +618,7 @@ function jbtMettreAJourStatut(token, appId, statut, notes) {
     var r = UrlFetchApp.fetch(CONFIG.jobbingtrackApiBase + "/applications/" + appId, {
       method: "patch",
       contentType: "application/json",
-      headers: { "Authorization": "Bearer " + token },
+      headers: jbtHeaders(token),
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     });
