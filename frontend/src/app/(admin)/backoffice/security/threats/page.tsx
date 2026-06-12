@@ -11,6 +11,12 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { TableSkeleton } from "@/lib/ui";
+import {
+  formatSecuritySeverity,
+  formatThreatTypeLabel,
+  isHighOrCriticalSeverity,
+  normalizeSecuritySeverity,
+} from "@/lib/security/securityLabels";
 import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
 import axios from "axios";
 
@@ -230,22 +236,22 @@ export default function ThreatsPage() {
   const exportThreatsCsv = useCallback(() => {
     const header = [
       "id",
-      "threatType",
-      "severity",
-      "sourceIp",
-      "destIp",
-      "destPort",
-      "blocked",
-      "detectedAt",
+      "type",
+      "sévérité",
+      "ipSource",
+      "ipDestination",
+      "portDestination",
+      "statutBlocage",
+      "détectéLe",
     ];
     const rows = threats.map((t) => [
       t.id,
-      t.threatType,
-      t.severity,
+      formatThreatTypeLabel(t.threatType),
+      formatSecuritySeverity(t.severity),
       t.sourceIp || "",
       t.destIp || "",
       t.destPort ?? "",
-      t.blocked ? "true" : "false",
+      t.blocked ? "Bloqué" : "Non bloqué",
       t.detectedAt,
     ]);
     const csv = [header, ...rows]
@@ -263,9 +269,7 @@ export default function ThreatsPage() {
   }, [threats]);
 
   const highOrCriticalCount = useMemo(
-    () =>
-      threats.filter((t) => t.severity === "HIGH" || t.severity === "CRITICAL")
-        .length,
+    () => threats.filter((t) => isHighOrCriticalSeverity(t.severity)).length,
     [threats],
   );
 
@@ -286,36 +290,18 @@ export default function ThreatsPage() {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "CRITICAL":
+    switch (normalizeSecuritySeverity(severity)) {
+      case "critical":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "HIGH":
+      case "high":
         return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      case "MEDIUM":
+      case "medium":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "LOW":
+      case "low":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
-  };
-
-  const getThreatTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      SYN_FLOOD: "SYN Flood",
-      "SYN Flood": "SYN Flood",
-      PORT_SCAN: "Port Scanning",
-      BRUTE_FORCE: "Brute Force",
-      DDoS: "DDoS Attack",
-      SUSPICIOUS_REQUEST: "Requête suspecte",
-      SQL_INJECTION: "Injection SQL",
-      XSS: "XSS",
-      PATH_TRAVERSAL: "Path Traversal",
-      INTRUSION: "Intrusion",
-      WAF_BLOCK: "Blocage WAF",
-      FIREWALL_BLOCK: "Blocage Firewall",
-    };
-    return labels[type] || type;
   };
 
   return (
@@ -341,7 +327,8 @@ export default function ThreatsPage() {
               .
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {highOrCriticalCount} menace(s) HIGH/CRITICAL sur la page courante
+              {highOrCriticalCount} menace(s) haute(s) ou critique(s) sur la
+              page courante
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +381,9 @@ export default function ThreatsPage() {
               onClick={() => setAutoRefreshEnabled((v) => !v)}
               className={`px-3 py-1 rounded text-sm text-white ${autoRefreshEnabled ? "bg-red-600" : "bg-emerald-600"}`}
             >
-              {autoRefreshEnabled ? "Stop auto-refresh" : "Start auto-refresh"}
+              {autoRefreshEnabled
+                ? "Arrêter l’auto-refresh"
+                : "Démarrer l’auto-refresh"}
             </button>
             <select
               value={String(refreshIntervalMs)}
@@ -423,10 +412,10 @@ export default function ThreatsPage() {
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="">Toutes</option>
-                <option value="CRITICAL">CRITICAL</option>
-                <option value="HIGH">HIGH</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="LOW">LOW</option>
+                <option value="CRITICAL">Critique</option>
+                <option value="HIGH">Haute</option>
+                <option value="MEDIUM">Moyenne</option>
+                <option value="LOW">Faible</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
@@ -440,12 +429,12 @@ export default function ThreatsPage() {
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="">Tous</option>
-                <option value="SYN_FLOOD">SYN_FLOOD</option>
-                <option value="PORT_SCAN">PORT_SCAN</option>
-                <option value="BRUTE_FORCE">BRUTE_FORCE</option>
-                <option value="SQL_INJECTION">SQL_INJECTION</option>
+                <option value="SYN_FLOOD">SYN flood</option>
+                <option value="PORT_SCAN">Balayage de ports</option>
+                <option value="BRUTE_FORCE">Force brute</option>
+                <option value="SQL_INJECTION">Injection SQL</option>
                 <option value="XSS">XSS</option>
-                <option value="WAF_BLOCK">WAF_BLOCK</option>
+                <option value="WAF_BLOCK">Blocage WAF</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
@@ -583,7 +572,7 @@ export default function ThreatsPage() {
                       >
                         <td className="p-3">
                           <span className="font-semibold">
-                            {getThreatTypeLabel(threat.threatType)}
+                            {formatThreatTypeLabel(threat.threatType)}
                           </span>
                         </td>
                         <td className="p-3 font-mono text-sm">
@@ -603,7 +592,7 @@ export default function ThreatsPage() {
                           <span
                             className={`px-2 py-1 rounded text-sm ${getSeverityColor(threat.severity)}`}
                           >
-                            {threat.severity}
+                            {formatSecuritySeverity(threat.severity)}
                           </span>
                         </td>
                         <td className="p-3">

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/b4ck0ff1ce/security", label: "Vue d'ensemble" },
   { href: "/b4ck0ff1ce/security/analysis", label: "Analyse" },
-  { href: "/b4ck0ff1ce/security/logs", label: "Logs" },
+  { href: "/b4ck0ff1ce/security/logs", label: "Logs sécurité" },
   { href: "/b4ck0ff1ce/security/threats", label: "Menaces" },
   { href: "/b4ck0ff1ce/security/firewall", label: "Firewall" },
   { href: "/b4ck0ff1ce/security/network", label: "Réseau" },
@@ -26,7 +26,10 @@ function tabIsActive(pathname: string, tab: (typeof TABS)[number]): boolean {
     );
   }
   if (tab.href === "/b4ck0ff1ce/security/incidents") {
-    return pathname === tab.href;
+    return (
+      pathname === tab.href ||
+      pathname.startsWith("/b4ck0ff1ce/security/incidents/")
+    );
   }
   return pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 }

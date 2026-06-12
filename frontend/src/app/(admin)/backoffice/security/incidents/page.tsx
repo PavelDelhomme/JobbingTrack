@@ -14,6 +14,12 @@ import {
   logHref,
   threatHref,
 } from "@/lib/security/incidents";
+import {
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+  formatThreatTypeLabel,
+  normalizeSecuritySeverity,
+} from "@/lib/security/securityLabels";
 import { TablePanelSkeleton, uiSurfaces, uiText } from "@/lib/ui";
 import { AlertTriangle, FlaskConical, RefreshCw } from "lucide-react";
 import axios from "axios";
@@ -22,11 +28,11 @@ const API_URL = FRONTEND_URLS.api;
 const LOGS_WINDOW_DAYS = 14;
 
 function severityClass(severity: string): string {
-  const s = severity.toUpperCase();
-  if (s === "CRITICAL" || s === "ERROR") {
+  const s = normalizeSecuritySeverity(severity);
+  if (s === "critical" || s === "error") {
     return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200";
   }
-  if (s === "HIGH" || s === "WARNING") {
+  if (s === "high" || s === "warning") {
     return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200";
   }
   return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
@@ -88,12 +94,12 @@ export default function SecurityIncidentsPage() {
             rows.push({
               id: `threat-${id}`,
               kind: "threat",
-              title: String(t.threatType || "Menace réseau"),
+              title: formatThreatTypeLabel(t.threatType || "Menace réseau"),
               subtitle:
                 String(meta.message || t.description || "") ||
                 `Source ${t.sourceIp || "?"}`,
               severity: String(t.severity || "UNKNOWN"),
-              source: String(t.sourceIp || "n/a"),
+              source: String(t.sourceIp || "Non renseignée"),
               timestamp: String(
                 t.detectedAt || t.createdAt || new Date().toISOString(),
               ),
@@ -152,10 +158,12 @@ export default function SecurityIncidentsPage() {
             rows.push({
               id: `log-${logId}`,
               kind: "event",
-              title: eventType || String(l.category || "Événement"),
+              title:
+                formatSecurityEventTypeLabel(eventType) ||
+                String(l.category || "Événement"),
               subtitle: String(l.message || "").slice(0, 200),
               severity: level.toUpperCase() || "INFO",
-              source: String(l.sourceIP || meta.sourceIp || "n/a"),
+              source: String(l.sourceIP || meta.sourceIp || "Non renseignée"),
               timestamp: String(
                 l.timestamp || l.createdAt || new Date().toISOString(),
               ),
@@ -373,7 +381,7 @@ export default function SecurityIncidentsPage() {
                       <span
                         className={`rounded px-2 py-0.5 text-xs font-medium ${severityClass(item.severity)}`}
                       >
-                        {item.severity}
+                        {formatSecuritySeverity(item.severity)}
                       </span>
                     </td>
                     <td className="p-3 font-mono text-xs">{item.source}</td>

@@ -14,6 +14,12 @@ import {
   isXssThreat,
 } from "@/lib/security/threatSignals";
 import { isIncidentLog, logHref, threatHref } from "@/lib/security/incidents";
+import {
+  formatBlockOriginLabel,
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+  formatThreatTypeLabel,
+} from "@/lib/security/securityLabels";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -43,15 +49,19 @@ function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
   if (!byOrigin || typeof byOrigin !== "object")
     return "Règles, menaces et logs fusionnés";
   const o = byOrigin as Record<string, number>;
-  const parts: string[] = [];
-  if (o.manual_rule) parts.push(`manuel ${o.manual_rule}`);
-  if (o.lab_simulation) parts.push(`lab ${o.lab_simulation}`);
-  if (o.automatic_threat) parts.push(`auto ${o.automatic_threat}`);
-  if (o.iptables) parts.push(`iptables ${o.iptables}`);
-  if (o.log_inferred) parts.push(`logs ${o.log_inferred}`);
+  const parts = Object.entries(o)
+    .map(([origin, count]) => {
+      const label = formatBlockOriginLabel(origin);
+      return label && count ? `${label} ${count}` : null;
+    })
+    .filter(Boolean) as string[];
   return parts.length > 0
     ? parts.join(" · ")
     : "Règles, menaces et logs fusionnés";
+}
+
+function incidentKindLabel(kind: IncidentItem["kind"]): string {
+  return kind === "threat" ? "Menace" : "Log";
 }
 
 type SecurityOverview = {
@@ -292,9 +302,9 @@ export default function SecurityOverviewPage() {
           ? threatsArray.slice(0, 10).map((t: any) => ({
               id: `threat-${t.id}`,
               kind: "threat" as const,
-              title: t.threatType || "Menace réseau",
+              title: formatThreatTypeLabel(t.threatType || "Menace réseau"),
               severity: String(t.severity || "UNKNOWN"),
-              source: t.sourceIp || "n/a",
+              source: t.sourceIp || "Non renseignée",
               timestamp: t.detectedAt || new Date().toISOString(),
               href: threatHref(String(t.id)),
             }))
@@ -308,9 +318,12 @@ export default function SecurityOverviewPage() {
           return {
             id: `log-${logId}`,
             kind: "log" as const,
-            title: et || l.category || "Événement sécurité",
+            title:
+              formatSecurityEventTypeLabel(et) ||
+              l.category ||
+              "Événement sécurité",
             severity: String(l.level || "info").toUpperCase(),
-            source: l.sourceIP || "n/a",
+            source: l.sourceIP || "Non renseignée",
             timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
             href: tid ? threatHref(tid) : logHref(logId, et),
           };
@@ -798,13 +811,13 @@ export default function SecurityOverviewPage() {
                     <span
                       className={`px-2 py-0.5 rounded text-xs ${i.kind === "threat" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"}`}
                     >
-                      {i.kind}
+                      {incidentKindLabel(i.kind)}
                     </span>
                     <span className="min-w-0 break-words font-medium text-gray-900 dark:text-gray-100">
                       {i.title}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">
-                      {i.severity}
+                      {formatSecuritySeverity(i.severity)}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {i.source}

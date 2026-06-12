@@ -14,6 +14,7 @@ import {
   isSqliThreat,
   isXssThreat,
 } from "@/lib/security/threatSignals";
+import { formatBlockOriginLabel } from "@/lib/security/securityLabels";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Shield, AlertTriangle, Lock, Eye, Activity } from "@/lib/icons";
 import axios from "axios";
@@ -503,19 +504,8 @@ export default function SecurityAnalysisPage() {
                   },
                   index: number,
                 ) => {
-                  const origin = String(ipItem.blockOrigin || "");
                   const originLabel =
-                    origin === "lab_simulation"
-                      ? "Test lab"
-                      : origin === "manual_rule"
-                        ? "Manuel"
-                        : origin === "automatic_threat"
-                          ? "Auto (menace)"
-                          : origin === "iptables"
-                            ? "iptables"
-                            : origin === "log_inferred"
-                              ? "Logs"
-                              : "Actif";
+                    formatBlockOriginLabel(ipItem.blockOrigin) || "Actif";
                   return (
                     <div
                       key={index}

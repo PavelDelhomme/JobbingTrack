@@ -1,412 +1,367 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
-import { SecuritySubNav } from "../SecuritySubNav";
 import { Pagination } from "@/components/ui/Pagination";
-import { FRONTEND_URLS } from "@/config/ports.config";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
+import { FRONTEND_URLS } from "@/config/ports.config";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import axios from "axios";
-
-interface SecurityLog {
-  id: string;
-  level: "info" | "warning" | "error" | "critical";
-  category: string;
-  message: string;
-  sourceIP?: string;
-  userAgent?: string;
-  endpoint?: string;
-  timestamp: string;
-  riskScore?: number;
-}
+import {
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+  normalizeSecuritySeverity,
+} from "@/lib/security/securityLabels";
+import { SecuritySubNav } from "../SecuritySubNav";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 
 const API_URL = FRONTEND_URLS.api;
-const LOGS_PAGE_SIZE = 25;
-const DEFAULT_LOG_WINDOW_DAYS = 30;
+const PAGE_SIZE = 50;
+
+type SecurityLogRow = {
+  id: string;
+  timestamp?: string;
+  createdAt?: string;
+  level?: string;
+  category?: string;
+  eventType?: string;
+  message?: string;
+  sourceIP?: string;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+  riskScore?: number;
+  isBlocked?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+function levelBadgeClass(level?: string): string {
+  const normalized = normalizeSecuritySeverity(level);
+  if (normalized === "critical" || normalized === "error") {
+    return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200";
+  }
+  if (normalized === "warning" || normalized === "high") {
+    return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200";
+  }
+  return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
+}
+
+function readMetadataThreatId(
+  metadata?: Record<string, unknown>,
+): string | null {
+  const id = metadata?.threatId;
+  return id ? String(id) : null;
+}
 
 export default function SecurityLogsPage() {
+  useDocumentTitle("Logs sécurité");
+
   const searchParams = useSearchParams();
-  const highlightId = searchParams.get("highlight") || "";
-  const [logs, setLogs] = useState<SecurityLog[]>([]);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [serviceError, setServiceError] = useState<string | null>(null);
-  const [filterLevel, setFilterLevel] = useState<string>("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState(false);
   const { page, setPage } = useUrlPagination("page", 1);
-
-  const defaultStartIso = useMemo(
-    () =>
-      new Date(
-        Date.now() - DEFAULT_LOG_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-    [],
+  const [level, setLevel] = useState(searchParams.get("level") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "");
+  const [eventType, setEventType] = useState(
+    searchParams.get("eventType") || "",
   );
+  const [query, setQuery] = useState("");
+  const [days, setDays] = useState(14);
+  const [logs, setLogs] = useState<SecurityLogRow[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(
-    async (options: { silent?: boolean } = {}) => {
-      const silent = options.silent === true;
-      try {
-        if (!silent) setLoading(true);
-        setServiceError(null);
-        const token = localStorage.getItem("token");
+  const highlightId = searchParams.get("highlight") || "";
 
-        const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: {
-            limit: LOGS_PAGE_SIZE,
-            offset: (page - 1) * LOGS_PAGE_SIZE,
-            level: filterLevel !== "all" ? filterLevel : undefined,
-            category: filterCategory !== "all" ? filterCategory : undefined,
-            startDate: dateFrom || defaultStartIso,
-            endDate: dateTo || undefined,
-          },
-          timeout: 8000,
-        });
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-        if (response.data.success) {
-          const logsData = response.data.data || response.data.logs || [];
-          const logsArray = Array.isArray(logsData) ? logsData : [];
-          const normalizedLogs = logsArray.map((log: any) => ({
-            ...log,
-            level: String(log.level || "info").toLowerCase(),
-            category: String(log.category || "unknown").toLowerCase(),
-          }));
-          setLogs(normalizedLogs);
-          setTotalLogs(
-            typeof response.data.pagination?.total === "number"
-              ? response.data.pagination.total
-              : normalizedLogs.length,
-          );
-        } else {
-          setLogs([]);
-          setTotalLogs(0);
-          setServiceError(
-            `Le service logs sécurité a répondu avec un statut inattendu (HTTP ${response.status}).`,
-          );
-        }
-      } catch (error: any) {
-        console.error("Error loading security logs:", error);
-        setLogs([]);
-        setTotalLogs(0);
-        setServiceError(
-          error?.response?.data?.error ||
-            error?.message ||
-            "Service logs sécurité indisponible",
-        );
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
-    [page, filterLevel, filterCategory, dateFrom, dateTo, defaultStartIso],
-  );
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String((page - 1) * PAGE_SIZE),
+      startDate: new Date(Date.now() - days * 86400000).toISOString(),
+    });
+    if (level) params.set("level", level);
+    if (category) params.set("category", category);
 
-  const createTestLog = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_URL}/api/v1/security/logs`,
-        {
-          level: "warning",
-          category: "security",
-          eventType: "manual_test_event",
-          message: "Log de sécurité de test généré depuis le backoffice",
-          sourceIP: "127.0.0.1",
-          endpoint: "/b4ck0ff1ce/security/logs",
-          method: "POST",
-          riskScore: 35,
-          metadata: { manual: true },
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      fetchLogs();
-    } catch (e) {
-      console.error("Erreur création log test:", e);
-    }
-  }, [fetchLogs]);
-
-  const toggleContinuousGeneration = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (isGenerating) {
-        await axios.delete(`${API_URL}/api/v1/security/generate-continuous`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } else {
-        await axios.post(
-          `${API_URL}/api/v1/security/generate-continuous`,
-          { intervalMinutes: 5 },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+      const res = await fetch(`${API_URL}/api/v1/security/logs?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.success === false) {
+        throw new Error(
+          json?.error ||
+            `Service logs sécurité indisponible (HTTP ${res.status})`,
         );
       }
-      const statusRes = await axios.get(
-        `${API_URL}/api/v1/security/generate-continuous/status`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+
+      const rows = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json?.logs)
+          ? json.logs
+          : [];
+      const pagination = json?.pagination || json?.meta?.pagination || {};
+      setLogs(rows);
+      setTotal(
+        typeof pagination.total === "number"
+          ? pagination.total
+          : typeof json?.meta?.total === "number"
+            ? json.meta.total
+            : null,
       );
-      setIsGenerating(!!statusRes.data?.data?.isGenerating);
-      fetchLogs();
-    } catch (e) {
-      console.error("Erreur toggle génération continue:", e);
+    } catch (e: unknown) {
+      setLogs([]);
+      setTotal(null);
+      setError(e instanceof Error ? e.message : "Erreur réseau");
+    } finally {
+      setLoading(false);
     }
-  }, [isGenerating, fetchLogs]);
+  }, [category, days, level, page]);
 
   useEffect(() => {
-    fetchLogs();
-    const interval = setInterval(() => fetchLogs({ silent: true }), 15000);
-    return () => clearInterval(interval);
-  }, [fetchLogs]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterLevel, filterCategory, dateFrom, dateTo, searchQuery, setPage]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    axios
-      .get(`${API_URL}/api/v1/security/generate-continuous/status`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setIsGenerating(!!res.data?.data?.isGenerating))
-      .catch(() => setIsGenerating(false));
-  }, []);
+    void loadLogs();
+  }, [loadLogs]);
 
   const filteredLogs = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return logs.filter((log) => {
-      if (filterLevel !== "all" && log.level !== filterLevel) return false;
-      if (filterCategory !== "all" && log.category !== filterCategory)
-        return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const haystack =
-          `${log.message} ${log.sourceIP || ""} ${log.endpoint || ""} ${log.userAgent || ""}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
+      if (eventType && String(log.eventType || "") !== eventType) return false;
+      if (!q) return true;
+      return [
+        log.message,
+        log.sourceIP,
+        log.endpoint,
+        log.category,
+        log.eventType,
+        log.level,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
     });
-  }, [logs, filterLevel, filterCategory, searchQuery]);
+  }, [eventType, logs, query]);
 
-  const totalPages = Math.max(1, Math.ceil(totalLogs / LOGS_PAGE_SIZE));
-  const paginatedLogs = filteredLogs;
-
-  const levelColors = {
-    info: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
-    warning:
-      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
-    error:
-      "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300",
-    critical: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
-  };
-
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
+  const estimatedTotal =
+    total ??
+    (page - 1) * PAGE_SIZE +
+      logs.length +
+      (logs.length === PAGE_SIZE ? PAGE_SIZE : 0);
+  const totalPages = Math.max(1, Math.ceil(estimatedTotal / PAGE_SIZE));
+  const canGoNext = total ? page < totalPages : logs.length === PAGE_SIZE;
+  const startIndex = logs.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const endIndex = (page - 1) * PAGE_SIZE + filteredLogs.length;
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <SecuritySubNav />
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              📋 Logs de sécurité
+            <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <ShieldAlert className="h-8 w-8" />
+              Logs sécurité
             </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Événements de sécurité en temps réel (actualisation automatique
-              toutes les 15 secondes, page conservée dans l’URL)
+            <p className="mt-1 max-w-3xl text-gray-600 dark:text-gray-400">
+              Événements sécurité persistés par le security-service. Les liens
+              depuis Incidents peuvent surligner un log précis via{" "}
+              <code className="text-xs">highlight</code>.
             </p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={createTestLog}
-              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Créer log test
-            </button>
-            <button
-              onClick={toggleContinuousGeneration}
-              className={`px-3 py-2 text-white rounded-lg ${isGenerating ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
-            >
-              {isGenerating
-                ? "Arrêter génération continue"
-                : "Démarrer génération continue"}
-            </button>
+          <button
+            type="button"
+            onClick={() => void loadLogs()}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </button>
+        </div>
+
+        <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Niveau
+              <select
+                value={level}
+                onChange={(e) => {
+                  setPage(1);
+                  setLevel(e.target.value);
+                }}
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">Tous</option>
+                <option value="critical">Critique</option>
+                <option value="error">Erreur</option>
+                <option value="warning">Avertissement</option>
+                <option value="info">Info</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Catégorie
+              <input
+                value={category}
+                onChange={(e) => {
+                  setPage(1);
+                  setCategory(e.target.value);
+                }}
+                placeholder="auth, firewall, intrusion..."
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Type d’événement
+              <input
+                value={eventType}
+                onChange={(e) => {
+                  setPage(1);
+                  setEventType(e.target.value);
+                }}
+                placeholder="network_threat_detected"
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Fenêtre
+              <select
+                value={String(days)}
+                onChange={(e) => {
+                  setPage(1);
+                  setDays(Number(e.target.value));
+                }}
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="1">24 h</option>
+                <option value="7">7 jours</option>
+                <option value="14">14 jours</option>
+                <option value="30">30 jours</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Recherche locale
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="IP, endpoint, message..."
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </label>
           </div>
         </div>
 
-        {serviceError && (
-          <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-200 text-sm">
-              {serviceError}
-            </p>
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
+            {error}
           </div>
         )}
 
-        {/* Filtres */}
-        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filters:
-            </span>
-            <select
-              value={filterLevel}
-              onChange={(e) => setFilterLevel(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-            >
-              <option value="all">All levels</option>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="error">Error</option>
-              <option value="critical">Critical</option>
-            </select>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Rechercher: message, IP, endpoint, user-agent..."
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 min-w-80"
-            />
-            <input
-              type="datetime-local"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-            />
-            <input
-              type="datetime-local"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-            />
-            <button
-              onClick={() => {
-                setFilterLevel("all");
-                setFilterCategory("all");
-                setDateFrom("");
-                setDateTo("");
-                setSearchQuery("");
-                setPage(1);
-              }}
-              className="px-3 py-2 bg-gray-200 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
-            >
-              Reset
-            </button>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-            >
-              <option value="all">All categories</option>
-              <option value="intrusion">Intrusion</option>
-              <option value="injection">Injection</option>
-              <option value="ddos">DDoS</option>
-              <option value="authentication">Authentication</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Liste des logs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Level
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Message
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Source IP
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {paginatedLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    id={log.id === highlightId ? "log-highlight" : undefined}
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                      log.id === highlightId
-                        ? "ring-2 ring-red-500 bg-red-50/50 dark:bg-red-950/30"
-                        : ""
-                    }`}
-                  >
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${levelColors[log.level]}`}
-                      >
-                        {log.level.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {log.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {log.message}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {log.sourceIP || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {formatLocalDateTime(log.timestamp)}
-                    </td>
+        <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
+          {loading ? (
+            <div className="p-6 text-sm text-gray-500 dark:text-gray-400">
+              Chargement des logs sécurité…
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              Aucun log sécurité pour ces filtres.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[980px] w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="p-3 text-left">Niveau</th>
+                    <th className="p-3 text-left">Événement</th>
+                    <th className="p-3 text-left">Message</th>
+                    <th className="p-3 text-left">Source</th>
+                    <th className="p-3 text-left">Endpoint</th>
+                    <th className="p-3 text-left">Date</th>
+                    <th className="p-3 text-left">Liens</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalLogs > 0 && (
-            <Pagination
-              className="p-4 border-t border-gray-200 dark:border-gray-700"
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={totalLogs}
-              itemsPerPage={LOGS_PAGE_SIZE}
-              startIndex={(page - 1) * LOGS_PAGE_SIZE + 1}
-              endIndex={Math.min(page * LOGS_PAGE_SIZE, totalLogs)}
-              onPageChange={setPage}
-              onNext={() => setPage(page + 1)}
-              onPrevious={() => setPage(page - 1)}
-              canGoNext={page < totalPages}
-              canGoPrevious={page > 1}
-            />
-          )}
-
-          {filteredLogs.length === 0 && !serviceError && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              Aucun log de sécurité trouvé. Utilise "Créer log test" ou active
-              la génération continue.
+                </thead>
+                <tbody>
+                  {filteredLogs.map((log) => {
+                    const threatId = readMetadataThreatId(log.metadata);
+                    const highlighted =
+                      highlightId && String(log.id) === highlightId;
+                    return (
+                      <tr
+                        key={log.id}
+                        id={`log-${log.id}`}
+                        className={`border-b border-gray-100 dark:border-gray-700 ${
+                          highlighted
+                            ? "bg-amber-50 dark:bg-amber-900/20"
+                            : "bg-white dark:bg-gray-800"
+                        }`}
+                      >
+                        <td className="p-3">
+                          <span
+                            className={`rounded px-2 py-1 text-xs font-medium ${levelBadgeClass(log.level)}`}
+                          >
+                            {formatSecuritySeverity(log.level)}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatSecurityEventTypeLabel(log.eventType)}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {log.category || "Catégorie non renseignée"}
+                          </div>
+                        </td>
+                        <td className="max-w-md p-3 text-sm text-gray-700 dark:text-gray-300">
+                          {log.message || "Message non renseigné"}
+                        </td>
+                        <td className="p-3 font-mono text-sm">
+                          {log.sourceIP || "Non renseignée"}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {[log.method, log.endpoint]
+                            .filter(Boolean)
+                            .join(" ") || "Non renseigné"}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {formatLocalDateTime(
+                            log.timestamp || log.createdAt || "",
+                          )}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {threatId ? (
+                            <Link
+                              href={`/b4ck0ff1ce/security/threats/${encodeURIComponent(threatId)}`}
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              Menace liée
+                            </Link>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
+
+          <Pagination
+            className="border-t border-gray-200 p-4 dark:border-gray-700"
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={estimatedTotal}
+            itemsPerPage={PAGE_SIZE}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            onPageChange={setPage}
+            onNext={() => setPage(page + 1)}
+            onPrevious={() => setPage(page - 1)}
+            canGoNext={canGoNext}
+            canGoPrevious={page > 1}
+          />
         </div>
       </div>
     </AdminLayout>

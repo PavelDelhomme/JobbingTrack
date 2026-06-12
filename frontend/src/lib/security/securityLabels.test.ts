@@ -1,0 +1,50 @@
+import {
+  formatBlockOriginLabel,
+  formatFirewallActionLabel,
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+  formatThreatTypeLabel,
+  isHighOrCriticalSeverity,
+} from "./securityLabels";
+
+describe("securityLabels", () => {
+  it("traduit les sévérités sécurité connues", () => {
+    expect(formatSecuritySeverity("CRITICAL")).toBe("Critique");
+    expect(formatSecuritySeverity("high")).toBe("Haute");
+    expect(formatSecuritySeverity("MEDIUM")).toBe("Moyenne");
+    expect(formatSecuritySeverity("LOW")).toBe("Faible");
+  });
+
+  it("détecte les sévérités high/critical quel que soit le casing", () => {
+    expect(isHighOrCriticalSeverity("CRITICAL")).toBe(true);
+    expect(isHighOrCriticalSeverity("high")).toBe(true);
+    expect(isHighOrCriticalSeverity("medium")).toBe(false);
+  });
+
+  it("traduit les types de menaces API en libellés lisibles", () => {
+    expect(formatThreatTypeLabel("PORT_SCAN")).toBe("Balayage de ports");
+    expect(formatThreatTypeLabel("BRUTE_FORCE")).toBe("Force brute");
+    expect(formatThreatTypeLabel("network-threat-detected")).toBe(
+      "Menace réseau détectée",
+    );
+  });
+
+  it("traduit les origines de blocage firewall", () => {
+    expect(formatBlockOriginLabel("lab_simulation")).toBe("Test lab");
+    expect(formatBlockOriginLabel("automatic_threat")).toBe("Automatique");
+    expect(formatBlockOriginLabel(undefined)).toBeNull();
+  });
+
+  it("traduit les types d'événements sécurité", () => {
+    expect(formatSecurityEventTypeLabel("ip_blocked_manually")).toBe(
+      "IP bloquée manuellement",
+    );
+    expect(formatSecurityEventTypeLabel("waf_toggled")).toBe("WAF modifié");
+  });
+
+  it("traduit les actions firewall", () => {
+    expect(formatFirewallActionLabel("DENY")).toBe("Bloquer (DROP)");
+    expect(formatFirewallActionLabel("REJECT")).toBe("Rejeter");
+    expect(formatFirewallActionLabel("ALLOW")).toBe("Autoriser");
+  });
+});

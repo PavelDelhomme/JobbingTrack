@@ -9,6 +9,10 @@ import { SecuritySubNav } from "../../../SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { threatHref } from "@/lib/security/incidents";
+import {
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+} from "@/lib/security/securityLabels";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
@@ -95,10 +99,10 @@ export default function SecurityAlertDetailPage() {
           <div className={`${uiSurfaces.panel} p-6 space-y-4`}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded bg-red-100 text-red-800 dark:bg-red-900/40 px-2 py-1 text-xs font-semibold uppercase">
-                {alert.level}
+                {formatSecuritySeverity(alert.level)}
               </span>
               <span className={`text-xs ${uiText.subtle}`}>
-                {alert.category}
+                {formatSecurityEventTypeLabel(alert.category)}
               </span>
               <span className={`text-xs ml-auto ${uiText.subtle}`}>
                 {formatLocalDateTime(alert.timestamp)}

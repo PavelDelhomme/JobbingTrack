@@ -11,11 +11,14 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
+  formatBlockOriginLabel,
+  formatFirewallActionLabel,
+} from "@/lib/security/securityLabels";
+import {
   Shield,
   Plus,
   Trash2,
   Edit,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   RefreshCw,
@@ -49,7 +52,11 @@ function validateFirewallRuleForm(rule: {
   if (!FIREWALL_SOURCE_IP_REGEX.test(sourceIp)) {
     return "Format IP source invalide (IPv4 ou CIDR IPv4 attendu).";
   }
-  if (rule.destPort !== undefined && rule.destPort !== null && rule.destPort !== "") {
+  if (
+    rule.destPort !== undefined &&
+    rule.destPort !== null &&
+    rule.destPort !== ""
+  ) {
     const port = Number(rule.destPort);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return "Port destination invalide (1-65535 attendu).";
@@ -175,12 +182,12 @@ interface BlockedIp {
 function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
   if (!byOrigin || typeof byOrigin !== "object") return "";
   const o = byOrigin as Record<string, number>;
-  const parts: string[] = [];
-  if (o.manual_rule) parts.push(`manuel ${o.manual_rule}`);
-  if (o.lab_simulation) parts.push(`lab ${o.lab_simulation}`);
-  if (o.automatic_threat) parts.push(`auto ${o.automatic_threat}`);
-  if (o.iptables) parts.push(`iptables ${o.iptables}`);
-  if (o.log_inferred) parts.push(`logs ${o.log_inferred}`);
+  const parts = Object.entries(o)
+    .map(([origin, count]) => {
+      const label = formatBlockOriginLabel(origin);
+      return label && count ? `${label} ${count}` : null;
+    })
+    .filter(Boolean) as string[];
   return parts.join(" · ");
 }
 
@@ -575,18 +582,18 @@ export default function FirewallPage() {
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   >
                     <option value="DENY">
-                      DENY - Bloquer silencieusement (DROP)
+                      {formatFirewallActionLabel("DENY")}
                     </option>
                     <option value="REJECT">
-                      REJECT - Rejeter avec message d'erreur
+                      {formatFirewallActionLabel("REJECT")} avec message
                     </option>
                     <option value="ALLOW">
-                      ALLOW - Autoriser explicitement
+                      {formatFirewallActionLabel("ALLOW")} explicitement
                     </option>
                   </select>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    DENY: Le paquet est supprimé sans réponse. REJECT: Le paquet
-                    est rejeté avec un message ICMP.
+                    Bloquer (DROP) : le paquet est supprimé sans réponse.
+                    Rejeter : le paquet est refusé avec un message ICMP.
                   </p>
                 </div>
                 <div>
@@ -628,7 +635,8 @@ export default function FirewallPage() {
                     className="w-full px-4 py-2 border rounded-lg dark:bg-gray-600 dark:text-gray-100"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Optionnel : vide = tous les ports, mais seulement pour l’IP source indiquée.
+                    Optionnel : vide = tous les ports, mais seulement pour l’IP
+                    source indiquée.
                   </p>
                 </div>
                 <div>
@@ -665,7 +673,7 @@ export default function FirewallPage() {
                   <strong>Nom:</strong> "Bloquer test SSH" |{" "}
                   <strong>IP Source:</strong> 203.0.113.77 |{" "}
                   <strong>Protocole:</strong> TCP |<strong> Port:</strong> 22 |{" "}
-                  <strong>Action:</strong> DENY
+                  <strong>Action:</strong> Bloquer (DROP)
                   <br />→ Cette règle bloquera uniquement le TCP port 22 venant
                   de cette IP source.
                 </p>
@@ -770,9 +778,15 @@ export default function FirewallPage() {
                     setEditingRule({ ...editingRule, action: e.target.value })
                   }
                 >
-                  <option value="DENY">DENY</option>
-                  <option value="REJECT">REJECT</option>
-                  <option value="ALLOW">ALLOW</option>
+                  <option value="DENY">
+                    {formatFirewallActionLabel("DENY")}
+                  </option>
+                  <option value="REJECT">
+                    {formatFirewallActionLabel("REJECT")}
+                  </option>
+                  <option value="ALLOW">
+                    {formatFirewallActionLabel("ALLOW")}
+                  </option>
                 </select>
                 <input
                   type="number"
@@ -867,7 +881,7 @@ export default function FirewallPage() {
                                 : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                           }`}
                         >
-                          {rule.action}
+                          {formatFirewallActionLabel(rule.action)}
                         </span>
                       </td>
                       <td className="p-3">{rule.priority}</td>
@@ -1015,19 +1029,7 @@ export default function FirewallPage() {
           ) : (
             <div className="min-w-0 space-y-2">
               {blockedIps.map((item, index) => {
-                const o = String(item.blockOrigin || "");
-                const originLabel =
-                  o === "lab_simulation"
-                    ? "Test lab"
-                    : o === "manual_rule"
-                      ? "Manuel"
-                      : o === "automatic_threat"
-                        ? "Auto"
-                        : o === "iptables"
-                          ? "iptables"
-                          : o === "log_inferred"
-                            ? "Logs"
-                            : null;
+                const originLabel = formatBlockOriginLabel(item.blockOrigin);
                 return (
                   <div
                     key={index}

@@ -10,6 +10,12 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
+  formatSecurityEventTypeLabel,
+  formatSecuritySeverity,
+  formatThreatTypeLabel,
+  normalizeSecuritySeverity,
+} from "@/lib/security/securityLabels";
+import {
   ArrowLeft,
   AlertTriangle,
   Shield,
@@ -80,7 +86,7 @@ export default function ThreatDetailsPage() {
   >(null);
   useDocumentTitle(
     threat
-      ? `Menace ${threat.threatType || "réseau"} · ${threat.sourceIp || String(params.id).slice(0, 8)}`
+      ? `Menace ${formatThreatTypeLabel(threat.threatType)} · ${threat.sourceIp || String(params.id).slice(0, 8)}`
       : "Détail menace",
   );
 
@@ -175,28 +181,18 @@ export default function ThreatDetailsPage() {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "CRITICAL":
+    switch (normalizeSecuritySeverity(severity)) {
+      case "critical":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "HIGH":
+      case "high":
         return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      case "MEDIUM":
+      case "medium":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "LOW":
+      case "low":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
-  };
-
-  const getThreatTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      SYN_FLOOD: "SYN Flood",
-      PORT_SCAN: "Port Scanning",
-      BRUTE_FORCE: "Brute Force",
-      DDoS: "DDoS Attack",
-    };
-    return labels[type] || type;
   };
 
   if (loading) {
@@ -278,12 +274,13 @@ export default function ThreatDetailsPage() {
   };
   const hasMinimalMetadata =
     Object.keys(metadata).length <= 1 && metadata?.test === true;
+  const severityKey = normalizeSecuritySeverity(threat.severity);
   const recommendation =
-    threat.severity === "CRITICAL"
+    severityKey === "critical"
       ? "Blocage immédiat + investigation complète (logs, flux réseau, comptes impactés)."
-      : threat.severity === "HIGH"
+      : severityKey === "high"
         ? "Blocage recommandé + revue des règles WAF/Firewall associées."
-        : threat.severity === "MEDIUM"
+        : severityKey === "medium"
           ? "Surveillance renforcée et corrélation avec les événements des 24 dernières heures."
           : "Monitoring continu, sans action bloquante immédiate.";
 
@@ -305,7 +302,7 @@ export default function ThreatDetailsPage() {
                 Détails de la Menace
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {getThreatTypeLabel(threat.threatType)}
+                {formatThreatTypeLabel(threat.threatType)}
               </p>
             </div>
           </div>
@@ -357,7 +354,7 @@ export default function ThreatDetailsPage() {
                   Type de menace
                 </p>
                 <p className="font-semibold text-lg">
-                  {getThreatTypeLabel(threat.threatType)}
+                  {formatThreatTypeLabel(threat.threatType)}
                 </p>
               </div>
               <div>
@@ -367,7 +364,7 @@ export default function ThreatDetailsPage() {
                 <span
                   className={`inline-block px-3 py-1 rounded text-sm font-semibold ${getSeverityColor(threat.severity)}`}
                 >
-                  {threat.severity}
+                  {formatSecuritySeverity(threat.severity)}
                 </span>
               </div>
               <div>
@@ -828,7 +825,11 @@ export default function ThreatDetailsPage() {
                 >
                   <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{event.eventType}</span>
+                      <span className="font-semibold">
+                        {formatSecurityEventTypeLabel(
+                          String(event.eventType || ""),
+                        )}
+                      </span>
                       <span className="text-gray-500 dark:text-gray-400">
                         {event.level}
                       </span>

@@ -7,6 +7,12 @@ import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import {
+  formatBlockOriginLabel,
+  formatFirewallActionLabel,
+  formatSecuritySeverity,
+  normalizeSecuritySeverity,
+} from "@/lib/security/securityLabels";
 import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
@@ -46,16 +52,6 @@ type BlockedIpEntry = {
   blockOrigin?: string;
   threatId?: string;
 };
-
-function blockedOriginBadgeLabel(blockOrigin?: string): string | null {
-  const o = String(blockOrigin || "");
-  if (o === "lab_simulation") return "Test lab";
-  if (o === "manual_rule") return "Manuel";
-  if (o === "automatic_threat") return "Auto";
-  if (o === "iptables") return "iptables";
-  if (o === "log_inferred") return "Logs";
-  return null;
-}
 
 export default function SecurityPoliciesPage() {
   useDocumentTitle("Politiques sécurité");
@@ -388,9 +384,9 @@ export default function SecurityPoliciesPage() {
                         {wafRuleLabel(rule, index)}
                       </span>
                       <span
-                        className={`ml-2 px-1.5 py-0.5 text-xs rounded ${rule.severity === "critical" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" : rule.severity === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300"}`}
+                        className={`ml-2 px-1.5 py-0.5 text-xs rounded ${normalizeSecuritySeverity(rule.severity) === "critical" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" : normalizeSecuritySeverity(rule.severity) === "high" ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300"}`}
                       >
-                        {rule.severity}
+                        {formatSecuritySeverity(rule.severity)}
                       </span>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {rule.description ||
@@ -443,7 +439,7 @@ export default function SecurityPoliciesPage() {
                     {r.name}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {r.action} / {r.protocol}
+                    {formatFirewallActionLabel(r.action)} / {r.protocol}
                   </span>
                 </li>
               ))}
@@ -485,7 +481,7 @@ export default function SecurityPoliciesPage() {
                   : (item?.ip ?? JSON.stringify(item));
               const row = typeof item === "object" ? item : null;
               const originLabel = row
-                ? blockedOriginBadgeLabel(row.blockOrigin)
+                ? formatBlockOriginLabel(row.blockOrigin)
                 : null;
               return (
                 <li
