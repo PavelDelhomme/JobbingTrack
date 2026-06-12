@@ -8,6 +8,9 @@ const { requireAdminAccess } = require('../middleware/requireAdminAccess');
 // Récupérer les métriques de sécurité
 router.get('/metrics', securityController.getSecurityMetrics);
 
+// Récupérer les valeurs utiles pour les filtres logs
+router.get('/logs/facets', securityController.getSecurityLogFacets);
+
 // Récupérer les logs de sécurité
 router.get('/logs', securityController.getSecurityLogs);
 

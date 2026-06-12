@@ -20,28 +20,6 @@ import { RefreshCw, ShieldAlert } from "lucide-react";
 const API_URL = FRONTEND_URLS.api;
 const PAGE_SIZE = 50;
 
-const KNOWN_LOG_CATEGORIES = [
-  "auth",
-  "ddos",
-  "firewall",
-  "intrusion",
-  "network",
-  "security",
-  "system",
-  "waf",
-];
-
-const KNOWN_EVENT_TYPES = [
-  "network_threat_detected",
-  "threat_blocked",
-  "ip_blocked_automatically",
-  "waf_blocked",
-  "brute_force_detected",
-  "login_failed",
-  "rate_limit_exceeded",
-  "security_alert_created",
-];
-
 type SecurityLogRow = {
   id: string;
   timestamp?: string;
@@ -57,6 +35,21 @@ type SecurityLogRow = {
   riskScore?: number;
   isBlocked?: boolean;
   metadata?: Record<string, unknown>;
+};
+
+type SecurityLogFacetOption = {
+  value: string;
+  count?: number;
+};
+
+type SecurityLogFacets = {
+  sampleSize?: number;
+  categories?: SecurityLogFacetOption[];
+  eventTypes?: SecurityLogFacetOption[];
+  sourceIPs?: SecurityLogFacetOption[];
+  endpoints?: SecurityLogFacetOption[];
+  methods?: SecurityLogFacetOption[];
+  messages?: SecurityLogFacetOption[];
 };
 
 function levelBadgeClass(level?: string): string {
@@ -83,24 +76,40 @@ function uniqueSortedValues(values: Array<string | undefined>): string[] {
   ).sort((a, b) => a.localeCompare(b, "fr"));
 }
 
+function facetValues(options?: SecurityLogFacetOption[]): string[] {
+  return (options || [])
+    .map((option) => option.value?.trim())
+    .filter((value): value is string => Boolean(value));
+}
+
 export default function SecurityLogsPage() {
   useDocumentTitle("Logs sécurité");
 
   const searchParams = useSearchParams();
   const { page, setPage } = useUrlPagination("page", 1);
-  const [level, setLevel] = useState(searchParams.get("level") || "");
-  const [category, setCategory] = useState(searchParams.get("category") || "");
-  const [eventType, setEventType] = useState(
-    searchParams.get("eventType") || "",
-  );
-  const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [order, setOrder] = useState(
-    searchParams.get("order") === "asc" ? "asc" : "desc",
-  );
+  const initialLevel = searchParams.get("level") || "";
+  const initialCategory = searchParams.get("category") || "";
+  const initialEventType = searchParams.get("eventType") || "";
+  const initialQuery = searchParams.get("q") || "";
+  const initialOrder = searchParams.get("order") === "asc" ? "asc" : "desc";
+
+  const [level, setLevel] = useState(initialLevel);
+  const [category, setCategory] = useState(initialCategory);
+  const [eventType, setEventType] = useState(initialEventType);
+  const [query, setQuery] = useState(initialQuery);
+  const [order, setOrder] = useState<"asc" | "desc">(initialOrder);
+  const [draftLevel, setDraftLevel] = useState(initialLevel);
+  const [draftCategory, setDraftCategory] = useState(initialCategory);
+  const [draftEventType, setDraftEventType] = useState(initialEventType);
+  const [draftQuery, setDraftQuery] = useState(initialQuery);
+  const [draftOrder, setDraftOrder] = useState<"asc" | "desc">(initialOrder);
   const [days, setDays] = useState(14);
+  const [draftDays, setDraftDays] = useState(14);
   const [logs, setLogs] = useState<SecurityLogRow[]>([]);
+  const [facets, setFacets] = useState<SecurityLogFacets>({});
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [facetsLoading, setFacetsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const highlightId = searchParams.get("highlight") || "";
@@ -156,9 +165,44 @@ export default function SecurityLogsPage() {
     }
   }, [category, days, eventType, level, order, page, query]);
 
+  const loadFacets = useCallback(async () => {
+    setFacetsLoading(true);
+
+    const params = new URLSearchParams({
+      sampleLimit: "2000",
+      startDate: new Date(Date.now() - draftDays * 86400000).toISOString(),
+    });
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_URL}/api/v1/security/logs/facets?${params}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.success === false) {
+        throw new Error(
+          json?.error ||
+            `Suggestions logs sécurité indisponibles (HTTP ${res.status})`,
+        );
+      }
+      setFacets(json?.data || {});
+    } catch {
+      setFacets({});
+    } finally {
+      setFacetsLoading(false);
+    }
+  }, [draftDays]);
+
   useEffect(() => {
     void loadLogs();
   }, [loadLogs]);
+
+  useEffect(() => {
+    void loadFacets();
+  }, [loadFacets]);
 
   const estimatedTotal =
     total ??
@@ -172,31 +216,45 @@ export default function SecurityLogsPage() {
   const categorySuggestions = useMemo(
     () =>
       uniqueSortedValues([
-        ...KNOWN_LOG_CATEGORIES,
+        ...facetValues(facets.categories),
         ...logs.map((log) => log.category),
       ]),
-    [logs],
+    [facets.categories, logs],
   );
   const eventTypeSuggestions = useMemo(
     () =>
       uniqueSortedValues([
-        ...KNOWN_EVENT_TYPES,
+        ...facetValues(facets.eventTypes),
         ...logs.map((log) => log.eventType),
       ]),
-    [logs],
+    [facets.eventTypes, logs],
   );
   const searchSuggestions = useMemo(
     () =>
       uniqueSortedValues(
-        logs.flatMap((log) => [
-          log.sourceIP,
-          log.endpoint,
-          log.message,
-          log.method ? `${log.method} ${log.endpoint || ""}`.trim() : undefined,
-        ]),
+        [
+          ...facetValues(facets.sourceIPs),
+          ...facetValues(facets.endpoints),
+          ...facetValues(facets.messages),
+          ...logs.flatMap((log) => [
+            log.sourceIP,
+            log.endpoint,
+            log.message,
+            log.method
+              ? `${log.method} ${log.endpoint || ""}`.trim()
+              : undefined,
+          ]),
+        ],
       ).slice(0, 80),
-    [logs],
+    [facets.endpoints, facets.messages, facets.sourceIPs, logs],
   );
+  const hasDraftChanges =
+    draftLevel !== level ||
+    draftCategory !== category ||
+    draftEventType !== eventType ||
+    draftQuery !== query ||
+    draftOrder !== order ||
+    draftDays !== days;
   const activeFilterLabels = [
     level ? `niveau ${formatSecuritySeverity(level)}` : null,
     category ? `catégorie ${category}` : null,
@@ -208,6 +266,33 @@ export default function SecurityLogsPage() {
   const toggleSortOrder = () => {
     setPage(1);
     setOrder((current) => (current === "desc" ? "asc" : "desc"));
+    setDraftOrder((current) => (current === "desc" ? "asc" : "desc"));
+  };
+
+  const applyFilters = () => {
+    setPage(1);
+    setLevel(draftLevel);
+    setCategory(draftCategory.trim());
+    setEventType(draftEventType.trim());
+    setQuery(draftQuery.trim());
+    setOrder(draftOrder);
+    setDays(draftDays);
+  };
+
+  const resetFilters = () => {
+    setPage(1);
+    setDraftLevel("");
+    setDraftCategory("");
+    setDraftEventType("");
+    setDraftQuery("");
+    setDraftOrder("desc");
+    setDraftDays(14);
+    setLevel("");
+    setCategory("");
+    setEventType("");
+    setQuery("");
+    setOrder("desc");
+    setDays(14);
   };
 
   return (
@@ -247,11 +332,8 @@ export default function SecurityLogsPage() {
             <label className="flex flex-col gap-1 text-sm font-medium">
               Niveau
               <select
-                value={level}
-                onChange={(e) => {
-                  setPage(1);
-                  setLevel(e.target.value);
-                }}
+                value={draftLevel}
+                onChange={(e) => setDraftLevel(e.target.value)}
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="">Tous</option>
@@ -265,11 +347,8 @@ export default function SecurityLogsPage() {
               Catégorie
               <input
                 list="security-log-category-options"
-                value={category}
-                onChange={(e) => {
-                  setPage(1);
-                  setCategory(e.target.value);
-                }}
+                value={draftCategory}
+                onChange={(e) => setDraftCategory(e.target.value)}
                 placeholder="auth, firewall, intrusion..."
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
@@ -283,11 +362,8 @@ export default function SecurityLogsPage() {
               Type d’événement
               <input
                 list="security-log-event-type-options"
-                value={eventType}
-                onChange={(e) => {
-                  setPage(1);
-                  setEventType(e.target.value);
-                }}
+                value={draftEventType}
+                onChange={(e) => setDraftEventType(e.target.value)}
                 placeholder="network_threat_detected"
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
@@ -304,11 +380,10 @@ export default function SecurityLogsPage() {
             <label className="flex flex-col gap-1 text-sm font-medium">
               Tri
               <select
-                value={order}
-                onChange={(e) => {
-                  setPage(1);
-                  setOrder(e.target.value === "asc" ? "asc" : "desc");
-                }}
+                value={draftOrder}
+                onChange={(e) =>
+                  setDraftOrder(e.target.value === "asc" ? "asc" : "desc")
+                }
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="desc">Plus récent d’abord</option>
@@ -318,11 +393,8 @@ export default function SecurityLogsPage() {
             <label className="flex flex-col gap-1 text-sm font-medium">
               Fenêtre
               <select
-                value={String(days)}
-                onChange={(e) => {
-                  setPage(1);
-                  setDays(Number(e.target.value));
-                }}
+                value={String(draftDays)}
+                onChange={(e) => setDraftDays(Number(e.target.value))}
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="1">24 h</option>
@@ -335,11 +407,8 @@ export default function SecurityLogsPage() {
               Recherche
               <input
                 list="security-log-search-options"
-                value={query}
-                onChange={(e) => {
-                  setPage(1);
-                  setQuery(e.target.value);
-                }}
+                value={draftQuery}
+                onChange={(e) => setDraftQuery(e.target.value)}
                 placeholder="IP, endpoint, message..."
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
@@ -349,6 +418,32 @@ export default function SecurityLogsPage() {
                 ))}
               </datalist>
             </label>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={applyFilters}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Appliquer les filtres
+            </button>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
+            >
+              Réinitialiser
+            </button>
+            {hasDraftChanges && (
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                Filtres modifiés, pas encore appliqués
+              </span>
+            )}
+            {facetsLoading && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Chargement des suggestions…
+              </span>
+            )}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
             <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">

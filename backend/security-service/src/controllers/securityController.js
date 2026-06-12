@@ -108,6 +108,36 @@ class SecurityController {
     }
   }
 
+  async getSecurityLogFacets(req, res) {
+    try {
+      const { startDate, endDate, sampleLimit = 1000 } = req.query;
+      const defaultStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const parsedStartDate = startDate ? new Date(startDate) : defaultStartDate;
+      const parsedEndDate = endDate ? new Date(endDate) : undefined;
+
+      const facets = await securityService.getSecurityLogFacets({
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        sampleLimit: Math.min(Math.max(parseInt(sampleLimit, 10) || 1000, 100), 5000)
+      });
+
+      res.json({
+        success: true,
+        data: facets,
+        pagination: {
+          startDate: parsedStartDate,
+          endDate: parsedEndDate || null
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la récupération des facettes logs sécurité:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des facettes logs sécurité'
+      });
+    }
+  }
+
   // Créer un log de sécurité
   async createSecurityLog(req, res) {
     try {

@@ -79,4 +79,57 @@ describe('securityService.getSecurityLogs', () => {
       expect.objectContaining({ orderBy: { timestamp: 'desc' } })
     );
   });
+
+  it('prépare les suggestions de filtres depuis les logs récents', async () => {
+    mockPrisma.securityLog.findMany.mockResolvedValueOnce([
+      {
+        level: 'warning',
+        category: 'auth',
+        eventType: 'login_failed',
+        sourceIP: '198.51.100.42',
+        endpoint: '/api/v1/auth/login',
+        method: 'POST',
+        message: 'Échec de connexion lab'
+      },
+      {
+        level: 'critical',
+        category: 'waf',
+        eventType: 'waf_blocked',
+        sourceIP: '203.0.113.77',
+        endpoint: '/api/v1/admin',
+        method: 'GET',
+        message: 'Payload SQLi bloqué'
+      },
+      {
+        level: 'warning',
+        category: 'auth',
+        eventType: 'login_failed',
+        sourceIP: '198.51.100.42',
+        endpoint: '/api/v1/auth/login',
+        method: 'POST',
+        message: 'Échec de connexion lab'
+      }
+    ]);
+
+    const facets = await securityService.getSecurityLogFacets({
+      startDate: new Date('2026-06-01T00:00:00.000Z'),
+      sampleLimit: 200
+    });
+
+    expect(mockPrisma.securityLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 200,
+        select: expect.objectContaining({
+          category: true,
+          eventType: true,
+          sourceIP: true,
+          endpoint: true
+        })
+      })
+    );
+    expect(facets.sampleSize).toBe(3);
+    expect(facets.categories[0]).toEqual({ value: 'auth', count: 2 });
+    expect(facets.eventTypes[0]).toEqual({ value: 'login_failed', count: 2 });
+    expect(facets.sourceIPs[0]).toEqual({ value: '198.51.100.42', count: 2 });
+  });
 });

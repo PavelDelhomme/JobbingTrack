@@ -28,17 +28,15 @@ test("Logs sécurité expose tri Date et autocomplétion des filtres", async ({
     "security-log-search-options",
   );
 
-  await expect(page.locator("#security-log-category-options option")).toHaveCount(
-    8,
-  );
-  await expect(
-    page.locator("#security-log-event-type-options option"),
-  ).toHaveCount(8);
-
   await categoryInput.fill("network");
+  await expect(page.getByText("Filtres modifiés, pas encore appliqués")).toBeVisible();
+  await expect(page.getByText("catégorie network")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Appliquer les filtres" }).click();
   await expect(page.getByText("catégorie network")).toBeVisible();
 
   await eventTypeInput.fill("network_threat_detected");
+  await page.getByRole("button", { name: "Appliquer les filtres" }).click();
   await expect(page.getByText("type Menace réseau détectée")).toBeVisible();
 
   const dateSortButton = page.getByRole("button", { name: /Date/ });

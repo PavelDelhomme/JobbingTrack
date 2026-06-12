@@ -198,6 +198,72 @@ class SecurityService {
     }
   }
 
+  async getSecurityLogFacets(filters = {}) {
+    try {
+      const { startDate, endDate, sampleLimit = 1000 } = filters;
+      const where = {};
+
+      if (startDate) where.timestamp = { ...where.timestamp, gte: startDate };
+      if (endDate) where.timestamp = { ...where.timestamp, lte: endDate };
+
+      const logs = await prisma.securityLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: Math.min(Math.max(Number(sampleLimit) || 1000, 100), 5000),
+        select: {
+          level: true,
+          category: true,
+          eventType: true,
+          sourceIP: true,
+          endpoint: true,
+          method: true,
+          message: true
+        }
+      });
+
+      const toTopValues = (values, limit = 50) => {
+        const counts = new Map();
+        for (const value of values) {
+          const normalized = typeof value === 'string' ? value.trim() : '';
+          if (!normalized) continue;
+          counts.set(normalized, (counts.get(normalized) || 0) + 1);
+        }
+        return Array.from(counts.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'))
+          .slice(0, limit)
+          .map(([value, count]) => ({ value, count }));
+      };
+
+      return {
+        sampleSize: logs.length,
+        levels: toTopValues(logs.map((log) => log.level), 20),
+        categories: toTopValues(logs.map((log) => log.category), 50),
+        eventTypes: toTopValues(logs.map((log) => log.eventType), 80),
+        sourceIPs: toTopValues(logs.map((log) => log.sourceIP), 80),
+        endpoints: toTopValues(logs.map((log) => log.endpoint), 80),
+        methods: toTopValues(logs.map((log) => log.method), 20),
+        messages: toTopValues(logs.map((log) => log.message), 50)
+      };
+    } catch (error) {
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        return {
+          sampleSize: 0,
+          levels: [],
+          categories: [],
+          eventTypes: [],
+          sourceIPs: [],
+          endpoints: [],
+          methods: [],
+          messages: []
+        };
+      }
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la récupération des facettes logs sécurité:', error);
+      }
+      throw error;
+    }
+  }
+
   // Créer un log de sécurité
   async createSecurityLog(logData) {
     try {
@@ -233,6 +299,11 @@ class SecurityService {
         requestId ||
         (metadata && typeof metadata === 'object' ? metadata.requestId : null) ||
         null;
+      const normalizedMetadata =
+        metadata && typeof metadata === 'object' ? { ...metadata } : {};
+      if (resolvedRequestId && !normalizedMetadata.requestId) {
+        normalizedMetadata.requestId = resolvedRequestId;
+      }
 
       const log = await prisma.securityLog.create({
         data: {
@@ -251,8 +322,7 @@ class SecurityService {
           city,
           riskScore: riskScore || 0,
           isBlocked: isBlocked || false,
-          requestId: resolvedRequestId,
-          metadata: metadata || {}
+          metadata: normalizedMetadata
         }
       });
 
