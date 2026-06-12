@@ -59,6 +59,9 @@ class SecurityController {
         endDate,
         level,
         category,
+        eventType,
+        q,
+        order = 'desc',
         limit = 100,
         offset = 0
       } = req.query;
@@ -77,6 +80,9 @@ class SecurityController {
         endDate: parsedEndDate,
         level,
         category,
+        eventType,
+        q,
+        order,
         limit: parsedLimit,
         offset: parsedOffset
       });

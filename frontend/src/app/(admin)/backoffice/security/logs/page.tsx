@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
@@ -65,7 +65,10 @@ export default function SecurityLogsPage() {
   const [eventType, setEventType] = useState(
     searchParams.get("eventType") || "",
   );
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [order, setOrder] = useState(
+    searchParams.get("order") === "asc" ? "asc" : "desc",
+  );
   const [days, setDays] = useState(14);
   const [logs, setLogs] = useState<SecurityLogRow[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -85,6 +88,9 @@ export default function SecurityLogsPage() {
     });
     if (level) params.set("level", level);
     if (category) params.set("category", category);
+    if (eventType) params.set("eventType", eventType);
+    if (query.trim()) params.set("q", query.trim());
+    params.set("order", order);
 
     try {
       const token = localStorage.getItem("token");
@@ -120,29 +126,11 @@ export default function SecurityLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, days, level, page]);
+  }, [category, days, eventType, level, order, page, query]);
 
   useEffect(() => {
     void loadLogs();
   }, [loadLogs]);
-
-  const filteredLogs = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return logs.filter((log) => {
-      if (eventType && String(log.eventType || "") !== eventType) return false;
-      if (!q) return true;
-      return [
-        log.message,
-        log.sourceIP,
-        log.endpoint,
-        log.category,
-        log.eventType,
-        log.level,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q));
-    });
-  }, [eventType, logs, query]);
 
   const estimatedTotal =
     total ??
@@ -152,7 +140,7 @@ export default function SecurityLogsPage() {
   const totalPages = Math.max(1, Math.ceil(estimatedTotal / PAGE_SIZE));
   const canGoNext = total ? page < totalPages : logs.length === PAGE_SIZE;
   const startIndex = logs.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const endIndex = (page - 1) * PAGE_SIZE + filteredLogs.length;
+  const endIndex = (page - 1) * PAGE_SIZE + logs.length;
 
   return (
     <AdminLayout>
@@ -168,7 +156,11 @@ export default function SecurityLogsPage() {
             <p className="mt-1 max-w-3xl text-gray-600 dark:text-gray-400">
               Événements sécurité persistés par le security-service. Les liens
               depuis Incidents peuvent surligner un log précis via{" "}
-              <code className="text-xs">highlight</code>.
+              <code className="text-xs">highlight</code>. Tri actuel :{" "}
+              {order === "desc"
+                ? "plus récent d’abord"
+                : "plus ancien d’abord"}
+              .
             </p>
           </div>
           <button
@@ -183,7 +175,7 @@ export default function SecurityLogsPage() {
         </div>
 
         <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <label className="flex flex-col gap-1 text-sm font-medium">
               Niveau
               <select
@@ -226,6 +218,20 @@ export default function SecurityLogsPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
+              Tri
+              <select
+                value={order}
+                onChange={(e) => {
+                  setPage(1);
+                  setOrder(e.target.value === "asc" ? "asc" : "desc");
+                }}
+                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="desc">Plus récent d’abord</option>
+                <option value="asc">Plus ancien d’abord</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
               Fenêtre
               <select
                 value={String(days)}
@@ -242,10 +248,13 @@ export default function SecurityLogsPage() {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
-              Recherche locale
+              Recherche
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setPage(1);
+                  setQuery(e.target.value);
+                }}
                 placeholder="IP, endpoint, message..."
                 className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
               />
@@ -264,7 +273,7 @@ export default function SecurityLogsPage() {
             <div className="p-6 text-sm text-gray-500 dark:text-gray-400">
               Chargement des logs sécurité…
             </div>
-          ) : filteredLogs.length === 0 ? (
+          ) : logs.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
               Aucun log sécurité pour ces filtres.
             </div>
@@ -283,7 +292,7 @@ export default function SecurityLogsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLogs.map((log) => {
+                  {logs.map((log) => {
                     const threatId = readMetadataThreatId(log.metadata);
                     const highlighted =
                       highlightId && String(log.id) === highlightId;

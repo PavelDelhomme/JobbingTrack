@@ -55,6 +55,9 @@ interface NetworkThreat {
         total?: number;
         blockedEvents?: number;
         maxRiskScore?: number;
+        effectiveRiskScore?: number;
+        riskSource?: string;
+        threatSeverityRiskScore?: number;
         endpoints?: string[];
         methods?: string[];
         impactedUsers?: string[];
@@ -232,6 +235,14 @@ export default function ThreatDetailsPage() {
   const attacker = investigation.attacker || {};
   const target = investigation.target || {};
   const appLogs = investigation.application?.logs;
+  const displayedRiskScore =
+    appLogs?.effectiveRiskScore ?? appLogs?.maxRiskScore ?? null;
+  const riskScoreHint =
+    appLogs?.riskSource === "threat_severity"
+      ? "Estimé depuis la sévérité de la menace, faute de log corrélé."
+      : appLogs?.riskSource === "security_logs"
+        ? "Calculé depuis les logs sécurité corrélés."
+        : "Source du score non déterminée.";
   const recentEvents = investigation.application?.recentEvents || [];
   const missingTelemetry = investigation.missingTelemetry || [];
   const networkConnectionDetails =
@@ -773,9 +784,14 @@ export default function ThreatDetailsPage() {
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Risque max</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Risque retenu
+                </p>
                 <p className="font-semibold">
-                  {appLogs?.maxRiskScore ?? "N/A"}
+                  {displayedRiskScore ?? "N/A"}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {riskScoreHint}
                 </p>
               </div>
               <div>

@@ -144,21 +144,39 @@ class SecurityService {
         endDate,
         level,
         category,
+        eventType,
+        q,
+        order = 'desc',
         limit = 100,
         offset = 0
       } = filters;
 
       const where = {};
+      const orderDirection = order === 'asc' ? 'asc' : 'desc';
 
       if (startDate) where.timestamp = { ...where.timestamp, gte: startDate };
       if (endDate) where.timestamp = { ...where.timestamp, lte: endDate };
       if (level) where.level = level;
       if (category) where.category = category;
+      if (eventType) where.eventType = eventType;
+
+      const query = typeof q === 'string' ? q.trim() : '';
+      if (query) {
+        where.OR = [
+          { message: { contains: query, mode: 'insensitive' } },
+          { sourceIP: { contains: query, mode: 'insensitive' } },
+          { endpoint: { contains: query, mode: 'insensitive' } },
+          { category: { contains: query, mode: 'insensitive' } },
+          { eventType: { contains: query, mode: 'insensitive' } },
+          { level: { contains: query, mode: 'insensitive' } },
+          { method: { contains: query, mode: 'insensitive' } }
+        ];
+      }
 
       const [logs, total] = await Promise.all([
         prisma.securityLog.findMany({
           where,
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: orderDirection },
           take: limit,
           skip: offset
         }),

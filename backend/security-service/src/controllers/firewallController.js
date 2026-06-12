@@ -115,6 +115,15 @@ function summarizeSecurityLogs(logs) {
   };
 }
 
+function riskScoreFromThreatSeverity(severity) {
+  const normalized = String(severity || '').toUpperCase();
+  if (normalized === 'CRITICAL') return 90;
+  if (normalized === 'HIGH') return 75;
+  if (normalized === 'MEDIUM') return 50;
+  if (normalized === 'LOW') return 30;
+  return 0;
+}
+
 function mapNetworkConnectionToThreatConnection(conn) {
   return {
     localIp: conn.destIp,
@@ -140,6 +149,14 @@ async function buildThreatInvestigation(threat, related) {
   const meta = enriched.metadata && typeof enriched.metadata === 'object' ? enriched.metadata : {};
   const geo = await lookupGeoIp(enriched.sourceIp);
   const logsSummary = summarizeSecurityLogs(related.securityLogs);
+  const threatSeverityRiskScore = riskScoreFromThreatSeverity(enriched.severity);
+  const effectiveRiskScore = Math.max(logsSummary.maxRiskScore, threatSeverityRiskScore);
+  const riskSource =
+    logsSummary.maxRiskScore > 0
+      ? 'security_logs'
+      : threatSeverityRiskScore > 0
+        ? 'threat_severity'
+        : 'unknown';
   const persistedConnections = Array.isArray(related.networkConnections)
     ? related.networkConnections.map(mapNetworkConnectionToThreatConnection)
     : [];
@@ -220,7 +237,12 @@ async function buildThreatInvestigation(threat, related) {
       impactedServices: Array.from(impactedServices).slice(0, 12)
     },
     application: {
-      logs: logsSummary,
+      logs: {
+        ...logsSummary,
+        effectiveRiskScore,
+        riskSource,
+        threatSeverityRiskScore
+      },
       recentEvents: related.securityLogs.slice(0, 25).map((log) => ({
         id: log.id,
         timestamp: log.timestamp,

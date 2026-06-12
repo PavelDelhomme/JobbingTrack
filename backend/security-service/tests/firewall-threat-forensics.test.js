@@ -217,6 +217,8 @@ describe('Firewall threats - détails forensics', () => {
         total: 2,
         blockedEvents: 1,
         maxRiskScore: 95,
+        effectiveRiskScore: 95,
+        riskSource: 'security_logs',
         endpoints: ['/api/v1/auth/login', '/api/v1/jobs'],
         methods: ['POST', 'GET'],
         impactedUsers: ['user-impacted-1']
@@ -274,6 +276,15 @@ describe('Firewall threats - détails forensics', () => {
       })
     );
     expect(investigation.related.intrusionAttempts).toHaveLength(1);
+    expect(investigation.application.logs).toEqual(
+      expect.objectContaining({
+        total: 0,
+        maxRiskScore: 0,
+        effectiveRiskScore: 75,
+        riskSource: 'threat_severity',
+        threatSeverityRiskScore: 75
+      })
+    );
     const isPrivateSource =
       sourceIp.startsWith('10.') ||
       sourceIp.startsWith('172.') ||
