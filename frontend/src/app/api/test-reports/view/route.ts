@@ -622,6 +622,20 @@ export async function GET(request: NextRequest) {
           );
         }
         fullPath = join(reportDir, "summary.json");
+      } else if (id.startsWith("statistics-overview-")) {
+        const suffix = id.replace("statistics-overview-", "");
+        const reportDir = join(
+          REPORT_DIRS["tests-results"],
+          "statistics-overview",
+          suffix,
+        );
+        if (!isWithinDirectory(REPORT_DIRS["tests-results"], reportDir)) {
+          return NextResponse.json(
+            { success: false, error: "Chemin non autorisé" },
+            { status: 403 },
+          );
+        }
+        fullPath = join(reportDir, "summary.json");
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         if (playwrightReport) {

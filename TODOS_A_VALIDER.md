@@ -273,7 +273,9 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 **Preuve agent fraîche Statistics app-data (12/06 13h22)** : correctif ports `event/followup` dashboard-service ; `scripts/ops/run-statistics-app-data-validation-with-report.sh` → `tests/results/statistics-app-data/20260612-132256` (**4/4 OK**) ; `/api/v1/statistics` sans `undefined` ; `followups=152`, `events=1011` cohérents BDD ; timeline fallback 1 point + message explicite ; `/b4ck0ff1ce/statistics/app-data` HTTP **200** ; rapport `statistics-app-data-20260612-132256`.
 
-**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · `OK Statistics app-data` · etc. (ou `KO` + route).
+**Preuve agent fraîche Statistics vue d’ensemble (12/06 13h27)** : `scripts/ops/run-statistics-overview-validation-with-report.sh` → `tests/results/statistics-overview/20260612-132737` (**4/4 OK**) ; `system/metrics` 24h et 7j → **51** points / disponibilité présente ; Jest séries **3/3 OK** ; `/b4ck0ff1ce/statistics` HTTP **200** ; rapport `statistics-overview-20260612-132737`.
+
+**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · `OK Statistics app-data` · `OK Statistics vue d’ensemble` · etc. (ou `KO` + route).
 
 ### P1C — UX backoffice (une validation = une réponse)
 

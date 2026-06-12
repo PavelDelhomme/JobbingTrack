@@ -26,6 +26,7 @@
 - **502 Bad Gateway** constaté au redémarrage : conséquence de l’arrêt volontaire des conteneurs en fin de session précédente ; résolu après `up-full` porteur (frontend + api-gateway de nouveau healthy).
 - **Correctif dashboard-service** : `statistics.controller.js` pointait `event-service` sur le port **3009** et `followup-service` sur **3010** (ports réels internes **3011** / **3012**) ; relances et événements remontaient à **0** dans `/api/v1/statistics`. Variables `CALL/EVENT/FOLLOWUP_SERVICE_URL` ajoutées au service `dashboard-service` dans `docker-compose.yml`.
 - **P1B Statistics app-data** : script `scripts/ops/run-statistics-app-data-validation-with-report.sh` ; rapport `tests/results/statistics-app-data/20260612-132256` **4/4 OK** ; payload sans `undefined` ; `followups=152`, `events=1011` alignés BDD ; page `/b4ck0ff1ce/statistics/app-data` HTTP **200** ; rapport listé `statistics-app-data-20260612-132256`.
+- **P1B Statistics vue d’ensemble** : script `scripts/ops/run-statistics-overview-validation-with-report.sh` ; rapport `tests/results/statistics-overview/20260612-132737` **4/4 OK** ; `system/metrics` 24h et 7j avec **51** points et disponibilité exploitable ; Jest `statisticsTimeSeries` **3/3 OK** ; page `/b4ck0ff1ce/statistics` HTTP **200** ; rapport `statistics-overview-20260612-132737`.
 
 ## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)
 
