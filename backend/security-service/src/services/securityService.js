@@ -7,6 +7,11 @@ const { logger, logSecurityEvent } = require('../utils/logger');
 const dataGenerator = require('./dataGenerator');
 const securityAlertEmailNotifier = require('./securityAlertEmailNotifier');
 const { lookupGeoIp } = require('../utils/geoipProvider');
+const {
+  buildThreatLookupWindow,
+  collectCorrelationSourceIps,
+  enrichSecurityLogsWithThreatLinks
+} = require('../utils/securityLogThreatCorrelation');
 
 const CVE_SCAN_RELATIVE_PATH = path.join('scripts', 'security', 'cve-scan.py');
 const CVE_SCAN_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -183,7 +188,35 @@ class SecurityService {
         prisma.securityLog.count({ where })
       ]);
 
-      return { logs, total };
+      const sourceIps = collectCorrelationSourceIps(logs);
+      let enrichedLogs = logs;
+
+      if (
+        sourceIps.length > 0 &&
+        prisma.networkThreat &&
+        typeof prisma.networkThreat.findMany === 'function'
+      ) {
+        const window = buildThreatLookupWindow(logs);
+        const threats = await prisma.networkThreat.findMany({
+          where: {
+            sourceIp: { in: sourceIps },
+            detectedAt: {
+              gte: window.gte,
+              lte: window.lte
+            }
+          },
+          select: {
+            id: true,
+            sourceIp: true,
+            detectedAt: true,
+            createdAt: true,
+            threatType: true
+          }
+        });
+        enrichedLogs = enrichSecurityLogsWithThreatLinks(logs, threats);
+      }
+
+      return { logs: enrichedLogs, total };
     } catch (error) {
       // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
