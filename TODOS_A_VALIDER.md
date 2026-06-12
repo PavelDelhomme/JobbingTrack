@@ -267,6 +267,8 @@ Menu **Statistics** → sous-onglets en haut de page.
 | Vue d’ensemble | [http://localhost:5003/b4ck0ff1ce/statistics](http://localhost:5003/b4ck0ff1ce/statistics) | Graphes dispo/erreur ; bascule 24 h ↔ 7 j. |
 | Temps de réponse endpoints | Statistics / Performances selon route exposée | Services critiques visibles ou état explicite : `auth-service`, `deployment-service`, `call-service`, `notification-service`, `followup-service`, `application-service`, `postgres` ; source claire `monitoring-agent-rs` / `metrics-aggregator`, moyenne instantanée/agrégée non trompeuse. |
 
+**Preuve agent fraîche Statistics Sécurité (12/06 01h56)** : endpoints `persistence/security/metrics`, `persistence/security/summary`, `persistence/stats` répondent **200** ; `security/metrics` = **2000** points, `summary.dataPoints=2000`, `security_logs=42296` et `security_metrics=97779` confirmés en BDD ; `/b4ck0ff1ce/statistics/security` et `/b4ck0ff1ce/security` répondent **200**.
+
 **Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · etc. (ou `KO` + route).
 
 ### P1C — UX backoffice (une validation = une réponse)
