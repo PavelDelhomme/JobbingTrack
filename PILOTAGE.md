@@ -32,11 +32,11 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE et alertes email critiques validés localement.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE, alertes email critiques et **P1C sécurité titres/libellés/navigation** validés localement.
 
 Priorité immédiate stricte :
 
-1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Tests offensifs contrôlés par conteneur JobbingTrack**.
+1. Traiter la première ligne ouverte de `TODOS_A_VALIDER.md` : **Statistics — onglet Sécurité cohérent avec `/security`**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
 4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C, une ligne à la fois).

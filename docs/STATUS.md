@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 12 juin 2026 — **Branche** `chore/merge-controlled-offensive-into-dev`.
+**Dernière mise à jour** : 12 juin 2026 — **Branche** `dev`.
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -17,6 +17,8 @@
 - **Logo projet** : nouveau logo enregistré dans `frontend/public/brand/jobbingtrack-logo.png` et `mobile/assets/branding/jobbingtrack-logo.png`; utilisé sur login/register web, sidebar backoffice, favicon/PWA, splash/login Flutter. `flutter test test/widget_test.dart` OK.
 - **Budget mémoire JobbingTrack** : le profil Compose `full` est plafonné à **8192 MB** via `mem_limit`; `metrics-aggregator` remplace les limites Docker équivalentes à la RAM hôte (ex. ~48046 MB) par le budget du service et recalcule les pourcentages. UI backoffice : les cartes mémoire projet/services parlent du budget JobbingTrack, plus de la RAM hôte comme capacité accessible. Validations : Compose `full` **22 limites / 8192 MB**, prod compose **18 limites / 5568 MB**, Jest metrics **6/6 OK**, frontend `tsc --noEmit` OK, Jest `centralMetricsService` **2/2 OK**, ESLint ciblé **0 erreur**.
 - **Lot B10 sécurité backoffice** : libellés sécurité centralisés (`securityLabels`) pour sévérités, types de menaces, événements, origines de blocage et actions firewall. Route `/b4ck0ff1ce/security/logs` restaurée avec titre `Logs sécurité`, pagination URL, filtres et highlight depuis Incidents ; sous-nav alignée. Validations : `tsc --noEmit --pretty false` OK, Jest libellés **6/6 OK**, ESLint ciblé **0 erreur** sur nouveau helper/page/spec ; warnings historiques uniquement sur anciennes pages sécurité.
+- **Validation porteur B10 sécurité** : `OK Sécurité - titres FR, libellés et navigation` reçu le 12/06 ; ligne P1C archivée dans `TODOS_DONE.md` et retirée de `TODOS_A_VALIDER.md`.
+- **Suite sécurité notée** : le tri actuel de `/api/v1/security/logs` est `timestamp desc` (plus récent d’abord), mais l’UI doit le rendre explicite. Prochaine branche B10/B8 : corréler fiches menace avec logs sécurité, logs techniques, endpoints, comptes de test, request/correlation IDs, score max, enrichissement VPN/proxy/Tor/ASN et politique de blocage automatique high/critical bornée.
 
 ## 12 juin 2026 — agent email triage, digest programmé
 
