@@ -17,11 +17,18 @@ import {
 } from "recharts";
 import { AdminLayout } from "@/components/features";
 import {
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
+import {
   StatisticsPageShell,
   StatisticsRefreshButton,
 } from "../StatisticsSubNav";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { STATS_PERIOD_OPTIONS } from "@/lib/filters/periodOptions";
+import type { FilterBadge } from "@/lib/filters/types";
 import {
   DashboardLayoutRegion,
   SectionLoader,
@@ -44,19 +51,19 @@ type PersistenceStats = {
   };
 };
 
-type PeriodOption = {
-  label: string;
-  days: number;
-};
-
 type SourceStatus = "active" | "historical" | "planned";
 
-const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: "24 h", days: 1 },
-  { label: "7 jours", days: 7 },
-  { label: "14 jours", days: 14 },
-  { label: "30 jours", days: 30 },
-];
+type LogStatsFilters = {
+  periodDays: number;
+  level: string;
+  service: string;
+};
+
+const DEFAULT_LOG_STATS_FILTERS: LogStatsFilters = {
+  periodDays: 14,
+  level: "",
+  service: "",
+};
 
 const COUNT_CARDS: Array<{
   key: string;
@@ -156,16 +163,21 @@ export default function StatisticsLogStatsPage() {
   const [logs, setLogs] = useState<AggLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filterLevel, setFilterLevel] = useState("");
-  const [filterService, setFilterService] = useState("");
-  const [periodDays, setPeriodDays] = useState(14);
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<LogStatsFilters>(DEFAULT_LOG_STATS_FILTERS);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const since = new Date(
-        Date.now() - periodDays * 24 * 60 * 60 * 1000,
+        Date.now() - applied.periodDays * 24 * 60 * 60 * 1000,
       ).toISOString();
       const [st, rows] = await Promise.all([
         analyticsService.getPersistenceStats(),
@@ -178,7 +190,7 @@ export default function StatisticsLogStatsPage() {
     } finally {
       setLoading(false);
     }
-  }, [periodDays]);
+  }, [applied.periodDays]);
 
   useEffect(() => {
     void load();
@@ -201,18 +213,42 @@ export default function StatisticsLogStatsPage() {
     return Array.from(set).sort();
   }, [logs]);
 
+  const periodOptions = useMemo(
+    () =>
+      STATS_PERIOD_OPTIONS.map((period) => ({
+        value: String(period.value),
+        label: period.label,
+      })),
+    [],
+  );
+
+  const filterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    const periodLabel =
+      STATS_PERIOD_OPTIONS.find((p) => p.value === applied.periodDays)?.label ||
+      `${applied.periodDays} jours`;
+    badges.push({ key: "period", label: `Période : ${periodLabel}` });
+    if (applied.level) {
+      badges.push({ key: "level", label: `Niveau : ${applied.level}` });
+    }
+    if (applied.service) {
+      badges.push({ key: "service", label: `Service : ${applied.service}` });
+    }
+    return badges;
+  }, [applied]);
+
   const filteredLogs = useMemo(() => {
     return logs.filter((row) => {
-      if (filterLevel) {
+      if (applied.level) {
         const lv = (row.level || "inconnu").toString();
-        if (lv !== filterLevel) return false;
+        if (lv !== applied.level) return false;
       }
-      if (filterService) {
-        if ((row.serviceName || "").toString() !== filterService) return false;
+      if (applied.service) {
+        if ((row.serviceName || "").toString() !== applied.service) return false;
       }
       return true;
     });
-  }, [logs, filterLevel, filterService]);
+  }, [logs, applied.level, applied.service]);
 
   const byLevel = useMemo(() => {
     const m: Record<string, number> = {};
@@ -262,8 +298,9 @@ export default function StatisticsLogStatsPage() {
               /api/v1/persistence/logs
             </code>{" "}
             (
-            {PERIOD_OPTIONS.find((period) => period.days === periodDays)
-              ?.label ?? `${periodDays} jours`}
+            {STATS_PERIOD_OPTIONS.find(
+              (period) => period.value === applied.periodDays,
+            )?.label ?? `${applied.periodDays} jours`}
             , échantillon). Les compteurs sont globaux par table ; les
             graphiques appliquent la période sélectionnée.
           </>
@@ -276,64 +313,43 @@ export default function StatisticsLogStatsPage() {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
           <>
-            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
-                Période
-                <select
-                  value={periodDays}
-                  onChange={(e) => setPeriodDays(Number(e.target.value))}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                >
-                  {PERIOD_OPTIONS.map((period) => (
-                    <option key={period.days} value={period.days}>
-                      {period.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
-                Niveau
-                <select
-                  value={filterLevel}
-                  onChange={(e) => setFilterLevel(e.target.value)}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                >
-                  <option value="">Tous</option>
-                  {levelOptions.map((lv) => (
-                    <option key={lv} value={lv}>
-                      {lv}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
-                Service
-                <select
-                  value={filterService}
-                  onChange={(e) => setFilterService(e.target.value)}
-                  className="min-w-[12rem] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                >
-                  <option value="">Tous</option>
-                  {serviceOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {(filterLevel || filterService) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterLevel("");
-                    setFilterService("");
-                  }}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  Réinitialiser filtres
-                </button>
-              )}
-            </div>
+            <FilterBar
+              hasDraftChanges={hasDraftChanges}
+              onApply={() => apply()}
+              onReset={() => reset(DEFAULT_LOG_STATS_FILTERS)}
+              badges={filterBadges}
+            >
+              <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
+                <FilterSelectField
+                  label="Période"
+                  value={String(draft.periodDays)}
+                  onChange={(value) =>
+                    updateDraft("periodDays", Number(value) || 14)
+                  }
+                  options={periodOptions}
+                  allowEmpty={false}
+                  placeholder="Choisir une période"
+                />
+                <FilterSelectField
+                  label="Niveau"
+                  value={draft.level}
+                  onChange={(value) => updateDraft("level", value)}
+                  options={levelOptions.map((level) => ({
+                    value: level,
+                    label: level,
+                  }))}
+                />
+                <FilterSelectField
+                  label="Service"
+                  value={draft.service}
+                  onChange={(value) => updateDraft("service", value)}
+                  options={serviceOptions.map((service) => ({
+                    value: service,
+                    label: service,
+                  }))}
+                />
+              </div>
+            </FilterBar>
 
             {counts && (
               <DashboardLayoutRegion variant="dense" className="gap-3">
@@ -459,7 +475,7 @@ export default function StatisticsLogStatsPage() {
 
             <p className={`text-xs ${uiText.subtle}`}>
               {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
-              {periodDays}
+              {applied.periodDays}
               jours, max 800).
             </p>
 

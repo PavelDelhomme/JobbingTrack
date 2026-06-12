@@ -114,3 +114,37 @@ export function formatFirewallActionLabel(value?: string | null): string {
     .toUpperCase();
   return FIREWALL_ACTION_LABELS[key] || enumToReadable(value);
 }
+
+export function getSecuritySeverityFilterOptions(): Array<{
+  value: string;
+  label: string;
+}> {
+  return [
+    { value: "critical", label: SECURITY_SEVERITY_LABELS.critical },
+    { value: "error", label: "Erreur" },
+    { value: "warning", label: "Avertissement" },
+    { value: "info", label: SECURITY_SEVERITY_LABELS.info },
+  ];
+}
+
+export function getThreatSeverityFilterOptions(): Array<{
+  value: string;
+  label: string;
+}> {
+  return [
+    { value: "CRITICAL", label: "Critique" },
+    { value: "HIGH", label: "Haute" },
+    { value: "MEDIUM", label: "Moyenne" },
+    { value: "LOW", label: "Faible" },
+  ];
+}
+
+export function getThreatTypeFilterOptions(): Array<{
+  value: string;
+  label: string;
+}> {
+  return Object.entries(THREAT_TYPE_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }));
+}

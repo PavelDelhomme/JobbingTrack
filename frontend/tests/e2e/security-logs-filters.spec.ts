@@ -13,20 +13,6 @@ test("Logs sécurité expose tri Date et autocomplétion des filtres", async ({
 
   const categoryInput = page.getByLabel("Catégorie");
   const eventTypeInput = page.getByLabel("Type d’événement");
-  const searchInput = page.getByLabel("Recherche");
-
-  await expect(categoryInput).toHaveAttribute(
-    "list",
-    "security-log-category-options",
-  );
-  await expect(eventTypeInput).toHaveAttribute(
-    "list",
-    "security-log-event-type-options",
-  );
-  await expect(searchInput).toHaveAttribute(
-    "list",
-    "security-log-search-options",
-  );
 
   await categoryInput.fill("network");
   await expect(page.getByText("Filtres modifiés, pas encore appliqués")).toBeVisible();

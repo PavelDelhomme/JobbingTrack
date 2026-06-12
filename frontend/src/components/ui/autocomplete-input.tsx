@@ -4,16 +4,35 @@ import { useState, useEffect, useRef } from "react";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Search, X, Loader2 } from "@/lib/icons";
 
+export type AutocompleteSuggestion =
+  | string
+  | {
+      value: string;
+      label?: string;
+    };
+
 interface AutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (value: string) => void;
   placeholder?: string;
-  suggestions: string[];
+  suggestions: AutocompleteSuggestion[];
   loading?: boolean;
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  variant?: "search" | "plain";
+}
+
+function normalizeSuggestions(suggestions: AutocompleteSuggestion[]) {
+  return suggestions.map((suggestion) =>
+    typeof suggestion === "string"
+      ? { value: suggestion, label: suggestion }
+      : {
+          value: suggestion.value,
+          label: suggestion.label || suggestion.value,
+        },
+  );
 }
 
 export function AutocompleteInput({
@@ -26,16 +45,22 @@ export function AutocompleteInput({
   className = "",
   disabled = false,
   required = false,
+  variant = "search",
 }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const normalizedSuggestions = normalizeSuggestions(suggestions);
 
-  const filteredSuggestions = suggestions
-    .filter((suggestion) =>
-      suggestion.toLowerCase().includes(value.toLowerCase()),
-    )
+  const filteredSuggestions = normalizedSuggestions
+    .filter((suggestion) => {
+      const query = value.toLowerCase();
+      return (
+        suggestion.value.toLowerCase().includes(query) ||
+        suggestion.label.toLowerCase().includes(query)
+      );
+    })
     .slice(0, 10);
 
   useEffect(() => {
@@ -59,9 +84,9 @@ export function AutocompleteInput({
     setHighlightedIndex(-1);
   };
 
-  const handleSelect = (suggestion: string) => {
-    onChange(suggestion);
-    onSelect?.(suggestion);
+  const handleSelect = (suggestion: { value: string; label: string }) => {
+    onChange(suggestion.value);
+    onSelect?.(suggestion.value);
     setIsOpen(false);
     inputRef.current?.blur();
   };
@@ -94,10 +119,17 @@ export function AutocompleteInput({
     }
   };
 
+  const inputClassName =
+    variant === "plain"
+      ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+      : "w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed";
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        {variant === "search" && (
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        )}
         <input
           ref={inputRef}
           type="text"
@@ -108,7 +140,7 @@ export function AutocompleteInput({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={inputClassName}
         />
         {value && !disabled && (
           <button
@@ -139,7 +171,7 @@ export function AutocompleteInput({
             <ul className="py-1">
               {filteredSuggestions.map((suggestion, index) => (
                 <li
-                  key={index}
+                  key={`${suggestion.value}-${index}`}
                   onClick={() => handleSelect(suggestion)}
                   className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
                     index === highlightedIndex
@@ -148,7 +180,7 @@ export function AutocompleteInput({
                   }`}
                 >
                   <div className="text-sm text-gray-900 dark:text-gray-100">
-                    {suggestion
+                    {suggestion.label
                       .split(new RegExp(`(${value})`, "gi"))
                       .map((part, i) => (
                         <span
@@ -163,6 +195,11 @@ export function AutocompleteInput({
                         </span>
                       ))}
                   </div>
+                  {suggestion.label !== suggestion.value && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {suggestion.value}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

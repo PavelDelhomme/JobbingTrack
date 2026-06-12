@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import { SecuritySubNav } from "../SecuritySubNav";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
+import type { FilterBadge } from "@/lib/filters/types";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -15,9 +23,14 @@ import {
   threatHref,
 } from "@/lib/security/incidents";
 import {
+  filterIncidentRows,
+  type IncidentKindFilter,
+} from "@/lib/security/incidentFilters";
+import {
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
   formatThreatTypeLabel,
+  getSecuritySeverityFilterOptions,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
 import { TablePanelSkeleton, uiSurfaces, uiText } from "@/lib/ui";
@@ -26,6 +39,18 @@ import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
 const LOGS_WINDOW_DAYS = 14;
+
+type IncidentDetailFilters = {
+  severity: string;
+  source: string;
+  query: string;
+};
+
+const DEFAULT_INCIDENT_DETAIL_FILTERS: IncidentDetailFilters = {
+  severity: "",
+  source: "",
+  query: "",
+};
 
 function severityClass(severity: string): string {
   const s = normalizeSecuritySeverity(severity);
@@ -50,9 +75,15 @@ export default function SecurityIncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
-  const [filter, setFilter] = useState<"all" | "threat" | "alert" | "event">(
-    "all",
-  );
+  const [kindFilter, setKindFilter] = useState<IncidentKindFilter>("all");
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<IncidentDetailFilters>(DEFAULT_INCIDENT_DETAIL_FILTERS);
   const [page, setPage] = useState(1);
   const [labBusy, setLabBusy] = useState(false);
   const [labMsg, setLabMsg] = useState<string | null>(null);
@@ -229,10 +260,48 @@ export default function SecurityIncidentsPage() {
     }
   };
 
-  const filtered = useMemo(() => {
-    if (filter === "all") return incidents;
-    return incidents.filter((i) => i.kind === filter);
-  }, [incidents, filter]);
+  const sourceSuggestions = useMemo(
+    () => facetOptionsFromValues(incidents.map((row) => row.source)),
+    [incidents],
+  );
+
+  const filterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (applied.severity) {
+      badges.push({
+        key: "severity",
+        label: `Gravité : ${formatSecuritySeverity(applied.severity)}`,
+      });
+    }
+    if (applied.source.trim()) {
+      badges.push({
+        key: "source",
+        label: `Source : ${applied.source.trim()}`,
+      });
+    }
+    if (applied.query.trim()) {
+      badges.push({
+        key: "query",
+        label: `Recherche : ${applied.query.trim()}`,
+      });
+    }
+    return badges;
+  }, [applied]);
+
+  const filtered = useMemo(
+    () => filterIncidentRows(incidents, kindFilter, applied),
+    [incidents, kindFilter, applied],
+  );
+
+  const handleApplyFilters = () => {
+    setPage(1);
+    apply();
+  };
+
+  const handleResetFilters = () => {
+    setPage(1);
+    reset(DEFAULT_INCIDENT_DETAIL_FILTERS);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -319,11 +388,11 @@ export default function SecurityIncidentsPage() {
               key={key}
               type="button"
               onClick={() => {
-                setFilter(key);
+                setKindFilter(key);
                 setPage(1);
               }}
               className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                filter === key
+                kindFilter === key
                   ? "bg-red-600 text-white"
                   : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
               }`}
@@ -332,6 +401,38 @@ export default function SecurityIncidentsPage() {
             </button>
           ))}
         </div>
+
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          badges={filterBadges}
+        >
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <FilterSelectField
+              label="Gravité"
+              value={draft.severity}
+              onChange={(value) => updateDraft("severity", value)}
+              options={getSecuritySeverityFilterOptions()}
+            />
+            <FacetAutocompleteField
+              label="Source (IP / origine)"
+              value={draft.source}
+              onChange={(value) => updateDraft("source", value)}
+              suggestions={sourceSuggestions}
+              placeholder="Filtrer par source…"
+            />
+            <FacetAutocompleteField
+              label="Recherche titre / description"
+              value={draft.query}
+              onChange={(value) => updateDraft("query", value)}
+              suggestions={facetOptionsFromValues(
+                incidents.flatMap((row) => [row.title, row.subtitle]),
+              )}
+              placeholder="Mot-clé dans l'incident…"
+            />
+          </div>
+        </FilterBar>
 
         {loading ? (
           <TablePanelSkeleton rows={8} columns={6} />

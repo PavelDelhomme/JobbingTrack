@@ -4,8 +4,15 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { Pagination } from "@/components/ui/Pagination";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { facetOptionsFromValues, mergeFacetSuggestions } from "@/lib/filters/facetUtils";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -14,6 +21,7 @@ import { TableSkeleton } from "@/lib/ui";
 import {
   formatSecuritySeverity,
   formatThreatTypeLabel,
+  getThreatSeverityFilterOptions,
   isHighOrCriticalSeverity,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
@@ -41,6 +49,48 @@ interface NetworkThreat {
   metadata?: any;
 }
 
+type ThreatFilters = {
+  severity: string;
+  threatType: string;
+  sourceIp: string;
+  destIp: string;
+  blocked: string;
+  destPort: string;
+  startDate: string;
+  endDate: string;
+};
+
+const DEFAULT_THREAT_FILTERS: ThreatFilters = {
+  severity: "",
+  threatType: "",
+  sourceIp: "",
+  destIp: "",
+  blocked: "",
+  destPort: "",
+  startDate: "",
+  endDate: "",
+};
+
+const BLOCKED_FILTER_OPTIONS = [
+  { value: "true", label: "Bloqué" },
+  { value: "false", label: "Non bloqué" },
+];
+
+function buildInitialThreatFilters(
+  searchParams: URLSearchParams,
+): ThreatFilters {
+  return {
+    severity: searchParams.get("severity") || "",
+    threatType: searchParams.get("threatType") || "",
+    sourceIp: searchParams.get("sourceIp") || "",
+    destIp: searchParams.get("destIp") || "",
+    blocked: searchParams.get("blocked") || "",
+    destPort: searchParams.get("destPort") || "",
+    startDate: searchParams.get("startDate") || "",
+    endDate: searchParams.get("endDate") || "",
+  };
+}
+
 export default function ThreatsPage() {
   useDocumentTitle("Menaces sécurité");
 
@@ -50,30 +100,18 @@ export default function ThreatsPage() {
   const [loading, setLoading] = useState(true);
   const { page, setPage } = useUrlPagination("page", 1);
   const [total, setTotal] = useState(0);
-  const [severityFilter, setSeverityFilter] = useState<string>(
-    () => searchParams.get("severity") || "",
+  const initialThreatFilters = useMemo(
+    () => buildInitialThreatFilters(searchParams),
+    [searchParams],
   );
-  const [typeFilter, setTypeFilter] = useState<string>(
-    () => searchParams.get("threatType") || "",
-  );
-  const [sourceIpFilter, setSourceIpFilter] = useState<string>(
-    () => searchParams.get("sourceIp") || "",
-  );
-  const [destIpFilter, setDestIpFilter] = useState<string>(
-    () => searchParams.get("destIp") || "",
-  );
-  const [blockedFilter, setBlockedFilter] = useState<string>(
-    () => searchParams.get("blocked") || "",
-  );
-  const [destPortFilter, setDestPortFilter] = useState<string>(
-    () => searchParams.get("destPort") || "",
-  );
-  const [startDateFilter, setStartDateFilter] = useState<string>(
-    () => searchParams.get("startDate") || "",
-  );
-  const [endDateFilter, setEndDateFilter] = useState<string>(
-    () => searchParams.get("endDate") || "",
-  );
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<ThreatFilters>(initialThreatFilters);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
@@ -98,14 +136,14 @@ export default function ThreatsPage() {
         setServiceError(null);
 
         const params: any = { page, limit: THREATS_PAGE_SIZE };
-        if (severityFilter) params.severity = severityFilter;
-        if (typeFilter) params.threatType = typeFilter;
-        if (sourceIpFilter) params.sourceIp = sourceIpFilter;
-        if (destIpFilter) params.destIp = destIpFilter;
-        if (blockedFilter) params.blocked = blockedFilter;
-        if (destPortFilter) params.destPort = destPortFilter;
-        if (startDateFilter) params.startDate = startDateFilter;
-        if (endDateFilter) params.endDate = endDateFilter;
+        if (applied.severity) params.severity = applied.severity;
+        if (applied.threatType) params.threatType = applied.threatType;
+        if (applied.sourceIp) params.sourceIp = applied.sourceIp;
+        if (applied.destIp) params.destIp = applied.destIp;
+        if (applied.blocked) params.blocked = applied.blocked;
+        if (applied.destPort) params.destPort = applied.destPort;
+        if (applied.startDate) params.startDate = applied.startDate;
+        if (applied.endDate) params.endDate = applied.endDate;
 
         const token = localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -198,17 +236,7 @@ export default function ThreatsPage() {
         else setLoading(false);
       }
     },
-    [
-      page,
-      severityFilter,
-      typeFilter,
-      sourceIpFilter,
-      destIpFilter,
-      blockedFilter,
-      destPortFilter,
-      startDateFilter,
-      endDateFilter,
-    ],
+    [applied, page],
   );
 
   useEffect(() => {
@@ -272,6 +300,83 @@ export default function ThreatsPage() {
     () => threats.filter((t) => isHighOrCriticalSeverity(t.severity)).length,
     [threats],
   );
+
+  const sourceIpSuggestions = useMemo(
+    () => mergeFacetSuggestions(undefined, threats.map((threat) => threat.sourceIp)),
+    [threats],
+  );
+  const destIpSuggestions = useMemo(
+    () => mergeFacetSuggestions(undefined, threats.map((threat) => threat.destIp)),
+    [threats],
+  );
+  const destPortSuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        threats.map((threat) =>
+          threat.destPort != null ? String(threat.destPort) : undefined,
+        ),
+      ),
+    [threats],
+  );
+  const threatTypeSuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        facetOptionsFromValues(
+          threats.map((threat) => threat.threatType),
+          formatThreatTypeLabel,
+        ),
+        threats.map((threat) => threat.threatType),
+      ),
+    [threats],
+  );
+
+  const activeBadges = [
+    applied.severity
+      ? {
+          key: "severity",
+          label: `sévérité ${formatSecuritySeverity(applied.severity)}`,
+        }
+      : null,
+    applied.threatType
+      ? {
+          key: "threatType",
+          label: `type ${formatThreatTypeLabel(applied.threatType)}`,
+        }
+      : null,
+    applied.blocked
+      ? {
+          key: "blocked",
+          label:
+            applied.blocked === "true" ? "statut bloqué" : "statut non bloqué",
+        }
+      : null,
+    applied.sourceIp
+      ? { key: "sourceIp", label: `IP source ${applied.sourceIp}` }
+      : null,
+    applied.destIp
+      ? { key: "destIp", label: `IP dest ${applied.destIp}` }
+      : null,
+    applied.destPort
+      ? { key: "destPort", label: `port ${applied.destPort}` }
+      : null,
+    applied.startDate
+      ? { key: "startDate", label: `début ${applied.startDate}` }
+      : null,
+    applied.endDate
+      ? { key: "endDate", label: `fin ${applied.endDate}` }
+      : null,
+  ].filter((badge): badge is { key: string; label: string } => Boolean(badge));
+
+  const handleApplyFilters = () => {
+    setPage(1);
+    apply();
+  };
+
+  const handleResetFilters = () => {
+    setPage(1);
+    reset(DEFAULT_THREAT_FILTERS);
+  };
 
   const handleBlockThreat = async (id: string) => {
     if (!confirm("Êtes-vous sûr de vouloir bloquer cette menace ?")) return;
@@ -398,106 +503,63 @@ export default function ThreatsPage() {
           </div>
         </div>
 
-        {/* Filtres */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          badges={activeBadges}
+        >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Sévérité
-              <select
-                value={severityFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setSeverityFilter(e.target.value);
-                }}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="">Toutes</option>
-                <option value="CRITICAL">Critique</option>
-                <option value="HIGH">Haute</option>
-                <option value="MEDIUM">Moyenne</option>
-                <option value="LOW">Faible</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Type
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setTypeFilter(e.target.value);
-                }}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="">Tous</option>
-                <option value="SYN_FLOOD">SYN flood</option>
-                <option value="PORT_SCAN">Balayage de ports</option>
-                <option value="BRUTE_FORCE">Force brute</option>
-                <option value="SQL_INJECTION">Injection SQL</option>
-                <option value="XSS">XSS</option>
-                <option value="WAF_BLOCK">Blocage WAF</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Statut
-              <select
-                value={blockedFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setBlockedFilter(e.target.value);
-                }}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="">Tous</option>
-                <option value="true">Bloqué</option>
-                <option value="false">Non bloqué</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              IP source
-              <input
-                value={sourceIpFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setSourceIpFilter(e.target.value);
-                }}
-                placeholder="IP source (ex: 10.0.0.)"
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              IP destination
-              <input
-                value={destIpFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setDestIpFilter(e.target.value);
-                }}
-                placeholder="IP dest (ex: 172.18.0.)"
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Port destination
-              <input
-                value={destPortFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setDestPortFilter(e.target.value);
-                }}
-                placeholder="Port dest (ex: 443)"
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
-              />
-            </label>
+            <FilterSelectField
+              label="Sévérité"
+              value={draft.severity}
+              onChange={(value) => updateDraft("severity", value)}
+              options={getThreatSeverityFilterOptions()}
+              placeholder="Toutes"
+            />
+            <FacetAutocompleteField
+              label="Type"
+              value={draft.threatType}
+              onChange={(value) => updateDraft("threatType", value)}
+              suggestions={threatTypeSuggestions}
+              placeholder="BRUTE_FORCE, PORT_SCAN..."
+              formatSuggestion={formatThreatTypeLabel}
+            />
+            <FilterSelectField
+              label="Statut"
+              value={draft.blocked}
+              onChange={(value) => updateDraft("blocked", value)}
+              options={BLOCKED_FILTER_OPTIONS}
+              placeholder="Tous"
+            />
+            <FacetAutocompleteField
+              label="IP source"
+              value={draft.sourceIp}
+              onChange={(value) => updateDraft("sourceIp", value)}
+              suggestions={sourceIpSuggestions}
+              placeholder="IP source (ex: 198.51.100.42)"
+            />
+            <FacetAutocompleteField
+              label="IP destination"
+              value={draft.destIp}
+              onChange={(value) => updateDraft("destIp", value)}
+              suggestions={destIpSuggestions}
+              placeholder="IP dest (ex: 172.18.0.10)"
+            />
+            <FacetAutocompleteField
+              label="Port destination"
+              value={draft.destPort}
+              onChange={(value) => updateDraft("destPort", value)}
+              suggestions={destPortSuggestions}
+              placeholder="Port dest (ex: 3017)"
+            />
             <label className="flex flex-col gap-1 text-sm font-medium">
               Début
               <input
                 type="datetime-local"
-                value={startDateFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setStartDateFilter(e.target.value);
-                }}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+                value={draft.startDate}
+                onChange={(e) => updateDraft("startDate", e.target.value)}
+                className="w-full rounded-lg border px-4 py-2 dark:bg-gray-700 dark:text-gray-100"
                 title="Date de début"
               />
             </label>
@@ -505,33 +567,14 @@ export default function ThreatsPage() {
               Fin
               <input
                 type="datetime-local"
-                value={endDateFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setEndDateFilter(e.target.value);
-                }}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
+                value={draft.endDate}
+                onChange={(e) => updateDraft("endDate", e.target.value)}
+                className="w-full rounded-lg border px-4 py-2 dark:bg-gray-700 dark:text-gray-100"
                 title="Date de fin"
               />
             </label>
-            <button
-              onClick={() => {
-                setPage(1);
-                setSeverityFilter("");
-                setTypeFilter("");
-                setSourceIpFilter("");
-                setDestIpFilter("");
-                setBlockedFilter("");
-                setDestPortFilter("");
-                setStartDateFilter("");
-                setEndDateFilter("");
-              }}
-              className="w-full self-end px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500"
-            >
-              Réinitialiser
-            </button>
           </div>
-        </div>
+        </FilterBar>
         {serviceError && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-200 text-sm">

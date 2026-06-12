@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/Pagination";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
+import {
+  EMAIL_STATUS_FILTER_OPTIONS,
+  EMAIL_TYPE_FILTER_OPTIONS,
+} from "@/lib/filters/emailMonitorOptions";
+import type { FilterBadge } from "@/lib/filters/types";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
@@ -19,9 +31,7 @@ import {
   RefreshCw,
   Trash2,
   Eye,
-  Filter,
   Download,
-  Search,
 } from "lucide-react";
 
 type EmailLog = {
@@ -58,31 +68,41 @@ type EmailLog = {
   };
 };
 
+type EmailFilters = {
+  status: string;
+  type: string;
+  query: string;
+};
+
+function buildInitialEmailFilters(searchParams: URLSearchParams): EmailFilters {
+  const type = searchParams.get("type");
+  return {
+    status: "",
+    type: type === "NOTIFICATION" ? "NOTIFICATION" : "",
+    query: "",
+  };
+}
+
 export default function EmailMonitorPage() {
   const searchParams = useSearchParams();
+  const initialFilters = useMemo(
+    () => buildInitialEmailFilters(searchParams),
+    [searchParams],
+  );
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<EmailFilters>(initialFilters);
   const [emails, setEmails] = useState<EmailLog[]>([]);
-  const [filteredEmails, setFilteredEmails] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<
-    "all" | "SENT" | "DELIVERED" | "READ" | "FAILED" | "PENDING" | "BOUNCED"
-  >("all");
-  const [typeFilter, setTypeFilter] = useState<
-    | "all"
-    | "WELCOME"
-    | "VERIFICATION"
-    | "RESET_PASSWORD"
-    | "CONFIRMATION"
-    | "NOTIFICATION"
-    | "TEST"
-  >(() => {
-    const type = searchParams.get("type");
-    return type === "NOTIFICATION" ? "NOTIFICATION" : "all";
-  });
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(50);
-  const [searchTerm, setSearchTerm] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,82 +113,119 @@ export default function EmailMonitorPage() {
   const API_URL = FRONTEND_URLS.api;
   const POLL_INTERVAL_MS = 3000; // 3 s pour un vrai suivi temps réel
 
-  // Charger les emails depuis l'API
-  const loadEmails = async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    setLoadError(null);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoadError("Connectez-vous pour voir les logs d'emails.");
-        setEmails([]);
-        setIsLoading(false);
-        return;
-      }
+  const querySuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        emails.flatMap((email) => [email.to, email.from, email.subject]),
+        60,
+      ),
+    [emails],
+  );
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-      });
-
-      if (filter !== "all") {
-        params.append("status", filter);
-      }
-      if (typeFilter !== "all") {
-        params.append("type", typeFilter);
-      }
-      if (searchTerm.trim()) {
-        params.append("q", searchTerm.trim());
-      }
-
-      const response = await fetch(`${API_URL}/api/v1/emails/logs?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status === 401) {
-        setLoadError("Session expirée ou non autorisée. Reconnectez-vous.");
-        setEmails([]);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        setLoadError(
-          `API ${response.status}: ${response.statusText}. Vérifiez que la gateway (${API_URL}) et auth-service sont démarrés.`,
-        );
-        setEmails([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setEmails(data.data || []);
-        setTotal(data.pagination?.total || 0);
-        setLastRefreshAt(new Date());
-      } else {
-        setLoadError(data.error || "Erreur chargement");
-        setEmails([]);
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      setLoadError(`Impossible de joindre l'API (${API_URL}). ${msg}`);
-      setEmails([]);
-    } finally {
-      if (!silent) setIsLoading(false);
+  const filterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (applied.status) {
+      const label =
+        EMAIL_STATUS_FILTER_OPTIONS.find((o) => o.value === applied.status)
+          ?.label || applied.status;
+      badges.push({ key: "status", label: `Statut : ${label}` });
     }
-  };
+    if (applied.type) {
+      const label =
+        EMAIL_TYPE_FILTER_OPTIONS.find((o) => o.value === applied.type)
+          ?.label || applied.type;
+      badges.push({ key: "type", label: `Type : ${label}` });
+    }
+    if (applied.query.trim()) {
+      badges.push({
+        key: "query",
+        label: `Recherche : ${applied.query.trim()}`,
+      });
+    }
+    return badges;
+  }, [applied]);
+
+  const loadEmails = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
+      setLoadError(null);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setLoadError("Connectez-vous pour voir les logs d'emails.");
+          setEmails([]);
+          if (!silent) setIsLoading(false);
+          return;
+        }
+
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+
+        if (applied.status) {
+          params.append("status", applied.status);
+        }
+        if (applied.type) {
+          params.append("type", applied.type);
+        }
+        if (applied.query.trim()) {
+          params.append("q", applied.query.trim());
+        }
+
+        const response = await fetch(
+          `${API_URL}/api/v1/emails/logs?${params}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (response.status === 401) {
+          setLoadError("Session expirée ou non autorisée. Reconnectez-vous.");
+          setEmails([]);
+          if (!silent) setIsLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          setLoadError(
+            `API ${response.status}: ${response.statusText}. Vérifiez que la gateway (${API_URL}) et auth-service sont démarrés.`,
+          );
+          setEmails([]);
+          if (!silent) setIsLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setEmails(data.data || []);
+          setTotal(data.pagination?.total || 0);
+          setLastRefreshAt(new Date());
+        } else {
+          setLoadError(data.error || "Erreur chargement");
+          setEmails([]);
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setLoadError(`Impossible de joindre l'API (${API_URL}). ${msg}`);
+        setEmails([]);
+      } finally {
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [API_URL, applied.query, applied.status, applied.type, limit, page],
+  );
 
   loadEmailsRef.current = loadEmails;
 
-  // Chargement initial et quand on change page/filtres
   useEffect(() => {
-    loadEmails();
-  }, [page, filter, typeFilter, searchTerm]);
+    void loadEmails();
+  }, [loadEmails]);
 
   // Rafraîchir dès que l'onglet redevient visible (pour voir les mails envoyés pendant qu'on était ailleurs)
   useEffect(() => {
@@ -193,23 +250,18 @@ export default function EmailMonitorPage() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  // Filtrer les emails (côté client)
-  useEffect(() => {
-    let filtered = emails;
+  const handleApplyFilters = () => {
+    setPage(1);
+    apply();
+  };
 
-    if (filter !== "all") {
-      filtered = filtered.filter((email) => email.status === filter);
-    }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((email) => email.type === typeFilter);
-    }
-
-    setFilteredEmails(filtered);
-  }, [emails, filter, typeFilter]);
+  const handleResetFilters = () => {
+    setPage(1);
+    reset(initialFilters);
+  };
 
   const refreshEmails = () => {
-    loadEmails();
+    void loadEmails();
   };
 
   const clearLogs = async () => {
@@ -230,8 +282,7 @@ export default function EmailMonitorPage() {
 
         if (response.ok) {
           setEmails([]);
-          setFilteredEmails([]);
-          loadEmails(); // Recharger pour mettre à jour les stats
+          void loadEmails();
         } else {
           alert("Erreur lors de la suppression des logs");
         }
@@ -350,14 +401,6 @@ export default function EmailMonitorPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const startIndex = total === 0 ? 0 : (page - 1) * limit + 1;
   const endIndex = Math.min(page * limit, total);
-  const changeStatusFilter = (nextFilter: typeof filter) => {
-    setPage(1);
-    setFilter(nextFilter);
-  };
-  const changeTypeFilter = (nextFilter: typeof typeFilter) => {
-    setPage(1);
-    setTypeFilter(nextFilter);
-  };
 
   return (
     <AdminLayout>
@@ -490,125 +533,41 @@ export default function EmailMonitorPage() {
           </Card>
         </div>
 
-        {/* Filtres */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filtres
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              {/* Recherche */}
-              <div className="min-w-0">
-                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
-                  Recherche
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(event) => {
-                      setPage(1);
-                      setSearchTerm(event.target.value);
-                    }}
-                    placeholder="Destinataire, expéditeur ou sujet..."
-                    className="w-full min-w-0 rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                  />
-                </div>
-                {searchTerm.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPage(1);
-                      setSearchTerm("");
-                    }}
-                    className="mt-2 inline-flex max-w-full items-center rounded-full bg-blue-100 px-2.5 py-1 text-left text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200"
-                  >
-                    <span className="min-w-0 truncate">
-                      Recherche : {searchTerm.trim()} ×
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* Filtre Statut */}
-              <div className="min-w-0">
-                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
-                  Statut
-                </label>
-                <div className="flex min-w-0 flex-wrap gap-2">
-                  {[
-                    "all",
-                    "SENT",
-                    "DELIVERED",
-                    "READ",
-                    "FAILED",
-                    "PENDING",
-                    "BOUNCED",
-                  ].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => changeStatusFilter(f as any)}
-                      className={`
-                        rounded px-3 py-1 text-sm font-medium transition-colors
-                        ${
-                          filter === f
-                            ? "bg-blue-500 text-white dark:bg-blue-600 dark:text-white"
-                            : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                        }
-                      `}
-                    >
-                      {f === "all" ? "Tous" : getStatusLabel(f)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filtre Type */}
-              <div className="min-w-0">
-                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">
-                  Type d&apos;email
-                </label>
-                <div className="flex min-w-0 flex-wrap gap-2">
-                  {[
-                    "all",
-                    "WELCOME",
-                    "VERIFICATION",
-                    "RESET_PASSWORD",
-                    "CONFIRMATION",
-                    "NOTIFICATION",
-                    "TEST",
-                  ].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => changeTypeFilter(t as any)}
-                      className={`
-                        px-3 py-1 rounded text-sm font-medium transition-colors
-                        ${
-                          typeFilter === t
-                            ? "bg-purple-500 text-white dark:bg-purple-600 dark:text-white"
-                            : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                        }
-                      `}
-                    >
-                      {t === "all" ? "Tous" : getTypeLabel(t)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          badges={filterBadges}
+        >
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <FacetAutocompleteField
+              label="Recherche"
+              value={draft.query}
+              onChange={(value) => updateDraft("query", value)}
+              suggestions={querySuggestions}
+              placeholder="Destinataire, expéditeur ou sujet…"
+            />
+            <FilterSelectField
+              label="Statut"
+              value={draft.status}
+              onChange={(value) => updateDraft("status", value)}
+              options={[...EMAIL_STATUS_FILTER_OPTIONS]}
+            />
+            <FilterSelectField
+              label="Type d'email"
+              value={draft.type}
+              onChange={(value) => updateDraft("type", value)}
+              options={[...EMAIL_TYPE_FILTER_OPTIONS]}
+            />
+          </div>
+        </FilterBar>
 
         {/* Liste des Emails */}
         <Card>
           <CardHeader>
             <CardTitle className="flex min-w-0 flex-wrap items-center justify-between gap-2">
               <span className="min-w-0 break-words">
-                Emails Envoyés ({filteredEmails.length} / {total})
+                Emails Envoyés ({emails.length} / {total})
               </span>
               {isLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
             </CardTitle>
@@ -620,7 +579,7 @@ export default function EmailMonitorPage() {
                   <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
                   <p>Chargement des emails...</p>
                 </div>
-              ) : filteredEmails.length === 0 ? (
+              ) : emails.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Mail className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>Aucun email trouvé</p>
@@ -644,7 +603,7 @@ export default function EmailMonitorPage() {
                   )}
                 </div>
               ) : (
-                filteredEmails.map((email) => (
+                emails.map((email) => (
                   <div
                     key={email.id}
                     className="min-w-0 rounded-lg border-2 border-gray-200 bg-white p-3 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 sm:p-4"

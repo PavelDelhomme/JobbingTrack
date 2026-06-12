@@ -4,21 +4,45 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import { Pagination } from "@/components/ui/Pagination";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
-import { formatLocalDateTime } from "@/lib/utils/date";
 import {
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
+  getSecuritySeverityFilterOptions,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
+import {
+  fetchSecurityLogFacets,
+  type SecurityLogFacets,
+} from "@/lib/security/securityLogFacets";
+import { formatLocalDateTime } from "@/lib/utils/date";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 
 const API_URL = FRONTEND_URLS.api;
 const PAGE_SIZE = 50;
+
+const WINDOW_OPTIONS = [
+  { value: "1", label: "24 h" },
+  { value: "7", label: "7 jours" },
+  { value: "14", label: "14 jours" },
+  { value: "30", label: "30 jours" },
+];
+
+const ORDER_OPTIONS = [
+  { value: "desc", label: "Plus récent d’abord" },
+  { value: "asc", label: "Plus ancien d’abord" },
+];
 
 type SecurityLogRow = {
   id: string;
@@ -37,19 +61,13 @@ type SecurityLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-type SecurityLogFacetOption = {
-  value: string;
-  count?: number;
-};
-
-type SecurityLogFacets = {
-  sampleSize?: number;
-  categories?: SecurityLogFacetOption[];
-  eventTypes?: SecurityLogFacetOption[];
-  sourceIPs?: SecurityLogFacetOption[];
-  endpoints?: SecurityLogFacetOption[];
-  methods?: SecurityLogFacetOption[];
-  messages?: SecurityLogFacetOption[];
+type SecurityLogFilters = {
+  level: string;
+  category: string;
+  eventType: string;
+  query: string;
+  order: "asc" | "desc";
+  days: number;
 };
 
 function levelBadgeClass(level?: string): string {
@@ -70,16 +88,15 @@ function readMetadataThreatId(
   return id ? String(id) : null;
 }
 
-function uniqueSortedValues(values: Array<string | undefined>): string[] {
-  return Array.from(
-    new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
-  ).sort((a, b) => a.localeCompare(b, "fr"));
-}
-
-function facetValues(options?: SecurityLogFacetOption[]): string[] {
-  return (options || [])
-    .map((option) => option.value?.trim())
-    .filter((value): value is string => Boolean(value));
+function buildInitialFilters(searchParams: URLSearchParams): SecurityLogFilters {
+  return {
+    level: searchParams.get("level") || "",
+    category: searchParams.get("category") || "",
+    eventType: searchParams.get("eventType") || "",
+    query: searchParams.get("q") || "",
+    order: searchParams.get("order") === "asc" ? "asc" : "desc",
+    days: 14,
+  };
 }
 
 export default function SecurityLogsPage() {
@@ -87,24 +104,21 @@ export default function SecurityLogsPage() {
 
   const searchParams = useSearchParams();
   const { page, setPage } = useUrlPagination("page", 1);
-  const initialLevel = searchParams.get("level") || "";
-  const initialCategory = searchParams.get("category") || "";
-  const initialEventType = searchParams.get("eventType") || "";
-  const initialQuery = searchParams.get("q") || "";
-  const initialOrder = searchParams.get("order") === "asc" ? "asc" : "desc";
+  const initialFilters = useMemo(
+    () => buildInitialFilters(searchParams),
+    [searchParams],
+  );
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+    setApplied,
+    setDraft,
+  } = useAppliedFilters<SecurityLogFilters>(initialFilters);
 
-  const [level, setLevel] = useState(initialLevel);
-  const [category, setCategory] = useState(initialCategory);
-  const [eventType, setEventType] = useState(initialEventType);
-  const [query, setQuery] = useState(initialQuery);
-  const [order, setOrder] = useState<"asc" | "desc">(initialOrder);
-  const [draftLevel, setDraftLevel] = useState(initialLevel);
-  const [draftCategory, setDraftCategory] = useState(initialCategory);
-  const [draftEventType, setDraftEventType] = useState(initialEventType);
-  const [draftQuery, setDraftQuery] = useState(initialQuery);
-  const [draftOrder, setDraftOrder] = useState<"asc" | "desc">(initialOrder);
-  const [days, setDays] = useState(14);
-  const [draftDays, setDraftDays] = useState(14);
   const [logs, setLogs] = useState<SecurityLogRow[]>([]);
   const [facets, setFacets] = useState<SecurityLogFacets>({});
   const [total, setTotal] = useState<number | null>(null);
@@ -121,13 +135,15 @@ export default function SecurityLogsPage() {
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE),
       offset: String((page - 1) * PAGE_SIZE),
-      startDate: new Date(Date.now() - days * 86400000).toISOString(),
+      startDate: new Date(
+        Date.now() - applied.days * 86400000,
+      ).toISOString(),
     });
-    if (level) params.set("level", level);
-    if (category) params.set("category", category);
-    if (eventType) params.set("eventType", eventType);
-    if (query.trim()) params.set("q", query.trim());
-    params.set("order", order);
+    if (applied.level) params.set("level", applied.level);
+    if (applied.category) params.set("category", applied.category);
+    if (applied.eventType) params.set("eventType", applied.eventType);
+    if (applied.query.trim()) params.set("q", applied.query.trim());
+    params.set("order", applied.order);
 
     try {
       const token = localStorage.getItem("token");
@@ -163,38 +179,19 @@ export default function SecurityLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, days, eventType, level, order, page, query]);
+  }, [applied, page]);
 
   const loadFacets = useCallback(async () => {
     setFacetsLoading(true);
-
-    const params = new URLSearchParams({
-      sampleLimit: "2000",
-      startDate: new Date(Date.now() - draftDays * 86400000).toISOString(),
-    });
-
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_URL}/api/v1/security/logs/facets?${params}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        },
-      );
-      const json = await res.json().catch(() => null);
-      if (!res.ok || json?.success === false) {
-        throw new Error(
-          json?.error ||
-            `Suggestions logs sécurité indisponibles (HTTP ${res.status})`,
-        );
-      }
-      setFacets(json?.data || {});
+      const data = await fetchSecurityLogFacets({ days: draft.days });
+      setFacets(data);
     } catch {
       setFacets({});
     } finally {
       setFacetsLoading(false);
     }
-  }, [draftDays]);
+  }, [draft.days]);
 
   useEffect(() => {
     void loadLogs();
@@ -213,86 +210,88 @@ export default function SecurityLogsPage() {
   const canGoNext = total ? page < totalPages : logs.length === PAGE_SIZE;
   const startIndex = logs.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const endIndex = (page - 1) * PAGE_SIZE + logs.length;
+
   const categorySuggestions = useMemo(
     () =>
-      uniqueSortedValues([
-        ...facetValues(facets.categories),
-        ...logs.map((log) => log.category),
-      ]),
+      mergeFacetSuggestions(
+        facets.categories,
+        logs.map((log) => log.category),
+      ),
     [facets.categories, logs],
   );
   const eventTypeSuggestions = useMemo(
     () =>
-      uniqueSortedValues([
-        ...facetValues(facets.eventTypes),
-        ...logs.map((log) => log.eventType),
-      ]),
+      mergeFacetSuggestions(
+        facets.eventTypes,
+        logs.map((log) => log.eventType),
+      ),
     [facets.eventTypes, logs],
   );
   const searchSuggestions = useMemo(
     () =>
-      uniqueSortedValues(
+      mergeFacetSuggestions(
         [
-          ...facetValues(facets.sourceIPs),
-          ...facetValues(facets.endpoints),
-          ...facetValues(facets.messages),
-          ...logs.flatMap((log) => [
-            log.sourceIP,
-            log.endpoint,
-            log.message,
-            log.method
-              ? `${log.method} ${log.endpoint || ""}`.trim()
-              : undefined,
-          ]),
+          ...(facets.sourceIPs || []),
+          ...(facets.endpoints || []),
+          ...(facets.messages || []),
         ],
-      ).slice(0, 80),
+        logs.flatMap((log) => [
+          log.sourceIP,
+          log.endpoint,
+          log.message,
+          log.method ? `${log.method} ${log.endpoint || ""}`.trim() : undefined,
+        ]),
+      ),
     [facets.endpoints, facets.messages, facets.sourceIPs, logs],
   );
-  const hasDraftChanges =
-    draftLevel !== level ||
-    draftCategory !== category ||
-    draftEventType !== eventType ||
-    draftQuery !== query ||
-    draftOrder !== order ||
-    draftDays !== days;
-  const activeFilterLabels = [
-    level ? `niveau ${formatSecuritySeverity(level)}` : null,
-    category ? `catégorie ${category}` : null,
-    eventType ? `type ${formatSecurityEventTypeLabel(eventType)}` : null,
-    query.trim() ? `recherche "${query.trim()}"` : null,
-    `${days} jour${days > 1 ? "s" : ""}`,
-  ].filter((label): label is string => Boolean(label));
+
+  const activeBadges = [
+    applied.level
+      ? {
+          key: "level",
+          label: `niveau ${formatSecuritySeverity(applied.level)}`,
+        }
+      : null,
+    applied.category
+      ? { key: "category", label: `catégorie ${applied.category}` }
+      : null,
+    applied.eventType
+      ? {
+          key: "eventType",
+          label: `type ${formatSecurityEventTypeLabel(applied.eventType)}`,
+        }
+      : null,
+    applied.query.trim()
+      ? { key: "query", label: `recherche "${applied.query.trim()}"` }
+      : null,
+    {
+      key: "days",
+      label: `${applied.days} jour${applied.days > 1 ? "s" : ""}`,
+    },
+  ].filter((badge): badge is { key: string; label: string } => Boolean(badge));
 
   const toggleSortOrder = () => {
+    const nextOrder = applied.order === "desc" ? "asc" : "desc";
     setPage(1);
-    setOrder((current) => (current === "desc" ? "asc" : "desc"));
-    setDraftOrder((current) => (current === "desc" ? "asc" : "desc"));
+    setApplied({ ...applied, order: nextOrder });
+    setDraft({ ...draft, order: nextOrder });
   };
 
-  const applyFilters = () => {
+  const handleApply = () => {
     setPage(1);
-    setLevel(draftLevel);
-    setCategory(draftCategory.trim());
-    setEventType(draftEventType.trim());
-    setQuery(draftQuery.trim());
-    setOrder(draftOrder);
-    setDays(draftDays);
+    apply();
   };
 
-  const resetFilters = () => {
+  const handleReset = () => {
     setPage(1);
-    setDraftLevel("");
-    setDraftCategory("");
-    setDraftEventType("");
-    setDraftQuery("");
-    setDraftOrder("desc");
-    setDraftDays(14);
-    setLevel("");
-    setCategory("");
-    setEventType("");
-    setQuery("");
-    setOrder("desc");
-    setDays(14);
+    reset({
+      level: "",
+      category: "",
+      eventType: "",
+      query: "",
+      order: "desc",
+      days: 14,
+    });
   };
 
   return (
@@ -310,7 +309,7 @@ export default function SecurityLogsPage() {
               Événements sécurité persistés par le security-service. Les liens
               depuis Incidents peuvent surligner un log précis via{" "}
               <code className="text-xs">highlight</code>. Tri actuel :{" "}
-              {order === "desc"
+              {applied.order === "desc"
                 ? "plus récent d’abord"
                 : "plus ancien d’abord"}
               .
@@ -327,139 +326,67 @@ export default function SecurityLogsPage() {
           </button>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          facetsLoading={facetsLoading}
+          onApply={handleApply}
+          onReset={handleReset}
+          sortBadge={`Tri Date : ${
+            applied.order === "desc" ? "plus récent d’abord" : "plus ancien d’abord"
+          }`}
+          badges={activeBadges}
+        >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Niveau
-              <select
-                value={draftLevel}
-                onChange={(e) => setDraftLevel(e.target.value)}
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="">Tous</option>
-                <option value="critical">Critique</option>
-                <option value="error">Erreur</option>
-                <option value="warning">Avertissement</option>
-                <option value="info">Info</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Catégorie
-              <input
-                list="security-log-category-options"
-                value={draftCategory}
-                onChange={(e) => setDraftCategory(e.target.value)}
-                placeholder="auth, firewall, intrusion..."
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              />
-              <datalist id="security-log-category-options">
-                {categorySuggestions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Type d’événement
-              <input
-                list="security-log-event-type-options"
-                value={draftEventType}
-                onChange={(e) => setDraftEventType(e.target.value)}
-                placeholder="network_threat_detected"
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              />
-              <datalist id="security-log-event-type-options">
-                {eventTypeSuggestions.map((option) => (
-                  <option
-                    key={option}
-                    value={option}
-                    label={formatSecurityEventTypeLabel(option)}
-                  />
-                ))}
-              </datalist>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Tri
-              <select
-                value={draftOrder}
-                onChange={(e) =>
-                  setDraftOrder(e.target.value === "asc" ? "asc" : "desc")
-                }
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="desc">Plus récent d’abord</option>
-                <option value="asc">Plus ancien d’abord</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Fenêtre
-              <select
-                value={String(draftDays)}
-                onChange={(e) => setDraftDays(Number(e.target.value))}
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              >
-                <option value="1">24 h</option>
-                <option value="7">7 jours</option>
-                <option value="14">14 jours</option>
-                <option value="30">30 jours</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Recherche
-              <input
-                list="security-log-search-options"
-                value={draftQuery}
-                onChange={(e) => setDraftQuery(e.target.value)}
-                placeholder="IP, endpoint, message..."
-                className="rounded-lg border px-3 py-2 dark:bg-gray-700 dark:text-gray-100"
-              />
-              <datalist id="security-log-search-options">
-                {searchSuggestions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </label>
+            <FilterSelectField
+              label="Niveau"
+              value={draft.level}
+              onChange={(value) => updateDraft("level", value)}
+              options={getSecuritySeverityFilterOptions()}
+              placeholder="Tous"
+            />
+            <FacetAutocompleteField
+              label="Catégorie"
+              value={draft.category}
+              onChange={(value) => updateDraft("category", value)}
+              suggestions={categorySuggestions}
+              loading={facetsLoading}
+              placeholder="auth, firewall, intrusion..."
+            />
+            <FacetAutocompleteField
+              label="Type d’événement"
+              value={draft.eventType}
+              onChange={(value) => updateDraft("eventType", value)}
+              suggestions={eventTypeSuggestions}
+              loading={facetsLoading}
+              placeholder="network_threat_detected"
+              formatSuggestion={formatSecurityEventTypeLabel}
+            />
+            <FilterSelectField
+              label="Tri"
+              value={draft.order}
+              onChange={(value) =>
+                updateDraft("order", value === "asc" ? "asc" : "desc")
+              }
+              options={ORDER_OPTIONS}
+              allowEmpty={false}
+            />
+            <FilterSelectField
+              label="Fenêtre"
+              value={String(draft.days)}
+              onChange={(value) => updateDraft("days", Number(value))}
+              options={WINDOW_OPTIONS}
+              allowEmpty={false}
+            />
+            <FacetAutocompleteField
+              label="Recherche"
+              value={draft.query}
+              onChange={(value) => updateDraft("query", value)}
+              suggestions={searchSuggestions}
+              loading={facetsLoading}
+              placeholder="IP, endpoint, message..."
+            />
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Appliquer les filtres
-            </button>
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
-            >
-              Réinitialiser
-            </button>
-            {hasDraftChanges && (
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                Filtres modifiés, pas encore appliqués
-              </span>
-            )}
-            {facetsLoading && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Chargement des suggestions…
-              </span>
-            )}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-            <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">
-              Tri Date :{" "}
-              {order === "desc" ? "plus récent d’abord" : "plus ancien d’abord"}
-            </span>
-            {activeFilterLabels.map((label) => (
-              <span
-                key={label}
-                className="rounded-full bg-gray-100 px-2 py-1 dark:bg-gray-700"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
+        </FilterBar>
 
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
@@ -495,10 +422,10 @@ export default function SecurityLogsPage() {
                       >
                         Date
                         <span aria-hidden="true">
-                          {order === "desc" ? "↓" : "↑"}
+                          {applied.order === "desc" ? "↓" : "↑"}
                         </span>
                         <span className="sr-only">
-                          {order === "desc"
+                          {applied.order === "desc"
                             ? "plus récent d’abord"
                             : "plus ancien d’abord"}
                         </span>
