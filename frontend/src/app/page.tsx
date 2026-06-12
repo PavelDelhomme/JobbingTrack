@@ -1,13 +1,12 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/auth";
-import { useTheme } from "@/lib/hooks/theme";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
-  const { actualTheme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -34,9 +33,10 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          JobbingTrack
-        </h1>
+        <JobbingTrackLogo
+          className="mb-4 justify-center text-4xl font-bold text-gray-900 dark:text-white"
+          imgClassName="h-14 w-14"
+        />
         <p className="text-gray-600 dark:text-gray-400">
           Redirection en cours...
         </p>

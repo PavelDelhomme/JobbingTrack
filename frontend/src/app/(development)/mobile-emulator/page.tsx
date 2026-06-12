@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
 
 // Styles CSS personnalisés pour l'émulateur mobile
 const mobileEmulatorStyles = `
@@ -2237,7 +2238,11 @@ function MobileApp({
         onMouseUp={handleTouchEnd}
         onMouseLeave={handleTouchEnd}
       >
-        <div className="text-6xl mb-4 animate-bounce">🎯</div>
+        <JobbingTrackLogo
+          showText={false}
+          className="mb-4 animate-bounce"
+          imgClassName="h-20 w-20"
+        />
         <h1 className="text-3xl font-bold mb-2">JobbingTrack</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
           Suivez vos candidatures facilement
