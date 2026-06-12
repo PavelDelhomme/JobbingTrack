@@ -46,16 +46,20 @@ run_step "layout_theme_init_script" "${OUT_DIR}/layout-theme-init-script.txt" \
 import sys
 from pathlib import Path
 
-layout = (Path(sys.argv[1]) / "frontend/src/app/layout.tsx").read_text()
+root = Path(sys.argv[1])
+layout = (root / "frontend/src/app/layout.tsx").read_text()
+theme_init = (root / "frontend/public/theme-init.js").read_text()
+if 'src="/theme-init.js"' not in layout or "beforeInteractive" not in layout:
+    raise SystemExit("layout.tsx doit référencer /theme-init.js avec strategy beforeInteractive")
 checks = [
-    "localStorage.getItem('theme')",
-    "d.classList.add('dark')",
-    "d.classList.remove('dark')",
+    'localStorage.getItem("theme")',
+    'd.classList.add("dark")',
+    'd.classList.remove("dark")',
 ]
-missing = [item for item in checks if item not in layout]
+missing = [item for item in checks if item not in theme_init]
 if missing:
-    raise SystemExit(f"Script init thème incomplet: {', '.join(missing)}")
-print("layout themeInitScript OK:", ", ".join(checks))
+    raise SystemExit(f"theme-init.js incomplet: {', '.join(missing)}")
+print("layout theme-init.js OK:", ", ".join(checks))
 PY
 
 run_step "backoffice_pages_smoke" "${OUT_DIR}/backoffice-pages-smoke.txt" \
@@ -68,7 +72,7 @@ for url in [
 ]:
     with urllib.request.urlopen(url, timeout=20) as response:
         body = response.read(8000).decode("utf-8", errors="ignore")
-        if "localStorage.getItem('theme')" not in body:
+        if 'src="/theme-init.js"' not in body and "theme-init.js" not in body:
             raise RuntimeError(f"Script init thème absent dans {url}")
         print(url, response.status, "theme-init-script=present")
 PY
