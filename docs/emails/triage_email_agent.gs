@@ -1,7 +1,7 @@
 /**
  * AGENT DE TRIAGE EMAIL — RECHERCHE D'EMPLOI
  * Paul Delhomme — pauldelhomme.pro@gmail.com
- * Version 3.1 — Correctifs + integration API JobBingTrack (creation auto, validation par lien)
+ * Version 3.2 — Corrections categorisation + regles calendrier strictes
  *
  * INSTALLATION :
  * 1. script.google.com → Ouvrir le projet existant → remplacer tout le contenu de Code.gs
@@ -9,14 +9,16 @@
  * 3. Executer : installerDeclencheur (accepter toutes les permissions)
  * 4. Tester : executer lancerTriageQuotidien
  *
- * CORRECTIFS v3.1 :
- * - Fix categorisation INFO : l'analyse est passee correctement a carteEmail
- * - Fix action vide : affichage de l'action issue de l'analyse
- * - Fix boucle : exclusion de l'adresse email de l'expediteur propre (pauldelhomme.pro@gmail.com)
- * - Fix emojis taches en retard : les vieilles taches conservent leur nom, les nouvelles sont propres
- * - NOUVEAU : le script cree lui-meme les candidatures dans JobBingTrack
- * - NOUVEAU : lien direct vers la candidature creee pour validation en un clic
+ * CORRECTIFS v3.2 :
+ * - FASTT newsletter (événement bien-être) → classé [EVENEMENT] et jamais candidature
+ * - Jobalert/Hellowork/Meteojob → JAMAIS entretien, toujours [OFFRE]
+ * - CVdesignr et hors-sujet → exclus
+ * - Talents-handicap et salons emploi → [EVENEMENT] et non [ENTRETIEN]
+ * - Calendrier : evenements crees UNIQUEMENT pour entretiens et salons/job datings reels
+ *   (jamais pour offres, alertes job boards, newsletters)
+ * - Detection entretien renforcee : le mot doit venir d'un RH/recruteur direct, pas d'un job board
  */
+
 
 // ============================================================
 // CONFIGURATION — modifier ici si besoin
@@ -41,19 +43,48 @@ var CONFIG = {
     "indeed apply", "jobalert", "recruteur", "recrute", "recrutement"
   ],
 
-  // Expediteurs toujours exclus (newsletters pures)
+  // Expediteurs toujours exclus (hors sujet ou newsletters pures)
   expediteursExclus: [
     "newsletter@", "marketing@", "promo@",
-    "no-reply@poleemploi"
+    "no-reply@poleemploi",
+    "cvdesignr",
+    "noreply@cvdesignr"
   ],
 
-  // Expediteurs Indeed/job boards : traites comme [OFFRE] sauf si c'est "Indeed Apply" (= candidature)
+  // Expediteurs newsletter emploi (evenement/info, jamais candidature ni entretien)
+  expediteursNewsletter: [
+    "communication@email.fastt.org",
+    "communication@fastt",
+    "info@fastt",
+    "contact@talentshandicap",
+    "talents-handicap",
+    "talentshandicap"
+  ],
+
+  // Mots-cles dans le SUJET qui indiquent un salon/evenement emploi (=> [EVENEMENT])
+  sujetsSalonEmploi: [
+    "job dating", "jobdating", "salon", "forum emploi", "rencontre recruteur",
+    "webinaire", "webinar", "live sante", "live ", "inscris", "inscription",
+    "participez", "rejoignez", "seminaire", "pas encore inscrit"
+  ],
+
+  // Domaines job boards : ces expediteurs ne peuvent JAMAIS generer [ENTRETIEN] ni evenement calendrier
+  domainesJobBoards: [
+    "jobalert.indeed.com", "match.indeed.com", "meteojob.com",
+    "emails.hellowork.com", "hellowork.com", "monster.fr",
+    "apec.fr", "jobteaser.com", "welcome-to-the-jungle"
+  ],
+
+  // Expediteurs job boards (alertes offres => toujours [OFFRE], jamais entretien ni evenement calendrier)
   expediteursJobBoards: [
     "donotreply@jobalert.indeed.com",
     "donotreply@match.indeed.com",
     "ne-pas-repondre@meteojob.com",
     "alerte@emails.hellowork.com",
-    "notification@emails.hellowork.com"
+    "notification@emails.hellowork.com",
+    "alerte@meteojob.com",
+    "noreply@monster.fr",
+    "noreply@apec.fr"
   ],
 
   // Expediteurs qui indiquent une candidature soumise
@@ -62,11 +93,13 @@ var CONFIG = {
     "noreply@indeed.com"
   ],
 
+  // Expediteurs prioritaires (contact direct RH/recruteur) — NE PAS inclure les job boards ni FASTT newsletter
   expediteursPrioritaires: [
     "supdevinci", "sup-de-vinci", "charlene.vignon",
     "france-travail", "francetravail",
-    "axia-interim", "manpower", "adecco", "fastt",
-    "helpline", "interaction", "seard", "wink-lab"
+    "axia-interim", "manpower", "adecco",
+    "helpline", "interaction", "seard", "wink-lab",
+    "smartrecruiters", "workday", "greenhouse", "lever.co"
   ]
 };
 
@@ -118,8 +151,10 @@ function lancerTriageQuotidien() {
     var tache = creerTacheGoogleTasks(analyse);
     if (tache) tachesCreees.push({ title: tache.title, analyse: analyse });
 
-    // Creer evenement calendrier si entretien ou evenement emploi
-    if (analyse.type === "entretien" || analyse.type === "evenement") {
+    // Creer evenement calendrier UNIQUEMENT pour entretien confirme ou evenement emploi reel
+    // JAMAIS pour offres, alertes job boards, newsletters
+    if ((analyse.type === "entretien" || analyse.type === "evenement") &&
+        !estJobBoard(analyse.expediteurLow || analyse.expediteur.toLowerCase())) {
       creerEvenementCalendrier(analyse);
     }
 
@@ -227,17 +262,51 @@ function lireEmailsEmploi() {
 }
 
 // ============================================================
+// HELPERS — detecter le type d'expediteur
+// ============================================================
+function estJobBoard(expediteurLow) {
+  for (var i = 0; i < CONFIG.expediteursJobBoards.length; i++) {
+    if (expediteurLow.indexOf(CONFIG.expediteursJobBoards[i]) >= 0) return true;
+  }
+  for (var j = 0; j < CONFIG.domainesJobBoards.length; j++) {
+    if (expediteurLow.indexOf(CONFIG.domainesJobBoards[j]) >= 0) return true;
+  }
+  // Detection generique des domaines alertes
+  if (expediteurLow.indexOf("jobalert") >= 0) return true;
+  if (expediteurLow.indexOf("alerte@") >= 0) return true;
+  if (expediteurLow.indexOf("alert@") >= 0) return true;
+  return false;
+}
+
+function estNewsletterEmploi(expediteurLow) {
+  for (var i = 0; i < CONFIG.expediteursNewsletter.length; i++) {
+    if (expediteurLow.indexOf(CONFIG.expediteursNewsletter[i]) >= 0) return true;
+  }
+  return false;
+}
+
+function estSalonOuEvenementEmploi(sujet, corps) {
+  var texte = (sujet + " " + corps).toLowerCase();
+  for (var i = 0; i < CONFIG.sujetsSalonEmploi.length; i++) {
+    if (texte.indexOf(CONFIG.sujetsSalonEmploi[i]) >= 0) return true;
+  }
+  return false;
+}
+
+// ============================================================
 // ANALYSE D'UN EMAIL — retourne objet analyse ou null
 // ============================================================
 function analyserEmail(email) {
-  var texte = (email.sujet + " " + email.corps).toLowerCase();
+  var sujetLow = (email.sujet || "").toLowerCase();
+  var corpsLow = email.corps || "";
+  var texte = sujetLow + " " + corpsLow;
   var expediteurLow = email.expediteurLow || email.expediteur.toLowerCase();
   var type = null;
   var action = null;
   var urgence = false;
   var entreprise = extraireEntreprise(email);
 
-  // --- Cas Indeed Apply : candidature soumise ---
+  // === PRIORITE 1 : Indeed Apply = candidature soumise (confirmation de postulation) ===
   var estCandidatureIndeed = false;
   for (var ic = 0; ic < CONFIG.expediteursCandidature.length; ic++) {
     if (expediteurLow.indexOf(CONFIG.expediteursCandidature[ic]) >= 0) {
@@ -246,28 +315,74 @@ function analyserEmail(email) {
     }
   }
   if (estCandidatureIndeed) {
-    type = "candidature_nouvelle";
-    action = "Candidature soumise via Indeed — creee dans JobBingTrack";
-    entreprise = extraireEntrepriseDepuisSujet(email.sujet);
+    // Verifier que c'est bien une confirmation ("votre candidature a ete envoyee")
+    var estConfirmation = corpsLow.indexOf("candidature a ete envoyee") >= 0 ||
+                          corpsLow.indexOf("candidature a été envoyée") >= 0 ||
+                          corpsLow.indexOf("bonne chance") >= 0 ||
+                          corpsLow.indexOf("a bien ete prise en compte") >= 0 ||
+                          sujetLow.indexOf("candidatures via indeed") >= 0;
+    if (estConfirmation) {
+      type = "candidature_nouvelle";
+      action = "Candidature soumise via Indeed — verifier dans JobBingTrack";
+      entreprise = extraireEntrepriseDepuisSujet(email.sujet);
+    } else {
+      // Email Indeed mais pas une confirmation → offre
+      type = "offre";
+      action = "Consulter l'offre Indeed et postuler si pertinente";
+    }
   }
 
-  // --- Entretien / convocation ---
-  else if (texte.indexOf("entretien") >= 0 || texte.indexOf("convocation") >= 0 ||
-           texte.indexOf("rendez-vous") >= 0 || texte.indexOf("interview") >= 0) {
+  // === PRIORITE 2 : Job boards (alertes) → toujours [OFFRE], jamais entretien/evenement ===
+  else if (estJobBoard(expediteurLow)) {
+    type = "offre";
+    action = "Consulter les offres et postuler si pertinentes";
+  }
+
+  // === PRIORITE 3 : Newsletters emploi (FASTT, Talents Handicap, etc.) ===
+  else if (estNewsletterEmploi(expediteurLow)) {
+    // Peut etre un salon/evenement
+    if (estSalonOuEvenementEmploi(email.sujet, corpsLow)) {
+      type = "evenement";
+      action = "Evenement emploi/bien-etre — voir si inscription pertinente";
+      urgence = false; // Pas urgent, c'est optionnel
+    } else {
+      // Newsletter info → ignorer (pas de tache)
+      return null;
+    }
+  }
+
+  // === PRIORITE 4 : Entretien CONFIRME — doit venir d'un RH/recruteur direct, pas d'un job board ===
+  // Le mot "entretien" doit apparaitre dans le SUJET ou etre accompagne d'une heure/date specifique
+  else if (
+    (sujetLow.indexOf("entretien") >= 0 || sujetLow.indexOf("convocation") >= 0 ||
+     sujetLow.indexOf("interview") >= 0) &&
+    !estJobBoard(expediteurLow)
+  ) {
     type = "entretien";
     action = "Preparer l'entretien et confirmer ta presence";
     urgence = true;
   }
 
-  // --- Job dating / evenement emploi ---
-  else if (texte.indexOf("job dating") >= 0 || texte.indexOf("jobdating") >= 0 ||
-           texte.indexOf("forum emploi") >= 0 || texte.indexOf("salon recrutement") >= 0) {
-    type = "evenement";
-    action = "S'inscrire a l'evenement";
-    urgence = true;
+  // === PRIORITE 5 : Salon emploi / Job dating (dans le sujet) ===
+  else if (estSalonOuEvenementEmploi(email.sujet, "") && !estJobBoard(expediteurLow)) {
+    // Verifier que c'est bien un event emploi et pas juste une alerte offre
+    var estVraiEvenement = sujetLow.indexOf("job dating") >= 0 ||
+                           sujetLow.indexOf("salon") >= 0 ||
+                           sujetLow.indexOf("forum") >= 0 ||
+                           sujetLow.indexOf("inscription") >= 0 ||
+                           sujetLow.indexOf("inscrit") >= 0 ||
+                           sujetLow.indexOf("participez") >= 0 ||
+                           sujetLow.indexOf("rejoignez") >= 0 ||
+                           sujetLow.indexOf("talents") >= 0 ||
+                           sujetLow.indexOf("webinaire") >= 0;
+    if (estVraiEvenement) {
+      type = "evenement";
+      action = "Evenement emploi — voir si inscription utile";
+      urgence = true;
+    }
   }
 
-  // --- Refus ---
+  // === PRIORITE 6 : Refus ===
   else if (texte.indexOf("refus") >= 0 || texte.indexOf("n'avons pas retenu") >= 0 ||
            texte.indexOf("sans suite") >= 0 || texte.indexOf("ne correspond pas") >= 0 ||
            texte.indexOf("nous ne pouvons pas donner") >= 0 || texte.indexOf("ne donnera pas") >= 0 ||
@@ -276,24 +391,22 @@ function analyserEmail(email) {
     action = "Statut mis a jour dans JobBingTrack : REJECTED";
   }
 
-  // --- Confirmation / accuse reception candidature ---
-  else if (texte.indexOf("votre candidature") >= 0 ||
-           texte.indexOf("accuse de reception") >= 0 || texte.indexOf("accuse reception") >= 0 ||
-           texte.indexOf("accuse de recc") >= 0 ||
-           texte.indexOf("bien recu votre") >= 0 || texte.indexOf("prise en compte") >= 0 ||
-           (texte.indexOf("accusé de réception") >= 0)) {
+  // === PRIORITE 7 : Confirmation candidature (accuse reception) ===
+  else if ((texte.indexOf("votre candidature") >= 0 || texte.indexOf("bien recu") >= 0 ||
+            texte.indexOf("prise en compte") >= 0) &&
+           !estJobBoard(expediteurLow)) {
     type = "candidature_nouvelle";
     action = "Candidature creee dans JobBingTrack — valider";
   }
 
-  // --- Reponse / suivi ---
+  // === PRIORITE 8 : Reponse / suivi ===
   else if (texte.indexOf("suite a votre") >= 0 || texte.indexOf("en reponse a") >= 0 ||
-           texte.indexOf("votre dossier") >= 0 || texte.indexOf("retour sur") >= 0) {
+           texte.indexOf("votre dossier") >= 0) {
     type = "reponse";
     action = "Statut a verifier dans JobBingTrack";
   }
 
-  // --- France Travail ---
+  // === PRIORITE 9 : France Travail ===
   else if (expediteurLow.indexOf("francetravail") >= 0 ||
            expediteurLow.indexOf("france-travail") >= 0 ||
            expediteurLow.indexOf("pole-emploi") >= 0 ||
@@ -303,29 +416,10 @@ function analyserEmail(email) {
     urgence = texte.indexOf("convocation") >= 0 || texte.indexOf("obligatoire") >= 0;
   }
 
-  // --- Job boards (alertes offres) ---
+  // === PRIORITE 10 : Contact direct RH ou offre par mot-cle ===
   else {
-    var estJobBoard = false;
-    for (var jb = 0; jb < CONFIG.expediteursJobBoards.length; jb++) {
-      if (expediteurLow.indexOf(CONFIG.expediteursJobBoards[jb]) >= 0) {
-        estJobBoard = true;
-        break;
-      }
-    }
-    // Aussi detecter les noreply de job boards generiques
-    if (!estJobBoard && (expediteurLow.indexOf("jobalert") >= 0 ||
-                          expediteurLow.indexOf("hellowork") >= 0 ||
-                          expediteurLow.indexOf("meteojob") >= 0 ||
-                          expediteurLow.indexOf("indeed.com") >= 0)) {
-      estJobBoard = true;
-    }
-
-    if (estJobBoard) {
-      type = "offre";
-      action = "Consulter les offres et postuler si pertinentes";
-    }
     // Contact RH prioritaire direct
-    else if (email.prioritaire) {
+    if (email.prioritaire) {
       type = "contact_direct";
       action = "Repondre au contact professionnel";
       urgence = true;
