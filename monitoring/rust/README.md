@@ -24,7 +24,7 @@ Smoke Docker :
 
 ```bash
 docker compose -f ../../docker-compose.yml -f ../../docker-compose.monitoring.yml up -d --build monitoring-agent-rs jobbingtrack-metrics-aggregator
-curl http://localhost:${MONITORING_RS_PORT:-5118}/api/v1/metrics
+curl http://localhost:${MONITORING_RS_PORT:-5100}/api/v1/metrics
 docker compose -f ../../docker-compose.yml -f ../../docker-compose.monitoring.yml up -d --build log-collector-rs
 curl "http://localhost:${LOG_COLLECTOR_RS_PORT:-5099}/api/v1/logs?limit=3"
 ```

@@ -22,7 +22,7 @@ Rust est le meilleur choix pour la suite des composants bas niveau : il garde un
    - `log-collector-c` reste disponible en fallback legacy sous profil `monitoring-c`, port hôte `LOG_COLLECTOR_C_LEGACY_PORT` (`5109` par défaut).
    - Reste après bascule : mesure p95 longue et validation sous volume de logs réel avant retrait du fallback C.
 2. Porter `monitoring-c` vers `monitoring/rust/crates/monitoring-agent`.
-   - État : conteneur Rust `monitoring-agent-rs` branché par défaut dans `docker-compose.yml`, port hôte `MONITORING_RS_PORT` (`5118` par défaut).
+   - État : conteneur Rust `monitoring-agent-rs` branché par défaut dans `docker-compose.yml`, port hôte `MONITORING_RS_PORT` (`5100` par défaut).
    - Contrat porté : port `8015`, `/health`, `/api/v1/metrics` avec métriques système (`/proc/loadavg`, `/proc/meminfo`, `/proc/stat`), inventaire Docker socket, mémoire/CPU cgroups v2, réseau par conteneur via `/proc/<pid>/net/dev`, health checks HTTP parallèles et persistance PostgreSQL.
    - Architecture Rust : modules séparés (`config`, `constants`, `docker`, `procfs`, `metrics`, `http`, `types`), constantes centralisées, état mutable isolé dans `MetricsCollector`, erreurs opérationnelles sur stderr.
    - Historique : `/api/v1/persistence/system/metrics` disponible avec `limit`, `offset`, `startDate`, `endDate`.
@@ -50,8 +50,8 @@ Rust est le meilleur choix pour la suite des composants bas niveau : il garde un
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-rust up -d --build log-collector-rs
 curl http://localhost:${LOG_COLLECTOR_RS_PORT:-5109}/health
 curl "http://localhost:${LOG_COLLECTOR_RS_PORT:-5109}/api/v1/logs?limit=20"
-curl http://localhost:${MONITORING_RS_PORT:-5118}/health
-curl http://localhost:${MONITORING_RS_PORT:-5118}/api/v1/metrics
+curl http://localhost:${MONITORING_RS_PORT:-5100}/health
+curl http://localhost:${MONITORING_RS_PORT:-5100}/api/v1/metrics
 python scripts/monitoring/compare-monitoring-agents.py
 ```
 

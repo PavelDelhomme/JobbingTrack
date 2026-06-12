@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { SectionLoader } from "@/lib/ui";
-import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
@@ -295,7 +294,6 @@ export default function SecurityPoliciesPage() {
     return (
       <AdminLayout>
         <div className="space-y-6">
-          <SecuritySubNav />
           <SectionLoader message="Chargement des politiques…" />
         </div>
       </AdminLayout>
@@ -305,7 +303,6 @@ export default function SecurityPoliciesPage() {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <SecuritySubNav />
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             Politiques de sécurité

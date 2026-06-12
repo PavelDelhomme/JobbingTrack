@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
-import { SecuritySubNav } from "./SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -583,7 +582,6 @@ export default function SecurityOverviewPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
             🛡️ Vue d’ensemble sécurité

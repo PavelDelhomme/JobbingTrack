@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/features";
 import { SectionLoader } from "@/lib/ui";
-import { SecuritySubNav } from "../../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -204,7 +203,6 @@ export default function ThreatDetailsPage() {
     return (
       <AdminLayout>
         <div className="space-y-6">
-          <SecuritySubNav />
           <SectionLoader message="Chargement de la menace…" />
         </div>
       </AdminLayout>
@@ -304,7 +302,6 @@ export default function ThreatDetailsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button

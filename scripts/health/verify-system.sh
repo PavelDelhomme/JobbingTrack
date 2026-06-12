@@ -6,6 +6,8 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
+MONITORING_RS_PORT="${MONITORING_RS_PORT:-5100}"
+
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║     🔍 VÉRIFICATION COMPLÈTE DU SYSTÈME                        ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
@@ -67,7 +69,7 @@ SERVICES=(
     "jobbingtrack-workflow-service:5016"
     "jobbingtrack-security-service:5017"
     "jobbingtrack-deployment-service:5018"
-    "jobbingtrack-monitoring-agent-rs:5118"
+    "jobbingtrack-monitoring-agent-rs:${MONITORING_RS_PORT}"
     "jobbingtrack-log-collector-rs:5099"
 )
 
@@ -107,7 +109,7 @@ check_endpoint() {
 check_endpoint "http://localhost:5002/health" "API Gateway"
 check_endpoint "http://localhost:5003" "Frontend"
 check_endpoint "http://localhost:5005/api/v1/auth/health" "Auth Service"
-check_endpoint "http://localhost:5118/api/v1/metrics" "Monitoring agent Rust"
+check_endpoint "http://localhost:${MONITORING_RS_PORT}/api/v1/metrics" "Monitoring agent Rust"
 
 # 4. Vérifier les logs d'erreurs
 echo "📋 Vérification des logs d'erreurs..."

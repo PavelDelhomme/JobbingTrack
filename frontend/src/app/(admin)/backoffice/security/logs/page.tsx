@@ -25,8 +25,8 @@ import {
   fetchSecurityLogFacets,
   type SecurityLogFacets,
 } from "@/lib/security/securityLogFacets";
+import { resolveSecurityLogLink } from "@/lib/security/securityLogLinks";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import { SecuritySubNav } from "../SecuritySubNav";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 
 const API_URL = FRONTEND_URLS.api;
@@ -59,6 +59,9 @@ type SecurityLogRow = {
   riskScore?: number;
   isBlocked?: boolean;
   metadata?: Record<string, unknown>;
+  correlatedThreatId?: string | null;
+  linkSource?: "metadata" | "correlation" | null;
+  linkReason?: string | null;
 };
 
 type SecurityLogFilters = {
@@ -79,13 +82,6 @@ function levelBadgeClass(level?: string): string {
     return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200";
   }
   return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
-}
-
-function readMetadataThreatId(
-  metadata?: Record<string, unknown>,
-): string | null {
-  const id = metadata?.threatId;
-  return id ? String(id) : null;
 }
 
 function buildInitialFilters(searchParams: URLSearchParams): SecurityLogFilters {
@@ -297,23 +293,12 @@ export default function SecurityLogsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
-
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
               <ShieldAlert className="h-8 w-8" />
               Logs sécurité
             </h1>
-            <p className="mt-1 max-w-3xl text-gray-600 dark:text-gray-400">
-              Événements sécurité persistés par le security-service. Les liens
-              depuis Incidents peuvent surligner un log précis via{" "}
-              <code className="text-xs">highlight</code>. Tri actuel :{" "}
-              {applied.order === "desc"
-                ? "plus récent d’abord"
-                : "plus ancien d’abord"}
-              .
-            </p>
           </div>
           <button
             type="button"
@@ -436,7 +421,7 @@ export default function SecurityLogsPage() {
                 </thead>
                 <tbody>
                   {logs.map((log) => {
-                    const threatId = readMetadataThreatId(log.metadata);
+                    const link = resolveSecurityLogLink(log);
                     const highlighted =
                       highlightId && String(log.id) === highlightId;
                     return (
@@ -481,15 +466,21 @@ export default function SecurityLogsPage() {
                           )}
                         </td>
                         <td className="p-3 text-sm">
-                          {threatId ? (
+                          {link.href ? (
                             <Link
-                              href={`/b4ck0ff1ce/security/threats/${encodeURIComponent(threatId)}`}
+                              href={link.href}
                               className="text-blue-600 hover:underline dark:text-blue-400"
+                              title={link.title}
                             >
-                              Menace liée
+                              {link.label}
                             </Link>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span
+                              className="text-xs text-gray-500 dark:text-gray-400"
+                              title={link.title}
+                            >
+                              {link.title}
+                            </span>
                           )}
                         </td>
                       </tr>

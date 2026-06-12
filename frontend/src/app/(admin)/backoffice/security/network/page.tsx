@@ -5,7 +5,6 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { FacetAutocompleteField, FilterBar } from "@/components/filters";
 import { SectionLoader } from "@/lib/ui";
-import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
@@ -233,7 +232,6 @@ export default function NetworkStatsPage() {
     return (
       <AdminLayout>
         <div className="space-y-6">
-          <SecuritySubNav />
           <SectionLoader message="Chargement du réseau…" />
         </div>
       </AdminLayout>
@@ -243,17 +241,12 @@ export default function NetworkStatsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Network className="h-8 w-8" />
               Réseau (sécurité)
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Statistiques réseau orientées sécurité : connexions, IPs, ports,
-              conteneurs.
-            </p>
           </div>
           <button
             onClick={loadStats}
@@ -267,34 +260,6 @@ export default function NetworkStatsPage() {
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-200">{error}</p>
-          </div>
-        )}
-
-        {stats?.containerCorrelation && stats.totalConnections > 0 && (
-          <div
-            className={`rounded-lg border p-4 ${
-              (stats.containerCorrelation.unmappedPercent ?? 0) >= 45
-                ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20"
-                : "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-            }`}
-          >
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Corrélation conteneurs (actionnable)
-            </h2>
-            <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">
-              Part des sockets classées :{" "}
-              <strong>nom Docker / identifiant</strong>{" "}
-              {stats.containerCorrelation.dockerNamedPercent}% ·{" "}
-              <strong>couche hôte / port</strong> (local, port:N…){" "}
-              {stats.containerCorrelation.hostLayerPercent}% ·{" "}
-              <strong>non résolu</strong>{" "}
-              {stats.containerCorrelation.unmappedPercent}%
-            </p>
-            {stats.correlationHint && (
-              <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-                {stats.correlationHint}
-              </p>
-            )}
           </div>
         )}
 
@@ -491,12 +456,6 @@ export default function NetworkStatsPage() {
             <Server className="h-6 w-6" />
             Connexions par conteneur ou indice
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Les libellés viennent du moteur de corrélation (Docker, port
-            d&apos;écoute, hôte). Ce ne sont pas des conteneurs « unknown »
-            opaques : un pic sur « port:… » ou « host-network » est attendu si
-            le service tourne sur l&apos;hôte vu depuis /proc.
-          </p>
           {stats?.connectionsByContainer &&
           Object.keys(stats.connectionsByContainer).length > 0 ? (
             <div className="overflow-x-auto">
@@ -668,10 +627,6 @@ export default function NetworkStatsPage() {
           <h2 className="text-xl font-semibold mb-2">
             IPs sources surveillées
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            Liste actionnable des IPs observées côté ingress/gateway: nature
-            réseau, motif de surveillance et filtre direct vers les menaces.
-          </p>
           {monitoredSourceIps.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">

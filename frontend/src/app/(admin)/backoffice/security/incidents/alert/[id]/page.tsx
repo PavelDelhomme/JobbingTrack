@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
 import { SectionLoader, uiSurfaces, uiText } from "@/lib/ui";
-import { SecuritySubNav } from "../../../SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { threatHref } from "@/lib/security/incidents";
@@ -76,7 +75,6 @@ export default function SecurityAlertDetailPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <SecuritySubNav />
         <Link
           href="/b4ck0ff1ce/security/incidents"
           className="inline-flex items-center gap-2 text-sm text-red-600 hover:underline"
