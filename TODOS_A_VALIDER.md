@@ -275,7 +275,9 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 **Preuve agent fraîche Statistics vue d’ensemble (12/06 13h27)** : `scripts/ops/run-statistics-overview-validation-with-report.sh` → `tests/results/statistics-overview/20260612-132737` (**4/4 OK**) ; `system/metrics` 24h et 7j → **51** points / disponibilité présente ; Jest séries **3/3 OK** ; `/b4ck0ff1ce/statistics` HTTP **200** ; rapport `statistics-overview-20260612-132737`.
 
-**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · `OK Statistics app-data` · `OK Statistics vue d’ensemble` · etc. (ou `KO` + route).
+**Preuve agent fraîche temps de réponse endpoints (12/06 13h49)** : `responseTime.per_service` exposé (23 services) ; script `scripts/ops/run-statistics-endpoint-latency-validation-with-report.sh` → `tests/results/statistics-endpoint-latency/20260612-134940` (**3/3 OK**) ; 7 services prioritaires mesurés ou état explicite (postgres = Santé Docker) ; pages Performances/latency/statistics HTTP **200** ; rapport `statistics-endpoint-latency-20260612-134940`.
+
+**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · `OK Statistics app-data` · `OK Statistics vue d’ensemble` · `OK Statistics temps de réponse endpoints` · etc. (ou `KO` + route).
 
 ### P1C — UX backoffice (une validation = une réponse)
 

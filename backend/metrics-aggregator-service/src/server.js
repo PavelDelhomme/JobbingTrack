@@ -1095,6 +1095,13 @@ async function collectAllMetrics() {
       },
       // ✅ Temps de réponse agrégé (évite NaN si aucun service n’a de responseTimeMs)
       ...(function buildResponseTimeBlock() {
+        const perService = Object.values(servicesMetrics).map((s) => ({
+          name: s.rawName || s.name,
+          status: s.status,
+          response_time_ms:
+            typeof s?.responseTimeMs === 'number' ? s.responseTimeMs : null,
+          non_http: Boolean(s?.health?.nonHttp),
+        }));
         const withRt = Object.values(servicesMetrics).filter(
           (s) => typeof s?.responseTimeMs === 'number' && s.responseTimeMs > 0
         );
@@ -1104,6 +1111,7 @@ async function collectAllMetrics() {
               average_ms: null,
               fastest_ms: null,
               slowest_ms: null,
+              per_service: perService,
             },
           };
         }
@@ -1114,6 +1122,7 @@ async function collectAllMetrics() {
             average_ms: sum / vals.length,
             fastest_ms: Math.min(...vals),
             slowest_ms: Math.max(...vals),
+            per_service: perService,
           },
         };
       })(),
