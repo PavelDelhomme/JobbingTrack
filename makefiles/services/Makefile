@@ -312,7 +312,7 @@ up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-agent
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --build monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Stack monitoring démarrée."
-	@echo "  - monitoring-agent-rs: http://localhost:$${MONITORING_RS_PORT:-5118}"
+	@echo "  - monitoring-agent-rs: http://localhost:$${MONITORING_RS_PORT:-5100}"
 	@echo "  - log-collector-rs:    http://localhost:$${LOG_COLLECTOR_RS_PORT:-5099}"
 	@echo "  - metrics-aggregator: http://localhost:5004"
 	@echo "  - Postgres:           prêt pour persistance"
@@ -571,7 +571,7 @@ _up-full-internal:
 	@echo "  - Frontend (TLS dev): https://jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443} (si UP_FULL_HTTPS≠0)"
 	@echo "  - API Gateway:        http://localhost:5002"
 	@echo "  - API (TLS dev):      https://api.jobbingtrack.localhost:$${DEV_HTTPS_PORT:-5443}"
-	@echo "  - Monitoring agent (Rust): http://localhost:$${MONITORING_RS_PORT:-5118}"
+	@echo "  - Monitoring agent (Rust): http://localhost:$${MONITORING_RS_PORT:-5100}"
 	@echo "  - Log collector (Rust):    http://localhost:$${LOG_COLLECTOR_RS_PORT:-5099}"
 	@echo "  - Metrics Aggregator:      http://localhost:5004 (API backoffice)"
 	@echo ""
@@ -1103,7 +1103,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	@echo ""
 	@if [ "$(STATUS_LEGEND)" = "1" ]; then \
 		printf '%b\n' "\033[0;90mLecture des ports : \033[0;36mport machine (localhost)\033[0;90m  →  \033[0;33mport interne conteneur\033[0;90m.\033[0m"; \
-		printf '%b\n' "\033[0;90mParcours par defaut : \033[1;33mmonitoring-agent-rs\033[0;90m + \033[1;33mlog-collector-rs\033[0;90m (Rust) + \033[1;33mmetrics-aggregator\033[0;90m. Legacy C optionnel : \033[1;33mmonitoring-c\033[0;90m / \033[1;33mlog-collector-c\033[0;90m (\033[0;36mmake monitoring-c-up\033[0;90m). Ports typiques : agent Rust hote \033[0;36m5118\033[0;90m, log-collector-rs \033[0;36m5099\033[0;90m, monitoring-c (legacy) \033[0;36m5098\033[0;90m.\033[0m"; \
+		printf '%b\n' "\033[0;90mParcours par defaut : \033[1;33mmonitoring-agent-rs\033[0;90m + \033[1;33mlog-collector-rs\033[0;90m (Rust) + \033[1;33mmetrics-aggregator\033[0;90m. Legacy C optionnel : \033[1;33mmonitoring-c\033[0;90m / \033[1;33mlog-collector-c\033[0;90m (\033[0;36mmake monitoring-c-up\033[0;90m). Ports typiques : agent Rust hote \033[0;36m5100\033[0;90m, log-collector-rs \033[0;36m5099\033[0;90m, monitoring-c (legacy) \033[0;36m5098\033[0;90m.\033[0m"; \
 		echo ""; \
 	fi
 	@echo "🏗️  Infrastructure:"

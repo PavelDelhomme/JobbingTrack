@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Met à jour .env avec les ports cohérents (5000-5019, 5098-5099 hôte ; log-collector interne 3019)
+# Met à jour .env avec les ports cohérents (5000-5019 microservices, 5098-5109 observabilité)
 # Usage: ./scripts/setup/setup-ports.sh
 
 set -e
@@ -54,6 +54,7 @@ update_env_var "SECURITY_SERVICE_PORT" "5017"
 update_env_var "DEPLOYMENT_SERVICE_PORT" "5018"
 update_env_var "FLUTTER_MOBILE_PORT" "5019"
 update_env_var "MONITORING_C_PORT" "5098"
+update_env_var "MONITORING_RS_PORT" "5100"
 update_env_var "LOG_COLLECTOR_C_LEGACY_PORT" "5109"
 update_env_var "LOG_COLLECTOR_C_PORT" "5109"
 update_env_var "LOG_COLLECTOR_C_INTERNAL_PORT" "3019"

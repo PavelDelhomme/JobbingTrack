@@ -43,6 +43,15 @@ Les ports sont définis dans le fichier `.env` (créez-le à partir de `.env.exa
 |---------|--------------|--------------|--------------------------|
 | Flutter Mobile | 5019 | 8080 | `FLUTTER_MOBILE_PORT` |
 
+### Observabilité (profils monitoring / logs)
+
+| Service | Port Externe | Port Interne | Variable d'environnement |
+|---------|--------------|--------------|--------------------------|
+| Monitoring agent Rust | 5100 | 8015 | `MONITORING_RS_PORT` |
+| Monitoring agent C (legacy) | 5098 | 8015 | `MONITORING_C_PORT` |
+| Log collector Rust | 5099 | 3019 | `LOG_COLLECTOR_RS_PORT` |
+| Log collector C (legacy) | 5109 | 3019 | `LOG_COLLECTOR_C_PORT` |
+
 ## 🚀 Utilisation
 
 ### 1. Créer le fichier `.env`

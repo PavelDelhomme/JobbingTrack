@@ -14,7 +14,8 @@ from typing import Any
 
 
 DEFAULT_C_URL = "http://localhost:5098"
-DEFAULT_RS_URL = "http://localhost:5118"
+DEFAULT_RS_PORT = os.environ.get("MONITORING_RS_PORT", "5100")
+DEFAULT_RS_URL = f"http://localhost:{DEFAULT_RS_PORT}"
 REQUEST_TIMEOUT_SEC = 10
 MIN_MATCH_RATIO = 0.80
 MAX_AVAILABILITY_DELTA = 40.0
