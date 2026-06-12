@@ -271,7 +271,9 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 **Preuve agent fraîche Statistics log-stats (12/06 02h08)** : `scripts/ops/run-statistics-log-stats-validation-with-report.sh` → `tests/results/statistics-log-stats/20260612-020820` (**4/4 étapes OK**) ; `smoke-persistence-stats.cjs` OK ; `/persistence/stats` → `aggregatedLogs=27606` confirmé BDD ; `/persistence/logs` 14j → **799** lignes, filtre WARN → **50**, filtre `jobbingtrack-api-gateway` → **3** ; `/b4ck0ff1ce/statistics/log-stats` HTTP **200** ; rapport `statistics-log-stats-20260612-020820` listé dans test-reports.
 
-**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · etc. (ou `KO` + route).
+**Preuve agent fraîche Statistics app-data (12/06 13h22)** : correctif ports `event/followup` dashboard-service ; `scripts/ops/run-statistics-app-data-validation-with-report.sh` → `tests/results/statistics-app-data/20260612-132256` (**4/4 OK**) ; `/api/v1/statistics` sans `undefined` ; `followups=152`, `events=1011` cohérents BDD ; timeline fallback 1 point + message explicite ; `/b4ck0ff1ce/statistics/app-data` HTTP **200** ; rapport `statistics-app-data-20260612-132256`.
+
+**Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · `OK Statistics app-data` · etc. (ou `KO` + route).
 
 ### P1C — UX backoffice (une validation = une réponse)
 

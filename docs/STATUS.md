@@ -21,6 +21,12 @@
 - **P1B Statistics Sécurité** : endpoints persistés sécurité OK (`security/metrics` **2000** points, `security/summary` **dataPoints=2000**, `persistence/stats` OK) ; cohérence BDD confirmée (`security_logs=42296`, `security_metrics=97779`) ; pages `/b4ck0ff1ce/statistics/security` et `/b4ck0ff1ce/security` HTTP **200**.
 - **P1B Statistics log-stats** : script `scripts/ops/run-statistics-log-stats-validation-with-report.sh` ; rapport `tests/results/statistics-log-stats/20260612-020820` **4/4 OK** ; `aggregated_logs` **27606** lignes / **18** services ; filtres API niveau/service OK ; pages `/b4ck0ff1ce/statistics/log-stats` et `/b4ck0ff1ce/statistics` HTTP **200** ; rapport listé `statistics-log-stats-20260612-020820`. Email récap P1B envoyé, `EmailLog` **SENT** x3.
 
+## 12 juin 2026 (reprise) — stack relancée + P1B Statistics app-data
+
+- **502 Bad Gateway** constaté au redémarrage : conséquence de l’arrêt volontaire des conteneurs en fin de session précédente ; résolu après `up-full` porteur (frontend + api-gateway de nouveau healthy).
+- **Correctif dashboard-service** : `statistics.controller.js` pointait `event-service` sur le port **3009** et `followup-service` sur **3010** (ports réels internes **3011** / **3012**) ; relances et événements remontaient à **0** dans `/api/v1/statistics`. Variables `CALL/EVENT/FOLLOWUP_SERVICE_URL` ajoutées au service `dashboard-service` dans `docker-compose.yml`.
+- **P1B Statistics app-data** : script `scripts/ops/run-statistics-app-data-validation-with-report.sh` ; rapport `tests/results/statistics-app-data/20260612-132256` **4/4 OK** ; payload sans `undefined` ; `followups=152`, `events=1011` alignés BDD ; page `/b4ck0ff1ce/statistics/app-data` HTTP **200** ; rapport listé `statistics-app-data-20260612-132256`.
+
 ## 11 juin 2026 — HTTPS LAN dev téléphone (`192.168.1.134:5443`)
 
 - **Symptôme** : ouverture depuis un téléphone sur `https://192.168.1.134:5443` avec chargement en boucle ; le frontend pouvait reconstruire l’API vers `https://api.jobbingtrack.localhost:5443`, non résolu côté téléphone.

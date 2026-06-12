@@ -818,8 +818,11 @@ services:
     environment:
       - APPLICATION_SERVICE_URL=http://jobbingtrack-application-service:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}
       - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - CALL_SERVICE_URL=http://jobbingtrack-call-service:${CALL_SERVICE_INTERNAL_PORT:-3008}
       - COMPANY_SERVICE_URL=http://jobbingtrack-company-service:${COMPANY_SERVICE_INTERNAL_PORT:-3003}
       - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
+      - EVENT_SERVICE_URL=http://jobbingtrack-event-service:${EVENT_SERVICE_INTERNAL_PORT:-3011}
+      - FOLLOWUP_SERVICE_URL=http://jobbingtrack-followup-service:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - DEV_AUTH_BYPASS_TOKEN=${DEV_AUTH_BYPASS_TOKEN}
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}

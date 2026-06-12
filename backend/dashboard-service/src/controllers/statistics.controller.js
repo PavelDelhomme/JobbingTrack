@@ -8,8 +8,8 @@ const COMPANY_SERVICE_URL = process.env.COMPANY_SERVICE_URL || 'http://jobbingtr
 const CONTACT_SERVICE_URL = process.env.CONTACT_SERVICE_URL || 'http://jobbingtrack-contact-service:3004';
 const INTERVIEW_SERVICE_URL = process.env.INTERVIEW_SERVICE_URL || 'http://jobbingtrack-interview-service:3005';
 const CALL_SERVICE_URL = process.env.CALL_SERVICE_URL || 'http://jobbingtrack-call-service:3008';
-const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://jobbingtrack-event-service:3009';
-const FOLLOWUP_SERVICE_URL = process.env.FOLLOWUP_SERVICE_URL || 'http://jobbingtrack-followup-service:3010';
+const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://jobbingtrack-event-service:3011';
+const FOLLOWUP_SERVICE_URL = process.env.FOLLOWUP_SERVICE_URL || 'http://jobbingtrack-followup-service:3012';
 
 function countSince(rows, field, date) {
   if (!Array.isArray(rows)) return 0;

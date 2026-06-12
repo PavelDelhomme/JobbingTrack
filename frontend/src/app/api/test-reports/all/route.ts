@@ -744,6 +744,75 @@ async function scanStatisticsLogStatsResults(
   return reports;
 }
 
+async function scanStatisticsAppDataResults(
+  resultsRoot: string,
+): Promise<TestReport[]> {
+  const reports: TestReport[] = [];
+  const dir = join(resultsRoot, "statistics-app-data");
+
+  if (!existsSync(dir)) return reports;
+
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const reportDirs = entries
+      .filter(
+        (entry) => entry.isDirectory() && /^\d{8}-\d{6}$/.test(entry.name),
+      )
+      .sort()
+      .reverse();
+
+    for (const dirEntry of reportDirs) {
+      const dirPath = join(dir, dirEntry.name);
+      const summaryPath = join(dirPath, "summary.json");
+      const [datePart, timePart] = dirEntry.name.split("-");
+      const date = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}`;
+      const time = `${timePart.substring(0, 2)}:${timePart.substring(2, 4)}:${timePart.substring(4, 6)}`;
+
+      let summary: any = null;
+      try {
+        summary = JSON.parse(await readFile(summaryPath, "utf-8"));
+      } catch {
+        continue;
+      }
+
+      const totalTests = summary?.totals?.steps ?? 0;
+      const passed = summary?.totals?.passed ?? 0;
+      const failed = summary?.totals?.failed ?? 0;
+
+      reports.push({
+        id: `statistics-app-data-${dirEntry.name}`,
+        category: "Statistics app-data",
+        name: `Statistics app-data - ${date} ${time}`,
+        timestamp: dirEntry.name,
+        date,
+        time,
+        generatedAtISO: summary?.timestamp,
+        path: dirPath,
+        summaryPath,
+        summary,
+        totalTests,
+        passed,
+        failed,
+        skipped: 0,
+        status:
+          failed === 0 && passed > 0
+            ? "success"
+            : failed > 0 && passed > 0
+              ? "partial"
+              : failed > 0
+                ? "failed"
+                : "unknown",
+        type: "performance-frontend",
+        size: await getDirectorySize(dirPath),
+      });
+    }
+  } catch (error) {
+    console.error("Erreur scan statistics-app-data:", error);
+  }
+
+  return reports;
+}
+
 /**
  * Scanner les rapports User Journey
  */
@@ -1041,6 +1110,7 @@ export async function GET(request: NextRequest) {
       controlledOffensiveResults,
       performanceCorrelationResults,
       statisticsLogStatsResults,
+      statisticsAppDataResults,
       playwright,
       userJourney,
       analytics,
@@ -1057,6 +1127,7 @@ export async function GET(request: NextRequest) {
       scanControlledOffensiveResults(REPORT_DIRS["tests-results"]),
       scanPerformanceCorrelationResults(REPORT_DIRS["tests-results"]),
       scanStatisticsLogStatsResults(REPORT_DIRS["tests-results"]),
+      scanStatisticsAppDataResults(REPORT_DIRS["tests-results"]),
       scanPlaywrightReports(REPORT_DIRS["playwright"]),
       scanUserJourneyReports(REPORT_DIRS["user-journey"]),
       scanAnalyticsReports(REPORT_DIRS["analytics"]),
@@ -1074,6 +1145,7 @@ export async function GET(request: NextRequest) {
       ...controlledOffensiveResults,
       ...performanceCorrelationResults,
       ...statisticsLogStatsResults,
+      ...statisticsAppDataResults,
       ...playwright,
       ...userJourney,
       ...analytics,
