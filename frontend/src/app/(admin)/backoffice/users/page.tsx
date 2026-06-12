@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import { formatLocalDate } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
+import {
+  USER_ROLE_FILTER_OPTIONS,
+  USER_TEST_FILTER_OPTIONS,
+  type UserTestFilter,
+} from "@/lib/filters/userFilterOptions";
+import { filterUsers, type UserListFilters } from "@/lib/filters/userFilters";
+import type { FilterBadge } from "@/lib/filters/types";
 import {
   Users,
-  Search,
   Plus,
   Edit,
   Trash2,
@@ -28,6 +41,12 @@ import { Pagination } from "@/components/ui/Pagination";
 
 const API_URL = FRONTEND_URLS.api;
 
+const DEFAULT_USER_FILTERS: UserListFilters = {
+  query: "",
+  role: "",
+  testFilter: "all",
+};
+
 interface User {
   id: string;
   email: string;
@@ -45,12 +64,8 @@ export default function UsersManagementPage() {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [selectedTestFilter, setSelectedTestFilter] = useState<
-    "all" | "test" | "nottest"
-  >("all");
-  const [showAddModal, setShowAddModal] = useState(false);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<UserListFilters>(DEFAULT_USER_FILTERS);
   const [cleaningTest, setCleaningTest] = useState(false);
 
   const loadUsers = useCallback(async () => {
@@ -67,7 +82,7 @@ export default function UsersManagementPage() {
       }
 
       // ✅ OPTIMISATION : Utiliser le cache
-      const cacheKey = `users_list_${token.substring(0, 10)}_${selectedTestFilter}`;
+      const cacheKey = `users_list_${token.substring(0, 10)}_${applied.testFilter}`;
       const { cacheManager } = await import("@/lib/cache/cacheManager");
       const cached = await cacheManager.get(cacheKey, { ttl: 30000 }); // Cache 30 secondes
 
@@ -75,13 +90,13 @@ export default function UsersManagementPage() {
         setUsers(Array.isArray(cached) ? (cached as User[]) : []);
         setLoading(false);
         // Rafraîchir en arrière-plan
-        loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter).catch(
+        loadUsersFresh(token, cacheKey, cacheManager, applied.testFilter).catch(
           () => {},
         ); // Ignorer les erreurs
         return;
       }
 
-      await loadUsersFresh(token, cacheKey, cacheManager, selectedTestFilter);
+      await loadUsersFresh(token, cacheKey, cacheManager, applied.testFilter);
     } catch (error: any) {
       console.error("[USERS] ❌ Erreur chargement utilisateurs:", error);
       if (error.response) {
@@ -97,14 +112,14 @@ export default function UsersManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, selectedTestFilter]);
+  }, [token, applied.testFilter]);
 
   // ✅ OPTIMISATION : Fonction séparée pour le chargement frais
   const loadUsersFresh = async (
     token: string,
     cacheKey: string,
     cacheManager: any,
-    testFilter: "all" | "test" | "nottest" = "all",
+    testFilter: UserTestFilter = "all",
   ) => {
     const params: Record<string, string | number> = { limit: 100 };
     if (testFilter === "test") params.isTestData = "true";
@@ -180,17 +195,10 @@ export default function UsersManagementPage() {
     }
   }, [token, loadUsers]);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    const matchesRole = selectedRole === "all" || user.role === selectedRole;
-
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = useMemo(
+    () => filterUsers(users, applied),
+    [users, applied],
+  );
 
   // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
   const pagination = usePagination({
@@ -198,6 +206,48 @@ export default function UsersManagementPage() {
     itemsPerPage: 20,
     initialPage: 1,
   });
+  const userSearchSuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        users.flatMap((user) => [
+          user.email,
+          `${user.firstName} ${user.lastName}`.trim(),
+        ]),
+        80,
+      ),
+    [users],
+  );
+  const filterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (applied.query.trim()) {
+      badges.push({ key: "query", label: `Recherche : ${applied.query}` });
+    }
+    if (applied.role) {
+      const roleLabel =
+        USER_ROLE_FILTER_OPTIONS.find((option) => option.value === applied.role)
+          ?.label || applied.role;
+      badges.push({ key: "role", label: `Rôle : ${roleLabel}` });
+    }
+    if (applied.testFilter !== "all") {
+      const testLabel =
+        USER_TEST_FILTER_OPTIONS.find(
+          (option) => option.value === applied.testFilter,
+        )?.label || applied.testFilter;
+      badges.push({ key: "testFilter", label: `Origine : ${testLabel}` });
+    }
+    return badges;
+  }, [applied]);
+
+  const handleApplyFilters = () => {
+    pagination.goToPage(1);
+    apply();
+  };
+
+  const handleResetFilters = () => {
+    pagination.goToPage(1);
+    reset(DEFAULT_USER_FILTERS);
+  };
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
     try {
@@ -428,49 +478,36 @@ export default function UsersManagementPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto_auto]">
-            <div className="min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom ou email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-            </div>
-
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 lg:w-auto"
-            >
-              <option value="all">Tous les rôles</option>
-              <option value="SUPER_ADMIN">Super Administrateurs</option>
-              <option value="ADMIN">Administrateurs</option>
-              <option value="USER">Utilisateurs</option>
-              <option value="GUEST">Invités</option>
-            </select>
-
-            <select
-              value={selectedTestFilter}
-              onChange={(e) =>
-                setSelectedTestFilter(
-                  e.target.value as "all" | "test" | "nottest",
-                )
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          badges={filterBadges}
+        >
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,13rem)_minmax(0,16rem)_auto_auto]">
+            <FacetAutocompleteField
+              label="Recherche"
+              value={draft.query}
+              onChange={(value) => updateDraft("query", value)}
+              suggestions={userSearchSuggestions}
+              placeholder="Nom ou email…"
+            />
+            <FilterSelectField
+              label="Rôle"
+              value={draft.role}
+              onChange={(value) => updateDraft("role", value)}
+              options={[...USER_ROLE_FILTER_OPTIONS]}
+              placeholder="Tous les rôles"
+            />
+            <FilterSelectField
+              label="Origine"
+              value={draft.testFilter}
+              onChange={(value) =>
+                updateDraft("testFilter", value as UserTestFilter)
               }
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 lg:w-auto"
-              title="Filtrer par origine (test E2E / données de test)"
-            >
-              <option value="all">Tous</option>
-              <option value="test">Utilisateurs de test uniquement</option>
-              <option value="nottest">Hors test</option>
-            </select>
-
+              options={[...USER_TEST_FILTER_OPTIONS]}
+              allowEmpty={false}
+            />
             <button
               onClick={handleCleanTestUsers}
               disabled={
@@ -499,7 +536,7 @@ export default function UsersManagementPage() {
               Actualiser
             </button>
           </div>
-        </div>
+        </FilterBar>
 
         {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">

@@ -3,10 +3,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { FacetAutocompleteField, FilterBar } from "@/components/filters";
 import { SectionLoader } from "@/lib/ui";
 import { SecuritySubNav } from "../SecuritySubNav";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
+import type { FilterBadge } from "@/lib/filters/types";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
 import axios from "axios";
 
@@ -46,6 +50,16 @@ const SUSPICIOUS_PORTS = new Set([
   "3306",
 ]);
 
+type NetworkPortFilters = {
+  port: string;
+  suspiciousOnly: boolean;
+};
+
+const DEFAULT_NETWORK_PORT_FILTERS: NetworkPortFilters = {
+  port: "",
+  suspiciousOnly: false,
+};
+
 function getIpNature(ip: string): string {
   if (ip === "::1" || ip.startsWith("127.")) return "localhost";
   if (ip.startsWith("10.") || ip.startsWith("192.168."))
@@ -74,11 +88,17 @@ export default function NetworkStatsPage() {
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [portFilter, setPortFilter] = useState<string>("");
+  const {
+    applied: appliedPortFilters,
+    draft: draftPortFilters,
+    updateDraft: updateDraftPortFilter,
+    apply: applyPortFilters,
+    reset: resetPortFilters,
+    hasDraftChanges: hasPortDraftChanges,
+  } = useAppliedFilters<NetworkPortFilters>(DEFAULT_NETWORK_PORT_FILTERS);
   const [minConnectionsAlert, setMinConnectionsAlert] = useState<number>(100);
   const [suspiciousIpThreshold, setSuspiciousIpThreshold] =
     useState<number>(20);
-  const [showOnlySuspicious, setShowOnlySuspicious] = useState(false);
   const refreshInFlightRef = useRef(false);
 
   const loadStats = useCallback(async () => {
@@ -162,6 +182,40 @@ export default function NetworkStatsPage() {
         : [],
     [stats?.topSourceIps, suspiciousIpThreshold],
   );
+  const portSuggestions = useMemo(
+    () =>
+      facetOptionsFromValues(
+        stats?.topDestinationPorts
+          ? Object.keys(stats.topDestinationPorts)
+          : [],
+      ),
+    [stats?.topDestinationPorts],
+  );
+  const portFilterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (appliedPortFilters.port.trim()) {
+      badges.push({
+        key: "port",
+        label: `Port : ${appliedPortFilters.port.trim()}`,
+      });
+    }
+    if (appliedPortFilters.suspiciousOnly) {
+      badges.push({
+        key: "suspiciousOnly",
+        label: "Ports sensibles uniquement",
+      });
+    }
+    return badges;
+  }, [appliedPortFilters]);
+  const filteredDestinationPorts = useMemo(() => {
+    const q = appliedPortFilters.port.trim();
+    return getTopItems(stats?.topDestinationPorts || {}, 10)
+      .filter(([port]) => !q || port.includes(q))
+      .filter(
+        ([port]) =>
+          !appliedPortFilters.suspiciousOnly || SUSPICIOUS_PORTS.has(port),
+      );
+  }, [appliedPortFilters, stats?.topDestinationPorts]);
 
   const securityAlerts = [
     stats?.totalConnections && stats.totalConnections > minConnectionsAlert
@@ -280,18 +334,6 @@ export default function NetworkStatsPage() {
                 }
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100"
               />
-            </div>
-            <div className="flex items-end">
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={showOnlySuspicious}
-                  onChange={(e) => setShowOnlySuspicious(e.target.checked)}
-                />
-                <span className="text-sm">
-                  Afficher uniquement les ports sensibles
-                </span>
-              </label>
             </div>
           </div>
           <div className="mt-4">
@@ -514,15 +556,35 @@ export default function NetworkStatsPage() {
 
         {/* Top 10 Ports Destination */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-xl font-semibold">Top 10 Ports Destination</h2>
-            <input
-              value={portFilter}
-              onChange={(e) => setPortFilter(e.target.value)}
-              placeholder="Filtrer un port"
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 sm:w-auto"
-            />
-          </div>
+          <h2 className="mb-4 text-xl font-semibold">
+            Top 10 Ports Destination
+          </h2>
+          <FilterBar
+            hasDraftChanges={hasPortDraftChanges}
+            onApply={applyPortFilters}
+            onReset={() => resetPortFilters(DEFAULT_NETWORK_PORT_FILTERS)}
+            badges={portFilterBadges}
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FacetAutocompleteField
+                label="Port destination"
+                value={draftPortFilters.port}
+                onChange={(value) => updateDraftPortFilter("port", value)}
+                suggestions={portSuggestions}
+                placeholder="Filtrer un port…"
+              />
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={draftPortFilters.suspiciousOnly}
+                  onChange={(e) =>
+                    updateDraftPortFilter("suspiciousOnly", e.target.checked)
+                  }
+                />
+                Ports sensibles uniquement
+              </label>
+            </div>
+          </FilterBar>
           {stats?.topDestinationPorts &&
           Object.keys(stats.topDestinationPorts).length > 0 ? (
             <div className="overflow-x-auto">
@@ -535,15 +597,7 @@ export default function NetworkStatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {getTopItems(stats.topDestinationPorts, 10)
-                    .filter(
-                      ([port]) => !portFilter || port.includes(portFilter),
-                    )
-                    .filter(
-                      ([port]) =>
-                        !showOnlySuspicious || SUSPICIOUS_PORTS.has(port),
-                    )
-                    .map(([port, count]) => (
+                  {filteredDestinationPorts.map(([port, count]) => (
                       <tr
                         key={port}
                         className="border-b border-gray-200 dark:border-gray-700"

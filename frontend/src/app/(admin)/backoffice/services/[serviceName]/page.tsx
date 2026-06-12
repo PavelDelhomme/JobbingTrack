@@ -4,7 +4,23 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import Link from "next/link";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import {
+  filterServiceLogLines,
+  type ServiceLogsFilters,
+} from "@/lib/filters/serviceLogFilters";
+import {
+  SERVICE_LOG_KIND_OPTIONS,
+  SERVICE_LOG_LEVEL_OPTIONS,
+} from "@/lib/filters/serviceLogsOptions";
+import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
+import type { FilterBadge } from "@/lib/filters/types";
 import {
   Server,
   Activity,
@@ -129,6 +145,20 @@ export default function ServiceDetailPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [hideFirewallNoise, setHideFirewallNoise] = useState(false);
+  const {
+    applied: appliedLogFilters,
+    draft: draftLogFilters,
+    updateDraft: updateDraftLogFilter,
+    apply: applyLogFilters,
+    reset: resetLogFilters,
+    hasDraftChanges: hasLogDraftChanges,
+  } = useAppliedFilters<
+    Pick<ServiceLogsFilters, "level" | "kind" | "query">
+  >({
+    level: "all",
+    kind: "all",
+    query: "",
+  });
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [isLogsWidgetVisible, setIsLogsWidgetVisible] = useState(false);
   const [lastMetricsAt, setLastMetricsAt] = useState<Date | null>(null);
@@ -167,7 +197,7 @@ export default function ServiceDetailPage() {
     const raw = serviceLogs?.lines;
     if (!Array.isArray(raw) || raw.length === 0) return [];
     const tail = raw.slice(-220);
-    const filtered = hideFirewallNoise
+    const withoutNoise = hideFirewallNoise
       ? tail.filter((line: string) => {
           const timestampMatch = line.match(
             /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+([\s\S]*)$/,
@@ -176,8 +206,44 @@ export default function ServiceDetailPage() {
           return !isFirewallNoiseMessage(message);
         })
       : tail;
+    const filtered = filterServiceLogLines(withoutNoise, appliedLogFilters);
     return filtered.slice(-120);
-  }, [serviceLogs?.lines, hideFirewallNoise]);
+  }, [serviceLogs?.lines, hideFirewallNoise, appliedLogFilters]);
+
+  const logQuerySuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        Array.isArray(serviceLogs?.lines) ? serviceLogs.lines : [],
+        60,
+      ),
+    [serviceLogs?.lines],
+  );
+
+  const logFilterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (appliedLogFilters.level !== "all") {
+      const label =
+        SERVICE_LOG_LEVEL_OPTIONS.find(
+          (option) => option.value === appliedLogFilters.level,
+        )?.label || appliedLogFilters.level;
+      badges.push({ key: "level", label: `Niveau : ${label}` });
+    }
+    if (appliedLogFilters.kind !== "all") {
+      const label =
+        SERVICE_LOG_KIND_OPTIONS.find(
+          (option) => option.value === appliedLogFilters.kind,
+        )?.label || appliedLogFilters.kind;
+      badges.push({ key: "kind", label: `Type : ${label}` });
+    }
+    if (appliedLogFilters.query.trim()) {
+      badges.push({
+        key: "query",
+        label: `Recherche : ${appliedLogFilters.query.trim()}`,
+      });
+    }
+    return badges;
+  }, [appliedLogFilters]);
 
   // Auto-scroll vers le bas des logs UNIQUEMENT si le widget est visible
   useEffect(() => {
@@ -911,6 +977,51 @@ export default function ServiceDetailPage() {
               </div>
             )}
           </div>
+
+          <FilterBar
+            hasDraftChanges={hasLogDraftChanges}
+            onApply={() => applyLogFilters()}
+            onReset={() =>
+              resetLogFilters({ level: "all", kind: "all", query: "" })
+            }
+            badges={logFilterBadges}
+          >
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <FilterSelectField
+                label="Niveau"
+                value={draftLogFilters.level}
+                onChange={(value) =>
+                  updateDraftLogFilter(
+                    "level",
+                    value as ServiceLogsFilters["level"],
+                  )
+                }
+                options={[...SERVICE_LOG_LEVEL_OPTIONS]}
+                allowEmpty={false}
+                placeholder="Niveau"
+              />
+              <FilterSelectField
+                label="Type de ligne"
+                value={draftLogFilters.kind}
+                onChange={(value) =>
+                  updateDraftLogFilter(
+                    "kind",
+                    value as ServiceLogsFilters["kind"],
+                  )
+                }
+                options={[...SERVICE_LOG_KIND_OPTIONS]}
+                allowEmpty={false}
+                placeholder="Type"
+              />
+              <FacetAutocompleteField
+                label="Recherche"
+                value={draftLogFilters.query}
+                onChange={(value) => updateDraftLogFilter("query", value)}
+                suggestions={logQuerySuggestions}
+                placeholder="Mot-clé dans les logs…"
+              />
+            </div>
+          </FilterBar>
 
           {/* Error Lines Summary */}
           {serviceLogs?.errorLines && serviceLogs.errorLines.length > 0 && (

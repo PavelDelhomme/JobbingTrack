@@ -21,10 +21,20 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(`${ADMIN_PUBLIC_PATH}/`)
   ) {
     const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = pathname.replace(
+    let internalPath = pathname.replace(
       ADMIN_PUBLIC_PATH,
       ADMIN_INTERNAL_PATH,
     );
+    if (
+      internalPath === `${ADMIN_INTERNAL_PATH}/services/logs` ||
+      internalPath.startsWith(`${ADMIN_INTERNAL_PATH}/services/logs/`)
+    ) {
+      internalPath = internalPath.replace(
+        `${ADMIN_INTERNAL_PATH}/services/logs`,
+        `${ADMIN_INTERNAL_PATH}/services/service-logs`,
+      );
+    }
+    rewriteUrl.pathname = internalPath;
     const response = handleAdminAuth(request);
     if (response) return response;
     return NextResponse.rewrite(rewriteUrl);

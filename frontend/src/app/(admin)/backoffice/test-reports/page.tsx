@@ -1,9 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import {
+  FacetAutocompleteField,
+  FilterBar,
+  FilterSelectField,
+} from "@/components/filters";
 import { useAuth } from "@/lib/hooks/auth";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
+import type { FilterBadge } from "@/lib/filters/types";
+import {
+  DEFAULT_TEST_REPORT_FILTERS,
+  TEST_REPORT_SORT_OPTIONS,
+  TEST_REPORT_STATUS_OPTIONS,
+  type TestReportListFilters,
+  type TestReportSortBy,
+} from "@/lib/filters/testReportFilterOptions";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
   FileText,
@@ -16,8 +31,6 @@ import {
   Eye,
   RefreshCw,
   Trash2,
-  Search,
-  Filter,
   X,
   GitCompare,
   Image,
@@ -296,12 +309,14 @@ export default function TestReportsPage() {
   const [reportContent, setReportContent] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"date" | "tests" | "passed" | "failed">(
-    "date",
-  );
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<TestReportListFilters>(DEFAULT_TEST_REPORT_FILTERS);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [compareMode, setCompareMode] = useState(false);
@@ -650,11 +665,49 @@ export default function TestReportsPage() {
   };
 
   // Filtrer et trier les rapports
+  const reportSearchSuggestions = useMemo(
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        reports.flatMap((report) => [
+          report.name,
+          report.id,
+          report.category,
+          report.date,
+        ]),
+        80,
+      ),
+    [reports],
+  );
+
+  const reportFilterBadges = useMemo((): FilterBadge[] => {
+    const badges: FilterBadge[] = [];
+    if (applied.query.trim()) {
+      badges.push({
+        key: "query",
+        label: `Recherche : ${applied.query.trim()}`,
+      });
+    }
+    if (applied.category) {
+      badges.push({ key: "category", label: `Catégorie : ${applied.category}` });
+    }
+    if (applied.status) {
+      const label =
+        TEST_REPORT_STATUS_OPTIONS.find((o) => o.value === applied.status)
+          ?.label || applied.status;
+      badges.push({ key: "status", label: `Statut : ${label}` });
+    }
+    const sortLabel =
+      TEST_REPORT_SORT_OPTIONS.find((o) => o.value === applied.sortBy)?.label ||
+      applied.sortBy;
+    badges.push({ key: "sort", label: `Tri : ${sortLabel}` });
+    return badges;
+  }, [applied]);
+
   const filteredReports = reports
     .filter((report) => {
-      // Filtre par recherche
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+      if (applied.query.trim()) {
+        const query = applied.query.trim().toLowerCase();
         const matchesSearch =
           report.date.toLowerCase().includes(query) ||
           report.time.toLowerCase().includes(query) ||
@@ -664,20 +717,18 @@ export default function TestReportsPage() {
         if (!matchesSearch) return false;
       }
 
-      // Filtre par statut (utiliser le statut effectif pour inclure les rapports "unknown" déductibles)
-      if (filterStatus !== "all") {
-        if (getEffectiveStatus(report) !== filterStatus) return false;
+      if (applied.status) {
+        if (getEffectiveStatus(report) !== applied.status) return false;
       }
 
-      // ✅ Filtre par catégorie
-      if (filterCategory !== "all") {
-        if (report.category !== filterCategory) return false;
+      if (applied.category) {
+        if (report.category !== applied.category) return false;
       }
 
       return true;
     })
     .sort((a, b) => {
-      switch (sortBy) {
+      switch (applied.sortBy) {
         case "date": {
           const da =
             new Date(`${a.date}T${a.time || "00:00:00"}`).getTime() || 0;
@@ -790,67 +841,47 @@ export default function TestReportsPage() {
 
           {/* Barre de recherche et filtres */}
           {reports.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
-                {/* Recherche */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher par nom, date..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* ✅ Filtre par catégorie */}
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                  >
-                    <option value="all">Toutes les catégories</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Filtre par statut */}
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                  >
-                    <option value="all">Tous les statuts</option>
-                    <option value="success">Réussis</option>
-                    <option value="failed">Échoués</option>
-                    <option value="partial">Partiels</option>
-                  </select>
-                </div>
-
-                {/* Tri */}
-                <div>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="date">Trier par date</option>
-                    <option value="tests">Trier par nombre de tests</option>
-                    <option value="passed">Trier par réussis</option>
-                    <option value="failed">Trier par échoués</option>
-                  </select>
-                </div>
+            <FilterBar
+              hasDraftChanges={hasDraftChanges}
+              onApply={() => apply()}
+              onReset={() => reset(DEFAULT_TEST_REPORT_FILTERS)}
+              badges={reportFilterBadges}
+            >
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <FacetAutocompleteField
+                  label="Recherche"
+                  value={draft.query}
+                  onChange={(value) => updateDraft("query", value)}
+                  suggestions={reportSearchSuggestions}
+                  placeholder="Nom, date, id…"
+                />
+                <FilterSelectField
+                  label="Catégorie"
+                  value={draft.category}
+                  onChange={(value) => updateDraft("category", value)}
+                  options={categories.map((cat) => ({
+                    value: cat,
+                    label: cat,
+                  }))}
+                />
+                <FilterSelectField
+                  label="Statut"
+                  value={draft.status}
+                  onChange={(value) => updateDraft("status", value)}
+                  options={[...TEST_REPORT_STATUS_OPTIONS]}
+                />
+                <FilterSelectField
+                  label="Tri"
+                  value={draft.sortBy}
+                  onChange={(value) =>
+                    updateDraft("sortBy", value as TestReportSortBy)
+                  }
+                  options={[...TEST_REPORT_SORT_OPTIONS]}
+                  allowEmpty={false}
+                  placeholder="Tri"
+                />
               </div>
-            </div>
+            </FilterBar>
           )}
         </div>
 
