@@ -171,7 +171,16 @@ class _SplashScreenState extends State<_SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.track_changes, size: 64, color: Colors.blue[600]),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/branding/jobbingtrack-logo.png',
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.cover,
+                  semanticLabel: 'Logo JobbingTrack',
+                ),
+              ),
               const SizedBox(height: 16),
               Text('JobbingTrack', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800])),
               const SizedBox(height: 24),

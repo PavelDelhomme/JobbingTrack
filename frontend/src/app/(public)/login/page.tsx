@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import { useTheme } from "@/lib/hooks/theme";
@@ -62,7 +63,14 @@ export default function LoginPage() {
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 px-6 sm:px-8 py-8 sm:py-10">
             {/* Header avec logo et bouton thème compact */}
             <div className="flex justify-between items-start mb-6 sm:mb-8">
-              <div className="text-4xl sm:text-5xl animate-bounce">🎯</div>
+              <Image
+                src="/brand/jobbingtrack-logo.png"
+                alt="Logo JobbingTrack"
+                width={64}
+                height={64}
+                className="h-14 w-14 rounded-2xl shadow-lg sm:h-16 sm:w-16"
+                priority
+              />
               <button
                 onClick={toggleTheme}
                 className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${

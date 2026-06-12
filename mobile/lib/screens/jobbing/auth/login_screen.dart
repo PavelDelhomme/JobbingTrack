@@ -124,17 +124,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 60),
 
                 // Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[600],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.track_changes,
-                    color: Colors.white,
-                    size: 40,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.asset(
+                    'assets/branding/jobbingtrack-logo.png',
+                    width: 88,
+                    height: 88,
+                    fit: BoxFit.cover,
+                    semanticLabel: 'Logo JobbingTrack',
                   ),
                 ),
 

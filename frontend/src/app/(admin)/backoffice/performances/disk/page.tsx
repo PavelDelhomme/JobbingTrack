@@ -358,7 +358,7 @@ export default function PerformancesDiskPage() {
             offset: 0,
             signal: controller.signal,
           }),
-          analyticsService.getContainersList(),
+          analyticsService.getContainersList().catch(() => []),
         ]);
         if (cancelled || controller.signal.aborted) return;
         setSystemRows(normalizeSystemRows(systemData));

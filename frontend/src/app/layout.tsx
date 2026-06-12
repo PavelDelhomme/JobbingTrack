@@ -22,6 +22,8 @@ export default function RootLayout({
           content="JobbingTrack - Plateforme de gestion des candidatures"
         />
         <meta name="theme-color" content="#111827" />
+        <link rel="icon" type="image/png" href="/brand/jobbingtrack-logo.png" />
+        <link rel="apple-touch-icon" href="/brand/jobbingtrack-logo.png" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={inter.className} suppressHydrationWarning>

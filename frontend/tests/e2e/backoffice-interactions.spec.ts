@@ -472,7 +472,7 @@ test.describe("📊 Interactions Statistiques", () => {
       .waitFor({ state: "visible", timeout: 45000 });
     // La page attend les stats API : le h1 n’apparaît qu’après chargement (pas seulement le spinner).
     await expect(
-      page.getByRole("heading", { name: /Statistiques|Monitoring/i }),
+      page.locator("h1").filter({ hasText: /Statistiques & Monitoring/i }),
     ).toBeVisible({ timeout: 60000 });
 
     const tabVue = page

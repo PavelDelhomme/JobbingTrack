@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
@@ -81,8 +82,16 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
+          <Image
+            src="/brand/jobbingtrack-logo.png"
+            alt="Logo JobbingTrack"
+            width={72}
+            height={72}
+            className="mx-auto mb-4 h-[72px] w-[72px] rounded-2xl shadow-lg"
+            priority
+          />
           <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            🎯 JobbingTrack
+            JobbingTrack
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Créez votre compte pour commencer

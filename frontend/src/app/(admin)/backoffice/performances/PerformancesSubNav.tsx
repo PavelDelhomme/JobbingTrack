@@ -2,66 +2,37 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 const TABS = [
   {
     href: "/b4ck0ff1ce/performances",
     label: "Synthèse",
-    hash: null as string | null,
   },
   {
-    href: "/b4ck0ff1ce/performances#latence",
+    href: "/b4ck0ff1ce/performances/latency",
     label: "Temps de réponse",
-    hash: "#latence" as string | null,
   },
   {
     href: "/b4ck0ff1ce/performances/containers",
     label: "Conteneurs",
-    hash: null,
   },
-  { href: "/b4ck0ff1ce/performances/disk", label: "Disque", hash: null },
+  { href: "/b4ck0ff1ce/performances/disk", label: "Disque" },
   {
     href: "/b4ck0ff1ce/performances/network",
     label: "Réseau (détail)",
-    hash: null,
   },
   {
     href: "/b4ck0ff1ce/performances/correlation",
     label: "Corrélation",
-    hash: null,
   },
 ] as const;
 
-function useLocationHash(): string {
-  const [hash, setHash] = useState("");
-  useEffect(() => {
-    const read = () =>
-      setHash(typeof window !== "undefined" ? window.location.hash : "");
-    read();
-    window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
-  }, []);
-  return hash;
-}
-
 export function PerformancesSubNav() {
   const pathname = usePathname();
-  const hash = useLocationHash();
 
   const isActive = (tab: (typeof TABS)[number]) => {
-    if (tab.hash === "#latence") {
-      return (
-        pathname === "/b4ck0ff1ce/performances/latency" ||
-        (pathname === "/b4ck0ff1ce/performances" && hash === "#latence")
-      );
-    }
     if (tab.href === "/b4ck0ff1ce/performances") {
-      return (
-        pathname === "/b4ck0ff1ce/performances" &&
-        hash !== "#latence" &&
-        !pathname.startsWith("/b4ck0ff1ce/performances/")
-      );
+      return pathname === "/b4ck0ff1ce/performances";
     }
     return pathname === tab.href || pathname.startsWith(`${tab.href}/`);
   };

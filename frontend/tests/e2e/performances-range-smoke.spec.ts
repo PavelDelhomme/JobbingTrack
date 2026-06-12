@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 const PAGES = [
+  "/b4ck0ff1ce/performances",
   "/b4ck0ff1ce/performances/network",
   "/b4ck0ff1ce/performances/disk",
   "/b4ck0ff1ce/performances/containers",
   "/b4ck0ff1ce/performances/latency",
+  "/b4ck0ff1ce/performances/correlation",
 ] as const;
 
 async function waitForChartsReady(page: import("@playwright/test").Page) {
@@ -16,9 +18,7 @@ async function waitForChartsReady(page: import("@playwright/test").Page) {
     .poll(
       async () => {
         const loading = await page.getByText(/^Chargement…$/i).count();
-        const charts = await page
-          .locator(".recharts-responsive-container, .recharts-wrapper")
-          .count();
+        const charts = await countRenderableCharts(page);
         return loading === 0 && charts > 0;
       },
       { timeout: 90_000, intervals: [500, 1000, 2000] },
@@ -26,10 +26,42 @@ async function waitForChartsReady(page: import("@playwright/test").Page) {
     .toBeTruthy();
 }
 
-async function countCharts(page: import("@playwright/test").Page) {
-  return page
-    .locator(".recharts-responsive-container, .recharts-wrapper")
-    .count();
+async function countRenderableCharts(page: import("@playwright/test").Page) {
+  return page.evaluate(() => {
+    const charts = Array.from(
+      document.querySelectorAll<SVGSVGElement>("main svg.recharts-surface"),
+    );
+    return charts.filter((svg) => {
+      const box = svg.getBoundingClientRect();
+      if (box.width < 80 || box.height < 80) return false;
+      const hasCurve = Array.from(svg.querySelectorAll("path.recharts-curve"))
+        .some((path) => (path.getAttribute("d") || "").length > 20);
+      const hasBar = Array.from(svg.querySelectorAll("path.recharts-rectangle"))
+        .some((path) => (path.getAttribute("d") || "").length > 20);
+      return hasCurve || hasBar;
+    }).length;
+  });
+}
+
+async function selectRangeIfPresent(
+  page: import("@playwright/test").Page,
+  values: string | string[],
+) {
+  const wanted = Array.isArray(values) ? values : [values];
+  const selectors = [
+    page.getByLabel("Période").first(),
+    page.getByLabel("Fenêtre temporelle").first(),
+  ];
+  for (const selector of selectors) {
+    if (!(await selector.isVisible().catch(() => false))) continue;
+    for (const value of wanted) {
+      const option = selector.locator(`option[value="${value}"]`);
+      if ((await option.count()) === 0) continue;
+      await selector.selectOption(value);
+      return true;
+    }
+  }
+  return false;
 }
 
 async function expectNoNetworkErrorOverlay(
@@ -43,7 +75,7 @@ for (const path of PAGES) {
   test(`${path} — plages sans flash vide ni Network Error`, async ({
     page,
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(path.includes("/correlation") ? 180_000 : 120_000);
     await page.goto(path, {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
@@ -51,25 +83,23 @@ for (const path of PAGES) {
     await waitForChartsReady(page);
     await expectNoNetworkErrorOverlay(page);
 
-    const initialCharts = await countCharts(page);
+    const initialCharts = await countRenderableCharts(page);
     expect(initialCharts).toBeGreaterThan(0);
 
-    const range7d = page.getByRole("button", { name: /^7\s*j/i }).first();
-    if (await range7d.isVisible().catch(() => false)) {
-      await range7d.click();
-      await page.waitForTimeout(800);
+    const selected7d = await selectRangeIfPresent(page, ["7d", "168"]);
+    if (selected7d) {
+      await waitForChartsReady(page);
       await expectNoNetworkErrorOverlay(page);
-      expect(await countCharts(page)).toBeGreaterThan(0);
+      expect(await countRenderableCharts(page)).toBeGreaterThan(0);
       const loading = page.getByText(/^Chargement…$/i);
       await expect(loading).toHaveCount(0, { timeout: 15_000 });
     }
 
-    const range24h = page.getByRole("button", { name: /^24\s*h/i }).first();
-    if (await range24h.isVisible().catch(() => false)) {
-      await range24h.click();
-      await page.waitForTimeout(800);
+    const selected24h = await selectRangeIfPresent(page, ["24h", "24"]);
+    if (selected24h) {
+      await waitForChartsReady(page);
       await expectNoNetworkErrorOverlay(page);
-      expect(await countCharts(page)).toBeGreaterThan(0);
+      expect(await countRenderableCharts(page)).toBeGreaterThan(0);
     }
   });
 }

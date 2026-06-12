@@ -16,13 +16,8 @@ export const rechartsTooltipLabelStyle: CSSProperties = {
   marginBottom: 4,
 };
 
-export const rechartsTooltipItemStyle: CSSProperties = {
-  color: "hsl(var(--popover-foreground))",
-};
-
 /** Props par défaut pour `<Tooltip>` Recharts (évite texte blanc sur fond blanc en `dark`). */
 export const rechartsTooltipProps = {
   contentStyle: rechartsTooltipContentStyle,
   labelStyle: rechartsTooltipLabelStyle,
-  itemStyle: rechartsTooltipItemStyle,
 } as const;

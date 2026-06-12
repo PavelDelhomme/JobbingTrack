@@ -58,6 +58,8 @@ Ne pas reboucler indéfiniment sur `dev-https-certs.sh` : **le TLS côté proxy 
 
 Les appels internes Docker restent en HTTP privé (`frontend:3000`, `api-gateway:3000`). Le TLS est terminé par le proxy dev `dev-https-proxy`.
 
+**Performances / metrics-aggregator** : les pages backoffice appellent `/api/metrics-aggregator/*` via le proxy Next (route App Router). Le bloc Nginx `location ^~ /api/metrics-aggregator/` doit être **avant** `location ^~ /api/` (gateway), sinon les graphes Performances renvoient **404** en HTTPS. Après modification de `production/nginx/dev-https/default.conf`, redémarrer `jobbingtrack-dev-https-proxy`. Smoke : `curl -sk -o /dev/null -w '%{http_code}\n' https://jobbingtrack.localhost:5443/api/metrics-aggregator/docker/services/all` → **200**.
+
 ## Commandes
 
 ```bash

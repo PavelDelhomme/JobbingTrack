@@ -18,6 +18,17 @@ import {
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { buildStableSeriesColorMap } from "@/lib/charts/seriesColors";
 
+function formatPercentTick(value: number | string): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return `${Math.round(n)}%`;
+}
+
+function percentDomainMax(dataMax: number): number {
+  if (!Number.isFinite(dataMax) || dataMax <= 100) return 100;
+  return Math.min(400, Math.ceil(dataMax / 25) * 25);
+}
+
 export type AnalyticsContainersChartsBundleProps = {
   mode: "multi" | "single";
   rangeLabel: string;
@@ -76,8 +87,8 @@ export function AnalyticsContainersChartsBundle({
                   tick={{ fontSize: 12 }}
                 />
                 <YAxis
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
+                  domain={[0, percentDomainMax]}
+                  tickFormatter={formatPercentTick}
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
@@ -133,7 +144,7 @@ export function AnalyticsContainersChartsBundle({
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
+                  tickFormatter={formatPercentTick}
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
@@ -197,8 +208,8 @@ export function AnalyticsContainersChartsBundle({
               tick={{ fontSize: 12 }}
             />
             <YAxis
-              domain={[0, 100]}
-              tickFormatter={(v) => `${v}%`}
+              domain={[0, percentDomainMax]}
+              tickFormatter={formatPercentTick}
               tick={{ fontSize: 12 }}
             />
             <Tooltip

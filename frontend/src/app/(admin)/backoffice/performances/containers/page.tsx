@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { isAxiosError } from "axios";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
@@ -124,6 +125,7 @@ export default function ContainersAnalyticsPage() {
     Record<string, ContainerMetric[]>
   >({});
   const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
@@ -180,6 +182,7 @@ export default function ContainersAnalyticsPage() {
     let cancelled = false;
     (async () => {
       setLoadingList(true);
+      setListError(null);
       try {
         const list = await analyticsService.getContainersList();
         if (!cancelled) {
@@ -189,7 +192,17 @@ export default function ContainersAnalyticsPage() {
           }
         }
       } catch (e) {
-        if (!cancelled) setContainers([]);
+        if (!cancelled) {
+          setContainers([]);
+          const status = isAxiosError(e) ? e.response?.status : undefined;
+          const hint =
+            status === 404
+              ? " Route /api/metrics-aggregator introuvable (souvent le proxy HTTPS dev sur :5443 — redémarrer jobbingtrack-dev-https-proxy après mise à jour nginx)."
+              : "";
+          setListError(
+            `Impossible de charger la liste des conteneurs${status ? ` (HTTP ${status})` : ""}.${hint} Vérifiez metrics-aggregator et Docker.`,
+          );
+        }
       } finally {
         if (!cancelled) setLoadingList(false);
       }
@@ -616,9 +629,15 @@ export default function ContainersAnalyticsPage() {
         </div>
 
         {!selectedContainer && !loadingList ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucun conteneur disponible. Vérifiez que le metrics-aggregator et
-            Docker exposent les conteneurs JobbingTrack.
+          <div
+            className={`rounded-lg border p-8 text-center ${
+              listError
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+                : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+            }`}
+          >
+            {listError ??
+              "Aucun conteneur disponible. Vérifiez que le metrics-aggregator et Docker exposent les conteneurs JobbingTrack."}
           </div>
         ) : loadingMetrics && chartData.length === 0 ? (
           <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">

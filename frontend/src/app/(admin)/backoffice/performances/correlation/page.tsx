@@ -2533,7 +2533,7 @@ export default function PerformancesCorrelationPage() {
             </p>
           ) : (
             <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-              <aside className="w-full shrink-0 space-y-2 xl:sticky xl:top-4 xl:w-[min(100%,20rem)] xl:min-w-[17rem]">
+              <aside className="order-2 w-full shrink-0 space-y-2 xl:order-1 xl:sticky xl:top-4 xl:w-[min(100%,20rem)] xl:min-w-[17rem]">
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
                   Services
                 </label>
@@ -2622,7 +2622,7 @@ export default function PerformancesCorrelationPage() {
                 </p>
               </aside>
 
-              <div className="min-w-0 flex-1 space-y-6">
+              <div className="order-1 min-w-0 flex-1 space-y-6 xl:order-2">
                 <div>
                   <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                     Synthèse sur la période active (filtre liste)

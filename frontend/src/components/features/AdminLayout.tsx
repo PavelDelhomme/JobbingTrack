@@ -2,6 +2,7 @@
 
 import { ReactNode, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import { useTheme } from "@/lib/hooks/theme";
@@ -657,9 +658,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               prefetch={false}
               onMouseEnter={() => prefetchInternalRoute("/b4ck0ff1ce")}
               onFocus={() => prefetchInternalRoute("/b4ck0ff1ce")}
-              className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white"
+              className="flex min-w-0 items-center gap-2 text-xl lg:text-2xl font-bold text-gray-900 dark:text-white"
             >
-              🎯 JobbingTrack
+              <Image
+                src="/brand/jobbingtrack-logo.png"
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 flex-shrink-0 rounded-xl"
+                priority
+              />
+              <span className="truncate">JobbingTrack</span>
             </Link>
             {/* Bouton fermer visible uniquement sur mobile */}
             <button

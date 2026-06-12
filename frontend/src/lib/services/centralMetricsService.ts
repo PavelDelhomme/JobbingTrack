@@ -19,6 +19,14 @@ import { normalizeMetricTimestampToIso } from "@/lib/utils/date";
 import { cacheManager } from "@/lib/cache/cacheManager";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { analyticsService } from "@/lib/api/analytics.service";
+import {
+  buildMetricsAggregatorUrl,
+  getMetricsAggregatorClientBase,
+} from "@/lib/metrics/metricsAggregatorClient";
+
+export function getCentralMetricsAggregatorBase(): string {
+  return getMetricsAggregatorClientBase();
+}
 
 class CentralMetricsService {
   private apiUrl: string;
@@ -42,13 +50,8 @@ class CentralMetricsService {
     this.apiUrl = FRONTEND_URLS.api;
     this.prometheusUrl =
       process.env.NEXT_PUBLIC_PROMETHEUS_URL || "http://localhost:9090";
-    // Une seule source : metrics-aggregator (récupère les données depuis monitoring-c, persiste en BDD, expose au frontend).
-    this.metricsAggregatorUrl =
-      process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL ||
-      process.env.NEXT_PUBLIC_METRICS_URL ||
-      (typeof window !== "undefined"
-        ? "http://localhost:5004"
-        : "http://jobbingtrack-metrics-aggregator:3014");
+    // Côté navigateur, passer par le proxy Next pour injecter METRICS_API_KEY côté serveur.
+    this.metricsAggregatorUrl = getCentralMetricsAggregatorBase();
     this.updateToken();
   }
 
@@ -247,7 +250,7 @@ class CentralMetricsService {
     try {
       // Métriques système via metrics-aggregator uniquement (aggregator récupère depuis monitoring-c + BDD)
       const response = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/metrics`,
+        buildMetricsAggregatorUrl("metrics"),
         {
           headers: {
             Accept: "application/json",
@@ -334,7 +337,7 @@ class CentralMetricsService {
     try {
       // Métriques conteneurs via metrics-aggregator uniquement
       const response = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/metrics`,
+        buildMetricsAggregatorUrl("metrics"),
         {
           headers: {
             Accept: "application/json",
@@ -370,7 +373,7 @@ class CentralMetricsService {
     try {
       // Métriques Docker via metrics-aggregator uniquement
       const response = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/metrics`,
+        buildMetricsAggregatorUrl("metrics"),
         {
           headers: {
             Accept: "application/json",
@@ -523,7 +526,6 @@ class CentralMetricsService {
    */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     this.updateToken();
-    const endpoint = "/api/v1/metrics";
     const headers: HeadersInit = { Accept: "application/json" };
     if (this.token)
       (headers as Record<string, string>)["Authorization"] =
@@ -533,7 +535,7 @@ class CentralMetricsService {
     if (now < this.aggregatorUnavailableUntil) return null;
 
     try {
-      const response = await fetch(`${this.metricsAggregatorUrl}${endpoint}`, {
+      const response = await fetch(buildMetricsAggregatorUrl("metrics"), {
         headers,
         signal: AbortSignal.timeout(5000),
       });
@@ -602,7 +604,7 @@ class CentralMetricsService {
     try {
       // Liste des services : metrics-aggregator (docker/services/all ou /api/v1/metrics)
       const dockerRes = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/docker/services/all`,
+        buildMetricsAggregatorUrl("docker/services/all"),
         {
           headers: {
             Accept: "application/json",
@@ -623,7 +625,7 @@ class CentralMetricsService {
         }
       }
       const metricsRes = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/metrics`,
+        buildMetricsAggregatorUrl("metrics"),
         {
           headers: {
             Accept: "application/json",
@@ -707,7 +709,7 @@ class CentralMetricsService {
       if (options?.since) params.set("since", options.since);
       if (options?.until) params.set("until", options.until);
       const res = await fetch(
-        `${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?${params.toString()}`,
+        `${buildMetricsAggregatorUrl(`docker/service/${encodeURIComponent(name)}/logs`)}?${params.toString()}`,
         {
           headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
           signal: AbortSignal.timeout(15000),
@@ -1478,8 +1480,8 @@ class CentralMetricsService {
                   item.projectMemoryMb !== null
                 ? Number(item.projectMemoryMb)
                 : undefined,
-          // Inclure les métriques des conteneurs si disponibles
-          services: item.containers || [],
+          // Inclure les métriques de services si l'API les expose, sinon les conteneurs.
+          services: item.services || item.containers || [],
         };
       });
     } catch (error: any) {

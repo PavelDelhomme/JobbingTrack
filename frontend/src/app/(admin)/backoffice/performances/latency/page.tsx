@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
@@ -316,6 +318,14 @@ export default function PerformancesLatencyPage() {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6 w-full">
+        <Link
+          href="/b4ck0ff1ce/performances"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        >
+          <span aria-hidden>←</span>
+          Retour à Performances
+        </Link>
+        <PerformancesSubNav />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             Temps de réponse
