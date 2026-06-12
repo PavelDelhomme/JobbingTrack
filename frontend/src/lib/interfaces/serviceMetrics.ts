@@ -31,6 +31,10 @@ export interface ServiceMetrics {
       percentage: number | string;
       usageMb?: number | string;
       limitMb?: number | string;
+      limitSource?: string | null;
+      rawLimitMb?: number | string | null;
+      stackLimitMb?: number | string | null;
+      serviceBudgetMb?: number | string | null;
     };
     cpu?: {
       usage: number | string;

@@ -460,10 +460,9 @@ export default function BackofficePage() {
                 ) > 0.1;
               const projectMemChanged =
                 Math.abs(
-                  (prev?.jobbingtrack?.containers?.memory?.percent_of_system ||
-                    0) -
+                  (prev?.jobbingtrack?.containers?.memory?.percent || 0) -
                     (allMetrics.system.jobbingtrack?.containers?.memory
-                      ?.percent_of_system || 0),
+                      ?.percent || 0),
                 ) > 0.1;
 
               // Si pas de changement significatif, retourner l'objet précédent (évite re-render)
@@ -1228,39 +1227,23 @@ export default function BackofficePage() {
               title="Mémoire conteneurs JobbingTrack"
               value={
                 systemMetrics?.jobbingtrack?.containers?.memory
-                  ?.percent_of_system !== undefined
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !==
-                      undefined
+                  ?.percent !== undefined
                     ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
                     : "..."
               }
               subtitle={
                 systemMetrics?.jobbingtrack?.containers?.memory?.used != null &&
-                systemMetrics?.memory?.total_mb != null
-                  ? `% RAM hôte · ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)}`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.used !=
-                        null &&
-                      systemMetrics?.jobbingtrack?.containers?.memory?.limit !=
-                        null
-                    ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
-                    : "..."
+                systemMetrics?.jobbingtrack?.containers?.memory?.limit != null
+                  ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} budget JobbingTrack`
+                  : "Budget JobbingTrack non disponible"
               }
               icon={<MemoryStick className="h-6 w-6" />}
               color={
-                (systemMetrics?.jobbingtrack?.containers?.memory
-                  ?.percent_of_system !== undefined
-                  ? systemMetrics.jobbingtrack.containers.memory
-                      .percent_of_system
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent) >
-                20
+                (systemMetrics?.jobbingtrack?.containers?.memory?.percent || 0) >
+                80
                   ? "red"
-                  : (systemMetrics?.jobbingtrack?.containers?.memory
-                        ?.percent_of_system !== undefined
-                        ? systemMetrics.jobbingtrack.containers.memory
-                            .percent_of_system
-                        : systemMetrics?.jobbingtrack?.containers?.memory
-                            ?.percent) > 10
+                  : (systemMetrics?.jobbingtrack?.containers?.memory?.percent ||
+                        0) > 60
                     ? "yellow"
                     : "green"
               }
@@ -1614,11 +1597,7 @@ export default function BackofficePage() {
                     {(() => {
                       const memPct =
                         systemMetrics?.jobbingtrack?.containers?.memory
-                          ?.percent_of_system !== undefined
-                          ? systemMetrics.jobbingtrack.containers.memory
-                              .percent_of_system
-                          : systemMetrics?.jobbingtrack?.containers?.memory
-                                ?.percent !== undefined
+                          ?.percent !== undefined
                             ? systemMetrics.jobbingtrack.containers.memory
                                 .percent
                             : null;
@@ -1629,13 +1608,13 @@ export default function BackofficePage() {
                           </span>
                         );
                       const colorClass =
-                        memPct > 20
+                        memPct > 80
                           ? "text-red-600 dark:text-red-400"
-                          : memPct > 10
+                          : memPct > 60
                             ? "text-yellow-600 dark:text-yellow-400"
                             : "text-green-600 dark:text-green-400";
                       const indicator =
-                        memPct > 20 ? "🔴" : memPct > 10 ? "🟡" : "🟢";
+                        memPct > 80 ? "🔴" : memPct > 60 ? "🟡" : "🟢";
                       return (
                         <span className={colorClass}>
                           {indicator} {safeToFixed(memPct, 1)}%
@@ -1644,18 +1623,15 @@ export default function BackofficePage() {
                     })()}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500">
-                    Mémoire Projet (% RAM hôte)
+                    Mémoire Projet (% budget JobbingTrack)
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {systemMetrics?.jobbingtrack?.containers?.memory?.used !=
-                      null && systemMetrics?.memory?.total_mb != null
-                      ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.memory.total_mb)} RAM hôte`
-                      : systemMetrics?.jobbingtrack?.containers?.memory?.used !=
-                            null &&
-                          systemMetrics?.jobbingtrack?.containers?.memory
-                            ?.limit != null
-                        ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} limite cgroup`
-                        : "—"}
+                      null &&
+                    systemMetrics?.jobbingtrack?.containers?.memory?.limit !=
+                      null
+                      ? `${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.used)} / ${formatMemoryMb(systemMetrics.jobbingtrack.containers.memory.limit)} budget JobbingTrack`
+                      : "Budget JobbingTrack non disponible"}
                   </div>
                 </div>
               </div>
@@ -1761,43 +1737,33 @@ export default function BackofficePage() {
                         Mémoire Utilisée (Projet)
                       </span>
                       <span
-                        className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? "text-red-600 dark:text-red-400" : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`}
+                        className={`text-lg font-bold ${(systemMetrics.jobbingtrack.containers.memory?.percent || 0) > 80 ? "text-red-600 dark:text-red-400" : (systemMetrics.jobbingtrack.containers.memory?.percent || 0) > 60 ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`}
                       >
                         {systemMetrics.jobbingtrack.containers.memory
-                          ?.percent_of_system !== undefined
-                          ? `${systemMetrics.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
-                          : systemMetrics.jobbingtrack.containers.memory
-                                ?.percent !== undefined
+                          ?.percent !== undefined
                             ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
                             : "..."}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? "bg-red-500" : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? "bg-yellow-500" : "bg-green-500"}`}
+                        className={`h-2 rounded-full transition-all ${(systemMetrics.jobbingtrack.containers.memory?.percent || 0) > 80 ? "bg-red-500" : (systemMetrics.jobbingtrack.containers.memory?.percent || 0) > 60 ? "bg-yellow-500" : "bg-green-500"}`}
                         style={{
-                          width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent_of_system || systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%`,
+                          width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%`,
                         }}
                       ></div>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {systemMetrics.jobbingtrack.containers.memory?.used &&
-                      systemMetrics?.memory?.total_mb
-                        ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
-                        : systemMetrics.jobbingtrack.containers.memory?.used &&
-                            systemMetrics.jobbingtrack.containers.memory?.limit
-                          ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
-                          : "..."}{" "}
+                      systemMetrics.jobbingtrack.containers.memory?.limit
+                        ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB budget`
+                        : "Budget JobbingTrack non disponible"}{" "}
                       •
-                      {systemMetrics.jobbingtrack.containers.memory
-                        ?.percent_of_system !== undefined &&
-                      systemMetrics.jobbingtrack.containers.memory
-                        .percent_of_system > 20
+                      {(systemMetrics.jobbingtrack.containers.memory?.percent ||
+                        0) > 80
                         ? " 🔴 Élevé"
-                        : systemMetrics.jobbingtrack.containers.memory
-                              ?.percent_of_system !== undefined &&
-                            systemMetrics.jobbingtrack.containers.memory
-                              .percent_of_system > 10
+                        : (systemMetrics.jobbingtrack.containers.memory
+                              ?.percent || 0) > 60
                           ? " 🟡 Modéré"
                           : " 🟢 Normal"}
                     </div>

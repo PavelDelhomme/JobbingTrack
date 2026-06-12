@@ -469,6 +469,13 @@ export default function ServiceDetailPage() {
   const memoryPercent = serviceMetrics?.memory_percent || 0;
   const memoryUsageMb = serviceMetrics?.memory_usage_mb || 0;
   const memoryLimitMb = serviceMetrics?.memory_limit_mb || 0;
+  const memoryLimitSource = serviceMetrics?.memory_limit_source || null;
+  const memoryLimitLabel =
+    memoryLimitSource === "jobbingtrack-budget"
+      ? "Budget JobbingTrack"
+      : memoryLimitSource === "docker-hostconfig"
+        ? "Limite Docker"
+        : "Limite conteneur";
   const networkRxMb = serviceMetrics?.network_rx_mb || 0;
   const networkTxMb = serviceMetrics?.network_tx_mb || 0;
   const blockReadMb = serviceMetrics?.block_read_mb ?? 0;
@@ -689,7 +696,7 @@ export default function ServiceDetailPage() {
               % de la limite
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              Limite conteneur : {formatMegabytes(memoryLimitMb)}
+              {memoryLimitLabel} : {formatMegabytes(memoryLimitMb)}
             </p>
             <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div

@@ -5,6 +5,10 @@ const {
   isContainerRunning,
   summarizeContainersForBackoffice,
 } = require('../src/services/serviceHealthModel');
+const {
+  getServiceMemoryBudgetMb,
+  normalizeContainerMemoryMb,
+} = require('../src/services/memoryBudget');
 
 describe('serviceHealthModel', () => {
   it('classe running healthy, degraded/unknown et stopped', () => {
@@ -73,5 +77,31 @@ describe('serviceHealthModel', () => {
       health_status: 'unknown',
       health_bucket: 'degraded',
     });
+  });
+
+  it('remplace une limite mémoire hôte par le budget JobbingTrack du service', () => {
+    const normalized = normalizeContainerMemoryMb({
+      containerName: 'jobbingtrack-api-gateway',
+      usageMb: 192,
+      observedLimitMb: 48046,
+    });
+
+    expect(normalized.limitMb).toBe(getServiceMemoryBudgetMb('jobbingtrack-api-gateway'));
+    expect(normalized.limitSource).toBe('jobbingtrack-budget');
+    expect(normalized.stackLimitMb).toBe(8192);
+    expect(normalized.percent).toBe(50);
+  });
+
+  it('conserve une vraie limite Docker explicite', () => {
+    const normalized = normalizeContainerMemoryMb({
+      containerName: 'jobbingtrack-frontend',
+      usageMb: 512,
+      observedLimitMb: 2048,
+      configuredLimitMb: 2048,
+    });
+
+    expect(normalized.limitMb).toBe(2048);
+    expect(normalized.limitSource).toBe('docker-hostconfig');
+    expect(normalized.percent).toBe(25);
   });
 });

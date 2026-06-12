@@ -12,6 +12,7 @@ const si = require('systeminformation')
 const axios = require('axios')
 const Docker = require('dockerode')
 const jwt = require('jsonwebtoken')
+const { normalizeContainerMemoryMb } = require('./services/memoryBudget')
 
 // Réduction des logs : moins de bruit conteneurs/monitoring pour se concentrer sur données et tests API.
 // Mettre REDUCE_METRICS_LOGS=0 dans .env pour réactiver les logs verbeux ([PROC], [DISCOVERY], [CONTAINERS], etc.).
@@ -456,33 +457,27 @@ async function collectContainerMetrics() {
         
         // Mémoire : /host/proc si disponible, sinon fallback sur Docker stats
         let memoryMB = 0
-        let memoryLimitMB = 2048
+        let memoryLimitMB = 0
         const memoryLimit = inspect.HostConfig.Memory || 0
-        const memoryLimitFromDocker = memoryLimit > 0 ? Math.round(memoryLimit / 1024 / 1024) : 2048
+        const memoryLimitFromDocker = memoryLimit > 0 ? Math.round(memoryLimit / 1024 / 1024) : 0
 
         try {
           const statusPath = `/host/proc/${pid}/status`
           const readline = require('readline')
           const fsSync = require('fs')
           let memoryKB = 0
-          let vmsizeKB = 0
           const fileStream = fsSync.createReadStream(statusPath, { encoding: 'utf8' })
           const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity })
           for await (const line of rl) {
             const vmrssMatch = line.match(/^VmRSS:\s+(\d+)\s+kB/)
             if (vmrssMatch) {
               memoryKB = parseInt(vmrssMatch[1])
-              if (vmsizeKB > 0) break
-              continue
+              break
             }
-            const vmsizeMatch = line.match(/^VmSize:\s+(\d+)\s+kB/)
-            if (vmsizeMatch) vmsizeKB = parseInt(vmsizeMatch[1])
-            if (memoryKB > 0 && vmsizeKB > 0) break
           }
           fileStream.destroy()
           memoryMB = Math.round(memoryKB / 1024)
-          const vmsizeMB = Math.round(vmsizeKB / 1024)
-          memoryLimitMB = memoryLimitFromDocker || vmsizeMB || 2048
+          memoryLimitMB = memoryLimitFromDocker
         } catch (procErr) {
           // /host/proc non monté ou PID invalide : utiliser les stats Docker
           if (procErr.code !== 'ENOENT') {
@@ -495,7 +490,14 @@ async function collectContainerMetrics() {
           memoryLimitMB = limit > 0 ? Math.round(limit / 1024 / 1024) : memoryLimitFromDocker
         }
 
-        const memoryPercent = memoryLimitMB > 0 ? (memoryMB / memoryLimitMB) * 100 : 0
+        const normalizedMemory = normalizeContainerMemoryMb({
+          containerName,
+          usageMb: memoryMB,
+          observedLimitMb: memoryLimitMB,
+          configuredLimitMb: memoryLimitFromDocker
+        })
+        memoryLimitMB = normalizedMemory.limitMb
+        const memoryPercent = normalizedMemory.percent
         
         // ✅ Récupérer les statistiques réseau
         const networkStats = await getContainerNetworkStats(pid)
@@ -518,7 +520,11 @@ async function collectContainerMetrics() {
           memory: {
             usage: memoryMB,
             limit: memoryLimitMB,
-            percentage: parseFloat(Math.min(100, Math.max(0, Number(memoryPercent))).toFixed(4))
+            percentage: memoryPercent,
+            limitSource: normalizedMemory.limitSource,
+            rawObservedLimit: normalizedMemory.rawObservedLimitMb,
+            stackLimit: normalizedMemory.stackLimitMb,
+            serviceBudget: normalizedMemory.serviceBudgetMb
           },
           network: networkStats,
           blockIO: {

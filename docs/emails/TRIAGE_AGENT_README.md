@@ -16,7 +16,9 @@ Chaque soir à 19h, il :
 3. Crée des tâches dans Google Tasks (liste "Recherche emploi") pour le lendemain après 16h
 4. Crée des événements Google Calendar si entretien ou événement détecté
 5. Vérifie les tâches en retard non réalisées
-6. Envoie un récapitulatif HTML formaté au destinataire défini dans les propriétés Apps Script
+6. Ajoute des boutons d’action dans le récap (`FAIT`, `PAS PERTINENT`, `REPORTER +3j`)
+7. Cherche des offres fraîches autour de Rennes via flux publics France Travail / Indeed / Hellowork / Meteojob
+8. Envoie un récapitulatif HTML formaté au destinataire défini dans les propriétés Apps Script
 
 ---
 
@@ -28,10 +30,17 @@ Chaque soir à 19h, il :
 2. Cliquer **Nouveau projet**
 3. Coller le contenu de `triage_email_agent.gs` dans l'éditeur (remplacer le code par défaut)
 4. Cliquer **Services (+)** > chercher **Tasks API** > version v1 > identifiant : `TasksAPI` > Ajouter
-5. Dans **Paramètres du projet** > **Propriétés du script**, créer `TRIAGE_DIGEST_RECIPIENT` avec la vraie adresse de réception du récapitulatif
-6. Dans le menu déroulant des fonctions, sélectionner `installerDeclencheur` > **Exécuter** > accepter toutes les permissions Google
+5. Dans **Paramètres du projet** > **Propriétés du script**, créer :
+   - `TRIAGE_AGENT_EMAIL` : adresse du compte Google qui lit la boîte de recherche d’emploi
+   - `TRIAGE_DIGEST_RECIPIENT` : vraie adresse de réception du récapitulatif
+   - `JBT_AGENT_PIN` : PIN/token local JobBingTrack si l’écriture automatique JBT est utilisée
+6. Pour activer les boutons du mail : **Déployer** → **Nouveau déploiement** → type **Application Web** → exécuter en tant que **Moi** → accès **Tout le monde**. Copier l’URL `/exec`.
+7. Coller cette URL dans `CONFIG.webAppUrl` du script, puis redéployer une nouvelle version.
+8. Dans le menu déroulant des fonctions, sélectionner `installerDeclencheur` > **Exécuter** > accepter toutes les permissions Google
 
 Le script tourne ensuite automatiquement chaque soir à 19h.
+
+Sans Web App configurée, les boutons retombent vers `CONFIG.jobbingtrackUrl` : le triage, les tâches, le calendrier et le récap continuent de fonctionner.
 
 ---
 
@@ -51,12 +60,22 @@ var CONFIG = {
   taskListName: "Recherche emploi",        // nom de la liste Google Tasks
   calendarId: "primary",                  // calendrier Google Calendar
   heureDebutTaches: 16,                   // tâches planifiées après 16h
+  webAppUrl: "REMPLACER_PAR_URL_WEB_APP", // requis pour les boutons du mail
   jobbingtrackUrl: "https://jobbingtrack.pplx.app",
   // ... mots-clés et expéditeurs à adapter
 };
 ```
 
-Le destinataire du récapitulatif n'est pas dans le fichier : il est lu depuis `TRIAGE_DIGEST_RECIPIENT`. Si cette propriété manque, le script échoue explicitement au lieu d'envoyer vers une adresse factice.
+Les valeurs personnelles ne sont pas dans le fichier : `TRIAGE_AGENT_EMAIL`, `TRIAGE_DIGEST_RECIPIENT` et `JBT_AGENT_PIN` sont lus depuis les propriétés Apps Script. Si aucun destinataire n’est disponible, le script échoue explicitement au lieu d’envoyer vers une adresse factice.
+
+---
+
+## Nouveautés v4
+
+- **Boutons dans le mail** : `FAIT` complète la tâche Google Tasks, `PAS PERTINENT` supprime la tâche et marque la candidature `WITHDRAWN` si reliée à JBT, `REPORTER +3j` repousse l’échéance.
+- **Web App Apps Script** : obligatoire pour que les boutons soient cliquables depuis l’email. L’accès “Tout le monde” sert uniquement de point d’entrée HTTP signé par les paramètres de tâche ; éviter d’y exposer des secrets.
+- **Recherche d’offres Rennes** : récupération quotidienne d’offres publiques filtrées sur technicien support, informatique, cybersécurité, alternance IT dans un rayon d’environ 30 km autour de Rennes.
+- **Section offres fraîches** : les offres détectées sont ajoutées au récap quotidien, séparées des emails reçus.
 
 ---
 

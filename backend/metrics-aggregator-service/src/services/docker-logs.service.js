@@ -1,5 +1,6 @@
 const Docker = require('dockerode');
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+const { normalizeDockerMemoryBytes } = require('./memoryBudget');
 
 /**
  * Service de collecte des logs Docker
@@ -234,8 +235,14 @@ class DockerLogsService {
     const cpuPercent = systemDelta > 0 ? (cpuDelta / systemDelta) * stats.cpu_stats.online_cpus * 100 : 0;
 
     const memoryUsage = stats.memory_stats.usage || 0;
-    const memoryLimit = stats.memory_stats.limit || 1;
-    const memoryPercent = (memoryUsage / memoryLimit) * 100;
+    const memoryLimitRaw = stats.memory_stats.limit || 0;
+    const normalizedMemory = normalizeDockerMemoryBytes({
+      containerName: containerInfo.Names[0],
+      usageBytes: memoryUsage,
+      observedLimitBytes: memoryLimitRaw,
+    });
+    const memoryLimit = normalizedMemory.limitBytes;
+    const memoryPercent = normalizedMemory.percent;
 
     return {
       containerId: containerInfo.Id,
@@ -248,7 +255,11 @@ class DockerLogsService {
       memory: {
         usage: memoryUsage,
         limit: memoryLimit,
-        percentage: parseFloat(memoryPercent.toFixed(2)),
+        percentage: memoryPercent,
+        limitSource: normalizedMemory.limitSource,
+        rawObservedLimit: memoryLimitRaw,
+        stackLimitMb: normalizedMemory.stackLimitMb,
+        serviceBudgetMb: normalizedMemory.serviceBudgetMb,
       },
       network: {
         rx: stats.networks?.eth0?.rx_bytes || 0,

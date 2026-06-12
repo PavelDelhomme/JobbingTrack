@@ -861,6 +861,22 @@ class CentralMetricsService {
         typeof container.memory_percent === "number"
           ? parseFloat(container.memory_percent.toFixed(2))
           : 0;
+      const memoryLimitSource =
+        typeof container.memory_limit_source === "string"
+          ? container.memory_limit_source
+          : null;
+      const memoryRawLimitMb =
+        typeof container.memory_raw_limit_mb === "number"
+          ? parseFloat(container.memory_raw_limit_mb.toFixed(2))
+          : null;
+      const memoryStackLimitMb =
+        typeof container.memory_stack_limit_mb === "number"
+          ? container.memory_stack_limit_mb
+          : null;
+      const memoryServiceBudgetMb =
+        typeof container.memory_service_budget_mb === "number"
+          ? container.memory_service_budget_mb
+          : null;
 
       let status: ServiceMetrics["status"] = "unknown";
       let healthStatus: ServiceMetrics["healthStatus"] = "unknown";
@@ -936,6 +952,10 @@ class CentralMetricsService {
             percentage: memoryPercent,
             usageMb: memoryMb,
             limitMb: memoryLimitMb,
+            limitSource: memoryLimitSource,
+            rawLimitMb: memoryRawLimitMb,
+            stackLimitMb: memoryStackLimitMb,
+            serviceBudgetMb: memoryServiceBudgetMb,
           },
           cpu: {
             usage: cpuPercent,

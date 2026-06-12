@@ -2,6 +2,7 @@ const axios = require('axios');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const { decorateContainerHealth, summarizeContainersForBackoffice } = require('./serviceHealthModel');
+const { normalizeDockerMemoryBytes } = require('./memoryBudget');
 
 const execAsync = promisify(exec);
 
@@ -42,13 +43,25 @@ class DockerService {
       const { stdout } = await execAsync(`docker stats ${containerName} --no-stream --format "{{json .}}"`);
       const stats = JSON.parse(stdout.trim());
       
+      const memoryUsage = this.parseMemory(stats.MemUsage.split('/')[0].trim());
+      const memoryLimitRaw = this.parseMemory(stats.MemUsage.split('/')[1].trim());
+      const normalizedMemory = normalizeDockerMemoryBytes({
+        containerName: stats.Name,
+        usageBytes: memoryUsage,
+        observedLimitBytes: memoryLimitRaw,
+      });
+
       // Convertir les valeurs en format utilisable
       return {
         name: stats.Name,
         cpu_percent: parseFloat(stats.CPUPerc.replace('%', '')),
-        memory_usage: this.parseMemory(stats.MemUsage.split('/')[0].trim()),
-        memory_limit: this.parseMemory(stats.MemUsage.split('/')[1].trim()),
-        memory_percent: parseFloat(stats.MemPerc.replace('%', '')),
+        memory_usage: memoryUsage,
+        memory_limit: normalizedMemory.limitBytes,
+        memory_percent: normalizedMemory.percent,
+        memory_limit_source: normalizedMemory.limitSource,
+        memory_raw_limit: memoryLimitRaw,
+        memory_stack_limit_mb: normalizedMemory.stackLimitMb,
+        memory_service_budget_mb: normalizedMemory.serviceBudgetMb,
         network_rx: this.parseBytes(stats.NetIO.split('/')[0].trim()),
         network_tx: this.parseBytes(stats.NetIO.split('/')[1].trim()),
         block_read: this.parseBytes(stats.BlockIO.split('/')[0].trim()),
@@ -71,18 +84,34 @@ class DockerService {
       return stdout.trim().split('\n')
         .filter(line => line.length > 0)
         .map(line => JSON.parse(line))
-        .map(stats => ({
-          name: stats.Name || stats.Container,
-          cpu_percent: parseFloat(String(stats.CPUPerc || '0').replace('%', '')),
-          memory_usage: this.parseMemory(String(stats.MemUsage || '0B / 0B').split('/')[0].trim()),
-          memory_limit: this.parseMemory(String(stats.MemUsage || '0B / 0B').split('/')[1]?.trim() || '0B'),
-          memory_percent: parseFloat(String(stats.MemPerc || '0').replace('%', '')),
-          network_rx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[0].trim()),
-          network_tx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
-          block_read: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[0].trim()),
-          block_write: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
-          pids: parseInt(stats.PIDs || '0', 10)
-        }));
+        .map(stats => {
+          const containerName = stats.Name || stats.Container;
+          const memUsageParts = String(stats.MemUsage || '0B / 0B').split('/');
+          const memoryUsage = this.parseMemory(memUsageParts[0].trim());
+          const memoryLimitRaw = this.parseMemory(memUsageParts[1]?.trim() || '0B');
+          const normalizedMemory = normalizeDockerMemoryBytes({
+            containerName,
+            usageBytes: memoryUsage,
+            observedLimitBytes: memoryLimitRaw,
+          });
+
+          return {
+            name: containerName,
+            cpu_percent: parseFloat(String(stats.CPUPerc || '0').replace('%', '')),
+            memory_usage: memoryUsage,
+            memory_limit: normalizedMemory.limitBytes,
+            memory_percent: normalizedMemory.percent,
+            memory_limit_source: normalizedMemory.limitSource,
+            memory_raw_limit: memoryLimitRaw,
+            memory_stack_limit_mb: normalizedMemory.stackLimitMb,
+            memory_service_budget_mb: normalizedMemory.serviceBudgetMb,
+            network_rx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[0].trim()),
+            network_tx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+            block_read: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[0].trim()),
+            block_write: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+            pids: parseInt(stats.PIDs || '0', 10)
+          };
+        });
     } catch (error) {
       console.error('[Docker] Erreur getAllContainersStats:', error.message);
       return [];
@@ -195,7 +224,11 @@ class DockerService {
         memory: {
           usage: stat.memory_usage,
           limit: stat.memory_limit,
-          percent: stat.memory_percent
+          percent: stat.memory_percent,
+          limit_source: stat.memory_limit_source,
+          raw_limit: stat.memory_raw_limit,
+          stack_limit_mb: stat.memory_stack_limit_mb,
+          service_budget_mb: stat.memory_service_budget_mb
         },
         network: {
           rx_bytes: stat.network_rx,

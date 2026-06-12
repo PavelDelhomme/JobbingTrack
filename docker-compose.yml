@@ -10,6 +10,7 @@ services:
   postgres:
     image: postgres:15
     container_name: jobbingtrack-postgres
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-768m}
     environment:
       # `public.system_metrics.timestamp` = TIMESTAMP sans fuseau, alimenté par NOW() (monitoring-c).
       # Session UTC explicite : alignée avec `toIsoUtcString` côté metrics-aggregator (suffixe Z).
@@ -36,6 +37,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
+    mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
     ports:
       - "${REDIS_PORT:-5001}:${REDIS_INTERNAL_PORT:-6379}"
     healthcheck:
@@ -54,6 +56,7 @@ services:
       context: ./backend
       dockerfile: api-gateway/Dockerfile.backend-context
     container_name: jobbingtrack-api-gateway
+    mem_limit: ${API_GATEWAY_MEMORY_LIMIT:-384m}
     ports:
       - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
@@ -109,6 +112,7 @@ services:
       args:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-2048m}
     # Sous Linux, host.docker.internal n'existe pas par défaut → le proxy Build APK ne peut pas joindre le contrôleur sur l'hôte
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -142,7 +146,7 @@ services:
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
       - NODE_ENV=development
       # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
-      - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=2048}
+      - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=1536}
       - PORT=3000
       - PROJECT_ROOT=/app
       # Writable : ./tests est monté :ro sur /app/tests — résultats dans /tmp (volume dédié)
@@ -183,6 +187,7 @@ services:
       dockerfile: crates/monitoring-agent/Dockerfile
     image: jobbingtrack-monitoring-agent-rs
     container_name: jobbingtrack-monitoring-agent-rs
+    mem_limit: ${MONITORING_RS_MEMORY_LIMIT:-256m}
     user: "0:0"
     ports:
       - "${MONITORING_RS_PORT:-5118}:8015"
@@ -224,6 +229,7 @@ services:
       dockerfile: Dockerfile
     image: jobbingtrack-monitoring-c
     container_name: jobbingtrack-monitoring-c
+    mem_limit: ${MONITORING_C_MEMORY_LIMIT:-128m}
     user: "0:0"
     ports:
       - "${MONITORING_C_PORT:-5098}:8015"
@@ -261,6 +267,7 @@ services:
       dockerfile: crates/log-collector/Dockerfile
     image: jobbingtrack-log-collector-rs
     container_name: jobbingtrack-log-collector-rs
+    mem_limit: ${LOG_COLLECTOR_RS_MEMORY_LIMIT:-192m}
     user: "0:0"
     ports:
       - "${LOG_COLLECTOR_RS_PORT:-5099}:3019"
@@ -297,6 +304,7 @@ services:
       context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
+    mem_limit: ${METRICS_AGGREGATOR_MEMORY_LIMIT:-512m}
     user: "0:0"
     ports:
       - "${METRICS_AGGREGATOR_PORT:-5004}:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}"
@@ -328,6 +336,7 @@ services:
       - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_COLLECTION_INTERVAL_SECONDS=${METRICS_COLLECTION_INTERVAL_SECONDS:-30}
       - MONITORING_AGENT_URL=${MONITORING_AGENT_URL:-http://monitoring-agent-rs:8015}
+      - JOBBINGTRACK_STACK_MEMORY_LIMIT_MB=${JOBBINGTRACK_STACK_MEMORY_LIMIT_MB:-8192}
       # Collecteur C : uniquement si vous lancez explicitement `monitoring-c` (profil monitoring-c) et pointez l’URL ici.
       - MONITORING_C_URL=${MONITORING_C_URL:-}
       - NODE_ENV=development
@@ -368,6 +377,7 @@ services:
       context: ./backend/auth-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-auth-service
+    mem_limit: ${AUTH_SERVICE_MEMORY_LIMIT:-384m}
     ports:
       - "${AUTH_SERVICE_PORT:-5005}:${AUTH_SERVICE_INTERNAL_PORT:-3001}"
     volumes:
@@ -432,6 +442,7 @@ services:
       context: ./backend/application-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-application-service
+    mem_limit: ${APPLICATION_SERVICE_MEMORY_LIMIT:-256m}
     ports:
       - "${APPLICATION_SERVICE_PORT:-5006}:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}"
     volumes:
@@ -476,6 +487,7 @@ services:
       context: ./backend/company-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-company-service
+    mem_limit: ${COMPANY_SERVICE_MEMORY_LIMIT:-256m}
     ports:
       - "${COMPANY_SERVICE_PORT:-5007}:${COMPANY_SERVICE_INTERNAL_PORT:-3003}"
     volumes:
@@ -520,6 +532,7 @@ services:
       context: ./backend/contact-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-contact-service
+    mem_limit: ${CONTACT_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${CONTACT_SERVICE_PORT:-5008}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
     volumes:
@@ -558,6 +571,7 @@ services:
       context: ./backend/interview-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-interview-service
+    mem_limit: ${INTERVIEW_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${INTERVIEW_SERVICE_PORT:-5009}:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}"
     volumes:
@@ -595,6 +609,7 @@ services:
       context: ./backend/call-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-call-service
+    mem_limit: ${CALL_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${CALL_SERVICE_PORT:-5010}:${CALL_SERVICE_INTERNAL_PORT:-3008}"
     volumes:
@@ -632,6 +647,7 @@ services:
       context: ./backend/event-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-event-service
+    mem_limit: ${EVENT_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3011}"
     environment:
@@ -666,6 +682,7 @@ services:
       context: ./backend/followup-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-followup-service
+    mem_limit: ${FOLLOWUP_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${FOLLOWUP_SERVICE_PORT:-5012}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}"
     volumes:
@@ -703,6 +720,7 @@ services:
       context: ./backend/profile-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-profile-service
+    mem_limit: ${PROFILE_SERVICE_MEMORY_LIMIT:-192m}
     ports:
       - "${PROFILE_SERVICE_PORT:-5013}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
     environment:
@@ -737,6 +755,7 @@ services:
       context: ./backend/notification-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-notification-service
+    mem_limit: ${NOTIFICATION_SERVICE_MEMORY_LIMIT:-384m}
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
     volumes:
@@ -808,6 +827,7 @@ services:
       context: ./backend/dashboard-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
+    mem_limit: ${DASHBOARD_SERVICE_MEMORY_LIMIT:-384m}
     ports:
       - "${DASHBOARD_SERVICE_PORT:-5015}:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}"
     volumes:
@@ -856,6 +876,7 @@ services:
       context: ./backend/workflow-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-workflow-service
+    mem_limit: ${WORKFLOW_SERVICE_MEMORY_LIMIT:-256m}
     ports:
       - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
@@ -888,6 +909,7 @@ services:
       context: ./flutter-mobile-app
       dockerfile: Dockerfile
     container_name: jobbingtrack-flutter-mobile
+    mem_limit: ${FLUTTER_MOBILE_MEMORY_LIMIT:-512m}
     ports:
       - "${FLUTTER_MOBILE_PORT:-5019}:${FLUTTER_MOBILE_INTERNAL_PORT:-8080}"  # Interface web de l'émulateur Flutter
     environment:
@@ -904,6 +926,7 @@ services:
       context: ./backend/security-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-security-service
+    mem_limit: ${SECURITY_SERVICE_MEMORY_LIMIT:-384m}
     ports:
       - "${SECURITY_SERVICE_PORT:-5017}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
     environment:
@@ -980,6 +1003,7 @@ services:
       context: ./backend/deployment-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-deployment-service
+    mem_limit: ${DEPLOYMENT_SERVICE_MEMORY_LIMIT:-256m}
     ports:
       - "${DEPLOYMENT_SERVICE_PORT:-5018}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
     environment:
@@ -1014,6 +1038,7 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     container_name: jobbingtrack-mailhog
+    mem_limit: ${MAILHOG_MEMORY_LIMIT:-128m}
     ports:
       - "${MAILHOG_SMTP_PORT:-2525}:1025"
       - "${MAILHOG_WEB_PORT:-8025}:8025"
