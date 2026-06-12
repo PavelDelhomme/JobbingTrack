@@ -269,6 +269,8 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 **Preuve agent fraîche Statistics Sécurité (12/06 01h56)** : endpoints `persistence/security/metrics`, `persistence/security/summary`, `persistence/stats` répondent **200** ; `security/metrics` = **2000** points, `summary.dataPoints=2000`, `security_logs=42296` et `security_metrics=97779` confirmés en BDD ; `/b4ck0ff1ce/statistics/security` et `/b4ck0ff1ce/security` répondent **200**.
 
+**Preuve agent fraîche Statistics log-stats (12/06 02h08)** : `scripts/ops/run-statistics-log-stats-validation-with-report.sh` → `tests/results/statistics-log-stats/20260612-020820` (**4/4 étapes OK**) ; `smoke-persistence-stats.cjs` OK ; `/persistence/stats` → `aggregatedLogs=27606` confirmé BDD ; `/persistence/logs` 14j → **799** lignes, filtre WARN → **50**, filtre `jobbingtrack-api-gateway` → **3** ; `/b4ck0ff1ce/statistics/log-stats` HTTP **200** ; rapport `statistics-log-stats-20260612-020820` listé dans test-reports.
+
 **Réponses** : `OK Statistics Sécurité` · `OK Statistics log-stats` · etc. (ou `KO` + route).
 
 ### P1C — UX backoffice (une validation = une réponse)
