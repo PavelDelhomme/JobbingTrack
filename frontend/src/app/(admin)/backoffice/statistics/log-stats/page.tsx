@@ -15,7 +15,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { AdminLayout } from "@/components/features";
 import {
   FilterBar,
   FilterSelectField,
@@ -289,8 +288,7 @@ export default function StatisticsLogStatsPage() {
   const dataRange = stats?.dataRange;
 
   return (
-    <AdminLayout>
-      <StatisticsPageShell
+    <StatisticsPageShell
         title="Statistiques — Logs persistés"
         description={
           <>
@@ -508,7 +506,6 @@ export default function StatisticsLogStatsPage() {
             </div>
           </>
         )}
-      </StatisticsPageShell>
-    </AdminLayout>
+    </StatisticsPageShell>
   );
 }
