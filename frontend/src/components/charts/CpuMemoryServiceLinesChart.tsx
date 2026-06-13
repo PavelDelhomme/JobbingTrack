@@ -29,6 +29,8 @@ export type CpuMemoryServiceLinesChartProps = {
   axisShowDate: boolean;
   chartData: Record<string, string | number | null>[];
   serviceKeys: string[];
+  /** Rendu plus visible pour les snapshots/fallback live avec peu de points. */
+  emphasizePoints?: boolean;
 };
 
 function formatPercentTick(value: number | string): string {
@@ -52,6 +54,7 @@ export function CpuMemoryServiceLinesChart({
   axisShowDate,
   chartData,
   serviceKeys,
+  emphasizePoints = false,
 }: CpuMemoryServiceLinesChartProps) {
   const seriesColors = buildStableSeriesColorMap(serviceKeys);
   const prefix = metric === "cpu" ? "cpu" : "memory";
@@ -105,9 +108,10 @@ export function CpuMemoryServiceLinesChart({
                 type="monotone"
                 dataKey={`${prefix}_${serviceKey}`}
                 stroke={seriesColors[serviceKey]}
-                strokeWidth={2}
+                strokeWidth={emphasizePoints ? 3 : 2}
                 name={serviceKey}
-                dot={false}
+                dot={emphasizePoints ? { r: 3 } : false}
+                activeDot={{ r: 5 }}
                 connectNulls={false}
               />
             ))}

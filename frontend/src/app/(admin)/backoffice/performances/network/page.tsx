@@ -488,6 +488,7 @@ export default function NetworkPerformancePage() {
               goNext={goNext}
               canGoNext={canGoNext}
               onPeriodNow={handlePeriodNow}
+              showNavigationHint={false}
             />
           </div>
         </div>

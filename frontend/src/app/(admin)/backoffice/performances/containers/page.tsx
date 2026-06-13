@@ -75,7 +75,10 @@ interface ContainerInfo {
   name: string;
   service_type?: string;
   cpu_percent?: number;
+  cpuPercent?: number;
   memory_percent?: number;
+  memoryPercent?: number;
+  metrics?: Record<string, unknown>;
   health_status?: string;
   [key: string]: unknown;
 }
@@ -115,6 +118,51 @@ function compressData<T extends { timestamp: string }>(
     out.push({ ...mid, ...avg } as T);
   }
   return out;
+}
+
+function numberFromKeys(
+  source: Record<string, unknown>,
+  keys: string[],
+): number | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value.replace("%", "").trim());
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+}
+
+function containerMetricBag(
+  container: ContainerInfo,
+): Record<string, unknown> {
+  return container.metrics && typeof container.metrics === "object"
+    ? container.metrics
+    : {};
+}
+
+function containerCpu(container: ContainerInfo): number | null {
+  const bag = containerMetricBag(container);
+  return numberFromKeys({ ...bag, ...container }, [
+    "cpuUsagePercent",
+    "cpu_usage_percent",
+    "cpu_percent",
+    "cpuPercent",
+    "cpu",
+  ]);
+}
+
+function containerMemory(container: ContainerInfo): number | null {
+  const bag = containerMetricBag(container);
+  return numberFromKeys({ ...bag, ...container }, [
+    "memoryUsagePercent",
+    "memory_usage_percent",
+    "memory_percent",
+    "memoryPercent",
+    "memory",
+  ]);
 }
 
 export default function ContainersAnalyticsPage() {
@@ -441,8 +489,29 @@ export default function ContainersAnalyticsPage() {
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
   const chartData = useMemo(() => {
+    const livePointTimes = () => {
+      const now = Date.now();
+      return [now - 60_000, now];
+    };
     if (selectedContainer !== ALL_CONTAINERS_VALUE) {
-      if (rawMetrics.length === 0) return [];
+      if (rawMetrics.length === 0) {
+        const selected = containers.find((c) => c.name === selectedContainer);
+        if (!selected) return [];
+        const cpu = containerCpu(selected);
+        const memory = containerMemory(selected);
+        if (cpu == null && memory == null) return [];
+        return livePointTimes().map((timeMs) => {
+          const iso = new Date(timeMs).toISOString();
+          return {
+            timeMs,
+            timestamp: iso,
+            time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+            datetime: formatLocalDateTime(iso),
+            cpu,
+            memory,
+          };
+        });
+      }
       const keys: (keyof ContainerMetric)[] = [
         "cpuUsagePercent",
         "memoryUsagePercent",
@@ -467,7 +536,29 @@ export default function ContainersAnalyticsPage() {
     const names = Object.keys(rawMetricsByContainer).filter(
       (n) => rawMetricsByContainer[n].length > 0,
     );
-    if (names.length === 0) return [];
+    if (names.length === 0) {
+      const liveContainers = containers.filter((container) => {
+        return containerCpu(container) != null || containerMemory(container) != null;
+      });
+      if (liveContainers.length === 0) return [];
+      return livePointTimes().map((timeMs) => {
+        const iso = new Date(timeMs).toISOString();
+        const point: Record<string, string | number | null> = {
+          timeMs,
+          timestamp: iso,
+          time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+          datetime: formatLocalDateTime(iso),
+        };
+        liveContainers.forEach((container) => {
+          const k = container.name
+            .replace(/^jobbingtrack-/, "")
+            .replace(/-/g, "_");
+          point[`cpu_${k}`] = containerCpu(container);
+          point[`memory_${k}`] = containerMemory(container);
+        });
+        return point;
+      });
+    }
     const toKey = (n: string) =>
       n.replace(/^jobbingtrack-/, "").replace(/-/g, "_");
     /** Les séries par conteneur n’ont pas le même horodatage exact : on aligne au point le plus proche. */
@@ -531,7 +622,7 @@ export default function ContainersAnalyticsPage() {
       });
       return point;
     });
-  }, [rawMetrics, rawMetricsByContainer, selectedContainer]);
+  }, [containers, rawMetrics, rawMetricsByContainer, selectedContainer]);
 
   const [chartXDomainEffMin, chartXDomainEffMax] = useMemo(
     () =>
@@ -548,9 +639,18 @@ export default function ContainersAnalyticsPage() {
 
   const isAllContainers = selectedContainer === ALL_CONTAINERS_VALUE;
   const containerNamesForChart = isAllContainers
-    ? Object.keys(rawMetricsByContainer)
-        .filter((n) => rawMetricsByContainer[n].length > 0)
-        .map((n) => n.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
+    ? Object.keys(rawMetricsByContainer).some(
+        (n) => rawMetricsByContainer[n].length > 0,
+      )
+      ? Object.keys(rawMetricsByContainer)
+          .filter((n) => rawMetricsByContainer[n].length > 0)
+          .map((n) => n.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
+      : containers
+          .filter(
+            (container) =>
+              containerCpu(container) != null || containerMemory(container) != null,
+          )
+          .map((n) => n.name.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
     : [];
 
   const handlePeriodNow = useCallback(() => {
@@ -624,6 +724,7 @@ export default function ContainersAnalyticsPage() {
               goNext={goNext}
               canGoNext={canGoNext}
               onPeriodNow={handlePeriodNow}
+              showNavigationHint={false}
             />
           </div>
         </div>

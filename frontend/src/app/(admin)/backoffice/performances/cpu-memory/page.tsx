@@ -52,6 +52,7 @@ interface ContainerInfo {
   memory_limit_mb?: number;
   memory_usage_mb?: number;
   health_status?: string;
+  [key: string]: unknown;
 }
 
 interface ContainerMetric {
@@ -163,6 +164,41 @@ function average(values: Array<number | undefined>): number | null {
 
 function formatPercent(value: number | null): string {
   return value == null ? "—" : `${value.toFixed(1)} %`;
+}
+
+function numberFromKeys(
+  source: Record<string, unknown>,
+  keys: string[],
+): number | undefined {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value.replace("%", "").trim());
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function containerCpu(container: ContainerInfo): number | undefined {
+  return numberFromKeys(container, [
+    "cpu_percent",
+    "cpuPercent",
+    "cpu_usage_percent",
+    "cpuUsagePercent",
+    "cpu",
+  ]);
+}
+
+function containerMemory(container: ContainerInfo): number | undefined {
+  return numberFromKeys(container, [
+    "memory_percent",
+    "memoryPercent",
+    "memory_usage_percent",
+    "memoryUsagePercent",
+    "memory",
+  ]);
 }
 
 export default function CpuMemoryPerformancePage() {
@@ -412,6 +448,23 @@ export default function CpuMemoryPerformancePage() {
     [rawSystemMetrics],
   );
 
+  const liveSystemChartData = useMemo<SystemPercentSeriesRow[]>(() => {
+    const cpu = average(containers.map(containerCpu));
+    const memory = average(containers.map(containerMemory));
+    if (cpu == null && memory == null) return [];
+    const now = Date.now();
+    const previous = now - 60_000;
+    return [previous, now].map((timeMs) => ({
+      timeMs,
+      timestamp: new Date(timeMs).toISOString(),
+      cpu,
+      memory,
+    }));
+  }, [containers]);
+
+  const effectiveSystemChartData =
+    systemChartData.length > 0 ? systemChartData : liveSystemChartData;
+
   const chartData = useMemo(() => {
     const names = Object.keys(rawMetricsByContainer).filter(
       (name) => rawMetricsByContainer[name].length > 0,
@@ -481,6 +534,33 @@ export default function CpuMemoryPerformancePage() {
     });
   }, [rawMetricsByContainer]);
 
+  const liveServiceChartData = useMemo(() => {
+    const selectedContainers = containers.filter((container) =>
+      selectedServiceKeys.includes(serviceKey(container.name)),
+    );
+    if (selectedContainers.length === 0) return [];
+    const now = Date.now();
+    const previous = now - 60_000;
+    return [previous, now].map((timeMs) => {
+      const iso = new Date(timeMs).toISOString();
+      const point: Record<string, string | number | null> = {
+        timeMs,
+        timestamp: iso,
+        time: formatLocalChartAxisTick(timeMs, { withDate: false }),
+        datetime: formatLocalDateTime(iso),
+      };
+      selectedContainers.forEach((container) => {
+        const key = serviceKey(container.name);
+        point[`cpu_${key}`] = containerCpu(container) ?? null;
+        point[`memory_${key}`] = containerMemory(container) ?? null;
+      });
+      return point;
+    });
+  }, [containers, selectedServiceKeys]);
+
+  const effectiveDetailChartData =
+    chartData.length > 0 ? chartData : liveServiceChartData;
+
   const serviceKeys = useMemo(
     () =>
       containers
@@ -497,7 +577,23 @@ export default function CpuMemoryPerformancePage() {
     [rawMetricsByContainer],
   );
 
-  const activeChartData = activeView === "overview" ? systemChartData : chartData;
+  const liveSelectedServiceKeys = useMemo(
+    () =>
+      containers
+        .filter((container) => selectedServiceKeys.includes(serviceKey(container.name)))
+        .filter(
+          (container) =>
+            containerCpu(container) != null || containerMemory(container) != null,
+        )
+        .map((container) => serviceKey(container.name)),
+    [containers, selectedServiceKeys],
+  );
+
+  const effectiveDetailServiceKeys =
+    chartData.length > 0 ? fetchedServiceKeys : liveSelectedServiceKeys;
+
+  const activeChartData =
+    activeView === "overview" ? effectiveSystemChartData : effectiveDetailChartData;
 
   const [chartXDomainEffMin, chartXDomainEffMax] = useMemo(
     () =>
@@ -511,10 +607,8 @@ export default function CpuMemoryPerformancePage() {
   const axisShowDate =
     chartXDomainEffMax - chartXDomainEffMin > 24 * 60 * 60 * 1000;
 
-  const liveCpuAvg = average(containers.map((container) => container.cpu_percent));
-  const liveMemoryAvg = average(
-    containers.map((container) => container.memory_percent),
-  );
+  const liveCpuAvg = average(containers.map(containerCpu));
+  const liveMemoryAvg = average(containers.map(containerMemory));
   const runningCount = containers.filter(
     (container) => container.health_status !== "exited",
   ).length;
@@ -609,10 +703,6 @@ export default function CpuMemoryPerformancePage() {
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
             Performances — CPU & Mémoire
           </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Vue machine par service : CPU, mémoire, séries persistées et période
-            partagée avec les autres pages Performances.
-          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -657,6 +747,7 @@ export default function CpuMemoryPerformancePage() {
             goNext={goNext}
             canGoNext={canGoNext}
             onPeriodNow={handlePeriodNow}
+            showNavigationHint={false}
           />
         </div>
 
@@ -742,11 +833,9 @@ export default function CpuMemoryPerformancePage() {
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-8 text-center text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
             {listError}
           </div>
-        ) : activeView === "overview" && systemChartData.length === 0 ? (
+        ) : activeView === "overview" && effectiveSystemChartData.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-            Aucune métrique système persistée sur cette période. La page reste
-            rapide : seules les cartes live et la liste des services sont
-            chargées au départ.
+            Aucune métrique CPU/mémoire disponible pour l’instant.
           </div>
         ) : activeView !== "overview" && selectedServiceKeys.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
@@ -758,23 +847,21 @@ export default function CpuMemoryPerformancePage() {
               <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
                 CPU & mémoire globaux
               </h2>
-              <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                Série système persistée, chargée en une seule requête. Les
-                vues détaillées chargent ensuite uniquement les services cochés.
-              </p>
               <SystemCpuMemoryAreaCharts
-                chartData={systemChartData}
+                chartData={effectiveSystemChartData}
                 xDomainMin={chartXDomainEffMin}
                 xDomainMax={chartXDomainEffMax}
                 axisShowDate={axisShowDate}
                 chartHeight={260}
+                emphasizePoints={systemChartData.length === 0}
               />
             </div>
           </div>
-        ) : chartData.length === 0 || fetchedServiceKeys.length === 0 ? (
+        ) : effectiveDetailChartData.length === 0 ||
+          effectiveDetailServiceKeys.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-            Aucune série détaillée persistée pour les services sélectionnés sur
-            cette période.
+            Aucune métrique CPU/mémoire disponible pour les services
+            sélectionnés.
           </div>
         ) : (
           <CpuMemoryServiceLinesChart
@@ -788,8 +875,9 @@ export default function CpuMemoryPerformancePage() {
             chartXDomainMin={chartXDomainEffMin}
             chartXDomainMax={chartXDomainEffMax}
             axisShowDate={axisShowDate}
-            chartData={chartData}
-            serviceKeys={fetchedServiceKeys}
+            chartData={effectiveDetailChartData}
+            serviceKeys={effectiveDetailServiceKeys}
+            emphasizePoints={chartData.length === 0}
           />
         )}
       </div>

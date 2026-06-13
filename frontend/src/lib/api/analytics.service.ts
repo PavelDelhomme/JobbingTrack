@@ -433,14 +433,24 @@ export class AnalyticsService {
       );
       if (response.data?.services && Array.isArray(response.data.services)) {
         return response.data.services.map(
-          (s: { name: string; health_status?: string }) => {
+          (s: { name: string; health_status?: string; [key: string]: unknown }) => {
             const name = String(s.name || "")
               .replace(/^\//, "")
               .trim();
+            const metrics =
+              s.metrics && typeof s.metrics === "object"
+                ? (s.metrics as Record<string, unknown>)
+                : {};
             return {
+              ...s,
               name,
               health_status: s.health_status,
               service_type: name.replace(/^jobbingtrack-/, ""),
+              cpu_percent: s.cpu_percent ?? metrics.cpu_percent,
+              memory_percent: s.memory_percent ?? metrics.memory_percent,
+              memory_usage_mb: s.memory_usage_mb ?? metrics.memory_usage_mb,
+              memory_limit_mb: s.memory_limit_mb ?? metrics.memory_limit_mb,
+              pids: s.pids ?? metrics.pids,
             };
           },
         );

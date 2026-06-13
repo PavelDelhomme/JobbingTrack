@@ -45,6 +45,16 @@ const TARGET_POINTS = 220;
 
 interface ContainerInfo {
   name: string;
+  metrics?: Record<string, unknown>;
+  diskUsagePercent?: number;
+  disk_usage_percent?: number;
+  diskUsedBytes?: number;
+  disk_used_bytes?: number;
+  diskTotalBytes?: number;
+  disk_total_bytes?: number;
+  blockReadBytes?: number;
+  blockWriteBytes?: number;
+  [key: string]: unknown;
 }
 
 interface DiskMetricRow {
@@ -167,6 +177,27 @@ function maxWithFallback(values: number[], fallback = 1): number {
   const finite = values.filter((value) => Number.isFinite(value) && value > 0);
   if (finite.length === 0) return fallback;
   return Math.max(...finite) * 1.12;
+}
+
+function numberFromKeys(
+  source: Record<string, unknown>,
+  keys: string[],
+): number | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value.replace("%", "").trim());
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+}
+
+function metricBag(row: Record<string, unknown>): Record<string, unknown> {
+  return row.metrics && typeof row.metrics === "object"
+    ? (row.metrics as Record<string, unknown>)
+    : {};
 }
 
 export default function PerformancesDiskPage() {
@@ -361,7 +392,7 @@ export default function PerformancesDiskPage() {
           analyticsService.getContainersList().catch(() => []),
         ]);
         if (cancelled || controller.signal.aborted) return;
-        setSystemRows(normalizeSystemRows(systemData));
+        const normalizedSystem = normalizeSystemRows(systemData);
 
         const activeContainers = (containers as ContainerInfo[]).filter(
           (container) => container.name,
@@ -391,7 +422,81 @@ export default function PerformancesDiskPage() {
         histories.forEach((history) => {
           if (history.rows.length > 0) byContainer[history.name] = history.rows;
         });
-        setIoRows(aggregateIo(byContainer));
+        const aggregatedIo = aggregateIo(byContainer);
+        const now = Date.now();
+        const fallbackSystemRows =
+          normalizedSystem.length > 0
+            ? normalizedSystem
+            : (() => {
+                const latestRaw = (systemData || [])[0] as
+                  | Record<string, unknown>
+                  | undefined;
+                if (!latestRaw) return [];
+                const usage = numberOrNull(
+                  latestRaw.diskUsagePercent ?? latestRaw.disk_usage_percent,
+                );
+                const used = pickGb(
+                  latestRaw,
+                  ["diskUsedGb", "disk_used_gb"],
+                  ["diskUsedBytes", "disk_used_bytes"],
+                );
+                const total = pickGb(
+                  latestRaw,
+                  ["diskTotalGb", "disk_total_gb"],
+                  ["diskTotalBytes", "disk_total_bytes"],
+                );
+                if (usage == null && used == null && total == null) return [];
+                return [now - 60_000, now].map((timeMs) => ({
+                  timestamp: new Date(timeMs).toISOString(),
+                  timeMs,
+                  usage,
+                  used,
+                  total,
+                }));
+              })();
+        const fallbackIoRows =
+          aggregatedIo.length > 0
+            ? aggregatedIo
+            : (() => {
+                let readMb = 0;
+                let writeMb = 0;
+                let seenRead = false;
+                let seenWrite = false;
+                activeContainers.forEach((container) => {
+                  const bag = metricBag(container);
+                  const read =
+                    pickMbFromBytes(
+                      { ...bag, ...container },
+                      ["blockReadBytes", "block_read_bytes"],
+                      ["blockReadMb", "block_read_mb"],
+                    ) ?? numberFromKeys(bag, ["block_read_mb", "blockReadMb"]);
+                  const write =
+                    pickMbFromBytes(
+                      { ...bag, ...container },
+                      ["blockWriteBytes", "block_write_bytes"],
+                      ["blockWriteMb", "block_write_mb"],
+                    ) ?? numberFromKeys(bag, ["block_write_mb", "blockWriteMb"]);
+                  if (read != null) {
+                    readMb += read;
+                    seenRead = true;
+                  }
+                  if (write != null) {
+                    writeMb += write;
+                    seenWrite = true;
+                  }
+                });
+                if (!seenRead && !seenWrite) return [];
+                return [now - 60_000, now].map((timeMs) => ({
+                  timestamp: new Date(timeMs).toISOString(),
+                  timeMs,
+                  readMb: seenRead ? readMb : null,
+                  writeMb: seenWrite ? writeMb : null,
+                  readMbPerMin: 0,
+                  writeMbPerMin: 0,
+                }));
+              })();
+        setSystemRows(fallbackSystemRows);
+        setIoRows(fallbackIoRows);
       } catch (e) {
         if (!isBenignFetchAbort(e)) console.error(e);
       } finally {
@@ -548,6 +653,7 @@ export default function PerformancesDiskPage() {
               goNext={goNext}
               canGoNext={canGoNext}
               onPeriodNow={handlePeriodNow}
+              showNavigationHint={false}
             />
           </div>
         </div>
