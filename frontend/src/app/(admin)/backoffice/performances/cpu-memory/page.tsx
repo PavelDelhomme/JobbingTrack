@@ -2,9 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAxiosError } from "axios";
-import Link from "next/link";
-import { AdminLayout } from "@/components/features";
-import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   beginUserRangeFetch,
@@ -33,6 +30,12 @@ import {
   metricTimestampToMs,
   normalizeMetricTimestampToIso,
 } from "@/lib/utils/date";
+import {
+  PerformanceChartCard,
+  PerformanceEmptyState,
+  PerformanceLoadingState,
+  PerformancePageShell,
+} from "@/components/performances";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
@@ -688,22 +691,27 @@ export default function CpuMemoryPerformancePage() {
   }, []);
 
   return (
-    <AdminLayout>
-      <div className="w-full space-y-6 p-6">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
-        <PerformancesSubNav />
-
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
-            Performances — CPU & Mémoire
-          </h1>
-        </div>
+    <PerformancePageShell
+      title="Performances — CPU & Mémoire"
+      actions={
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={handlePeriodNow}
+          showNavigationHint={false}
+        />
+      }
+    >
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -730,25 +738,6 @@ export default function CpuMemoryPerformancePage() {
               {runningCount}/{containers.length || "—"}
             </p>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <TimeRangeSelector
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-            useCustomRange={useCustomRange}
-            setUseCustomRange={setUseCustomRange}
-            customStart={customStart}
-            setCustomStart={setCustomStart}
-            customEnd={customEnd}
-            setCustomEnd={setCustomEnd}
-            rangeLabel={rangeLabel}
-            goPrev={goPrev}
-            goNext={goNext}
-            canGoNext={canGoNext}
-            onPeriodNow={handlePeriodNow}
-            showNavigationHint={false}
-          />
         </div>
 
         <nav
@@ -826,27 +815,24 @@ export default function CpuMemoryPerformancePage() {
         (activeView !== "overview" &&
           loadingMetrics &&
           chartData.length === 0) ? (
-          <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+          <PerformanceLoadingState>
             Chargement des métriques…
-          </div>
+          </PerformanceLoadingState>
         ) : listError ? (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-8 text-center text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <PerformanceEmptyState className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
             {listError}
-          </div>
+          </PerformanceEmptyState>
         ) : activeView === "overview" && effectiveSystemChartData.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucune métrique CPU/mémoire disponible pour l’instant.
-          </div>
+          </PerformanceEmptyState>
         ) : activeView !== "overview" && selectedServiceKeys.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucun service sélectionné. Cochez au moins une série à charger.
-          </div>
+          </PerformanceEmptyState>
         ) : activeView === "overview" ? (
           <div className="space-y-6">
-            <div className="min-w-0 rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6">
-              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-                CPU & mémoire globaux
-              </h2>
+            <PerformanceChartCard title="CPU & mémoire globaux">
               <SystemCpuMemoryAreaCharts
                 chartData={effectiveSystemChartData}
                 xDomainMin={chartXDomainEffMin}
@@ -855,14 +841,14 @@ export default function CpuMemoryPerformancePage() {
                 chartHeight={260}
                 emphasizePoints={systemChartData.length === 0}
               />
-            </div>
+            </PerformanceChartCard>
           </div>
         ) : effectiveDetailChartData.length === 0 ||
           effectiveDetailServiceKeys.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucune métrique CPU/mémoire disponible pour les services
             sélectionnés.
-          </div>
+          </PerformanceEmptyState>
         ) : (
           <CpuMemoryServiceLinesChart
             metric={activeView === "cpu" ? "cpu" : "memory"}
@@ -880,7 +866,6 @@ export default function CpuMemoryPerformancePage() {
             emphasizePoints={chartData.length === 0}
           />
         )}
-      </div>
-    </AdminLayout>
+    </PerformancePageShell>
   );
 }
