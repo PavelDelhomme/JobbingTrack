@@ -752,7 +752,7 @@ class PersistenceService {
     if (!canonicalName) {
       return [];
     }
-    
+
     const {
       limit: rawLimit = 100,
       offset = 0,
@@ -766,6 +766,80 @@ class PersistenceService {
       where.timestamp = {};
       if (startDate) where.timestamp.gte = new Date(startDate);
       if (endDate) where.timestamp.lte = new Date(endDate);
+    }
+
+    try {
+      const escapedName = canonicalName.replace(/'/g, "''");
+      const tsExpr = systemMetricsTimestampAtTzSql();
+      const conditions = [`container_name = '${escapedName}'`];
+      if (where.timestamp) {
+        if (where.timestamp.gte) {
+          const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
+          conditions.push(`${tsExpr} >= '${gteDate}'::timestamptz`);
+        }
+        if (where.timestamp.lte) {
+          const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
+          conditions.push(`${tsExpr} <= '${lteDate}'::timestamptz`);
+        }
+      }
+
+      const rawQuery = `
+        SELECT
+          id,
+          ${tsExpr} AS "timestamp",
+          container_name,
+          cpu_percent,
+          memory_mb,
+          memory_limit_mb,
+          memory_percent,
+          network_rx_bytes,
+          network_tx_bytes,
+          response_time_ms,
+          http_status
+        FROM container_metrics
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY ${tsExpr} DESC
+        LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+      `;
+
+      const rawRows = await prisma.$queryRawUnsafe(rawQuery);
+      if (Array.isArray(rawRows) && rawRows.length > 0) {
+        return rawRows.map((row) => {
+          const tsIso = toIsoUtcString(row.timestamp) || String(row.timestamp);
+          const timestampMs = Date.parse(tsIso);
+          const memoryMb = row.memory_mb != null ? Number(row.memory_mb) : null;
+          const memoryLimitMb = row.memory_limit_mb != null ? Number(row.memory_limit_mb) : null;
+          return {
+            id: `container_metrics_${String(row.id)}`,
+            timestamp: tsIso,
+            ...(Number.isFinite(timestampMs) ? { timestampMs } : {}),
+            containerName: row.container_name,
+            containerId: null,
+            status: row.http_status != null && Number(row.http_status) >= 500 ? 'degraded' : 'running',
+            cpuUsagePercent: row.cpu_percent != null ? Number(row.cpu_percent) : null,
+            cpu_percent: row.cpu_percent != null ? Number(row.cpu_percent) : null,
+            cpuUsageNano: 0,
+            memoryUsagePercent: row.memory_percent != null ? Number(row.memory_percent) : null,
+            memory_percent: row.memory_percent != null ? Number(row.memory_percent) : null,
+            memoryUsageBytes: memoryMb != null ? Math.round(memoryMb * 1024 * 1024) : null,
+            memoryLimitBytes: memoryLimitMb != null ? Math.round(memoryLimitMb * 1024 * 1024) : null,
+            networkRxBytes: row.network_rx_bytes != null ? Number(row.network_rx_bytes) : null,
+            networkTxBytes: row.network_tx_bytes != null ? Number(row.network_tx_bytes) : null,
+            responseTimeMs: row.response_time_ms != null ? Number(row.response_time_ms) : null,
+            blockReadBytes: null,
+            blockWriteBytes: null,
+            image: null,
+            labels: null,
+            createdAt: tsIso,
+          };
+        });
+      }
+    } catch (rawError) {
+      if (rawError.code === 'P2021' || rawError.message?.includes('does not exist') || rawError.message?.includes('relation') || rawError.message?.includes('container_metrics')) {
+        console.warn('[PERSISTENCE] ⚠️ Table container_metrics indisponible, fallback snapshots:', rawError.message);
+      } else {
+        throw rawError;
+      }
     }
 
     try {
@@ -998,8 +1072,9 @@ class PersistenceService {
    * Récupérer les statistiques de disponibilité d'un service
    */
   async getServiceAvailabilityStats(serviceName, hours = 24) {
+    const normalizedServiceName = String(serviceName || '').replace(/^\//, '').trim();
     const defaultStats = {
-      serviceName,
+      serviceName: normalizedServiceName || serviceName,
       uptimePercent: 100,
       totalChecks: 0,
       availableChecks: 0,
@@ -1011,16 +1086,28 @@ class PersistenceService {
       return defaultStats;
     }
     
+    const aliases = Array.from(new Set([
+      normalizedServiceName,
+      normalizedServiceName.replace(/^jobbingtrack-/, ''),
+      normalizedServiceName.startsWith('jobbingtrack-') ? null : `jobbingtrack-${normalizedServiceName}`,
+    ].filter(Boolean)));
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     let history;
     try {
-      history = await prisma.serviceAvailabilityHistory.findMany({
-        where: {
-          serviceName,
-          timestamp: { gte: since },
-        },
-        orderBy: { timestamp: 'asc' },
-      });
+      for (const candidate of aliases) {
+        history = await prisma.serviceAvailabilityHistory.findMany({
+          where: {
+            serviceName: candidate,
+            timestamp: { gte: since },
+          },
+          orderBy: { timestamp: 'asc' },
+        });
+        if (history.length > 0) {
+          serviceName = candidate;
+          break;
+        }
+      }
+      history = history || [];
     } catch (error) {
       if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
         return defaultStats;
@@ -1030,7 +1117,7 @@ class PersistenceService {
 
     if (history.length === 0) {
       return {
-        serviceName,
+        serviceName: normalizedServiceName || serviceName,
         uptimePercent: 100,
         totalChecks: 0,
         availableChecks: 0,
@@ -1074,23 +1161,36 @@ class PersistenceService {
       typeof options.limit === 'number' ? options.limit : parseInt(String(options.limit ?? ''), 10),
       400
     );
-    const where = { serviceName };
-    if (startDate || endDate) {
-      where.timestamp = {};
-      if (startDate) where.timestamp.gte = new Date(startDate);
-      if (endDate) where.timestamp.lte = new Date(endDate);
-    }
+    const normalizedServiceName = String(serviceName || '').replace(/^\//, '').trim();
+    const aliases = Array.from(new Set([
+      normalizedServiceName,
+      normalizedServiceName.replace(/^jobbingtrack-/, ''),
+      normalizedServiceName.startsWith('jobbingtrack-') ? null : `jobbingtrack-${normalizedServiceName}`,
+    ].filter(Boolean)));
+    const buildWhere = (candidate) => {
+      const where = { serviceName: candidate };
+      if (startDate || endDate) {
+        where.timestamp = {};
+        if (startDate) where.timestamp.gte = new Date(startDate);
+        if (endDate) where.timestamp.lte = new Date(endDate);
+      }
+      return where;
+    };
     try {
-      const rows = await prisma.serviceAvailabilityHistory.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-      });
-      const chronological = rows.slice().reverse();
-      return chronological.map((row) => ({
-        ...row,
-        timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
-      }));
+      for (const candidate of aliases) {
+        const rows = await prisma.serviceAvailabilityHistory.findMany({
+          where: buildWhere(candidate),
+          orderBy: { timestamp: 'desc' },
+          take: limit,
+        });
+        if (rows.length === 0) continue;
+        const chronological = rows.slice().reverse();
+        return chronological.map((row) => ({
+          ...row,
+          timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
+        }));
+      }
+      return [];
     } catch (error) {
       if (this._isTableMissing(error, 'service_availability_history')) {
         this._warnOnceMissing('service_availability_history', 'service_availability_history');

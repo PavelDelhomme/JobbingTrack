@@ -1,8 +1,36 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 13 juin 2026 — **Branche** `dev` (moteur UI Gestion des emails complet, commit `f23a36d4`).
+**Dernière mise à jour** : 13 juin 2026 — **Branche** `dev` (frontend dev server stabilisé + charge API bornée validée).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 13 juin 2026 — audit charge API mobile + mémoire frontend
+
+- **Demande porteur** : analyser les faiblesses frontend, vérifier si la stack tient une forte demande API/mobile et si les protections anti-DDoS/WAF sont correctement en place.
+- **Campagne exécutée** : tests directs, sans `make`, sur stack Docker Compose `full` + `monitoring` + `https`. Préflight offensif contrôlé OK (`allowed`) et scope lab plan-only OK (**17** checks, aucun payload).
+- **WAF / anti-DDoS** : le payload XSS direct sur `localhost` est bypassé par design via CIDR interne, mais le même payload avec `X-Forwarded-For: 203.0.113.77` retourne **403 WAF_BLOCKED**. Limite importante : en `NODE_ENV=development`, le rate-limit gateway skip dev/test, donc un vrai test anti-DDoS prod-like doit se faire avec configuration dédiée et fenêtre contrôlée.
+- **Charge API** : `test-performance.js PERF_LIGHT=1` **15/15** endpoints OK et charge **13/13** ; `test-load-advanced.js PERF_LIGHT=1` **46/46** OK ; palier avancé borné non extreme **455/455** requêtes OK, spike `/health` **200/200** avec concurrence **50**, débit global script **1590 req/s**. Les endpoints mobiles métier sont surtout validés au périmètre auth/401 : il manque une campagne authentifiée avec token de test pour mesurer CRUD + BDD.
+- **Ressources backend** : gateway ~42–52 MiB/384 MiB, metrics-aggregator ~116–132 MiB/512 MiB, services métier ~59–81 MiB. Le backend tient les paliers locaux bornés.
+- **Faiblesse critique frontend** : `jobbingtrack-frontend` Next dev/Turbopack reste à **1.98–2.00 GiB / 2 GiB**, CPU >200%, `restart=111`, `next-server (v16.2.6)` ~1.4 GiB RSS + worker PostCSS ~89 MiB. Les pages les plus à risque côté audit statique : `performances/correlation`, `statistics`, `security`, `log-stats`, `email-monitor`, `useMetrics`.
+- **Suite recommandée** : traiter d’abord la mémoire frontend dev/backoffice (imports Recharts dynamiques, polling visible-tab/backoff, pagination serveur/virtualisation, timers `useMetrics`, budget points/payloads), puis relancer une charge mobile authentifiée et un profil navigateur connecté.
+
+## 13 juin 2026 — lot correctif mémoire frontend dev/backoffice
+
+- **Dev server** : `frontend/package.json` utilise désormais `next dev --webpack -H 0.0.0.0`; `docker-compose.yml` lance simplement `npm run dev`, sans doublon `-H`. Objectif : éviter Turbopack par défaut en Docker bind-mount, qui saturait le conteneur frontend.
+- **Polling réduit** : Email Monitor passe de **3 s** à **10 s** ; la page Sécurité passe de **2000** à **500** logs dans l’aperçu et de **5 s** à **15 s** de refresh uniquement quand l’onglet est visible.
+- **Timers metrics** : `useMetrics` stocke et annule le timer bootstrap `checkServices`, pour éviter des retries qui survivent au démontage du composant.
+- **Mesures** : après recreate frontend, logs `Next.js 16.2.6 (webpack)`, `restart=0`, `oomKilled=false`, health `healthy`. Mémoire : ~**499 MiB / 2 GiB** au repos, ~**1.41 GiB** après smokes/tests, ~**984 MiB** après court idle. Le dev server reste lourd après compilation de pages backoffice, mais ne touche plus le plafond 2 Go sur cette passe.
+- **Validations** : smokes `/health`, `/email-monitor`, `/security`, `/performances/correlation` OK (**200**, redirection `/login` attendue sans session) ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, 1430 warnings historiques) ; ESLint ciblé **0 erreur** ; Jest sécurité/metrics/charts **5 suites / 18 tests OK** ; charge API légère **15/15** + **13/13**, charge avancée légère **46/46**.
+- **Reste** : campagne mobile CRUD authentifiée avec token de test et campagne rate-limit/WAF prod-like dans un environnement dédié, sans DDoS destructif.
+
+## 13 juin 2026 — correctif points historiques Performances
+
+- **Symptôme porteur** : les graphes Performances ne réaffichaient pas correctement les points dans le temps pour CPU, conteneurs, réseau, mémoire, disque.
+- **Cause isolée** : la route `metrics-aggregator` `persistence/containers/:name/metrics` lisait `container_metrics_snapshots`; cette table pouvait perdre des valeurs CPU sur certains conteneurs, alors que la table brute `container_metrics` contenait les points complets.
+- **Correctif** : `backend/metrics-aggregator-service/src/services/persistence.service.js` lit maintenant `container_metrics` en priorité pour l’historique conteneur et mappe `cpuUsagePercent`, `memoryUsagePercent`, `networkRxBytes`, `networkTxBytes`, `responseTimeMs`; fallback snapshots conservé si la table brute est absente/vide. Suite retour porteur sur les temps de réponse : `getServiceAvailabilityHistory` et `getServiceAvailabilityStats` acceptent aussi les alias courts (`api-gateway`, `frontend`, `metrics-aggregator`) et retombent sur les lignes `jobbingtrack-*`.
+- **Charge réduite** : Corrélation ne précharge plus des dizaines d’historiques (mode léger **8** services, complet **16**, concurrence **3**) ; Disque garde l’historique système en une requête et limite le Block I/O à **8** conteneurs, affiché `8/23`.
+- **Validation agent** : stack relancée via Docker Compose direct (`backend`, `monitoring`, `https`) ; proxy frontend `/api/metrics-aggregator` OK ; audits 24h : système **1440/1440** points CPU/mémoire/disque/réseau puis audit compact **180/180** points CPU/mémoire/temps réponse/réseau/disque ; **23/23** conteneurs avec **1440/1440** points CPU/mémoire/réseau, échantillon **90/90** CPU/mémoire/réseau ; alias disponibilité `api-gateway`, `frontend`, `metrics-aggregator` → **20/20** historiques avec temps de réponse et stats 24h. Postgres/Redis ont disponibilité sans ms HTTP (normal non-HTTP), MailHog est arrêté dans la stack minimale.
+- **Tests** : runtime metrics `node --check` + health OK ; lints IDE OK ; `npm run type-check` OK ; `npm run lint` frontend OK (**0 erreur**, warnings historiques) ; Jest frontend Performances/metrics **4 suites / 14 tests OK** ; Jest backend stable metrics-aggregator **3 suites / 18 tests OK**. Limite restante : validation visuelle navigateur non faite car MCP redirigé sur `/login` sans session admin.
 
 ## 13 juin 2026 — moteur UI Gestion des emails (backoffice)
 

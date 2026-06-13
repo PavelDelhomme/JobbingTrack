@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-12T21:21:30.052Z",
+  "timestamp": "2026-06-13T22:11:23.305Z",
   "tests": [
     {
       "service": "apiGateway",
@@ -8,11 +8,11 @@
       "concurrent": 4,
       "successful": 8,
       "failed": 0,
-      "totalTime": 38.412589,
-      "averageTime": 25.653011250000006,
-      "requestsPerSecond": 208,
+      "totalTime": 15.432731999999987,
+      "averageTime": 21.388906,
+      "requestsPerSecond": 518,
       "successRate": "100.0%",
-      "timestamp": "2026-05-12T21:21:27.376Z"
+      "timestamp": "2026-06-13T22:11:20.649Z"
     },
     {
       "service": "apiGateway",
@@ -21,11 +21,11 @@
       "concurrent": 3,
       "successful": 6,
       "failed": 0,
-      "totalTime": 11.240858999999887,
-      "averageTime": 12.312966500000035,
-      "requestsPerSecond": 534,
+      "totalTime": 15.423460999999975,
+      "averageTime": 16.59442366666669,
+      "requestsPerSecond": 389,
       "successRate": "100.0%",
-      "timestamp": "2026-05-12T21:21:27.990Z"
+      "timestamp": "2026-06-13T22:11:21.268Z"
     },
     {
       "service": "apiGateway",
@@ -34,11 +34,11 @@
       "concurrent": 3,
       "successful": 6,
       "failed": 0,
-      "totalTime": 17.235380000000077,
-      "averageTime": 15.00327766666669,
-      "requestsPerSecond": 348,
+      "totalTime": 10.600544000000127,
+      "averageTime": 11.792240500000048,
+      "requestsPerSecond": 566,
       "successRate": "100.0%",
-      "timestamp": "2026-05-12T21:21:28.610Z"
+      "timestamp": "2026-06-13T22:11:21.882Z"
     },
     {
       "service": "apiGateway",
@@ -47,11 +47,11 @@
       "concurrent": 3,
       "successful": 6,
       "failed": 0,
-      "totalTime": 12.551549000000023,
-      "averageTime": 13.479824000000008,
-      "requestsPerSecond": 478,
+      "totalTime": 8.47804999999994,
+      "averageTime": 9.99761183333328,
+      "requestsPerSecond": 708,
       "successRate": "100.0%",
-      "timestamp": "2026-05-12T21:21:29.225Z"
+      "timestamp": "2026-06-13T22:11:22.492Z"
     },
     {
       "service": "apiGateway",
@@ -60,11 +60,11 @@
       "concurrent": 5,
       "successful": 20,
       "failed": 0,
-      "totalTime": 20.35486899999978,
-      "averageTime": 15.285265049999998,
-      "requestsPerSecond": 983,
+      "totalTime": 5.337491999999656,
+      "averageTime": 11.610883600000056,
+      "requestsPerSecond": 3747,
       "successRate": "100.0%",
-      "timestamp": "2026-05-12T21:21:30.051Z"
+      "timestamp": "2026-06-13T22:11:23.305Z"
     }
   ],
   "summary": {
@@ -72,7 +72,7 @@
     "totalSuccessful": 46,
     "totalFailed": 0,
     "overallSuccessRate": "100.0%",
-    "overallThroughput": "461 req/s",
+    "overallThroughput": "832 req/s",
     "evaluation": "excellent"
   }
 }

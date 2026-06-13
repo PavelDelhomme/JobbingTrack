@@ -29,7 +29,7 @@ import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 type PerfMode = "light" | "full";
 
 const PERF_MODE_STORAGE_KEY = "jobbingtrack-perf-correlation-mode";
-const FETCH_CONCURRENCY = 6;
+const FETCH_CONCURRENCY = 3;
 const MERGE_SYSTEM_MAX_DELTA_MS = 180_000;
 const MERGE_AVAILABILITY_MAX_DELTA_MS = 120_000;
 const INCIDENT_ALIGNMENT_MAX_DELTA_MS = 45 * 60 * 1000;
@@ -47,18 +47,18 @@ function readStoredPerfMode(): PerfMode {
 function limitsForMode(mode: PerfMode) {
   if (mode === "full") {
     return {
-      maxHistoriesLoaded: 72,
-      historyLimit: 240,
-      systemHistoryLimit: 480,
+      maxHistoriesLoaded: 16,
+      historyLimit: 180,
+      systemHistoryLimit: 360,
       pointsPerSubchart: 220,
       autoRefreshMs: 120_000,
       subChartHeight: 120,
     };
   }
   return {
-    maxHistoriesLoaded: 48,
-    historyLimit: 120,
-    systemHistoryLimit: 240,
+    maxHistoriesLoaded: 8,
+    historyLimit: 90,
+    systemHistoryLimit: 180,
     pointsPerSubchart: 160,
     autoRefreshMs: 90_000,
     subChartHeight: 102,

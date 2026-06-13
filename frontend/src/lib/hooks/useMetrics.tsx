@@ -81,6 +81,7 @@ export function useMetrics() {
   const [isLoading, setIsLoading] = useState(true);
   const socketRef = useRef<WebSocket | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const bootstrapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
@@ -222,20 +223,22 @@ export function useMetrics() {
     const initMetrics = async () => {
       // Attendre que les services soient disponibles
       const checkServices = async () => {
+        if (!mounted) return;
         try {
           const response = await fetch("http://localhost:3000/health", {
             signal: AbortSignal.timeout(2000),
           });
+          if (!mounted) return;
           if (response.ok) {
             initSocket();
           } else {
             throw new Error("Services non disponibles");
           }
-        } catch (err) {
+        } catch {
           console.log(
             "[METRICS] ⏳ Services non encore disponibles, retry dans 2s...",
           );
-          setTimeout(checkServices, 2000);
+          bootstrapTimeoutRef.current = setTimeout(checkServices, 2000);
         }
       };
 
@@ -248,6 +251,9 @@ export function useMetrics() {
       mounted = false;
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+      }
+      if (bootstrapTimeoutRef.current) {
+        clearTimeout(bootstrapTimeoutRef.current);
       }
       if (socketRef.current) {
         socketRef.current.close(1000, "Component unmounted");

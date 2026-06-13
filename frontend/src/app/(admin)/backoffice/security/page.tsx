@@ -104,7 +104,8 @@ type SecurityWeights = {
 };
 
 const LOGS_WINDOW_DAYS = 30;
-const SECURITY_LOGS_FETCH_LIMIT = 2000;
+const SECURITY_LOGS_FETCH_LIMIT = 500;
+const SECURITY_OVERVIEW_REFRESH_MS = 15000;
 
 const defaultOverview: SecurityOverview = {
   logsCount: 0,
@@ -442,7 +443,11 @@ export default function SecurityOverviewPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        load();
+      }
+    }, SECURITY_OVERVIEW_REFRESH_MS);
     return () => clearInterval(interval);
   }, [load]);
 

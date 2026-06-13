@@ -167,7 +167,7 @@ services:
     working_dir: /app
     networks:
       - jobbingtrack-network
-    command: sh -c "npm run dev -- -H 0.0.0.0"
+    command: sh -c "npm run dev"
     depends_on:
       - api-gateway
     restart: unless-stopped

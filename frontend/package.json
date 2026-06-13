@@ -4,7 +4,7 @@
   "description": "JobbingTrack Dashboard Admin - Interface Next.js v1.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev --webpack -H 0.0.0.0",
     "build": "NODE_OPTIONS='--require ./scripts/self-server-polyfill.cjs' next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",

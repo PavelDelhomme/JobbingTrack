@@ -111,7 +111,7 @@ export default function EmailMonitorPage() {
   );
 
   const API_URL = FRONTEND_URLS.api;
-  const POLL_INTERVAL_MS = 3000; // 3 s pour un vrai suivi temps réel
+  const POLL_INTERVAL_MS = 10000; // Suivi quasi temps réel sans marteler l'API en onglet ouvert.
 
   const querySuggestions = useMemo(
     () =>

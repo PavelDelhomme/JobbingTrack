@@ -44,7 +44,8 @@ import {
 } from "@/components/performances";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
-const HISTORY_FETCH_CONCURRENCY = 5;
+const HISTORY_FETCH_CONCURRENCY = 3;
+const MAX_IO_CONTAINERS = 8;
 const TARGET_POINTS = 220;
 
 interface ContainerInfo {
@@ -402,8 +403,9 @@ export default function PerformancesDiskPage() {
           (container) => container.name,
         );
         setContainersCount(activeContainers.length);
+        const ioContainers = activeContainers.slice(0, MAX_IO_CONTAINERS);
         const histories = await promisePool(
-          activeContainers,
+          ioContainers,
           HISTORY_FETCH_CONCURRENCY,
           async (container) => ({
             name: container.name,
@@ -466,7 +468,7 @@ export default function PerformancesDiskPage() {
                 let writeMb = 0;
                 let seenRead = false;
                 let seenWrite = false;
-                activeContainers.forEach((container) => {
+                ioContainers.forEach((container) => {
                   const bag = metricBag(container);
                   const read =
                     pickMbFromBytes(
@@ -685,7 +687,7 @@ export default function PerformancesDiskPage() {
                     : "—"}
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {containersCount} conteneur(s) suivis
+                  {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount} conteneur(s) suivis
                 </p>
               </div>
             </div>
@@ -1021,7 +1023,7 @@ export default function PerformancesDiskPage() {
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {systemRows.length} point(s) stockage système · {ioRows.length}{" "}
-              point(s) Block I/O agrégés · {containersCount} conteneur(s)
+              point(s) Block I/O agrégés · {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount} conteneur(s)
               inspectés.
             </p>
           </div>
