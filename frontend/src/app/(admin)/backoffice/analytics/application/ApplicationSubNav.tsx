@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { AdminLayout } from "@/components/features";
 
 const TABS = [
   {
@@ -43,5 +45,60 @@ export function ApplicationSubNav() {
         );
       })}
     </nav>
+  );
+}
+
+export function AnalyticsPageShell({
+  title,
+  description,
+  children,
+  actions,
+  backHref,
+  backLabel = "Retour à la vue d’ensemble",
+  showApplicationSubNav = false,
+  maxWidthClassName = "w-full",
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  actions?: ReactNode;
+  backHref?: string | null;
+  backLabel?: string;
+  showApplicationSubNav?: boolean;
+  maxWidthClassName?: string;
+}) {
+  return (
+    <AdminLayout>
+      <div className={`space-y-6 p-6 ${maxWidthClassName}`}>
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            <span aria-hidden>←</span>
+            {backLabel}
+          </Link>
+        ) : null}
+        {showApplicationSubNav ? <ApplicationSubNav /> : null}
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
+              {title}
+            </h1>
+            {description ? (
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {description}
+              </div>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+        {children}
+      </div>
+    </AdminLayout>
   );
 }
