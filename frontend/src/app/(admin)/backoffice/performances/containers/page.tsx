@@ -9,9 +9,6 @@ import React, {
 } from "react";
 import { isAxiosError } from "axios";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { AdminLayout } from "@/components/features";
-import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
@@ -37,6 +34,11 @@ import {
 } from "@/lib/utils/date";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import { analyticsService } from "@/lib/api/analytics.service";
+import {
+  PerformanceEmptyState,
+  PerformanceLoadingState,
+  PerformancePageShell,
+} from "@/components/performances";
 
 const AnalyticsContainersChartsBundle = dynamic(
   () =>
@@ -660,34 +662,19 @@ export default function ContainersAnalyticsPage() {
   }, []);
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
-        <PerformancesSubNav />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Performances — conteneurs
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-            Métriques par conteneur (CPU, mémoire) dans le temps.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-          <label className="flex items-center gap-2 min-w-0">
-            <span className="text-gray-700 dark:text-gray-300 text-sm shrink-0">
+    <PerformancePageShell
+      title="Performances — conteneurs"
+      description="Métriques par conteneur (CPU, mémoire) dans le temps."
+      actions={
+        <>
+          <label className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-sm text-gray-700 dark:text-gray-300">
               Conteneur
             </span>
             <select
               value={selectedContainer}
               onChange={(e) => setSelectedContainer(e.target.value)}
-              className="px-3 py-2 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 min-w-0 w-full sm:min-w-[240px] sm:w-auto text-sm"
+              className="min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 sm:w-auto sm:min-w-[240px] sm:px-4 sm:py-2"
               disabled={loadingList}
             >
               {loadingList ? (
@@ -709,47 +696,47 @@ export default function ContainersAnalyticsPage() {
               )}
             </select>
           </label>
-          <div className="flex flex-col gap-3 w-full sm:w-auto">
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-              useCustomRange={useCustomRange}
-              setUseCustomRange={setUseCustomRange}
-              customStart={customStart}
-              setCustomStart={setCustomStart}
-              customEnd={customEnd}
-              setCustomEnd={setCustomEnd}
-              rangeLabel={rangeLabel}
-              goPrev={goPrev}
-              goNext={goNext}
-              canGoNext={canGoNext}
-              onPeriodNow={handlePeriodNow}
-              showNavigationHint={false}
-            />
-          </div>
-        </div>
+          <TimeRangeSelector
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={handlePeriodNow}
+            showNavigationHint={false}
+          />
+        </>
+      }
+    >
 
         {!selectedContainer && !loadingList ? (
-          <div
-            className={`rounded-lg border p-8 text-center ${
+          <PerformanceEmptyState
+            className={
               listError
                 ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
                 : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-            }`}
+            }
           >
             {listError ??
               "Aucun conteneur disponible. Vérifiez que le metrics-aggregator et Docker exposent les conteneurs JobbingTrack."}
-          </div>
+          </PerformanceEmptyState>
         ) : loadingMetrics && chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <PerformanceLoadingState>
             Chargement des métriques…
-          </div>
+          </PerformanceLoadingState>
         ) : chartData.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucune métrique persistée pour{" "}
             {isAllContainers ? "ces conteneurs" : "ce conteneur"} sur cette
             période.
-          </div>
+          </PerformanceEmptyState>
         ) : isAllContainers && containerNamesForChart.length > 0 ? (
           <AnalyticsContainersChartsBundle
             mode="multi"
@@ -778,7 +765,6 @@ export default function ContainersAnalyticsPage() {
             rawMetricsLength={rawMetrics.length}
           />
         )}
-      </div>
-    </AdminLayout>
+    </PerformancePageShell>
   );
 }
