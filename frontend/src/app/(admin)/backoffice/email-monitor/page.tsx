@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
+import { EmailBackofficePageShell } from "../emails/EmailBackofficeSubNav";
 import {
   FacetAutocompleteField,
   FilterBar,
@@ -403,24 +403,23 @@ export default function EmailMonitorPage() {
   const endIndex = Math.min(page * limit, total);
 
   return (
-    <AdminLayout>
-      <div className="min-w-0 space-y-6 overflow-x-hidden">
-        {/* Header */}
-        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0">
-            <h1 className="flex min-w-0 items-center gap-2 text-2xl font-bold sm:text-3xl">
-              <Mail className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
-              Email Monitor
-            </h1>
-            <p className="mt-1 max-w-3xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
-              Suivez les emails envoyés par JobbingTrack : statut, destinataire,
-              date et contenu. Utilisez <strong>Notification</strong> pour les
-              alertes sécurité et <strong>Vérification</strong> pour les parcours
-              inscription.
-            </p>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+    <EmailBackofficePageShell
+      title={
+        <span className="flex min-w-0 items-center gap-2">
+          <Mail className="h-7 w-7 flex-shrink-0 sm:h-8 sm:w-8" />
+          Email Monitor
+        </span>
+      }
+      description={
+        <>
+          Suivez les emails envoyés par JobbingTrack : statut, destinataire, date
+          et contenu. Utilisez <strong>Notification</strong> pour les alertes
+          sécurité et <strong>Vérification</strong> pour les parcours
+          inscription.
+        </>
+      }
+      actions={
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
             {lastRefreshAt && (
               <span className="text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
                 Dernière MAJ : {lastRefreshAt.toLocaleTimeString("fr-FR")}
@@ -476,8 +475,8 @@ export default function EmailMonitorPage() {
               Effacer Tout
             </Button>
           </div>
-        </div>
-
+      }
+    >
         {/* Statistiques */}
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
@@ -888,7 +887,6 @@ export default function EmailMonitorPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </AdminLayout>
+    </EmailBackofficePageShell>
   );
 }

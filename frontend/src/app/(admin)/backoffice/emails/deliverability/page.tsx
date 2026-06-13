@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import AdminLayout from "@/components/features/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { EmailBackofficePageShell } from "../EmailBackofficeSubNav";
 import {
   CheckCircle,
   AlertCircle,
@@ -295,18 +295,15 @@ export default function EmailDeliverabilityPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <CheckCircle className="w-8 h-8 text-blue-600" />
-            Tests de Déliverabilité
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Vérifier la configuration DNS et tester l'envoi d'emails
-          </p>
-        </div>
-
+    <EmailBackofficePageShell
+      title={
+        <span className="flex items-center gap-3">
+          <CheckCircle className="w-8 h-8 text-blue-600" />
+          Tests de Déliverabilité
+        </span>
+      }
+      description="Vérifier la configuration DNS et tester l'envoi d'emails"
+    >
         {/* Test DNS */}
         <Card>
           <CardHeader>
@@ -740,7 +737,6 @@ export default function EmailDeliverabilityPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </AdminLayout>
+    </EmailBackofficePageShell>
   );
 }
