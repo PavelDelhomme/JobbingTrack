@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AdminLayout } from "@/components/features";
+import { ServicesPageShell } from "./ServicesSubNav";
 import {
   Activity,
   Server,
@@ -370,21 +370,11 @@ export default function ServicesPage() {
   // Afficher un chargement progressif : d'abord les stats, puis les services
   if (initialLoad && loading) {
     return (
-      <AdminLayout>
+      <ServicesPageShell
+        title="Services JobbingTrack"
+        description="Chargement des services... (cela peut prendre jusqu'à 60 secondes)"
+      >
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                Services JobbingTrack
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Chargement des services... (cela peut prendre jusqu'à 60
-                secondes)
-              </p>
-            </div>
-          </div>
-
           {/* Stats en chargement */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
@@ -405,46 +395,38 @@ export default function ServicesPage() {
               Chargement des services en cours...
             </p>
             <p className="text-gray-500 dark:text-gray-500 text-xs mt-2">
-              Cela peut prendre jusqu'à 60 secondes selon le nombre de services
+              Cela peut prendre jusqu&apos;à 60 secondes selon le nombre de services
             </p>
           </div>
         </div>
-      </AdminLayout>
+      </ServicesPageShell>
     );
   }
 
   return (
-    <AdminLayout>
+    <ServicesPageShell
+      title="Services JobbingTrack"
+      description="Gestion et monitoring des services"
+      actions={
+        <>
+          <Link
+            href="/b4ck0ff1ce/services/logs"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
+          >
+            <FileText className="w-4 h-4" />
+            Services & Logs
+          </Link>
+          <button
+            onClick={() => loadServices()}
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Rafraîchir
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Services JobbingTrack
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gestion et monitoring des services
-            </p>
-          </div>
-          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-            {/* ✅ NOUVEAU : Lien vers Services & Logs */}
-            <Link
-              href="/b4ck0ff1ce/services/logs"
-              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
-            >
-              <FileText className="w-4 h-4" />
-              Services & Logs
-            </Link>
-            <button
-              onClick={() => loadServices()}
-              className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Rafraîchir
-            </button>
-          </div>
-        </div>
-
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
@@ -1488,6 +1470,6 @@ export default function ServicesPage() {
           Dernière mise à jour : {lastUpdate.toLocaleTimeString()}
         </div>
       </div>
-    </AdminLayout>
+    </ServicesPageShell>
   );
 }

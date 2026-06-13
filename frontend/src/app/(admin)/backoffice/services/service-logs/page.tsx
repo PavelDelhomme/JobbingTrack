@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
+import { ServicesPageShell } from "../ServicesSubNav";
 import {
   FacetAutocompleteField,
   FilterBar,
@@ -24,7 +23,7 @@ import {
 } from "@/lib/filters/serviceLogsOptions";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import { SectionLoader, uiText } from "@/lib/ui";
-import { ArrowLeft, RefreshCw, Terminal } from "lucide-react";
+import { RefreshCw, Terminal } from "lucide-react";
 
 const METRICS_URL =
   process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:5004";
@@ -183,41 +182,36 @@ export default function ServiceLogsPage() {
   }, [applied]);
 
   return (
-    <AdminLayout>
+    <ServicesPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Terminal className="h-7 w-7" />
+          Logs des services
+        </span>
+      }
+      description={
+        <>
+          Lecture Docker via metrics-aggregator. Les filtres
+          niveau/type/recherche s&apos;appliquent côté client sur
+          l&apos;échantillon chargé ; la période et le nombre de lignes
+          rechargent l&apos;API à l&apos;application.
+        </>
+      }
+      backHref="/b4ck0ff1ce/services"
+      backLabel="Services"
+      actions={
+        <button
+          type="button"
+          onClick={() => void loadLogs()}
+          disabled={loading || !applied.service}
+          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Actualiser
+        </button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <Link
-              href="/b4ck0ff1ce/services"
-              className={`inline-flex items-center gap-1 text-sm ${uiText.link}`}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Services
-            </Link>
-            <h1 className="mt-2 flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-              <Terminal className="h-7 w-7" />
-              Logs des services
-            </h1>
-            <p className={`mt-2 max-w-3xl text-sm ${uiText.subtle}`}>
-              Lecture Docker via metrics-aggregator. Les filtres niveau/type/recherche
-              s&apos;appliquent côté client sur l&apos;échantillon chargé ; la
-              période et le nombre de lignes rechargent l&apos;API à
-              l&apos;application.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void loadLogs()}
-            disabled={loading || !applied.service}
-            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            />
-            Actualiser
-          </button>
-        </div>
-
         <FilterBar
           hasDraftChanges={hasDraftChanges}
           onApply={() => apply()}
@@ -311,6 +305,6 @@ export default function ServiceLogsPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </ServicesPageShell>
   );
 }

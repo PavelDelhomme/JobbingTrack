@@ -3,13 +3,12 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
+import { ServicesPageShell } from "../ServicesSubNav";
 import {
   FacetAutocompleteField,
   FilterBar,
   FilterSelectField,
 } from "@/components/filters";
-import Link from "next/link";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import {
   filterServiceLogLines,
@@ -30,7 +29,6 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  ArrowLeft,
   RefreshCw,
   Terminal,
   Network,
@@ -516,11 +514,17 @@ export default function ServiceDetailPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
+      <ServicesPageShell
+        showSubNav={false}
+        backHref="/b4ck0ff1ce/services"
+        backLabel="Retour à la liste des services"
+        title={serviceName}
+        description="Monitoring détaillé du service"
+      >
+        <div className="flex items-center justify-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+      </ServicesPageShell>
     );
   }
 
@@ -567,70 +571,61 @@ export default function ServiceDetailPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/b4ck0ff1ce/services"
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
-              title="Retour à la liste des services"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                <Server className="h-8 w-8 mr-3 text-blue-600" />
-                {serviceName}
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                Monitoring détaillé du service
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoRefreshEnabled}
-                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                  className="rounded border-gray-400"
-                />
-                Auto
-              </label>
-              <select
-                value={refreshIntervalSec}
-                onChange={(e) => setRefreshIntervalSec(Number(e.target.value))}
-                className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-gray-800 dark:text-gray-200"
-                disabled={!autoRefreshEnabled}
-              >
-                <option value={10}>10 s</option>
-                <option value={15}>15 s</option>
-                <option value={30}>30 s</option>
-                <option value={60}>60 s</option>
-              </select>
-              {lastMetricsAt && (
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
-                  {formatLocalDateTime(lastMetricsAt.toISOString())}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`h-5 w-5 mr-2 ${refreshing ? "animate-spin" : ""}`}
+    <ServicesPageShell
+      showSubNav={false}
+      backHref="/b4ck0ff1ce/services"
+      backLabel="Retour à la liste des services"
+      title={
+        <span className="flex items-center gap-3">
+          <Server className="h-7 w-7 text-blue-600" />
+          {serviceName}
+        </span>
+      }
+      description="Monitoring détaillé du service"
+      actions={
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoRefreshEnabled}
+                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                className="rounded border-gray-400"
               />
-              Actualiser
-            </button>
+              Auto
+            </label>
+            <select
+              value={refreshIntervalSec}
+              onChange={(e) => setRefreshIntervalSec(Number(e.target.value))}
+              className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              disabled={!autoRefreshEnabled}
+            >
+              <option value={10}>10 s</option>
+              <option value={15}>15 s</option>
+              <option value={30}>30 s</option>
+              <option value={60}>60 s</option>
+            </select>
+            {lastMetricsAt && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {formatLocalDateTime(lastMetricsAt.toISOString())}
+              </span>
+            )}
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-5 w-5 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Actualiser
+          </button>
         </div>
-
+      }
+    >
+      <div className="space-y-6">
         {/* Status Banner */}
         <div
           className={`p-4 rounded-lg border-2 ${
@@ -1132,6 +1127,6 @@ export default function ServiceDetailPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </ServicesPageShell>
   );
 }
