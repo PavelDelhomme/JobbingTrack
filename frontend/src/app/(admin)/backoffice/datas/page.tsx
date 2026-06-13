@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense, lazy } from "react";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import {
   Database,
@@ -79,11 +79,14 @@ export default function DataPage() {
 
   if (authLoading) {
     return (
-      <AdminLayout>
+      <AdministrationDataPageShell
+        title="Gestion des Données"
+        description="Gérez toutes vos données depuis un seul endroit"
+      >
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+      </AdministrationDataPageShell>
     );
   }
 
@@ -93,18 +96,11 @@ export default function DataPage() {
   }
 
   return (
-    <AdminLayout>
+    <AdministrationDataPageShell
+      title="Gestion des Données"
+      description="Gérez toutes vos données depuis un seul endroit"
+    >
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Gestion des Données
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Gérez toutes vos données depuis un seul endroit
-          </p>
-        </div>
-
         {/* Onglets */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8 overflow-x-auto">
@@ -242,6 +238,6 @@ export default function DataPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }

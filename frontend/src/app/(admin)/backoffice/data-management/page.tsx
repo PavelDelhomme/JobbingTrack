@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 import {
   Download,
   Upload,
@@ -11,7 +11,6 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle,
-  RefreshCw,
   FileDown,
   FileUp,
 } from "lucide-react";
@@ -117,17 +116,11 @@ export default function DataManagementPage() {
   };
 
   return (
-    <AdminLayout>
+    <AdministrationDataPageShell
+      title="Gestion des Données"
+      description="Exportez, importez et gérez vos données"
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Gestion des Données
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Exportez, importez et gérez vos données
-          </p>
-        </div>
-
         {message && (
           <div
             className={`p-4 rounded-lg flex items-center gap-3 ${
@@ -275,7 +268,7 @@ export default function DataManagementPage() {
             Zone Dangereuse
           </h2>
           <p className="text-sm text-red-700 dark:text-red-300 mb-4">
-            Ces actions sont irréversibles. Assurez-vous d'avoir une sauvegarde
+            Ces actions sont irréversibles. Assurez-vous d&apos;avoir une sauvegarde
             avant de continuer.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -298,6 +291,6 @@ export default function DataManagementPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }
