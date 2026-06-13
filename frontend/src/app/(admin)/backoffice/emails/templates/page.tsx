@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import AdminLayout from "@/components/features/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { EmailBackofficePageShell } from "../EmailBackofficeSubNav";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Mail, Eye, Edit, Save, X, Plus, Trash2 } from "lucide-react";
@@ -276,312 +276,306 @@ export default function EmailTemplatesPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <FileText className="w-8 h-8 text-blue-600" />
-            Templates d'Emails
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Visualiser et éditer les templates d'emails envoyés
-          </p>
+    <EmailBackofficePageShell
+      title={
+        <span className="flex items-center gap-3">
+          <FileText className="w-8 h-8 text-blue-600" />
+          Templates d&apos;Emails
+        </span>
+      }
+      description="Visualiser et éditer les templates d'emails envoyés"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Liste des templates */}
+        <div className="lg:col-span-1 space-y-4">
+          {templates.map((template) => (
+            <Card
+              key={template.type}
+              className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                selectedTemplate?.type === template.type
+                  ? "ring-2 ring-blue-500"
+                  : ""
+              }`}
+              onClick={() => handlePreview(template)}
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    {template.name}
+                  </div>
+                  <Badge variant="outline">{template.type}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {template.description}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreview(template);
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Voir
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(template);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Éditer
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Liste des templates */}
-          <div className="lg:col-span-1 space-y-4">
-            {templates.map((template) => (
-              <Card
-                key={template.type}
-                className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                  selectedTemplate?.type === template.type
-                    ? "ring-2 ring-blue-500"
-                    : ""
-                }`}
-                onClick={() => handlePreview(template)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-5 h-5" />
-                      {template.name}
-                    </div>
-                    <Badge variant="outline">{template.type}</Badge>
+        {/* Prévisualisation/Édition */}
+        <div className="lg:col-span-2">
+          {selectedTemplate ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    {selectedTemplate.name}
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    {template.description}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreview(template);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Voir
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(template);
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Éditer
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  {editing && (
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSave}>
+                        <Save className="w-4 h-4 mr-2" />
+                        Sauvegarder
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancel}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Annuler
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="preview" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="preview">Prévisualisation</TabsTrigger>
+                    <TabsTrigger value="html">Code HTML</TabsTrigger>
+                    <TabsTrigger value="variables">Variables</TabsTrigger>
+                  </TabsList>
 
-          {/* Prévisualisation/Édition */}
-          <div className="lg:col-span-2">
-            {selectedTemplate ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      {selectedTemplate.name}
-                    </CardTitle>
-                    {editing && (
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleSave}>
-                          <Save className="w-4 h-4 mr-2" />
-                          Sauvegarder
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancel}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Annuler
-                        </Button>
+                  <TabsContent value="preview" className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Sujet :
+                      </p>
+                      <p className="font-semibold">
+                        {selectedTemplate.subject}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Aperçu :
+                      </p>
+                      <div className="border rounded-lg p-4 bg-white">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: editedContent
+                              .replace(/{{firstName}}/g, "Jean")
+                              .replace(/{{lastName}}/g, "Dupont")
+                              .replace(
+                                /{{frontendUrl}}/g,
+                                "http://localhost:8080",
+                              )
+                              .replace(
+                                /{{verificationUrl}}/g,
+                                "http://localhost:8080/verify-email?token=example",
+                              )
+                              .replace(
+                                /{{resetUrl}}/g,
+                                "http://localhost:8080/reset-password?token=example",
+                              ),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="html" className="space-y-4">
+                    {editing ? (
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Éditer le HTML :
+                        </p>
+                        <textarea
+                          className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={editedContent}
+                          onChange={(e) => setEditedContent(e.target.value)}
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Code HTML :
+                        </p>
+                        <pre className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs text-gray-900 dark:text-gray-100">
+                          <code className="text-gray-900 dark:text-gray-100">
+                            {selectedTemplate.html}
+                          </code>
+                        </pre>
                       </div>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="preview" className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="preview">
-                        Prévisualisation
-                      </TabsTrigger>
-                      <TabsTrigger value="html">Code HTML</TabsTrigger>
-                      <TabsTrigger value="variables">Variables</TabsTrigger>
-                    </TabsList>
+                  </TabsContent>
 
-                    <TabsContent value="preview" className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Sujet :
-                        </p>
-                        <p className="font-semibold">
-                          {selectedTemplate.subject}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Aperçu :
-                        </p>
-                        <div className="border rounded-lg p-4 bg-white">
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: editedContent
-                                .replace(/{{firstName}}/g, "Jean")
-                                .replace(/{{lastName}}/g, "Dupont")
-                                .replace(
-                                  /{{frontendUrl}}/g,
-                                  "http://localhost:8080",
-                                )
-                                .replace(
-                                  /{{verificationUrl}}/g,
-                                  "http://localhost:8080/verify-email?token=example",
-                                )
-                                .replace(
-                                  /{{resetUrl}}/g,
-                                  "http://localhost:8080/reset-password?token=example",
-                                ),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
+                  <TabsContent value="variables" className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Variables disponibles :
+                      </p>
 
-                    <TabsContent value="html" className="space-y-4">
-                      {editing ? (
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            Éditer le HTML :
-                          </p>
-                          <textarea
-                            className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            value={editedContent}
-                            onChange={(e) => setEditedContent(e.target.value)}
-                          />
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            Code HTML :
-                          </p>
-                          <pre className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs text-gray-900 dark:text-gray-100">
-                            <code className="text-gray-900 dark:text-gray-100">
-                              {selectedTemplate.html}
-                            </code>
-                          </pre>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="variables" className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                          Variables disponibles :
-                        </p>
-
-                        {/* Liste des variables */}
-                        <div className="space-y-2 mb-4">
-                          {selectedTemplate.variables.length > 0 ? (
-                            selectedTemplate.variables.map((variable) => (
-                              <div
-                                key={variable}
-                                className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
-                              >
-                                <div className="flex items-center gap-2 flex-1">
-                                  <code className="text-sm font-mono bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{`{{${variable}}}`}</code>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {variable === "firstName" &&
-                                      "Prénom de l'utilisateur"}
-                                    {variable === "lastName" &&
-                                      "Nom de l'utilisateur"}
-                                    {variable === "frontendUrl" &&
-                                      "URL du frontend"}
-                                    {variable === "verificationUrl" &&
-                                      "URL de vérification email"}
-                                    {variable === "resetUrl" &&
-                                      "URL de réinitialisation mot de passe"}
-                                    {variable === "resetLink" &&
-                                      "URL de réinitialisation mot de passe"}
-                                    {variable === "userName" &&
-                                      "Nom d'utilisateur"}
-                                    {variable === "appName" &&
-                                      "Nom de l'application"}
-                                    {variable === "expiryMinutes" &&
-                                      "Minutes avant expiration"}
-                                    {![
-                                      "firstName",
-                                      "lastName",
-                                      "frontendUrl",
-                                      "verificationUrl",
-                                      "resetUrl",
-                                      "resetLink",
-                                      "userName",
-                                      "appName",
-                                      "expiryMinutes",
-                                    ].includes(variable) &&
-                                      "Variable personnalisée"}
-                                  </span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveVariable(variable)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                              Aucune variable définie
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Ajouter une variable */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                          <Label
-                            htmlFor="new-variable"
-                            className="text-sm font-medium mb-2 block"
-                          >
-                            Ajouter une variable
-                          </Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="new-variable"
-                              type="text"
-                              placeholder="nomVariable (sans {{ }})"
-                              value={newVariable}
-                              onChange={(e) => setNewVariable(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
-                                  handleAddVariable();
-                                }
-                              }}
-                              className="flex-1"
-                            />
-                            <Button
-                              onClick={handleAddVariable}
-                              size="sm"
-                              variant="outline"
-                              disabled={!newVariable.trim()}
+                      {/* Liste des variables */}
+                      <div className="space-y-2 mb-4">
+                        {selectedTemplate.variables.length > 0 ? (
+                          selectedTemplate.variables.map((variable) => (
+                            <div
+                              key={variable}
+                              className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
                             >
-                              <Plus className="w-4 h-4 mr-1" />
-                              Ajouter
-                            </Button>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            💡 Les variables sont automatiquement détectées dans
-                            le HTML. Vous pouvez aussi les ajouter manuellement
-                            ici.
+                              <div className="flex items-center gap-2 flex-1">
+                                <code className="text-sm font-mono bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{`{{${variable}}}`}</code>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {variable === "firstName" &&
+                                    "Prénom de l'utilisateur"}
+                                  {variable === "lastName" &&
+                                    "Nom de l'utilisateur"}
+                                  {variable === "frontendUrl" &&
+                                    "URL du frontend"}
+                                  {variable === "verificationUrl" &&
+                                    "URL de vérification email"}
+                                  {variable === "resetUrl" &&
+                                    "URL de réinitialisation mot de passe"}
+                                  {variable === "resetLink" &&
+                                    "URL de réinitialisation mot de passe"}
+                                  {variable === "userName" &&
+                                    "Nom d'utilisateur"}
+                                  {variable === "appName" &&
+                                    "Nom de l'application"}
+                                  {variable === "expiryMinutes" &&
+                                    "Minutes avant expiration"}
+                                  {![
+                                    "firstName",
+                                    "lastName",
+                                    "frontendUrl",
+                                    "verificationUrl",
+                                    "resetUrl",
+                                    "resetLink",
+                                    "userName",
+                                    "appName",
+                                    "expiryMinutes",
+                                  ].includes(variable) &&
+                                    "Variable personnalisée"}
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveVariable(variable)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                            Aucune variable définie
                           </p>
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Bouton de sauvegarde */}
-                        <div className="mt-4">
+                      {/* Ajouter une variable */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <Label
+                          htmlFor="new-variable"
+                          className="text-sm font-medium mb-2 block"
+                        >
+                          Ajouter une variable
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="new-variable"
+                            type="text"
+                            placeholder="nomVariable (sans {{ }})"
+                            value={newVariable}
+                            onChange={(e) => setNewVariable(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                handleAddVariable();
+                              }
+                            }}
+                            className="flex-1"
+                          />
                           <Button
-                            onClick={handleSaveVariables}
-                            className="w-full"
-                            variant="default"
+                            onClick={handleAddVariable}
+                            size="sm"
+                            variant="outline"
+                            disabled={!newVariable.trim()}
                           >
-                            <Save className="w-4 h-4 mr-2" />
-                            Sauvegarder les variables
+                            <Plus className="w-4 h-4 mr-1" />
+                            Ajouter
                           </Button>
                         </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          💡 Les variables sont automatiquement détectées dans
+                          le HTML. Vous pouvez aussi les ajouter manuellement
+                          ici.
+                        </p>
                       </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="flex items-center justify-center h-64">
-                  <div className="text-center">
-                    <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">
-                      Sélectionnez un template pour le visualiser
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+
+                      {/* Bouton de sauvegarde */}
+                      <div className="mt-4">
+                        <Button
+                          onClick={handleSaveVariables}
+                          className="w-full"
+                          variant="default"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Sauvegarder les variables
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">
+                    Sélectionnez un template pour le visualiser
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-    </AdminLayout>
+    </EmailBackofficePageShell>
   );
 }
