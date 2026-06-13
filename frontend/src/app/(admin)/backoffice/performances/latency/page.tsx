@@ -1,9 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { AdminLayout } from "@/components/features";
-import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
@@ -33,6 +30,11 @@ import {
   RESPONSE_TIME_SOURCE_NOTE,
 } from "@/lib/metrics/responseTimePresentation";
 import type { MetricsData } from "@/lib/interfaces";
+import {
+  PerformanceChartCard,
+  PerformanceInfoNotice,
+  PerformancePageShell,
+} from "@/components/performances";
 import {
   ResponsiveContainer,
   LineChart,
@@ -316,63 +318,52 @@ export default function PerformancesLatencyPage() {
   }, [measuredRows, selectedServices]);
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
-        <PerformancesSubNav />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Temps de réponse
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+    <PerformancePageShell
+      title="Temps de réponse"
+      description={
+        <>
+          <p>
             Vue détaillée latence : historique agrégé + instantané par
             endpoint/service.
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 max-w-3xl">
+          <p className="mt-2 max-w-3xl text-xs text-gray-500 dark:text-gray-500">
             {RESPONSE_TIME_SOURCE_NOTE}
           </p>
-        </div>
-
-        <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/30 px-3 py-2 text-xs text-blue-900 dark:text-blue-100">
+        </>
+      }
+      notice={
+        <PerformanceInfoNotice>
           <span className="font-medium">Services prioritaires P1B : </span>
           {PRIORITY_RESPONSE_SERVICES.map((s) => s.replace(/-/g, " ")).join(
             " · ",
           )}
-        </div>
+        </PerformanceInfoNotice>
+      }
+      actions={
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={() => {
+            setUseCustomRange(false);
+            setFollowLive(true);
+            setWindowEnd(new Date());
+          }}
+          showNavigationHint={false}
+        />
+      }
+    >
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <TimeRangeSelector
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-            useCustomRange={useCustomRange}
-            setUseCustomRange={setUseCustomRange}
-            customStart={customStart}
-            setCustomStart={setCustomStart}
-            customEnd={customEnd}
-            setCustomEnd={setCustomEnd}
-            rangeLabel={rangeLabel}
-            goPrev={goPrev}
-            goNext={goNext}
-            canGoNext={canGoNext}
-            onPeriodNow={() => {
-              setUseCustomRange(false);
-              setFollowLive(true);
-              setWindowEnd(new Date());
-            }}
-            showNavigationHint={false}
-          />
-        </div>
-
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Historique agrégé (ms)
-          </h2>
+        <PerformanceChartCard title="Historique agrégé (ms)">
           {rows.length > 0 && (
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               {brushAvgMs != null
@@ -458,12 +449,9 @@ export default function PerformancesLatencyPage() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </PerformanceChartCard>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Instantané par service
-          </h2>
+        <PerformanceChartCard title="Instantané par service">
           {measuredRows.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -559,8 +547,7 @@ export default function PerformancesLatencyPage() {
               {missingRows.map((r) => r.name).join(", ")}
             </div>
           )}
-        </div>
-      </div>
-    </AdminLayout>
+        </PerformanceChartCard>
+    </PerformancePageShell>
   );
 }
