@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
-import { AdminLayout } from "@/components/features";
+import { UsersPageShell } from "./UsersPageShell";
 import {
   FacetAutocompleteField,
   FilterBar,
@@ -385,36 +385,32 @@ export default function UsersManagementPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
+      <UsersPageShell
+        title="Gestion des Utilisateurs"
+        description="Gérez les comptes utilisateurs et leurs permissions"
+      >
+        <div className="flex items-center justify-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+      </UsersPageShell>
     );
   }
 
   return (
-    <AdminLayout>
+    <UsersPageShell
+      title="Gestion des Utilisateurs"
+      description="Gérez les comptes utilisateurs et leurs permissions"
+      actions={
+        <button
+          onClick={() => router.push("/b4ck0ff1ce/users/new")}
+          className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors sm:w-auto"
+        >
+          <Plus className="h-5 w-5" />
+          Nouvel utilisateur
+        </button>
+      }
+    >
       <div className="space-y-6 min-w-0">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Gestion des Utilisateurs
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gérez les comptes utilisateurs et leurs permissions
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/b4ck0ff1ce/users/new")}
-            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors sm:w-auto"
-          >
-            <Plus className="h-5 w-5" />
-            Nouvel utilisateur
-          </button>
-        </div>
-
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -742,6 +738,6 @@ export default function UsersManagementPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </UsersPageShell>
   );
 }

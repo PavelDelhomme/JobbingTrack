@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
-import { AdminLayout } from "@/components/features";
+import { UsersPageShell } from "../UsersPageShell";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
-  ArrowLeft,
   Mail,
   Phone,
   Calendar,
@@ -423,33 +422,33 @@ export default function UserDetailPage() {
 
   if (loading && !isCreateMode) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
+      <UsersPageShell
+        title="Chargement utilisateur"
+        description="Récupération des informations du compte."
+        backHref="/b4ck0ff1ce/users"
+        backLabel="Retour aux utilisateurs"
+      >
+        <div className="flex items-center justify-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+      </UsersPageShell>
     );
   }
 
   if (error && !user && !isCreateMode) {
     return (
-      <AdminLayout>
-        <div className="p-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Retour
-          </button>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-            <div className="flex items-center gap-2 text-red-800 dark:text-red-300">
-              <AlertCircle className="h-5 w-5" />
-              <p>{error}</p>
-            </div>
+      <UsersPageShell
+        title="Utilisateur introuvable"
+        backHref="/b4ck0ff1ce/users"
+        backLabel="Retour aux utilisateurs"
+      >
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div className="flex items-center gap-2 text-red-800 dark:text-red-300">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
           </div>
         </div>
-      </AdminLayout>
+      </UsersPageShell>
     );
   }
 
@@ -459,19 +458,14 @@ export default function UserDetailPage() {
 
   if (isCreateMode) {
     return (
-      <AdminLayout>
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => router.push("/b4ck0ff1ce/users")}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              Retour
-            </button>
-          </div>
+      <UsersPageShell
+        title="Nouvel utilisateur"
+        description="Créer un compte et définir son rôle initial."
+        backHref="/b4ck0ff1ce/users"
+        backLabel="Retour aux utilisateurs"
+      >
+        <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-6 max-w-xl">
-            <h1 className="text-2xl font-bold mb-6">Nouvel utilisateur</h1>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -558,7 +552,7 @@ export default function UserDetailPage() {
             </div>
           </div>
         </div>
-      </AdminLayout>
+      </UsersPageShell>
     );
   }
 
@@ -567,31 +561,23 @@ export default function UserDetailPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        {/* Header avec bouton retour */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              Retour
-            </button>
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl">
-              {user.firstName?.[0]}
-              {user.lastName?.[0]}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {user.firstName} {user.lastName}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+    <UsersPageShell
+      title={
+        <span className="flex items-center gap-4">
+          <span className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
+            {user.firstName?.[0]}
+            {user.lastName?.[0]}
+          </span>
+          <span>
+            {user.firstName} {user.lastName}
+          </span>
+        </span>
+      }
+      description={user.email}
+      backHref="/b4ck0ff1ce/users"
+      backLabel="Retour aux utilisateurs"
+      actions={
+        <div className="flex items-center gap-2">
             {editMode ? (
               <>
                 <button
@@ -632,8 +618,9 @@ export default function UserDetailPage() {
               </>
             )}
           </div>
-        </div>
-
+      }
+    >
+      <div className="space-y-6">
         {/* Informations utilisateur */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Informations personnelles */}
@@ -926,6 +913,6 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </UsersPageShell>
   );
 }
