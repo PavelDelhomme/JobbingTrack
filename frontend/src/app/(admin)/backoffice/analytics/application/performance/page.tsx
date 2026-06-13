@@ -7,8 +7,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import Link from "next/link";
-import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
   ChartPeriodCaption,
@@ -24,7 +22,7 @@ import {
 } from "@/components/analytics/timeRangeUtils";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import { statisticsService } from "@/lib/services/statisticsService";
-import { ApplicationSubNav } from "../ApplicationSubNav";
+import { AnalyticsPageShell } from "../ApplicationSubNav";
 
 export default function ApplicationPerformancePage() {
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
@@ -202,46 +200,34 @@ export default function ApplicationPerformancePage() {
   const health = metrics?.health as Record<string, unknown> | undefined;
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <Link
-          href="/b4ck0ff1ce/analytics"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <span aria-hidden>←</span>
-          Retour à la vue d&apos;ensemble
-        </Link>
-
-        <ApplicationSubNav />
-
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Application — performances live
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+    <AnalyticsPageShell
+      title="Application — performances live"
+      description={
+        <p>
               Indicateurs issus de l&apos;application utilisateur et des
               services (temps de réponse, disponibilité, statistiques).
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-              useCustomRange={useCustomRange}
-              setUseCustomRange={setUseCustomRange}
-              customStart={customStart}
-              setCustomStart={setCustomStart}
-              customEnd={customEnd}
-              setCustomEnd={setCustomEnd}
-              rangeLabel={rangeLabel}
-              goPrev={goPrev}
-              goNext={goNext}
-              canGoNext={canGoNext}
-              onPeriodNow={handlePeriodNow}
-            />
-          </div>
-        </div>
+        </p>
+      }
+      actions={
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={handlePeriodNow}
+        />
+      }
+      backHref="/b4ck0ff1ce/analytics"
+      showApplicationSubNav
+    >
         <ChartPeriodCaption label={rangeLabel} />
         {loading && !metrics && !appStats ? (
           <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">
@@ -323,7 +309,6 @@ export default function ApplicationPerformancePage() {
             le dashboard et les statistiques sont accessibles.
           </div>
         )}
-      </div>
-    </AdminLayout>
+    </AnalyticsPageShell>
   );
 }

@@ -2,8 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
 import { BarChart3, Smartphone, Users } from "@/lib/icons";
+import { AnalyticsPageShell } from "./application/ApplicationSubNav";
 
 /**
  * Hub Analytics : résumé orienté **données produit** (application, utilisateurs).
@@ -32,14 +32,15 @@ export default function AnalyticsPage() {
   ] as const;
 
   return (
-    <AdminLayout>
-      <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+    <AnalyticsPageShell
+      title={
+        <span className="flex items-center gap-2">
             <BarChart3 className="h-7 w-7" aria-hidden />
             Analytics
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
+        </span>
+      }
+      description={
+        <p className="max-w-3xl">
             Vue d&apos;ensemble des vues{" "}
             <strong className="font-medium text-gray-800 dark:text-gray-200">
               application
@@ -57,8 +58,9 @@ export default function AnalyticsPage() {
               Performances
             </Link>
             .
-          </p>
-        </div>
+        </p>
+      }
+    >
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map(({ href, title, desc, icon: Icon }) => (
@@ -94,7 +96,6 @@ export default function AnalyticsPage() {
             Statistiques
           </Link>
         </div>
-      </div>
-    </AdminLayout>
+    </AnalyticsPageShell>
   );
 }
