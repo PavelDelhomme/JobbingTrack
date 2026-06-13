@@ -267,6 +267,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           subItems: [
             { name: "Synthèse", href: "/b4ck0ff1ce/performances", icon: "📊" },
             {
+              name: "CPU & Mémoire",
+              href: "/b4ck0ff1ce/performances/cpu-memory",
+              icon: "🖥️",
+            },
+            {
               name: "Temps de réponse",
               href: "/b4ck0ff1ce/performances/latency",
               icon: "⏱️",

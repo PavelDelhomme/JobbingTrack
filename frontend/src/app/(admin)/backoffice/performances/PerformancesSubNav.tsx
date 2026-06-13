@@ -9,6 +9,10 @@ const TABS = [
     label: "Synthèse",
   },
   {
+    href: "/b4ck0ff1ce/performances/cpu-memory",
+    label: "CPU & Mémoire",
+  },
+  {
     href: "/b4ck0ff1ce/performances/latency",
     label: "Temps de réponse",
   },
