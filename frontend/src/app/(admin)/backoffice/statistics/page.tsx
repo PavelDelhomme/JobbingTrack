@@ -1049,7 +1049,7 @@ export default function StatisticsPage() {
             {[
               { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
               // ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services et Services & Logs
-              { id: "security", label: "🔒 Sécurité", icon: Shield },
+              { id: "security", label: "🛡️ Santé technique", icon: Shield },
               { id: "logs", label: "📊 Statistiques Logs", icon: FileText },
             ].map((tab) => (
               <button
@@ -2428,7 +2428,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
   );
 }
 
-// Composant Security Tab
+// Ancien onglet "Sécurité" : il affiche disponibilité/erreurs infra, pas les incidents applicatifs.
 const SecurityTab = memo(function SecurityTab({
   stats,
   chartData,
@@ -2445,6 +2445,24 @@ const SecurityTab = memo(function SecurityTab({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3 text-sm">
+        <div className="w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+          Cette vue est une synthèse technique (disponibilité, requêtes,
+          erreurs, santé services). Les chiffres sécurité applicative sont dans{" "}
+          <Link
+            href="/b4ck0ff1ce/statistics/security"
+            className="font-medium underline hover:no-underline"
+          >
+            Sécurité persistée
+          </Link>{" "}
+          et la console opérationnelle dans{" "}
+          <Link
+            href="/b4ck0ff1ce/security"
+            className="font-medium underline hover:no-underline"
+          >
+            Sécurité live
+          </Link>
+          .
+        </div>
         <Link
           href="/b4ck0ff1ce/statistics/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"

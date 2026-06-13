@@ -175,6 +175,13 @@ export default function StatisticsSecurityPage() {
     return n > 0 ? sum / n : null;
   }, [fromMetrics.byDay]);
 
+  const summaryDataPoints = pSummary ? num(pSummary.dataPoints) : 0;
+  const summarySource = String(pSummary?.source ?? "security_metrics");
+  const hasPersistedSecuritySeries = metrics.length > 0 || summaryDataPoints > 0;
+  const summaryIsEmpty =
+    pSummary != null &&
+    (summaryDataPoints === 0 || summarySource.toLowerCase() === "empty");
+
   return (
     <AdminLayout>
       <StatisticsPageShell
@@ -220,6 +227,17 @@ export default function StatisticsSecurityPage() {
                   {persistedLogsTotal.toLocaleString("fr-FR")} lignes en base
                 </p>
                 <p className="mt-1 text-xs text-amber-900/90 dark:text-amber-200/80">
+                  Total brut agrégateur, toutes périodes confondues. À ne pas
+                  comparer directement au compteur live de{" "}
+                  <Link
+                    href="/b4ck0ff1ce/security"
+                    className="font-medium underline hover:no-underline"
+                  >
+                    Sécurité
+                  </Link>{" "}
+                  qui affiche une fenêtre 30 j limitée à 2000 lignes.
+                </p>
+                <p className="mt-1 text-xs text-amber-900/90 dark:text-amber-200/80">
                   Dry-run et export archive sans purge :{" "}
                   <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/40">
                     scripts/security/security-logs-retention-dry-run.cjs
@@ -241,7 +259,22 @@ export default function StatisticsSecurityPage() {
               <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
                 Synthèse sur la période (agrégateur)
               </h2>
-              {pSummary ? (
+              {summaryIsEmpty && (
+                <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                  Aucune série sécurité persistée exploitable sur les{" "}
+                  {hoursWindow} h. La console{" "}
+                  <Link
+                    href="/b4ck0ff1ce/security"
+                    className="font-medium underline hover:no-underline"
+                  >
+                    Sécurité
+                  </Link>{" "}
+                  peut quand même afficher de l’activité live : ce bloc ne doit
+                  pas être interprété comme un score 100 ou une absence
+                  d’incident.
+                </div>
+              )}
+              {pSummary && !summaryIsEmpty ? (
                 <DashboardLayoutRegion variant="dense" className="gap-4">
                   <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
@@ -284,6 +317,10 @@ export default function StatisticsSecurityPage() {
                     <p className="mt-1 text-2xl font-bold tabular-nums">
                       {num(pSummary.avgSecurityScore).toFixed(1)}
                     </p>
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      Persisté {hoursWindow} h · différent du score live pondéré
+                      dans Sécurité.
+                    </p>
                   </div>
                   <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
@@ -304,8 +341,9 @@ export default function StatisticsSecurityPage() {
                 <div
                   className={`rounded-xl border border-dashed border-gray-300 p-5 dark:border-gray-700 ${uiEmpty.centerPy4}`}
                 >
-                  Résumé persisté indisponible (table vide ou erreur
-                  agrégateur).
+                  {summaryIsEmpty
+                    ? "Résumé persisté vide sur la fenêtre demandée : aucun score synthétique n’est affiché pour éviter un faux “tout va bien”."
+                    : "Résumé persisté indisponible (table vide ou erreur agrégateur)."}
                 </div>
               )}
             </div>
@@ -438,7 +476,10 @@ export default function StatisticsSecurityPage() {
               </h2>
               {metrics.length === 0 ? (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Aucune série sur la période. La table brute{" "}
+                  {hasPersistedSecuritySeries
+                    ? "Résumé disponible, mais aucun extrait brut affichable sur cette fenêtre."
+                    : "Aucune série sur la période."}{" "}
+                  La table brute{" "}
                   <code className="text-xs">security_metrics</code> est utilisée
                   en fallback si la table agrégée est vide ; attendre le
                   collecteur sécurité ou relancer la stack doit alimenter ce

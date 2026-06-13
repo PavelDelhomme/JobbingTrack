@@ -181,7 +181,12 @@ export default function StatisticsLogStatsPage() {
       ).toISOString();
       const [st, rows] = await Promise.all([
         analyticsService.getPersistenceStats(),
-        analyticsService.getPersistenceLogs({ limit: 800, startDate: since }),
+        analyticsService.getPersistenceLogs({
+          limit: 800,
+          startDate: since,
+          level: applied.level || undefined,
+          serviceName: applied.service || undefined,
+        }),
       ]);
       setStats(st && typeof st === "object" ? st : null);
       setLogs(Array.isArray(rows) ? (rows as AggLog[]) : []);
@@ -190,7 +195,7 @@ export default function StatisticsLogStatsPage() {
     } finally {
       setLoading(false);
     }
-  }, [applied.periodDays]);
+  }, [applied.level, applied.periodDays, applied.service]);
 
   useEffect(() => {
     void load();
@@ -301,8 +306,8 @@ export default function StatisticsLogStatsPage() {
             {STATS_PERIOD_OPTIONS.find(
               (period) => period.value === applied.periodDays,
             )?.label ?? `${applied.periodDays} jours`}
-            , échantillon). Les compteurs sont globaux par table ; les
-            graphiques appliquent la période sélectionnée.
+            , échantillon). Les compteurs sont globaux par table ; les graphes
+            appliquent la période, le niveau et le service sélectionnés.
           </>
         }
         actions={<StatisticsRefreshButton onClick={() => void load()} />}
@@ -350,6 +355,14 @@ export default function StatisticsLogStatsPage() {
                 />
               </div>
             </FilterBar>
+
+            {!counts && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100">
+                Compteurs de persistance indisponibles. Les graphes peuvent
+                être vides même si des logs existent ; vérifier
+                metrics-aggregator, la clé API et le proxy frontend.
+              </div>
+            )}
 
             {counts && (
               <DashboardLayoutRegion variant="dense" className="gap-3">
@@ -476,7 +489,7 @@ export default function StatisticsLogStatsPage() {
             <p className={`text-xs ${uiText.subtle}`}>
               {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
               {applied.periodDays}
-              jours, max 800).
+              jours, filtres appliqués côté API puis côté UI, max 800).
             </p>
 
             <div className="flex flex-wrap gap-2">
