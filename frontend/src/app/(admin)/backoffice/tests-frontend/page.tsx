@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { DevelopmentPageShell } from "../DevelopmentSubNav";
 import { useAuth } from "@/lib/hooks/auth";
 import {
   Play,
@@ -191,44 +191,43 @@ export default function FrontendTestsPage() {
 
   if (authLoading) {
     return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-          </div>
+      <DevelopmentPageShell
+        title="Tests Frontend"
+        description="Tests des composants et fonctionnalités frontend"
+      >
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         </div>
-      </AdminLayout>
+      </DevelopmentPageShell>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Vous devez être connecté.
-            </p>
-          </div>
+      <DevelopmentPageShell
+        title="Tests Frontend"
+        description="Tests des composants et fonctionnalités frontend"
+      >
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            Vous devez être connecté.
+          </p>
         </div>
-      </AdminLayout>
+      </DevelopmentPageShell>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Monitor className="w-8 h-8 text-green-600" />
-              Tests Frontend
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Tests des composants et fonctionnalités frontend
-            </p>
-          </div>
-          <button
+    <DevelopmentPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Monitor className="w-7 h-7 text-green-600" />
+          Tests Frontend
+        </span>
+      }
+      description="Tests des composants et fonctionnalités frontend"
+      actions={
+        <button
             onClick={startFrontendTests}
             disabled={!token || isRunning}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -249,8 +248,9 @@ export default function FrontendTestsPage() {
               </>
             )}
           </button>
-        </div>
-
+      }
+    >
+      <div className="space-y-6">
         {/* Liste des tests disponibles */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -404,6 +404,6 @@ export default function FrontendTestsPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </DevelopmentPageShell>
   );
 }

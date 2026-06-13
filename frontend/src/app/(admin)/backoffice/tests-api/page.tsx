@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { DevelopmentPageShell } from "../DevelopmentSubNav";
 import { useAuth } from "@/lib/hooks/auth";
 import {
   Play,
@@ -284,44 +284,43 @@ export default function APITestsPage() {
 
   if (authLoading) {
     return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-          </div>
+      <DevelopmentPageShell
+        title="Tests API"
+        description="Tests des endpoints et services backend"
+      >
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         </div>
-      </AdminLayout>
+      </DevelopmentPageShell>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Vous devez être connecté.
-            </p>
-          </div>
+      <DevelopmentPageShell
+        title="Tests API"
+        description="Tests des endpoints et services backend"
+      >
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            Vous devez être connecté.
+          </p>
         </div>
-      </AdminLayout>
+      </DevelopmentPageShell>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Server className="w-8 h-8 text-blue-600" />
-              Tests API
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Tests des endpoints et services backend
-            </p>
-          </div>
-          <button
+    <DevelopmentPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Server className="w-7 h-7 text-blue-600" />
+          Tests API
+        </span>
+      }
+      description="Tests des endpoints et services backend"
+      actions={
+        <button
             onClick={startAPITests}
             disabled={!token || isRunning}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -342,8 +341,9 @@ export default function APITestsPage() {
               </>
             )}
           </button>
-        </div>
-
+      }
+    >
+      <div className="space-y-6">
         {/* Liste des tests disponibles */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -528,6 +528,6 @@ export default function APITestsPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </DevelopmentPageShell>
   );
 }
