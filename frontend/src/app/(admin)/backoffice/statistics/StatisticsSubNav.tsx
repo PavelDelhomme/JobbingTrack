@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AdminLayout } from "@/components/features";
 
 const TABS = [
   { href: "/b4ck0ff1ce/statistics", label: "Vue d’ensemble" },
@@ -54,27 +55,29 @@ export function StatisticsPageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <StatisticsSubNav />
-      <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
-              {title}
-            </h1>
-            <div className="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-400">
-              {description}
+    <AdminLayout>
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <StatisticsSubNav />
+        <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-4xl">
+              <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
+                {title}
+              </h1>
+              <div className="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-400">
+                {description}
+              </div>
             </div>
+            {actions ? (
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {actions}
+              </div>
+            ) : null}
           </div>
-          {actions ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {actions}
-            </div>
-          ) : null}
         </div>
+        {children}
       </div>
-      {children}
-    </div>
+    </AdminLayout>
   );
 }
 

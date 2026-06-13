@@ -920,8 +920,7 @@ export default function StatisticsPage() {
   }
 
   return (
-    <AdminLayout>
-      <StatisticsPageShell
+    <StatisticsPageShell
         title="Statistiques & Monitoring global"
         description={
           <>
@@ -1118,8 +1117,7 @@ export default function StatisticsPage() {
             />
           )}
         </div>
-      </StatisticsPageShell>
-    </AdminLayout>
+    </StatisticsPageShell>
   );
 }
 

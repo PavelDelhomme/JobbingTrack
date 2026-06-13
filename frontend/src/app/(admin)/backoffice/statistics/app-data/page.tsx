@@ -11,7 +11,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { AdminLayout } from "@/components/features";
 import {
   StatisticsPageShell,
   StatisticsRefreshButton,
@@ -144,8 +143,7 @@ export default function StatisticsAppDataPage() {
   }, [stats]);
 
   return (
-    <AdminLayout>
-      <StatisticsPageShell
+    <StatisticsPageShell
         title="Statistiques — App data"
         description={
           <>
@@ -435,8 +433,7 @@ export default function StatisticsAppDataPage() {
             </Link>
           </>
         )}
-      </StatisticsPageShell>
-    </AdminLayout>
+    </StatisticsPageShell>
   );
 }
 

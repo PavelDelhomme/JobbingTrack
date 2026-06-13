@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
 import {
   StatisticsPageShell,
   StatisticsRefreshButton,
@@ -183,8 +182,7 @@ export default function StatisticsSecurityPage() {
     (summaryDataPoints === 0 || summarySource.toLowerCase() === "empty");
 
   return (
-    <AdminLayout>
-      <StatisticsPageShell
+    <StatisticsPageShell
         title="Statistiques — Sécurité persistée"
         description={
           <>
@@ -522,7 +520,6 @@ export default function StatisticsSecurityPage() {
             </div>
           </>
         )}
-      </StatisticsPageShell>
-    </AdminLayout>
+    </StatisticsPageShell>
   );
 }
