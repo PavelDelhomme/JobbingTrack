@@ -10,10 +10,9 @@ import {
   FilterSelectField,
 } from "@/components/filters";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues, mergeFacetSuggestions } from "@/lib/filters/facetUtils";
-import { SecurityIncidentsTabs } from "../SecurityIncidentsTabs";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -410,42 +409,40 @@ export default function ThreatsPage() {
   };
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      showIncidentsTabs
+      title={
+        <span className="flex items-center gap-2">
+          <AlertTriangle className="h-7 w-7" />
+          Menaces réseau
+        </span>
+      }
+      description={`${highOrCriticalCount} menace(s) haute(s) ou critique(s) sur la page courante`}
+      actions={
+        <>
+          <button
+            onClick={exportThreatsJson}
+            className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+          >
+            Export JSON
+          </button>
+          <button
+            onClick={exportThreatsCsv}
+            className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={() => loadThreats()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Actualiser
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        <SecurityIncidentsTabs />
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <AlertTriangle className="h-8 w-8" />
-              Menaces réseau
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {highOrCriticalCount} menace(s) haute(s) ou critique(s) sur la
-              page courante
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={exportThreatsJson}
-              className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
-            >
-              Export JSON
-            </button>
-            <button
-              onClick={exportThreatsCsv}
-              className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
-            >
-              Export CSV
-            </button>
-            <button
-              onClick={() => loadThreats()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <RefreshCw className="h-5 w-5" />
-              Actualiser
-            </button>
-          </div>
-        </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
             Temps réel:{" "}
@@ -708,6 +705,6 @@ export default function ThreatsPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

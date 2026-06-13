@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import {
   FacetAutocompleteField,
   FilterBar,
   FilterSelectField,
 } from "@/components/filters";
-import { SecurityIncidentsTabs } from "../SecurityIncidentsTabs";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import type { FilterBadge } from "@/lib/filters/types";
@@ -321,38 +320,37 @@ export default function SecurityIncidentsPage() {
   );
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      showIncidentsTabs
+      title={
+        <span className="flex items-center gap-2">
+          <AlertTriangle className="h-7 w-7 text-red-600" />
+          Incidents & menaces
+        </span>
+      }
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => load()}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </button>
+          <button
+            type="button"
+            disabled={labBusy}
+            onClick={createLabThreat}
+            className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            <FlaskConical className="h-4 w-4" />
+            Menace lab (test)
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        <SecurityIncidentsTabs />
-
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <AlertTriangle className="h-7 w-7 text-red-600" />
-              Incidents & menaces
-            </h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => load()}
-              className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Actualiser
-            </button>
-            <button
-              type="button"
-              disabled={labBusy}
-              onClick={createLabThreat}
-              className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
-            >
-              <FlaskConical className="h-4 w-4" />
-              Menace lab (test)
-            </button>
-          </div>
-        </div>
-
         {labMsg && (
           <p className="text-sm rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
             {labMsg}
@@ -525,6 +523,6 @@ export default function SecurityIncidentsPage() {
         )}
 
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

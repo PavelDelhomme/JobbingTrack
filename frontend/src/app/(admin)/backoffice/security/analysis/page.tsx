@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -242,24 +243,27 @@ export default function SecurityAnalysisPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Analyse de Sécurité
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Évaluation complète de la sécurité de votre application
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+    <SecurityPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Shield className="h-7 w-7" />
+          Analyse de Sécurité
+        </span>
+      }
+      description={
+        <>
+          <p>Évaluation complète de la sécurité de votre application</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Logs sécurité : fenêtre glissante de {ANALYSIS_LOGS_WINDOW_DAYS}{" "}
             jours (limite UI {ANALYSIS_LOGS_FETCH_LIMIT} entrées). Menaces :
-            jusqu’à 200 entrées récentes. Les dates et heures sont affichées en{" "}
+            jusqu'à 200 entrées récentes. Les dates et heures sont affichées en{" "}
             <strong>heure locale</strong> du navigateur (les API renvoient des
             timestamps ISO, en pratique UTC ou stockage serveur).
           </p>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-6">
         {serviceError && (
           <div className="p-4 rounded-lg border border-red-300 bg-red-50 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
             {serviceError}
@@ -634,6 +638,6 @@ export default function SecurityAnalysisPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

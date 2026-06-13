@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import {
   FacetAutocompleteField,
   FilterBar,
@@ -291,26 +291,26 @@ export default function SecurityLogsPage() {
   };
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <ShieldAlert className="h-7 w-7" />
+          Logs sécurité
+        </span>
+      }
+      actions={
+        <button
+          type="button"
+          onClick={() => void loadLogs()}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Actualiser
+        </button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-              <ShieldAlert className="h-8 w-8" />
-              Logs sécurité
-            </h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => void loadLogs()}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
-          </button>
-        </div>
-
         <FilterBar
           hasDraftChanges={hasDraftChanges}
           facetsLoading={facetsLoading}
@@ -507,6 +507,6 @@ export default function SecurityLogsPage() {
           />
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

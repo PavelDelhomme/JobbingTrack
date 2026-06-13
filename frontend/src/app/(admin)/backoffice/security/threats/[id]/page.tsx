@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -15,7 +16,6 @@ import {
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
 import {
-  ArrowLeft,
   AlertTriangle,
   Shield,
   Ban,
@@ -211,22 +211,18 @@ export default function ThreatDetailsPage() {
 
   if (error || !threat) {
     return (
-      <AdminLayout>
-        <div className="space-y-6">
-          <button
-            onClick={() => router.push("/b4ck0ff1ce/security/threats")}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Retour aux menaces
-          </button>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-            <p className="text-red-800 dark:text-red-200">
-              {error || "Menace non trouvée"}
-            </p>
-          </div>
+      <SecurityPageShell
+        showSubNav={false}
+        backHref="/b4ck0ff1ce/security/threats"
+        backLabel="Retour aux menaces"
+        title="Menace introuvable"
+      >
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <p className="text-red-800 dark:text-red-200">
+            {error || "Menace non trouvée"}
+          </p>
         </div>
-      </AdminLayout>
+      </SecurityPageShell>
     );
   }
 
@@ -300,36 +296,30 @@ export default function ThreatDetailsPage() {
           : "Monitoring continu, sans action bloquante immédiate.";
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      showSubNav={false}
+      backHref="/b4ck0ff1ce/security/threats"
+      backLabel="Retour aux menaces"
+      title={
+        <span className="flex items-center gap-2">
+          <AlertTriangle className="h-7 w-7" />
+          Détails de la Menace
+        </span>
+      }
+      description={formatThreatTypeLabel(threat.threatType)}
+      actions={
+        !threat.blocked ? (
+          <button
+            onClick={handleBlock}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+          >
+            <Ban className="h-5 w-5" />
+            Bloquer cette menace
+          </button>
+        ) : undefined
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/b4ck0ff1ce/security/threats")}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <AlertTriangle className="h-8 w-8" />
-                Détails de la Menace
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {formatThreatTypeLabel(threat.threatType)}
-              </p>
-            </div>
-          </div>
-          {!threat.blocked && (
-            <button
-              onClick={handleBlock}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-            >
-              <Ban className="h-5 w-5" />
-              Bloquer cette menace
-            </button>
-          )}
-        </div>
 
         {threat.blocked && (
           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-900 dark:text-red-100">
@@ -952,6 +942,6 @@ export default function ThreatDetailsPage() {
           </pre>
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

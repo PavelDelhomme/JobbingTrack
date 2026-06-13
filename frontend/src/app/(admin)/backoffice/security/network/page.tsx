@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import { FacetAutocompleteField, FilterBar } from "@/components/filters";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -239,24 +240,24 @@ export default function NetworkStatsPage() {
   }
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Network className="h-7 w-7" />
+          Réseau (sécurité)
+        </span>
+      }
+      actions={
+        <button
+          onClick={loadStats}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        >
+          <RefreshCw className="h-5 w-5" />
+          Actualiser
+        </button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Network className="h-8 w-8" />
-              Réseau (sécurité)
-            </h1>
-          </div>
-          <button
-            onClick={loadStats}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <RefreshCw className="h-5 w-5" />
-            Actualiser
-          </button>
-        </div>
-
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-200">{error}</p>
@@ -690,6 +691,6 @@ export default function NetworkStatsPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import { TableSkeleton } from "@/lib/ui";
 import { Pagination } from "@/components/ui/Pagination";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
@@ -359,30 +359,28 @@ export default function FirewallPage() {
   };
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      title={
+        <span className="flex items-center gap-2">
+          <Shield className="h-7 w-7" />
+          Firewall
+        </span>
+      }
+      description="Gestion des règles de firewall et des IPs bloquées"
+      actions={
+        <button
+          onClick={() => {
+            loadRules();
+            loadBlockedIps();
+          }}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <RefreshCw className="h-5 w-5" />
+          Actualiser
+        </button>
+      }
+    >
       <div className="space-y-6 min-w-0">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Shield className="h-8 w-8" />
-              Firewall
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gestion des règles de firewall et des IPs bloquées
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              loadRules();
-              loadBlockedIps();
-            }}
-            className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto"
-          >
-            <RefreshCw className="h-5 w-5" />
-            Actualiser
-          </button>
-        </div>
-
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-200">{error}</p>
@@ -1014,7 +1012,7 @@ export default function FirewallPage() {
           <WAFConfigSection />
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }
 

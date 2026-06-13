@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "./SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -580,24 +580,24 @@ export default function SecurityOverviewPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            🛡️ Vue d’ensemble sécurité
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+    <SecurityPageShell
+      title="🛡️ Vue d'ensemble sécurité"
+      description={
+        <>
+          <p>
             Pilotage centralisé: logs, menaces, firewall, WAF, analyse et
             politiques.
           </p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Les horodatages à l’écran sont en <strong>heure locale</strong> du
+            Les horodatages à l'écran sont en <strong>heure locale</strong> du
             navigateur. Les compteurs « Logs » et « Détections » utilisent une
             fenêtre de {LOGS_WINDOW_DAYS} jours pour rester cohérents avec la
             page Analyse.
           </p>
-        </div>
-
+        </>
+      }
+    >
+      <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -931,6 +931,6 @@ export default function SecurityOverviewPage() {
           </Link>
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

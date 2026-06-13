@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
 import { SectionLoader, uiSurfaces, uiText } from "@/lib/ui";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -13,8 +12,8 @@ import {
   formatSecuritySeverity,
 } from "@/lib/security/securityLabels";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
-import { ArrowLeft } from "lucide-react";
 import axios from "axios";
+import { SecurityPageShell } from "../../../SecuritySubNav";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -73,16 +72,13 @@ export default function SecurityAlertDetailPage() {
       : null;
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      showSubNav={false}
+      backHref="/b4ck0ff1ce/security/incidents"
+      backLabel="Retour aux incidents"
+      title={alert?.title ?? "Détail alerte"}
+    >
       <div className="space-y-6">
-        <Link
-          href="/b4ck0ff1ce/security/incidents"
-          className="inline-flex items-center gap-2 text-sm text-red-600 hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour aux incidents
-        </Link>
-
         {loading && (
           <SectionLoader
             message="Chargement de l'alerte…"
@@ -106,9 +102,6 @@ export default function SecurityAlertDetailPage() {
                 {formatLocalDateTime(alert.timestamp)}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {alert.title}
-            </h1>
             <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
               {alert.description}
             </p>
@@ -135,6 +128,6 @@ export default function SecurityAlertDetailPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }

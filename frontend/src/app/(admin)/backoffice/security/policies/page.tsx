@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
+import { SecurityPageShell } from "../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -301,16 +302,11 @@ export default function SecurityPoliciesPage() {
   }
 
   return (
-    <AdminLayout>
+    <SecurityPageShell
+      title="Politiques de sécurité"
+      description="Paramétrage détaillé : WAF, règles firewall, blocage IP."
+    >
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Politiques de sécurité
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Paramétrage détaillé : WAF, règles firewall, blocage IP.
-          </p>
-        </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -552,6 +548,6 @@ export default function SecurityPoliciesPage() {
           </Link>
         </div>
       </div>
-    </AdminLayout>
+    </SecurityPageShell>
   );
 }
