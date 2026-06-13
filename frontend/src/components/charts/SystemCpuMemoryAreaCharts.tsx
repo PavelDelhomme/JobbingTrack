@@ -29,6 +29,8 @@ export type SystemCpuMemoryAreaChartsProps = {
   axisShowDate: boolean;
   /** Hauteur d’un graphique (CPU ou mémoire), en px. */
   chartHeight?: number;
+  /** Rendu plus visible pour les snapshots/fallback live avec peu de points. */
+  emphasizePoints?: boolean;
 };
 
 function tooltipLabel(_: unknown, payload: unknown) {
@@ -47,6 +49,7 @@ export function SystemCpuMemoryAreaCharts({
   xDomainMax,
   axisShowDate,
   chartHeight = 220,
+  emphasizePoints = false,
 }: SystemCpuMemoryAreaChartsProps) {
   const uid = useId().replace(/:/g, "");
   const cpuFillId = `sysCpuGrad-${uid}`;
@@ -113,9 +116,12 @@ export function SystemCpuMemoryAreaCharts({
               type="monotone"
               dataKey="cpu"
               stroke="#3B82F6"
+              strokeWidth={emphasizePoints ? 3 : 2}
               fillOpacity={1}
               fill={`url(#${cpuFillId})`}
               connectNulls={false}
+              dot={emphasizePoints ? { r: 3 } : false}
+              activeDot={{ r: 5 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -173,9 +179,12 @@ export function SystemCpuMemoryAreaCharts({
               type="monotone"
               dataKey="memory"
               stroke="#10B981"
+              strokeWidth={emphasizePoints ? 3 : 2}
               fillOpacity={1}
               fill={`url(#${memFillId})`}
               connectNulls={false}
+              dot={emphasizePoints ? { r: 3 } : false}
+              activeDot={{ r: 5 }}
             />
           </AreaChart>
         </ResponsiveContainer>

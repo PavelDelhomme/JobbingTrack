@@ -392,12 +392,38 @@ export default function StatisticsAppDataPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
+            ) : chartRows.length === 1 ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+                <h2 className="text-base font-semibold">
+                  Snapshot applicatif courant
+                </h2>
+                <p className="mt-1">
+                  L’API timeline renvoie actuellement un seul point de synthèse.
+                  Les totaux ci-dessus sont donc affichés comme état courant ;
+                  le graphe temporel apparaîtra dès que plusieurs snapshots
+                  historiques seront disponibles.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <SnapshotMetric label="Candidatures" value={chartRows[0].applications} />
+                  <SnapshotMetric label="Utilisateurs" value={chartRows[0].users} />
+                  <SnapshotMetric label="Entreprises" value={chartRows[0].companies} />
+                  <SnapshotMetric label="Contacts" value={chartRows[0].contacts} />
+                  <SnapshotMetric label="Entretiens" value={chartRows[0].interviews} />
+                  <SnapshotMetric label="Appels" value={chartRows[0].calls} />
+                  <SnapshotMetric label="Relances" value={chartRows[0].followups} />
+                  <SnapshotMetric label="Événements" value={chartRows[0].events} />
+                </div>
+                <p className="mt-2 text-xs text-blue-900/80 dark:text-blue-100/80">
+                  Point : {chartRows[0].label}
+                </p>
+              </div>
             ) : (
               <div
                 className={`rounded-xl border border-dashed border-gray-300 p-5 dark:border-gray-700 ${uiEmpty.centerPy4}`}
               >
-                Pas assez de points timeline pour tracer un graphique (collecte
-                ou rôle API).
+                Aucune donnée timeline renvoyée par l’API. Les cartes restent la
+                source principale tant que l’historique applicatif dédié n’est
+                pas alimenté.
               </div>
             )}
 
@@ -436,6 +462,19 @@ function StatCard({
           {subtitle}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function SnapshotMetric({ label, value }: { label: string; value?: number }) {
+  return (
+    <div className="rounded-lg border border-blue-200 bg-white/70 p-3 dark:border-blue-900/60 dark:bg-blue-950/40">
+      <p className="text-xs font-medium text-blue-900/80 dark:text-blue-100/80">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-semibold tabular-nums">
+        {value != null ? value.toLocaleString("fr-FR") : "—"}
+      </p>
     </div>
   );
 }
