@@ -1,8 +1,19 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 12 juin 2026 — **Branche** `dev` (refonte filtres B10 complète, commit `809f38c6`).
+**Dernière mise à jour** : 13 juin 2026 — **Branche** `dev` (moteur UI Gestion des emails complet, commit `f23a36d4`).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 13 juin 2026 — moteur UI Gestion des emails (backoffice)
+
+- **Shell partagé** : `EmailBackofficePageShell` + `EmailBackofficeSubNav` (`frontend/src/app/(admin)/backoffice/emails/EmailBackofficeSubNav.tsx`) — sous-navigation alignée sur le menu **Gestion des emails** (Dashboard, Email Monitor, Templates, Configuration, Déliverabilité, MailHog) ; route historique `/b4ck0ff1ce/email-monitor` conservée.
+- **Lot 1 — Configuration / MailHog** : branche `refactor/emails-settings-mailhog-ui-shell`, commit `8b008dd8` ; pages `/emails/settings`, `/emails/mailhog` ; invariants SMTP `/api/v1/emails/test-smtp`, iframe et lien MailHog inchangés.
+- **Lot 2 — Dashboard / Templates** : branche `refactor/emails-dashboard-templates-ui-shell`, commit `ada6619e` ; pages `/emails`, `/emails/templates` ; invariants stats, envoi test/reset, édition templates inchangés.
+- **Lot 3 — Email Monitor / Déliverabilité** : branche `refactor/emails-monitor-deliverability-ui-shell`, commits `17829364` + trace mail `f23a36d4` ; pages `/email-monitor`, `/emails/deliverability` ; invariants polling, filtres, exports/suppressions, tests DNS/SMTP inchangés.
+- **Validations agent** : `frontend ./node_modules/.bin/tsc --noEmit` OK sur chaque lot ; ESLint ciblé **0 erreur** (warnings historiques sur grandes pages) ; routes emails HTTP **307 → /login** sans session (attendu) ; Playwright ciblé bloqué au setup admin **401** (credentials E2E à réaligner, déjà connu) ; `npm run type-check` / `npm run lint` wrappers sortent encore code 1 sans sortie exploitable (dette globale).
+- **Mails récap agent** : 3 envois via `notification-service`, chacun **3/3 SENT** dans `EmailLog` (`metadata.mirror.sent=true`, expéditeur `JobbingTrack Security <noreply@maily.ovh>`) — sujets `… Emails Configuration MailHog 2026-06-13T19:48:03.212Z`, `… Emails Dashboard Templates 2026-06-13T20:05:31.549Z`, `… Emails Monitor Deliverabilite 2026-06-13T20:18:22.931Z`.
+- **Pilotage** : lignes P1C ajoutées dans `TODOS_A_VALIDER.md` (validation porteur locale) et preuves agent dans `TODOS_A_VERIFIER.md` ; en attente OK porteur avant archivage `TODOS_DONE.md`.
+- **Développement (même session)** : `DevelopmentPageShell` + `DevelopmentTestsSubNav` sur les 4 runners (`/tests-api`, `/tests-backend`, `/tests-frontend`, `/tests-backoffice`), commit `ca5349af`, mail récap `2026-06-13T19:28:09.311Z` **3/3 SENT**.
 
 ## 12 juin 2026 (après-midi) — Performances HTTPS : proxy metrics-aggregator
 
