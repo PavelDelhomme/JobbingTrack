@@ -22,7 +22,9 @@ import {
   localCalendarDayBounds,
 } from "@/components/analytics/timeRangeUtils";
 import { CpuMemoryServiceLinesChart } from "@/components/charts/CpuMemoryServiceLinesChart";
+import { SystemCpuMemoryAreaCharts } from "@/components/charts/SystemCpuMemoryAreaCharts";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import type { SystemPercentSeriesRow } from "@/lib/charts/systemMetricsSeriesModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
   formatLocalChartAxisTick,
@@ -34,6 +36,7 @@ import {
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
+const DEFAULT_SELECTED_SERVICE_COUNT = 6;
 const VIEWS = [
   { id: "overview", label: "Vue globale" },
   { id: "cpu", label: "CPU détaillé" },
@@ -52,6 +55,13 @@ interface ContainerInfo {
 }
 
 interface ContainerMetric {
+  timestamp: string;
+  timeMs?: number;
+  cpuUsagePercent?: number | null;
+  memoryUsagePercent?: number | null;
+}
+
+interface SystemMetric {
   timestamp: string;
   timeMs?: number;
   cpuUsagePercent?: number | null;
@@ -109,6 +119,40 @@ function normalizeMetrics(data: Record<string, unknown>[]): ContainerMetric[] {
     );
 }
 
+function normalizeSystemMetrics(data: Record<string, unknown>[]): SystemMetric[] {
+  return (data || [])
+    .map((d) => {
+      const rawTs =
+        typeof d.timestamp === "string"
+          ? d.timestamp
+          : ((d.timestamp as Date)?.toISOString?.() ?? "");
+      const timestamp = normalizeMetricTimestampToIso(rawTs);
+      const timeMs = metricRowToTimeMs(d, timestamp);
+      return {
+        timestamp,
+        ...(timeMs != null ? { timeMs } : {}),
+        cpuUsagePercent:
+          d.cpuUsagePercent != null
+            ? Number(d.cpuUsagePercent)
+            : d.cpu_usage_percent != null
+              ? Number(d.cpu_usage_percent)
+              : null,
+        memoryUsagePercent:
+          d.memoryUsagePercent != null
+            ? Number(d.memoryUsagePercent)
+            : d.memory_usage_percent != null
+              ? Number(d.memory_usage_percent)
+              : null,
+      };
+    })
+    .filter((d) => d.timestamp)
+    .sort(
+      (a, b) =>
+        (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
+        (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0),
+    );
+}
+
 function average(values: Array<number | undefined>): number | null {
   const nums = values.filter(
     (n): n is number => typeof n === "number" && Number.isFinite(n),
@@ -123,13 +167,15 @@ function formatPercent(value: number | null): string {
 
 export default function CpuMemoryPerformancePage() {
   const [containers, setContainers] = useState<ContainerInfo[]>([]);
+  const [rawSystemMetrics, setRawSystemMetrics] = useState<SystemMetric[]>([]);
   const [rawMetricsByContainer, setRawMetricsByContainer] = useState<
     Record<string, ContainerMetric[]>
   >({});
   const [activeView, setActiveView] = useState<CpuMemoryView>("overview");
-  const [hiddenServiceKeys, setHiddenServiceKeys] = useState<string[]>([]);
+  const [selectedServiceKeys, setSelectedServiceKeys] = useState<string[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
@@ -189,7 +235,16 @@ export default function CpuMemoryPerformancePage() {
       setListError(null);
       try {
         const list = await analyticsService.getContainersList();
-        if (!cancelled) setContainers(list);
+        if (!cancelled) {
+          setContainers(list);
+          setSelectedServiceKeys((current) =>
+            current.length
+              ? current
+              : list.slice(0, DEFAULT_SELECTED_SERVICE_COUNT).map((container) =>
+                  serviceKey(container.name),
+                ),
+          );
+        }
       } catch (e) {
         if (!cancelled) {
           setContainers([]);
@@ -209,23 +264,73 @@ export default function CpuMemoryPerformancePage() {
 
   useEffect(() => {
     if (!rangeHydrated) return;
-    if (containers.length === 0) {
-      setRawMetricsByContainer({});
-      return;
-    }
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
     const controller = new AbortController();
     const { startDate, endDate, limit } = getParams();
-    const opts = { startDate, endDate, limit, offset: 0, signal: controller.signal };
     let cancelled = false;
 
-    beginUserRangeFetch(
-      silent,
-      () => undefined,
-      setLoadingMetrics,
+    beginUserRangeFetch(silent, setRawSystemMetrics, setLoadingSystemMetrics);
+    analyticsService
+      .getSystemMetricsHistory({
+        startDate,
+        endDate,
+        limit,
+        offset: 0,
+        signal: controller.signal,
+      })
+      .then((data: Record<string, unknown>[]) => {
+        if (cancelled || controller.signal.aborted) return;
+        setRawSystemMetrics(
+          injectMetricTimeGaps(normalizeSystemMetrics(data), METRIC_GAP_MS, [
+            "cpuUsagePercent",
+            "memoryUsagePercent",
+          ]),
+        );
+      })
+      .catch((e) => {
+        if (!isBenignFetchAbort(e)) console.error(e);
+      })
+      .finally(() => {
+        if (!cancelled && !controller.signal.aborted && !silent) {
+          setLoadingSystemMetrics(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [getParams, rangeHydrated, softTick]);
+
+  useEffect(() => {
+    if (!rangeHydrated) return;
+    if (activeView === "overview") {
+      setLoadingMetrics(false);
+      return;
+    }
+    const selectedContainers = containers.filter((container) =>
+      selectedServiceKeys.includes(serviceKey(container.name)),
     );
-    promisePool(containers, METRICS_HISTORY_FETCH_CONCURRENCY, (container) =>
+    if (selectedContainers.length === 0) {
+      setRawMetricsByContainer({});
+      setLoadingMetrics(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const { startDate, endDate, limit } = getParams();
+    const opts = {
+      startDate,
+      endDate,
+      limit,
+      offset: 0,
+      signal: controller.signal,
+    };
+    let cancelled = false;
+
+    setLoadingMetrics(true);
+    promisePool(selectedContainers, METRICS_HISTORY_FETCH_CONCURRENCY, (container) =>
       analyticsService
         .getContainerMetricsHistory(container.name, opts)
         .then((data: Record<string, unknown>[]) => ({
@@ -248,7 +353,7 @@ export default function CpuMemoryPerformancePage() {
         if (!isBenignFetchAbort(e)) console.error(e);
       })
       .finally(() => {
-        if (!cancelled && !controller.signal.aborted && !silent) {
+        if (!cancelled && !controller.signal.aborted) {
           setLoadingMetrics(false);
         }
       });
@@ -257,7 +362,7 @@ export default function CpuMemoryPerformancePage() {
       cancelled = true;
       controller.abort();
     };
-  }, [containers, getParams, rangeHydrated, softTick]);
+  }, [activeView, containers, getParams, rangeHydrated, selectedServiceKeys]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -283,6 +388,29 @@ export default function CpuMemoryPerformancePage() {
   const rangeLabel = useCustomRange
     ? formatCustomRangeLabel(customStart, customEnd)
     : formatRangeLabel(rangeStart, rangeEnd, timeRange);
+
+  const systemChartData = useMemo<SystemPercentSeriesRow[]>(
+    () =>
+      rawSystemMetrics.map((metric) => {
+        const timeMs =
+          typeof metric.timeMs === "number" && Number.isFinite(metric.timeMs)
+            ? metric.timeMs
+            : (metricTimestampToMs(metric.timestamp) ?? NaN);
+        return {
+          timeMs,
+          timestamp: metric.timestamp,
+          cpu:
+            metric.cpuUsagePercent != null
+              ? Number(metric.cpuUsagePercent)
+              : null,
+          memory:
+            metric.memoryUsagePercent != null
+              ? Number(metric.memoryUsagePercent)
+              : null,
+        };
+      }),
+    [rawSystemMetrics],
+  );
 
   const chartData = useMemo(() => {
     const names = Object.keys(rawMetricsByContainer).filter(
@@ -355,25 +483,30 @@ export default function CpuMemoryPerformancePage() {
 
   const serviceKeys = useMemo(
     () =>
+      containers
+        .map((container) => serviceKey(container.name))
+        .filter((key, index, arr) => arr.indexOf(key) === index),
+    [containers],
+  );
+
+  const fetchedServiceKeys = useMemo(
+    () =>
       Object.keys(rawMetricsByContainer)
         .filter((name) => rawMetricsByContainer[name].length > 0)
         .map(serviceKey),
     [rawMetricsByContainer],
   );
 
-  const visibleServiceKeys = useMemo(
-    () => serviceKeys.filter((key) => !hiddenServiceKeys.includes(key)),
-    [serviceKeys, hiddenServiceKeys],
-  );
+  const activeChartData = activeView === "overview" ? systemChartData : chartData;
 
   const [chartXDomainEffMin, chartXDomainEffMax] = useMemo(
     () =>
       chartXDomainFromDataRange(
         chartXDomainMin,
         chartXDomainMax,
-        chartData.map((row) => Number(row.timeMs)),
+        activeChartData.map((row) => Number(row.timeMs)),
       ),
-    [chartData, chartXDomainMin, chartXDomainMax],
+    [activeChartData, chartXDomainMin, chartXDomainMax],
   );
   const axisShowDate =
     chartXDomainEffMax - chartXDomainEffMin > 24 * 60 * 60 * 1000;
@@ -387,15 +520,15 @@ export default function CpuMemoryPerformancePage() {
   ).length;
 
   const toggleService = (key: string) => {
-    setHiddenServiceKeys((current) =>
+    setSelectedServiceKeys((current) =>
       current.includes(key)
         ? current.filter((item) => item !== key)
         : [...current, key],
     );
   };
 
-  const showAllServices = () => setHiddenServiceKeys([]);
-  const hideAllServices = () => setHiddenServiceKeys(serviceKeys);
+  const showAllServices = () => setSelectedServiceKeys(serviceKeys);
+  const hideAllServices = () => setSelectedServiceKeys([]);
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
@@ -550,9 +683,15 @@ export default function CpuMemoryPerformancePage() {
         {activeView !== "overview" && serviceKeys.length > 0 ? (
           <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Services affichés
-              </h2>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Services à charger
+                </h2>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Par défaut, seuls quelques services sont chargés pour garder
+                  la page rapide. Activez plus de séries si nécessaire.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -578,7 +717,7 @@ export default function CpuMemoryPerformancePage() {
                 >
                   <input
                     type="checkbox"
-                    checked={!hiddenServiceKeys.includes(key)}
+                    checked={selectedServiceKeys.includes(key)}
                     onChange={() => toggleService(key)}
                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -589,7 +728,13 @@ export default function CpuMemoryPerformancePage() {
           </section>
         ) : null}
 
-        {loadingList || (loadingMetrics && chartData.length === 0) ? (
+        {loadingList ||
+        (activeView === "overview" &&
+          loadingSystemMetrics &&
+          systemChartData.length === 0) ||
+        (activeView !== "overview" &&
+          loadingMetrics &&
+          chartData.length === 0) ? (
           <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
             Chargement des métriques…
           </div>
@@ -597,36 +742,39 @@ export default function CpuMemoryPerformancePage() {
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-8 text-center text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
             {listError}
           </div>
-        ) : chartData.length === 0 || serviceKeys.length === 0 ? (
+        ) : activeView === "overview" && systemChartData.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-            Aucune série CPU/mémoire persistée sur cette période.
+            Aucune métrique système persistée sur cette période. La page reste
+            rapide : seules les cartes live et la liste des services sont
+            chargées au départ.
+          </div>
+        ) : activeView !== "overview" && selectedServiceKeys.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+            Aucun service sélectionné. Cochez au moins une série à charger.
           </div>
         ) : activeView === "overview" ? (
           <div className="space-y-6">
-            <CpuMemoryServiceLinesChart
-              metric="cpu"
-              title="CPU global — tous les services"
-              rangeLabel={rangeLabel}
-              chartXDomainMin={chartXDomainEffMin}
-              chartXDomainMax={chartXDomainEffMax}
-              axisShowDate={axisShowDate}
-              chartData={chartData}
-              serviceKeys={serviceKeys}
-            />
-            <CpuMemoryServiceLinesChart
-              metric="memory"
-              title="Mémoire globale — tous les services"
-              rangeLabel={rangeLabel}
-              chartXDomainMin={chartXDomainEffMin}
-              chartXDomainMax={chartXDomainEffMax}
-              axisShowDate={axisShowDate}
-              chartData={chartData}
-              serviceKeys={serviceKeys}
-            />
+            <div className="min-w-0 rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6">
+              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
+                CPU & mémoire globaux
+              </h2>
+              <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                Série système persistée, chargée en une seule requête. Les
+                vues détaillées chargent ensuite uniquement les services cochés.
+              </p>
+              <SystemCpuMemoryAreaCharts
+                chartData={systemChartData}
+                xDomainMin={chartXDomainEffMin}
+                xDomainMax={chartXDomainEffMax}
+                axisShowDate={axisShowDate}
+                chartHeight={260}
+              />
+            </div>
           </div>
-        ) : visibleServiceKeys.length === 0 ? (
+        ) : chartData.length === 0 || fetchedServiceKeys.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-            Aucun service sélectionné. Réactivez au moins une série.
+            Aucune série détaillée persistée pour les services sélectionnés sur
+            cette période.
           </div>
         ) : (
           <CpuMemoryServiceLinesChart
@@ -641,7 +789,7 @@ export default function CpuMemoryPerformancePage() {
             chartXDomainMax={chartXDomainEffMax}
             axisShowDate={axisShowDate}
             chartData={chartData}
-            serviceKeys={visibleServiceKeys}
+            serviceKeys={fetchedServiceKeys}
           />
         )}
       </div>
