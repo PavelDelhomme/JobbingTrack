@@ -7,12 +7,8 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import Link from "next/link";
-import { AdminLayout } from "@/components/features";
-import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
-  ChartPeriodCaption,
   useAnalyticsAutoRefresh,
   usePersistedSharedAnalyticsRange,
   beginUserRangeFetch,
@@ -47,6 +43,12 @@ import {
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
+import {
+  PerformanceChartCard,
+  PerformanceEmptyState,
+  PerformanceLoadingState,
+  PerformancePageShell,
+} from "@/components/performances";
 import {
   buildSystemNetworkMbRateRows,
   systemNetworkRateAxisMax,
@@ -453,61 +455,41 @@ export default function NetworkPerformancePage() {
   );
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
-        <PerformancesSubNav />
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Performances réseau
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-              Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU
-              et temps de réponse agrégé quand la persistance les fournit.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-              useCustomRange={useCustomRange}
-              setUseCustomRange={setUseCustomRange}
-              customStart={customStart}
-              setCustomStart={setCustomStart}
-              customEnd={customEnd}
-              setCustomEnd={setCustomEnd}
-              rangeLabel={rangeLabel}
-              goPrev={goPrev}
-              goNext={goNext}
-              canGoNext={canGoNext}
-              onPeriodNow={handlePeriodNow}
-              showNavigationHint={false}
-            />
-          </div>
-        </div>
+    <PerformancePageShell
+      title="Performances réseau"
+      description="Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU et temps de réponse agrégé quand la persistance les fournit."
+      actions={
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={handlePeriodNow}
+          showNavigationHint={false}
+        />
+      }
+    >
         {loading && series.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[240px] sm:h-64 text-gray-500 dark:text-gray-400">
-            Chargement…
-          </div>
+          <PerformanceLoadingState />
         ) : series.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucune donnée réseau disponible. Vérifiez que le metrics-aggregator
             enregistre les métriques système.
-          </div>
+          </PerformanceEmptyState>
         ) : (
           <div className="space-y-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                Réception (RX) et émission (TX) — Mo (cumul)
-              </h2>
-              <ChartPeriodCaption label={rangeLabel} />
+            <PerformanceChartCard
+              title="Réception (RX) et émission (TX) — Mo (cumul)"
+              periodLabel={rangeLabel}
+            >
               <div className="w-full min-h-[240px] sm:min-h-[360px]">
                 <ResponsiveContainer width="100%" height={360} minHeight={240}>
                   <LineChart
@@ -579,13 +561,12 @@ export default function NetworkPerformancePage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </PerformanceChartCard>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                Débit estimé — Mo/min
-              </h2>
-              <ChartPeriodCaption label={rangeLabel} />
+            <PerformanceChartCard
+              title="Débit estimé — Mo/min"
+              periodLabel={rangeLabel}
+            >
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
                   <LineChart
@@ -662,14 +643,13 @@ export default function NetworkPerformancePage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </PerformanceChartCard>
 
             {showResponseTime ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                  Temps de réponse agrégé (ms)
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Temps de réponse agrégé (ms)"
+                periodLabel={rangeLabel}
+              >
                 <div className="w-full min-h-[220px] sm:min-h-[280px]">
                   <ResponsiveContainer
                     width="100%"
@@ -735,15 +715,14 @@ export default function NetworkPerformancePage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : null}
 
             {showCpuNetworkCorrelation ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                  Corrélation CPU (%) vs débit réseau (Mo/min)
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Corrélation CPU (%) vs débit réseau (Mo/min)"
+                periodLabel={rangeLabel}
+              >
                 <SystemCpuNetworkCorrelationChart
                   rows={networkRateRows}
                   xDomainMin={chartXDomainMin}
@@ -752,7 +731,7 @@ export default function NetworkPerformancePage() {
                   rateMax={networkRateYMax}
                   height={320}
                 />
-              </div>
+              </PerformanceChartCard>
             ) : null}
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -761,7 +740,6 @@ export default function NetworkPerformancePage() {
             </p>
           </div>
         )}
-      </div>
-    </AdminLayout>
+    </PerformancePageShell>
   );
 }
