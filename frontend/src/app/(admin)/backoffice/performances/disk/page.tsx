@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
-import { PerformancesSubNav } from "../PerformancesSubNav";
 import {
   TimeRangeSelector,
   useAnalyticsAutoRefresh,
@@ -12,7 +10,6 @@ import {
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
-import { ChartPeriodCaption } from "@/components/analytics/ChartPeriodCaption";
 import {
   formatCustomRangeLabel,
   formatRangeLabel,
@@ -38,6 +35,13 @@ import {
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { analyticsService } from "@/lib/api/analytics.service";
+import {
+  PerformanceChartCard,
+  PerformanceEmptyState,
+  PerformanceInfoNotice,
+  PerformanceLoadingState,
+  PerformancePageShell,
+} from "@/components/performances";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const HISTORY_FETCH_CONCURRENCY = 5;
@@ -618,55 +622,36 @@ export default function PerformancesDiskPage() {
   const hasAnyData = systemRows.length > 0 || ioRows.length > 0;
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
-        <PerformancesSubNav />
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Performances disque
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Usage stockage système, volume utilisé/total et Block I/O agrégé
-              depuis les conteneurs JobbingTrack.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-              useCustomRange={useCustomRange}
-              setUseCustomRange={setUseCustomRange}
-              customStart={customStart}
-              setCustomStart={setCustomStart}
-              customEnd={customEnd}
-              setCustomEnd={setCustomEnd}
-              rangeLabel={rangeLabel}
-              goPrev={goPrev}
-              goNext={goNext}
-              canGoNext={canGoNext}
-              onPeriodNow={handlePeriodNow}
-              showNavigationHint={false}
-            />
-          </div>
-        </div>
+    <PerformancePageShell
+      title="Performances disque"
+      description="Usage stockage système, volume utilisé/total et Block I/O agrégé depuis les conteneurs JobbingTrack."
+      actions={
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={handlePeriodNow}
+          showNavigationHint={false}
+        />
+      }
+    >
 
         {loading && !hasAnyData ? (
-          <div className="flex min-h-[240px] items-center justify-center text-gray-500 dark:text-gray-400">
-            Chargement…
-          </div>
+          <PerformanceLoadingState />
         ) : !hasAnyData ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:p-8">
+          <PerformanceEmptyState>
             Aucune donnée disque disponible sur cette période. Vérifiez que la
             persistance système et conteneurs est alimentée.
-          </div>
+          </PerformanceEmptyState>
         ) : (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -706,11 +691,10 @@ export default function PerformancesDiskPage() {
             </div>
 
             {systemRows.length > 0 ? (
-              <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 min-w-0">
-                <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-                  Usage disque système (%)
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Usage disque système (%)"
+                periodLabel={rangeLabel}
+              >
                 <div className="w-full min-h-[240px] sm:min-h-[340px]">
                   <ResponsiveContainer
                     width="100%"
@@ -774,15 +758,14 @@ export default function PerformancesDiskPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : null}
 
             {systemRows.length > 0 ? (
-              <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 min-w-0">
-                <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-                  Volume disque — utilisé / total
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Volume disque — utilisé / total"
+                periodLabel={rangeLabel}
+              >
                 <div className="w-full min-h-[220px] sm:min-h-[300px]">
                   <ResponsiveContainer
                     width="100%"
@@ -855,15 +838,14 @@ export default function PerformancesDiskPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : null}
 
             {ioRows.length > 0 ? (
-              <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 min-w-0">
-                <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-                  Block I/O cumulé — lecture / écriture
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Block I/O cumulé — lecture / écriture"
+                periodLabel={rangeLabel}
+              >
                 <div className="w-full min-h-[220px] sm:min-h-[320px]">
                   <ResponsiveContainer
                     width="100%"
@@ -937,15 +919,14 @@ export default function PerformancesDiskPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : null}
 
             {ioRows.length > 0 ? (
-              <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 min-w-0">
-                <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-                  Débit Block I/O estimé — Mo/min
-                </h2>
-                <ChartPeriodCaption label={rangeLabel} />
+              <PerformanceChartCard
+                title="Débit Block I/O estimé — Mo/min"
+                periodLabel={rangeLabel}
+              >
                 <div className="w-full min-h-[220px] sm:min-h-[300px]">
                   <ResponsiveContainer
                     width="100%"
@@ -1028,14 +1009,14 @@ export default function PerformancesDiskPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+              <PerformanceInfoNotice className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
                 Aucun historique Block I/O conteneur exploitable sur cette
                 période. Les courbes apparaîtront dès que
                 `container_metrics_snapshots.blockReadBytes/blockWriteBytes`
                 seront alimentés.
-              </div>
+              </PerformanceInfoNotice>
             )}
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1054,7 +1035,6 @@ export default function PerformancesDiskPage() {
             Voir les détails par service
           </Link>
         </div>
-      </div>
-    </AdminLayout>
+    </PerformancePageShell>
   );
 }
