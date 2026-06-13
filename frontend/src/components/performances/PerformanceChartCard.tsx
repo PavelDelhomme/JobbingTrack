@@ -10,6 +10,7 @@ interface PerformanceChartCardProps {
   description?: ReactNode;
   className?: string;
   contentClassName?: string;
+  id?: string;
 }
 
 export function PerformanceChartCard({
@@ -19,9 +20,11 @@ export function PerformanceChartCard({
   description,
   className = "",
   contentClassName = "",
+  id,
 }: PerformanceChartCardProps) {
   return (
     <div
+      id={id}
       className={`min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6 ${className}`}
     >
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">

@@ -11,6 +11,9 @@ interface PerformancePageShellProps {
   children: ReactNode;
   actions?: ReactNode;
   notice?: ReactNode;
+  backHref?: string;
+  backLabel?: string;
+  topLinks?: ReactNode;
 }
 
 export function PerformancePageShell({
@@ -19,17 +22,23 @@ export function PerformancePageShell({
   children,
   actions,
   notice,
+  backHref = "/b4ck0ff1ce/performances",
+  backLabel = "Retour à Performances",
+  topLinks,
 }: PerformancePageShellProps) {
   return (
     <AdminLayout>
       <div className="w-full space-y-6 p-6">
-        <Link
-          href="/b4ck0ff1ce/performances"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        >
-          <span aria-hidden>←</span>
-          Retour à Performances
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            <span aria-hidden>←</span>
+            {backLabel}
+          </Link>
+          {topLinks}
+        </div>
         <PerformancesSubNav />
         <div className="flex flex-col gap-4">
           <div>

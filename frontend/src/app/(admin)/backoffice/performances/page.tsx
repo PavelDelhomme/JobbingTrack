@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { AdminLayout } from "@/components/features";
 import {
   TimeRangeSelector,
   StickyTimeRangeToolbar,
@@ -46,6 +45,13 @@ import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResp
 import { buildLiveEndpointModel } from "@/lib/metrics/performanceCorrelationModel";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import type { MetricsData } from "@/lib/interfaces";
+import {
+  PerformanceChartCard,
+  PerformanceEmptyState,
+  PerformanceInfoNotice,
+  PerformanceLoadingState,
+  PerformancePageShell,
+} from "@/components/performances";
 
 /** Recharts en chunks séparés (évite de charger tout le bundle sur /login). */
 const chartHeavyLoading = () => (
@@ -581,16 +587,12 @@ export default function PerformancesPage() {
   }, []);
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6 w-full">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <Link
-            href="/b4ck0ff1ce"
-            className="inline-flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-          >
-            <span aria-hidden>←</span>
-            Tableau de bord
-          </Link>
+    <PerformancePageShell
+      title="Performances"
+      backHref="/b4ck0ff1ce"
+      backLabel="Tableau de bord"
+      topLinks={
+        <>
           <span className="text-gray-300 dark:text-gray-600" aria-hidden>
             |
           </span>
@@ -600,52 +602,43 @@ export default function PerformancesPage() {
           >
             Analytics (appli &amp; utilisateurs)
           </Link>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Performances
-            </h1>
+        </>
+      }
+      actions={
+        <StickyTimeRangeToolbar className="w-full">
+          <TimeRangeSelector
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={handlePeriodNow}
+            showNavigationHint={false}
+          />
+          <div className="mt-2 w-full">
+            <ChartPeriodCaption label={rangeLabel} />
           </div>
-          <StickyTimeRangeToolbar className="w-full">
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-              useCustomRange={useCustomRange}
-              setUseCustomRange={setUseCustomRange}
-              customStart={customStart}
-              setCustomStart={setCustomStart}
-              customEnd={customEnd}
-              setCustomEnd={setCustomEnd}
-              rangeLabel={rangeLabel}
-              goPrev={goPrev}
-              goNext={goNext}
-              canGoNext={canGoNext}
-              onPeriodNow={handlePeriodNow}
-              showNavigationHint={false}
-            />
-            <div className="mt-2 w-full">
-              <ChartPeriodCaption label={rangeLabel} />
-            </div>
-          </StickyTimeRangeToolbar>
-        </div>
+        </StickyTimeRangeToolbar>
+      }
+    >
 
         {loading && chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-            Chargement…
-          </div>
+          <PerformanceLoadingState />
         ) : chartData.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+          <PerformanceEmptyState>
             Aucune donnée disponible pour cette période. Vérifiez que le
             metrics-aggregator collecte les snapshots système.
-          </div>
+          </PerformanceEmptyState>
         ) : (
           <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                CPU et mémoire (%)
-              </h2>
+            <PerformanceChartCard title="CPU et mémoire (%)">
               <div className="w-full min-h-[240px] sm:min-h-[400px]">
                 <SystemCpuMemoryAreaCharts
                   chartData={chartData}
@@ -655,16 +648,14 @@ export default function PerformancesPage() {
                   chartHeight={220}
                 />
               </div>
-            </div>
+            </PerformanceChartCard>
 
             {showResponseTime ? (
-              <div
+              <PerformanceChartCard
                 id="latence"
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0 scroll-mt-24"
+                title="Temps de réponse agrégé (ms)"
+                className="scroll-mt-24"
               >
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                  Temps de réponse agrégé (ms)
-                </h2>
                 <div className="w-full min-h-[220px] sm:min-h-[280px]">
                   <PerformancesResponseTimeLineChart
                     chartData={chartData}
@@ -673,11 +664,11 @@ export default function PerformancesPage() {
                     axisShowDate={perfAxisShowDate}
                   />
                 </div>
-              </div>
+              </PerformanceChartCard>
             ) : (
-              <div
+              <PerformanceInfoNotice
                 id="latence"
-                className="rounded-lg border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-400 scroll-mt-24"
+                className="scroll-mt-24 border-dashed border-gray-200 bg-gray-50/80 text-gray-600 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
               >
                 <p className="font-medium text-gray-800 dark:text-gray-200">
                   Temps de réponse
@@ -690,13 +681,16 @@ export default function PerformancesPage() {
                   table persistance ; la vue Statistiques globale peut déjà
                   exposer un agrégat différent.
                 </p>
-              </div>
+              </PerformanceInfoNotice>
             )}
 
             {chartData.some(
               (d) => d.networkRxMb != null || d.networkTxMb != null,
             ) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0 space-y-8">
+              <PerformanceChartCard
+                title="Réseau — cumul, débit et corrélation"
+                contentClassName="space-y-8"
+              >
                 <div>
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                     Réseau — cumul (Mo)
@@ -741,7 +735,7 @@ export default function PerformancesPage() {
                     />
                   </div>
                 ) : null}
-              </div>
+              </PerformanceChartCard>
             )}
 
             <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
@@ -753,14 +747,15 @@ export default function PerformancesPage() {
           </>
         )}
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Temps de réponse des endpoints (instantané)
-          </h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Snapshot live agrégateur (hors plage des graphiques historiques
-            ci-dessus).
-          </p>
+        <PerformanceChartCard
+          title="Temps de réponse des endpoints (instantané)"
+          description={
+            <span>
+              Snapshot live agrégateur (hors plage des graphiques historiques
+              ci-dessus).
+            </span>
+          }
+        >
           {liveOverviewMs != null && (
             <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
               Moyenne monitoring-agent-rs / agrégat :{" "}
@@ -787,8 +782,7 @@ export default function PerformancesPage() {
               {liveEndpointNoMeasure.join(", ")}
             </div>
           )}
-        </div>
-      </div>
-    </AdminLayout>
+        </PerformanceChartCard>
+    </PerformancePageShell>
   );
 }
