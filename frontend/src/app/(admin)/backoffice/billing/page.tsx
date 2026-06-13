@@ -2,9 +2,9 @@
 
 import { Suspense, lazy } from "react";
 import { useSearchParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 
 const BillingTab = lazy(() => import("../datas/components/BillingTab"));
 
@@ -16,11 +16,14 @@ export default function BillingPage() {
 
   if (authLoading) {
     return (
-      <AdminLayout>
+      <AdministrationDataPageShell
+        title="Abonnement & facturation"
+        description="Consulter les informations de facturation et d'abonnement."
+      >
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
-      </AdminLayout>
+      </AdministrationDataPageShell>
     );
   }
 
@@ -30,7 +33,10 @@ export default function BillingPage() {
   }
 
   return (
-    <AdminLayout>
+    <AdministrationDataPageShell
+      title="Abonnement & facturation"
+      description="Consulter les informations de facturation et d'abonnement."
+    >
       <div className="space-y-6">
         <Suspense
           fallback={
@@ -42,6 +48,6 @@ export default function BillingPage() {
           <BillingTab userId={userId} />
         </Suspense>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }

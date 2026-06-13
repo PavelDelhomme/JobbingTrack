@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense, lazy } from "react";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 
 const UserStatsContent = lazy(() => import("./UserStatsContent"));
 
@@ -13,11 +13,14 @@ export default function UserStatsPage() {
 
   if (authLoading) {
     return (
-      <AdminLayout>
+      <AdministrationDataPageShell
+        title="Stats utilisateur"
+        description="Analyser l'activité utilisateur et les indicateurs associés."
+      >
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
-      </AdminLayout>
+      </AdministrationDataPageShell>
     );
   }
 
@@ -27,7 +30,10 @@ export default function UserStatsPage() {
   }
 
   return (
-    <AdminLayout>
+    <AdministrationDataPageShell
+      title="Stats utilisateur"
+      description="Analyser l'activité utilisateur et les indicateurs associés."
+    >
       <div className="space-y-6">
         <Suspense
           fallback={
@@ -39,6 +45,6 @@ export default function UserStatsPage() {
           <UserStatsContent />
         </Suspense>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }

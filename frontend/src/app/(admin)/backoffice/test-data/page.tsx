@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 import {
   Database,
   Play,
@@ -253,50 +253,43 @@ export default function TestDataPage() {
   const selectedPresetData = PRESETS.find((p) => p.name === selectedPreset);
 
   return (
-    <AdminLayout>
+    <AdministrationDataPageShell
+      title="Générateur de Données de Test"
+      description="Générez des données réalistes et cohérentes avec relations entrecroisées"
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => tagLikelyTestData()}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+            title="Marquer isTestData sur comptes / entités de test existants"
+          >
+            <Tag className="h-5 w-5" />
+            Marquer données existantes
+          </button>
+          <button
+            onClick={() => clearTestData(true)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+            title="Nettoyer uniquement les données de test (isTestData=true)"
+          >
+            <Trash2 className="h-5 w-5" />
+            Nettoyer données de test
+          </button>
+          <button
+            onClick={() => clearTestData(false)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+            title="⚠️ DANGER: Supprimer TOUTES les données"
+          >
+            <Trash2 className="h-5 w-5" />
+            Tout supprimer
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Générateur de Données de Test
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Générez des données réalistes et cohérentes avec relations
-              entrecroisées
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => tagLikelyTestData()}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
-              title="Marquer isTestData sur comptes / entités de test existants"
-            >
-              <Tag className="h-5 w-5" />
-              Marquer données existantes
-            </button>
-            <button
-              onClick={() => clearTestData(true)}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-              title="Nettoyer uniquement les données de test (isTestData=true)"
-            >
-              <Trash2 className="h-5 w-5" />
-              Nettoyer données de test
-            </button>
-            <button
-              onClick={() => clearTestData(false)}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-              title="⚠️ DANGER: Supprimer TOUTES les données"
-            >
-              <Trash2 className="h-5 w-5" />
-              Tout supprimer
-            </button>
-          </div>
-        </div>
-
         {message && (
           <div
             className={`p-4 rounded-lg flex items-center gap-3 ${
@@ -611,6 +604,6 @@ export default function TestDataPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }
