@@ -39,6 +39,15 @@ export function StatisticsErrorAvailabilityCharts({
     );
   }
 
+  const maxErrorRate = Math.max(
+    1,
+    ...chartData
+      .map((point) => point.errorRate)
+      .filter((value) => Number.isFinite(value) && value >= 0),
+  );
+  const errorRateDomainMax =
+    maxErrorRate <= 5 ? 5 : Math.min(100, Math.ceil(maxErrorRate * 1.2));
+
   return (
     <DashboardLayoutRegion variant="section">
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
@@ -82,7 +91,12 @@ export function StatisticsErrorAvailabilityCharts({
             <code className="text-xs">error_rate</code> n&apos;est pas persisté
             en base.
           </p>
-        ) : null}
+        ) : (
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            Source persistée <code className="text-xs">errorRate</code> /
+            <code className="text-xs">error_rate</code>.
+          </p>
+        )}
         <ResponsiveContainer width="100%" height={320}>
           <AreaChart data={chartData}>
             <defs>
@@ -100,7 +114,7 @@ export function StatisticsErrorAvailabilityCharts({
             <YAxis
               stroke="#9CA3AF"
               style={{ fontSize: "12px" }}
-              domain={[0, 100]}
+              domain={[0, errorRateDomainMax]}
             />
             <Tooltip {...rechartsTooltipProps} />
             <Area
