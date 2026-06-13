@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/features";
 import { adminService } from "@/lib/api";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 
 interface DeletedItem {
   id: string;
@@ -137,19 +137,10 @@ export default function TrashManagementPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              🗑️ Gestion de la Corbeille
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Gérer et restaurer les éléments supprimés
-            </p>
-          </div>
-
+    <AdministrationDataPageShell
+      title="🗑️ Gestion de la Corbeille"
+      description="Gérer et restaurer les éléments supprimés"
+      actions={
           <button
             onClick={handleEmptyTrash}
             className="flex w-full items-center justify-center gap-2 px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors sm:w-auto"
@@ -157,8 +148,10 @@ export default function TrashManagementPage() {
             <span>🗑️</span>
             <span>Vider la corbeille</span>
           </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
             title="Total archives"
             value={stats.total}
@@ -208,7 +201,7 @@ export default function TrashManagementPage() {
         </div>*/}
 
         {/* Filtres */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Recherche */}
             <div className="flex-1">
@@ -280,7 +273,7 @@ export default function TrashManagementPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-700">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-700">
           <div className="flex items-start gap-3">
             <span className="text-blue-600 text-xl">ℹ️</span>
             <div className="text-sm text-blue-800 dark:text-blue-200">
@@ -303,7 +296,7 @@ export default function TrashManagementPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }
 

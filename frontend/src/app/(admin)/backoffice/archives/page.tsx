@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/features";
 import { adminService } from "@/lib/api";
+import { AdministrationDataPageShell } from "../AdministrationDataSubNav";
 
 interface ArchivedItem {
   id: string;
@@ -95,22 +95,13 @@ export default function ArchivesManagementPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-4 sm:p-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              📦 Gestion des Archives
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Consulter et restaurer les éléments archivés
-            </p>
-          </div>
-        </div>
-
+    <AdministrationDataPageShell
+      title="📦 Gestion des Archives"
+      description="Consulter et restaurer les éléments archivés"
+    >
+      <div className="space-y-6">
         {/* Statistiques */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <StatCard
             title="Total archives"
             value={stats.total}
@@ -144,7 +135,7 @@ export default function ArchivesManagementPage() {
         </div>
 
         {/* Filtres */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex flex-col gap-4">
             {/* Recherche */}
             <div className="flex-1">
@@ -217,7 +208,7 @@ export default function ArchivesManagementPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <span className="text-blue-600 dark:text-blue-400 text-xl">ℹ️</span>
             <div className="text-sm text-blue-800 dark:text-blue-300">
@@ -233,14 +224,14 @@ export default function ArchivesManagementPage() {
                 </li>
                 <li>Les archives ne sont jamais supprimées automatiquement</li>
                 <li>
-                  Idéal pour conserver l'historique sans encombrer l'interface
+                  Idéal pour conserver l&apos;historique sans encombrer l&apos;interface
                 </li>
               </ul>
             </div>
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdministrationDataPageShell>
   );
 }
 
