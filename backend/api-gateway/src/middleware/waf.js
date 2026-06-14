@@ -1,5 +1,7 @@
 const logger = require('../utils/logger');
+const axios = require('axios');
 const { isDevTestBypassRequest } = require('../utils/devTestBypassRequest');
+const { forwardCorrelationHeaders } = require('./requestCorrelation');
 
 // Configuration des règles WAF OWASP
 const WAF_RULES = {
@@ -67,12 +69,48 @@ const WAF_RULES = {
   COMMAND_INJECTION: {
     patterns: [
       /(\||\$\(|\`)/g,
-      /(;\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
-      /(&&\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh)\b)/gi,
-      /(\b(cmd|powershell|bash|sh)\s+(-c|\/c)\b)/gi
+      /(;|%3b)\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh|cat|whoami|id|uname)\b/gi,
+      /(&&|%26%26)\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh|cat|whoami|id|uname)\b/gi,
+      /(\||%7c)\s*(rm|del|format|shutdown|wget|curl|nc|netcat|telnet|ssh|cat|whoami|id|uname)\b/gi,
+      /(\b(cmd|powershell|bash|sh|\/bin\/sh|\/bin\/bash)\s+(-c|\/c)\b)/gi,
+      /(\$IFS|%24IFS)/gi,
+      /(\/etc\/passwd|%2fetc%2fpasswd|c:\\\\windows\\\\win.ini)/gi
     ],
     severity: 'critical',
     message: 'Command Injection détectée'
+  },
+
+  REMOTE_HOST_ACCESS: {
+    patterns: [
+      /(https?:\/\/|%2f%2f)(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|::1|host\.docker\.internal)/gi,
+      /(https?:\/\/|%2f%2f)(169\.254\.169\.254|metadata\.google\.internal)/gi,
+      /(https?:\/\/|%2f%2f)(10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})/gi,
+      /(\burl\b|\btarget\b|\bcallback\b|\bredirect\b|\bnext\b|\bhost\b)=.*(localhost|127\.0\.0\.1|169\.254\.169\.254|host\.docker\.internal)/gi
+    ],
+    severity: 'critical',
+    message: 'Tentative d’accès remote host/SSRF interne détectée'
+  },
+
+  URL_INJECTION: {
+    patterns: [
+      /(\bredirect\b|\bnext\b|\breturnUrl\b|\bcallback\b|\burl\b)=\s*(https?:)?\/\/[^&\s]+/gi,
+      /(\bredirect\b|\bnext\b|\breturnUrl\b|\bcallback\b|\burl\b)=.*(%0d|%0a|%250d|%250a)/gi,
+      /(%2f%2e%2e|%5c%2e%2e|%252f|%255c)/gi,
+      /(file|gopher|dict|ftp|ldap):\/\//gi
+    ],
+    severity: 'high',
+    message: 'Injection URL détectée'
+  },
+
+  HOST_HEADER_SPOOFING: {
+    patterns: [
+      /"x-forwarded-host"\s*:\s*"[^"]*,[^"]*"/gi,
+      /"host"\s*:\s*"[^"]*(?:\/|\\|@|\s|%0d|%0a)[^"]*"/gi,
+      /"x-forwarded-host"\s*:\s*"(localhost|127\.0\.0\.1|169\.254\.169\.254|metadata\.google\.internal|host\.docker\.internal)[^"]*"/gi,
+      /"forwarded"\s*:\s*"[^"]*host=(?:localhost|127\.0\.0\.1|169\.254\.169\.254|metadata\.google\.internal|host\.docker\.internal)[^"]*"/gi
+    ],
+    severity: 'high',
+    message: 'Host header spoofing détecté'
   },
 
   LDAP_INJECTION: {
@@ -253,6 +291,70 @@ const detectAttack = (input, rules) => {
   return detections;
 };
 
+function redactSensitiveEvidence(text) {
+  return String(text || '')
+    .replace(/\b(bearer)\s+[a-z0-9._-]+/gi, '$1 [REDACTED]')
+    .replace(/("?(?:password|token|secret|authorization)"?\s*:\s*")([^"]+)(")/gi, '$1[REDACTED]$3')
+    .slice(0, 500);
+}
+
+function mapSeverityToRiskScore(severity) {
+  switch (severity) {
+    case 'critical': return 95;
+    case 'high': return 80;
+    case 'medium': return 55;
+    case 'low': return 25;
+    default: return 40;
+  }
+}
+
+async function reportWafDetections(req, detections, clientIP, url, method, userAgent, blocked) {
+  const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
+  const maxSeverity = detections.reduce((max, detection) => {
+    const severityLevels = { low: 1, medium: 2, high: 3, critical: 4 };
+    return Math.max(max, severityLevels[detection.severity] || 0);
+  }, 0);
+  const primaryDetection = detections.find((d) => d.severity === 'critical') || detections[0];
+  const riskScore = mapSeverityToRiskScore(primaryDetection?.severity);
+
+  try {
+    await axios.post(`${securityServiceUrl}/api/v1/logs`, {
+      level: maxSeverity >= 4 ? 'critical' : 'error',
+      category: 'intrusion',
+      eventType: 'waf_blocked_request',
+      message: primaryDetection?.message || 'Requête bloquée par le WAF',
+      sourceIP: clientIP,
+      endpoint: url,
+      method,
+      userAgent,
+      riskScore,
+      isBlocked: blocked,
+      metadata: {
+        source: 'api-gateway-waf',
+        detections: detections.map((detection) => ({
+          rule: detection.rule,
+          severity: detection.severity,
+          message: detection.message,
+          pattern: detection.pattern,
+          evidence: redactSensitiveEvidence(detection.input)
+        })),
+        requestId: req?.requestId,
+        correlationId: req?.correlationId,
+        timestamp: new Date().toISOString()
+      }
+    }, {
+      timeout: 1500,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'api-gateway-waf',
+        ...forwardCorrelationHeaders(req)
+      }
+    });
+  } catch (error) {
+    logger.debug('Impossible de journaliser la détection WAF dans security-service:', error.message);
+  }
+}
+
 // Fonction principale de vérification WAF
 const wafCheck = async (req, res, next) => {
   try {
@@ -365,6 +467,7 @@ const wafCheck = async (req, res, next) => {
       }, 0);
 
       if (maxSeverity >= 3) { // high ou critical
+        await reportWafDetections(req, detections, clientIP, url, method, userAgent, true);
         // Bloquer immédiatement les attaques graves
         return res.status(403).json({
           success: false,
@@ -373,6 +476,7 @@ const wafCheck = async (req, res, next) => {
           code: 'WAF_BLOCKED'
         });
       } else {
+        await reportWafDetections(req, detections, clientIP, url, method, userAgent, false);
         // Log seulement pour les menaces modérées
         logger.info('Activité suspecte détectée', {
           ip: clientIP,
