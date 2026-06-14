@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `security/backoffice-login-hardening` (audit sécurité login backoffice).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `security/gateway-injection-host-audit` (remote host, shell et URL injection).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — audit gateway remote host / shell / URL injection
+
+- **Périmètre** : entrée publique `api-gateway`, WAF runtime léger, sans scan destructif ni DDoS. Rapport : `docs/security/GATEWAY_INJECTION_HOST_AUDIT_2026-06-15.md`.
+- **Correctifs WAF** : ajout `REMOTE_HOST_ACCESS`, `URL_INJECTION`, `HOST_HEADER_SPOOFING` ; `COMMAND_INJECTION` renforcé pour variantes encodées (`%3b`, `%7c`, `%26%26`, `$IFS`, `/etc/passwd`, shells système). Les détections high/critical sont maintenant journalisées vers `security-service` en `eventType=waf_blocked_request`, avec evidence redigée.
+- **Tests automatisés** : `backend/api-gateway/tests/waf.test.js` étendu à remote host/SSRF-like, shell injection encodée, host spoofing et redaction des secrets. Validation conteneur avec `src`, `tests` et `config` montés depuis le workspace : **12/12 tests WAF passed**.
+- **Preuve runtime** : après restart `api-gateway`, payloads bornés remote-host metadata, shell injection encodée et `X-Forwarded-Host` multi-hôtes → **403/403/403**. Vérification BDD `security_logs` : **3/3** événements `waf_blocked_request`, `isBlocked=true`, IPs test `203.0.113.52/53/54`.
+- **Validation frontend associée** : `npm run type-check` / `npm run lint` restent muets code 1 (dette wrapper connue) ; commande directe `./node_modules/.bin/tsc --noEmit --pretty false` OK ; ESLint ciblé frontend **0 erreur**, 5 warnings historiques sur `security-e2e.spec.ts`.
+- **Limite outillage** : syntaxe `/usr/bin/node --check src/middleware/waf.js` OK ; ESLint api-gateway non concluant car aucune config ESLint n’est présente sous `/app` dans l’image courante.
 
 ## 15 juin 2026 — audit sécurité login backoffice
 

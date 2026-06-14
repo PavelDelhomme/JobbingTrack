@@ -1,4 +1,9 @@
+jest.mock('axios', () => ({
+  post: jest.fn().mockResolvedValue({ status: 201 })
+}));
+
 const { wafCheck, isIpInCidr } = require('../src/middleware/waf');
+const axios = require('axios');
 
 function mockResponse() {
   const res = {};
@@ -186,5 +191,136 @@ describe('WAF - contournement dev/test par jeton secret', () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+});
+
+describe('WAF - remote host, shell et URL injection', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = { ...originalEnv };
+    process.env.WAF_INTERNAL_BYPASS_ENABLED = 'false';
+    process.env.SECURITY_SERVICE_URL = 'http://security-service:3017';
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  function externalReq(overrides = {}) {
+    return {
+      ip: '203.0.113.42',
+      connection: {},
+      socket: {},
+      method: 'GET',
+      url: '/api/v1/security/check',
+      headers: {},
+      body: {},
+      requestId: 'req-waf-test',
+      correlationId: 'req-waf-test',
+      get: jest.fn((name) => {
+        const normalized = String(name).toLowerCase();
+        if (normalized === 'user-agent') return 'curl/8.0';
+        if (normalized === 'x-forwarded-for') return undefined;
+        if (normalized === 'x-forwarded-host') return undefined;
+        if (normalized === 'x-forwarded-proto') return undefined;
+        return undefined;
+      }),
+      ...overrides
+    };
+  }
+
+  test('bloque et journalise une tentative remote host / SSRF vers metadata', async () => {
+    const req = externalReq({
+      url: '/api/v1/reports/proxy?url=http://169.254.169.254/latest/meta-data/'
+    });
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(axios.post).toHaveBeenCalledWith(
+      'http://security-service:3017/api/v1/logs',
+      expect.objectContaining({
+        eventType: 'waf_blocked_request',
+        isBlocked: true,
+        metadata: expect.objectContaining({
+          detections: expect.arrayContaining([
+            expect.objectContaining({ rule: 'REMOTE_HOST_ACCESS' })
+          ])
+        })
+      }),
+      expect.any(Object)
+    );
+  });
+
+  test('bloque une injection shell encodée dans l’URL', async () => {
+    const req = externalReq({
+      url: '/api/v1/test-reports/download?file=summary.md%3Bcat%20%2Fetc%2Fpasswd'
+    });
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(axios.post.mock.calls.at(-1)[1].metadata.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rule: 'COMMAND_INJECTION' })
+      ])
+    );
+  });
+
+  test('bloque un Host/X-Forwarded-Host forgé avec hôtes multiples', async () => {
+    const req = externalReq({
+      headers: {
+        host: 'jobbingtrack.localhost:5443',
+        'x-forwarded-host': 'jobbingtrack.localhost:5443, attacker.example'
+      },
+      get: jest.fn((name) => {
+        const normalized = String(name).toLowerCase();
+        if (normalized === 'user-agent') return 'curl/8.0';
+        if (normalized === 'x-forwarded-host') return 'jobbingtrack.localhost:5443, attacker.example';
+        if (normalized === 'x-forwarded-for') return '203.0.113.42';
+        if (normalized === 'x-forwarded-proto') return 'https';
+        return undefined;
+      })
+    });
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(axios.post.mock.calls.at(-1)[1].metadata.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rule: 'HOST_HEADER_SPOOFING' })
+      ])
+    );
+  });
+
+  test('la journalisation WAF redige les secrets évidents dans les preuves', async () => {
+    const req = externalReq({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      body: {
+        email: 'redacted@example.invalid',
+        password: 'SuperSecretPassword!42',
+        callback: 'http://127.0.0.1/admin'
+      }
+    });
+    const res = mockResponse();
+    const next = jest.fn();
+
+    await wafCheck(req, res, next);
+
+    const payload = axios.post.mock.calls.at(-1)[1];
+    expect(JSON.stringify(payload.metadata)).not.toContain('SuperSecretPassword!42');
+    expect(JSON.stringify(payload.metadata)).toContain('[REDACTED]');
   });
 });
