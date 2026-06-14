@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/playwright-chromium-launch` (Playwright Chromium débloqué, non-régression UI relancée).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-smoke-memory` (suite backoffice Playwright stabilisée côté runner).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -11,6 +11,13 @@
 - **Validations passées, sans `make`** : setup admin `auth.setup.ts` **1/1** ; sécurité titres **10/10** ; Statistics smoke **4/4** ; Performances range **7/7** ; backoffice ciblé Relances/Événements/API tester **6/6** ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé OK ; lints IDE OK.
 - **Suite large** : `backoffice.spec.ts` après restart frontend à froid passe **77/78**. L’unique échec est un `ERR_EMPTY_RESPONSE` ponctuel sur `/b4ck0ff1ce/api-tester`, qui passe isolé ensuite ; les logs montrent un restart Next dev `Server is approaching the used memory threshold` pendant la compilation de nombreuses pages. Le conteneur reste `healthy`, `restart=0`, `oomKilled=false`; après la relance ciblée fraîche, il est à environ **1.56 GiB / 2 GiB**.
 - **Limite restante** : le blocage navigateur `SIGTRAP` est levé ; le prochain sujet de stabilité est le budget mémoire du dev server sur la suite backoffice complète 78 pages, à traiter par découpage de suite, build prod local ou optimisations supplémentaires des pages lourdes.
+
+## 14 juin 2026 — suite backoffice complète stabilisée côté runner
+
+- **Correctif runner** : `frontend/playwright.config.ts` ajoute un retry local configurable (`PLAYWRIGHT_RETRIES`, défaut local **1**, CI **2**) et un timeout test global **90 s**, cohérent avec les navigations longues déjà utilisées par `backoffice.spec.ts`.
+- **Validation passée, sans `make`** : `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé config Playwright OK ; lints IDE OK.
+- **Backoffice complet** : après restart frontend propre, `backoffice.spec.ts` sort en succès sur **78** tests avec **77 passed + 1 flaky récupéré par retry** (`/search`) et aucun failed final. Le retry récupère le bref restart Next `Server is approaching the used memory threshold`.
+- **État runtime** : `jobbingtrack-frontend` reste `healthy`, `restart=0`, `oomKilled=false`, environ **1.26–1.30 GiB / 2 GiB** après la campagne. Limite restante : le runner est opérationnel, mais le redémarrage mémoire Next existe encore et doit être traité par optimisation ou découpage si l’objectif est zéro flaky.
 
 ## 14 juin 2026 — setup admin Playwright réaligné
 

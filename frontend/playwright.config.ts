@@ -11,6 +11,15 @@ const playwrightTmpDir =
 fs.mkdirSync(playwrightTmpDir, { recursive: true });
 process.env.TMPDIR = process.env.TMPDIR || playwrightTmpDir;
 
+const configuredRetries = process.env.PLAYWRIGHT_RETRIES
+  ? Number(process.env.PLAYWRIGHT_RETRIES)
+  : undefined;
+const retries = Number.isInteger(configuredRetries)
+  ? configuredRetries
+  : process.env.CI
+    ? 2
+    : 1;
+
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || "";
 const inDocker = !!(
@@ -42,12 +51,15 @@ const junitReportPath = reportDir
 export default defineConfig({
   testDir: "./tests/e2e",
   outputDir,
+  timeout: 90_000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  // Le dev server Next peut redémarrer une fois quand beaucoup de pages backoffice
+  // compilent à froid; un retry local évite de confondre ce redémarrage avec une régression UI.
+  retries,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
