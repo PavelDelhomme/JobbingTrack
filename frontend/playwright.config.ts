@@ -1,10 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
-import { findFreePort, killProcessOnPort } from "./tests/utils/portUtils";
+import fs from "fs";
 import path from "path";
 import { devBypassExtraHeaders } from "./tests/e2e/envDevBypass";
 import { loadRootEnv } from "./tests/e2e/loadRootEnv";
 
 loadRootEnv();
+
+const playwrightTmpDir =
+  process.env.PLAYWRIGHT_TMPDIR || path.join(__dirname, ".tmp-playwright");
+fs.mkdirSync(playwrightTmpDir, { recursive: true });
+process.env.TMPDIR = process.env.TMPDIR || playwrightTmpDir;
 
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || "";
