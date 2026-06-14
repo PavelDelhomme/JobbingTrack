@@ -235,9 +235,10 @@ criticalApiClient.interceptors.response.use(
 // Services pour les microservices
 export const authService = {
   login: (email: string, password: string) =>
-    cachedRequest(`auth-login-${email}`, () =>
-      criticalApiClient.post("/auth/login", { email, password }),
-    ),
+    // Une tentative de login est une action sensible et doit toujours atteindre
+    // le serveur : aucun cache par email, sinon une erreur récente peut masquer
+    // une tentative correcte avec le même identifiant.
+    criticalApiClient.post("/auth/login", { email, password }),
 
   register: (data: {
     email: string;
