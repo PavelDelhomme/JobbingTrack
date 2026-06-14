@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `chore/logs-recent-default` (logs récents par défaut).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-responsive-audit` (audit responsive backoffice 4 viewports).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 14 juin 2026 — audit responsive backoffice 4 viewports
+
+- **Demande porteur** : valider petit/moyen écran et largeurs intermédiaires sur l’ensemble des routes backoffice statiques, sans débordement horizontal ni marge fantôme sidebar.
+- **Correctifs UI** : `EmailBackofficePageShell` empile titre/actions jusqu’à `xl` et autorise le wrap des actions ; toolbar Email Monitor en grille `sm:grid-cols-2` pour éviter le débordement du bouton « Supprimer Échoués » à 1280px.
+- **Correctifs tests** : `backoffice-responsive-audit.spec.ts` — warmup routes lourdes, attente fin loader auth, garde-fous DOM, navigation tolérante (erreur enregistrée au lieu de crash), attente disparition erreurs réseau transitoires, mode `serial`, timeout 15 min/viewport ; `/b4ck0ff1ce/tests` ajouté au warmup ; `PLAYWRIGHT_BROWSERS_PATH` local `frontend/.cache-playwright` pour éviter perte navigateur sur `/tmp` saturé.
+- **Validations sans `make`** : `./node_modules/.bin/tsc --noEmit` OK ; ESLint ciblé **0 erreur** (1 warning historique `any` Email Monitor) ; `npm run type-check` sort encore code 1 sans sortie (wrapper connu). Playwright `backoffice-responsive-audit.spec.ts` — **petit-pc 2/2**, **smartphone 2/2**, **moyen 3/3** (après restart frontend), **grand-ecran 3/3** ; ~70 routes × 4 viewports, workers=1, `PLAYWRIGHT_BASE_URL=http://localhost:5003`.
+- **Limite** : campagne longue (~6–8 min/viewport) ; un timeout navigation sur `/tests` peut survenir si le dev server Next est chaud après une campagne précédente — restart frontend + re-run viewport ciblé suffit.
 
 ## 14 juin 2026 — `make logs` démarre sur les logs récents
 

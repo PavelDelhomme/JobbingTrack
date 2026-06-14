@@ -11,6 +11,12 @@ const playwrightTmpDir =
 fs.mkdirSync(playwrightTmpDir, { recursive: true });
 process.env.TMPDIR = process.env.TMPDIR || playwrightTmpDir;
 
+const playwrightBrowsersPath =
+  process.env.PLAYWRIGHT_BROWSERS_PATH ||
+  path.join(__dirname, ".cache-playwright");
+fs.mkdirSync(playwrightBrowsersPath, { recursive: true });
+process.env.PLAYWRIGHT_BROWSERS_PATH = playwrightBrowsersPath;
+
 const configuredRetries = process.env.PLAYWRIGHT_RETRIES
   ? Number(process.env.PLAYWRIGHT_RETRIES)
   : undefined;
