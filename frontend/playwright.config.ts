@@ -18,7 +18,7 @@ const retries = Number.isInteger(configuredRetries)
   ? configuredRetries
   : process.env.CI
     ? 2
-    : 1;
+    : 2;
 
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || "";
