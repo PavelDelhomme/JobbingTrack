@@ -16,6 +16,7 @@ export const BACKOFFICE_HEAVY_ROUTES = [
   "/b4ck0ff1ce/followups",
   "/b4ck0ff1ce/datas?tab=billing",
   "/b4ck0ff1ce/statistics",
+  "/b4ck0ff1ce/tests",
 ] as const;
 
 const RETRYABLE_GOTO =

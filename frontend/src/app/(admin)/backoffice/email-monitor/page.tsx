@@ -419,7 +419,7 @@ export default function EmailMonitorPage() {
         </>
       }
       actions={
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-row xl:flex-wrap xl:items-center xl:justify-end">
             {lastRefreshAt && (
               <span className="text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
                 Dernière MAJ : {lastRefreshAt.toLocaleTimeString("fr-FR")}

@@ -65,8 +65,8 @@ export function EmailBackofficePageShell({
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <EmailBackofficeSubNav />
         <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-4xl">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 max-w-4xl">
               <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                 {title}
               </h1>
@@ -77,7 +77,7 @@ export function EmailBackofficePageShell({
               ) : null}
             </div>
             {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="flex min-w-0 w-full flex-wrap items-center gap-2 xl:max-w-3xl xl:justify-end">
                 {actions}
               </div>
             ) : null}

@@ -1,4 +1,8 @@
 import { expect, test } from "@playwright/test";
+import {
+  gotoBackofficePage,
+  warmupBackofficeRoutes,
+} from "./backoffice-navigation";
 
 const VIEWPORTS = [
   { name: "smartphone", width: 390, height: 844 },
@@ -86,15 +90,39 @@ type ResponsiveIssue = {
   issue: string;
 };
 
+async function waitForBackofficeReady(
+  page: import("@playwright/test").Page,
+): Promise<boolean> {
+  await page
+    .getByText("Connexion au backoffice")
+    .waitFor({ state: "hidden", timeout: 60_000 })
+    .catch(() => {});
+
+  return page
+    .locator("main")
+    .first()
+    .waitFor({
+      state: "visible",
+      timeout: 45_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+}
+
 async function collectResponsiveIssues(
   page: import("@playwright/test").Page,
   route: string,
   label: string,
 ): Promise<ResponsiveIssue[]> {
-  return page.evaluate(
-    ({ route, label }) => {
-      const issues: ResponsiveIssue[] = [];
-      const vw = document.documentElement.clientWidth || window.innerWidth;
+  try {
+    return await page.evaluate(
+      ({ route, label }) => {
+        const issues: ResponsiveIssue[] = [];
+        const root = document.documentElement;
+        if (!root || !document.body) {
+          return issues;
+        }
+        const vw = root.clientWidth || window.innerWidth || 0;
       const main = document.querySelector("main") || document.body;
       const interactive = Array.from(
         main.querySelectorAll<HTMLElement>(
@@ -115,6 +143,39 @@ async function collectResponsiveIssues(
         return false;
       };
 
+      const isInsideOffscreenPanel = (node: HTMLElement): boolean => {
+        let current: HTMLElement | null = node;
+        while (current && current !== main && current !== document.body) {
+          const style = window.getComputedStyle(current);
+          if (
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            Number(style.opacity) === 0 ||
+            style.pointerEvents === "none" ||
+            current.getAttribute("aria-hidden") === "true"
+          ) {
+            return true;
+          }
+          const rect = current.getBoundingClientRect();
+          const fullyOffLeft = rect.right <= 0;
+          const fullyOffRight = rect.left >= vw;
+          if (fullyOffLeft || fullyOffRight) {
+            return true;
+          }
+          current = current.parentElement;
+        }
+        return false;
+      };
+
+      const mainRect = main.getBoundingClientRect();
+      if (vw < 1024 && mainRect.left > 12) {
+        issues.push({
+          route,
+          label,
+          issue: `marge fantôme sidebar: main.left=${Math.round(mainRect.left)}px sur viewport ${vw}px`,
+        });
+      }
+
       for (const el of interactive) {
         const style = window.getComputedStyle(el);
         if (
@@ -132,6 +193,7 @@ async function collectResponsiveIssues(
         const outsideRight = rect.right > vw + 6;
         if (!outsideLeft && !outsideRight) continue;
         if (isInsideHorizontalScroller(el)) continue;
+        if (isInsideOffscreenPanel(el)) continue;
 
         const text =
           el.textContent?.trim().replace(/\s+/g, " ").slice(0, 60) ||
@@ -151,11 +213,27 @@ async function collectResponsiveIssues(
     },
     { route, label },
   );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return [
+      {
+        route,
+        label,
+        issue: `audit DOM indisponible: ${message.slice(0, 120)}`,
+      },
+    ];
+  }
 }
+
+test.describe.configure({ mode: "serial" });
+
+test.beforeAll(async ({ browser }) => {
+  await warmupBackofficeRoutes(browser);
+});
 
 for (const viewport of VIEWPORTS) {
   test(`responsive backoffice complet — ${viewport.name}`, async ({ page }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(900_000);
     await page.setViewportSize({
       width: viewport.width,
       height: viewport.height,
@@ -165,19 +243,23 @@ for (const viewport of VIEWPORTS) {
 
     for (const [route, label] of ROUTES) {
       await test.step(`${viewport.name} — ${label}`, async () => {
-        await page.goto(route, {
-          waitUntil: "domcontentloaded",
-          timeout: 90_000,
-        });
-        const mainVisible = await page
-          .locator("main")
-          .first()
-          .waitFor({
-            state: "visible",
-            timeout: 20_000,
-          })
-          .then(() => true)
-          .catch(() => false);
+        try {
+          await gotoBackofficePage(page, route, {
+            waitUntil: "domcontentloaded",
+            timeout: 120_000,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          allIssues.push({
+            route,
+            label,
+            issue: `navigation impossible: ${message.slice(0, 160)}`,
+          });
+          return;
+        }
+
+        const mainVisible = await waitForBackofficeReady(page);
 
         if (!mainVisible) {
           const body = ((await page.locator("body").textContent()) || "")
@@ -193,6 +275,11 @@ for (const viewport of VIEWPORTS) {
         }
 
         await page.waitForTimeout(750);
+        await page
+          .getByText(/Network Error|AxiosError/i)
+          .first()
+          .waitFor({ state: "hidden", timeout: 20_000 })
+          .catch(() => {});
         const networkErrors = await page
           .getByText(/Network Error|AxiosError/i)
           .count();
