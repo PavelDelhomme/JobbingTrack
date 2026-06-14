@@ -181,12 +181,26 @@ export async function ensureTestUser(
  * Ne contient PAS le mot de passe en dur : variables env obligatoires.
  */
 export function getAdminCredentials(): { email: string; password: string } {
+  const adminEmail = firstEnvValue(["ADMIN_EMAIL"]);
+  const testAdminEmail = firstEnvValue(["TEST_ADMIN_EMAIL"]);
+  const email = testAdminEmail || adminEmail;
+
+  if (!email) {
+    throw new Error(
+      "Email admin E2E manquant: renseigner une des variables TEST_ADMIN_EMAIL, ADMIN_EMAIL",
+    );
+  }
+
+  // Le seed auth met à jour ADMIN_EMAIL avec ADMIN_PASSWORD. Si TEST_ADMIN_EMAIL
+  // pointe vers le même compte, Playwright doit utiliser ce même mot de passe.
+  const passwordKeys =
+    testAdminEmail && adminEmail && testAdminEmail.toLowerCase() !== adminEmail.toLowerCase()
+      ? ["TEST_ADMIN_PASSWORD"]
+      : ["ADMIN_PASSWORD", "TEST_ADMIN_PASSWORD"];
+
   return {
-    email: requireEnvValue(["TEST_ADMIN_EMAIL", "ADMIN_EMAIL"], "Email admin E2E"),
-    password: requireEnvValue(
-      ["TEST_ADMIN_PASSWORD", "ADMIN_PASSWORD"],
-      "Mot de passe admin E2E",
-    ),
+    email,
+    password: requireEnvValue(passwordKeys, "Mot de passe admin E2E"),
   };
 }
 

@@ -1,8 +1,15 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 13 juin 2026 — **Branche** `dev` (frontend dev server stabilisé + charge API bornée validée).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/playwright-admin-auth` (setup admin Playwright réaligné, navigateur local à débloquer).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 14 juin 2026 — setup admin Playwright réaligné
+
+- **Correctif** : `frontend/tests/e2e/test-data-helper.ts` choisit désormais `ADMIN_PASSWORD` quand `TEST_ADMIN_EMAIL` pointe vers le même compte que `ADMIN_EMAIL`, ce qui respecte le seed auth ; `TEST_ADMIN_PASSWORD` reste requis uniquement pour un vrai compte `TEST_ADMIN_EMAIL` distinct.
+- **Smoke sécurité** : `frontend/tests/e2e/security-titles-smoke.spec.ts` attend le titre produit actuel `/b4ck0ff1ce/security/incidents` = `Incidents & menaces`.
+- **Validations passées, sans `make`** : stack utile healthy ; seed auth direct `docker exec jobbingtrack-auth-service npx prisma db seed` OK ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé helper/setup/smoke OK ; lints IDE OK ; login admin API direct avec `.env` chargé OK (`status=200`, token présent) ; routes sécurité HTTP **307** sans session (redirect login attendu).
+- **Limite de relance** : Playwright navigateur échoue avant navigation avec Chromium/headless-shell `SIGTRAP`, y compris sur un test minimal `about:blank`. Le blocage E2E n’est donc plus le `401` admin initial, mais un problème local de lancement Chromium à investiguer.
 
 ## 13 juin 2026 — audit charge API mobile + mémoire frontend
 
