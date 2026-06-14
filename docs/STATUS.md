@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-smoke-memory` (suite backoffice Playwright stabilisée côté runner).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-dev-warmup` (suite backoffice 78/78 sans flaky).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -10,6 +10,12 @@
 - **Correctifs** : `frontend/playwright.config.ts` crée et utilise `frontend/.tmp-playwright` par défaut si `TMPDIR` n’est pas déjà défini ; `.gitignore` ignore ce dossier. `FollowupsTab` ne rend plus directement un objet statut/type reçu de l’API et extrait un libellé (`name`, `label`, `code`, etc.). `statistics/page.tsx` ne persiste plus `timeRange` si la préférence est déjà à jour, ce qui coupe la boucle `Maximum update depth`.
 - **Validations passées, sans `make`** : setup admin `auth.setup.ts` **1/1** ; sécurité titres **10/10** ; Statistics smoke **4/4** ; Performances range **7/7** ; backoffice ciblé Relances/Événements/API tester **6/6** ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé OK ; lints IDE OK.
 - **Suite large** : `backoffice.spec.ts` après restart frontend à froid passe **77/78**. L’unique échec est un `ERR_EMPTY_RESPONSE` ponctuel sur `/b4ck0ff1ce/api-tester`, qui passe isolé ensuite ; les logs montrent un restart Next dev `Server is approaching the used memory threshold` pendant la compilation de nombreuses pages. Le conteneur reste `healthy`, `restart=0`, `oomKilled=false`; après la relance ciblée fraîche, il est à environ **1.56 GiB / 2 GiB**.
+
+## 14 juin 2026 — suite backoffice 78/78 sans flaky
+
+- **Correctifs** : `frontend/tests/e2e/backoffice-navigation.ts` ajoute `gotoBackofficePage` (retente `ERR_EMPTY_RESPONSE` / connexion coupée) et `warmupBackofficeRoutes` (précompile les routes lourdes avant la campagne) ; `backoffice.spec.ts` utilise ce helper sur toutes les navigations et lance le warmup en `beforeAll`. Retry Playwright local porté à **2**.
+- **Validations passées, sans `make`** : `npm run type-check` OK ; ESLint ciblé navigation/backoffice/config OK ; lints IDE OK ; `backoffice.spec.ts` après restart frontend propre **78/78 passed**, **0 flaky**, **0 failed** (~5,3 min, workers=1, `PLAYWRIGHT_BASE_URL=http://localhost:5003`).
+- **État runtime** : `jobbingtrack-frontend` `healthy`, `restart=0`, `oomKilled=false`, ~**1.49 GiB / 2 GiB** après campagne.
 - **Limite restante** : le blocage navigateur `SIGTRAP` est levé ; le prochain sujet de stabilité est le budget mémoire du dev server sur la suite backoffice complète 78 pages, à traiter par découpage de suite, build prod local ou optimisations supplémentaires des pages lourdes.
 
 ## 14 juin 2026 — suite backoffice complète stabilisée côté runner
