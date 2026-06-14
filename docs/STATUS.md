@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `docs/performance-benchmark-proof` (preuve benchmark avant/après).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `security/backoffice-login-hardening` (audit sécurité login backoffice).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — audit sécurité login backoffice
+
+- **Périmètre** : page `/login`, endpoint `/api/v1/auth/login`, client frontend `authService.login`, rate-limit auth gateway. Rapport : `docs/security/BACKOFFICE_LOGIN_SECURITY_AUDIT_2026-06-15.md`.
+- **Correctifs** : le login frontend ne passe plus par `cachedRequest` ; chaque tentative appelle directement `criticalApiClient.post("/auth/login")`. La gateway applique maintenant explicitement `authRateLimiter` sur `/api/v1/auth/login` quand `RATE_LIMIT_ENABLED !== "false"` (limite dédiée existante : 5/min/IP).
+- **Spec ajouté** : `frontend/tests/e2e/backoffice-login-security.spec.ts` couvre absence de secrets sur page login, non-énumération simple des comptes, payloads SQL/XSS/NoSQL contrôlés sans token/stack trace, et rate-limit `429` borné.
+- **Validations sans `make`** : restart `api-gateway` + `/health` **200** ; `tsc --noEmit` frontend OK ; ESLint ciblé **0 erreur** (warnings historiques `any` dans `api.ts`) ; `/usr/bin/node --check backend/api-gateway/src/server.js` OK ; Playwright login sécurité **5/5 passed** ; Playwright login no-auth existant **4 passed / 3 skipped**.
+- **Limites** : pas de DDoS ni fuzzing massif. Suite recommandée : forgot/reset password, refresh/logout/cookies, accès routes backoffice avec token falsifié/expiré, MFA/revalidation PIN actions sensibles.
 
 ## 14 juin 2026 — mémoire Statistics + campagne API mobile authentifiée
 

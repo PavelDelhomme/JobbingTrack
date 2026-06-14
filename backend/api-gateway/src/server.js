@@ -316,6 +316,9 @@ const apiLimiter = rateLimit({
 // 4. Appliquer le rate limiting
 if (process.env.RATE_LIMIT_ENABLED !== 'false') {
   app.use(apiLimiter);
+  // Le login backoffice est l'endpoint le plus exposé aux tentatives de force brute.
+  // La limite générale (100/min) reste trop large pour ce cas : appliquer aussi la limite auth dédiée (5/min).
+  app.use('/api/v1/auth/login', authRateLimiter);
 }
 
 // ✅ Health check
