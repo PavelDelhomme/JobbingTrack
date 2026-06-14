@@ -98,7 +98,7 @@ import {
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
-import { localCalendarDayBounds } from "@/components/analytics/timeRangeUtils";
+import { localCalendarDayBounds, MAX_CHART_API_POINTS } from "@/components/analytics/timeRangeUtils";
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
 
@@ -315,7 +315,10 @@ export default function StatisticsPage() {
       return {
         startTime: start.getTime(),
         endTime: end.getTime(),
-        limit: Math.min(Math.ceil(durationMs / (60 * 1000)), 43200),
+        limit: Math.min(
+          Math.ceil(durationMs / (60 * 1000)),
+          MAX_CHART_API_POINTS,
+        ),
       };
     }
     const { start, end, limit } = getPeriodMs(timeRange, windowEnd);
@@ -482,6 +485,7 @@ export default function StatisticsPage() {
 
       // ✅ Actualiser selon les préférences utilisateur
       const interval = setInterval(() => {
+        if (document.visibilityState !== "visible") return;
         if (needsStats) {
           fetchStatistics(true); // skipHistorical = true lors des actualisations
         }

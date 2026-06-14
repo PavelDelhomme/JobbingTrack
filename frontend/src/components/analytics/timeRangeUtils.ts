@@ -1,6 +1,9 @@
 import type { TimeRangeOption } from "./TimeRangeSelector";
 import { displayTimeZoneOptions } from "@/lib/utils/date";
 
+/** Plafond API/graphes pour éviter des payloads minute-par-minute sur les longues plages. */
+export const MAX_CHART_API_POINTS = 2000;
+
 export function getPeriodMs(
   range: TimeRangeOption,
   windowEnd: Date,
@@ -18,44 +21,45 @@ export function getPeriodMs(
       limit = Math.min(
         1440,
         Math.ceil((effectiveEnd.getTime() - start.getTime()) / (60 * 1000)),
+        MAX_CHART_API_POINTS,
       );
       return { start, end: effectiveEnd, limit };
     }
     case "1h":
       start = new Date(end.getTime() - 60 * 60 * 1000);
-      limit = 60;
+      limit = Math.min(60, MAX_CHART_API_POINTS);
       break;
     case "6h":
       start = new Date(end.getTime() - 6 * 60 * 60 * 1000);
-      limit = 360;
+      limit = Math.min(360, MAX_CHART_API_POINTS);
       break;
     case "24h":
       start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-      limit = 1440;
+      limit = Math.min(1440, MAX_CHART_API_POINTS);
       break;
     case "3d":
       start = new Date(end.getTime() - 3 * 24 * 60 * 60 * 1000);
-      limit = 4320;
+      limit = Math.min(4320, MAX_CHART_API_POINTS);
       break;
     case "7d":
       start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
-      limit = 10080;
+      limit = Math.min(10080, MAX_CHART_API_POINTS);
       break;
     case "14d":
       start = new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000);
-      limit = 20160;
+      limit = Math.min(20160, MAX_CHART_API_POINTS);
       break;
     case "21d":
       start = new Date(end.getTime() - 21 * 24 * 60 * 60 * 1000);
-      limit = 30240;
+      limit = Math.min(30240, MAX_CHART_API_POINTS);
       break;
     case "30d":
       start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-      limit = 43200;
+      limit = Math.min(43200, MAX_CHART_API_POINTS);
       break;
     default:
       start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-      limit = 1440;
+      limit = Math.min(1440, MAX_CHART_API_POINTS);
   }
   return { start, end, limit };
 }

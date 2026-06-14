@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-responsive-audit` (audit responsive backoffice 4 viewports).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/frontend-memory-mobile-api-load` (mémoire Statistics + API mobile auth).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 14 juin 2026 — mémoire Statistics + campagne API mobile authentifiée
+
+- **Objectif** : suite audit mémoire/charge — réduire les payloads graphes Statistics et valider les endpoints mobiles métier avec token USER réel (au-delà du simple 401).
+- **Correctifs frontend** : `MAX_CHART_API_POINTS = 2000` dans `timeRangeUtils` (plafond sur toutes les plages, y compris custom range Statistics) ; refresh Statistics uniquement quand `document.visibilityState === "visible"`.
+- **Nouveau script** : `tests/performance/test-mobile-api-authenticated.js` — login `testuser@jobbingtrack.test` via `auth.helper`, 9 endpoints métier (profile, applications, companies, contacts, followups, interviews, calls, events, notifications) + charge légère `PERF_LIGHT=1`.
+- **Validations sans `make`** : `./node_modules/.bin/tsc --noEmit` OK ; ESLint ciblé **0 erreur** (warnings historiques Statistics) ; Jest `statisticsTimeSeries` **3/3 OK** ; API mobile auth **9/9** séquentiel + **10/10** charge légère ; `test-performance.js PERF_LIGHT=1` **15/15** + charge **13/13** score **100/100** ; Playwright `statistics-smoke` **4/4** + `backoffice.spec.ts` **80 passed, 1 flaky** (Performances applicatives, retry infra).
+- **Limite restante** : imports Recharts dynamiques sur pages lourdes (correlation, log-stats) et campagne rate-limit/WAF prod-like dans environnement dédié.
 
 ## 14 juin 2026 — audit responsive backoffice 4 viewports
 
