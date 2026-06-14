@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend dev-https-certs dev-https-install-ca dev-https-up dev-https-down dev-https-status _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full recreate fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-watch ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend dev-https-certs dev-https-install-ca dev-https-up dev-https-down dev-https-status _up-full-internal up down down-keep-data down-clean up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-metrics-recreate monitoring-clock-refresh restart-tests-api-services restart-clean restart-force restart-full recreate fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service build-full rebuild rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-watch status-live logs logs-history logs-watch ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -1456,20 +1456,33 @@ logs-tail: ## Affiche les N dernières lignes de logs puis quitte (LINES=200 par
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
 
 # Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
-# S'exécute indéfiniment jusqu'à Ctrl+C (suivi continu).
-logs: ## Affiche tous les logs en temps réel — Ctrl+C pour quitter
-	@echo "📋 Logs en temps réel des services JobbingTrack (suivi continu)"
-	@echo "==============================================================="
-	@echo "⏹️  Pour arrêter : Ctrl+C  |  Pour voir les dernières lignes sans suivi : make logs-tail"
-	@echo "🔁 Conteneurs qui redémarrent / flux coupé : make logs-watch (même pipeline couleurs, reconnexion auto)"
+# Par défaut : fenêtre récente (24h + tail raisonnable) puis suivi continu — évite de relire tout l'historique au lancement.
+# Historique complet : make logs-history  |  personnaliser : LOGS_SINCE=12h LOGS_TAIL=200 make logs
+logs: ## Logs récents puis suivi temps réel (24h, tail 500) — Ctrl+C pour quitter
+	@echo "📋 Logs récents puis suivi temps réel — JobbingTrack"
+	@echo "===================================================="
+	@echo "⏹️  Pour arrêter : Ctrl+C  |  Dernières lignes sans suivi : make logs-tail"
+	@echo "📜 Historique complet (lourd) : make logs-history"
+	@echo "🔧 Fenêtre : LOGS_SINCE=$${LOGS_SINCE:-24h}  LOGS_TAIL=$${LOGS_TAIL:-500}  (ex. LOGS_SINCE=1h LOGS_TAIL=100)"
+	@echo "🔁 Conteneurs qui redémarrent / flux coupé : make logs-watch (même fenêtre récente par défaut)"
 	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
 	@echo "   Couleurs: service=magenta, GET/HEAD=cyan, 2xx=vert, 4xx=orange, 5xx=rouge, [TAG]=selon tag, Erreurs=rouge"
 	@echo "   Redis/Postgres: grisé (dim). Sans Redis/Postgres: make logs-app"
 	@echo ""
 	@printf '\033]0;Logs\007' >/dev/tty 2>/dev/null || true
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
+	@SINCE=$${LOGS_SINCE:-24h}; TAIL=$${LOGS_TAIL:-500}; \
+	cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t --since="$$SINCE" --tail="$$TAIL" 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
+
+logs-history: ## Historique complet des logs puis suivi temps réel (lourd) — Ctrl+C pour quitter
+	@echo "📋 Historique complet des logs JobbingTrack (suivi continu)"
+	@echo "========================================================="
+	@echo "⏹️  Pour arrêter : Ctrl+C  |  Logs récents par défaut : make logs"
+	@echo ""
+	@printf '\033]0;Logs history\007' >/dev/tty 2>/dev/null || true
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/ops/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-history"; exit 1)
 
 # Même pipeline couleur que `logs` : reconnexion automatique si le flux s’interrompt (redémarrage conteneurs, etc.)
 logs-watch: ## Logs temps réel avec reconnexion auto — Ctrl+C pour quitter

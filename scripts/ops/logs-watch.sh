@@ -16,7 +16,11 @@ fi
 trap 'set_term_title ""' EXIT
 trap 'echo ""; echo "⏹ logs-watch arrêté."; exit 130' INT
 
+LOGS_SINCE="${LOGS_SINCE:-24h}"
+LOGS_TAIL="${LOGS_TAIL:-500}"
+
 echo "📋 logs-watch — suivi continu (reconnexion auto si le flux s’interrompt) — Ctrl+C pour quitter"
+echo "   Fenêtre récente : since=${LOGS_SINCE} tail=${LOGS_TAIL}  (historique complet : LOGS_SINCE= LOGS_TAIL= make logs-history)"
 echo "   Args compose : $*"
 echo ""
 
@@ -27,7 +31,15 @@ while true; do
     continue
   fi
   set +e
-  docker compose "$@" logs -f -t 2>&1 | bash "$ROOT_DIR/scripts/ops/color-logs.sh"
+  if [[ -n "$LOGS_SINCE" || -n "$LOGS_TAIL" ]]; then
+    since_arg=()
+    tail_arg=()
+    [[ -n "$LOGS_SINCE" ]] && since_arg=(--since="$LOGS_SINCE")
+    [[ -n "$LOGS_TAIL" ]] && tail_arg=(--tail="$LOGS_TAIL")
+    docker compose "$@" logs -f -t "${since_arg[@]}" "${tail_arg[@]}" 2>&1 | bash "$ROOT_DIR/scripts/ops/color-logs.sh"
+  else
+    docker compose "$@" logs -f -t 2>&1 | bash "$ROOT_DIR/scripts/ops/color-logs.sh"
+  fi
   pipe=("${PIPESTATUS[@]}")
   dc="${pipe[0]:-1}"
   # 130 = Ctrl+C sur docker compose — quitter. 141 = SIGPIPE (pipeline/couleurs) — reconnecter, ne pas confondre avec Ctrl+C.
