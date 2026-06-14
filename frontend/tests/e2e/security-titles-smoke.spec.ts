@@ -8,7 +8,7 @@ const SECURITY_PAGES = [
   ["/b4ck0ff1ce/security/network", "Sécurité réseau"],
   ["/b4ck0ff1ce/security/policies", "Politiques sécurité"],
   ["/b4ck0ff1ce/security/threats", "Menaces sécurité"],
-  ["/b4ck0ff1ce/security/incidents", "Incidents sécurité"],
+  ["/b4ck0ff1ce/security/incidents", "Incidents & menaces"],
   ["/b4ck0ff1ce/security/alerts", "Alertes email sécurité"],
 ] as const;
 
