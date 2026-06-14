@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/frontend-memory-mobile-api-load` (mémoire Statistics + API mobile auth).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `docs/performance-benchmark-proof` (preuve benchmark avant/après).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -11,6 +11,14 @@
 - **Nouveau script** : `tests/performance/test-mobile-api-authenticated.js` — login `testuser@jobbingtrack.test` via `auth.helper`, 9 endpoints métier (profile, applications, companies, contacts, followups, interviews, calls, events, notifications) + charge légère `PERF_LIGHT=1`.
 - **Validations sans `make`** : `./node_modules/.bin/tsc --noEmit` OK ; ESLint ciblé **0 erreur** (warnings historiques Statistics) ; Jest `statisticsTimeSeries` **3/3 OK** ; API mobile auth **9/9** séquentiel + **10/10** charge légère ; `test-performance.js PERF_LIGHT=1` **15/15** + charge **13/13** score **100/100** ; Playwright `statistics-smoke` **4/4** + `backoffice.spec.ts` **80 passed, 1 flaky** (Performances applicatives, retry infra).
 - **Limite restante** : imports Recharts dynamiques sur pages lourdes (correlation, log-stats) et campagne rate-limit/WAF prod-like dans environnement dédié.
+
+## 14 juin 2026 — preuve benchmark avant/après performance
+
+- **Méthode** : comparaison Git bornée entre `34fc84f4` (avant les correctifs mémoire frontend) et `69ec0b0d` (état courant `dev`). Script ajouté : `scripts/perf/benchmark-performance-commits.sh`. Rapport détaillé : `docs/performance/PERFORMANCE_BENCHMARK_2026-06-14.md`.
+- **Résultat mémoire frontend** : avant, Next démarre en **Turbopack**, idle **1.733 GiB / 2 GiB**, puis atteint **2.000 GiB / 2 GiB** après `test-performance.js PERF_LIGHT=1`. Après, Next démarre en **webpack**, idle **454.9 MiB / 2 GiB**, puis **409.5 MiB / 2 GiB** après la même charge API légère.
+- **Résultat Statistics** : plage 7j avant = **10080** points demandés ; après = plafond **2000** points (`MAX_CHART_API_POINTS`), soit environ **-80,2 %** de points API/état/rendu.
+- **Non-régression** : `test-performance.js PERF_LIGHT=1` reste **15/15** avec score **100/100** ; API mobile authentifiée après correctif **9/9** endpoints + **10/10** charge légère ; smoke Playwright Statistics après correctif **4 passed** en **33 s**.
+- **Conclusion** : gains réels côté frontend dev et payloads Statistics ; le backend n'a pas régressé. Limite : smoke Statistics chauffe encore le dev server jusqu'à environ **1.577 GiB / 2 GiB**, donc les prochains gains doivent viser Recharts dynamiques et pages lourdes.
 
 ## 14 juin 2026 — audit responsive backoffice 4 viewports
 
