@@ -1,8 +1,14 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/backoffice-dev-warmup` (suite backoffice 78/78 sans flaky).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `chore/logs-recent-default` (logs récents par défaut).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 14 juin 2026 — `make logs` démarre sur les logs récents
+
+- **Demande porteur** : éviter de charger tout l'historique au lancement de `make logs`.
+- **Correctifs** : `make logs` utilise `--since=24h` et `--tail=500` par défaut (`LOGS_SINCE` / `LOGS_TAIL` surchargeables) puis suivi live ; nouvelle cible `make logs-history` pour l'historique complet ; `scripts/ops/logs-watch.sh` aligné sur la même fenêtre récente.
+- **Validation** : `bash -n scripts/ops/logs-watch.sh` OK ; `docker compose -f docker-compose.yml logs -t --since=24h --tail=20` OK (commande directe, pas `make`).
 
 ## 14 juin 2026 — Playwright Chromium débloqué + non-régression backoffice
 
@@ -998,7 +1004,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 - ~~**Postgres — rôles / DB**~~ : **Résolu** — `make db-fix-role` utilise un SQL idempotent (EXCEPTION WHEN duplicate_object / duplicate_database). Voir RESOLUTIONS.md et ERRORS.md.
 - **Postgres — table `deployments`** : le deployment-service envoie des requêtes vers `public.deployments` alors que la table n’existe pas (relation "public.deployments" does not exist). À faire : appliquer le schéma Prisma du deployment-service sur la BDD partagée (`make db-push-all` ou push ciblé deployment-service) pour créer la table `deployments`.
 - ~~**Build APK (interface backoffice)**~~ : **En place** — avant `flutter build apk`, le contrôleur émulateur supprime `build/app/outputs` et lance `flutter clean`. Si l’erreur Zip réapparaît : `cd mobile && flutter clean && rm -rf build/app/outputs` puis relancer le build. **Pendant le build** : overlay plein écran qui bloque la navigation (seul « Annuler le build » est utilisable).
-- **make logs** : suivi continu ; Ctrl+C pour quitter. Dernières lignes sans suivi : `make logs-tail` ou `make logs-tail LINES=500`.
+- **make logs** : démarre sur les logs **récents** (`LOGS_SINCE=24h`, `LOGS_TAIL=500` par défaut) puis suivi continu ; Ctrl+C pour quitter. Historique complet : `make logs-history`. Dernières lignes sans suivi : `make logs-tail` ou `make logs-tail LINES=500`.
 - **Email inscription mobile** : plus de 6 en fin d'email (chiffre en dernière position supprimé avant saisie pour champs email).
 - **Parcours mobile** : étapes du parcours affichées à côté du rendu en direct pendant l'exécution.
 - **Specs E2E mobile email** : `tests/e2e/specs/mobile/` (Gmail, Proton, BlueMail). `make test-e2e-mobile-email-verification`. Voir `tests/e2e/README.md`.

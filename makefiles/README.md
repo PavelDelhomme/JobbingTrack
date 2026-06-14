@@ -149,7 +149,8 @@ make status             # Status détaillé (légende ports hôte → conteneur,
 make status-watch       # Boucle : buffer terminal alternatif par défaut (ALTSCREEN=1) — remplace l’affichage sans polluer le scrollback ; ALTSCREEN=0 + CLEAR=1 = ancien clear plein écran ; INTERVAL=4 (minimum)
 make status-live        # Idem, INTERVAL=2 par défaut (mêmes variables ALTSCREEN / CLEAR)
 make ps                 # Liste conteneurs
-make logs               # Tous les logs
+make logs               # Logs récents (24h, tail 500) puis suivi live
+make logs-history       # Historique complet puis suivi live (lourd)
 ```
 
 ### 🔍 Diagnostic (makefiles/diagnostic/Makefile)
