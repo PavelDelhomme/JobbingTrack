@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/playwright-admin-auth` (setup admin Playwright réaligné, navigateur local à débloquer).
+**Dernière mise à jour** : 14 juin 2026 — **Branche** `fix/playwright-chromium-launch` (Playwright Chromium débloqué, non-régression UI relancée).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 14 juin 2026 — Playwright Chromium débloqué + non-régression backoffice
+
+- **Cause isolée** : Chromium Playwright ne crashait pas par dépendance manquante ; le lancement direct fonctionnait, mais les profils temporaires Playwright créés dans `/tmp` échouaient dans un contexte `/tmp` saturé/quota (`/tmp` ~20 Go utilisés, erreurs d’écriture). `TMPDIR` local au projet débloque le navigateur.
+- **Correctifs** : `frontend/playwright.config.ts` crée et utilise `frontend/.tmp-playwright` par défaut si `TMPDIR` n’est pas déjà défini ; `.gitignore` ignore ce dossier. `FollowupsTab` ne rend plus directement un objet statut/type reçu de l’API et extrait un libellé (`name`, `label`, `code`, etc.). `statistics/page.tsx` ne persiste plus `timeRange` si la préférence est déjà à jour, ce qui coupe la boucle `Maximum update depth`.
+- **Validations passées, sans `make`** : setup admin `auth.setup.ts` **1/1** ; sécurité titres **10/10** ; Statistics smoke **4/4** ; Performances range **7/7** ; backoffice ciblé Relances/Événements/API tester **6/6** ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé OK ; lints IDE OK.
+- **Suite large** : `backoffice.spec.ts` après restart frontend à froid passe **77/78**. L’unique échec est un `ERR_EMPTY_RESPONSE` ponctuel sur `/b4ck0ff1ce/api-tester`, qui passe isolé ensuite ; les logs montrent un restart Next dev `Server is approaching the used memory threshold` pendant la compilation de nombreuses pages. Le conteneur reste `healthy`, `restart=0`, `oomKilled=false`; après la relance ciblée fraîche, il est à environ **1.56 GiB / 2 GiB**.
+- **Limite restante** : le blocage navigateur `SIGTRAP` est levé ; le prochain sujet de stabilité est le budget mémoire du dev server sur la suite backoffice complète 78 pages, à traiter par découpage de suite, build prod local ou optimisations supplémentaires des pages lourdes.
 
 ## 14 juin 2026 — setup admin Playwright réaligné
 

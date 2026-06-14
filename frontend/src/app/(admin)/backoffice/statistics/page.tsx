@@ -429,10 +429,13 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     const prefsRanges: StatisticsTimeRange[] = ["1h", "6h", "24h", "7d", "30d"];
-    if (prefsRanges.includes(timeRange as StatisticsTimeRange)) {
+    if (
+      prefsRanges.includes(timeRange as StatisticsTimeRange) &&
+      customization.timeRange !== timeRange
+    ) {
       updateCustomization({ timeRange: timeRange as StatisticsTimeRange });
     }
-  }, [timeRange, updateCustomization]);
+  }, [customization.timeRange, timeRange, updateCustomization]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {

@@ -5,12 +5,29 @@ import { followUpService } from "@/lib/api";
 
 interface FollowUp {
   id: string;
-  type?: string;
+  type?: unknown;
   scheduledAt?: string;
   followUpDate?: string;
-  status: string;
+  status?: unknown;
   notes?: string;
   createdAt: string;
+}
+
+function formatFollowupValue(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of ["name", "label", "code", "title", "description"]) {
+      const candidate = record[key];
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate;
+      }
+    }
+  }
+  return fallback;
 }
 
 export default function FollowupsTab() {
@@ -106,7 +123,7 @@ export default function FollowupsTab() {
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {followup.type ?? "Relance"}
+                    {formatFollowupValue(followup.type, "Relance")}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {(followup.followUpDate ?? followup.scheduledAt)
@@ -119,7 +136,7 @@ export default function FollowupsTab() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
-                      {followup.status}
+                      {formatFollowupValue(followup.status, "À suivre")}
                     </span>
                   </td>
                 </tr>
