@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (lot P1D CI/PR/préprod clôturé).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité renforcé, validation porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — P1B Statistics Sécurité cohérent avec `/security`
+
+- **UI** : `/b4ck0ff1ce/statistics/security` affiche un bloc “Cohérence avec la console Sécurité live” : score persisté 7 j, score live 30 j, événements live, critical/DDoS, points persistés et message d’alerte si le live contredit un score persisté élevé.
+- **Constat runtime** : persistance metrics `source=security_metrics`, `dataPoints=2000`, score persisté ~99.1 ; `/security` live 30 j expose encore des incidents récents (`criticalEvents=4`, `ddosAttacks=258`, score live 0), donc Statistics est présenté comme tendance persistée et non feu vert opérationnel.
+- **Validations sans `make`** : API metrics/security summary/metrics/stats OK ; API `/security` stats/logs OK ; backend metrics-aggregator Jest **2/2** ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest Statistics **2 suites / 6 tests OK** ; Jest CI frontend **43 suites / 182 tests OK** ; Playwright Statistics **5/5 OK** ; Playwright Sécurité titres **9 passed + 1 flaky retry OK** (`/security/threats` `ERR_EMPTY_RESPONSE` puis retry OK).
+- **Performance locale** : moyennes HTTP simples `/statistics/security` ~104 ms, `/security` ~57 ms, `/statistics` ~86 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics Securite 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — CI / PR / préprod Portainer P1D (clôture)
 

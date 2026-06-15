@@ -8,6 +8,7 @@ import {
 } from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { buildSecurityConsistencySummary } from "@/lib/metrics/securityStatisticsComparison";
 import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
 
 function num(v: unknown): number {
@@ -52,6 +53,10 @@ export default function StatisticsSecurityPage() {
   const [pSummary, setPSummary] = useState<Record<string, unknown> | null>(
     null,
   );
+  const [liveSummary, setLiveSummary] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [persistedLogsTotal, setPersistedLogsTotal] = useState<number | null>(
     null,
   );
@@ -64,13 +69,15 @@ export default function StatisticsSecurityPage() {
     setLoading(true);
     setError(null);
     try {
-      const [m, s, pStats] = await Promise.all([
+      const [m, s, pStats, live] = await Promise.all([
         analyticsService.getSecurityMetrics(hoursWindow),
         analyticsService.getSecurityPersistenceSummary(hoursWindow),
         analyticsService.getPersistenceStats(),
+        analyticsService.getSecuritySummary(30 * 24),
       ]);
       setMetrics(Array.isArray(m) ? m : []);
       setPSummary(s && typeof s === "object" ? s : null);
+      setLiveSummary(live && typeof live === "object" ? live : null);
       const counts = pStats?.counts as Record<string, unknown> | undefined;
       const logsTotal =
         counts && typeof counts.securityLogs === "number"
@@ -181,6 +188,16 @@ export default function StatisticsSecurityPage() {
   const summaryIsEmpty =
     pSummary != null &&
     (summaryDataPoints === 0 || summarySource.toLowerCase() === "empty");
+  const consistency = useMemo(
+    () => buildSecurityConsistencySummary(pSummary, liveSummary),
+    [pSummary, liveSummary],
+  );
+  const consistencyTone =
+    consistency.level === "critical"
+      ? "border-red-300 bg-red-50 text-red-950 dark:border-red-800 dark:bg-red-950/30 dark:text-red-100"
+      : consistency.level === "watch"
+        ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+        : "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100";
 
   return (
     <StatisticsPageShell
@@ -252,6 +269,64 @@ export default function StatisticsSecurityPage() {
               </p>
             </div>
           )}
+
+          <div className={`rounded-xl border p-4 text-sm ${consistencyTone}`}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="font-semibold">
+                  Cohérence avec la console Sécurité live
+                </p>
+                <p className="mt-1">{consistency.message}</p>
+                <p className="mt-1 text-xs opacity-90">
+                  Fenêtres comparées : Statistics persistance 7 j · Sécurité
+                  opérationnelle 30 j.
+                </p>
+              </div>
+              <Link
+                href="/b4ck0ff1ce/security"
+                className="shrink-0 font-medium underline hover:no-underline"
+              >
+                Ouvrir /security →
+              </Link>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div>
+                <p className="text-xs opacity-80">Score persisté</p>
+                <p className="text-xl font-bold tabular-nums">
+                  {consistency.persistedScore == null
+                    ? "—"
+                    : consistency.persistedScore.toFixed(1)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs opacity-80">Score live</p>
+                <p className="text-xl font-bold tabular-nums">
+                  {consistency.liveScore == null
+                    ? "—"
+                    : consistency.liveScore.toFixed(1)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs opacity-80">Évènements live</p>
+                <p className="text-xl font-bold tabular-nums">
+                  {consistency.liveEvents.toLocaleString("fr-FR")}
+                </p>
+                <p className="text-xs opacity-80">
+                  Critical {consistency.liveCriticalEvents} · DDoS{" "}
+                  {consistency.liveDdosAttacks}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs opacity-80">Points persistés</p>
+                <p className="text-xl font-bold tabular-nums">
+                  {consistency.persistedDataPoints.toLocaleString("fr-FR")}
+                </p>
+                <p className="text-xs opacity-80">
+                  Logs live {consistency.liveLogs.toLocaleString("fr-FR")}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Résumé agrégateur (BDD) */}
           <div>

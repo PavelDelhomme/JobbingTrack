@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 
 const PAGES = [
   "/b4ck0ff1ce/statistics",
+  "/b4ck0ff1ce/statistics/security",
   "/b4ck0ff1ce/statistics/log-stats",
   "/b4ck0ff1ce/statistics/app-data",
 ] as const;
@@ -24,6 +25,15 @@ for (const path of PAGES) {
       await expect(
         page.getByRole("heading", { name: /Disponibilité dans le temps/i }),
       ).toBeVisible({ timeout: 90_000 });
+    }
+    if (path === "/b4ck0ff1ce/statistics/security") {
+      await expect(
+        page.getByText(/Cohérence avec la console Sécurité live/i),
+      ).toBeVisible({ timeout: 90_000 });
+      await expect(
+        page.getByText("Score persisté", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText("Score live", { exact: true })).toBeVisible();
     }
   });
 }
