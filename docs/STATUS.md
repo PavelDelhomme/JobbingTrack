@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité renforcé, validation porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats renforcés, validations porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
 
@@ -11,6 +11,15 @@
 - **Validations sans `make`** : API metrics/security summary/metrics/stats OK ; API `/security` stats/logs OK ; backend metrics-aggregator Jest **2/2** ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest Statistics **2 suites / 6 tests OK** ; Jest CI frontend **43 suites / 182 tests OK** ; Playwright Statistics **5/5 OK** ; Playwright Sécurité titres **9 passed + 1 flaky retry OK** (`/security/threats` `ERR_EMPTY_RESPONSE` puis retry OK).
 - **Performance locale** : moyennes HTTP simples `/statistics/security` ~104 ms, `/security` ~57 ms, `/statistics` ~86 ms.
 - **Mail récap** : `[JobbingTrack] Recap P1B Statistics Securite 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — P1B Statistics log-stats filtres + fuite Prisma
+
+- **UI** : `/b4ck0ff1ce/statistics/log-stats` conserve maintenant les options **Niveau** et **Service** depuis un échantillon non filtré. Un filtre actif ne masque plus les autres choix disponibles sans reset.
+- **Backend** : `/api/v1/persistence/stats` fermait un nouveau `PrismaClient` jamais explicitement déconnecté ; les smokes répétés ont déclenché `too many clients`. La route ferme désormais le client en `finally` avec `Promise.resolve(prisma.$disconnect())`, et un test backend vérifie l’appel à `$disconnect`.
+- **Runtime post-restart** : `metrics-aggregator` healthy ; `/persistence/stats` `aggregatedLogs=28121` ; `/persistence/logs` 14 j **800**, filtre `WARN` **800**, filtre `jobbingtrack-api-gateway` **66** ; boucle `/persistence/stats` **20/20 OK**.
+- **Validations sans `make`** : `node --check` route/tests OK ; backend Jest persistence **2 suites / 3 tests OK** ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest ciblé **2 suites / 6 tests OK** ; Jest CI frontend **44 suites / 185 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics/log-stats` ~135 ms, `/statistics` ~244 ms, `/services/logs` ~105 ms.
+- **Mail récap final** : `[JobbingTrack] Recap P1B Statistics log-stats FINAL 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — CI / PR / préprod Portainer P1D (clôture)
 

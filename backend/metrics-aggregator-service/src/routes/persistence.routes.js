@@ -497,9 +497,10 @@ router.get('/logs', async (req, res) => {
  * Récupérer des statistiques globales sur les données persistées
  */
 router.get('/stats', async (req, res) => {
+  let prisma = null;
   try {
     const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    prisma = new PrismaClient();
 
     const countTables = [
       ['systemMetricsSnapshots', 'system_metrics_snapshots'],
@@ -542,19 +543,24 @@ router.get('/stats', async (req, res) => {
       .map(([key]) => counts[key] || 0)
       .reduce((sum, value) => sum + value, 0);
 
-    const rangeRows = await prisma.$queryRawUnsafe(`
-      SELECT MIN(ts) AS oldest, MAX(ts) AS newest
-      FROM (
-        SELECT timestamp AS ts FROM public.system_metrics_snapshots
-        UNION ALL SELECT timestamp AS ts FROM public.container_metrics_snapshots
-        UNION ALL SELECT timestamp AS ts FROM public.system_events
-        UNION ALL SELECT timestamp AS ts FROM public.aggregated_logs
-        UNION ALL SELECT timestamp AS ts FROM public.log_collector_logs
-        UNION ALL SELECT timestamp AS ts FROM public.system_metrics
-        UNION ALL SELECT timestamp AS ts FROM public.container_metrics
-        UNION ALL SELECT timestamp AS ts FROM public.service_availability_history
-      ) AS persisted_timestamps
-    `).catch(() => [{ oldest: null, newest: null }]);
+    let rangeRows = [{ oldest: null, newest: null }];
+    try {
+      rangeRows = await Promise.resolve(prisma.$queryRawUnsafe(`
+        SELECT MIN(ts) AS oldest, MAX(ts) AS newest
+        FROM (
+          SELECT timestamp AS ts FROM public.system_metrics_snapshots
+          UNION ALL SELECT timestamp AS ts FROM public.container_metrics_snapshots
+          UNION ALL SELECT timestamp AS ts FROM public.system_events
+          UNION ALL SELECT timestamp AS ts FROM public.aggregated_logs
+          UNION ALL SELECT timestamp AS ts FROM public.log_collector_logs
+          UNION ALL SELECT timestamp AS ts FROM public.system_metrics
+          UNION ALL SELECT timestamp AS ts FROM public.container_metrics
+          UNION ALL SELECT timestamp AS ts FROM public.service_availability_history
+        ) AS persisted_timestamps
+      `));
+    } catch {
+      rangeRows = [{ oldest: null, newest: null }];
+    }
     const range = rangeRows?.[0] || {};
 
     res.json({
@@ -587,6 +593,15 @@ router.get('/stats', async (req, res) => {
       },
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
+  } finally {
+    if (prisma) {
+      await Promise.resolve(prisma.$disconnect()).catch((disconnectError) => {
+        console.warn(
+          '[API] Impossible de fermer PrismaClient persistence/stats:',
+          disconnectError.message
+        );
+      });
+    }
   }
 });
 
