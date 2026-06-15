@@ -86,7 +86,7 @@ import {
   useStatisticsPanelPrefs,
 } from "@/lib/ui";
 import { MetricsSeriesCaption } from "@/components/monitoring/MetricsSeriesCaption";
-import { StatisticsErrorAvailabilityCharts } from "@/components/monitoring/StatisticsErrorAvailabilityCharts";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import {
   TimeRangeSelector,
   StickyTimeRangeToolbar,
@@ -103,6 +103,12 @@ import {
 } from "@/components/analytics/timeRangeUtils";
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
+
+const StatisticsErrorAvailabilityCharts = lazy(() =>
+  import("@/components/monitoring/StatisticsErrorAvailabilityCharts").then(
+    (m) => ({ default: m.StatisticsErrorAvailabilityCharts }),
+  ),
+);
 
 const STATISTICS_LONG_RANGE_RENDER_POINTS = 160;
 const STATISTICS_MEDIUM_RANGE_RENDER_POINTS = 140;
@@ -925,6 +931,17 @@ export default function StatisticsPage() {
     [chartData],
   );
 
+  const [chartXMin, chartXMax] = useMemo(
+    () =>
+      chartXDomainFromDataRange(
+        windowBounds.startTime,
+        windowBounds.endTime,
+        chartData.map((point) => point.timeMs),
+      ),
+    [chartData, windowBounds.endTime, windowBounds.startTime],
+  );
+  const chartAxisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
+
   if (authLoading || (loading && !stats)) {
     return (
       <StatisticsPageShell
@@ -1159,6 +1176,9 @@ export default function StatisticsPage() {
             historySeriesMeta={historySeriesMeta}
             timeRangeLabel={rangeLabel}
             availabilityDomain={availabilityDomain}
+            chartXMin={chartXMin}
+            chartXMax={chartXMax}
+            chartAxisShowDate={chartAxisShowDate}
           />
         )}
         {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
@@ -1170,6 +1190,9 @@ export default function StatisticsPage() {
             availabilityDomain={availabilityDomain}
             dockerServices={dockerServicesSnapshot}
             timeRangeLabel={rangeLabel}
+            chartXMin={chartXMin}
+            chartXMax={chartXMax}
+            chartAxisShowDate={chartAxisShowDate}
           />
         )}
         {activeTab === "logs" && (
@@ -1194,6 +1217,9 @@ const OverviewTab = memo(function OverviewTab({
   historySeriesMeta,
   timeRangeLabel,
   availabilityDomain,
+  chartXMin,
+  chartXMax,
+  chartAxisShowDate,
 }: any) {
   // Calculer les tendances en comparant avec les stats précédentes
   const usersTrend = previousStats
@@ -1234,11 +1260,23 @@ const OverviewTab = memo(function OverviewTab({
         source={historySeriesMeta?.source}
         timeRangeLabel={timeRangeLabel}
       />
-      <StatisticsErrorAvailabilityCharts
-        chartData={chartData}
-        availabilityDomain={availabilityDomain}
-        errorDerived={historySeriesMeta?.errorDerived}
-      />
+      <Suspense
+        fallback={
+          <SectionLoader
+            message="Chargement des graphiques disponibilité / erreur…"
+            className="min-h-[280px]"
+          />
+        }
+      >
+        <StatisticsErrorAvailabilityCharts
+          chartData={chartData}
+          availabilityDomain={availabilityDomain}
+          errorDerived={historySeriesMeta?.errorDerived}
+          xDomainMin={chartXMin}
+          xDomainMax={chartXMax}
+          axisShowDate={chartAxisShowDate}
+        />
+      </Suspense>
       <div className="flex flex-wrap gap-3 text-sm">
         <Link
           href="/b4ck0ff1ce/statistics/security"
@@ -2498,6 +2536,9 @@ const SecurityTab = memo(function SecurityTab({
   availabilityDomain,
   dockerServices,
   timeRangeLabel,
+  chartXMin,
+  chartXMax,
+  chartAxisShowDate,
 }: any) {
   const serviceHealthSummary = useMemo(
     () => summarizeDockerServiceHealth(dockerServices || []),
@@ -2596,11 +2637,23 @@ const SecurityTab = memo(function SecurityTab({
         </div>
       </DashboardLayoutRegion>
 
-      <StatisticsErrorAvailabilityCharts
-        chartData={chartData}
-        availabilityDomain={availabilityDomain}
-        errorDerived={historySeriesMeta?.errorDerived}
-      />
+      <Suspense
+        fallback={
+          <SectionLoader
+            message="Chargement des graphiques disponibilité / erreur…"
+            className="min-h-[280px]"
+          />
+        }
+      >
+        <StatisticsErrorAvailabilityCharts
+          chartData={chartData}
+          availabilityDomain={availabilityDomain}
+          errorDerived={historySeriesMeta?.errorDerived}
+          xDomainMin={chartXMin}
+          xDomainMax={chartXMax}
+          axisShowDate={chartAxisShowDate}
+        />
+      </Suspense>
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
