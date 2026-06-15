@@ -1,8 +1,18 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data + vue d’ensemble + shell renforcés, validations porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics renforcés + incident Postgres connexions documenté, validations porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Incident Postgres `too many clients already`
+
+- **Symptôme** : logs `jobbingtrack-postgres` `FATAL: sorry, too many clients already` lors du chargement Statistics (`/persistence/stats`, `/persistence/logs`, `/persistence/security/metrics`) — ex. 09:54 UTC pendant navigation `/statistics/log-stats`.
+- **Mesures runtime** : `max_connections=100` ; au repos **~80–86** connexions client (`idle`) — principaux émetteurs : `dashboard-service` (~15), `security-service` (~13), `call-service` / `followup-service` (~9 chacun). Marge quasi nulle avant tout pic.
+- **Cause racine** : architecture **~15 microservices** Node, chacun avec un `PrismaClient` et pool par défaut (souvent ~5–10 connexions/service) sur **une seule** instance Postgres `max_connections=100`. Correctif partiel déjà en place le 15/06 sur `/persistence/stats` (`$disconnect` en `finally`) ; refactor suite : délégation au **singleton** `persistence.service.getPersistenceTableStats()` (plus de client éphémère par requête). Burst test post-fix : **30** requêtes `/stats` parallèles → connexions stables (~81).
+- **Mesures complémentaires** : `docker-compose.yml` local — `max_connections` porté à **200** via `POSTGRES_MAX_CONNECTIONS` (recreate conteneur `postgres` requis). `.env.example` documente la cible `connection_limit` Prisma par service.
+- **Reste** : injecter `?connection_limit=2` ou `3` dans les `DATABASE_URL` Compose ; auditer `new PrismaClient()` ad hoc (`securityController.getBlockedIPs`, `api-gateway/testdata.controller`, etc.) ; ne pas enchaîner les smokes Statistics lourds tant que Postgres n’est pas recreate + surveillé.
+- **Versionnement** : dette notée dans `docs/BACKLOG.md` — pas de semver/changelog/tags release cohérents ; à traiter en lot H avant toute annonce de version produit.
+- **Agent mail futur** : précision porteur notée sans démarrer l’implémentation : boîtes IMAP à connecter, détection candidatures/entretiens/relances, consultation de l’historique de communication (emails/réponses/relances/appels tracés) avant recommandations ; à garder pour la fin après les logs/observabilité et P0/P1 prioritaires.
 
 ## 15 juin 2026 — P1B Statistics moteur UI partagé shell
 

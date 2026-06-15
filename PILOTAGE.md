@@ -2,6 +2,17 @@
 
 Dernière mise à jour : 15 juin 2026 (mode avance rapide porteur — validations groupées en fin de lot)
 
+## Pause infra — avant de poursuivre Lot B
+
+**15/06** : incident Postgres `too many clients already` confirmé sur stack locale full. Priorité courte **avant** d’enchaîner les blocs P1B restants :
+
+1. Recreate conteneur `postgres` pour appliquer `POSTGRES_MAX_CONNECTIONS=200` (Compose mis à jour).
+2. Vérifier `pg_stat_activity` < 70 % de `max_connections` au repos.
+3. Déployer/recreate `metrics-aggregator` avec `/persistence/stats` sur singleton Prisma (commit en cours).
+4. Planifier `connection_limit` Prisma par service (dette `docs/BACKLOG.md`).
+
+**Versionnement** : système de versions produit à reprendre (semver, CHANGELOG, tags, affichage UI) — voir `docs/BACKLOG.md` § « Système de versionnement ». Ne pas annoncer de release tant que le cadrage lot H n’est pas fait.
+
 ## Règle principale
 
 Avant toute nouvelle tâche, lire dans cet ordre :
