@@ -48,6 +48,7 @@ import type { MetricsData } from "@/lib/interfaces";
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceInfoNotice,
   PerformanceLoadingState,
   PerformancePageShell,
@@ -430,7 +431,7 @@ export default function PerformancesPage() {
     return windowEnd.getTime() < now.getTime();
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
-  const targetPoints = 200;
+  const targetPoints = 160;
   const chartData = useMemo(() => {
     if (rawData.length === 0) return [];
     const keys: (keyof SystemMetric)[] = [
@@ -595,6 +596,13 @@ export default function PerformancesPage() {
         </PerformanceEmptyState>
       ) : (
         <>
+          <PerformanceHistoryCaption
+            source="system_metrics"
+            timeRangeLabel={rangeLabel}
+            rawPoints={rawData.length}
+            renderedPoints={chartData.length}
+            note="Synthèse CPU, mémoire, latence et réseau ; débits réseau dérivés côté UI"
+          />
           <PerformanceChartCard title="CPU et mémoire (%)">
             <div className="w-full min-h-[240px] sm:min-h-[400px]">
               <SystemCpuMemoryAreaCharts
@@ -695,12 +703,6 @@ export default function PerformancesPage() {
             </PerformanceChartCard>
           )}
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-            <span className="block">
-              {rawData.length} points bruts → {chartData.length} points affichés
-              (compression pour lisibilité).
-            </span>
-          </p>
         </>
       )}
 

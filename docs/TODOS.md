@@ -481,7 +481,7 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 - [ ] **A1f** — Contrat API **PIDs** stable (ex. `docker top` ou champ agrégateur versionné) **si** tu en as besoin côté produit ; aujourd’hui **instantané** liste services via **`GET …/metrics`** / services.
 
-- [x] **A1g — sources historiques lisibles** : encart **sources d’historique** (session / fichiers agrégateur / Postgres) sur **`services/[serviceName]/page.tsx`** depuis le 07/04. **15/06 suite Lot A** : même logique étendue aux pages Performances lourdes via `PerformanceHistoryCaption` (`cpu-memory`, `containers`, `network`, `disk`) : source `system_metrics` / `container_metrics` / fallback Docker live / séries dérivées + points source vs points rendus quand disponible. **Reste hors A1g court** : généraliser si besoin à Analytics hub et autres pages monitoring non prioritaires.
+- [x] **A1g — sources historiques lisibles** : encart **sources d’historique** (session / fichiers agrégateur / Postgres) sur **`services/[serviceName]/page.tsx`** depuis le 07/04. **15/06 suite Lot A** : même logique étendue aux pages Performances lourdes via `PerformanceHistoryCaption` (`cpu-memory`, `containers`, `network`, `disk`, **`latency`**, **vue d’ensemble `/performances`**) : source `system_metrics` / `container_metrics` / fallback Docker live / séries dérivées + points source vs points rendus quand disponible. **Reste hors A1g court** : généraliser si besoin à Analytics hub et autres pages monitoring non prioritaires.
 
 **Qualité / CI (hors « feature » mais bloque parfois)**  
 Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-frontend-log`**.

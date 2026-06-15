@@ -32,6 +32,7 @@ import {
 import type { MetricsData } from "@/lib/interfaces";
 import {
   PerformanceChartCard,
+  PerformanceHistoryCaption,
   PerformanceInfoNotice,
   PerformancePageShell,
 } from "@/components/performances";
@@ -56,6 +57,14 @@ type LatencyRow = {
   timeMs: number;
   responseTimeMs: number | null;
 };
+
+const LATENCY_RENDER_POINTS = 160;
+
+function sampleRows<T>(rows: T[], targetMax: number): T[] {
+  if (rows.length <= targetMax) return rows;
+  const step = Math.ceil(rows.length / targetMax);
+  return rows.filter((_, index) => index % step === 0);
+}
 
 export default function PerformancesLatencyPage() {
   const [rows, setRows] = useState<LatencyRow[]>([]);
@@ -180,13 +189,18 @@ export default function PerformancesLatencyPage() {
     return () => controller.abort();
   }, [fetchData, softTick, rangeHydrated]);
 
+  const chartRows = useMemo(
+    () => sampleRows(rows, LATENCY_RENDER_POINTS),
+    [rows],
+  );
+
   useEffect(() => {
-    if (rows.length === 0) {
+    if (chartRows.length === 0) {
       setBrushRange(null);
       return;
     }
-    setBrushRange({ start: 0, end: rows.length - 1 });
-  }, [rows]);
+    setBrushRange({ start: 0, end: chartRows.length - 1 });
+  }, [chartRows]);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -239,7 +253,7 @@ export default function PerformancesLatencyPage() {
     return (
       slice.reduce((acc, r) => acc + Number(r.responseTimeMs), 0) / slice.length
     );
-  }, [brushRange, rows]);
+  }, [brushRange, chartRows]);
 
   const goPrev = useCallback(() => {
     setFollowLive(false);
@@ -362,8 +376,15 @@ export default function PerformancesLatencyPage() {
         />
       }
     >
+      <PerformanceHistoryCaption
+        source={rows.length > 0 ? "system_metrics" : "empty"}
+        timeRangeLabel={rangeLabel}
+        rawPoints={rows.length}
+        renderedPoints={chartRows.length}
+        note="Temps de réponse agrégé ; instantané par service en dessous"
+      />
       <PerformanceChartCard title="Historique agrégé (ms)">
-        {rows.length > 0 && (
+        {chartRows.length > 0 && (
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             {brushAvgMs != null
               ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
@@ -374,7 +395,7 @@ export default function PerformancesLatencyPage() {
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
             Chargement…
           </p>
-        ) : rows.length === 0 ? (
+        ) : chartRows.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
             Aucune donnée sur la période.
           </p>
@@ -382,7 +403,7 @@ export default function PerformancesLatencyPage() {
           <div className="mt-4 w-full min-h-[260px]">
             <ResponsiveContainer width="100%" height={380}>
               <LineChart
-                data={rows}
+                data={chartRows}
                 margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
