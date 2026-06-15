@@ -2,14 +2,14 @@
 
 Dernière mise à jour : 15 juin 2026 (mode avance rapide porteur — validations groupées en fin de lot)
 
-## Pause infra — avant de poursuivre Lot B
+## Pause infra — courte (appliquée le 15/06)
 
-**15/06** : incident Postgres `too many clients already` confirmé sur stack locale full. Priorité courte **avant** d’enchaîner les blocs P1B restants :
+**15/06** : incident Postgres `too many clients already` confirmé sur stack locale full. Actions courtes **faites** :
 
-1. Recreate conteneur `postgres` pour appliquer `POSTGRES_MAX_CONNECTIONS=200` (Compose mis à jour).
-2. Vérifier `pg_stat_activity` < 70 % de `max_connections` au repos.
-3. Déployer/recreate `metrics-aggregator` avec `/persistence/stats` sur singleton Prisma (commit en cours).
-4. Planifier `connection_limit` Prisma par service (dette `docs/BACKLOG.md`).
+1. Recreate `postgres` → `max_connections=200` (`POSTGRES_MAX_CONNECTIONS`, Compose).
+2. `pg_stat_activity` au repos **~5–18** connexions sur **200** (< 10 %).
+3. Recreate `jobbingtrack-metrics-aggregator` → `/persistence/stats` via singleton `getPersistenceTableStats()` ; burst **20/20 OK**.
+4. **Reste** : `connection_limit` Prisma par service (dette `docs/BACKLOG.md`).
 
 **Versionnement** : système de versions produit à reprendre (semver, CHANGELOG, tags, affichage UI) — voir `docs/BACKLOG.md` § « Système de versionnement ». Ne pas annoncer de release tant que le cadrage lot H n’est pas fait.
 
@@ -49,7 +49,7 @@ Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — 
 
 Priorité immédiate stricte :
 
-1. Reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent déjà produites pour **Statistics Sécurité**, **Statistics log-stats**, **Statistics app-data**, **Statistics vue d’ensemble** et **Statistics shell** : **Performances — Réseau et Corrélation visibles**.
+1. Reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent pour **Statistics** (5 lignes) et **Performances Réseau/Corrélation** : **P1A Sécurité login backoffice**, puis **P1A WAF gateway**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
 4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C/P1D, une ligne à la fois).
