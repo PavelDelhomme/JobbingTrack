@@ -72,9 +72,7 @@ describe("SettingsPopup fermeture", () => {
 
   it("ferme sur clic extérieur (backdrop)", () => {
     const onClose = jest.fn();
-    const { container } = render(
-      <SettingsPopup isOpen onClose={onClose} />,
-    );
+    const { container } = render(<SettingsPopup isOpen onClose={onClose} />);
 
     const backdrop = container.firstElementChild;
     expect(backdrop).not.toBeNull();

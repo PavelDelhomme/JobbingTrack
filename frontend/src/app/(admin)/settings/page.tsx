@@ -384,8 +384,8 @@ export default function SettingsPage() {
                 Alertes email sécurité
               </p>
               <p className="mt-1 text-sm text-red-800/90 dark:text-red-200/90">
-                Configuration des destinataires, test SMTP et réauth admin sur la
-                page dédiée Sécurité.
+                Configuration des destinataires, test SMTP et réauth admin sur
+                la page dédiée Sécurité.
               </p>
               <Link
                 href="/b4ck0ff1ce/security/alerts"

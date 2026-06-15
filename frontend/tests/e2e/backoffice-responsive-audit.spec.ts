@@ -15,9 +15,18 @@ const ROUTES = [
   ["/b4ck0ff1ce", "Hub backoffice"],
   ["/b4ck0ff1ce/analytics", "Analytics hub"],
   ["/b4ck0ff1ce/analytics/application", "Analytics application redirect"],
-  ["/b4ck0ff1ce/analytics/application/performance", "Analytics application performance"],
-  ["/b4ck0ff1ce/analytics/application/activity", "Analytics application activité"],
-  ["/b4ck0ff1ce/analytics/application/feedback", "Analytics application retours"],
+  [
+    "/b4ck0ff1ce/analytics/application/performance",
+    "Analytics application performance",
+  ],
+  [
+    "/b4ck0ff1ce/analytics/application/activity",
+    "Analytics application activité",
+  ],
+  [
+    "/b4ck0ff1ce/analytics/application/feedback",
+    "Analytics application retours",
+  ],
   ["/b4ck0ff1ce/analytics/containers", "Analytics conteneurs"],
   ["/b4ck0ff1ce/analytics/network", "Analytics réseau"],
   ["/b4ck0ff1ce/analytics/performances", "Analytics performances"],
@@ -123,96 +132,96 @@ async function collectResponsiveIssues(
           return issues;
         }
         const vw = root.clientWidth || window.innerWidth || 0;
-      const main = document.querySelector("main") || document.body;
-      const interactive = Array.from(
-        main.querySelectorAll<HTMLElement>(
-          'a,button,input,select,textarea,[role="button"],[role="link"]',
-        ),
-      );
+        const main = document.querySelector("main") || document.body;
+        const interactive = Array.from(
+          main.querySelectorAll<HTMLElement>(
+            'a,button,input,select,textarea,[role="button"],[role="link"]',
+          ),
+        );
 
-      const isInsideHorizontalScroller = (node: HTMLElement): boolean => {
-        let current: HTMLElement | null = node.parentElement;
-        while (current && current !== main && current !== document.body) {
-          const style = window.getComputedStyle(current);
-          const scrollable =
-            (style.overflowX === "auto" || style.overflowX === "scroll") &&
-            current.scrollWidth > current.clientWidth + 6;
-          if (scrollable) return true;
-          current = current.parentElement;
+        const isInsideHorizontalScroller = (node: HTMLElement): boolean => {
+          let current: HTMLElement | null = node.parentElement;
+          while (current && current !== main && current !== document.body) {
+            const style = window.getComputedStyle(current);
+            const scrollable =
+              (style.overflowX === "auto" || style.overflowX === "scroll") &&
+              current.scrollWidth > current.clientWidth + 6;
+            if (scrollable) return true;
+            current = current.parentElement;
+          }
+          return false;
+        };
+
+        const isInsideOffscreenPanel = (node: HTMLElement): boolean => {
+          let current: HTMLElement | null = node;
+          while (current && current !== main && current !== document.body) {
+            const style = window.getComputedStyle(current);
+            if (
+              style.display === "none" ||
+              style.visibility === "hidden" ||
+              Number(style.opacity) === 0 ||
+              style.pointerEvents === "none" ||
+              current.getAttribute("aria-hidden") === "true"
+            ) {
+              return true;
+            }
+            const rect = current.getBoundingClientRect();
+            const fullyOffLeft = rect.right <= 0;
+            const fullyOffRight = rect.left >= vw;
+            if (fullyOffLeft || fullyOffRight) {
+              return true;
+            }
+            current = current.parentElement;
+          }
+          return false;
+        };
+
+        const mainRect = main.getBoundingClientRect();
+        if (vw < 1024 && mainRect.left > 12) {
+          issues.push({
+            route,
+            label,
+            issue: `marge fantôme sidebar: main.left=${Math.round(mainRect.left)}px sur viewport ${vw}px`,
+          });
         }
-        return false;
-      };
 
-      const isInsideOffscreenPanel = (node: HTMLElement): boolean => {
-        let current: HTMLElement | null = node;
-        while (current && current !== main && current !== document.body) {
-          const style = window.getComputedStyle(current);
+        for (const el of interactive) {
+          const style = window.getComputedStyle(el);
           if (
             style.display === "none" ||
             style.visibility === "hidden" ||
             Number(style.opacity) === 0 ||
-            style.pointerEvents === "none" ||
-            current.getAttribute("aria-hidden") === "true"
+            el.getAttribute("aria-hidden") === "true"
           ) {
-            return true;
+            continue;
           }
-          const rect = current.getBoundingClientRect();
-          const fullyOffLeft = rect.right <= 0;
-          const fullyOffRight = rect.left >= vw;
-          if (fullyOffLeft || fullyOffRight) {
-            return true;
-          }
-          current = current.parentElement;
-        }
-        return false;
-      };
 
-      const mainRect = main.getBoundingClientRect();
-      if (vw < 1024 && mainRect.left > 12) {
-        issues.push({
-          route,
-          label,
-          issue: `marge fantôme sidebar: main.left=${Math.round(mainRect.left)}px sur viewport ${vw}px`,
-        });
-      }
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0 || rect.height === 0) continue;
+          const outsideLeft = rect.left < -6;
+          const outsideRight = rect.right > vw + 6;
+          if (!outsideLeft && !outsideRight) continue;
+          if (isInsideHorizontalScroller(el)) continue;
+          if (isInsideOffscreenPanel(el)) continue;
 
-      for (const el of interactive) {
-        const style = window.getComputedStyle(el);
-        if (
-          style.display === "none" ||
-          style.visibility === "hidden" ||
-          Number(style.opacity) === 0 ||
-          el.getAttribute("aria-hidden") === "true"
-        ) {
-          continue;
+          const text =
+            el.textContent?.trim().replace(/\s+/g, " ").slice(0, 60) ||
+            el.getAttribute("aria-label") ||
+            el.getAttribute("title") ||
+            el.tagName.toLowerCase();
+          issues.push({
+            route,
+            label,
+            issue: `interactive outside viewport: ${text} (${Math.round(
+              rect.left,
+            )}-${Math.round(rect.right)} / ${vw})`,
+          });
         }
 
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) continue;
-        const outsideLeft = rect.left < -6;
-        const outsideRight = rect.right > vw + 6;
-        if (!outsideLeft && !outsideRight) continue;
-        if (isInsideHorizontalScroller(el)) continue;
-        if (isInsideOffscreenPanel(el)) continue;
-
-        const text =
-          el.textContent?.trim().replace(/\s+/g, " ").slice(0, 60) ||
-          el.getAttribute("aria-label") ||
-          el.getAttribute("title") ||
-          el.tagName.toLowerCase();
-        issues.push({
-          route,
-          label,
-          issue: `interactive outside viewport: ${text} (${Math.round(
-            rect.left,
-          )}-${Math.round(rect.right)} / ${vw})`,
-        });
-      }
-
-      return issues;
-    },
-    { route, label },
-  );
+        return issues;
+      },
+      { route, label },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return [

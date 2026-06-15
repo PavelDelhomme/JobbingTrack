@@ -89,14 +89,8 @@ export default function EmailMonitorPage() {
     () => buildInitialEmailFilters(searchParams),
     [searchParams],
   );
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<EmailFilters>(initialFilters);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<EmailFilters>(initialFilters);
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
@@ -412,205 +406,209 @@ export default function EmailMonitorPage() {
       }
       description={
         <>
-          Suivez les emails envoyés par JobbingTrack : statut, destinataire, date
-          et contenu. Utilisez <strong>Notification</strong> pour les alertes
-          sécurité et <strong>Vérification</strong> pour les parcours
+          Suivez les emails envoyés par JobbingTrack : statut, destinataire,
+          date et contenu. Utilisez <strong>Notification</strong> pour les
+          alertes sécurité et <strong>Vérification</strong> pour les parcours
           inscription.
         </>
       }
       actions={
         <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-row xl:flex-wrap xl:items-center xl:justify-end">
-            {lastRefreshAt && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
-                Dernière MAJ : {lastRefreshAt.toLocaleTimeString("fr-FR")}
-              </span>
-            )}
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer sm:whitespace-nowrap">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded border-gray-300 dark:border-gray-600"
+          {lastRefreshAt && (
+            <span className="text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
+              Dernière MAJ : {lastRefreshAt.toLocaleTimeString("fr-FR")}
+            </span>
+          )}
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer sm:whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+            Temps réel (toutes les 3 s)
+          </label>
+          {autoRefresh && lastRefreshAt && (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
+                aria-hidden
               />
-              Temps réel (toutes les 3 s)
-            </label>
-            {autoRefresh && lastRefreshAt && (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-                  aria-hidden
-                />
-                Live
-              </span>
-            )}
-            <Button
-              onClick={refreshEmails}
-              disabled={isLoading}
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-              />
-              Actualiser
-            </Button>
-            <Button onClick={exportLogs} variant="outline" className="w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
-            <Button
-              onClick={deleteFailedEmails}
-              variant="outline"
-              className="w-full text-orange-600 sm:w-auto"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer Échoués
-            </Button>
-            <Button
-              onClick={clearLogs}
-              variant="outline"
-              className="w-full text-red-600 sm:w-auto"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Effacer Tout
-            </Button>
-          </div>
+              Live
+            </span>
+          )}
+          <Button
+            onClick={refreshEmails}
+            disabled={isLoading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Actualiser
+          </Button>
+          <Button
+            onClick={exportLogs}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exporter
+          </Button>
+          <Button
+            onClick={deleteFailedEmails}
+            variant="outline"
+            className="w-full text-orange-600 sm:w-auto"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Supprimer Échoués
+          </Button>
+          <Button
+            onClick={clearLogs}
+            variant="outline"
+            className="w-full text-red-600 sm:w-auto"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Effacer Tout
+          </Button>
+        </div>
       }
     >
-        {/* Statistiques */}
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Emails
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.total}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Envoyés
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {stats.sent}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Échoués
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {stats.failed}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                En Attente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                {stats.pending}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <FilterBar
-          hasDraftChanges={hasDraftChanges}
-          onApply={handleApplyFilters}
-          onReset={handleResetFilters}
-          badges={filterBadges}
-        >
-          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FacetAutocompleteField
-              label="Recherche"
-              value={draft.query}
-              onChange={(value) => updateDraft("query", value)}
-              suggestions={querySuggestions}
-              placeholder="Destinataire, expéditeur ou sujet…"
-            />
-            <FilterSelectField
-              label="Statut"
-              value={draft.status}
-              onChange={(value) => updateDraft("status", value)}
-              options={[...EMAIL_STATUS_FILTER_OPTIONS]}
-            />
-            <FilterSelectField
-              label="Type d'email"
-              value={draft.type}
-              onChange={(value) => updateDraft("type", value)}
-              options={[...EMAIL_TYPE_FILTER_OPTIONS]}
-            />
-          </div>
-        </FilterBar>
-
-        {/* Liste des Emails */}
+      {/* Statistiques */}
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-              <span className="min-w-0 break-words">
-                Emails Envoyés ({emails.length} / {total})
-              </span>
-              {isLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Total Emails
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {isLoading ? (
-                <div className="text-center py-12 text-gray-500">
-                  <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
-                  <p>Chargement des emails...</p>
-                </div>
-              ) : emails.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Mail className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p>Aucun email trouvé</p>
-                  {loadError ? (
-                    <p className="text-sm mt-2 text-amber-600 dark:text-amber-400">
-                      {loadError}
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              {stats.total}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Envoyés
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              {stats.sent}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Échoués
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+              {stats.failed}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              En Attente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+              {stats.pending}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <FilterBar
+        hasDraftChanges={hasDraftChanges}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        badges={filterBadges}
+      >
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <FacetAutocompleteField
+            label="Recherche"
+            value={draft.query}
+            onChange={(value) => updateDraft("query", value)}
+            suggestions={querySuggestions}
+            placeholder="Destinataire, expéditeur ou sujet…"
+          />
+          <FilterSelectField
+            label="Statut"
+            value={draft.status}
+            onChange={(value) => updateDraft("status", value)}
+            options={[...EMAIL_STATUS_FILTER_OPTIONS]}
+          />
+          <FilterSelectField
+            label="Type d'email"
+            value={draft.type}
+            onChange={(value) => updateDraft("type", value)}
+            options={[...EMAIL_TYPE_FILTER_OPTIONS]}
+          />
+        </div>
+      </FilterBar>
+
+      {/* Liste des Emails */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 break-words">
+              Emails Envoyés ({emails.length} / {total})
+            </span>
+            {isLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {isLoading ? (
+              <div className="text-center py-12 text-gray-500">
+                <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
+                <p>Chargement des emails...</p>
+              </div>
+            ) : emails.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Mail className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p>Aucun email trouvé</p>
+                {loadError ? (
+                  <p className="text-sm mt-2 text-amber-600 dark:text-amber-400">
+                    {loadError}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm mt-2">
+                      Les emails envoyés (inscription, vérification, reset
+                      password, notifications sécurité) apparaîtront ici.
                     </p>
-                  ) : (
-                    <>
-                      <p className="text-sm mt-2">
-                        Les emails envoyés (inscription, vérification, reset
-                        password, notifications sécurité) apparaîtront ici.
-                      </p>
-                      <p className="text-xs mt-2 text-gray-400">
-                        Après un parcours « Inscription + vérif. email » réussi,
-                        l’email de vérification doit être loggé. Vérifiez que
-                        auth-service tourne et que la table EmailLog existe
-                        (Prisma).
-                      </p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                emails.map((email) => (
-                  <div
-                    key={email.id}
-                    className="min-w-0 rounded-lg border-2 border-gray-200 bg-white p-3 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 sm:p-4"
-                  >
-                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                      {/* Icône Statut */}
-                      <div
-                        className={`
+                    <p className="text-xs mt-2 text-gray-400">
+                      Après un parcours « Inscription + vérif. email » réussi,
+                      l’email de vérification doit être loggé. Vérifiez que
+                      auth-service tourne et que la table EmailLog existe
+                      (Prisma).
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              emails.map((email) => (
+                <div
+                  key={email.id}
+                  className="min-w-0 rounded-lg border-2 border-gray-200 bg-white p-3 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 sm:p-4"
+                >
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                    {/* Icône Statut */}
+                    <div
+                      className={`
                         flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12
                         ${email.status === "SENT" ? "bg-green-100 dark:bg-green-900/30" : ""}
                         ${email.status === "DELIVERED" ? "bg-blue-100 dark:bg-blue-900/30" : ""}
@@ -619,274 +617,281 @@ export default function EmailMonitorPage() {
                         ${email.status === "PENDING" ? "bg-orange-100 dark:bg-orange-900/30" : ""}
                         ${email.status === "BOUNCED" ? "bg-yellow-100 dark:bg-yellow-900/30" : ""}
                       `}
-                      >
-                        {email.status === "SENT" && (
-                          <CheckCircle className="h-6 w-6 text-green-500" />
-                        )}
-                        {email.status === "DELIVERED" && (
-                          <CheckCircle className="h-6 w-6 text-blue-500" />
-                        )}
-                        {email.status === "READ" && (
-                          <Eye className="h-6 w-6 text-purple-500" />
-                        )}
-                        {email.status === "FAILED" && (
-                          <XCircle className="h-6 w-6 text-red-500" />
-                        )}
-                        {email.status === "PENDING" && (
-                          <Clock className="h-6 w-6 text-orange-500" />
-                        )}
-                        {email.status === "BOUNCED" && (
-                          <XCircle className="h-6 w-6 text-yellow-500" />
-                        )}
-                      </div>
+                    >
+                      {email.status === "SENT" && (
+                        <CheckCircle className="h-6 w-6 text-green-500" />
+                      )}
+                      {email.status === "DELIVERED" && (
+                        <CheckCircle className="h-6 w-6 text-blue-500" />
+                      )}
+                      {email.status === "READ" && (
+                        <Eye className="h-6 w-6 text-purple-500" />
+                      )}
+                      {email.status === "FAILED" && (
+                        <XCircle className="h-6 w-6 text-red-500" />
+                      )}
+                      {email.status === "PENDING" && (
+                        <Clock className="h-6 w-6 text-orange-500" />
+                      )}
+                      {email.status === "BOUNCED" && (
+                        <XCircle className="h-6 w-6 text-yellow-500" />
+                      )}
+                    </div>
 
-                      {/* Contenu */}
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="text-2xl flex-shrink-0">
-                            {getTypeIcon(email.type)}
-                          </span>
-                          <h3 className="min-w-0 flex-[1_1_100%] break-words font-semibold text-gray-900 dark:text-gray-100 sm:flex-1">
-                            {email.subject}
-                          </h3>
-                          <Badge
-                            variant={
-                              email.status === "SENT"
+                    {/* Contenu */}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="text-2xl flex-shrink-0">
+                          {getTypeIcon(email.type)}
+                        </span>
+                        <h3 className="min-w-0 flex-[1_1_100%] break-words font-semibold text-gray-900 dark:text-gray-100 sm:flex-1">
+                          {email.subject}
+                        </h3>
+                        <Badge
+                          variant={
+                            email.status === "SENT"
+                              ? "default"
+                              : email.status === "DELIVERED"
                                 ? "default"
-                                : email.status === "DELIVERED"
+                                : email.status === "READ"
                                   ? "default"
-                                  : email.status === "READ"
-                                    ? "default"
-                                    : email.status === "FAILED"
+                                  : email.status === "FAILED"
+                                    ? "destructive"
+                                    : email.status === "BOUNCED"
                                       ? "destructive"
-                                      : email.status === "BOUNCED"
-                                        ? "destructive"
-                                        : "secondary"
-                            }
-                          >
-                            {getStatusLabel(email.status)}
-                          </Badge>
-                          <Badge variant="outline">
-                            {getTypeLabel(email.type)}
-                          </Badge>
-                          {email.metadata?.mirror?.sent === true && (
-                            <Badge variant="secondary">Miroir SMTP OK</Badge>
-                          )}
-                          {email.metadata?.mirror?.sent === false && (
-                            <Badge variant="destructive">Miroir SMTP KO</Badge>
-                          )}
-                          {email.metadata?.mirror?.queued === true && (
-                            <Badge variant="secondary">Miroir SMTP…</Badge>
+                                      : "secondary"
+                          }
+                        >
+                          {getStatusLabel(email.status)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {getTypeLabel(email.type)}
+                        </Badge>
+                        {email.metadata?.mirror?.sent === true && (
+                          <Badge variant="secondary">Miroir SMTP OK</Badge>
+                        )}
+                        {email.metadata?.mirror?.sent === false && (
+                          <Badge variant="destructive">Miroir SMTP KO</Badge>
+                        )}
+                        {email.metadata?.mirror?.queued === true && (
+                          <Badge variant="secondary">Miroir SMTP…</Badge>
+                        )}
+                      </div>
+
+                      <div className="grid min-w-0 grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400 lg:grid-cols-2">
+                        <div className="flex min-w-0 items-start gap-1">
+                          <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          <span className="min-w-0 break-all">
+                            À : {email.to}
+                          </span>
+                        </div>
+                        <div className="flex min-w-0 items-start gap-1">
+                          <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          <span className="min-w-0 break-all">
+                            De : {email.from}
+                          </span>
+                        </div>
+                        <div className="flex min-w-0 items-start gap-1">
+                          <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          {email.status === "FAILED" ? (
+                            <span className="min-w-0 break-words text-red-600 dark:text-red-400">
+                              Échoué : {email.error || "Erreur inconnue"}
+                            </span>
+                          ) : email.sentAt ? (
+                            <span className="min-w-0 break-words">
+                              Envoyé : {formatLocalDateTime(email.sentAt)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400">
+                              En attente...
+                            </span>
                           )}
                         </div>
-
-                        <div className="grid min-w-0 grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400 lg:grid-cols-2">
-                          <div className="flex min-w-0 items-start gap-1">
-                            <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                            <span className="min-w-0 break-all">À : {email.to}</span>
-                          </div>
-                          <div className="flex min-w-0 items-start gap-1">
-                            <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                            <span className="min-w-0 break-all">De : {email.from}</span>
-                          </div>
-                          <div className="flex min-w-0 items-start gap-1">
-                            <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                            {email.status === "FAILED" ? (
-                              <span className="min-w-0 break-words text-red-600 dark:text-red-400">
-                                Échoué : {email.error || "Erreur inconnue"}
-                              </span>
-                            ) : email.sentAt ? (
-                              <span className="min-w-0 break-words">
-                                Envoyé : {formatLocalDateTime(email.sentAt)}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 dark:text-gray-400">
-                                En attente...
-                              </span>
-                            )}
-                          </div>
-                          {email.openedAt && (
-                            <div className="flex min-w-0 items-start gap-1 text-purple-600 dark:text-purple-400">
-                              <Eye className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                              <span className="min-w-0 break-words">
-                                Ouvert : {formatLocalDateTime(email.openedAt)} (
-                                {email.openCount || 0}x)
-                              </span>
-                            </div>
-                          )}
-                          {email.clickedAt && (
-                            <div className="flex min-w-0 items-start gap-1 text-blue-600 dark:text-blue-400">
-                              <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                              <span className="min-w-0 break-words">
-                                Cliqué : {formatLocalDateTime(email.clickedAt)}{" "}
-                                ({email.clickCount || 0}x)
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Erreur */}
-                        {email.error && (
-                          <div className="mt-2 break-words rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-                            ❌ {email.error}
+                        {email.openedAt && (
+                          <div className="flex min-w-0 items-start gap-1 text-purple-600 dark:text-purple-400">
+                            <Eye className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span className="min-w-0 break-words">
+                              Ouvert : {formatLocalDateTime(email.openedAt)} (
+                              {email.openCount || 0}x)
+                            </span>
                           </div>
                         )}
+                        {email.clickedAt && (
+                          <div className="flex min-w-0 items-start gap-1 text-blue-600 dark:text-blue-400">
+                            <Send className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span className="min-w-0 break-words">
+                              Cliqué : {formatLocalDateTime(email.clickedAt)} (
+                              {email.clickCount || 0}x)
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Actions */}
-                        <div className="mt-3 flex min-w-0 flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedEmail(email)}
-                            className="w-full sm:w-auto"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Voir le contenu
-                          </Button>
+                      {/* Erreur */}
+                      {email.error && (
+                        <div className="mt-2 break-words rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+                          ❌ {email.error}
                         </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-3 flex min-w-0 flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedEmail(email)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Voir le contenu
+                        </Button>
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-            <Pagination
-              className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700"
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={total}
-              itemsPerPage={limit}
-              startIndex={startIndex}
-              endIndex={endIndex}
-              onPageChange={setPage}
-              onNext={() => setPage((current) => Math.min(current + 1, totalPages))}
-              onPrevious={() => setPage((current) => Math.max(current - 1, 1))}
-              canGoNext={page < totalPages}
-              canGoPrevious={page > 1}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Modal Visualisation Email */}
-        {selectedEmail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4">
-            <div className="max-h-[90vh] w-full max-w-4xl min-w-0 overflow-auto rounded-lg bg-white dark:bg-gray-800">
-              <div className="min-w-0 p-4 sm:p-6">
-                <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h2 className="break-words text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
-                      {selectedEmail.subject}
-                    </h2>
-                    <p className="mt-1 break-all text-sm text-gray-600 dark:text-gray-400 sm:text-base">
-                      De : {selectedEmail.from} → À : {selectedEmail.to}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedEmail(null)}
-                  >
-                    Fermer
-                  </Button>
                 </div>
+              ))
+            )}
+          </div>
+          <Pagination
+            className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700"
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            itemsPerPage={limit}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            onPageChange={setPage}
+            onNext={() =>
+              setPage((current) => Math.min(current + 1, totalPages))
+            }
+            onPrevious={() => setPage((current) => Math.max(current - 1, 1))}
+            canGoNext={page < totalPages}
+            canGoPrevious={page > 1}
+          />
+        </CardContent>
+      </Card>
 
-                {selectedEmail.metadata?.mirror && (
-                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-900/40">
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      Miroir SMTP réel
+      {/* Modal Visualisation Email */}
+      {selectedEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl min-w-0 overflow-auto rounded-lg bg-white dark:bg-gray-800">
+            <div className="min-w-0 p-4 sm:p-6">
+              <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="break-words text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
+                    {selectedEmail.subject}
+                  </h2>
+                  <p className="mt-1 break-all text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+                    De : {selectedEmail.from} → À : {selectedEmail.to}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedEmail(null)}
+                >
+                  Fermer
+                </Button>
+              </div>
+
+              {selectedEmail.metadata?.mirror && (
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-900/40">
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    Miroir SMTP réel
+                  </p>
+                  <div className="mt-2 space-y-1 break-all text-gray-600 dark:text-gray-400">
+                    <p>
+                      Statut :{" "}
+                      {selectedEmail.metadata.mirror.sent === true
+                        ? "envoyé"
+                        : selectedEmail.metadata.mirror.sent === false
+                          ? "échec"
+                          : selectedEmail.metadata.mirror.queued
+                            ? "en file"
+                            : "inconnu"}
                     </p>
-                    <div className="mt-2 space-y-1 break-all text-gray-600 dark:text-gray-400">
+                    {selectedEmail.metadata.mirror.messageId && (
                       <p>
-                        Statut :{" "}
-                        {selectedEmail.metadata.mirror.sent === true
-                          ? "envoyé"
-                          : selectedEmail.metadata.mirror.sent === false
-                            ? "échec"
-                            : selectedEmail.metadata.mirror.queued
-                              ? "en file"
-                              : "inconnu"}
+                        Message ID : {selectedEmail.metadata.mirror.messageId}
                       </p>
-                      {selectedEmail.metadata.mirror.messageId && (
-                        <p>Message ID : {selectedEmail.metadata.mirror.messageId}</p>
-                      )}
-                      {selectedEmail.metadata.mirror.from && (
-                        <p>From miroir : {selectedEmail.metadata.mirror.from}</p>
-                      )}
-                      {selectedEmail.metadata.mirror.replyTo && (
-                        <p>Reply-To : {selectedEmail.metadata.mirror.replyTo}</p>
-                      )}
-                      {selectedEmail.metadata.mirror.error && (
-                        <p className="text-red-600 dark:text-red-400">
-                          Erreur : {selectedEmail.metadata.mirror.error}
-                        </p>
-                      )}
-                    </div>
+                    )}
+                    {selectedEmail.metadata.mirror.from && (
+                      <p>From miroir : {selectedEmail.metadata.mirror.from}</p>
+                    )}
+                    {selectedEmail.metadata.mirror.replyTo && (
+                      <p>Reply-To : {selectedEmail.metadata.mirror.replyTo}</p>
+                    )}
+                    {selectedEmail.metadata.mirror.error && (
+                      <p className="text-red-600 dark:text-red-400">
+                        Erreur : {selectedEmail.metadata.mirror.error}
+                      </p>
+                    )}
                   </div>
-                )}
-
-                <div className="border-t dark:border-gray-700 pt-4">
-                  {selectedEmail.emailContent ? (
-                    <div
-                      className="prose max-w-none overflow-x-auto break-words dark:prose-invert"
-                      dangerouslySetInnerHTML={{
-                        __html: selectedEmail.emailContent,
-                      }}
-                    />
-                  ) : (
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Contenu non disponible
-                    </p>
-                  )}
                 </div>
+              )}
+
+              <div className="border-t dark:border-gray-700 pt-4">
+                {selectedEmail.emailContent ? (
+                  <div
+                    className="prose max-w-none overflow-x-auto break-words dark:prose-invert"
+                    dangerouslySetInnerHTML={{
+                      __html: selectedEmail.emailContent,
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Contenu non disponible
+                  </p>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Info Box */}
-        <Card className="min-w-0 border-blue-300 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-blue-600" />
-              Comment Utiliser Email Monitor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="min-w-0 space-y-2 break-words text-sm">
-              <p>
-                <strong>Voir les emails envoyés</strong> : Cette page affiche
-                tous les emails envoyés par JobbingTrack. Avec « Temps réel »
-                activé, la liste et les stats sont rafraîchies toutes les 3
-                secondes. Un rafraîchissement a aussi lieu dès que vous revenez
-                sur l’onglet.
-              </p>
-              <p>
-                <strong>Configuration actuelle</strong> :{" "}
-                <code className="break-all rounded bg-gray-200 px-2 py-1">
-                  {process.env.SMTP_HOST || "Non configuré"}
-                </code>
-              </p>
-              <p>
-                <strong>Pour tester</strong> :
-              </p>
-              <ul className="ml-4 list-inside list-disc space-y-1">
-                <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
-                <li>
-                  Utiliser <strong>Emails → Configuration</strong> ou{" "}
-                  <strong>Emails → Déliverabilité</strong> pour envoyer des
-                  emails de test
-                </li>
-                <li>
-                  Utiliser le scénario &quot;Vérification Email et Reset
-                  Password&quot; dans User Journey
-                </li>
-              </ul>
-              <p className="mt-4 text-blue-700">
-                <strong>📖 Documentation complète</strong> :{" "}
-                <code>docs/emails/</code>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Info Box */}
+      <Card className="min-w-0 border-blue-300 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-blue-600" />
+            Comment Utiliser Email Monitor
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="min-w-0 space-y-2 break-words text-sm">
+            <p>
+              <strong>Voir les emails envoyés</strong> : Cette page affiche tous
+              les emails envoyés par JobbingTrack. Avec « Temps réel » activé,
+              la liste et les stats sont rafraîchies toutes les 3 secondes. Un
+              rafraîchissement a aussi lieu dès que vous revenez sur l’onglet.
+            </p>
+            <p>
+              <strong>Configuration actuelle</strong> :{" "}
+              <code className="break-all rounded bg-gray-200 px-2 py-1">
+                {process.env.SMTP_HOST || "Non configuré"}
+              </code>
+            </p>
+            <p>
+              <strong>Pour tester</strong> :
+            </p>
+            <ul className="ml-4 list-inside list-disc space-y-1">
+              <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
+              <li>
+                Utiliser <strong>Emails → Configuration</strong> ou{" "}
+                <strong>Emails → Déliverabilité</strong> pour envoyer des emails
+                de test
+              </li>
+              <li>
+                Utiliser le scénario &quot;Vérification Email et Reset
+                Password&quot; dans User Journey
+              </li>
+            </ul>
+            <p className="mt-4 text-blue-700">
+              <strong>📖 Documentation complète</strong> :{" "}
+              <code>docs/emails/</code>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </EmailBackofficePageShell>
   );
 }

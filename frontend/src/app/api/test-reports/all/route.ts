@@ -468,7 +468,9 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
   return reports;
 }
 
-async function scanEmailTriageResults(resultsRoot: string): Promise<TestReport[]> {
+async function scanEmailTriageResults(
+  resultsRoot: string,
+): Promise<TestReport[]> {
   const reports: TestReport[] = [];
   const dir = join(resultsRoot, "email-triage");
 

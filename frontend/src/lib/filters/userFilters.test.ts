@@ -39,8 +39,8 @@ describe("filterUsers", () => {
     expect(filterUsers(users, { query: "example", role: "USER" })).toHaveLength(
       1,
     );
-    expect(filterUsers(users, { query: "example", role: "ADMIN" })).toHaveLength(
-      0,
-    );
+    expect(
+      filterUsers(users, { query: "example", role: "ADMIN" }),
+    ).toHaveLength(0);
   });
 });

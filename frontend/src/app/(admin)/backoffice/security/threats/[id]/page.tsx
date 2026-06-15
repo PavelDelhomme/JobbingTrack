@@ -320,7 +320,6 @@ export default function ThreatDetailsPage() {
       }
     >
       <div className="space-y-6">
-
         {threat.blocked && (
           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-900 dark:text-red-100">
             <p className="font-semibold mb-1">Menace marquée comme bloquée</p>
@@ -780,8 +779,8 @@ export default function ThreatDetailsPage() {
                     (appLogs?.ddosAttacks ?? 0),
                 ) && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {appLogs?.intrusionAttempts ?? 0} tentative(s)
-                    intrusion · {appLogs?.ddosAttacks ?? 0} attaque(s) DDoS
+                    {appLogs?.intrusionAttempts ?? 0} tentative(s) intrusion ·{" "}
+                    {appLogs?.ddosAttacks ?? 0} attaque(s) DDoS
                   </p>
                 )}
               </div>
@@ -789,9 +788,7 @@ export default function ThreatDetailsPage() {
                 <p className="text-gray-500 dark:text-gray-400">
                   Risque retenu
                 </p>
-                <p className="font-semibold">
-                  {displayedRiskScore ?? "N/A"}
-                </p>
+                <p className="font-semibold">{displayedRiskScore ?? "N/A"}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {riskScoreHint}
                 </p>

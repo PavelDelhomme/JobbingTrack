@@ -57,14 +57,8 @@ export default function ServiceLogsPage() {
     () => buildInitialFilters(initialService),
     [initialService],
   );
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<ServiceLogsFilters>(initialFilters);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<ServiceLogsFilters>(initialFilters);
   const [serviceOptions, setServiceOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -235,9 +229,7 @@ export default function ServiceLogsPage() {
             <FilterSelectField
               label="Nombre de lignes"
               value={String(draft.lines)}
-              onChange={(value) =>
-                updateDraft("lines", Number(value) || 200)
-              }
+              onChange={(value) => updateDraft("lines", Number(value) || 200)}
               options={SERVICE_LOGS_LINES_OPTIONS.map((lines) => ({
                 value: String(lines),
                 label: `${lines} lignes`,
@@ -297,7 +289,10 @@ export default function ServiceLogsPage() {
             </p>
             <div className="max-h-[32rem] space-y-0.5 overflow-y-auto">
               {displayLines.map((line, index) => (
-                <div key={`${index}-${line.slice(0, 24)}`} className={serviceLogLineClass(line)}>
+                <div
+                  key={`${index}-${line.slice(0, 24)}`}
+                  className={serviceLogLineClass(line)}
+                >
                   {line}
                 </div>
               ))}

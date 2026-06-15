@@ -86,7 +86,10 @@ export function CpuMemoryServiceLinesChart({
               tick={{ fontSize: 12 }}
             />
             <YAxis
-              domain={[0, (dataMax: number) => percentDomainMax(metric, dataMax)]}
+              domain={[
+                0,
+                (dataMax: number) => percentDomainMax(metric, dataMax),
+              ]}
               tickFormatter={formatPercentTick}
               tick={{ fontSize: 12 }}
             />

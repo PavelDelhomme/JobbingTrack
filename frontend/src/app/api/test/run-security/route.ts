@@ -28,8 +28,13 @@ function readSecurityCounts(reportId: string | null): {
   low: number;
 } {
   if (!reportId) return { critical: 0, high: 0, medium: 0, low: 0 };
-  const reportPath = join(getTestsResultsDir(), reportId, "security-report.json");
-  if (!existsSync(reportPath)) return { critical: 0, high: 0, medium: 0, low: 0 };
+  const reportPath = join(
+    getTestsResultsDir(),
+    reportId,
+    "security-report.json",
+  );
+  if (!existsSync(reportPath))
+    return { critical: 0, high: 0, medium: 0, low: 0 };
   try {
     const parsed = JSON.parse(readFileSync(reportPath, "utf-8"));
     return {
@@ -92,8 +97,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error:
-              (err as Error).message || "Erreur exécution tests sécurité",
+            error: (err as Error).message || "Erreur exécution tests sécurité",
             outputTail: stdout.slice(-3000),
           },
           { status: 500 },

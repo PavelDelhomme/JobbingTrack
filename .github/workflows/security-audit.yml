@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - main
-      - develop
       - dev
       - "feat/security-*"
+      - "fix/security-*"
+      - "security/**"
       - "feat/**"
     paths:
       - ".github/workflows/security-audit.yml"

@@ -150,9 +150,7 @@ export default function ServiceDetailPage() {
     apply: applyLogFilters,
     reset: resetLogFilters,
     hasDraftChanges: hasLogDraftChanges,
-  } = useAppliedFilters<
-    Pick<ServiceLogsFilters, "level" | "kind" | "query">
-  >({
+  } = useAppliedFilters<Pick<ServiceLogsFilters, "level" | "kind" | "query">>({
     level: "all",
     kind: "all",
     query: "",

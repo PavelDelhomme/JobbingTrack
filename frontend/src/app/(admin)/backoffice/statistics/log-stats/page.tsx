@@ -15,10 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  FilterBar,
-  FilterSelectField,
-} from "@/components/filters";
+import { FilterBar, FilterSelectField } from "@/components/filters";
 import {
   StatisticsPageShell,
   StatisticsRefreshButton,
@@ -162,14 +159,8 @@ export default function StatisticsLogStatsPage() {
   const [logs, setLogs] = useState<AggLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<LogStatsFilters>(DEFAULT_LOG_STATS_FILTERS);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<LogStatsFilters>(DEFAULT_LOG_STATS_FILTERS);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -248,7 +239,8 @@ export default function StatisticsLogStatsPage() {
         if (lv !== applied.level) return false;
       }
       if (applied.service) {
-        if ((row.serviceName || "").toString() !== applied.service) return false;
+        if ((row.serviceName || "").toString() !== applied.service)
+          return false;
       }
       return true;
     });
@@ -289,223 +281,223 @@ export default function StatisticsLogStatsPage() {
 
   return (
     <StatisticsPageShell
-        title="Statistiques — Logs persistés"
-        description={
-          <>
-            Sources persistées lues via{" "}
-            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
-              /api/v1/persistence/stats
-            </code>{" "}
-            et{" "}
-            <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
-              /api/v1/persistence/logs
-            </code>{" "}
-            (
-            {STATS_PERIOD_OPTIONS.find(
-              (period) => period.value === applied.periodDays,
-            )?.label ?? `${applied.periodDays} jours`}
-            , échantillon). Les compteurs sont globaux par table ; les graphes
-            appliquent la période, le niveau et le service sélectionnés.
-          </>
-        }
-        actions={<StatisticsRefreshButton onClick={() => void load()} />}
-      >
-        {loading ? (
-          <SectionLoader message="Chargement des logs persistés…" />
-        ) : error ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        ) : (
-          <>
-            <FilterBar
-              hasDraftChanges={hasDraftChanges}
-              onApply={() => apply()}
-              onReset={() => reset(DEFAULT_LOG_STATS_FILTERS)}
-              badges={filterBadges}
-            >
-              <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-                <FilterSelectField
-                  label="Période"
-                  value={String(draft.periodDays)}
-                  onChange={(value) =>
-                    updateDraft("periodDays", Number(value) || 14)
-                  }
-                  options={periodOptions}
-                  allowEmpty={false}
-                  placeholder="Choisir une période"
-                />
-                <FilterSelectField
-                  label="Niveau"
-                  value={draft.level}
-                  onChange={(value) => updateDraft("level", value)}
-                  options={levelOptions.map((level) => ({
-                    value: level,
-                    label: level,
-                  }))}
-                />
-                <FilterSelectField
-                  label="Service"
-                  value={draft.service}
-                  onChange={(value) => updateDraft("service", value)}
-                  options={serviceOptions.map((service) => ({
-                    value: service,
-                    label: service,
-                  }))}
-                />
-              </div>
-            </FilterBar>
-
-            {!counts && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100">
-                Compteurs de persistance indisponibles. Les graphes peuvent
-                être vides même si des logs existent ; vérifier
-                metrics-aggregator, la clé API et le proxy frontend.
-              </div>
-            )}
-
-            {counts && (
-              <DashboardLayoutRegion variant="dense" className="gap-3">
-                {cards.map((card) => (
-                  <div
-                    key={card.key}
-                    className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        {card.label}
-                      </p>
-                      <span
-                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusClass(card.status, card.value)}`}
-                      >
-                        {sourceStatusLabel(card.status, card.value)}
-                      </span>
-                    </div>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {numberFormatter.format(card.value)}
-                    </p>
-                    <p className="mt-1 text-[11px] text-gray-600 dark:text-gray-400">
-                      {card.value > 0
-                        ? card.hint
-                        : `${card.hint} · ${card.emptyLabel || "non alimenté"}`}
-                    </p>
-                  </div>
-                ))}
-              </DashboardLayoutRegion>
-            )}
-
-            {dataRange && (
-              <p className={`text-xs ${uiText.subtle}`}>
-                Plage persistée connue :{" "}
-                {dataRange.oldest
-                  ? new Date(dataRange.oldest).toLocaleString("fr-FR")
-                  : "—"}{" "}
-                →{" "}
-                {dataRange.newest
-                  ? new Date(dataRange.newest).toLocaleString("fr-FR")
-                  : "—"}
-              </p>
-            )}
-
-            {byLevel.length > 0 ? (
-              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  Répartition par niveau (échantillon)
-                </h2>
-                <div className="h-64 w-full min-w-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={byLevel}
-                      margin={{ top: 8, right: 16, left: 0, bottom: 40 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-40"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        angle={-25}
-                        textAnchor="end"
-                        height={56}
-                        tick={{ fontSize: 11 }}
-                      />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip {...rechartsTooltipProps} />
-                      <Bar
-                        dataKey="count"
-                        fill="#6366f1"
-                        name="Lignes"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : (
-              <div
-                className={`rounded-lg border border-dashed border-gray-300 p-4 dark:border-gray-600 ${uiEmpty.centerPy4}`}
-              >
-                Aucun log applicatif agrégé sur la période sélectionnée.
-              </div>
-            )}
-
-            {byService.length > 0 ? (
-              <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  Top services (échantillon)
-                </h2>
-                <div className="h-64 w-full min-w-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={byService}
-                      layout="vertical"
-                      margin={{ left: 8, right: 16, top: 8, bottom: 8 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-40"
-                        horizontal={false}
-                      />
-                      <XAxis type="number" tick={{ fontSize: 11 }} />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={140}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <Tooltip {...rechartsTooltipProps} />
-                      <Bar
-                        dataKey="count"
-                        fill="#0d9488"
-                        name="Lignes"
-                        radius={[0, 4, 4, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : null}
-
-            <p className={`text-xs ${uiText.subtle}`}>
-              {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
-              {applied.periodDays}
-              jours, filtres appliqués côté API puis côté UI, max 800).
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/b4ck0ff1ce/statistics"
-                className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
-              >
-                ← Vue d’ensemble
-              </Link>
-              <Link
-                href="/b4ck0ff1ce/services/logs"
-                className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
-              >
-                Logs centralisés services →
-              </Link>
+      title="Statistiques — Logs persistés"
+      description={
+        <>
+          Sources persistées lues via{" "}
+          <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+            /api/v1/persistence/stats
+          </code>{" "}
+          et{" "}
+          <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+            /api/v1/persistence/logs
+          </code>{" "}
+          (
+          {STATS_PERIOD_OPTIONS.find(
+            (period) => period.value === applied.periodDays,
+          )?.label ?? `${applied.periodDays} jours`}
+          , échantillon). Les compteurs sont globaux par table ; les graphes
+          appliquent la période, le niveau et le service sélectionnés.
+        </>
+      }
+      actions={<StatisticsRefreshButton onClick={() => void load()} />}
+    >
+      {loading ? (
+        <SectionLoader message="Chargement des logs persistés…" />
+      ) : error ? (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      ) : (
+        <>
+          <FilterBar
+            hasDraftChanges={hasDraftChanges}
+            onApply={() => apply()}
+            onReset={() => reset(DEFAULT_LOG_STATS_FILTERS)}
+            badges={filterBadges}
+          >
+            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
+              <FilterSelectField
+                label="Période"
+                value={String(draft.periodDays)}
+                onChange={(value) =>
+                  updateDraft("periodDays", Number(value) || 14)
+                }
+                options={periodOptions}
+                allowEmpty={false}
+                placeholder="Choisir une période"
+              />
+              <FilterSelectField
+                label="Niveau"
+                value={draft.level}
+                onChange={(value) => updateDraft("level", value)}
+                options={levelOptions.map((level) => ({
+                  value: level,
+                  label: level,
+                }))}
+              />
+              <FilterSelectField
+                label="Service"
+                value={draft.service}
+                onChange={(value) => updateDraft("service", value)}
+                options={serviceOptions.map((service) => ({
+                  value: service,
+                  label: service,
+                }))}
+              />
             </div>
-          </>
-        )}
+          </FilterBar>
+
+          {!counts && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100">
+              Compteurs de persistance indisponibles. Les graphes peuvent être
+              vides même si des logs existent ; vérifier metrics-aggregator, la
+              clé API et le proxy frontend.
+            </div>
+          )}
+
+          {counts && (
+            <DashboardLayoutRegion variant="dense" className="gap-3">
+              {cards.map((card) => (
+                <div
+                  key={card.key}
+                  className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                      {card.label}
+                    </p>
+                    <span
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusClass(card.status, card.value)}`}
+                    >
+                      {sourceStatusLabel(card.status, card.value)}
+                    </span>
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {numberFormatter.format(card.value)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-600 dark:text-gray-400">
+                    {card.value > 0
+                      ? card.hint
+                      : `${card.hint} · ${card.emptyLabel || "non alimenté"}`}
+                  </p>
+                </div>
+              ))}
+            </DashboardLayoutRegion>
+          )}
+
+          {dataRange && (
+            <p className={`text-xs ${uiText.subtle}`}>
+              Plage persistée connue :{" "}
+              {dataRange.oldest
+                ? new Date(dataRange.oldest).toLocaleString("fr-FR")
+                : "—"}{" "}
+              →{" "}
+              {dataRange.newest
+                ? new Date(dataRange.newest).toLocaleString("fr-FR")
+                : "—"}
+            </p>
+          )}
+
+          {byLevel.length > 0 ? (
+            <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Répartition par niveau (échantillon)
+              </h2>
+              <div className="h-64 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={byLevel}
+                    margin={{ top: 8, right: 16, left: 0, bottom: 40 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-40"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      angle={-25}
+                      textAnchor="end"
+                      height={56}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip {...rechartsTooltipProps} />
+                    <Bar
+                      dataKey="count"
+                      fill="#6366f1"
+                      name="Lignes"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`rounded-lg border border-dashed border-gray-300 p-4 dark:border-gray-600 ${uiEmpty.centerPy4}`}
+            >
+              Aucun log applicatif agrégé sur la période sélectionnée.
+            </div>
+          )}
+
+          {byService.length > 0 ? (
+            <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Top services (échantillon)
+              </h2>
+              <div className="h-64 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={byService}
+                    layout="vertical"
+                    margin={{ left: 8, right: 16, top: 8, bottom: 8 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-40"
+                      horizontal={false}
+                    />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={140}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip {...rechartsTooltipProps} />
+                    <Bar
+                      dataKey="count"
+                      fill="#0d9488"
+                      name="Lignes"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+
+          <p className={`text-xs ${uiText.subtle}`}>
+            {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
+            {applied.periodDays}
+            jours, filtres appliqués côté API puis côté UI, max 800).
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/b4ck0ff1ce/statistics"
+              className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
+            >
+              ← Vue d’ensemble
+            </Link>
+            <Link
+              href="/b4ck0ff1ce/services/logs"
+              className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
+            >
+              Logs centralisés services →
+            </Link>
+          </div>
+        </>
+      )}
     </StatisticsPageShell>
   );
 }

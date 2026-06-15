@@ -87,6 +87,7 @@ coverage/
 frontend/test-results/
 frontend/test-results.*
 frontend/playwright-report/
+frontend/.tmp-jest/
 frontend/.tmp-playwright/
 frontend/.cache-playwright/
 tests/test-results/

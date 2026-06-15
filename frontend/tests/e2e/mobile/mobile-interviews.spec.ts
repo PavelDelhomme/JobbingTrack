@@ -17,14 +17,8 @@ test.describe("📱 Mobile - Gestion Entretiens", () => {
     await page.setViewportSize({ width: 375, height: 667 });
     const credentials = requireTestCredentials(testCredentials);
     await page.goto("/login");
-    await page.fill(
-      'input[type="email"]',
-      credentials.email,
-    );
-    await page.fill(
-      'input[type="password"]',
-      credentials.password,
-    );
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
     await page.click('button[type="submit"]');
     await page.waitForURL("**/dashboard**");
   });

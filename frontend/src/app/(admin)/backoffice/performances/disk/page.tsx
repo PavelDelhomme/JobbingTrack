@@ -481,7 +481,8 @@ export default function PerformancesDiskPage() {
                       { ...bag, ...container },
                       ["blockWriteBytes", "block_write_bytes"],
                       ["blockWriteMb", "block_write_mb"],
-                    ) ?? numberFromKeys(bag, ["block_write_mb", "blockWriteMb"]);
+                    ) ??
+                    numberFromKeys(bag, ["block_write_mb", "blockWriteMb"]);
                   if (read != null) {
                     readMb += read;
                     seenRead = true;
@@ -646,397 +647,382 @@ export default function PerformancesDiskPage() {
         />
       }
     >
-
-        {loading && !hasAnyData ? (
-          <PerformanceLoadingState />
-        ) : !hasAnyData ? (
-          <PerformanceEmptyState>
-            Aucune donnée disque disponible sur cette période. Vérifiez que la
-            persistance système et conteneurs est alimentée.
-          </PerformanceEmptyState>
-        ) : (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Usage disque actuel
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {latest && latest.usage != null
-                    ? `${latest.usage.toFixed(1)}%`
-                    : "—"}
-                </p>
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Volume utilisé
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {latest && latest.used != null
-                    ? `${latest.used.toFixed(1)} Go`
-                    : "—"}
-                </p>
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Block I/O écrit
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {latestIo && latestIo.writeMb != null
-                    ? `${latestIo.writeMb.toFixed(1)} Mo`
-                    : "—"}
-                </p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount} conteneur(s) suivis
-                </p>
-              </div>
+      {loading && !hasAnyData ? (
+        <PerformanceLoadingState />
+      ) : !hasAnyData ? (
+        <PerformanceEmptyState>
+          Aucune donnée disque disponible sur cette période. Vérifiez que la
+          persistance système et conteneurs est alimentée.
+        </PerformanceEmptyState>
+      ) : (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Usage disque actuel
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {latest && latest.usage != null
+                  ? `${latest.usage.toFixed(1)}%`
+                  : "—"}
+              </p>
             </div>
-
-            {systemRows.length > 0 ? (
-              <PerformanceChartCard
-                title="Usage disque système (%)"
-                periodLabel={rangeLabel}
-              >
-                <div className="w-full min-h-[240px] sm:min-h-[340px]">
-                  <ResponsiveContainer
-                    width="100%"
-                    height={340}
-                    minHeight={240}
-                  >
-                    <LineChart
-                      data={systemRows}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-50"
-                      />
-                      <XAxis
-                        dataKey="timeMs"
-                        type="number"
-                        domain={[chartXMin, chartXMax]}
-                        angle={axisShowDate ? -40 : -35}
-                        textAnchor="end"
-                        height={axisShowDate ? 72 : 60}
-                        minTickGap={axisShowDate ? 32 : 22}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms, {
-                            withDate: axisShowDate,
-                          })
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        tickFormatter={(v) => `${v}%`}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        {...rechartsTooltipProps}
-                        labelFormatter={(_, payload: unknown) => {
-                          const ts = (
-                            payload as Array<{
-                              payload?: { timestamp?: string };
-                            }>
-                          )?.[0]?.payload?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : "—";
-                        }}
-                        formatter={(value) => [
-                          value != null && Number.isFinite(Number(value))
-                            ? `${Number(value).toFixed(1)}%`
-                            : "—",
-                          "Usage disque",
-                        ]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="usage"
-                        stroke="#2563EB"
-                        strokeWidth={2}
-                        name="Usage disque (%)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </PerformanceChartCard>
-            ) : null}
-
-            {systemRows.length > 0 ? (
-              <PerformanceChartCard
-                title="Volume disque — utilisé / total"
-                periodLabel={rangeLabel}
-              >
-                <div className="w-full min-h-[220px] sm:min-h-[300px]">
-                  <ResponsiveContainer
-                    width="100%"
-                    height={300}
-                    minHeight={220}
-                  >
-                    <LineChart
-                      data={systemRows}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-50"
-                      />
-                      <XAxis
-                        dataKey="timeMs"
-                        type="number"
-                        domain={[chartXMin, chartXMax]}
-                        angle={axisShowDate ? -40 : -35}
-                        textAnchor="end"
-                        height={axisShowDate ? 72 : 60}
-                        minTickGap={axisShowDate ? 32 : 22}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms, {
-                            withDate: axisShowDate,
-                          })
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `${Number(v).toFixed(0)} Go`}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        {...rechartsTooltipProps}
-                        labelFormatter={(_, payload: unknown) => {
-                          const ts = (
-                            payload as Array<{
-                              payload?: { timestamp?: string };
-                            }>
-                          )?.[0]?.payload?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : "—";
-                        }}
-                        formatter={(value, name) => [
-                          value != null && Number.isFinite(Number(value))
-                            ? `${Number(value).toFixed(2)} Go`
-                            : "—",
-                          name === "used" ? "Utilisé" : "Total",
-                        ]}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="used"
-                        stroke="#16A34A"
-                        strokeWidth={2}
-                        name="Utilisé"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="total"
-                        stroke="#64748B"
-                        strokeWidth={2}
-                        name="Total"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </PerformanceChartCard>
-            ) : null}
-
-            {ioRows.length > 0 ? (
-              <PerformanceChartCard
-                title="Block I/O cumulé — lecture / écriture"
-                periodLabel={rangeLabel}
-              >
-                <div className="w-full min-h-[220px] sm:min-h-[320px]">
-                  <ResponsiveContainer
-                    width="100%"
-                    height={320}
-                    minHeight={220}
-                  >
-                    <LineChart
-                      data={ioRows}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-50"
-                      />
-                      <XAxis
-                        dataKey="timeMs"
-                        type="number"
-                        domain={[chartXMin, chartXMax]}
-                        angle={axisShowDate ? -40 : -35}
-                        textAnchor="end"
-                        height={axisShowDate ? 72 : 60}
-                        minTickGap={axisShowDate ? 32 : 22}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms, {
-                            withDate: axisShowDate,
-                          })
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        domain={[0, ioCumulativeMax]}
-                        tickFormatter={(v) => `${Number(v).toFixed(0)} Mo`}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        {...rechartsTooltipProps}
-                        labelFormatter={(_, payload: unknown) => {
-                          const ts = (
-                            payload as Array<{
-                              payload?: { timestamp?: string };
-                            }>
-                          )?.[0]?.payload?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : "—";
-                        }}
-                        formatter={(value, name) => [
-                          value != null && Number.isFinite(Number(value))
-                            ? `${Number(value).toFixed(2)} Mo`
-                            : "—",
-                          name === "readMb" ? "Lecture" : "Écriture",
-                        ]}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="readMb"
-                        stroke="#7C3AED"
-                        strokeWidth={2}
-                        name="Lecture (Mo)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="writeMb"
-                        stroke="#EA580C"
-                        strokeWidth={2}
-                        name="Écriture (Mo)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </PerformanceChartCard>
-            ) : null}
-
-            {ioRows.length > 0 ? (
-              <PerformanceChartCard
-                title="Débit Block I/O estimé — Mo/min"
-                periodLabel={rangeLabel}
-              >
-                <div className="w-full min-h-[220px] sm:min-h-[300px]">
-                  <ResponsiveContainer
-                    width="100%"
-                    height={300}
-                    minHeight={220}
-                  >
-                    <LineChart
-                      data={ioRows}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-50"
-                      />
-                      <XAxis
-                        dataKey="timeMs"
-                        type="number"
-                        domain={[chartXMin, chartXMax]}
-                        angle={axisShowDate ? -40 : -35}
-                        textAnchor="end"
-                        height={axisShowDate ? 72 : 60}
-                        minTickGap={axisShowDate ? 32 : 22}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms, {
-                            withDate: axisShowDate,
-                          })
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        domain={[0, ioRateMax]}
-                        tickFormatter={(v) => `${Number(v).toFixed(3)}`}
-                        tick={{ fontSize: 11 }}
-                        label={{
-                          value: "Mo/min",
-                          angle: -90,
-                          position: "insideLeft",
-                          fill: "#9CA3AF",
-                          fontSize: 11,
-                        }}
-                      />
-                      <Tooltip
-                        {...rechartsTooltipProps}
-                        labelFormatter={(_, payload: unknown) => {
-                          const ts = (
-                            payload as Array<{
-                              payload?: { timestamp?: string };
-                            }>
-                          )?.[0]?.payload?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : "—";
-                        }}
-                        formatter={(value, name) => [
-                          value != null && Number.isFinite(Number(value))
-                            ? `${Number(value).toFixed(4)} Mo/min`
-                            : "—",
-                          name === "readMbPerMin"
-                            ? "Lecture (débit)"
-                            : "Écriture (débit)",
-                        ]}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="readMbPerMin"
-                        stroke="#4F46E5"
-                        strokeWidth={2}
-                        name="Lecture (Mo/min)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="writeMbPerMin"
-                        stroke="#D97706"
-                        strokeWidth={2}
-                        name="Écriture (Mo/min)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </PerformanceChartCard>
-            ) : (
-              <PerformanceInfoNotice className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
-                Aucun historique Block I/O conteneur exploitable sur cette
-                période. Les courbes apparaîtront dès que
-                `container_metrics_snapshots.blockReadBytes/blockWriteBytes`
-                seront alimentés.
-              </PerformanceInfoNotice>
-            )}
-
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {systemRows.length} point(s) stockage système · {ioRows.length}{" "}
-              point(s) Block I/O agrégés · {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount} conteneur(s)
-              inspectés.
-            </p>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Volume utilisé
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {latest && latest.used != null
+                  ? `${latest.used.toFixed(1)} Go`
+                  : "—"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Block I/O écrit
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {latestIo && latestIo.writeMb != null
+                  ? `${latestIo.writeMb.toFixed(1)} Mo`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount}{" "}
+                conteneur(s) suivis
+              </p>
+            </div>
           </div>
-        )}
 
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/b4ck0ff1ce/services"
-            className="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800"
-          >
-            Voir les détails par service
-          </Link>
+          {systemRows.length > 0 ? (
+            <PerformanceChartCard
+              title="Usage disque système (%)"
+              periodLabel={rangeLabel}
+            >
+              <div className="w-full min-h-[240px] sm:min-h-[340px]">
+                <ResponsiveContainer width="100%" height={340} minHeight={240}>
+                  <LineChart
+                    data={systemRows}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
+                    <XAxis
+                      dataKey="timeMs"
+                      type="number"
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -40 : -35}
+                      textAnchor="end"
+                      height={axisShowDate ? 72 : 60}
+                      minTickGap={axisShowDate ? 32 : 22}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      labelFormatter={(_, payload: unknown) => {
+                        const ts = (
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
+                      }}
+                      formatter={(value) => [
+                        value != null && Number.isFinite(Number(value))
+                          ? `${Number(value).toFixed(1)}%`
+                          : "—",
+                        "Usage disque",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="usage"
+                      stroke="#2563EB"
+                      strokeWidth={2}
+                      name="Usage disque (%)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </PerformanceChartCard>
+          ) : null}
+
+          {systemRows.length > 0 ? (
+            <PerformanceChartCard
+              title="Volume disque — utilisé / total"
+              periodLabel={rangeLabel}
+            >
+              <div className="w-full min-h-[220px] sm:min-h-[300px]">
+                <ResponsiveContainer width="100%" height={300} minHeight={220}>
+                  <LineChart
+                    data={systemRows}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
+                    <XAxis
+                      dataKey="timeMs"
+                      type="number"
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -40 : -35}
+                      textAnchor="end"
+                      height={axisShowDate ? 72 : 60}
+                      minTickGap={axisShowDate ? 32 : 22}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `${Number(v).toFixed(0)} Go`}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      labelFormatter={(_, payload: unknown) => {
+                        const ts = (
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
+                      }}
+                      formatter={(value, name) => [
+                        value != null && Number.isFinite(Number(value))
+                          ? `${Number(value).toFixed(2)} Go`
+                          : "—",
+                        name === "used" ? "Utilisé" : "Total",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="used"
+                      stroke="#16A34A"
+                      strokeWidth={2}
+                      name="Utilisé"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#64748B"
+                      strokeWidth={2}
+                      name="Total"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </PerformanceChartCard>
+          ) : null}
+
+          {ioRows.length > 0 ? (
+            <PerformanceChartCard
+              title="Block I/O cumulé — lecture / écriture"
+              periodLabel={rangeLabel}
+            >
+              <div className="w-full min-h-[220px] sm:min-h-[320px]">
+                <ResponsiveContainer width="100%" height={320} minHeight={220}>
+                  <LineChart
+                    data={ioRows}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
+                    <XAxis
+                      dataKey="timeMs"
+                      type="number"
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -40 : -35}
+                      textAnchor="end"
+                      height={axisShowDate ? 72 : 60}
+                      minTickGap={axisShowDate ? 32 : 22}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      domain={[0, ioCumulativeMax]}
+                      tickFormatter={(v) => `${Number(v).toFixed(0)} Mo`}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      labelFormatter={(_, payload: unknown) => {
+                        const ts = (
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
+                      }}
+                      formatter={(value, name) => [
+                        value != null && Number.isFinite(Number(value))
+                          ? `${Number(value).toFixed(2)} Mo`
+                          : "—",
+                        name === "readMb" ? "Lecture" : "Écriture",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="readMb"
+                      stroke="#7C3AED"
+                      strokeWidth={2}
+                      name="Lecture (Mo)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="writeMb"
+                      stroke="#EA580C"
+                      strokeWidth={2}
+                      name="Écriture (Mo)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </PerformanceChartCard>
+          ) : null}
+
+          {ioRows.length > 0 ? (
+            <PerformanceChartCard
+              title="Débit Block I/O estimé — Mo/min"
+              periodLabel={rangeLabel}
+            >
+              <div className="w-full min-h-[220px] sm:min-h-[300px]">
+                <ResponsiveContainer width="100%" height={300} minHeight={220}>
+                  <LineChart
+                    data={ioRows}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-50"
+                    />
+                    <XAxis
+                      dataKey="timeMs"
+                      type="number"
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -40 : -35}
+                      textAnchor="end"
+                      height={axisShowDate ? 72 : 60}
+                      minTickGap={axisShowDate ? 32 : 22}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      domain={[0, ioRateMax]}
+                      tickFormatter={(v) => `${Number(v).toFixed(3)}`}
+                      tick={{ fontSize: 11 }}
+                      label={{
+                        value: "Mo/min",
+                        angle: -90,
+                        position: "insideLeft",
+                        fill: "#9CA3AF",
+                        fontSize: 11,
+                      }}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      labelFormatter={(_, payload: unknown) => {
+                        const ts = (
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
+                      }}
+                      formatter={(value, name) => [
+                        value != null && Number.isFinite(Number(value))
+                          ? `${Number(value).toFixed(4)} Mo/min`
+                          : "—",
+                        name === "readMbPerMin"
+                          ? "Lecture (débit)"
+                          : "Écriture (débit)",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="readMbPerMin"
+                      stroke="#4F46E5"
+                      strokeWidth={2}
+                      name="Lecture (Mo/min)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="writeMbPerMin"
+                      stroke="#D97706"
+                      strokeWidth={2}
+                      name="Écriture (Mo/min)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </PerformanceChartCard>
+          ) : (
+            <PerformanceInfoNotice className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+              Aucun historique Block I/O conteneur exploitable sur cette
+              période. Les courbes apparaîtront dès que
+              `container_metrics_snapshots.blockReadBytes/blockWriteBytes`
+              seront alimentés.
+            </PerformanceInfoNotice>
+          )}
+
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {systemRows.length} point(s) stockage système · {ioRows.length}{" "}
+            point(s) Block I/O agrégés ·{" "}
+            {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount}{" "}
+            conteneur(s) inspectés.
+          </p>
         </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/b4ck0ff1ce/services"
+          className="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800"
+        >
+          Voir les détails par service
+        </Link>
+      </div>
     </PerformancePageShell>
   );
 }

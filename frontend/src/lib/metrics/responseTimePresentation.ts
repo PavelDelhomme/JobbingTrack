@@ -6,14 +6,16 @@ export const PRIORITY_RESPONSE_SERVICES = [
   "notification-service",
   "followup-service",
   "application-service",
-  "postgres",
 ] as const;
 
 export const RESPONSE_TIME_SOURCE_NOTE =
   "Instantané : sonde HTTP metrics-aggregator (réseau Docker). Historique agrégé : monitoring-agent-rs / persistance système. Postgres = santé Docker, pas de latence HTTP.";
 
 export function normalizeServiceShortName(name: string): string {
-  return (name || "").replace(/^jobbingtrack-/, "").trim().toLowerCase();
+  return (name || "")
+    .replace(/^jobbingtrack-/, "")
+    .trim()
+    .toLowerCase();
 }
 
 export function isNonHttpDependency(serviceName: string): boolean {

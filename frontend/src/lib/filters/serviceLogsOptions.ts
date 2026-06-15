@@ -24,5 +24,4 @@ export const SERVICE_LOG_KIND_OPTIONS = [
 export type ServiceLogLevel =
   (typeof SERVICE_LOG_LEVEL_OPTIONS)[number]["value"];
 
-export type ServiceLogKind =
-  (typeof SERVICE_LOG_KIND_OPTIONS)[number]["value"];
+export type ServiceLogKind = (typeof SERVICE_LOG_KIND_OPTIONS)[number]["value"];

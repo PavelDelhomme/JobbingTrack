@@ -13,9 +13,9 @@ const lines = [
 
 describe("service log filters", () => {
   it("classe les niveaux par heuristique", () => {
-    expect(lines.filter((line) => lineMatchesLevel(line, "error"))).toHaveLength(
-      1,
-    );
+    expect(
+      lines.filter((line) => lineMatchesLevel(line, "error")),
+    ).toHaveLength(1);
     expect(lines.filter((line) => lineMatchesLevel(line, "warn"))).toHaveLength(
       1,
     );

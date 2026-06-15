@@ -1,4 +1,7 @@
-import { filterIncidentRows, type IncidentAppliedFilters } from "./incidentFilters";
+import {
+  filterIncidentRows,
+  type IncidentAppliedFilters,
+} from "./incidentFilters";
 import type { IncidentRow } from "./incidents";
 
 const baseRow = (

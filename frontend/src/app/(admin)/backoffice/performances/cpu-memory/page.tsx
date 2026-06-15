@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { isAxiosError } from "axios";
 import {
   TimeRangeSelector,
@@ -123,7 +129,9 @@ function normalizeMetrics(data: Record<string, unknown>[]): ContainerMetric[] {
     );
 }
 
-function normalizeSystemMetrics(data: Record<string, unknown>[]): SystemMetric[] {
+function normalizeSystemMetrics(
+  data: Record<string, unknown>[],
+): SystemMetric[] {
   return (data || [])
     .map((d) => {
       const rawTs =
@@ -279,9 +287,9 @@ export default function CpuMemoryPerformancePage() {
           setSelectedServiceKeys((current) =>
             current.length
               ? current
-              : list.slice(0, DEFAULT_SELECTED_SERVICE_COUNT).map((container) =>
-                  serviceKey(container.name),
-                ),
+              : list
+                  .slice(0, DEFAULT_SELECTED_SERVICE_COUNT)
+                  .map((container) => serviceKey(container.name)),
           );
         }
       } catch (e) {
@@ -369,16 +377,19 @@ export default function CpuMemoryPerformancePage() {
     let cancelled = false;
 
     setLoadingMetrics(true);
-    promisePool(selectedContainers, METRICS_HISTORY_FETCH_CONCURRENCY, (container) =>
-      analyticsService
-        .getContainerMetricsHistory(container.name, opts)
-        .then((data: Record<string, unknown>[]) => ({
-          name: container.name,
-          data: injectMetricTimeGaps(normalizeMetrics(data), METRIC_GAP_MS, [
-            "cpuUsagePercent",
-            "memoryUsagePercent",
-          ]),
-        })),
+    promisePool(
+      selectedContainers,
+      METRICS_HISTORY_FETCH_CONCURRENCY,
+      (container) =>
+        analyticsService
+          .getContainerMetricsHistory(container.name, opts)
+          .then((data: Record<string, unknown>[]) => ({
+            name: container.name,
+            data: injectMetricTimeGaps(normalizeMetrics(data), METRIC_GAP_MS, [
+              "cpuUsagePercent",
+              "memoryUsagePercent",
+            ]),
+          })),
     )
       .then((results) => {
         if (cancelled || controller.signal.aborted) return;
@@ -508,8 +519,7 @@ export default function CpuMemoryPerformancePage() {
       });
     });
     const sortedMs = Array.from(allMs).sort((a, b) => a - b);
-    const step =
-      sortedMs.length <= 240 ? 1 : Math.ceil(sortedMs.length / 240);
+    const step = sortedMs.length <= 240 ? 1 : Math.ceil(sortedMs.length / 240);
     const sampledMs = sortedMs.filter((_, index) => index % step === 0);
 
     return sampledMs.map((targetMs) => {
@@ -583,10 +593,13 @@ export default function CpuMemoryPerformancePage() {
   const liveSelectedServiceKeys = useMemo(
     () =>
       containers
-        .filter((container) => selectedServiceKeys.includes(serviceKey(container.name)))
+        .filter((container) =>
+          selectedServiceKeys.includes(serviceKey(container.name)),
+        )
         .filter(
           (container) =>
-            containerCpu(container) != null || containerMemory(container) != null,
+            containerCpu(container) != null ||
+            containerMemory(container) != null,
         )
         .map((container) => serviceKey(container.name)),
     [containers, selectedServiceKeys],
@@ -596,7 +609,9 @@ export default function CpuMemoryPerformancePage() {
     chartData.length > 0 ? fetchedServiceKeys : liveSelectedServiceKeys;
 
   const activeChartData =
-    activeView === "overview" ? effectiveSystemChartData : effectiveDetailChartData;
+    activeView === "overview"
+      ? effectiveSystemChartData
+      : effectiveDetailChartData;
 
   const [chartXDomainEffMin, chartXDomainEffMax] = useMemo(
     () =>
@@ -712,160 +727,155 @@ export default function CpuMemoryPerformancePage() {
         />
       }
     >
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              CPU moyen live
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              {formatPercent(liveCpuAvg)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Mémoire moyenne live
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              {formatPercent(liveMemoryAvg)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Services suivis
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              {runningCount}/{containers.length || "—"}
-            </p>
-          </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            CPU moyen live
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {formatPercent(liveCpuAvg)}
+          </p>
         </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Mémoire moyenne live
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {formatPercent(liveMemoryAvg)}
+          </p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Services suivis
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {runningCount}/{containers.length || "—"}
+          </p>
+        </div>
+      </div>
 
-        <nav
-          className="flex flex-wrap gap-2"
-          aria-label="Vues CPU et mémoire"
-        >
-          {VIEWS.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              onClick={() => setActiveView(view.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeView === view.id
-                  ? "bg-blue-600 text-white shadow dark:bg-blue-500"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-              }`}
-            >
-              {view.label}
-            </button>
-          ))}
-        </nav>
+      <nav className="flex flex-wrap gap-2" aria-label="Vues CPU et mémoire">
+        {VIEWS.map((view) => (
+          <button
+            key={view.id}
+            type="button"
+            onClick={() => setActiveView(view.id)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              activeView === view.id
+                ? "bg-blue-600 text-white shadow dark:bg-blue-500"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            }`}
+          >
+            {view.label}
+          </button>
+        ))}
+      </nav>
 
-        {activeView !== "overview" && serviceKeys.length > 0 ? (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Services à charger
-                </h2>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Par défaut, seuls quelques services sont chargés pour garder
-                  la page rapide. Activez plus de séries si nécessaire.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={showAllServices}
-                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
-                >
-                  Tout afficher
-                </button>
-                <button
-                  type="button"
-                  onClick={hideAllServices}
-                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
-                >
-                  Tout masquer
-                </button>
-              </div>
+      {activeView !== "overview" && serviceKeys.length > 0 ? (
+        <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Services à charger
+              </h2>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Par défaut, seuls quelques services sont chargés pour garder la
+                page rapide. Activez plus de séries si nécessaire.
+              </p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {serviceKeys.map((key) => (
-                <label
-                  key={key}
-                  className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-200"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedServiceKeys.includes(key)}
-                    onChange={() => toggleService(key)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="truncate">{key}</span>
-                </label>
-              ))}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={showAllServices}
+                className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
+              >
+                Tout afficher
+              </button>
+              <button
+                type="button"
+                onClick={hideAllServices}
+                className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100"
+              >
+                Tout masquer
+              </button>
             </div>
-          </section>
-        ) : null}
-
-        {loadingList ||
-        (activeView === "overview" &&
-          loadingSystemMetrics &&
-          systemChartData.length === 0) ||
-        (activeView !== "overview" &&
-          loadingMetrics &&
-          chartData.length === 0) ? (
-          <PerformanceLoadingState>
-            Chargement des métriques…
-          </PerformanceLoadingState>
-        ) : listError ? (
-          <PerformanceEmptyState className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            {listError}
-          </PerformanceEmptyState>
-        ) : activeView === "overview" && effectiveSystemChartData.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucune métrique CPU/mémoire disponible pour l’instant.
-          </PerformanceEmptyState>
-        ) : activeView !== "overview" && selectedServiceKeys.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucun service sélectionné. Cochez au moins une série à charger.
-          </PerformanceEmptyState>
-        ) : activeView === "overview" ? (
-          <div className="space-y-6">
-            <PerformanceChartCard title="CPU & mémoire globaux">
-              <SystemCpuMemoryAreaCharts
-                chartData={effectiveSystemChartData}
-                xDomainMin={chartXDomainEffMin}
-                xDomainMax={chartXDomainEffMax}
-                axisShowDate={axisShowDate}
-                chartHeight={260}
-                emphasizePoints={systemChartData.length === 0}
-              />
-            </PerformanceChartCard>
           </div>
-        ) : effectiveDetailChartData.length === 0 ||
-          effectiveDetailServiceKeys.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucune métrique CPU/mémoire disponible pour les services
-            sélectionnés.
-          </PerformanceEmptyState>
-        ) : (
-          <CpuMemoryServiceLinesChart
-            metric={activeView === "cpu" ? "cpu" : "memory"}
-            title={
-              activeView === "cpu"
-                ? "CPU détaillé par service"
-                : "Mémoire détaillée par service"
-            }
-            rangeLabel={rangeLabel}
-            chartXDomainMin={chartXDomainEffMin}
-            chartXDomainMax={chartXDomainEffMax}
-            axisShowDate={axisShowDate}
-            chartData={effectiveDetailChartData}
-            serviceKeys={effectiveDetailServiceKeys}
-            emphasizePoints={chartData.length === 0}
-          />
-        )}
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {serviceKeys.map((key) => (
+              <label
+                key={key}
+                className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-200"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedServiceKeys.includes(key)}
+                  onChange={() => toggleService(key)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="truncate">{key}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {loadingList ||
+      (activeView === "overview" &&
+        loadingSystemMetrics &&
+        systemChartData.length === 0) ||
+      (activeView !== "overview" &&
+        loadingMetrics &&
+        chartData.length === 0) ? (
+        <PerformanceLoadingState>
+          Chargement des métriques…
+        </PerformanceLoadingState>
+      ) : listError ? (
+        <PerformanceEmptyState className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          {listError}
+        </PerformanceEmptyState>
+      ) : activeView === "overview" && effectiveSystemChartData.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucune métrique CPU/mémoire disponible pour l’instant.
+        </PerformanceEmptyState>
+      ) : activeView !== "overview" && selectedServiceKeys.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucun service sélectionné. Cochez au moins une série à charger.
+        </PerformanceEmptyState>
+      ) : activeView === "overview" ? (
+        <div className="space-y-6">
+          <PerformanceChartCard title="CPU & mémoire globaux">
+            <SystemCpuMemoryAreaCharts
+              chartData={effectiveSystemChartData}
+              xDomainMin={chartXDomainEffMin}
+              xDomainMax={chartXDomainEffMax}
+              axisShowDate={axisShowDate}
+              chartHeight={260}
+              emphasizePoints={systemChartData.length === 0}
+            />
+          </PerformanceChartCard>
+        </div>
+      ) : effectiveDetailChartData.length === 0 ||
+        effectiveDetailServiceKeys.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucune métrique CPU/mémoire disponible pour les services sélectionnés.
+        </PerformanceEmptyState>
+      ) : (
+        <CpuMemoryServiceLinesChart
+          metric={activeView === "cpu" ? "cpu" : "memory"}
+          title={
+            activeView === "cpu"
+              ? "CPU détaillé par service"
+              : "Mémoire détaillée par service"
+          }
+          rangeLabel={rangeLabel}
+          chartXDomainMin={chartXDomainEffMin}
+          chartXDomainMax={chartXDomainEffMax}
+          axisShowDate={axisShowDate}
+          chartData={effectiveDetailChartData}
+          serviceKeys={effectiveDetailServiceKeys}
+          emphasizePoints={chartData.length === 0}
+        />
+      )}
     </PerformancePageShell>
   );
 }

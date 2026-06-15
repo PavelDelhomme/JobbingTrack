@@ -362,192 +362,191 @@ export default function PerformancesLatencyPage() {
         />
       }
     >
-
-        <PerformanceChartCard title="Historique agrégé (ms)">
-          {rows.length > 0 && (
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              {brushAvgMs != null
-                ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
-                : "Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus."}
-            </p>
-          )}
-          {loadingHistory && rows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Chargement…
-            </p>
-          ) : rows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Aucune donnée sur la période.
-            </p>
-          ) : (
-            <div className="mt-4 w-full min-h-[260px]">
-              <ResponsiveContainer width="100%" height={380}>
-                <LineChart
-                  data={rows}
-                  margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
-                  <XAxis
-                    dataKey="timeMs"
-                    type="number"
-                    domain={[chartXEffMin, chartXEffMax]}
-                    angle={axisShowDate ? -40 : -35}
-                    textAnchor="end"
-                    height={axisShowDate ? 72 : 60}
-                    minTickGap={axisShowDate ? 32 : 22}
-                    tickFormatter={(ms) =>
-                      formatLocalChartAxisTick(ms, { withDate: axisShowDate })
-                    }
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => `${Math.round(Number(v))} ms`}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip
-                    {...rechartsTooltipProps}
-                    labelFormatter={(_, payload: unknown) => {
-                      const ts = (
-                        payload as Array<{ payload?: { timestamp?: string } }>
-                      )?.[0]?.payload?.timestamp;
-                      return ts ? formatLocalDateTime(ts) : "—";
-                    }}
-                    formatter={(value: number) => [
-                      `${Number(value).toFixed(1)} ms`,
-                      "Temps de réponse",
-                    ]}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="responseTimeMs"
-                    stroke="#0D9488"
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls={false}
-                    name="Temps de réponse (ms)"
-                  />
-                  <Brush
-                    dataKey="timeMs"
-                    height={28}
-                    stroke="#64748b"
-                    fill="rgba(100, 116, 139, 0.12)"
-                    travellerWidth={10}
-                    tickFormatter={(v) =>
-                      formatLocalChartAxisTick(Number(v), {
-                        withDate: axisShowDate,
-                      })
-                    }
-                    onChange={(
-                      e: { startIndex?: number; endIndex?: number } | undefined,
-                    ) => {
-                      if (e?.startIndex == null || e?.endIndex == null) return;
-                      setBrushRange({ start: e.startIndex, end: e.endIndex });
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </PerformanceChartCard>
-
-        <PerformanceChartCard title="Instantané par service">
-          {measuredRows.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedServices(measuredServiceNames)}
-                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+      <PerformanceChartCard title="Historique agrégé (ms)">
+        {rows.length > 0 && (
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {brushAvgMs != null
+              ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
+              : "Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus."}
+          </p>
+        )}
+        {loadingHistory && rows.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Chargement…
+          </p>
+        ) : rows.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Aucune donnée sur la période.
+          </p>
+        ) : (
+          <div className="mt-4 w-full min-h-[260px]">
+            <ResponsiveContainer width="100%" height={380}>
+              <LineChart
+                data={rows}
+                margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
               >
-                Tout sélectionner
-              </button>
-              <button
-                onClick={() => setSelectedServices([])}
-                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                Tout désélectionner
-              </button>
-              {measuredRows.map((row) => {
-                const active = selectedServices.includes(row.name);
-                return (
-                  <button
-                    key={row.name}
-                    onClick={() =>
-                      setSelectedServices((prev) =>
-                        active
-                          ? prev.filter((x) => x !== row.name)
-                          : [...prev, row.name],
-                      )
-                    }
-                    className={`rounded px-2 py-1 text-xs border ${
+                <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
+                <XAxis
+                  dataKey="timeMs"
+                  type="number"
+                  domain={[chartXEffMin, chartXEffMax]}
+                  angle={axisShowDate ? -40 : -35}
+                  textAnchor="end"
+                  height={axisShowDate ? 72 : 60}
+                  minTickGap={axisShowDate ? 32 : 22}
+                  tickFormatter={(ms) =>
+                    formatLocalChartAxisTick(ms, { withDate: axisShowDate })
+                  }
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  tickFormatter={(v) => `${Math.round(Number(v))} ms`}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip
+                  {...rechartsTooltipProps}
+                  labelFormatter={(_, payload: unknown) => {
+                    const ts = (
+                      payload as Array<{ payload?: { timestamp?: string } }>
+                    )?.[0]?.payload?.timestamp;
+                    return ts ? formatLocalDateTime(ts) : "—";
+                  }}
+                  formatter={(value: number) => [
+                    `${Number(value).toFixed(1)} ms`,
+                    "Temps de réponse",
+                  ]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="responseTimeMs"
+                  stroke="#0D9488"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls={false}
+                  name="Temps de réponse (ms)"
+                />
+                <Brush
+                  dataKey="timeMs"
+                  height={28}
+                  stroke="#64748b"
+                  fill="rgba(100, 116, 139, 0.12)"
+                  travellerWidth={10}
+                  tickFormatter={(v) =>
+                    formatLocalChartAxisTick(Number(v), {
+                      withDate: axisShowDate,
+                    })
+                  }
+                  onChange={(
+                    e: { startIndex?: number; endIndex?: number } | undefined,
+                  ) => {
+                    if (e?.startIndex == null || e?.endIndex == null) return;
+                    setBrushRange({ start: e.startIndex, end: e.endIndex });
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </PerformanceChartCard>
+
+      <PerformanceChartCard title="Instantané par service">
+        {measuredRows.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedServices(measuredServiceNames)}
+              className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              Tout sélectionner
+            </button>
+            <button
+              onClick={() => setSelectedServices([])}
+              className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              Tout désélectionner
+            </button>
+            {measuredRows.map((row) => {
+              const active = selectedServices.includes(row.name);
+              return (
+                <button
+                  key={row.name}
+                  onClick={() =>
+                    setSelectedServices((prev) =>
                       active
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200"
-                        : "border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300"
-                    }`}
-                  >
-                    {row.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {loadingLive && liveEndpointRows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Chargement…
-            </p>
-          ) : filteredMeasuredRows.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Aucune mesure instantanée exploitable.
-            </p>
-          ) : (
-            <div className="mt-4 w-full min-h-[240px]">
-              <ResponsiveContainer
-                width="100%"
-                height={Math.max(240, filteredMeasuredRows.length * 28)}
-              >
-                <BarChart
-                  layout="vertical"
-                  data={filteredMeasuredRows}
-                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                        ? prev.filter((x) => x !== row.name)
+                        : [...prev, row.name],
+                    )
+                  }
+                  className={`rounded px-2 py-1 text-xs border ${
+                    active
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200"
+                      : "border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300"
+                  }`}
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="opacity-40"
-                    horizontal={false}
-                  />
-                  <XAxis type="number" tick={{ fontSize: 11 }} unit=" ms" />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={170}
-                    tick={{ fontSize: 11 }}
-                    interval={0}
-                  />
-                  <Tooltip
-                    {...rechartsTooltipProps}
-                    formatter={(value: number) => [
-                      `${Number(value).toFixed(1)} ms`,
-                      "Réponse",
-                    ]}
-                  />
-                  <Bar
-                    dataKey="ms"
-                    name="ms"
-                    fill="#0d9488"
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {missingRows.length > 0 && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
-              <span className="font-medium">
-                Services sans mesure instantanée :
-              </span>{" "}
-              {missingRows.map((r) => r.name).join(", ")}
-            </div>
-          )}
-        </PerformanceChartCard>
+                  {row.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {loadingLive && liveEndpointRows.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Chargement…
+          </p>
+        ) : filteredMeasuredRows.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Aucune mesure instantanée exploitable.
+          </p>
+        ) : (
+          <div className="mt-4 w-full min-h-[240px]">
+            <ResponsiveContainer
+              width="100%"
+              height={Math.max(240, filteredMeasuredRows.length * 28)}
+            >
+              <BarChart
+                layout="vertical"
+                data={filteredMeasuredRows}
+                margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="opacity-40"
+                  horizontal={false}
+                />
+                <XAxis type="number" tick={{ fontSize: 11 }} unit=" ms" />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={170}
+                  tick={{ fontSize: 11 }}
+                  interval={0}
+                />
+                <Tooltip
+                  {...rechartsTooltipProps}
+                  formatter={(value: number) => [
+                    `${Number(value).toFixed(1)} ms`,
+                    "Réponse",
+                  ]}
+                />
+                <Bar
+                  dataKey="ms"
+                  name="ms"
+                  fill="#0d9488"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        {missingRows.length > 0 && (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
+            <span className="font-medium">
+              Services sans mesure instantanée :
+            </span>{" "}
+            {missingRows.map((r) => r.name).join(", ")}
+          </div>
+        )}
+      </PerformanceChartCard>
     </PerformancePageShell>
   );
 }

@@ -1226,10 +1226,10 @@ export default function BackofficePage() {
             <MetricCard
               title="Mémoire conteneurs JobbingTrack"
               value={
-                systemMetrics?.jobbingtrack?.containers?.memory
-                  ?.percent !== undefined
-                    ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
-                    : "..."
+                systemMetrics?.jobbingtrack?.containers?.memory?.percent !==
+                undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
+                  : "..."
               }
               subtitle={
                 systemMetrics?.jobbingtrack?.containers?.memory?.used != null &&
@@ -1239,8 +1239,8 @@ export default function BackofficePage() {
               }
               icon={<MemoryStick className="h-6 w-6" />}
               color={
-                (systemMetrics?.jobbingtrack?.containers?.memory?.percent || 0) >
-                80
+                (systemMetrics?.jobbingtrack?.containers?.memory?.percent ||
+                  0) > 80
                   ? "red"
                   : (systemMetrics?.jobbingtrack?.containers?.memory?.percent ||
                         0) > 60
@@ -1598,9 +1598,8 @@ export default function BackofficePage() {
                       const memPct =
                         systemMetrics?.jobbingtrack?.containers?.memory
                           ?.percent !== undefined
-                            ? systemMetrics.jobbingtrack.containers.memory
-                                .percent
-                            : null;
+                          ? systemMetrics.jobbingtrack.containers.memory.percent
+                          : null;
                       if (memPct === null)
                         return (
                           <span className="text-gray-500 dark:text-gray-400">
@@ -1741,8 +1740,8 @@ export default function BackofficePage() {
                       >
                         {systemMetrics.jobbingtrack.containers.memory
                           ?.percent !== undefined
-                            ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
-                            : "..."}
+                          ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
+                          : "..."}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">

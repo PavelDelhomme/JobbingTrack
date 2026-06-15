@@ -1,8 +1,13 @@
 import { test, expect } from "@playwright/test";
 import config from "./test-config.js";
-import { getSeededUserAccounts, getSeededUserCredentials } from "./test-data-helper";
+import {
+  getSeededUserAccounts,
+  getSeededUserCredentials,
+} from "./test-data-helper";
 
-const mobileUser = getSeededUserCredentials("Identifiants utilisateur mobile E2E");
+const mobileUser = getSeededUserCredentials(
+  "Identifiants utilisateur mobile E2E",
+);
 const mobileAccounts = getSeededUserAccounts();
 
 test.describe("📱 Application Mobile Flutter", () => {

@@ -2,7 +2,7 @@ name: Deploy Dev
 
 on:
   push:
-    branches: [develop]
+    branches: [dev]
   workflow_dispatch:
 
 env:
@@ -13,7 +13,7 @@ jobs:
   deploy-dev:
     name: Deploy environnement dev
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
 
     steps:

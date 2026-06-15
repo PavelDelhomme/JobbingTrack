@@ -515,8 +515,14 @@ export default function CustomJourneyPage() {
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-            <Link href="/b4ck0ff1ce/user-journey/reports" className="w-full sm:w-auto">
-              <Button variant="outline" className="flex w-full items-center justify-center gap-2">
+            <Link
+              href="/b4ck0ff1ce/user-journey/reports"
+              className="w-full sm:w-auto"
+            >
+              <Button
+                variant="outline"
+                className="flex w-full items-center justify-center gap-2"
+              >
                 <FileText className="w-4 h-4" />
                 Voir les rapports de parcours
               </Button>

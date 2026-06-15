@@ -304,439 +304,438 @@ export default function EmailDeliverabilityPage() {
       }
       description="Vérifier la configuration DNS et tester l'envoi d'emails"
     >
-        {/* Test DNS */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Server className="w-5 h-5" />
-              Tests DNS
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="domain">Domaine à tester</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="domain"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  placeholder="maily.ovh"
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleTestDNS}
-                  disabled={testingDNS || !domain.trim()}
-                >
-                  {testingDNS ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Test en cours...
-                    </>
+      {/* Test DNS */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="w-5 h-5" />
+            Tests DNS
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="domain">Domaine à tester</Label>
+            <div className="flex gap-2">
+              <Input
+                id="domain"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="maily.ovh"
+                className="flex-1"
+              />
+              <Button
+                onClick={handleTestDNS}
+                disabled={testingDNS || !domain.trim()}
+              >
+                {testingDNS ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Test en cours...
+                  </>
+                ) : (
+                  <>
+                    <Server className="w-4 h-4 mr-2" />
+                    Tester DNS
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {dnsResults && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <Info className="w-4 h-4 inline mr-2" />
+                  <strong>Domaine testé :</strong> {dnsResults.domain || domain}
+                </p>
+              </div>
+
+              {/* Test MX */}
+              {dnsResults.mx && (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(dnsResults.mx.status || "error")}
+                      <h3 className="font-semibold">Enregistrements MX</h3>
+                    </div>
+                    {getStatusBadge(dnsResults.mx.status || "error")}
+                  </div>
+                  {dnsResults.mx.status === "success" ? (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Serveurs mail configurés :
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {(dnsResults.mx.records || []).map((record, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded"
+                          >
+                            {record}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
-                    <>
-                      <Server className="w-4 h-4 mr-2" />
-                      Tester DNS
-                    </>
+                    <div className="mt-2">
+                      <p className="text-sm text-red-600 dark:text-red-400">
+                        {dnsResults.mx.error ||
+                          "Erreur lors de la vérification MX"}
+                      </p>
+                      {dnsResults.mx.error &&
+                        dnsResults.mx.error.includes("timeout") && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Le test a pris trop de temps. Vérifiez votre
+                            connexion internet ou réessayez plus tard.
+                          </p>
+                        )}
+                    </div>
                   )}
-                </Button>
+                </div>
+              )}
+
+              {/* Test SPF */}
+              {dnsResults.spf !== undefined && dnsResults.spf !== null && (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(dnsResults.spf.status || "error")}
+                      <h3 className="font-semibold">Enregistrement SPF</h3>
+                    </div>
+                    {getStatusBadge(dnsResults.spf.status || "error")}
+                  </div>
+                  {dnsResults.spf.status === "success" ? (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Enregistrement SPF trouvé :
+                      </p>
+                      <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block">
+                        {dnsResults.spf.record}
+                      </code>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <p className="text-sm text-red-600 dark:text-red-400">
+                        {dnsResults.spf.error ||
+                          "Erreur lors de la vérification SPF"}
+                      </p>
+                      {dnsResults.spf.error &&
+                        dnsResults.spf.error.includes("timeout") && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Le test a pris trop de temps. Vérifiez votre
+                            connexion internet ou réessayez plus tard.
+                          </p>
+                        )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Test DKIM */}
+              {dnsResults.dkim !== undefined && dnsResults.dkim !== null && (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(dnsResults.dkim.status || "error")}
+                      <h3 className="font-semibold">Enregistrement DKIM</h3>
+                    </div>
+                    {getStatusBadge(dnsResults.dkim.status || "error")}
+                  </div>
+                  {dnsResults.dkim.status === "success" ? (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        DKIM configuré :
+                      </p>
+                      <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block break-all">
+                        {dnsResults.dkim.record}
+                      </code>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        {dnsResults.dkim.error ||
+                          "DKIM non configuré (optionnel mais recommandé)"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Test SMTP */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Test Connexion SMTP
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={handleTestSMTP} disabled={testingSMTP}>
+            {testingSMTP ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Test en cours...
+              </>
+            ) : (
+              <>
+                <Shield className="w-4 h-4 mr-2" />
+                Tester la connexion SMTP
+              </>
+            )}
+          </Button>
+
+          {smtpResult && (
+            <div
+              className={`p-4 rounded-lg ${
+                smtpResult.success
+                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {smtpResult.success ? (
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                )}
+                <p
+                  className={
+                    smtpResult.success
+                      ? "text-green-800 dark:text-green-200 font-semibold"
+                      : "text-red-800 dark:text-red-200 font-semibold"
+                  }
+                >
+                  {smtpResult.message}
+                </p>
+              </div>
+              {smtpResult.data && (
+                <div className="mt-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Host:
+                      </span>
+                      <span className="ml-2 font-mono">
+                        {smtpResult.data.host || "Non configuré"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Port:
+                      </span>
+                      <span className="ml-2 font-mono">
+                        {smtpResult.data.port || "Non configuré"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Secure:
+                      </span>
+                      <span className="ml-2">
+                        {smtpResult.data.secure ? "✅ Oui" : "❌ Non"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        User:
+                      </span>
+                      <span className="ml-2 font-mono">
+                        {smtpResult.data.user || "Non configuré"}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        From:
+                      </span>
+                      <span className="ml-2 font-mono">
+                        {smtpResult.data.from || "Non configuré"}
+                      </span>
+                    </div>
+                  </div>
+                  {smtpResult.data.suggestion && (
+                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <Info className="w-4 h-4 inline mr-2" />
+                        {smtpResult.data.suggestion}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Test d'envoi d'email */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube className="w-5 h-5" />
+            Test d'Envoi d'Email
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <Info className="w-4 h-4 inline mr-2" />
+              Envoyez un email de test à votre adresse pour vérifier que les
+              emails arrivent bien dans votre boîte mail. Vérifiez aussi les
+              spams au cas où.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="test-email-deliverability">
+              Votre adresse email
+            </Label>
+            <div className="flex flex-col gap-2 mt-2 sm:flex-row">
+              <Input
+                id="test-email-deliverability"
+                type="email"
+                placeholder="redacted@example.invalid"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="min-w-0 flex-1"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Button
+                onClick={() => handleSendTestEmail("test")}
+                disabled={
+                  sendingTest ||
+                  sendingReset ||
+                  sendingVerification ||
+                  !testEmail
+                }
+                variant="outline"
+                className="w-full"
+              >
+                {sendingTest ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email Test
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleSendTestEmail("reset")}
+                disabled={
+                  sendingTest ||
+                  sendingReset ||
+                  sendingVerification ||
+                  !testEmail
+                }
+                variant="outline"
+                className="w-full"
+              >
+                {sendingReset ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    Reset Password
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleSendTestEmail("verification")}
+                disabled={
+                  sendingTest ||
+                  sendingReset ||
+                  sendingVerification ||
+                  !testEmail
+                }
+                variant="outline"
+                className="w-full"
+              >
+                {sendingVerification ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Vérification
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {sendResult && (
+            <div
+              className={`p-4 rounded-lg ${
+                sendResult.success
+                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {sendResult.success ? (
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                )}
+                <p
+                  className={
+                    sendResult.success
+                      ? "text-green-800 dark:text-green-200"
+                      : "text-red-800 dark:text-red-200"
+                  }
+                >
+                  {sendResult.message}
+                </p>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {dnsResults && (
-              <div className="space-y-4 mt-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <Info className="w-4 h-4 inline mr-2" />
-                    <strong>Domaine testé :</strong>{" "}
-                    {dnsResults.domain || domain}
-                  </p>
-                </div>
-
-                {/* Test MX */}
-                {dnsResults.mx && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(dnsResults.mx.status || "error")}
-                        <h3 className="font-semibold">Enregistrements MX</h3>
-                      </div>
-                      {getStatusBadge(dnsResults.mx.status || "error")}
-                    </div>
-                    {dnsResults.mx.status === "success" ? (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Serveurs mail configurés :
-                        </p>
-                        <ul className="list-disc list-inside space-y-1">
-                          {(dnsResults.mx.records || []).map((record, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded"
-                            >
-                              {record}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="mt-2">
-                        <p className="text-sm text-red-600 dark:text-red-400">
-                          {dnsResults.mx.error ||
-                            "Erreur lors de la vérification MX"}
-                        </p>
-                        {dnsResults.mx.error &&
-                          dnsResults.mx.error.includes("timeout") && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Le test a pris trop de temps. Vérifiez votre
-                              connexion internet ou réessayez plus tard.
-                            </p>
-                          )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Test SPF */}
-                {dnsResults.spf !== undefined && dnsResults.spf !== null && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(dnsResults.spf.status || "error")}
-                        <h3 className="font-semibold">Enregistrement SPF</h3>
-                      </div>
-                      {getStatusBadge(dnsResults.spf.status || "error")}
-                    </div>
-                    {dnsResults.spf.status === "success" ? (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Enregistrement SPF trouvé :
-                        </p>
-                        <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block">
-                          {dnsResults.spf.record}
-                        </code>
-                      </div>
-                    ) : (
-                      <div className="mt-2">
-                        <p className="text-sm text-red-600 dark:text-red-400">
-                          {dnsResults.spf.error ||
-                            "Erreur lors de la vérification SPF"}
-                        </p>
-                        {dnsResults.spf.error &&
-                          dnsResults.spf.error.includes("timeout") && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Le test a pris trop de temps. Vérifiez votre
-                              connexion internet ou réessayez plus tard.
-                            </p>
-                          )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Test DKIM */}
-                {dnsResults.dkim !== undefined && dnsResults.dkim !== null && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(dnsResults.dkim.status || "error")}
-                        <h3 className="font-semibold">Enregistrement DKIM</h3>
-                      </div>
-                      {getStatusBadge(dnsResults.dkim.status || "error")}
-                    </div>
-                    {dnsResults.dkim.status === "success" ? (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          DKIM configuré :
-                        </p>
-                        <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block break-all">
-                          {dnsResults.dkim.record}
-                        </code>
-                      </div>
-                    ) : (
-                      <div className="mt-2">
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                          {dnsResults.dkim.error ||
-                            "DKIM non configuré (optionnel mais recommandé)"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Test SMTP */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Test Connexion SMTP
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={handleTestSMTP} disabled={testingSMTP}>
-              {testingSMTP ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Test en cours...
-                </>
-              ) : (
-                <>
-                  <Shield className="w-4 h-4 mr-2" />
-                  Tester la connexion SMTP
-                </>
-              )}
-            </Button>
-
-            {smtpResult && (
-              <div
-                className={`p-4 rounded-lg ${
-                  smtpResult.success
-                    ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  {smtpResult.success ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                  <p
-                    className={
-                      smtpResult.success
-                        ? "text-green-800 dark:text-green-200 font-semibold"
-                        : "text-red-800 dark:text-red-200 font-semibold"
-                    }
-                  >
-                    {smtpResult.message}
-                  </p>
-                </div>
-                {smtpResult.data && (
-                  <div className="mt-3 space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">
-                          Host:
-                        </span>
-                        <span className="ml-2 font-mono">
-                          {smtpResult.data.host || "Non configuré"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">
-                          Port:
-                        </span>
-                        <span className="ml-2 font-mono">
-                          {smtpResult.data.port || "Non configuré"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">
-                          Secure:
-                        </span>
-                        <span className="ml-2">
-                          {smtpResult.data.secure ? "✅ Oui" : "❌ Non"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">
-                          User:
-                        </span>
-                        <span className="ml-2 font-mono">
-                          {smtpResult.data.user || "Non configuré"}
-                        </span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">
-                          From:
-                        </span>
-                        <span className="ml-2 font-mono">
-                          {smtpResult.data.from || "Non configuré"}
-                        </span>
-                      </div>
-                    </div>
-                    {smtpResult.data.suggestion && (
-                      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          <Info className="w-4 h-4 inline mr-2" />
-                          {smtpResult.data.suggestion}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Test d'envoi d'email */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TestTube className="w-5 h-5" />
-              Test d'Envoi d'Email
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <Info className="w-4 h-4 inline mr-2" />
-                Envoyez un email de test à votre adresse pour vérifier que les
-                emails arrivent bien dans votre boîte mail. Vérifiez aussi les
-                spams au cas où.
+      {/* Recommandations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recommandations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+              <p>
+                <strong>MX :</strong> Doit pointer vers les serveurs mail OVH
+                (mx1.mail.ovh.net, etc.)
               </p>
             </div>
-            <div>
-              <Label htmlFor="test-email-deliverability">
-                Votre adresse email
-              </Label>
-              <div className="flex flex-col gap-2 mt-2 sm:flex-row">
-                <Input
-                  id="test-email-deliverability"
-                  type="email"
-                  placeholder="redacted@example.invalid"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="min-w-0 flex-1"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Button
-                  onClick={() => handleSendTestEmail("test")}
-                  disabled={
-                    sendingTest ||
-                    sendingReset ||
-                    sendingVerification ||
-                    !testEmail
-                  }
-                  variant="outline"
-                  className="w-full"
-                >
-                  {sendingTest ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4 mr-2" />
-                      Email Test
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => handleSendTestEmail("reset")}
-                  disabled={
-                    sendingTest ||
-                    sendingReset ||
-                    sendingVerification ||
-                    !testEmail
-                  }
-                  variant="outline"
-                  className="w-full"
-                >
-                  {sendingReset ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="w-4 h-4 mr-2" />
-                      Reset Password
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => handleSendTestEmail("verification")}
-                  disabled={
-                    sendingTest ||
-                    sendingReset ||
-                    sendingVerification ||
-                    !testEmail
-                  }
-                  variant="outline"
-                  className="w-full"
-                >
-                  {sendingVerification ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Vérification
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+              <p>
+                <strong>SPF :</strong> Doit contenir "v=spf1 include:mx.ovh.com
+                ~all" pour éviter les spams
+              </p>
             </div>
-
-            {sendResult && (
-              <div
-                className={`p-4 rounded-lg ${
-                  sendResult.success
-                    ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {sendResult.success ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                  <p
-                    className={
-                      sendResult.success
-                        ? "text-green-800 dark:text-green-200"
-                        : "text-red-800 dark:text-red-200"
-                    }
-                  >
-                    {sendResult.message}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recommandations */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recommandations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                <p>
-                  <strong>MX :</strong> Doit pointer vers les serveurs mail OVH
-                  (mx1.mail.ovh.net, etc.)
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                <p>
-                  <strong>SPF :</strong> Doit contenir "v=spf1
-                  include:mx.ovh.com ~all" pour éviter les spams
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-600 mt-0.5" />
-                <p>
-                  <strong>DKIM :</strong> Optionnel mais recommandé pour
-                  améliorer la délivrabilité
-                </p>
-              </div>
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+              <p>
+                <strong>DKIM :</strong> Optionnel mais recommandé pour améliorer
+                la délivrabilité
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
     </EmailBackofficePageShell>
   );
 }

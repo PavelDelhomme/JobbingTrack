@@ -141,13 +141,13 @@ export default function TrashManagementPage() {
       title="🗑️ Gestion de la Corbeille"
       description="Gérer et restaurer les éléments supprimés"
       actions={
-          <button
-            onClick={handleEmptyTrash}
-            className="flex w-full items-center justify-center gap-2 px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors sm:w-auto"
-          >
-            <span>🗑️</span>
-            <span>Vider la corbeille</span>
-          </button>
+        <button
+          onClick={handleEmptyTrash}
+          className="flex w-full items-center justify-center gap-2 px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors sm:w-auto"
+        >
+          <span>🗑️</span>
+          <span>Vider la corbeille</span>
+        </button>
       }
     >
       <div className="space-y-6">

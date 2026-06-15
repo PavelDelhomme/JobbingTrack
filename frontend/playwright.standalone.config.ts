@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import { loadRootEnv } from "./tests/e2e/loadRootEnv";
+import { applyPlaywrightRuntimeEnv } from "./tests/e2e/playwright-runtime-env";
+
+loadRootEnv();
+applyPlaywrightRuntimeEnv(__dirname);
 
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ||
@@ -86,12 +91,7 @@ export default defineConfig({
       ],
     },
   ],
-  webServer: {
-    command: "echo",
-    url: baseURL,
-    reuseExistingServer: true,
-    timeout: 15_000,
-  },
+  // Frontend Docker (port 5003 par défaut) doit être démarré avant la campagne.
   globalSetup: "./tests/e2e/global-setup.ts",
   globalTeardown: "./tests/e2e/global-teardown.ts",
 });

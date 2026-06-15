@@ -1413,6 +1413,7 @@ export default function PerformancesCorrelationPage() {
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [historiesLoading, setHistoriesLoading] = useState(false);
   const [containers, setContainers] = useState<string[]>([]);
   const [focusName, setFocusName] = useState<string | null>(null);
   const [loadedOrder, setLoadedOrder] = useState<string[]>([]);
@@ -1640,312 +1641,320 @@ export default function PerformancesCorrelationPage() {
     let cancelled = false;
     const controller = new AbortController();
     if (loadedOrder.length === 0) {
+      setHistoriesLoading(false);
       setContainerRows({});
       setAvailabilityByService({});
       setDataQualityByService({});
       setLiveFallbackByService({});
       return;
     }
+    setHistoriesLoading(true);
     (async () => {
-      const bounds = computeQueryBounds({
-        windowMode,
-        presetHours,
-        appliedCustom,
-      });
-      const hours = hoursBetween(bounds.start, bounds.end);
-      const fetchLimits = scaledFetchLimits(hours, limits);
-      const opts = {
-        startDate: bounds.start.toISOString(),
-        endDate: bounds.end.toISOString(),
-        limit: fetchLimits.historyLimit,
-        offset: 0,
-      };
-      const availLimit = Math.min(
-        15000,
-        Math.max(200, fetchLimits.historyLimit * 3),
-      );
-      const results = await promisePool(
-        loadedOrder,
-        FETCH_CONCURRENCY,
-        async (name) => {
-          const [rows, availRaw, availStats, liveStats] = await Promise.all([
-            settleMetricCall(
-              analyticsService.getContainerMetricsHistory(name, {
-                ...opts,
-                signal: controller.signal,
-              }),
-              [] as Record<string, unknown>[],
-            ),
-            settleMetricCall(
-              analyticsService.getServiceAvailabilityHistory(name, {
-                startDate: opts.startDate,
-                endDate: opts.endDate,
-                limit: availLimit,
-                signal: controller.signal,
-              }),
-              [] as Record<string, unknown>[],
-            ),
-            settleMetricCall(
-              analyticsService.getServiceAvailabilityStats(
-                name,
-                Math.max(1, Math.ceil(hours)),
-                controller.signal,
+      try {
+        const bounds = computeQueryBounds({
+          windowMode,
+          presetHours,
+          appliedCustom,
+        });
+        const hours = hoursBetween(bounds.start, bounds.end);
+        const fetchLimits = scaledFetchLimits(hours, limits);
+        const opts = {
+          startDate: bounds.start.toISOString(),
+          endDate: bounds.end.toISOString(),
+          limit: fetchLimits.historyLimit,
+          offset: 0,
+        };
+        const availLimit = Math.min(
+          15000,
+          Math.max(200, fetchLimits.historyLimit * 3),
+        );
+        const results = await promisePool(
+          loadedOrder,
+          FETCH_CONCURRENCY,
+          async (name) => {
+            const [rows, availRaw, availStats, liveStats] = await Promise.all([
+              settleMetricCall(
+                analyticsService.getContainerMetricsHistory(name, {
+                  ...opts,
+                  signal: controller.signal,
+                }),
+                [] as Record<string, unknown>[],
               ),
-              null,
-            ),
-            settleMetricCall(
-              analyticsService.getContainerStats(name, controller.signal, {
-                timeoutMs: 10_000,
-              }),
-              null,
-            ),
-          ]);
-          const parsed: ContainerPoint[] = (rows || [])
-            .map((r: Record<string, unknown>) => {
-              const ts = normalizeMetricTimestampToIso(
-                String(r.timestamp ?? ""),
-              );
-              const timeMs = metricRowToTimeMs(r, ts);
-              if (!ts || timeMs == null) return null;
-              const networkRxBytes = readNumericField(r, [
-                "networkRxBytes",
-                "network_rx_bytes",
-                "total_network_rx_bytes",
-                "totalNetworkRxBytes",
-              ]);
-              const networkTxBytes = readNumericField(r, [
-                "networkTxBytes",
-                "network_tx_bytes",
-                "total_network_tx_bytes",
-                "totalNetworkTxBytes",
-              ]);
-              const ioReadMb = readMetricValueAsMb(
-                r,
-                [
-                  "blockIoReadBytes",
-                  "block_io_read_bytes",
-                  "blockReadBytes",
-                  "block_read_bytes",
-                  "blkioReadBytes",
-                  "blkio_read_bytes",
-                  "ioReadBytes",
-                  "io_read_bytes",
-                ],
-                [
-                  "block_io_read_mb",
-                  "blockReadMb",
-                  "blkio_read_mb",
-                  "io_read_mb",
-                ],
-              );
-              const ioWriteMb = readMetricValueAsMb(
-                r,
-                [
-                  "blockIoWriteBytes",
-                  "block_io_write_bytes",
-                  "blockWriteBytes",
-                  "block_write_bytes",
-                  "blkioWriteBytes",
-                  "blkio_write_bytes",
-                  "ioWriteBytes",
-                  "io_write_bytes",
-                ],
-                [
-                  "block_io_write_mb",
-                  "blockWriteMb",
-                  "blkio_write_mb",
-                  "io_write_mb",
-                ],
-              );
-              const cpu = readNumericField(r, [
-                "cpuUsagePercent",
-                "cpu_usage_percent",
-                "cpu_percent",
-              ]);
-              const memoryPct = readNumericField(r, [
-                "memoryUsagePercent",
-                "memory_usage_percent",
-                "memory_percent",
-              ]);
-              const memoryUsedBytes = readNumericField(r, [
-                "memoryUsageBytes",
-                "memory_usage_bytes",
-                "memory_used_bytes",
-              ]);
-              const memoryLimitBytes = readNumericField(r, [
-                "memoryLimitBytes",
-                "memory_limit_bytes",
-                "memory_total_bytes",
-              ]);
-              const memory =
-                memoryPct != null
-                  ? memoryPct
-                  : memoryUsedBytes != null &&
-                      memoryLimitBytes != null &&
-                      memoryLimitBytes > 0
-                    ? (memoryUsedBytes / memoryLimitBytes) * 100
-                    : null;
-              const networkRxMb = readMetricValueAsMb(
-                r,
-                [
+              settleMetricCall(
+                analyticsService.getServiceAvailabilityHistory(name, {
+                  startDate: opts.startDate,
+                  endDate: opts.endDate,
+                  limit: availLimit,
+                  signal: controller.signal,
+                }),
+                [] as Record<string, unknown>[],
+              ),
+              settleMetricCall(
+                analyticsService.getServiceAvailabilityStats(
+                  name,
+                  Math.max(1, Math.ceil(hours)),
+                  controller.signal,
+                ),
+                null,
+              ),
+              settleMetricCall(
+                analyticsService.getContainerStats(name, controller.signal, {
+                  timeoutMs: 10_000,
+                }),
+                null,
+              ),
+            ]);
+            const parsed: ContainerPoint[] = (rows || [])
+              .map((r: Record<string, unknown>) => {
+                const ts = normalizeMetricTimestampToIso(
+                  String(r.timestamp ?? ""),
+                );
+                const timeMs = metricRowToTimeMs(r, ts);
+                if (!ts || timeMs == null) return null;
+                const networkRxBytes = readNumericField(r, [
                   "networkRxBytes",
                   "network_rx_bytes",
                   "total_network_rx_bytes",
                   "totalNetworkRxBytes",
-                ],
-                ["network_rx_mb", "networkRxMb", "total_network_rx_mb"],
-              );
-              const networkTxMb = readMetricValueAsMb(
-                r,
-                [
+                ]);
+                const networkTxBytes = readNumericField(r, [
                   "networkTxBytes",
                   "network_tx_bytes",
                   "total_network_tx_bytes",
                   "totalNetworkTxBytes",
-                ],
-                ["network_tx_mb", "networkTxMb", "total_network_tx_mb"],
-              );
-              return {
-                timeMs,
-                timestamp: ts,
-                cpu,
-                memory,
-                networkRxMb,
-                networkTxMb,
-                ioReadMb,
-                ioWriteMb,
-              };
-            })
-            .filter((x): x is ContainerPoint => x != null);
-          const availabilityHistory = parseAvailabilityHistoryRows(
-            (availRaw || []) as Record<string, unknown>[],
-          );
-          const availability =
-            availabilityHistory.length > 0
-              ? availabilityHistory
-              : buildAvailabilityFallbackFromStats(
-                  availStats as AvailabilityStatsLike,
-                  bounds,
+                ]);
+                const ioReadMb = readMetricValueAsMb(
+                  r,
+                  [
+                    "blockIoReadBytes",
+                    "block_io_read_bytes",
+                    "blockReadBytes",
+                    "block_read_bytes",
+                    "blkioReadBytes",
+                    "blkio_read_bytes",
+                    "ioReadBytes",
+                    "io_read_bytes",
+                  ],
+                  [
+                    "block_io_read_mb",
+                    "blockReadMb",
+                    "blkio_read_mb",
+                    "io_read_mb",
+                  ],
                 );
-          const liveRaw = (
-            liveStats && typeof liveStats === "object"
-              ? (liveStats as Record<string, unknown>)
-              : {}
-          ) as Record<string, unknown>;
-          const liveMemoryPct =
-            readNumericField(liveRaw, ["memory_percent", "memoryPercent"]) ??
-            readNestedNumber(liveRaw, ["memory", "percentage"]);
-          const liveCpuPct =
-            readNumericField(liveRaw, ["cpu_percent", "cpuPercent"]) ??
-            readNestedNumber(liveRaw, ["cpu", "percentage"]);
-          const liveNetworkRxMb =
-            readMetricValueAsMb(
-              liveRaw,
-              ["network_rx", "networkRxBytes"],
-              ["network_rx_mb", "networkRxMb"],
-            ) ??
-            (readNestedNumber(liveRaw, ["network", "rx"]) != null
-              ? readNestedNumber(liveRaw, ["network", "rx"])! / (1024 * 1024)
-              : null);
-          const liveNetworkTxMb =
-            readMetricValueAsMb(
-              liveRaw,
-              ["network_tx", "networkTxBytes"],
-              ["network_tx_mb", "networkTxMb"],
-            ) ??
-            (readNestedNumber(liveRaw, ["network", "tx"]) != null
-              ? readNestedNumber(liveRaw, ["network", "tx"])! / (1024 * 1024)
-              : null);
-          const liveIoReadMb =
-            readMetricValueAsMb(
-              liveRaw,
-              ["block_read", "blockReadBytes", "block_io_read_bytes"],
-              ["block_read_mb", "blockIoReadMb", "block_io_read_mb"],
-            ) ??
-            (readNestedNumber(liveRaw, ["blockIO", "read"]) != null
-              ? readNestedNumber(liveRaw, ["blockIO", "read"])! / (1024 * 1024)
-              : null);
-          const liveIoWriteMb =
-            readMetricValueAsMb(
-              liveRaw,
-              ["block_write", "blockWriteBytes", "block_io_write_bytes"],
-              ["block_write_mb", "blockIoWriteMb", "block_io_write_mb"],
-            ) ??
-            (readNestedNumber(liveRaw, ["blockIO", "write"]) != null
-              ? readNestedNumber(liveRaw, ["blockIO", "write"])! / (1024 * 1024)
-              : null);
-          const liveFallback: LiveContainerFallback = {
-            cpuPercent: liveCpuPct,
-            memoryPercent: liveMemoryPct,
-            networkRxMb: liveNetworkRxMb,
-            networkTxMb: liveNetworkTxMb,
-            ioReadMb: Number.isFinite(liveIoReadMb) ? liveIoReadMb : null,
-            ioWriteMb: Number.isFinite(liveIoWriteMb) ? liveIoWriteMb : null,
-          };
-          const ioPoints = parsed.filter(
-            (p) => p.ioReadMb != null || p.ioWriteMb != null,
-          ).length;
-          const trSource: ServiceDataQuality["trSource"] =
-            availabilityHistory.length > 0
-              ? "history"
-              : availability.length > 0
-                ? "stats-fallback"
-                : "none";
-          return {
-            name,
-            rows: parsed,
-            availability,
-            quality: {
-              ioPoints,
-              totalPoints: parsed.length,
-              trSource,
-              trPoints: availability.length,
-            } satisfies ServiceDataQuality,
-            liveFallback,
-          };
-        },
-      );
-      if (cancelled) return;
-      setContainerRows((prev) => {
-        const next: Record<string, ContainerPoint[]> = { ...prev };
-        for (const k of Object.keys(next)) {
-          if (!loadedOrder.includes(k)) delete next[k];
-        }
-        results.forEach((r) => {
-          next[r.name] = r.rows;
+                const ioWriteMb = readMetricValueAsMb(
+                  r,
+                  [
+                    "blockIoWriteBytes",
+                    "block_io_write_bytes",
+                    "blockWriteBytes",
+                    "block_write_bytes",
+                    "blkioWriteBytes",
+                    "blkio_write_bytes",
+                    "ioWriteBytes",
+                    "io_write_bytes",
+                  ],
+                  [
+                    "block_io_write_mb",
+                    "blockWriteMb",
+                    "blkio_write_mb",
+                    "io_write_mb",
+                  ],
+                );
+                const cpu = readNumericField(r, [
+                  "cpuUsagePercent",
+                  "cpu_usage_percent",
+                  "cpu_percent",
+                ]);
+                const memoryPct = readNumericField(r, [
+                  "memoryUsagePercent",
+                  "memory_usage_percent",
+                  "memory_percent",
+                ]);
+                const memoryUsedBytes = readNumericField(r, [
+                  "memoryUsageBytes",
+                  "memory_usage_bytes",
+                  "memory_used_bytes",
+                ]);
+                const memoryLimitBytes = readNumericField(r, [
+                  "memoryLimitBytes",
+                  "memory_limit_bytes",
+                  "memory_total_bytes",
+                ]);
+                const memory =
+                  memoryPct != null
+                    ? memoryPct
+                    : memoryUsedBytes != null &&
+                        memoryLimitBytes != null &&
+                        memoryLimitBytes > 0
+                      ? (memoryUsedBytes / memoryLimitBytes) * 100
+                      : null;
+                const networkRxMb = readMetricValueAsMb(
+                  r,
+                  [
+                    "networkRxBytes",
+                    "network_rx_bytes",
+                    "total_network_rx_bytes",
+                    "totalNetworkRxBytes",
+                  ],
+                  ["network_rx_mb", "networkRxMb", "total_network_rx_mb"],
+                );
+                const networkTxMb = readMetricValueAsMb(
+                  r,
+                  [
+                    "networkTxBytes",
+                    "network_tx_bytes",
+                    "total_network_tx_bytes",
+                    "totalNetworkTxBytes",
+                  ],
+                  ["network_tx_mb", "networkTxMb", "total_network_tx_mb"],
+                );
+                return {
+                  timeMs,
+                  timestamp: ts,
+                  cpu,
+                  memory,
+                  networkRxMb,
+                  networkTxMb,
+                  ioReadMb,
+                  ioWriteMb,
+                };
+              })
+              .filter((x): x is ContainerPoint => x != null);
+            const availabilityHistory = parseAvailabilityHistoryRows(
+              (availRaw || []) as Record<string, unknown>[],
+            );
+            const availability =
+              availabilityHistory.length > 0
+                ? availabilityHistory
+                : buildAvailabilityFallbackFromStats(
+                    availStats as AvailabilityStatsLike,
+                    bounds,
+                  );
+            const liveRaw = (
+              liveStats && typeof liveStats === "object"
+                ? (liveStats as Record<string, unknown>)
+                : {}
+            ) as Record<string, unknown>;
+            const liveMemoryPct =
+              readNumericField(liveRaw, ["memory_percent", "memoryPercent"]) ??
+              readNestedNumber(liveRaw, ["memory", "percentage"]);
+            const liveCpuPct =
+              readNumericField(liveRaw, ["cpu_percent", "cpuPercent"]) ??
+              readNestedNumber(liveRaw, ["cpu", "percentage"]);
+            const liveNetworkRxMb =
+              readMetricValueAsMb(
+                liveRaw,
+                ["network_rx", "networkRxBytes"],
+                ["network_rx_mb", "networkRxMb"],
+              ) ??
+              (readNestedNumber(liveRaw, ["network", "rx"]) != null
+                ? readNestedNumber(liveRaw, ["network", "rx"])! / (1024 * 1024)
+                : null);
+            const liveNetworkTxMb =
+              readMetricValueAsMb(
+                liveRaw,
+                ["network_tx", "networkTxBytes"],
+                ["network_tx_mb", "networkTxMb"],
+              ) ??
+              (readNestedNumber(liveRaw, ["network", "tx"]) != null
+                ? readNestedNumber(liveRaw, ["network", "tx"])! / (1024 * 1024)
+                : null);
+            const liveIoReadMb =
+              readMetricValueAsMb(
+                liveRaw,
+                ["block_read", "blockReadBytes", "block_io_read_bytes"],
+                ["block_read_mb", "blockIoReadMb", "block_io_read_mb"],
+              ) ??
+              (readNestedNumber(liveRaw, ["blockIO", "read"]) != null
+                ? readNestedNumber(liveRaw, ["blockIO", "read"])! /
+                  (1024 * 1024)
+                : null);
+            const liveIoWriteMb =
+              readMetricValueAsMb(
+                liveRaw,
+                ["block_write", "blockWriteBytes", "block_io_write_bytes"],
+                ["block_write_mb", "blockIoWriteMb", "block_io_write_mb"],
+              ) ??
+              (readNestedNumber(liveRaw, ["blockIO", "write"]) != null
+                ? readNestedNumber(liveRaw, ["blockIO", "write"])! /
+                  (1024 * 1024)
+                : null);
+            const liveFallback: LiveContainerFallback = {
+              cpuPercent: liveCpuPct,
+              memoryPercent: liveMemoryPct,
+              networkRxMb: liveNetworkRxMb,
+              networkTxMb: liveNetworkTxMb,
+              ioReadMb: Number.isFinite(liveIoReadMb) ? liveIoReadMb : null,
+              ioWriteMb: Number.isFinite(liveIoWriteMb) ? liveIoWriteMb : null,
+            };
+            const ioPoints = parsed.filter(
+              (p) => p.ioReadMb != null || p.ioWriteMb != null,
+            ).length;
+            const trSource: ServiceDataQuality["trSource"] =
+              availabilityHistory.length > 0
+                ? "history"
+                : availability.length > 0
+                  ? "stats-fallback"
+                  : "none";
+            return {
+              name,
+              rows: parsed,
+              availability,
+              quality: {
+                ioPoints,
+                totalPoints: parsed.length,
+                trSource,
+                trPoints: availability.length,
+              } satisfies ServiceDataQuality,
+              liveFallback,
+            };
+          },
+        );
+        if (cancelled) return;
+        setContainerRows((prev) => {
+          const next: Record<string, ContainerPoint[]> = { ...prev };
+          for (const k of Object.keys(next)) {
+            if (!loadedOrder.includes(k)) delete next[k];
+          }
+          results.forEach((r) => {
+            next[r.name] = r.rows;
+          });
+          return next;
         });
-        return next;
-      });
-      setAvailabilityByService((prev) => {
-        const next: Record<string, AvailabilityPoint[]> = { ...prev };
-        for (const k of Object.keys(next)) {
-          if (!loadedOrder.includes(k)) delete next[k];
-        }
-        results.forEach((r) => {
-          next[r.name] = r.availability;
+        setAvailabilityByService((prev) => {
+          const next: Record<string, AvailabilityPoint[]> = { ...prev };
+          for (const k of Object.keys(next)) {
+            if (!loadedOrder.includes(k)) delete next[k];
+          }
+          results.forEach((r) => {
+            next[r.name] = r.availability;
+          });
+          return next;
         });
-        return next;
-      });
-      setDataQualityByService((prev) => {
-        const next: Record<string, ServiceDataQuality> = { ...prev };
-        for (const k of Object.keys(next)) {
-          if (!loadedOrder.includes(k)) delete next[k];
-        }
-        results.forEach((r) => {
-          next[r.name] = r.quality;
+        setDataQualityByService((prev) => {
+          const next: Record<string, ServiceDataQuality> = { ...prev };
+          for (const k of Object.keys(next)) {
+            if (!loadedOrder.includes(k)) delete next[k];
+          }
+          results.forEach((r) => {
+            next[r.name] = r.quality;
+          });
+          return next;
         });
-        return next;
-      });
-      setLiveFallbackByService((prev) => {
-        const next: Record<string, LiveContainerFallback> = { ...prev };
-        for (const k of Object.keys(next)) {
-          if (!loadedOrder.includes(k)) delete next[k];
-        }
-        results.forEach((r) => {
-          next[r.name] = r.liveFallback;
+        setLiveFallbackByService((prev) => {
+          const next: Record<string, LiveContainerFallback> = { ...prev };
+          for (const k of Object.keys(next)) {
+            if (!loadedOrder.includes(k)) delete next[k];
+          }
+          results.forEach((r) => {
+            next[r.name] = r.liveFallback;
+          });
+          return next;
         });
-        return next;
-      });
+      } finally {
+        if (!cancelled) setHistoriesLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -2436,7 +2445,8 @@ export default function PerformancesCorrelationPage() {
               </span>
             )}
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              Synthèse chargée: {loadedWithData}/{loadedOrder.length} · liste:{" "}
+              Synthèse chargée: {loadedWithData}/{loadedOrder.length}
+              {historiesLoading ? " (chargement des courbes…)" : ""} · liste:{" "}
               {containers.length} services
             </span>
             {lastUpdatedAt && (
@@ -2872,12 +2882,30 @@ export default function PerformancesCorrelationPage() {
                           </div>
                         );
                       })()}
-                      <ServiceDashboardCard
-                        fullName={focusName}
-                        mergedRows={mergedByContainer[focusName] || []}
-                        subChartHeight={limits.subChartHeight}
-                        maxPointsPerChart={limits.pointsPerSubchart}
-                      />
+                      {historiesLoading &&
+                      (mergedByContainer[focusName]?.length ?? 0) === 0 ? (
+                        <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20">
+                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            Chargement des courbes de corrélation…
+                          </p>
+                          <p className="mt-1 text-xs text-blue-800/80 dark:text-blue-100/80">
+                            Les historiques conteneur, disponibilité et
+                            métriques système sont chargés en parallèle avec une
+                            concurrence limitée pour préserver le dev server.
+                          </p>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <div className="h-28 animate-pulse rounded-lg bg-blue-100 dark:bg-blue-900/40" />
+                            <div className="h-28 animate-pulse rounded-lg bg-blue-100 dark:bg-blue-900/40" />
+                          </div>
+                        </div>
+                      ) : (
+                        <ServiceDashboardCard
+                          fullName={focusName}
+                          mergedRows={mergedByContainer[focusName] || []}
+                          subChartHeight={limits.subChartHeight}
+                          maxPointsPerChart={limits.pointsPerSubchart}
+                        />
+                      )}
                       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800/80">
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           Corrélation incidents (logs + sécurité)

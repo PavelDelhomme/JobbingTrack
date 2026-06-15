@@ -628,161 +628,160 @@ export default function PerformancesPage() {
         </StickyTimeRangeToolbar>
       }
     >
+      {loading && chartData.length === 0 ? (
+        <PerformanceLoadingState />
+      ) : chartData.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucune donnée disponible pour cette période. Vérifiez que le
+          metrics-aggregator collecte les snapshots système.
+        </PerformanceEmptyState>
+      ) : (
+        <>
+          <PerformanceChartCard title="CPU et mémoire (%)">
+            <div className="w-full min-h-[240px] sm:min-h-[400px]">
+              <SystemCpuMemoryAreaCharts
+                chartData={chartData}
+                xDomainMin={chartXDomainMin}
+                xDomainMax={chartXDomainMax}
+                axisShowDate={perfAxisShowDate}
+                chartHeight={220}
+              />
+            </div>
+          </PerformanceChartCard>
 
-        {loading && chartData.length === 0 ? (
-          <PerformanceLoadingState />
-        ) : chartData.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucune donnée disponible pour cette période. Vérifiez que le
-            metrics-aggregator collecte les snapshots système.
-          </PerformanceEmptyState>
-        ) : (
-          <>
-            <PerformanceChartCard title="CPU et mémoire (%)">
-              <div className="w-full min-h-[240px] sm:min-h-[400px]">
-                <SystemCpuMemoryAreaCharts
+          {showResponseTime ? (
+            <PerformanceChartCard
+              id="latence"
+              title="Temps de réponse agrégé (ms)"
+              className="scroll-mt-24"
+            >
+              <div className="w-full min-h-[220px] sm:min-h-[280px]">
+                <PerformancesResponseTimeLineChart
                   chartData={chartData}
                   xDomainMin={chartXDomainMin}
                   xDomainMax={chartXDomainMax}
                   axisShowDate={perfAxisShowDate}
-                  chartHeight={220}
                 />
               </div>
             </PerformanceChartCard>
+          ) : (
+            <PerformanceInfoNotice
+              id="latence"
+              className="scroll-mt-24 border-dashed border-gray-200 bg-gray-50/80 text-gray-600 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
+            >
+              <p className="font-medium text-gray-800 dark:text-gray-200">
+                Temps de réponse
+              </p>
+              <p className="mt-1 text-xs">
+                Aucune série{" "}
+                <code className="text-[11px]">responseTimeAvg</code> /{" "}
+                <code className="text-[11px]">avg_response_time_ms</code> sur
+                cette période. Vérifier la collecte côté metrics-aggregator /
+                table persistance ; la vue Statistiques globale peut déjà
+                exposer un agrégat différent.
+              </p>
+            </PerformanceInfoNotice>
+          )}
 
-            {showResponseTime ? (
-              <PerformanceChartCard
-                id="latence"
-                title="Temps de réponse agrégé (ms)"
-                className="scroll-mt-24"
-              >
-                <div className="w-full min-h-[220px] sm:min-h-[280px]">
-                  <PerformancesResponseTimeLineChart
+          {chartData.some(
+            (d) => d.networkRxMb != null || d.networkTxMb != null,
+          ) && (
+            <PerformanceChartCard
+              title="Réseau — cumul, débit et corrélation"
+              contentClassName="space-y-8"
+            >
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  Réseau — cumul (Mo)
+                </h2>
+                <div className="w-full min-h-[240px] sm:min-h-[280px]">
+                  <PerformancesNetworkCumulativeLineChart
                     chartData={chartData}
                     xDomainMin={chartXDomainMin}
                     xDomainMax={chartXDomainMax}
                     axisShowDate={perfAxisShowDate}
                   />
                 </div>
-              </PerformanceChartCard>
-            ) : (
-              <PerformanceInfoNotice
-                id="latence"
-                className="scroll-mt-24 border-dashed border-gray-200 bg-gray-50/80 text-gray-600 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
-              >
-                <p className="font-medium text-gray-800 dark:text-gray-200">
-                  Temps de réponse
-                </p>
-                <p className="mt-1 text-xs">
-                  Aucune série{" "}
-                  <code className="text-[11px]">responseTimeAvg</code> /{" "}
-                  <code className="text-[11px]">avg_response_time_ms</code> sur
-                  cette période. Vérifier la collecte côté metrics-aggregator /
-                  table persistance ; la vue Statistiques globale peut déjà
-                  exposer un agrégat différent.
-                </p>
-              </PerformanceInfoNotice>
-            )}
+              </div>
 
-            {chartData.some(
-              (d) => d.networkRxMb != null || d.networkTxMb != null,
-            ) && (
-              <PerformanceChartCard
-                title="Réseau — cumul, débit et corrélation"
-                contentClassName="space-y-8"
-              >
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  Réseau — débit estimé (Mo/min)
+                </h2>
+                <div className="w-full min-h-[220px] sm:min-h-[280px]">
+                  <PerformancesNetworkRateLineChart
+                    networkChartRows={networkChartRows}
+                    xDomainMin={chartXDomainMin}
+                    xDomainMax={chartXDomainMax}
+                    axisShowDate={perfAxisShowDate}
+                    networkRateYMax={networkRateYMax}
+                  />
+                </div>
+              </div>
+
+              {showCpuNetworkCorrelation ? (
                 <div>
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    Réseau — cumul (Mo)
+                    Corrélation CPU (%) vs débit réseau (Mo/min)
                   </h2>
-                  <div className="w-full min-h-[240px] sm:min-h-[280px]">
-                    <PerformancesNetworkCumulativeLineChart
-                      chartData={chartData}
-                      xDomainMin={chartXDomainMin}
-                      xDomainMax={chartXDomainMax}
-                      axisShowDate={perfAxisShowDate}
-                    />
-                  </div>
+                  <SystemCpuNetworkCorrelationChart
+                    rows={networkChartRows}
+                    xDomainMin={chartXDomainMin}
+                    xDomainMax={chartXDomainMax}
+                    axisShowDate={perfAxisShowDate}
+                    rateMax={networkRateYMax}
+                    height={320}
+                  />
                 </div>
+              ) : null}
+            </PerformanceChartCard>
+          )}
 
-                <div>
-                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    Réseau — débit estimé (Mo/min)
-                  </h2>
-                  <div className="w-full min-h-[220px] sm:min-h-[280px]">
-                    <PerformancesNetworkRateLineChart
-                      networkChartRows={networkChartRows}
-                      xDomainMin={chartXDomainMin}
-                      xDomainMax={chartXDomainMax}
-                      axisShowDate={perfAxisShowDate}
-                      networkRateYMax={networkRateYMax}
-                    />
-                  </div>
-                </div>
-
-                {showCpuNetworkCorrelation ? (
-                  <div>
-                    <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                      Corrélation CPU (%) vs débit réseau (Mo/min)
-                    </h2>
-                    <SystemCpuNetworkCorrelationChart
-                      rows={networkChartRows}
-                      xDomainMin={chartXDomainMin}
-                      xDomainMax={chartXDomainMax}
-                      axisShowDate={perfAxisShowDate}
-                      rateMax={networkRateYMax}
-                      height={320}
-                    />
-                  </div>
-                ) : null}
-              </PerformanceChartCard>
-            )}
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-              <span className="block">
-                {rawData.length} points bruts → {chartData.length} points
-                affichés (compression pour lisibilité).
-              </span>
-            </p>
-          </>
-        )}
-
-        <PerformanceChartCard
-          title="Temps de réponse des endpoints (instantané)"
-          description={
-            <span>
-              Snapshot live agrégateur (hors plage des graphiques historiques
-              ci-dessus).
+          <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <span className="block">
+              {rawData.length} points bruts → {chartData.length} points affichés
+              (compression pour lisibilité).
             </span>
-          }
-        >
-          {liveOverviewMs != null && (
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              Moyenne monitoring-agent-rs / agrégat :{" "}
-              <strong className="font-semibold">
-                {liveOverviewMs.toFixed(1)} ms
-              </strong>
-            </p>
-          )}
-          {liveEndpointBars.length === 0 ? (
-            <p className="mt-3 text-sm text-amber-800 dark:text-amber-200/90">
-              Aucune mesure par service exploitable (agrégateur injoignable,
-              auth, ou sondes sans temps de réponse).
-            </p>
-          ) : (
-            <div className="mt-4 w-full min-h-[240px]">
-              <PerformancesLiveEndpointsBarChart bars={liveEndpointBars} />
-            </div>
-          )}
-          {liveEndpointNoMeasure.length > 0 && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
-              <span className="font-medium">
-                Services sans mesure instantanée :
-              </span>{" "}
-              {liveEndpointNoMeasure.join(", ")}
-            </div>
-          )}
-        </PerformanceChartCard>
+          </p>
+        </>
+      )}
+
+      <PerformanceChartCard
+        title="Temps de réponse des endpoints (instantané)"
+        description={
+          <span>
+            Snapshot live agrégateur (hors plage des graphiques historiques
+            ci-dessus).
+          </span>
+        }
+      >
+        {liveOverviewMs != null && (
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+            Moyenne monitoring-agent-rs / agrégat :{" "}
+            <strong className="font-semibold">
+              {liveOverviewMs.toFixed(1)} ms
+            </strong>
+          </p>
+        )}
+        {liveEndpointBars.length === 0 ? (
+          <p className="mt-3 text-sm text-amber-800 dark:text-amber-200/90">
+            Aucune mesure par service exploitable (agrégateur injoignable, auth,
+            ou sondes sans temps de réponse).
+          </p>
+        ) : (
+          <div className="mt-4 w-full min-h-[240px]">
+            <PerformancesLiveEndpointsBarChart bars={liveEndpointBars} />
+          </div>
+        )}
+        {liveEndpointNoMeasure.length > 0 && (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200/90">
+            <span className="font-medium">
+              Services sans mesure instantanée :
+            </span>{" "}
+            {liveEndpointNoMeasure.join(", ")}
+          </div>
+        )}
+      </PerformanceChartCard>
     </PerformancePageShell>
   );
 }

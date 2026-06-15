@@ -321,26 +321,26 @@ export default function APITestsPage() {
       description="Tests des endpoints et services backend"
       actions={
         <button
-            onClick={startAPITests}
-            disabled={!token || isRunning}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isRunning
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isRunning ? (
-              <>
-                <Square className="h-5 w-5" />
-                Arrêter
-              </>
-            ) : (
-              <>
-                <Play className="h-5 w-5" />
-                Lancer les tests API
-              </>
-            )}
-          </button>
+          onClick={startAPITests}
+          disabled={!token || isRunning}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            isRunning
+              ? "bg-red-600 text-white hover:bg-red-700"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {isRunning ? (
+            <>
+              <Square className="h-5 w-5" />
+              Arrêter
+            </>
+          ) : (
+            <>
+              <Play className="h-5 w-5" />
+              Lancer les tests API
+            </>
+          )}
+        </button>
       }
     >
       <div className="space-y-6">

@@ -12,7 +12,10 @@ import {
 import Link from "next/link";
 import { SecurityPageShell } from "../SecuritySubNav";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
-import { facetOptionsFromValues, mergeFacetSuggestions } from "@/lib/filters/facetUtils";
+import {
+  facetOptionsFromValues,
+  mergeFacetSuggestions,
+} from "@/lib/filters/facetUtils";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -103,14 +106,8 @@ export default function ThreatsPage() {
     () => buildInitialThreatFilters(searchParams),
     [searchParams],
   );
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<ThreatFilters>(initialThreatFilters);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<ThreatFilters>(initialThreatFilters);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
@@ -301,11 +298,19 @@ export default function ThreatsPage() {
   );
 
   const sourceIpSuggestions = useMemo(
-    () => mergeFacetSuggestions(undefined, threats.map((threat) => threat.sourceIp)),
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        threats.map((threat) => threat.sourceIp),
+      ),
     [threats],
   );
   const destIpSuggestions = useMemo(
-    () => mergeFacetSuggestions(undefined, threats.map((threat) => threat.destIp)),
+    () =>
+      mergeFacetSuggestions(
+        undefined,
+        threats.map((threat) => threat.destIp),
+      ),
     [threats],
   );
   const destPortSuggestions = useMemo(

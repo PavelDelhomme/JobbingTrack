@@ -395,7 +395,8 @@ export default function ServicesPage() {
               Chargement des services en cours...
             </p>
             <p className="text-gray-500 dark:text-gray-500 text-xs mt-2">
-              Cela peut prendre jusqu&apos;à 60 secondes selon le nombre de services
+              Cela peut prendre jusqu&apos;à 60 secondes selon le nombre de
+              services
             </p>
           </div>
         </div>

@@ -64,12 +64,17 @@ export async function getAdminToken(
 }
 
 /** Email/mot de passe de l'utilisateur seedé : variables env obligatoires, aucun secret en dur. */
-export function getSeededUserCredentials(label = "Identifiants utilisateur seedé"): {
+export function getSeededUserCredentials(
+  label = "Identifiants utilisateur seedé",
+): {
   email: string;
   password: string;
 } {
   return {
-    email: requireEnvValue(["TEST_USER_EMAIL", "E2E_USER_EMAIL"], `${label} email`),
+    email: requireEnvValue(
+      ["TEST_USER_EMAIL", "E2E_USER_EMAIL"],
+      `${label} email`,
+    ),
     password: requireEnvValue(
       ["TEST_USER_PASSWORD", "E2E_USER_PASSWORD"],
       `${label} mot de passe`,
@@ -194,7 +199,9 @@ export function getAdminCredentials(): { email: string; password: string } {
   // Le seed auth met à jour ADMIN_EMAIL avec ADMIN_PASSWORD. Si TEST_ADMIN_EMAIL
   // pointe vers le même compte, Playwright doit utiliser ce même mot de passe.
   const passwordKeys =
-    testAdminEmail && adminEmail && testAdminEmail.toLowerCase() !== adminEmail.toLowerCase()
+    testAdminEmail &&
+    adminEmail &&
+    testAdminEmail.toLowerCase() !== adminEmail.toLowerCase()
       ? ["TEST_ADMIN_PASSWORD"]
       : ["ADMIN_PASSWORD", "TEST_ADMIN_PASSWORD"];
 

@@ -1,8 +1,26 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `security/gateway-injection-host-audit` (remote host, shell et URL injection).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (remise à plat CI/PR/Playwright local en cours).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Performance UI : Réseau / Corrélation / P1B temps de réponse
+
+- **P1B temps de réponse** : Postgres est retiré des services prioritaires HTTP du panneau “Temps de réponse — services prioritaires P1B”. Il reste une dépendance infra santé Docker, mais n’est plus affiché comme un temps de réponse service dans la Vue d’ensemble backoffice.
+- **Réseau Performance** : la page `/b4ck0ff1ce/performances/network` garde les graphes RX/TX quand les métriques existent et affiche désormais un état explicite si les champs réseau RX/TX ne sont pas alimentés, au lieu d’un graphe vide trompeur.
+- **Corrélation** : la page `/b4ck0ff1ce/performances/correlation` affiche un état de chargement des courbes pendant l’amorçage des historiques, puis les graphes une fois `Synthèse chargée` prête.
+- **Validations sans `make`** : runtime Playwright headless : Réseau **4 graphes rendus**, Corrélation **4 graphes rendus** (`Synthèse chargée: 8/8`), Vue d’ensemble P1B sans `postgres` ni `Santé Docker`; `npm run format:check` OK ; `npm run type-check` OK ; `npm run lint -- --quiet` OK ; Jest ciblé **3 suites / 15 tests OK** ; Jest CI frontend **40 suites / 175 tests OK** ; Playwright Performance **7/7 OK**.
+- **Mail récap** : sujet `[JobbingTrack] Récap 2026-06-15 — CI Playwright + Performance P1B` envoyé via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, miroir SMTP `metadata.mirror.sent=true` **3/3**.
+- **Limites** : un reset frontend transitoire a été vu une fois au précheck `curl`, puis relance OK. Les warnings shell locaux `débordement du quota d'espace disque` / `dump_zsh_state` restent environnementaux.
+
+## 15 juin 2026 — GitHub Actions / PR / préprod : diagnostic et premier correctif
+
+- **Cause CI confirmée** : le run GitHub échouait sur `Analyse de la qualite du code` à l'étape Prettier, pas parce que tous les workflows étaient absents. Reproduction locale du même périmètre : **75 fichiers** frontend non conformes ; après `prettier --write`, le check Prettier passe.
+- **Effet domino** : `Tests Backend`, `Tests Frontend`, intégration système et performance étaient `skipped` car ils dépendent de `code-quality`. PR #7 est encore ouverte et confirmée `CONFLICTING`, donc non mergable sans reprise.
+- **Correctifs workflows** : `ci-cd.yml` aligné sur `dev/main` + familles de branches + `workflow_dispatch`; `database-validation.yml` et `deploy-dev.yml` alignés sur `dev`; `security-audit.yml` couvre `fix/security-*` et `security/**`; commandes E2E mobile/accessibilité corrigées vers des specs/projets existants; masquages `|| echo` sur ces tests retirés; étapes mortes `if: false` retirées.
+- **Jest / quota local** : le Jest CI frontend échouait ensuite sur `jest: failed to cache transform results in: /tmp/jest_rs/...` / `Unknown system error -122, write`. Correctif : `frontend/jest.config.js` force `cacheDirectory` vers `frontend/.tmp-jest`; le dossier est ignoré par Git/Prettier.
+- **Validations sans `make`** : `npm run format:check` OK ; `npm run type-check` OK ; `npm run lint -- --quiet` OK ; Jest frontend CI **40 suites / 175 tests OK** ; parsing YAML workflows OK ; recherche des anciens pièges (`develop`, projets mobiles inexistants, `test:a11y`, `if: false`, masquages E2E ciblés) OK.
+- **Limites restantes** : les workflows de déploiement Portainer restent placeholders `*_DEPLOY_URL`; PR #7 doit être rebasée/résolue séparément; l'environnement shell local affiche encore `débordement du quota d'espace disque` et `dump_zsh_state`, avec `/tmp` ~80 %. Rapport : `docs/ci/GITHUB_ACTIONS_AUDIT_2026-06-15.md`.
 
 ## 15 juin 2026 — audit gateway remote host / shell / URL injection
 
@@ -51,6 +69,13 @@
 - **Correctifs** : `make logs` utilise `--since=24h` et `--tail=500` par défaut (`LOGS_SINCE` / `LOGS_TAIL` surchargeables) puis suivi live ; nouvelle cible `make logs-history` pour l'historique complet ; `scripts/ops/logs-watch.sh` aligné sur la même fenêtre récente.
 - **Validation** : `bash -n scripts/ops/logs-watch.sh` OK ; `docker compose -f docker-compose.yml logs -t --since=24h --tail=20` OK (commande directe, pas `make`).
 
+## 15 juin 2026 — Playwright local : procédure fiable anti-SIGTRAP
+
+- **Diagnostic** : le crash Chromium `SIGTRAP` observé lors de certaines relances n’était pas un binaire corrompu. Chromium direct et Playwright passent quand `TMPDIR` pointe vers `frontend/.tmp-playwright` (évite `/tmp` ~80 % saturé) et que la commande s’exécute via **bash** (certaines invocations zsh + `cwd frontend` peuvent faire échouer `node` sans sortie).
+- **Correctifs** : module partagé `frontend/tests/e2e/playwright-runtime-env.ts` appliqué dans `playwright.config.ts` et `playwright.standalone.config.ts` ; suppression du `webServer` `echo` (source de « exited early ») quand `PLAYWRIGHT_BASE_URL` est défini ; script `scripts/testing/playwright-local.sh` (bash + chemins locaux + vérif frontend `:5003`) ; `playwright-frontend-e2e.sh` exporte aussi `TMPDIR`/`PLAYWRIGHT_BROWSERS_PATH`.
+- **Validations sans `make`** : `auth.setup.ts` **1/1** ; `backoffice-login-security.spec.ts` **4/4** + `security-titles-smoke.spec.ts` **10/10** = **14/14** via `playwright.standalone.config.ts`, `PLAYWRIGHT_BASE_URL=http://localhost:5003`, bash.
+- **Commande recommandée** : `bash scripts/testing/playwright-local.sh test <spec> --config=playwright.standalone.config.ts --project=chromium --workers=1`
+
 ## 14 juin 2026 — Playwright Chromium débloqué + non-régression backoffice
 
 - **Cause isolée** : Chromium Playwright ne crashait pas par dépendance manquante ; le lancement direct fonctionnait, mais les profils temporaires Playwright créés dans `/tmp` échouaient dans un contexte `/tmp` saturé/quota (`/tmp` ~20 Go utilisés, erreurs d’écriture). `TMPDIR` local au projet débloque le navigateur.
@@ -77,7 +102,7 @@
 - **Correctif** : `frontend/tests/e2e/test-data-helper.ts` choisit désormais `ADMIN_PASSWORD` quand `TEST_ADMIN_EMAIL` pointe vers le même compte que `ADMIN_EMAIL`, ce qui respecte le seed auth ; `TEST_ADMIN_PASSWORD` reste requis uniquement pour un vrai compte `TEST_ADMIN_EMAIL` distinct.
 - **Smoke sécurité** : `frontend/tests/e2e/security-titles-smoke.spec.ts` attend le titre produit actuel `/b4ck0ff1ce/security/incidents` = `Incidents & menaces`.
 - **Validations passées, sans `make`** : stack utile healthy ; seed auth direct `docker exec jobbingtrack-auth-service npx prisma db seed` OK ; `npm run type-check` OK ; `npm run lint` OK (**0 erreur**, warnings historiques) ; ESLint ciblé helper/setup/smoke OK ; lints IDE OK ; login admin API direct avec `.env` chargé OK (`status=200`, token présent) ; routes sécurité HTTP **307** sans session (redirect login attendu).
-- **Limite de relance** : Playwright navigateur échoue avant navigation avec Chromium/headless-shell `SIGTRAP`, y compris sur un test minimal `about:blank`. Le blocage E2E n’est donc plus le `401` admin initial, mais un problème local de lancement Chromium à investiguer.
+- **Note historique** : une relance intermédiaire avait signalé `SIGTRAP` avant application du `TMPDIR` local ; corrigé le 14/06 puis consolidé le 15/06 (voir section du 15/06).
 
 ## 13 juin 2026 — audit charge API mobile + mémoire frontend
 
