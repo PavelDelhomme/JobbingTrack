@@ -61,7 +61,7 @@ import { SeriesExportButtons } from "@/components/monitoring/SeriesExportButtons
 import type { SeriesExportRow } from "@/lib/exports/seriesExport";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
-const TARGET_POINTS = 200;
+const TARGET_POINTS = 160;
 
 interface RawNetPoint {
   timestamp: string;

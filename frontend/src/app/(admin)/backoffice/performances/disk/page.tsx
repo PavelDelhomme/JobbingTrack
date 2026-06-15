@@ -46,7 +46,7 @@ import {
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const HISTORY_FETCH_CONCURRENCY = 3;
 const MAX_IO_CONTAINERS = 8;
-const TARGET_POINTS = 220;
+const TARGET_POINTS = 160;
 
 interface ContainerInfo {
   name: string;

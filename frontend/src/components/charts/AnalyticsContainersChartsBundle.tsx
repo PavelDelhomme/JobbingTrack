@@ -269,23 +269,32 @@ type SeriesPointDotProps = {
   index?: number;
   stroke?: string;
   seriesIndex: number;
+  markerEvery: number;
 };
 
 function renderSeriesPointDot(
   props: SeriesPointDotProps & { key?: Key },
   seriesIndex: number,
+  markerEvery: number,
 ) {
   const { key, ...dotProps } = props;
-  return <SeriesPointDot key={key} {...dotProps} seriesIndex={seriesIndex} />;
+  return (
+    <SeriesPointDot
+      key={key}
+      {...dotProps}
+      seriesIndex={seriesIndex}
+      markerEvery={markerEvery}
+    />
+  );
 }
 
 function SeriesPointDot(props: SeriesPointDotProps) {
-  const { cx, cy, index, stroke, seriesIndex } = props;
+  const { cx, cy, index, stroke, seriesIndex, markerEvery } = props;
   if (
     typeof cx !== "number" ||
     typeof cy !== "number" ||
     typeof index !== "number" ||
-    index % 10 !== 0
+    index % markerEvery !== 0
   ) {
     return null;
   }
@@ -475,6 +484,27 @@ export function AnalyticsContainersChartsBundle({
     );
   }, [containerNamesForChart]);
 
+  const cpuMarkerEvery = useMemo(
+    () =>
+      Math.max(
+        10,
+        Math.ceil(chartData.length / 4),
+        Math.ceil((chartData.length * Math.max(cpuSeriesNames.length, 1)) / 120),
+      ),
+    [chartData.length, cpuSeriesNames.length],
+  );
+  const memoryMarkerEvery = useMemo(
+    () =>
+      Math.max(
+        10,
+        Math.ceil(chartData.length / 4),
+        Math.ceil(
+          (chartData.length * Math.max(memorySeriesNames.length, 1)) / 120,
+        ),
+      ),
+    [chartData.length, memorySeriesNames.length],
+  );
+
   const toggleCpuSeries = (name: string) => {
     setCpuVisibleNames((current) => {
       const base = current ?? containerNamesForChart;
@@ -558,7 +588,13 @@ export function AnalyticsContainersChartsBundle({
                       strokeDasharray={style.dash}
                       strokeWidth={2.4}
                       name={`${code} · ${shortName} · ${marker.label}`}
-                      dot={(props) => renderSeriesPointDot(props, seriesIndex)}
+                      dot={(props) =>
+                        renderSeriesPointDot(
+                          props,
+                          seriesIndex,
+                          cpuMarkerEvery,
+                        )
+                      }
                       activeDot={{ r: 4 }}
                       connectNulls={false}
                     />
@@ -630,7 +666,13 @@ export function AnalyticsContainersChartsBundle({
                       strokeDasharray={style.dash}
                       strokeWidth={2.4}
                       name={`${code} · ${shortName} · ${marker.label}`}
-                      dot={(props) => renderSeriesPointDot(props, seriesIndex)}
+                      dot={(props) =>
+                        renderSeriesPointDot(
+                          props,
+                          seriesIndex,
+                          memoryMarkerEvery,
+                        )
+                      }
                       activeDot={{ r: 4 }}
                       connectNulls={false}
                     />

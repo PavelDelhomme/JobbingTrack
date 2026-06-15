@@ -59,6 +59,9 @@ const ALL_CONTAINERS_VALUE = "__all__";
 const METRIC_GAP_MS = 15 * 60 * 1000;
 /** Évite de saturer l’agrégateur / le navigateur quand « Tous les conteneurs » lance N historiques en parallèle. */
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
+const SINGLE_CONTAINER_RENDER_POINTS = 160;
+const MANY_CONTAINERS_RENDER_POINTS = 80;
+const MEDIUM_CONTAINERS_RENDER_POINTS = 120;
 
 async function promisePool<T, R>(
   items: readonly T[],
@@ -516,7 +519,11 @@ export default function ContainersAnalyticsPage() {
         "cpuUsagePercent",
         "memoryUsagePercent",
       ];
-      const compressed = compressData(rawMetrics, 200, keys);
+      const compressed = compressData(
+        rawMetrics,
+        SINGLE_CONTAINER_RENDER_POINTS,
+        keys,
+      );
       return compressed.map((d) => {
         const timeMs =
           typeof d.timeMs === "number" && Number.isFinite(d.timeMs)
@@ -597,7 +604,12 @@ export default function ContainersAnalyticsPage() {
       });
     });
     const sortedMs = Array.from(allMs).sort((a, b) => a - b);
-    const target = 200;
+    const target =
+      names.length >= 16
+        ? MANY_CONTAINERS_RENDER_POINTS
+        : names.length >= 8
+          ? MEDIUM_CONTAINERS_RENDER_POINTS
+          : SINGLE_CONTAINER_RENDER_POINTS;
     const step =
       sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
     const sampledMs = sortedMs.filter((_, i) => i % step === 0);
@@ -655,6 +667,15 @@ export default function ContainersAnalyticsPage() {
           )
           .map((n) => n.name.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
     : [];
+
+  const totalRawContainerPoints = useMemo(
+    () =>
+      Object.values(rawMetricsByContainer).reduce(
+        (sum, metrics) => sum + metrics.length,
+        0,
+      ),
+    [rawMetricsByContainer],
+  );
 
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
@@ -747,7 +768,7 @@ export default function ContainersAnalyticsPage() {
           chartData={chartData}
           containerNamesForChart={containerNamesForChart}
           selectedContainerLabel=""
-          rawMetricsLength={rawMetrics.length}
+          rawMetricsLength={totalRawContainerPoints}
         />
       ) : (
         <AnalyticsContainersChartsBundle

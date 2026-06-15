@@ -46,6 +46,9 @@ import {
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
 const DEFAULT_SELECTED_SERVICE_COUNT = 6;
+const SYSTEM_RENDER_POINTS = 160;
+const DETAIL_RENDER_POINTS = 160;
+const MANY_SERIES_DETAIL_RENDER_POINTS = 120;
 const VIEWS = [
   { id: "overview", label: "Vue globale" },
   { id: "cpu", label: "CPU détaillé" },
@@ -163,6 +166,12 @@ function normalizeSystemMetrics(
         (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
         (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0),
     );
+}
+
+function sampleRows<T>(rows: T[], targetMax: number): T[] {
+  if (rows.length <= targetMax) return rows;
+  const step = Math.ceil(rows.length / targetMax);
+  return rows.filter((_, index) => index % step === 0);
 }
 
 function average(values: Array<number | undefined>): number | null {
@@ -441,7 +450,7 @@ export default function CpuMemoryPerformancePage() {
 
   const systemChartData = useMemo<SystemPercentSeriesRow[]>(
     () =>
-      rawSystemMetrics.map((metric) => {
+      sampleRows(rawSystemMetrics, SYSTEM_RENDER_POINTS).map((metric) => {
         const timeMs =
           typeof metric.timeMs === "number" && Number.isFinite(metric.timeMs)
             ? metric.timeMs
@@ -519,7 +528,12 @@ export default function CpuMemoryPerformancePage() {
       });
     });
     const sortedMs = Array.from(allMs).sort((a, b) => a - b);
-    const step = sortedMs.length <= 240 ? 1 : Math.ceil(sortedMs.length / 240);
+    const target =
+      names.length >= DEFAULT_SELECTED_SERVICE_COUNT
+        ? MANY_SERIES_DETAIL_RENDER_POINTS
+        : DETAIL_RENDER_POINTS;
+    const step =
+      sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
     const sampledMs = sortedMs.filter((_, index) => index % step === 0);
 
     return sampledMs.map((targetMs) => {
