@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/performance-correlation-fluency` (retour porteur Statistics overview + Corrélation Performances).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/monitoring-series-export` (Lot A graphes — export CSV/JSON séries affichées).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Lot A graphes : export CSV/JSON séries affichées
+
+- **Export commun** : ajout de `SeriesExportButtons` et du modèle `seriesExport` pour télécharger les lignes affichées en CSV ou JSON depuis le navigateur.
+- **Performances Réseau** : export des séries visibles : timestamp, cumul RX/TX, débit RX/TX Mo/min, CPU %, mémoire %, temps de réponse agrégé.
+- **Détail service** : export depuis le bloc “Historique des Performances” : CPU, mémoire, réseau, Block I/O cumul et débit estimé.
+- **Validations sans `make`** : frontend `type-check` OK ; `lint --quiet` OK ; Jest export **1 suite / 3 tests OK** ; Jest fiche service **1 suite / 33 tests OK**.
+- **Limite E2E** : smoke Playwright Performances non concluant côté environnement : première tentative bloquée par un `next dev` déjà actif ; relance avec `PLAYWRIGHT_BASE_URL=http://localhost:3000` bloquée par `ERR_CONNECTION_REFUSED` sur `/login`. Des warnings locaux `débordement du quota d'espace disque` persistent.
+- **Reste Lot A** : vraie sparkline historique liste services, brush synchronisé, seuils visuels configurables, tri/mémorisation tableaux lourds, heatmap, comparatif et PIDs historisés.
 
 ## 15 juin 2026 — Retour porteur Statistics overview + Corrélation Performances
 

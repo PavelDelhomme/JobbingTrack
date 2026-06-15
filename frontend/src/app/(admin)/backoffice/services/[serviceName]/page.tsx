@@ -911,6 +911,7 @@ export default function ServiceDetailPage() {
           historyAxisShowDate={historyAxisShowDate}
           historyBlockMbMax={historyBlockMbMax}
           historyIoRateMax={historyIoRateMax}
+          exportBaseName={`service-${serviceName}-history-series`}
         />
 
         {/* Logs en Temps Réel */}

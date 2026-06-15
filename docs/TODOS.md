@@ -441,7 +441,7 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 - [x] **Temps de réponse** : persistance + instantané par service sur **Performances**.
 - [x] **Statistiques** : sous-pages **App data** / **Sécurité** / **Logs (stats)** branchées.
 - [ ] **Liste services** : **vraie** sparkline / mini-série **historique** (API légère ou cache) — aujourd’hui **jauge CPU** instantanée + **`title`** ligne (voir **A1d**).
-- [ ] **Export** : CSV / JSON des séries affichées (performances, réseau, détail service) pour analyse externe.
+- [ ] **Export** : CSV / JSON des séries affichées (performances, réseau, détail service) pour analyse externe. **Partiel 15/06** : boutons CSV/JSON sur **Performances → Réseau** (cumuls RX/TX, débits, CPU, mémoire, latence) et **détail service** (CPU/mémoire/réseau/Block I/O cumul + débit estimé) via `SeriesExportButtons` + modèle testé `seriesExport`.
 - [ ] **Brush / plage** : zoom synchronisé entre plusieurs graphes d’une même page (**A1e**).
 - [ ] **Seuils & alertes visuelles** : bandes ou lignes de référence (CPU %, latence ms) configurables.
 - [ ] **Tableaux** : colonnes triables + mémorisation préférences (localStorage) sur vues « lourdes » (logs agrégés, stats).
@@ -471,7 +471,7 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 - [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`/backoffice/statistics`** (axes, gaps, légendes) ; liste **`/backoffice/services`** : **fait (partiel)** — **`title`** ligne + **jauge CPU** sous le nom (pas de Recharts) ; suite = sparkline **historique** si tu valides l’API.
 
-- [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **Performances**. **Partiel** : tooltips **`performances/containers`** (graph mémoire multi-conteneurs) alignés thème ; **`/backoffice/statistics`** vue d’ensemble (**`page.tsx`**, **07/04**).
+- [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **Performances** ; exports des séries affichées. **Partiel** : tooltips **`performances/containers`** (graph mémoire multi-conteneurs) alignés thème ; **`/backoffice/statistics`** vue d’ensemble (**`page.tsx`**, **07/04**) ; export CSV/JSON **Réseau + détail service** (**15/06**, branche `feat/monitoring-series-export`).
 
 - [ ] **A1f** — Contrat API **PIDs** stable (ex. `docker top` ou champ agrégateur versionné) **si** tu en as besoin côté produit ; aujourd’hui **instantané** liste services via **`GET …/metrics`** / services.
 

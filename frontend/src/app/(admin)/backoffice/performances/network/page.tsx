@@ -55,6 +55,8 @@ import {
   type SystemNetworkMbRow,
 } from "@/lib/charts/systemMetricsSeriesModel";
 import { SystemCpuNetworkCorrelationChart } from "@/components/charts/SystemCpuNetworkCorrelationChart";
+import { SeriesExportButtons } from "@/components/monitoring/SeriesExportButtons";
+import type { SeriesExportRow } from "@/lib/exports/seriesExport";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const TARGET_POINTS = 200;
@@ -458,27 +460,52 @@ export default function NetworkPerformancePage() {
     [series],
   );
 
+  const exportRows = useMemo<SeriesExportRow[]>(
+    () =>
+      series.map((row, index) => {
+        const rate = networkRateRows[index];
+        return {
+          timestamp: row.timestamp,
+          datetime: row.datetime,
+          rx_mb_cumulative: row.rxMb,
+          tx_mb_cumulative: row.txMb,
+          rx_mb_per_min: rate?.networkRxMbPerMin,
+          tx_mb_per_min: rate?.networkTxMbPerMin,
+          cpu_percent: row.cpu,
+          memory_percent: row.memory,
+          response_time_ms: row.responseTimeMs,
+        };
+      }),
+    [series, networkRateRows],
+  );
+
   return (
     <PerformancePageShell
       title="Performances réseau"
       description="Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU et temps de réponse agrégé quand la persistance les fournit."
       actions={
-        <TimeRangeSelector
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          useCustomRange={useCustomRange}
-          setUseCustomRange={setUseCustomRange}
-          customStart={customStart}
-          setCustomStart={setCustomStart}
-          customEnd={customEnd}
-          setCustomEnd={setCustomEnd}
-          rangeLabel={rangeLabel}
-          goPrev={goPrev}
-          goNext={goNext}
-          canGoNext={canGoNext}
-          onPeriodNow={handlePeriodNow}
-          showNavigationHint={false}
-        />
+        <>
+          <TimeRangeSelector
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={handlePeriodNow}
+            showNavigationHint={false}
+          />
+          <SeriesExportButtons
+            rows={exportRows}
+            baseName="performances-network-series"
+          />
+        </>
       }
     >
       {loading && series.length === 0 ? (
