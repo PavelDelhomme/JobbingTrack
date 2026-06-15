@@ -1,8 +1,15 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/correlation-incident-context` (Performances Corrélation — contexte endpoint incidents).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/monitoring-brush-sync-network` (Lot A — brush synchronisé Performances Réseau).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Lot A graphes : brush synchronisé Performances Réseau
+
+- **Hook partagé** : `useSyncedChartBrushRange` pour partager `startIndex` / `endIndex` entre graphes Recharts d’une même page.
+- **Page Réseau** : brush synchronisé sur RX/TX cumul, débit Mo/min, temps de réponse (si présent) et corrélation CPU vs réseau ; bouton **Réinitialiser le zoom**.
+- **Corrélation** : brush déjà présent sur les 5 graphes service (branche `fix/correlation-incident-context`).
+- **Validations sans `make`** : Jest hook **1 suite / 2 tests OK** ; `type-check` OK ; `lint --quiet` OK ; Playwright `npm run test:e2e:performances` + frontend Docker **5003** → **7/7 OK** (~1,1 min).
 
 ## 15 juin 2026 — Performances Corrélation : contexte endpoint incidents
 
@@ -25,8 +32,8 @@
 - **Performances Réseau** : export des séries visibles : timestamp, cumul RX/TX, débit RX/TX Mo/min, CPU %, mémoire %, temps de réponse agrégé.
 - **Détail service** : export depuis le bloc “Historique des Performances” : CPU, mémoire, réseau, Block I/O cumul et débit estimé.
 - **Validations sans `make`** : frontend `type-check` OK ; `lint --quiet` OK ; Jest export **1 suite / 3 tests OK** ; Jest fiche service **1 suite / 33 tests OK**.
-- **Limite E2E** : smoke Playwright Performances non concluant côté environnement : première tentative bloquée par un `next dev` déjà actif ; relance avec `PLAYWRIGHT_BASE_URL=http://localhost:3000` bloquée par `ERR_CONNECTION_REFUSED` sur `/login`. Des warnings locaux `débordement du quota d'espace disque` persistent.
-- **Reste Lot A** : vraie sparkline historique liste services, brush synchronisé, seuils visuels configurables, tri/mémorisation tableaux lourds, heatmap, comparatif et PIDs historisés.
+- **Limite E2E** : smoke Playwright Performances **7/7 OK** via `PLAYWRIGHT_BASE_URL=http://localhost:5003` et script `npm run test:e2e:performances` (port 3000 fermé en local Docker).
+- **Reste Lot A** : brush sur autres pages Performances, seuils visuels configurables, tri/mémorisation tableaux lourds, heatmap, comparatif et PIDs historisés.
 
 ## 15 juin 2026 — Retour porteur Statistics overview + Corrélation Performances
 

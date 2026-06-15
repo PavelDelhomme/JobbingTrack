@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import {
+  Brush,
   CartesianGrid,
   Legend,
   Line,
@@ -29,6 +30,12 @@ export type SystemCpuNetworkCorrelationChartProps = {
   /** Plafond axe droit (Mo/min) — ex. `systemNetworkRateAxisMax(rows)`. */
   rateMax: number;
   height?: number;
+  brushStartIndex?: number;
+  brushEndIndex?: number;
+  onBrushChange?: (range: {
+    startIndex?: number;
+    endIndex?: number;
+  }) => void;
 };
 
 function tooltipLabel(_: unknown, payload: unknown) {
@@ -47,6 +54,9 @@ export function SystemCpuNetworkCorrelationChart({
   axisShowDate,
   rateMax,
   height = 300,
+  brushStartIndex,
+  brushEndIndex,
+  onBrushChange,
 }: SystemCpuNetworkCorrelationChartProps) {
   const cpuMax = useMemo(() => systemCpuAxisMax(rows), [rows]);
 
@@ -148,6 +158,21 @@ export function SystemCpuNetworkCorrelationChart({
           dot={false}
           connectNulls={false}
         />
+        {onBrushChange != null &&
+        brushStartIndex != null &&
+        brushEndIndex != null ? (
+          <Brush
+            dataKey="timeMs"
+            height={18}
+            travellerWidth={8}
+            startIndex={brushStartIndex}
+            endIndex={brushEndIndex}
+            tickFormatter={(ms) =>
+              formatLocalChartAxisTick(ms as number, { withDate: axisShowDate })
+            }
+            onChange={onBrushChange}
+          />
+        ) : null}
       </LineChart>
     </ResponsiveContainer>
   );

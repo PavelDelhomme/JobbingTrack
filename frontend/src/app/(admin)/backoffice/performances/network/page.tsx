@@ -39,9 +39,11 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
 import {
   PerformanceChartCard,
@@ -439,6 +441,11 @@ export default function NetworkPerformancePage() {
     [networkRateRows],
   );
 
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(series.length, 80);
+
+  const chartBottomMargin = 66;
+
   const hasNetworkData = useMemo(
     () => series.some((d) => d.rxMb != null || d.txMb != null),
     [series],
@@ -531,7 +538,7 @@ export default function NetworkPerformancePage() {
               <ResponsiveContainer width="100%" height={360} minHeight={240}>
                 <LineChart
                   data={series}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -592,6 +599,19 @@ export default function NetworkPerformancePage() {
                     dot={false}
                     connectNulls={false}
                   />
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -605,7 +625,7 @@ export default function NetworkPerformancePage() {
               <ResponsiveContainer width="100%" height={300} minHeight={220}>
                 <LineChart
                   data={networkRateRows}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -671,6 +691,19 @@ export default function NetworkPerformancePage() {
                     dot={false}
                     connectNulls={false}
                   />
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -685,7 +718,7 @@ export default function NetworkPerformancePage() {
                 <ResponsiveContainer width="100%" height={280} minHeight={220}>
                   <LineChart
                     data={series}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -739,6 +772,19 @@ export default function NetworkPerformancePage() {
                       dot={false}
                       connectNulls={false}
                     />
+                    <Brush
+                      dataKey="timeMs"
+                      height={18}
+                      travellerWidth={8}
+                      startIndex={brushStart}
+                      endIndex={brushEnd}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms as number, {
+                          withDate: networkAxisShowDate,
+                        })
+                      }
+                      onChange={onBrushChange}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -757,14 +803,32 @@ export default function NetworkPerformancePage() {
                 axisShowDate={networkAxisShowDate}
                 rateMax={networkRateYMax}
                 height={320}
+                brushStartIndex={brushStart}
+                brushEndIndex={brushEnd}
+                onBrushChange={onBrushChange}
               />
             </PerformanceChartCard>
           ) : null}
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {series.length} points affichés après compression (max{" "}
-            {TARGET_POINTS}) pour lisibilité.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <p>
+              {series.length} points affichés après compression (max{" "}
+              {TARGET_POINTS}) pour lisibilité.
+            </p>
+            <p>
+              Glissez la barre sous un graphe pour zoomer la même fenêtre sur
+              tous les graphes de la page.
+            </p>
+            {hasCustomBrush ? (
+              <button
+                type="button"
+                onClick={resetBrush}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Réinitialiser le zoom
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
     </PerformancePageShell>
