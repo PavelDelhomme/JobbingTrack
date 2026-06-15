@@ -296,7 +296,7 @@ METRICS_AGGREGATOR_URL="${METRICS_AGGREGATOR_INTERNAL_URL:-${METRICS_AGGREGATOR_
 logs_services_html=""
 for svc in api-gateway auth-service dashboard-service company-service application-service contact-service interview-service call-service event-service followup-service profile-service notification-service; do
     container_name="jobbingtrack-$svc"
-    log_json=$(curl -s --connect-timeout 3 "$METRICS_AGGREGATOR_URL/api/v1/docker/service/$container_name/logs?lines=60" 2>/dev/null)
+    log_json=$(curl -s --connect-timeout 2 --max-time 4 "$METRICS_AGGREGATOR_URL/api/v1/docker/service/$container_name/logs?lines=60" 2>/dev/null || true)
     if [ -n "$log_json" ] && echo "$log_json" | grep -q '"lines"'; then
         if command -v jq >/dev/null 2>&1; then
             log_text=$(echo "$log_json" | jq -r '.lines[]? // empty' 2>/dev/null | head -50)

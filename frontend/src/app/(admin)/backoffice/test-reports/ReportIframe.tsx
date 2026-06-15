@@ -26,7 +26,7 @@ export function ReportIframe({
   return (
     <iframe
       src={src}
-      className={`w-full border border-gray-200 dark:border-gray-700 rounded ${isFullscreen ? "h-full" : "h-[400px] sm:h-[500px] lg:h-[600px]"}`}
+      className={`w-full border border-gray-200 dark:border-gray-700 rounded ${isFullscreen ? "h-full" : "h-[28rem] lg:h-full lg:min-h-0"}`}
       title="Rapport de test"
       style={{
         maxWidth: "100%",
