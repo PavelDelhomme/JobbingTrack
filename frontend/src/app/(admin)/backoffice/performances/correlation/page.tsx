@@ -267,6 +267,7 @@ type FocusIncidentSummary = {
 
 type IncidentContextFieldKey =
   | "requestId"
+  | "httpMethod"
   | "endpoint"
   | "ip"
   | "httpStatus"
@@ -289,6 +290,7 @@ type FocusIncidentAlignedRow = {
   timestamp: string;
   level: string;
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -319,6 +321,7 @@ type IncidentSortKey =
   | "timestamp"
   | "level"
   | "requestId"
+  | "httpMethod"
   | "endpoint"
   | "ip"
   | "httpStatus"
@@ -387,6 +390,7 @@ function parseJsonObjectFromLogMessage(
 
 type ParsedIncidentContext = {
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -395,6 +399,62 @@ type ParsedIncidentContext = {
   /** Provenance par champ (libellé technique, même si valeur vide). */
   sources: Record<IncidentContextFieldKey, string>;
 };
+
+function readContextString(
+  ctx: Record<string, unknown>,
+  path: readonly string[],
+): string | null {
+  let cur: unknown = ctx;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return null;
+    cur = (cur as Record<string, unknown>)[key];
+  }
+  if (typeof cur !== "string" && typeof cur !== "number") return null;
+  const value = String(cur).trim();
+  return value.length > 0 ? value : null;
+}
+
+function normalizeHttpMethod(value: string | null): string | null {
+  if (!value) return null;
+  const method = value.trim().toUpperCase();
+  return /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$/.test(method)
+    ? method
+    : null;
+}
+
+function parseEndpointUrl(value: string | null): {
+  endpoint: string | null;
+  protocol: string | null;
+  port: string | null;
+} {
+  if (!value) return { endpoint: null, protocol: null, port: null };
+  try {
+    const parsed = new URL(value);
+    return {
+      endpoint: `${parsed.pathname}${parsed.search}`,
+      protocol: parsed.protocol.replace(/:$/, "") || null,
+      port:
+        parsed.port ||
+        (parsed.protocol === "https:"
+          ? "443"
+          : parsed.protocol === "http:"
+            ? "80"
+            : null),
+    };
+  } catch {
+    return {
+      endpoint: value,
+      protocol: null,
+      port: null,
+    };
+  }
+}
+
+function parsePortFromHost(value: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/:(\d{2,5})$/);
+  return match?.[1] ?? null;
+}
 
 function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
   const metadata = mergeAggLogMetadata(row);
@@ -442,28 +502,78 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
         : "aucune valeur (pas de metadata exploitable ni JSON parseable dans le message)";
   }
 
+  let httpMethod: string | null = null;
+  let httpMethodSrc = "";
+  const methodCandidates: Array<[string[], string]> = [
+    [["method"], "metadata.method"],
+    [["httpMethod"], "metadata.httpMethod"],
+    [["requestMethod"], "metadata.requestMethod"],
+    [["request", "method"], "metadata.request.method"],
+    [["req", "method"], "metadata.req.method"],
+  ];
+  for (const [path, label] of methodCandidates) {
+    const method = normalizeHttpMethod(readContextString(ctx, path));
+    if (method) {
+      httpMethod = method;
+      httpMethodSrc = `${label} (fusion metadata + JSON message)`;
+      break;
+    }
+  }
+  if (!httpMethod) {
+    const methodFromMessage =
+      message.match(
+        /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)/i,
+      )?.[1] ??
+      message.match(
+        /"(?:method|httpMethod|requestMethod)"\s*:\s*"([^"]+)"/i,
+      )?.[1] ??
+      null;
+    httpMethod = normalizeHttpMethod(methodFromMessage);
+    httpMethodSrc = httpMethod
+      ? "heuristique message (méthode HTTP ou JSON method)"
+      : hasMetadata || hasMessageJson
+        ? "aucune valeur (method / httpMethod / request.method absents du contexte)"
+        : "aucune valeur (pas de metadata ni motif méthode HTTP dans le message)";
+  }
+
   let endpoint: string | null = null;
   let endpointSrc = "";
-  const epCandidates: [string, string][] = [
-    ["endpoint", "metadata.endpoint"],
-    ["originalUrl", "metadata.originalUrl"],
-    ["requestPath", "metadata.requestPath"],
-    ["route", "metadata.route"],
-    ["path", "metadata.path"],
-    ["url", "metadata.url"],
+  let urlProtocol: string | null = null;
+  let urlPort: string | null = null;
+  const epCandidates: Array<[string[], string]> = [
+    [["endpoint"], "metadata.endpoint"],
+    [["originalUrl"], "metadata.originalUrl"],
+    [["requestPath"], "metadata.requestPath"],
+    [["route"], "metadata.route"],
+    [["path"], "metadata.path"],
+    [["url"], "metadata.url"],
+    [["requestUrl"], "metadata.requestUrl"],
+    [["request", "url"], "metadata.request.url"],
+    [["request", "path"], "metadata.request.path"],
+    [["req", "originalUrl"], "metadata.req.originalUrl"],
+    [["req", "url"], "metadata.req.url"],
+    [["req", "path"], "metadata.req.path"],
   ];
-  for (const [k, label] of epCandidates) {
-    const v = ctx[k];
-    if (typeof v === "string" && v.trim()) {
-      endpoint = v.trim();
+  for (const [path, label] of epCandidates) {
+    const v = readContextString(ctx, path);
+    if (v) {
+      const parsed = parseEndpointUrl(v);
+      endpoint = parsed.endpoint;
+      urlProtocol = parsed.protocol;
+      urlPort = parsed.port;
       endpointSrc = `${label} (fusion metadata + JSON message)`;
       break;
     }
   }
   if (!endpoint) {
-    const m = message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i);
+    const m = message.match(
+      /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)/i,
+    );
     if (m?.[2]) {
-      endpoint = m[2];
+      const parsed = parseEndpointUrl(m[2]);
+      endpoint = parsed.endpoint;
+      urlProtocol = parsed.protocol;
+      urlPort = parsed.port;
       endpointSrc = "heuristique message (MÉTHODE + chemin)";
     } else {
       endpointSrc =
@@ -509,57 +619,74 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   let protocol: string | null = null;
   let protocolSrc = "";
-  for (const [k, label] of [
-    ["protocol", "metadata.protocol"],
-    ["proto", "metadata.proto"],
-    ["scheme", "metadata.scheme"],
+  for (const [path, label] of [
+    [["protocol"], "metadata.protocol"],
+    [["proto"], "metadata.proto"],
+    [["scheme"], "metadata.scheme"],
+    [["request", "protocol"], "metadata.request.protocol"],
+    [["req", "protocol"], "metadata.req.protocol"],
   ] as const) {
-    const v = ctx[k];
-    if (typeof v === "string" && v.trim()) {
-      protocol = v.trim();
+    const v = readContextString(ctx, path);
+    if (v) {
+      protocol = v.replace(/:$/, "").trim().toLowerCase();
       protocolSrc = `${label} (fusion metadata + JSON message)`;
       break;
     }
   }
   if (!protocol) {
-    const m = message.match(/\b(https?|grpc|ws|wss)\b/i);
-    if (m?.[1]) {
-      protocol = m[1].toLowerCase();
-      protocolSrc = "heuristique message (mot-clé http/https/grpc/ws)";
+    if (urlProtocol) {
+      protocol = urlProtocol;
+      protocolSrc = "URL endpoint complète (protocole déduit)";
     } else {
-      protocolSrc =
-        hasMetadata || hasMessageJson
-          ? "aucune valeur (protocol / proto / scheme absents du contexte)"
-          : "aucune valeur (pas de metadata ni motif protocole dans le message)";
+      const m = message.match(/\b(https?|grpc|ws|wss)\b/i);
+      if (m?.[1]) {
+        protocol = m[1].toLowerCase();
+        protocolSrc = "heuristique message (mot-clé http/https/grpc/ws)";
+      } else {
+        protocolSrc =
+          hasMetadata || hasMessageJson
+            ? "aucune valeur (protocol / proto / scheme absents du contexte)"
+            : "aucune valeur (pas de metadata ni motif protocole dans le message)";
+      }
     }
   }
 
   let port: string | null = null;
   let portSrc = "";
   const portFromCtx =
-    (typeof ctx.port === "number" || typeof ctx.port === "string"
-      ? String(ctx.port).trim()
-      : "") ||
-    (typeof ctx.localPort === "number" || typeof ctx.localPort === "string"
-      ? String(ctx.localPort).trim()
-      : "") ||
-    (typeof ctx.serverPort === "number" || typeof ctx.serverPort === "string"
-      ? String(ctx.serverPort).trim()
-      : "");
+    readContextString(ctx, ["port"]) ||
+    readContextString(ctx, ["localPort"]) ||
+    readContextString(ctx, ["serverPort"]) ||
+    readContextString(ctx, ["remotePort"]) ||
+    readContextString(ctx, ["request", "port"]) ||
+    readContextString(ctx, ["req", "port"]);
   if (portFromCtx) {
     port = portFromCtx;
-    portSrc = "metadata.port | localPort | serverPort (fusion)";
+    portSrc = "metadata.port | localPort | serverPort | remotePort (fusion)";
+  } else if (urlPort) {
+    port = urlPort;
+    portSrc = "URL endpoint complète (port déduit)";
   } else {
-    const m1 = message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1];
-    const m2 = message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1];
-    if (m1 || m2) {
-      port = m1 || m2 || null;
-      portSrc = "heuristique message (clé port dans JSON ou texte)";
+    const hostPort =
+      parsePortFromHost(
+        readContextString(ctx, ["host"]) ||
+          readContextString(ctx, ["hostname"]),
+      ) || parsePortFromHost(readContextString(ctx, ["headers", "host"]));
+    if (hostPort) {
+      port = hostPort;
+      portSrc = "metadata.host / headers.host (port déduit)";
     } else {
-      portSrc =
-        hasMetadata || hasMessageJson
-          ? "aucune valeur (port / localPort / serverPort absents du contexte)"
-          : "aucune valeur (pas de metadata ni motif port dans le message)";
+      const m1 = message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1];
+      const m2 = message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1];
+      if (m1 || m2) {
+        port = m1 || m2 || null;
+        portSrc = "heuristique message (clé port dans JSON ou texte)";
+      } else {
+        portSrc =
+          hasMetadata || hasMessageJson
+            ? "aucune valeur (port / localPort / serverPort absents du contexte)"
+            : "aucune valeur (pas de metadata ni motif port dans le message)";
+      }
     }
   }
 
@@ -596,6 +723,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   return {
     requestId,
+    httpMethod,
     endpoint,
     ip,
     protocol,
@@ -603,6 +731,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     httpStatus,
     sources: {
       requestId: requestIdSrc,
+      httpMethod: httpMethodSrc,
       endpoint: endpointSrc,
       ip: ipSrc,
       protocol: protocolSrc,
@@ -614,6 +743,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
 function parseIncidentContext(row: AggLogRow): {
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -623,6 +753,7 @@ function parseIncidentContext(row: AggLogRow): {
   const p = parseIncidentContextFull(row);
   return {
     requestId: p.requestId,
+    httpMethod: p.httpMethod,
     endpoint: p.endpoint,
     ip: p.ip,
     protocol: p.protocol,
@@ -633,6 +764,7 @@ function parseIncidentContext(row: AggLogRow): {
 
 const INCIDENT_FIELD_LABELS: Record<IncidentContextFieldKey, string> = {
   requestId: "requestId / correlationId",
+  httpMethod: "Méthode HTTP",
   endpoint: "Endpoint (chemin / URL)",
   ip: "IP client",
   httpStatus: "Code HTTP",
@@ -643,6 +775,8 @@ const INCIDENT_FIELD_LABELS: Record<IncidentContextFieldKey, string> = {
 const INCIDENT_FIELD_FIX: Record<IncidentContextFieldKey, string> = {
   requestId:
     "Propager requestId/correlationId dans le middleware (gateway + services) et les inclure dans metadata du central logger sur WARN/ERROR.",
+  httpMethod:
+    "Inclure method/httpMethod/request.method dans metadata du central logger sur WARN/ERROR et proxy gateway.",
   endpoint:
     "Enrichir metadata (originalUrl, path ou route) depuis la requête Express/Fastify au moment du log.",
   ip: "Journaliser IP réelle (req.ip / X-Forwarded-For tronqué) dans metadata pour les routes exposées derrière proxy.",
@@ -659,6 +793,7 @@ function buildIncidentContextFieldDiagnostics(
   const p = parseIncidentContextFull(row);
   const keys: IncidentContextFieldKey[] = [
     "requestId",
+    "httpMethod",
     "endpoint",
     "ip",
     "httpStatus",
@@ -2247,6 +2382,7 @@ export default function PerformancesCorrelationPage() {
           timestamp: new Date(ts).toISOString(),
           level: String(row.level || "INFO").toUpperCase(),
           requestId: ctx.requestId,
+          httpMethod: ctx.httpMethod,
           endpoint: ctx.endpoint,
           ip: ctx.ip,
           protocol: ctx.protocol,
@@ -2306,6 +2442,7 @@ export default function PerformancesCorrelationPage() {
       rows = rows.filter((r) =>
         [
           r.message,
+          r.httpMethod,
           r.endpoint,
           r.ip,
           r.requestId,
@@ -2335,6 +2472,10 @@ export default function PerformancesCorrelationPage() {
           return a.level.localeCompare(b.level) * dir;
         case "requestId":
           return withStr(a.requestId).localeCompare(withStr(b.requestId)) * dir;
+        case "httpMethod":
+          return (
+            withStr(a.httpMethod).localeCompare(withStr(b.httpMethod)) * dir
+          );
         case "endpoint":
           return withStr(a.endpoint).localeCompare(withStr(b.endpoint)) * dir;
         case "ip":
@@ -3125,18 +3266,19 @@ export default function PerformancesCorrelationPage() {
                               onChange={(e) =>
                                 setIncidentSearch(e.target.value)
                               }
-                              placeholder="Filtre texte (message/endpoint/IP/HTTP/requestId)…"
+                              placeholder="Filtre texte (message/méthode/endpoint/IP/HTTP/requestId)…"
                               className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             />
                           </div>
                           {focusPersistenceLogsLoading ? (
                             <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-                              <table className="w-full min-w-[1040px] text-left text-xs">
+                              <table className="w-full min-w-[1100px] text-left text-xs">
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                   <tr>
                                     <th className="px-2 py-2">Horodatage</th>
                                     <th className="px-2 py-2">Niveau</th>
                                     <th className="px-2 py-2">requestId</th>
+                                    <th className="px-2 py-2">Méthode</th>
                                     <th className="px-2 py-2">Endpoint</th>
                                     <th className="px-2 py-2">IP</th>
                                     <th className="px-2 py-2 text-right">
@@ -3165,7 +3307,7 @@ export default function PerformancesCorrelationPage() {
                                       key={`incident-loading-row-${idx}`}
                                       className="animate-pulse"
                                     >
-                                      {Array.from({ length: 13 }).map(
+                                      {Array.from({ length: 14 }).map(
                                         (__, c) => (
                                           <td
                                             key={`incident-loading-cell-${idx}-${c}`}
@@ -3225,11 +3367,11 @@ export default function PerformancesCorrelationPage() {
                               <p className="text-[11px] text-gray-500 dark:text-gray-400">
                                 Cliquez une ligne pour afficher le diagnostic
                                 contexte (source technique, raison si vide,
-                                correctif suggéré) pour requestId, endpoint, IP,
-                                HTTP, proto et port.
+                                correctif suggéré) pour requestId, méthode,
+                                endpoint, IP, HTTP, proto et port.
                               </p>
                               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-                                <table className="w-full min-w-[1040px] text-left text-xs">
+                                <table className="w-full min-w-[1100px] text-left text-xs">
                                   <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                     <tr>
                                       <th className="px-2 py-2">
@@ -3278,6 +3420,23 @@ export default function PerformancesCorrelationPage() {
                                           <span className="text-[10px] text-gray-500">
                                             {sortGlyph(
                                               incidentSort.key === "requestId",
+                                              incidentSort.direction,
+                                            )}
+                                          </span>
+                                        </button>
+                                      </th>
+                                      <th className="px-2 py-2">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onToggleIncidentSort("httpMethod")
+                                          }
+                                          className="inline-flex items-center gap-1 hover:underline"
+                                        >
+                                          Méthode
+                                          <span className="text-[10px] text-gray-500">
+                                            {sortGlyph(
+                                              incidentSort.key === "httpMethod",
                                               incidentSort.direction,
                                             )}
                                           </span>
@@ -3454,6 +3613,11 @@ export default function PerformancesCorrelationPage() {
                                           <td className="px-2 py-1.5 font-mono text-[11px] text-gray-700 dark:text-gray-300">
                                             {formatIncidentTableCell(
                                               r.requestId,
+                                            )}
+                                          </td>
+                                          <td className="px-2 py-1.5 font-mono text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                                            {formatIncidentTableCell(
+                                              r.httpMethod,
                                             )}
                                           </td>
                                           <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">

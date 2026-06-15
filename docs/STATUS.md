@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/services-history-sparklines` (Lot A graphes — mini-séries historiques liste Services).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/correlation-incident-context` (Performances Corrélation — contexte endpoint incidents).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Performances Corrélation : contexte endpoint incidents
+
+- **Corrélation fine incidents** : le tableau expose maintenant une colonne **Méthode** en plus de **Endpoint**, **HTTP**, **Proto** et **Port**.
+- **Parsing renforcé** : extraction depuis metadata/message (`method`, `httpMethod`, `requestMethod`, `request.method`, `endpoint`, `originalUrl`, `path`, `url`, `request.url`, `req.url`), URL complète (protocole + port 80/443) et `host:port` / ports techniques (`port`, `localPort`, `serverPort`, `remotePort`).
+- **Diagnostic ligne** : clic sur une ligne affiche aussi **Méthode HTTP** avec source technique et suggestion de correction. Si le log source n’a jamais persisté le champ, l’UI garde `—` et explique le manque au lieu d’inventer une valeur.
+- **Validations sans `make`** : Prettier ciblé OK ; frontend `type-check` OK ; `lint --quiet` OK ; Jest `performanceCorrelationModel` **1 suite / 5 tests OK** ; lints IDE OK.
+- **E2E Performances** : échec initial car tentative sur port **3000** (fermé) ; relance via `playwright.standalone.config.ts` + frontend Docker **5003** → `performances-range-smoke.spec.ts` **7/7 OK** (**48,3 s**). Script dédié : `npm run test:e2e:performances`.
 
 ## 15 juin 2026 — Lot A graphes : mini-séries historiques liste Services
 

@@ -2,6 +2,7 @@ import type { MetricsData } from "@/lib/interfaces";
 
 export type IncidentCorrelationRowShape = {
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -35,6 +36,7 @@ export function buildIncidentEmptyReason(
 ): string | null {
   const hasAnyContext = Boolean(
     row.requestId ||
+      row.httpMethod ||
       row.endpoint ||
       row.ip ||
       row.protocol ||
@@ -48,6 +50,7 @@ export function buildIncidentEmptyReason(
 
   const missingContextCount = [
     row.requestId,
+    row.httpMethod,
     row.endpoint,
     row.ip,
     row.protocol,
