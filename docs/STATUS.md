@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats renforcés, validations porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data renforcés, validations porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — P1B Statistics app-data fallback explicite
+
+- **UI** : `/b4ck0ff1ce/statistics/app-data` affiche maintenant la note renvoyée par l’API timeline quand l’historique applicatif n’a qu’un snapshot courant, au lieu de masquer la raison du fallback.
+- **API runtime** : `/api/v1/statistics` HTTP 200 (`applications=1043`, `users=146`, `companies=761`, `contacts=2`, `interviews=128`, `calls=200`, `followups=140`, `events=973`) ; `/api/v1/statistics/timeline?time_range=7d&limit=500` HTTP 200, **1 point**, note `Timeline simplifiée (fallback)…`, aucun `undefined` brut dans les payloads.
+- **Validations sans `make`** : `node --check` controller statistics OK ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest app-data/statistics **2 suites / 5 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics/app-data` ~222 ms, `/statistics` ~49 ms, `/statistics/log-stats` ~54 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics app-data 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — P1B Statistics Sécurité cohérent avec `/security`
 
