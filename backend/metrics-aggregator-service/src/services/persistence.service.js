@@ -82,6 +82,44 @@ function toIsoUtcString(ts) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+function buildNearestContainerBlockIoLookup(rows, maxDistanceMs = 120000) {
+  const points = Array.isArray(rows)
+    ? rows
+        .map((row) => {
+          const tsIso =
+            toIsoUtcString(row.timestamp) ||
+            (row.timestamp instanceof Date
+              ? row.timestamp.toISOString()
+              : String(row.timestamp));
+          const timeMs = Date.parse(tsIso);
+          return {
+            timeMs,
+            blockReadBytes:
+              row.blockReadBytes != null ? Number(row.blockReadBytes) : null,
+            blockWriteBytes:
+              row.blockWriteBytes != null ? Number(row.blockWriteBytes) : null,
+          };
+        })
+        .filter((row) => Number.isFinite(row.timeMs))
+    : [];
+
+  return (targetMs) => {
+    if (!Number.isFinite(targetMs) || points.length === 0) {
+      return { blockReadBytes: null, blockWriteBytes: null };
+    }
+    let best = null;
+    let bestDistance = Infinity;
+    for (const point of points) {
+      const distance = Math.abs(point.timeMs - targetMs);
+      if (distance <= maxDistanceMs && distance < bestDistance) {
+        best = point;
+        bestDistance = distance;
+      }
+    }
+    return best || { blockReadBytes: null, blockWriteBytes: null };
+  };
+}
+
 /**
  * Service de persistance des métriques et logs
  * Gère l'enregistrement de toutes les données de monitoring dans la base de données
@@ -1022,11 +1060,94 @@ class PersistenceService {
 
       const rawRows = await prisma.$queryRawUnsafe(rawQuery);
       if (Array.isArray(rawRows) && rawRows.length > 0) {
-        return rawRows.map((row) => {
+        const snapshotConditions = [`"containerName" = '${escapedName}'`];
+        if (where.timestamp) {
+          if (where.timestamp.gte) {
+            const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
+            snapshotConditions.push(`"timestamp" >= '${gteDate}'::timestamptz`);
+          }
+          if (where.timestamp.lte) {
+            const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
+            snapshotConditions.push(`"timestamp" <= '${lteDate}'::timestamptz`);
+          }
+        }
+        const snapshotQuery = bucketSeconds && startEpoch != null
+          ? `
+            WITH source AS (
+              SELECT
+                id,
+                "timestamp" AS ts,
+                "containerName",
+                "cpuUsagePercent",
+                "memoryUsagePercent",
+                "memoryUsageBytes",
+                "memoryLimitBytes",
+                "networkRxBytes",
+                "networkTxBytes",
+                "blockReadBytes",
+                "blockWriteBytes",
+                status
+              FROM container_metrics_snapshots
+              WHERE ${snapshotConditions.join(' AND ')}
+            ),
+            bucketed AS (
+              SELECT
+                FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+                *
+              FROM source
+            )
+            SELECT
+              MIN(id) AS id,
+              to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+              MAX("containerName") AS "containerName",
+              AVG("cpuUsagePercent") AS "cpuUsagePercent",
+              AVG("memoryUsagePercent") AS "memoryUsagePercent",
+              MAX("memoryUsageBytes") AS "memoryUsageBytes",
+              MAX("memoryLimitBytes") AS "memoryLimitBytes",
+              MAX("networkRxBytes") AS "networkRxBytes",
+              MAX("networkTxBytes") AS "networkTxBytes",
+              MAX("blockReadBytes") AS "blockReadBytes",
+              MAX("blockWriteBytes") AS "blockWriteBytes",
+              MAX(status) AS status
+            FROM bucketed
+            GROUP BY bucket
+            ORDER BY "timestamp" DESC
+            LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          `
+          : `
+            SELECT
+              id,
+              "timestamp",
+              "containerName",
+              "cpuUsagePercent",
+              "memoryUsagePercent",
+              "memoryUsageBytes",
+              "memoryLimitBytes",
+              "networkRxBytes",
+              "networkTxBytes",
+              "blockReadBytes",
+              "blockWriteBytes",
+              status
+            FROM container_metrics_snapshots
+            WHERE ${snapshotConditions.join(' AND ')}
+            ORDER BY "timestamp" DESC
+            LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          `;
+        const snapshotRows = await prisma.$queryRawUnsafe(snapshotQuery).catch((error) => {
+          if (this._isTableMissing(error, 'container_metrics_snapshots')) {
+            this._warnOnceMissing('container_metrics_snapshots', 'container_metrics_snapshots');
+            return [];
+          }
+          throw error;
+        });
+        const nearestBlockIo = buildNearestContainerBlockIoLookup(snapshotRows);
+
+        const rawMapped = rawRows.map((row) => {
           const tsIso = toIsoUtcString(row.timestamp) || String(row.timestamp);
           const timestampMs = Date.parse(tsIso);
           const memoryMb = row.memory_mb != null ? Number(row.memory_mb) : null;
           const memoryLimitMb = row.memory_limit_mb != null ? Number(row.memory_limit_mb) : null;
+          const blockIo = nearestBlockIo(timestampMs);
           return {
             id: `container_metrics_${String(row.id)}`,
             timestamp: tsIso,
@@ -1044,13 +1165,53 @@ class PersistenceService {
             networkRxBytes: row.network_rx_bytes != null ? Number(row.network_rx_bytes) : null,
             networkTxBytes: row.network_tx_bytes != null ? Number(row.network_tx_bytes) : null,
             responseTimeMs: row.response_time_ms != null ? Number(row.response_time_ms) : null,
-            blockReadBytes: null,
-            blockWriteBytes: null,
+            blockReadBytes: blockIo.blockReadBytes,
+            blockWriteBytes: blockIo.blockWriteBytes,
             image: null,
             labels: null,
             createdAt: tsIso,
           };
         });
+        const rawTimestamps = rawMapped
+          .map((row) => row.timestampMs)
+          .filter((timeMs) => Number.isFinite(timeMs));
+        const snapshotOnlyRows = snapshotRows
+          .map((row) => {
+            const tsIso = toIsoUtcString(row.timestamp) || String(row.timestamp);
+            const timestampMs = Date.parse(tsIso);
+            return {
+              id: `container_metrics_snapshot_${String(row.id)}`,
+              timestamp: tsIso,
+              ...(Number.isFinite(timestampMs) ? { timestampMs } : {}),
+              containerName: row.containerName,
+              containerId: null,
+              status: row.status || 'running',
+              cpuUsagePercent: row.cpuUsagePercent != null ? Number(row.cpuUsagePercent) : null,
+              cpu_percent: row.cpuUsagePercent != null ? Number(row.cpuUsagePercent) : null,
+              cpuUsageNano: 0,
+              memoryUsagePercent: row.memoryUsagePercent != null ? Number(row.memoryUsagePercent) : null,
+              memory_percent: row.memoryUsagePercent != null ? Number(row.memoryUsagePercent) : null,
+              memoryUsageBytes: row.memoryUsageBytes != null ? Number(row.memoryUsageBytes) : null,
+              memoryLimitBytes: row.memoryLimitBytes != null ? Number(row.memoryLimitBytes) : null,
+              networkRxBytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
+              networkTxBytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
+              responseTimeMs: null,
+              blockReadBytes: row.blockReadBytes != null ? Number(row.blockReadBytes) : null,
+              blockWriteBytes: row.blockWriteBytes != null ? Number(row.blockWriteBytes) : null,
+              image: null,
+              labels: null,
+              createdAt: tsIso,
+            };
+          })
+          .filter((row) => {
+            if (!Number.isFinite(row.timestampMs)) return false;
+            return !rawTimestamps.some(
+              (timeMs) => Math.abs(timeMs - row.timestampMs) <= 120000,
+            );
+          });
+        return [...rawMapped, ...snapshotOnlyRows].sort(
+          (a, b) => (b.timestampMs || 0) - (a.timestampMs || 0),
+        );
       }
     } catch (rawError) {
       if (rawError.code === 'P2021' || rawError.message?.includes('does not exist') || rawError.message?.includes('relation') || rawError.message?.includes('container_metrics')) {
