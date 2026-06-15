@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics renforcés + incident Postgres connexions documenté, validations porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/performance-correlation-fluency` (retour porteur Statistics overview + Corrélation Performances).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Retour porteur Statistics overview + Corrélation Performances
+
+- **Statistics overview** : les graphes **Disponibilité dans le temps** et **Taux d’erreur dans le temps** sont désormais empilés en deux cartes pleine largeur, au lieu d’être compressés en deux colonnes.
+- **Corrélation Performances** : démarrage sur un seul service préféré (`security-service`, `auth-service`, `contact-service`, `api-gateway`, puis fallback), auto-refresh lourd **en pause par défaut**, toggle persistant session, clic nom service = focus + filtre, bouton `Charger/Voir`, mode complet jusqu’à **24** services.
+- **Performance Corrélation** : cache historique par période ; ajouter un service ne refetch plus tous les services déjà chargés si la période n’a pas changé.
+- **Dettes notées** : sécurité historique long terme au-delà de 30 j / 2000 lignes, snapshots score sécurité horodatés, analytics utilisateur/application/mobile et rapports d’erreurs corrélés logs/contexte.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest monitoring/metrics **2 suites / 12 tests OK** ; Playwright `statistics-smoke` + `performances-range-smoke` **11/11 OK**.
+- **Limite vérification navigateur MCP** : session manuelle redirigée vers `/login`; pas de contournement manuel, validation réalisée via storage admin Playwright.
 
 ## 15 juin 2026 — Incident Postgres `too many clients already`
 

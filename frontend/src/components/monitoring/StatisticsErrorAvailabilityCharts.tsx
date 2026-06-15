@@ -12,7 +12,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
-import { DashboardLayoutRegion } from "@/lib/ui";
 import type { StatisticsChartPoint } from "@/lib/metrics/statisticsTimeSeries";
 
 const COLORS = {
@@ -49,7 +48,7 @@ export function StatisticsErrorAvailabilityCharts({
     maxErrorRate <= 5 ? 5 : Math.min(100, Math.ceil(maxErrorRate * 1.2));
 
   return (
-    <DashboardLayoutRegion variant="section">
+    <div className="space-y-6">
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
           Disponibilité dans le temps
@@ -129,6 +128,6 @@ export function StatisticsErrorAvailabilityCharts({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </DashboardLayoutRegion>
+    </div>
   );
 }

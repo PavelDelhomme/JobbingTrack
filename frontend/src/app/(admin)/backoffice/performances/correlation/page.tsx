@@ -29,10 +29,18 @@ import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 type PerfMode = "light" | "full";
 
 const PERF_MODE_STORAGE_KEY = "jobbingtrack-perf-correlation-mode";
+const AUTO_REFRESH_STORAGE_KEY = "jobbingtrack-perf-correlation-auto-refresh";
 const FETCH_CONCURRENCY = 3;
 const MERGE_SYSTEM_MAX_DELTA_MS = 180_000;
 const MERGE_AVAILABILITY_MAX_DELTA_MS = 120_000;
 const INCIDENT_ALIGNMENT_MAX_DELTA_MS = 45 * 60 * 1000;
+const DEFAULT_FOCUS_SERVICE_HINTS = [
+  "jobbingtrack-security-service",
+  "jobbingtrack-auth-service",
+  "jobbingtrack-contact-service",
+  "jobbingtrack-api-gateway",
+  "jobbingtrack-metrics-aggregator",
+];
 
 function readStoredPerfMode(): PerfMode {
   if (typeof window === "undefined") return "light";
@@ -44,13 +52,22 @@ function readStoredPerfMode(): PerfMode {
   }
 }
 
+function readStoredAutoRefreshEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(AUTO_REFRESH_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function limitsForMode(mode: PerfMode) {
   if (mode === "full") {
     return {
-      maxHistoriesLoaded: 16,
-      historyLimit: 180,
+      maxHistoriesLoaded: 24,
+      historyLimit: 120,
       systemHistoryLimit: 360,
-      pointsPerSubchart: 220,
+      pointsPerSubchart: 180,
       autoRefreshMs: 120_000,
       subChartHeight: 120,
     };
@@ -827,6 +844,14 @@ function shortContainerName(full: string) {
   return full.replace(/^jobbingtrack-/, "");
 }
 
+function pickInitialFocusService(names: string[]): string | null {
+  for (const preferred of DEFAULT_FOCUS_SERVICE_HINTS) {
+    const found = names.find((name) => name === preferred);
+    if (found) return found;
+  }
+  return names[0] ?? null;
+}
+
 /** Pousse `name` en fin de file (MRU) et coupe au plafond — le plus ancien sort en premier. */
 function pushLoadedOrder(prev: string[], name: string, cap: number): string[] {
   const dedup = prev.filter((n) => n !== name);
@@ -1393,19 +1418,38 @@ function ServiceDashboardCard({
 
 export default function PerformancesCorrelationPage() {
   const [perfMode, setPerfMode] = useState<PerfMode>("light");
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const limits = useMemo(() => limitsForMode(perfMode), [perfMode]);
   const firstRequestRef = useRef(true);
   const bootstrappedRef = useRef(false);
   const loadAbortRef = useRef<AbortController | null>(null);
+  const containerRowsRef = useRef<Record<string, ContainerPoint[]>>({});
+  const availabilityByServiceRef = useRef<Record<string, AvailabilityPoint[]>>(
+    {},
+  );
+  const historyRangeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     setPerfMode(readStoredPerfMode());
+    setAutoRefreshEnabled(readStoredAutoRefreshEnabled());
   }, []);
 
   const persistPerfMode = (mode: PerfMode) => {
     setPerfMode(mode);
     try {
       window.sessionStorage.setItem(PERF_MODE_STORAGE_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const persistAutoRefreshEnabled = (enabled: boolean) => {
+    setAutoRefreshEnabled(enabled);
+    try {
+      window.sessionStorage.setItem(
+        AUTO_REFRESH_STORAGE_KEY,
+        enabled ? "1" : "0",
+      );
     } catch {
       /* ignore */
     }
@@ -1478,6 +1522,14 @@ export default function PerformancesCorrelationPage() {
   } | null>(null);
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [bulkHint, setBulkHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    containerRowsRef.current = containerRows;
+  }, [containerRows]);
+
+  useEffect(() => {
+    availabilityByServiceRef.current = availabilityByService;
+  }, [availabilityByService]);
 
   const enterCustomRangeDefaults = useCallback(() => {
     const end = new Date();
@@ -1554,9 +1606,9 @@ export default function PerformancesCorrelationPage() {
 
       if (!bootstrappedRef.current && names.length > 0) {
         bootstrappedRef.current = true;
-        const first = names[0];
+        const first = pickInitialFocusService(names);
         setFocusName(first);
-        setLoadedOrder(names.slice(0, limits.maxHistoriesLoaded));
+        setLoadedOrder(first ? [first] : []);
       } else {
         setFocusName((prev) => {
           if (prev && names.includes(prev)) return prev;
@@ -1615,14 +1667,17 @@ export default function PerformancesCorrelationPage() {
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, limits.autoRefreshMs);
+    const id =
+      autoRefreshEnabled && typeof window !== "undefined"
+        ? window.setInterval(() => {
+            if (document.visibilityState === "visible") void load();
+          }, limits.autoRefreshMs)
+        : null;
     return () => {
-      window.clearInterval(id);
+      if (id != null) window.clearInterval(id);
       loadAbortRef.current?.abort();
     };
-  }, [load, limits.autoRefreshMs]);
+  }, [load, limits.autoRefreshMs, autoRefreshEnabled]);
 
   useEffect(() => {
     setLoadedOrder((prev) => prev.slice(-limits.maxHistoriesLoaded));
@@ -1668,8 +1723,28 @@ export default function PerformancesCorrelationPage() {
           15000,
           Math.max(200, fetchLimits.historyLimit * 3),
         );
+        const rangeKey = [
+          opts.startDate,
+          opts.endDate,
+          fetchLimits.historyLimit,
+          availLimit,
+        ].join("|");
+        const refreshAll = historyRangeKeyRef.current !== rangeKey;
+        const namesToFetch = refreshAll
+          ? loadedOrder
+          : loadedOrder.filter(
+              (name) =>
+                (containerRowsRef.current[name]?.length ?? 0) === 0 ||
+                (availabilityByServiceRef.current[name]?.length ?? 0) === 0,
+            );
+
+        if (namesToFetch.length === 0) {
+          setHistoriesLoading(false);
+          return;
+        }
+
         const results = await promisePool(
-          loadedOrder,
+          namesToFetch,
           FETCH_CONCURRENCY,
           async (name) => {
             const [rows, availRaw, availStats, liveStats] = await Promise.all([
@@ -1912,6 +1987,7 @@ export default function PerformancesCorrelationPage() {
           },
         );
         if (cancelled) return;
+        historyRangeKeyRef.current = rangeKey;
         setContainerRows((prev) => {
           const next: Record<string, ContainerPoint[]> = { ...prev };
           for (const k of Object.keys(next)) {
@@ -2328,6 +2404,15 @@ export default function PerformancesCorrelationPage() {
     [limits.maxHistoriesLoaded],
   );
 
+  const onSelectServiceAndFilter = useCallback(
+    (name: string) => {
+      setListFilter(shortContainerName(name));
+      setBulkHint(null);
+      onSelectService(name);
+    },
+    [onSelectService],
+  );
+
   const unloadService = useCallback((name: string) => {
     setLoadedOrder((prev) => prev.filter((n) => n !== name));
   }, []);
@@ -2439,6 +2524,17 @@ export default function PerformancesCorrelationPage() {
             >
               Rafraîchir
             </button>
+            <button
+              type="button"
+              onClick={() => persistAutoRefreshEnabled(!autoRefreshEnabled)}
+              className={`rounded border px-2 py-1 text-xs ${
+                autoRefreshEnabled
+                  ? "border-blue-600 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-100"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              Auto-refresh {autoRefreshEnabled ? "actif" : "en pause"}
+            </button>
             {refreshing && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Actualisation…
@@ -2455,6 +2551,13 @@ export default function PerformancesCorrelationPage() {
               </span>
             )}
           </div>
+          {!autoRefreshEnabled && (
+            <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100">
+              Auto-refresh en pause : les historiques lourds restent stables
+              pendant l'analyse. Utilisez <strong>Rafraîchir</strong> pour
+              reprendre un instantané.
+            </p>
+          )}
 
           <div className="mb-4 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-600 dark:bg-gray-900/40">
             <div className="flex flex-wrap items-center gap-2">
@@ -2628,7 +2731,8 @@ export default function PerformancesCorrelationPage() {
                 </ul>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   Max {limits.maxHistoriesLoaded} en mémoire (LRU au clic). «
-                  Tout charger » = résultats du filtre, dans la limite.
+                  Tout charger » = résultats du filtre, dans la limite. Cliquez
+                  un nom de service pour le placer en focus et isoler le filtre.
                 </p>
               </aside>
 
@@ -2795,7 +2899,16 @@ export default function PerformancesCorrelationPage() {
                                 }
                               >
                                 <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">
-                                  {short}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onSelectServiceAndFilter(name)
+                                    }
+                                    className="max-w-[16rem] truncate text-left hover:underline"
+                                    title={`Filtrer et afficher ${short}`}
+                                  >
+                                    {short}
+                                  </button>
                                 </td>
                                 <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                                   {sum ? sum.points : loaded ? "0" : "—"}
@@ -2836,7 +2949,11 @@ export default function PerformancesCorrelationPage() {
                                     onClick={() => onSelectService(name)}
                                     className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                                   >
-                                    {isFocus ? "Actif" : "Voir"}
+                                    {isFocus
+                                      ? "Actif"
+                                      : loaded
+                                        ? "Voir"
+                                        : "Charger"}
                                   </button>
                                 </td>
                               </tr>
