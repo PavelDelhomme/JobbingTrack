@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data renforcés, validations porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data + vue d’ensemble renforcés, validations porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — P1B Statistics vue d’ensemble dispo/erreur
+
+- **UI/E2E** : le smoke Playwright de `/b4ck0ff1ce/statistics` vérifie maintenant les graphes **Disponibilité dans le temps**, la source `Persistance system_metrics`, la période visible et la mention **taux d’erreur dérivé (100 − disponibilité)**.
+- **API runtime** : `/api/v1/persistence/system/metrics` 24h et 7j OK, **500** points chaque, disponibilité **500/500**, `errorRate` explicite **0/500** ; le graphe erreur reflète donc bien une dérivation depuis disponibilité.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest `statisticsTimeSeries` **1 suite / 3 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics` ~97 ms, `/statistics/security` ~69 ms, `/statistics/app-data` ~66 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics overview 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — P1B Statistics app-data fallback explicite
 

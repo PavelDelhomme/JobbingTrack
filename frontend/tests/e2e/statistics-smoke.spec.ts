@@ -25,6 +25,13 @@ for (const path of PAGES) {
       await expect(
         page.getByRole("heading", { name: /Disponibilité dans le temps/i }),
       ).toBeVisible({ timeout: 90_000 });
+      await expect(
+        page.getByText(/Source : Persistance system_metrics/i),
+      ).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText(/Taux d'erreur dérivé/i)).toBeVisible();
+      await expect(page.getByText(/Période : /i)).toBeVisible({
+        timeout: 90_000,
+      });
     }
     if (path === "/b4ck0ff1ce/statistics/security") {
       await expect(

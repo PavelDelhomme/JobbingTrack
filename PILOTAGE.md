@@ -38,7 +38,7 @@ Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — 
 
 Priorité immédiate stricte :
 
-1. Reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent déjà produites pour **Statistics Sécurité**, **Statistics log-stats** et **Statistics app-data** : **Statistics — graphes disponibilité / erreur (vue d’ensemble)**.
+1. Reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent déjà produites pour **Statistics Sécurité**, **Statistics log-stats**, **Statistics app-data** et **Statistics vue d’ensemble** : **Statistics — moteur UI partagé shell**.
 2. Attendre validation explicite du porteur ou corriger le problème signalé.
 3. Déplacer la ligne validée vers `TODOS_DONE.md`.
 4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C/P1D, une ligne à la fois).
