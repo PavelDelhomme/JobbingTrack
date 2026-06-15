@@ -249,16 +249,13 @@ class CentralMetricsService {
 
     try {
       // Métriques système via metrics-aggregator uniquement (aggregator récupère depuis monitoring-c + BDD)
-      const response = await fetch(
-        buildMetricsAggregatorUrl("metrics"),
-        {
-          headers: {
-            Accept: "application/json",
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-          },
-          signal: AbortSignal.timeout(10000),
+      const response = await fetch(buildMetricsAggregatorUrl("metrics"), {
+        headers: {
+          Accept: "application/json",
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         },
-      );
+        signal: AbortSignal.timeout(10000),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -336,16 +333,13 @@ class CentralMetricsService {
 
     try {
       // Métriques conteneurs via metrics-aggregator uniquement
-      const response = await fetch(
-        buildMetricsAggregatorUrl("metrics"),
-        {
-          headers: {
-            Accept: "application/json",
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-          },
-          signal: AbortSignal.timeout(10000),
+      const response = await fetch(buildMetricsAggregatorUrl("metrics"), {
+        headers: {
+          Accept: "application/json",
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         },
-      );
+        signal: AbortSignal.timeout(10000),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -372,16 +366,13 @@ class CentralMetricsService {
 
     try {
       // Métriques Docker via metrics-aggregator uniquement
-      const response = await fetch(
-        buildMetricsAggregatorUrl("metrics"),
-        {
-          headers: {
-            Accept: "application/json",
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-          },
-          signal: AbortSignal.timeout(10000),
+      const response = await fetch(buildMetricsAggregatorUrl("metrics"), {
+        headers: {
+          Accept: "application/json",
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         },
-      );
+        signal: AbortSignal.timeout(10000),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -624,16 +615,13 @@ class CentralMetricsService {
           return list;
         }
       }
-      const metricsRes = await fetch(
-        buildMetricsAggregatorUrl("metrics"),
-        {
-          headers: {
-            Accept: "application/json",
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-          },
-          signal: AbortSignal.timeout(15000),
+      const metricsRes = await fetch(buildMetricsAggregatorUrl("metrics"), {
+        headers: {
+          Accept: "application/json",
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         },
-      );
+        signal: AbortSignal.timeout(15000),
+      });
       if (metricsRes.ok) {
         const data = await metricsRes.json();
         const fromMetrics =

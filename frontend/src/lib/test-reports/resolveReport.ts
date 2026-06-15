@@ -35,7 +35,10 @@ export const REPORT_DIRS = {
   "security-results": getSecurityResultsDir(),
 } as const;
 
-export function isWithinDirectory(baseDir: string, targetPath: string): boolean {
+export function isWithinDirectory(
+  baseDir: string,
+  targetPath: string,
+): boolean {
   const rel = relative(resolve(baseDir), resolve(targetPath));
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
@@ -402,7 +405,8 @@ export async function loadCompareReport(
   if (
     summaryMdPath &&
     existsSync(summaryMdPath) &&
-    (id.startsWith("security-reports-") || id.startsWith("security-results-")) &&
+    (id.startsWith("security-reports-") ||
+      id.startsWith("security-results-")) &&
     tests.length === 0
   ) {
     const md = await readFile(summaryMdPath, "utf-8");
@@ -499,8 +503,7 @@ export async function loadSecuritySensitiveDetails(
       continue;
     }
     const counts = (result.counts ?? {}) as Record<string, number>;
-    const medium =
-      Number(counts.medium ?? 0) + Number(counts.moderate ?? 0);
+    const medium = Number(counts.medium ?? 0) + Number(counts.moderate ?? 0);
     const findings = Array.isArray(result.findings)
       ? result.findings.map((item) => String(item))
       : [];

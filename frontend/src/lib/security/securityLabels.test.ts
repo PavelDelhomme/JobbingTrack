@@ -52,9 +52,9 @@ describe("securityLabels", () => {
   });
 
   it("expose les options de filtres sécurité sans hardcoder les pages", () => {
-    expect(getSecuritySeverityFilterOptions().map((option) => option.value)).toEqual(
-      ["critical", "error", "warning", "info"],
-    );
+    expect(
+      getSecuritySeverityFilterOptions().map((option) => option.value),
+    ).toEqual(["critical", "error", "warning", "info"]);
     expect(getThreatSeverityFilterOptions()[0]).toEqual({
       value: "CRITICAL",
       label: "Critique",

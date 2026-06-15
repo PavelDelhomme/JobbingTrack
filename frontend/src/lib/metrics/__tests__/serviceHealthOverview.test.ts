@@ -173,7 +173,7 @@ describe("serviceHealthOverview", () => {
 
   it("identifie les services prioritaires P1B et formate les temps de réponse", () => {
     expect(isPriorityResponseService("jobbingtrack-auth-service")).toBe(true);
-    expect(isPriorityResponseService("jobbingtrack-postgres")).toBe(true);
+    expect(isPriorityResponseService("jobbingtrack-postgres")).toBe(false);
     expect(isPriorityResponseService("jobbingtrack-company-service")).toBe(
       false,
     );

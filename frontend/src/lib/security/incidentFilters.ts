@@ -29,9 +29,7 @@ export function filterIncidentRows(
 
   const source = filters.source.trim().toLowerCase();
   if (source) {
-    result = result.filter((row) =>
-      row.source.toLowerCase().includes(source),
-    );
+    result = result.filter((row) => row.source.toLowerCase().includes(source));
   }
 
   const query = filters.query.trim().toLowerCase();

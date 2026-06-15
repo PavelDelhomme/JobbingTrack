@@ -164,7 +164,9 @@ export default function SecurityTestsPage() {
       }
 
       if (data.warning) {
-        addLog("⚠️ Avertissements medium/low — voir rapport (statut AVERTISSEMENT)");
+        addLog(
+          "⚠️ Avertissements medium/low — voir rapport (statut AVERTISSEMENT)",
+        );
       } else if (data.success) {
         addLog("✅ Tests applicatifs terminés");
       } else {
@@ -279,7 +281,8 @@ export default function SecurityTestsPage() {
         cache: "no-store",
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Chargement findings échoué");
+      if (!response.ok)
+        throw new Error(data.error || "Chargement findings échoué");
       setFindings(data.findings ?? []);
       setFindingsGuidance(data.guidance ?? null);
     } catch (error: unknown) {
@@ -311,7 +314,9 @@ export default function SecurityTestsPage() {
           </span>
         )}
         {finding.isDirect ? (
-          <span className="text-xs text-amber-700 dark:text-amber-300">direct</span>
+          <span className="text-xs text-amber-700 dark:text-amber-300">
+            direct
+          </span>
         ) : (
           <span className="text-xs text-gray-500">transitive</span>
         )}
@@ -328,15 +333,21 @@ export default function SecurityTestsPage() {
       )}
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
         <div>
-          <dt className="font-medium text-gray-800 dark:text-gray-200">Service</dt>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Service
+          </dt>
           <dd>{finding.service}</dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-800 dark:text-gray-200">Surface</dt>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Surface
+          </dt>
           <dd>{finding.surface}</dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="font-medium text-gray-800 dark:text-gray-200">Lockfile</dt>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Lockfile
+          </dt>
           <dd className="font-mono break-all">{finding.lockfilePath}</dd>
         </div>
         <div className="sm:col-span-2">
@@ -352,7 +363,9 @@ export default function SecurityTestsPage() {
           <dd>{finding.exploitability}</dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="font-medium text-gray-800 dark:text-gray-200">Correctif</dt>
+          <dt className="font-medium text-gray-800 dark:text-gray-200">
+            Correctif
+          </dt>
           <dd>
             {finding.fix.recommendation}
             {finding.fix.fixAvailable ? " (semver dispo)" : ""}
@@ -450,18 +463,42 @@ export default function SecurityTestsPage() {
             Tests offensifs contrôlés (cadrage P1A)
           </h2>
           <p className="text-sm text-amber-950/90 dark:text-amber-100/90">
-            Cette page lance des audits applicatifs et CVE <strong>non destructifs</strong> en
-            local/lab uniquement. Les campagnes agressives (ZAP actif, nmap, SYN flood, spoofing)
-            sont documentées dans{" "}
-            <code className="text-xs">docs/security/SECURITY_TESTING_MATRIX.md</code> et{" "}
-            <code className="text-xs">docs/security/COMPOSE_RUNTIME_HARDENING.md</code> —{" "}
-            <strong>jamais sur prod réelle</strong> sans fenêtre autorisée.
+            Cette page lance des audits applicatifs et CVE{" "}
+            <strong>non destructifs</strong> en local/lab uniquement. Les
+            campagnes agressives (ZAP actif, nmap, SYN flood, spoofing) sont
+            documentées dans{" "}
+            <code className="text-xs">
+              docs/security/SECURITY_TESTING_MATRIX.md
+            </code>{" "}
+            et{" "}
+            <code className="text-xs">
+              docs/security/COMPOSE_RUNTIME_HARDENING.md
+            </code>{" "}
+            — <strong>jamais sur prod réelle</strong> sans fenêtre autorisée.
           </p>
           <ul className="text-xs text-amber-900/90 dark:text-amber-100/80 list-disc pl-5 space-y-1">
-            <li>Cible lab : <code>localhost:5002</code> / stack locale HTTPS.</li>
-            <li>Préflight lecture seule : <code>node scripts/security/controlled-offensive-preflight.cjs --target=http://localhost:5002 --environment=local</code>.</li>
-            <li>Rapports : <Link href="/b4ck0ff1ce/test-reports" className="underline">Rapports de tests</Link> (catégorie Sécurité).</li>
-            <li>Validation porteur : confirmer le cadrage, pas lancer une campagne agressive depuis l’UI.</li>
+            <li>
+              Cible lab : <code>localhost:5002</code> / stack locale HTTPS.
+            </li>
+            <li>
+              Préflight lecture seule :{" "}
+              <code>
+                node scripts/security/controlled-offensive-preflight.cjs
+                --target=http://localhost:5002 --environment=local
+              </code>
+              .
+            </li>
+            <li>
+              Rapports :{" "}
+              <Link href="/b4ck0ff1ce/test-reports" className="underline">
+                Rapports de tests
+              </Link>{" "}
+              (catégorie Sécurité).
+            </li>
+            <li>
+              Validation porteur : confirmer le cadrage, pas lancer une campagne
+              agressive depuis l’UI.
+            </li>
           </ul>
           <details className="text-xs text-amber-950/90 dark:text-amber-100/90">
             <summary className="cursor-pointer font-medium mt-2">
@@ -480,7 +517,9 @@ export default function SecurityTestsPage() {
                   <tr>
                     <td className="px-2 py-1.5">Préflight périmètre</td>
                     <td className="px-2 py-1.5">Lecture seule</td>
-                    <td className="px-2 py-1.5">Script `controlled-offensive-preflight.cjs`</td>
+                    <td className="px-2 py-1.5">
+                      Script `controlled-offensive-preflight.cjs`
+                    </td>
                   </tr>
                   <tr>
                     <td className="px-2 py-1.5">WAF / injection / headers</td>
@@ -505,7 +544,9 @@ export default function SecurityTestsPage() {
                   <tr>
                     <td className="px-2 py-1.5">Leurres / honeypot VPS</td>
                     <td className="px-2 py-1.5">Design seulement</td>
-                    <td className="px-2 py-1.5">docs/security/VPS_EXPOSURE_REDUCTION.md</td>
+                    <td className="px-2 py-1.5">
+                      docs/security/VPS_EXPOSURE_REDUCTION.md
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -519,8 +560,8 @@ export default function SecurityTestsPage() {
             Localiser une CVE dans JobbingTrack
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Recherche dans les rapports CVE archivés, lockfiles npm, npm audit et
-            runtimes déclarés dans les Dockerfiles (ex. CVE-2026-21710).
+            Recherche dans les rapports CVE archivés, lockfiles npm, npm audit
+            et runtimes déclarés dans les Dockerfiles (ex. CVE-2026-21710).
           </p>
           <div className="flex flex-wrap gap-2">
             <input
@@ -573,7 +614,9 @@ export default function SecurityTestsPage() {
                     {hit.severity ? ` (${hit.severity})` : ""}
                     {hit.lockfilePath ? ` — ${hit.lockfilePath}` : ""}
                     {hit.affectedRange ? ` — affecté ${hit.affectedRange}` : ""}
-                    {hit.patchedVersion ? ` — correctif ${hit.patchedVersion}+` : ""}
+                    {hit.patchedVersion
+                      ? ` — correctif ${hit.patchedVersion}+`
+                      : ""}
                     {hit.reportId && (
                       <>
                         {" "}
@@ -626,7 +669,9 @@ export default function SecurityTestsPage() {
             disabled={findingsLoading || !token}
             className="rounded-lg bg-red-800 text-white px-4 py-2 text-sm hover:bg-red-900 disabled:opacity-50"
           >
-            {findingsLoading ? "Analyse npm audit…" : "Charger findings critical/high"}
+            {findingsLoading
+              ? "Analyse npm audit…"
+              : "Charger findings critical/high"}
           </button>
           {findingsGuidance && (
             <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">

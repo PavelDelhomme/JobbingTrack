@@ -433,7 +433,11 @@ export class AnalyticsService {
       );
       if (response.data?.services && Array.isArray(response.data.services)) {
         return response.data.services.map(
-          (s: { name: string; health_status?: string; [key: string]: unknown }) => {
+          (s: {
+            name: string;
+            health_status?: string;
+            [key: string]: unknown;
+          }) => {
             const name = String(s.name || "")
               .replace(/^\//, "")
               .trim();

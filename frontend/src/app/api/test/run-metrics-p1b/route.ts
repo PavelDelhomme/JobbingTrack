@@ -53,9 +53,7 @@ export async function POST(request: NextRequest) {
       const execErr = err as { stdout?: string; status?: number };
       stdout = execErr.stdout ?? "";
       reportId = stdout ? extractReportId(stdout) : null;
-      console.log(
-        `${TESTS_TAG} Fin (échec) — rapport: ${reportId ?? "N/A"}`,
-      );
+      console.log(`${TESTS_TAG} Fin (échec) — rapport: ${reportId ?? "N/A"}`);
 
       if (reportId) {
         return NextResponse.json({

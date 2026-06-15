@@ -28,8 +28,9 @@ export function filterUsers<T extends FilterableUser>(
       .trim()
       .toLowerCase();
     return (
-      String(user.email || "").toLowerCase().includes(query) ||
-      fullName.includes(query)
+      String(user.email || "")
+        .toLowerCase()
+        .includes(query) || fullName.includes(query)
     );
   });
 }

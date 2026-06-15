@@ -379,7 +379,9 @@ export async function executeMobileAction(
       const email = String(params.email || "").trim();
       const password = String(params.password || "");
       if (!email || !password) {
-        throw new Error("Paramètres email/password obligatoires pour mob_login");
+        throw new Error(
+          "Paramètres email/password obligatoires pour mob_login",
+        );
       }
       await adb.wait(500);
       await adb.typeInField("Email", email);

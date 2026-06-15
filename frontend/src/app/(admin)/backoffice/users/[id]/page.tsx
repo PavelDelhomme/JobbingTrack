@@ -578,46 +578,46 @@ export default function UserDetailPage() {
       backLabel="Retour aux utilisateurs"
       actions={
         <div className="flex items-center gap-2">
-            {editMode ? (
-              <>
+          {editMode ? (
+            <>
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+                Annuler
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Save className="h-5 w-5" />
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Edit className="h-5 w-5" />
+                Modifier
+              </button>
+              {currentUser?.id !== userId && (
                 <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  onClick={handleDeleteUser}
+                  disabled={deleting}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  <X className="h-5 w-5" />
-                  Annuler
+                  <Trash2 className="h-5 w-5" />
+                  {deleting ? "Suppression..." : "Supprimer"}
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  <Save className="h-5 w-5" />
-                  {saving ? "Enregistrement..." : "Enregistrer"}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Edit className="h-5 w-5" />
-                  Modifier
-                </button>
-                {currentUser?.id !== userId && (
-                  <button
-                    onClick={handleDeleteUser}
-                    disabled={deleting}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                    {deleting ? "Suppression..." : "Supprimer"}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </>
+          )}
+        </div>
       }
     >
       <div className="space-y-6">

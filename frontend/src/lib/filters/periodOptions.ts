@@ -5,5 +5,4 @@ export const STATS_PERIOD_OPTIONS = [
   { value: 30, label: "30 jours" },
 ] as const;
 
-export type StatsPeriodDays =
-  (typeof STATS_PERIOD_OPTIONS)[number]["value"];
+export type StatsPeriodDays = (typeof STATS_PERIOD_OPTIONS)[number]["value"];

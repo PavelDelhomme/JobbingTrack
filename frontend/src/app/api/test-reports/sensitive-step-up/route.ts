@@ -118,8 +118,7 @@ export async function POST(request: NextRequest) {
     return secureJson(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Erreur step-up auth",
+        error: error instanceof Error ? error.message : "Erreur step-up auth",
       },
       { status: 500 },
     );

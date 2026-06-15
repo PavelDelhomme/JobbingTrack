@@ -53,18 +53,17 @@ describe("PriorityResponseServicesSummary", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("auth-service")).toBeInTheDocument();
     expect(screen.getByText("notification-service")).toBeInTheDocument();
-    expect(screen.getByText("postgres")).toBeInTheDocument();
-    expect(screen.getByText("Santé Docker")).toBeInTheDocument();
+    expect(screen.queryByText("postgres")).not.toBeInTheDocument();
+    expect(screen.queryByText("Santé Docker")).not.toBeInTheDocument();
     expect(screen.queryByText("company-service")).not.toBeInTheDocument();
 
     const rendered = screen
-      .getAllByText(/auth-service|notification-service|postgres/)
+      .getAllByText(/auth-service|notification-service/)
       .map((node) => node.textContent);
-    expect(rendered).toEqual(["auth-service", "notification-service", "postgres"]);
-    expect(screen.getByRole("link", { name: /détail latence/i })).toHaveAttribute(
-      "href",
-      "/b4ck0ff1ce/performances/latency",
-    );
+    expect(rendered).toEqual(["auth-service", "notification-service"]);
+    expect(
+      screen.getByRole("link", { name: /détail latence/i }),
+    ).toHaveAttribute("href", "/b4ck0ff1ce/performances/latency");
   });
 
   it("rend un état vide explicite si aucun service prioritaire n'est présent", () => {

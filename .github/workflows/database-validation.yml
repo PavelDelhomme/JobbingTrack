@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - develop
+      - dev
       - tech/**
       - database/**
     paths:
@@ -16,7 +16,7 @@ on:
   pull_request:
     branches:
       - main
-      - develop
+      - dev
     paths:
       - 'backend/prisma/schema.prisma'
       - 'backend/prisma/seed.js'

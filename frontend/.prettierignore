@@ -3,6 +3,9 @@ node_modules/
 .next-local/
 tmp/
 coverage/
+.cache-playwright/
+.tmp-jest/
+.tmp-playwright/
 playwright-report/
 test-results.json
 test-results/

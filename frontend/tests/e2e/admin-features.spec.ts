@@ -17,10 +17,7 @@ test.describe("👑 Fonctionnalités Administrateur Avancées", () => {
       .locator("button")
       .filter({ hasText: /Créer|Ajouter/ })
       .click();
-    await page.fill(
-      'input[name="email"]',
-      "redacted@example.invalid",
-    );
+    await page.fill('input[name="email"]', "redacted@example.invalid");
     await page.fill('input[name="firstName"]', "Marie");
     await page.fill('input[name="lastName"]', "Martin");
     await page.locator('select[name="role"]').selectOption("ADMIN");

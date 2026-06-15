@@ -309,14 +309,8 @@ export default function TestReportsPage() {
   const [reportContent, setReportContent] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<TestReportListFilters>(DEFAULT_TEST_REPORT_FILTERS);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<TestReportListFilters>(DEFAULT_TEST_REPORT_FILTERS);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [compareMode, setCompareMode] = useState(false);
@@ -326,8 +320,7 @@ export default function TestReportsPage() {
   );
   const [loadingCompare, setLoadingCompare] = useState(false);
   const [securityKindFilter, setSecurityKindFilter] = useState<string>("all");
-  const [securityOnlyExploitable, setSecurityOnlyExploitable] =
-    useState(false);
+  const [securityOnlyExploitable, setSecurityOnlyExploitable] = useState(false);
   const [securityHideAbsent, setSecurityHideAbsent] = useState(false);
   const [sensitiveModalOpen, setSensitiveModalOpen] = useState(false);
   const [sensitivePassword, setSensitivePassword] = useState("");
@@ -689,7 +682,10 @@ export default function TestReportsPage() {
       });
     }
     if (applied.category) {
-      badges.push({ key: "category", label: `Catégorie : ${applied.category}` });
+      badges.push({
+        key: "category",
+        label: `Catégorie : ${applied.category}`,
+      });
     }
     if (applied.status) {
       const label =
@@ -915,11 +911,20 @@ export default function TestReportsPage() {
                               Comparaison sécurité CVE
                             </h3>
                             <p className="mt-1 text-sm text-red-800 dark:text-red-200">
-                              {compareResult.comparison.securitySummary.rowsCompared}{" "}
+                              {
+                                compareResult.comparison.securitySummary
+                                  .rowsCompared
+                              }{" "}
                               surfaces comparées,{" "}
-                              {compareResult.comparison.securitySummary.totalCritical}{" "}
+                              {
+                                compareResult.comparison.securitySummary
+                                  .totalCritical
+                              }{" "}
                               critical et{" "}
-                              {compareResult.comparison.securitySummary.totalHigh}{" "}
+                              {
+                                compareResult.comparison.securitySummary
+                                  .totalHigh
+                              }{" "}
                               high au total.
                             </p>
                           </div>
@@ -935,8 +940,8 @@ export default function TestReportsPage() {
                           }{" "}
                           Les totaux élevés viennent souvent des scans
                           Docker/images et dépendances npm — prioriser les
-                          lignes avec critical/high et statut ≠ skipped.
-                          « Absent » = surface scannée dans un seul rapport.
+                          lignes avec critical/high et statut ≠ skipped. «
+                          Absent » = surface scannée dans un seul rapport.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
@@ -1054,8 +1059,8 @@ export default function TestReportsPage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                           Chaque ligne affiche uniquement la surface, le type de
                           scan, le statut et les compteurs de sévérité par
-                          rapport. Les notes/payloads nécessitent le bouton
-                          « détails sensibles » avec réauthentification.
+                          rapport. Les notes/payloads nécessitent le bouton «
+                          détails sensibles » avec réauthentification.
                         </p>
                         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
                           <label className="flex items-center gap-2">
@@ -1134,7 +1139,8 @@ export default function TestReportsPage() {
                                       </div>
                                     </td>
                                     {compareResult.reports!.map((r) => {
-                                      const cell = row.details?.[r.id]?.security;
+                                      const cell =
+                                        row.details?.[r.id]?.security;
                                       if (!cell) {
                                         return (
                                           <td

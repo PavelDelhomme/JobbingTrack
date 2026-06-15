@@ -44,9 +44,12 @@ function formatWhen(value?: string) {
 
 function mirrorLabel(mirror?: MirrorMeta) {
   if (!mirror) return { text: "Miroir N/A", variant: "outline" as const };
-  if (mirror.sent === true) return { text: "Miroir OK", variant: "default" as const };
-  if (mirror.sent === false) return { text: "Miroir KO", variant: "destructive" as const };
-  if (mirror.queued === true) return { text: "Miroir…", variant: "secondary" as const };
+  if (mirror.sent === true)
+    return { text: "Miroir OK", variant: "default" as const };
+  if (mirror.sent === false)
+    return { text: "Miroir KO", variant: "destructive" as const };
+  if (mirror.queued === true)
+    return { text: "Miroir…", variant: "secondary" as const };
   return { text: "Miroir N/A", variant: "outline" as const };
 }
 
@@ -77,9 +80,12 @@ export function SecurityAlertEmailDiagnostics() {
         page: "1",
       });
 
-      const response = await fetch(`${API_URL}/api/v1/emails/logs?${baseParams}`, {
-        headers,
-      });
+      const response = await fetch(
+        `${API_URL}/api/v1/emails/logs?${baseParams}`,
+        {
+          headers,
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`API ${response.status}`);

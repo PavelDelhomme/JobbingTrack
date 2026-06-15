@@ -4,11 +4,16 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { getAdminCredentials, getGeneratedUserPassword } from "./test-data-helper";
+import {
+  getAdminCredentials,
+  getGeneratedUserPassword,
+} from "./test-data-helper";
 
 const TEST_USER = {
   email: `test.user.${Date.now()}@jobbing track.test`,
-  password: getGeneratedUserPassword("Mot de passe parcours utilisateur complet"),
+  password: getGeneratedUserPassword(
+    "Mot de passe parcours utilisateur complet",
+  ),
   firstName: "Jean",
   lastName: "Test",
 };

@@ -137,9 +137,7 @@ function numberFromKeys(
   return null;
 }
 
-function containerMetricBag(
-  container: ContainerInfo,
-): Record<string, unknown> {
+function containerMetricBag(container: ContainerInfo): Record<string, unknown> {
   return container.metrics && typeof container.metrics === "object"
     ? container.metrics
     : {};
@@ -540,7 +538,9 @@ export default function ContainersAnalyticsPage() {
     );
     if (names.length === 0) {
       const liveContainers = containers.filter((container) => {
-        return containerCpu(container) != null || containerMemory(container) != null;
+        return (
+          containerCpu(container) != null || containerMemory(container) != null
+        );
       });
       if (liveContainers.length === 0) return [];
       return livePointTimes().map((timeMs) => {
@@ -650,7 +650,8 @@ export default function ContainersAnalyticsPage() {
       : containers
           .filter(
             (container) =>
-              containerCpu(container) != null || containerMemory(container) != null,
+              containerCpu(container) != null ||
+              containerMemory(container) != null,
           )
           .map((n) => n.name.replace(/^jobbingtrack-/, "").replace(/-/g, "_"))
     : [];
@@ -715,56 +716,55 @@ export default function ContainersAnalyticsPage() {
         </>
       }
     >
-
-        {!selectedContainer && !loadingList ? (
-          <PerformanceEmptyState
-            className={
-              listError
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
-                : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-            }
-          >
-            {listError ??
-              "Aucun conteneur disponible. Vérifiez que le metrics-aggregator et Docker exposent les conteneurs JobbingTrack."}
-          </PerformanceEmptyState>
-        ) : loadingMetrics && chartData.length === 0 ? (
-          <PerformanceLoadingState>
-            Chargement des métriques…
-          </PerformanceLoadingState>
-        ) : chartData.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucune métrique persistée pour{" "}
-            {isAllContainers ? "ces conteneurs" : "ce conteneur"} sur cette
-            période.
-          </PerformanceEmptyState>
-        ) : isAllContainers && containerNamesForChart.length > 0 ? (
-          <AnalyticsContainersChartsBundle
-            mode="multi"
-            rangeLabel={rangeLabel}
-            chartXDomainMin={chartXDomainEffMin}
-            chartXDomainMax={chartXDomainEffMax}
-            containerAxisShowDate={containerAxisShowDate}
-            chartData={chartData}
-            containerNamesForChart={containerNamesForChart}
-            selectedContainerLabel=""
-            rawMetricsLength={rawMetrics.length}
-          />
-        ) : (
-          <AnalyticsContainersChartsBundle
-            mode="single"
-            rangeLabel={rangeLabel}
-            chartXDomainMin={chartXDomainEffMin}
-            chartXDomainMax={chartXDomainEffMax}
-            containerAxisShowDate={containerAxisShowDate}
-            chartData={chartData}
-            containerNamesForChart={[]}
-            selectedContainerLabel={selectedContainer.replace(
-              /^jobbingtrack-/,
-              "",
-            )}
-            rawMetricsLength={rawMetrics.length}
-          />
-        )}
+      {!selectedContainer && !loadingList ? (
+        <PerformanceEmptyState
+          className={
+            listError
+              ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+              : "border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+          }
+        >
+          {listError ??
+            "Aucun conteneur disponible. Vérifiez que le metrics-aggregator et Docker exposent les conteneurs JobbingTrack."}
+        </PerformanceEmptyState>
+      ) : loadingMetrics && chartData.length === 0 ? (
+        <PerformanceLoadingState>
+          Chargement des métriques…
+        </PerformanceLoadingState>
+      ) : chartData.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucune métrique persistée pour{" "}
+          {isAllContainers ? "ces conteneurs" : "ce conteneur"} sur cette
+          période.
+        </PerformanceEmptyState>
+      ) : isAllContainers && containerNamesForChart.length > 0 ? (
+        <AnalyticsContainersChartsBundle
+          mode="multi"
+          rangeLabel={rangeLabel}
+          chartXDomainMin={chartXDomainEffMin}
+          chartXDomainMax={chartXDomainEffMax}
+          containerAxisShowDate={containerAxisShowDate}
+          chartData={chartData}
+          containerNamesForChart={containerNamesForChart}
+          selectedContainerLabel=""
+          rawMetricsLength={rawMetrics.length}
+        />
+      ) : (
+        <AnalyticsContainersChartsBundle
+          mode="single"
+          rangeLabel={rangeLabel}
+          chartXDomainMin={chartXDomainEffMin}
+          chartXDomainMax={chartXDomainEffMax}
+          containerAxisShowDate={containerAxisShowDate}
+          chartData={chartData}
+          containerNamesForChart={[]}
+          selectedContainerLabel={selectedContainer.replace(
+            /^jobbingtrack-/,
+            "",
+          )}
+          rawMetricsLength={rawMetrics.length}
+        />
+      )}
     </PerformancePageShell>
   );
 }

@@ -204,8 +204,8 @@ export default function ApplicationPerformancePage() {
       title="Application — performances live"
       description={
         <p>
-              Indicateurs issus de l&apos;application utilisateur et des
-              services (temps de réponse, disponibilité, statistiques).
+          Indicateurs issus de l&apos;application utilisateur et des services
+          (temps de réponse, disponibilité, statistiques).
         </p>
       }
       actions={
@@ -228,87 +228,84 @@ export default function ApplicationPerformancePage() {
       backHref="/b4ck0ff1ce/analytics"
       showApplicationSubNav
     >
-        <ChartPeriodCaption label={rangeLabel} />
-        {loading && !metrics && !appStats ? (
-          <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">
-            Chargement…
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {perf?.averageResponseTime != null && (
+      <ChartPeriodCaption label={rangeLabel} />
+      {loading && !metrics && !appStats ? (
+        <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">
+          Chargement…
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {perf?.averageResponseTime != null && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Temps de réponse moyen
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {Number(perf.averageResponseTime).toFixed(0)} ms
+              </p>
+            </div>
+          )}
+          {health?.availability_percent != null && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Disponibilité
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {Number(health.availability_percent).toFixed(1)} %
+              </p>
+            </div>
+          )}
+          {system?.cpu != null &&
+            typeof system.cpu === "object" &&
+            (system.cpu as Record<string, unknown>).usage != null && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Temps de réponse moyen
+                  CPU (système projet)
                 </p>
                 <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {Number(perf.averageResponseTime).toFixed(0)} ms
+                  {Number(
+                    (system.cpu as Record<string, unknown>).usage,
+                  ).toFixed(1)}{" "}
+                  %
                 </p>
               </div>
             )}
-            {health?.availability_percent != null && (
+          {appStats?.users != null &&
+            typeof appStats.users === "object" &&
+            (appStats.users as Record<string, unknown>).total != null && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Disponibilité
+                  Utilisateurs total
                 </p>
                 <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {Number(health.availability_percent).toFixed(1)} %
+                  {(appStats.users as Record<string, unknown>).total as number}
                 </p>
               </div>
             )}
-            {system?.cpu != null &&
-              typeof system.cpu === "object" &&
-              (system.cpu as Record<string, unknown>).usage != null && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    CPU (système projet)
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {Number(
-                      (system.cpu as Record<string, unknown>).usage,
-                    ).toFixed(1)}{" "}
-                    %
-                  </p>
-                </div>
-              )}
-            {appStats?.users != null &&
-              typeof appStats.users === "object" &&
-              (appStats.users as Record<string, unknown>).total != null && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Utilisateurs total
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {
-                      (appStats.users as Record<string, unknown>)
-                        .total as number
-                    }
-                  </p>
-                </div>
-              )}
-            {appStats?.applications != null &&
-              typeof appStats.applications === "object" &&
-              (appStats.applications as Record<string, unknown>).total !=
-                null && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Candidatures total
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {
-                      (appStats.applications as Record<string, unknown>)
-                        .total as number
-                    }
-                  </p>
-                </div>
-              )}
-          </div>
-        )}
-        {!loading && !metrics && !appStats && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
-            Aucune donnée de performances applicatives disponible. Vérifiez que
-            le dashboard et les statistiques sont accessibles.
-          </div>
-        )}
+          {appStats?.applications != null &&
+            typeof appStats.applications === "object" &&
+            (appStats.applications as Record<string, unknown>).total !=
+              null && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Candidatures total
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {
+                    (appStats.applications as Record<string, unknown>)
+                      .total as number
+                  }
+                </p>
+              </div>
+            )}
+        </div>
+      )}
+      {!loading && !metrics && !appStats && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
+          Aucune donnée de performances applicatives disponible. Vérifiez que le
+          dashboard et les statistiques sont accessibles.
+        </div>
+      )}
     </AnalyticsPageShell>
   );
 }

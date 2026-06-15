@@ -15,11 +15,14 @@
     toxic.forEach(function (c) {
       d.classList.remove(c);
     });
-    ["--jt-primary", "--jt-accent", "--primary-color", "--accent-color"].forEach(
-      function (v) {
-        d.style.removeProperty(v);
-      },
-    );
+    [
+      "--jt-primary",
+      "--jt-accent",
+      "--primary-color",
+      "--accent-color",
+    ].forEach(function (v) {
+      d.style.removeProperty(v);
+    });
     var s = localStorage.getItem("theme") || "dark";
     if (s === "system") {
       s = window.matchMedia("(prefers-color-scheme: dark)").matches

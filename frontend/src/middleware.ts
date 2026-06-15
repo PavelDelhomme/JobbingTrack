@@ -21,10 +21,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(`${ADMIN_PUBLIC_PATH}/`)
   ) {
     const rewriteUrl = request.nextUrl.clone();
-    let internalPath = pathname.replace(
-      ADMIN_PUBLIC_PATH,
-      ADMIN_INTERNAL_PATH,
-    );
+    let internalPath = pathname.replace(ADMIN_PUBLIC_PATH, ADMIN_INTERNAL_PATH);
     if (
       internalPath === `${ADMIN_INTERNAL_PATH}/services/logs` ||
       internalPath.startsWith(`${ADMIN_INTERNAL_PATH}/services/logs/`)
