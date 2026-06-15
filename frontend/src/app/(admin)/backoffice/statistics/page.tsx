@@ -456,6 +456,8 @@ export default function StatisticsPage() {
 
   // ✅ Charger les préférences de rafraîchissement
   const [statsRefreshInterval, setStatsRefreshInterval] = useState(60000);
+  const [statsAutoRefreshEnabled, setStatsAutoRefreshEnabled] =
+    useState(false);
 
   useEffect(() => {
     const loadRefreshInterval = async () => {
@@ -478,14 +480,21 @@ export default function StatisticsPage() {
       }
 
       // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire et avec délai
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       if (needsHistory || needsServiceHistory) {
         // Délai pour permettre au stats de charger d'abord
-        setTimeout(() => {
+        timeout = setTimeout(() => {
           fetchMetricsHistory();
         }, 100);
       }
 
-      // ✅ Actualiser selon les préférences utilisateur
+      if (!statsAutoRefreshEnabled) {
+        return () => {
+          if (timeout) clearTimeout(timeout);
+        };
+      }
+
+      // ✅ Actualiser uniquement si l'utilisateur active l'auto-refresh
       const interval = setInterval(() => {
         if (document.visibilityState !== "visible") return;
         if (needsStats) {
@@ -496,7 +505,10 @@ export default function StatisticsPage() {
           fetchMetricsHistory();
         }
       }, statsRefreshInterval);
-      return () => clearInterval(interval);
+      return () => {
+        if (timeout) clearTimeout(timeout);
+        clearInterval(interval);
+      };
     }
   }, [
     isAuthenticated,
@@ -506,6 +518,7 @@ export default function StatisticsPage() {
     windowBounds.limit,
     activeTab,
     statsRefreshInterval,
+    statsAutoRefreshEnabled,
   ]);
 
   const fetchMetricsHistory = async () => {
@@ -980,7 +993,26 @@ export default function StatisticsPage() {
         </>
       }
       actions={
-        <>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (needsStats) fetchStatistics(true);
+              if (needsHistory || needsServiceHistory) fetchMetricsHistory();
+            }}
+            className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/60"
+          >
+            Actualiser
+          </button>
+          <button
+            onClick={() => setStatsAutoRefreshEnabled((value) => !value)}
+            className={`rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors ${
+              statsAutoRefreshEnabled
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
+          >
+            Auto-refresh {statsAutoRefreshEnabled ? "actif" : "pause"}
+          </button>
           <button
             onClick={() => setShowCustomization(!showCustomization)}
             className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -988,7 +1020,7 @@ export default function StatisticsPage() {
           >
             <Settings className="w-5 h-5" />
           </button>
-        </>
+        </div>
       }
     >
       {/* Panneau de personnalisation */}

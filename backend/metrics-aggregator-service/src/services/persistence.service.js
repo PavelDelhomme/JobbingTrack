@@ -37,6 +37,22 @@ function clampMetricsHistoryLimit(raw, fallback = 100) {
   return Math.min(Math.floor(n), METRICS_HISTORY_LIMIT_MAX);
 }
 
+function metricsHistoryBucketSeconds(startDate, endDate, limit) {
+  if (!startDate || !endDate || !limit) return null;
+  const startMs = new Date(startDate).getTime();
+  const endMs = new Date(endDate).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return null;
+  }
+  return Math.max(1, Math.ceil((endMs - startMs) / 1000 / Math.max(1, limit)));
+}
+
+function sqlEpochSeconds(value) {
+  const ms = new Date(value).getTime();
+  if (!Number.isFinite(ms)) return null;
+  return Math.floor(ms / 1000);
+}
+
 /**
  * Driver SQL / Prisma peut renvoyer Date ou chaîne sans fuseau. On expose toujours de l’ISO UTC
  * pour le JSON afin que le front (fuseau navigateur) convertisse correctement.
@@ -640,35 +656,6 @@ class PersistenceService {
       // ✅ CORRECTION : Utiliser $queryRaw pour accéder directement à la table system_metrics
       // créée par monitoring-c (qui contient project_cpu_avg et project_memory_mb)
       // au lieu de SystemMetricsSnapshot (Prisma) qui n'a pas ces champs
-      let query = `
-        SELECT 
-          ${tsExpr} AS "timestamp",
-          cpu_load_1,
-          cpu_load_5,
-          cpu_load_15,
-          cpu_cores,
-          cpu_usage_percent,
-          memory_total_mb,
-          memory_used_mb,
-          memory_free_mb,
-          memory_usage_percent,
-          disk_total_gb,
-          disk_used_gb,
-          disk_free_gb,
-          disk_usage_percent,
-          container_count,
-          avg_response_time_ms,
-          avg_cpu_percent,
-          avg_memory_percent,
-          availability_percent,
-          load_score,
-          total_network_rx_bytes,
-          total_network_tx_bytes,
-          project_cpu_avg,
-          project_memory_mb
-        FROM system_metrics
-      `;
-      
       // ✅ CORRECTION : Construire la requête avec des valeurs directement (sécurisé car les valeurs sont contrôlées)
       const conditions = [];
       if (where.timestamp) {
@@ -681,12 +668,111 @@ class PersistenceService {
           conditions.push(`${tsExpr} <= '${lteDate}'::timestamptz`);
         }
       }
-      
-      if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+
+      const whereSql = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      let query;
+
+      if (bucketSeconds && startEpoch != null) {
+        query = `
+          WITH source AS (
+            SELECT
+              ${tsExpr} AS ts,
+              cpu_load_1,
+              cpu_load_5,
+              cpu_load_15,
+              cpu_cores,
+              cpu_usage_percent,
+              memory_total_mb,
+              memory_used_mb,
+              memory_free_mb,
+              memory_usage_percent,
+              disk_total_gb,
+              disk_used_gb,
+              disk_free_gb,
+              disk_usage_percent,
+              container_count,
+              avg_response_time_ms,
+              avg_cpu_percent,
+              avg_memory_percent,
+              availability_percent,
+              load_score,
+              total_network_rx_bytes,
+              total_network_tx_bytes,
+              project_cpu_avg,
+              project_memory_mb
+            FROM system_metrics
+            ${whereSql}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+            AVG(cpu_load_1) AS cpu_load_1,
+            AVG(cpu_load_5) AS cpu_load_5,
+            AVG(cpu_load_15) AS cpu_load_15,
+            MAX(cpu_cores) AS cpu_cores,
+            AVG(cpu_usage_percent) AS cpu_usage_percent,
+            MAX(memory_total_mb) AS memory_total_mb,
+            AVG(memory_used_mb) AS memory_used_mb,
+            AVG(memory_free_mb) AS memory_free_mb,
+            AVG(memory_usage_percent) AS memory_usage_percent,
+            MAX(disk_total_gb) AS disk_total_gb,
+            AVG(disk_used_gb) AS disk_used_gb,
+            AVG(disk_free_gb) AS disk_free_gb,
+            AVG(disk_usage_percent) AS disk_usage_percent,
+            MAX(container_count) AS container_count,
+            AVG(avg_response_time_ms) AS avg_response_time_ms,
+            AVG(avg_cpu_percent) AS avg_cpu_percent,
+            AVG(avg_memory_percent) AS avg_memory_percent,
+            AVG(availability_percent) AS availability_percent,
+            AVG(load_score) AS load_score,
+            MAX(total_network_rx_bytes) AS total_network_rx_bytes,
+            MAX(total_network_tx_bytes) AS total_network_tx_bytes,
+            AVG(project_cpu_avg) AS project_cpu_avg,
+            AVG(project_memory_mb) AS project_memory_mb
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY "timestamp" DESC
+          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `;
+      } else {
+        query = `
+          SELECT
+            ${tsExpr} AS "timestamp",
+            cpu_load_1,
+            cpu_load_5,
+            cpu_load_15,
+            cpu_cores,
+            cpu_usage_percent,
+            memory_total_mb,
+            memory_used_mb,
+            memory_free_mb,
+            memory_usage_percent,
+            disk_total_gb,
+            disk_used_gb,
+            disk_free_gb,
+            disk_usage_percent,
+            container_count,
+            avg_response_time_ms,
+            avg_cpu_percent,
+            avg_memory_percent,
+            availability_percent,
+            load_score,
+            total_network_rx_bytes,
+            total_network_tx_bytes,
+            project_cpu_avg,
+            project_memory_mb
+          FROM system_metrics
+          ${whereSql}
+          ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `;
       }
-      
-      query += ` ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${offset}`;
       
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
@@ -872,24 +958,67 @@ class PersistenceService {
         }
       }
 
-      const rawQuery = `
-        SELECT
-          id,
-          ${tsExpr} AS "timestamp",
-          container_name,
-          cpu_percent,
-          memory_mb,
-          memory_limit_mb,
-          memory_percent,
-          network_rx_bytes,
-          network_tx_bytes,
-          response_time_ms,
-          http_status
-        FROM container_metrics
-        WHERE ${conditions.join(' AND ')}
-        ORDER BY ${tsExpr} DESC
-        LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
-      `;
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      const rawQuery = bucketSeconds && startEpoch != null
+        ? `
+          WITH source AS (
+            SELECT
+              id,
+              ${tsExpr} AS ts,
+              container_name,
+              cpu_percent,
+              memory_mb,
+              memory_limit_mb,
+              memory_percent,
+              network_rx_bytes,
+              network_tx_bytes,
+              response_time_ms,
+              http_status
+            FROM container_metrics
+            WHERE ${conditions.join(' AND ')}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            MIN(id) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+            MAX(container_name) AS container_name,
+            AVG(cpu_percent) AS cpu_percent,
+            AVG(memory_mb) AS memory_mb,
+            MAX(memory_limit_mb) AS memory_limit_mb,
+            AVG(memory_percent) AS memory_percent,
+            MAX(network_rx_bytes) AS network_rx_bytes,
+            MAX(network_tx_bytes) AS network_tx_bytes,
+            AVG(response_time_ms) AS response_time_ms,
+            MAX(http_status) AS http_status
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY "timestamp" DESC
+          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `
+        : `
+          SELECT
+            id,
+            ${tsExpr} AS "timestamp",
+            container_name,
+            cpu_percent,
+            memory_mb,
+            memory_limit_mb,
+            memory_percent,
+            network_rx_bytes,
+            network_tx_bytes,
+            response_time_ms,
+            http_status
+          FROM container_metrics
+          WHERE ${conditions.join(' AND ')}
+          ORDER BY ${tsExpr} DESC
+          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `;
 
       const rawRows = await prisma.$queryRawUnsafe(rawQuery);
       if (Array.isArray(rawRows) && rawRows.length > 0) {

@@ -1,28 +1,28 @@
 export const BACKOFFICE_SERIES_COLORS = [
-  "#2563EB",
-  "#16A34A",
-  "#D97706",
-  "#DC2626",
-  "#7C3AED",
-  "#DB2777",
-  "#0891B2",
-  "#65A30D",
-  "#4F46E5",
-  "#EA580C",
-  "#0D9488",
-  "#9333EA",
-  "#BE123C",
-  "#0284C7",
-  "#CA8A04",
-  "#059669",
-  "#C026D3",
-  "#B45309",
-  "#1D4ED8",
-  "#15803D",
-  "#A21CAF",
-  "#B91C1C",
-  "#0F766E",
+  "#0057FF",
+  "#FF6B00",
+  "#7A00FF",
+  "#00A6A6",
+  "#E00022",
+  "#F5C400",
+  "#D000A7",
+  "#146C2E",
+  "#8A5A00",
+  "#00B8D9",
+  "#B00020",
+  "#7CB900",
+  "#3344DD",
+  "#FF2D75",
+  "#00796B",
+  "#FF9F1C",
+  "#5C2D91",
+  "#009B4D",
+  "#E65100",
+  "#00D084",
+  "#8B1E3F",
+  "#0082C8",
   "#A16207",
+  "#C026D3",
 ] as const;
 
 function hashString(value: string): number {
@@ -48,8 +48,8 @@ export function buildStableSeriesColorMap(
   const used = new Set<string>();
   const colors: Record<string, string> = {};
 
-  uniqueKeys.forEach((key) => {
-    const start = hashString(key) % BACKOFFICE_SERIES_COLORS.length;
+  uniqueKeys.forEach((key, index) => {
+    const start = index % BACKOFFICE_SERIES_COLORS.length;
     let color: string | undefined;
 
     for (

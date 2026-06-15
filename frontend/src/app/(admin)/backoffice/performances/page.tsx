@@ -480,50 +480,8 @@ export default function PerformancesPage() {
       };
     });
   }, [rawData]);
-  const dataTimeBounds = useMemo(() => {
-    const points = chartData
-      .filter((d) => Number.isFinite(d.timeMs))
-      .filter(
-        (d) =>
-          d.cpu != null ||
-          d.memory != null ||
-          d.networkRxMb != null ||
-          d.networkTxMb != null ||
-          d.responseTimeMs != null,
-      );
-    if (points.length === 0) return null;
-    const first = points[0]?.timeMs;
-    const last = points[points.length - 1]?.timeMs;
-    if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
-    return { min: Number(first), max: Number(last) };
-  }, [chartData]);
-  const chartDomain = useMemo(() => {
-    if (!dataTimeBounds) {
-      return {
-        min: requestedDomainMin,
-        max: requestedDomainMax,
-        autoFitted: false,
-      };
-    }
-    const requestedSpan = Math.max(1, requestedDomainMax - requestedDomainMin);
-    const dataSpan = Math.max(1, dataTimeBounds.max - dataTimeBounds.min);
-    const coverageRatio = dataSpan / requestedSpan;
-    // Si la période demandée est largement vide (service démarré récemment), on cadre sur la vraie plage.
-    if (coverageRatio < 0.45) {
-      return {
-        min: dataTimeBounds.min,
-        max: dataTimeBounds.max,
-        autoFitted: true,
-      };
-    }
-    return {
-      min: requestedDomainMin,
-      max: requestedDomainMax,
-      autoFitted: false,
-    };
-  }, [dataTimeBounds, requestedDomainMin, requestedDomainMax]);
-  const chartXDomainMin = chartDomain.min;
-  const chartXDomainMax = chartDomain.max;
+  const chartXDomainMin = requestedDomainMin;
+  const chartXDomainMax = requestedDomainMax;
 
   const perfAxisShowDate =
     chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;

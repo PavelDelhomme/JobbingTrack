@@ -219,7 +219,10 @@ export default function SecurityIncidentsPage() {
 
   useEffect(() => {
     load();
-    const id = window.setInterval(load, 45_000);
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      load();
+    }, 60_000);
     return () => window.clearInterval(id);
   }, [load]);
 

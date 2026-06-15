@@ -109,8 +109,8 @@ export default function ThreatsPage() {
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
     useAppliedFilters<ThreatFilters>(initialThreatFilters);
   const [serviceError, setServiceError] = useState<string | null>(null);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(60_000);
   const [refreshing, setRefreshing] = useState(false);
   const [newThreatsCount, setNewThreatsCount] = useState(0);
   const previousTopThreatTsRef = useRef<string | null>(null);
@@ -238,10 +238,10 @@ export default function ThreatsPage() {
   useEffect(() => {
     loadThreats();
     if (!autoRefreshEnabled) return;
-    const interval = setInterval(
-      () => loadThreats({ silent: true }),
-      refreshIntervalMs,
-    );
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadThreats({ silent: true });
+    }, refreshIntervalMs);
     return () => clearInterval(interval);
   }, [loadThreats, autoRefreshEnabled, refreshIntervalMs]);
 
@@ -484,11 +484,13 @@ export default function ThreatsPage() {
               value={String(refreshIntervalMs)}
               onChange={(e) => setRefreshIntervalMs(Number(e.target.value))}
               className="px-2 py-1 border rounded dark:bg-gray-700 dark:text-gray-100 text-sm"
+              disabled={!autoRefreshEnabled}
             >
-              <option value="3000">3s</option>
-              <option value="5000">5s</option>
-              <option value="10000">10s</option>
               <option value="15000">15s</option>
+              <option value="30000">30s</option>
+              <option value="60000">60s</option>
+              <option value="10000">10s</option>
+              <option value="5000">5s</option>
             </select>
           </div>
         </div>

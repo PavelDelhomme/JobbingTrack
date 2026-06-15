@@ -137,8 +137,10 @@ export default function NetworkStatsPage() {
 
   useEffect(() => {
     loadStats();
-    // ✅ OPTIMISATION : Rafraîchir toutes les 45 secondes au lieu de 30
-    const interval = setInterval(loadStats, 45000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadStats();
+    }, 60_000);
     return () => clearInterval(interval);
   }, [loadStats]);
 
