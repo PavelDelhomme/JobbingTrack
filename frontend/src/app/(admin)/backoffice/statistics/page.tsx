@@ -104,6 +104,11 @@ import {
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
 
+const STATISTICS_LONG_RANGE_RENDER_POINTS = 160;
+const STATISTICS_MEDIUM_RANGE_RENDER_POINTS = 140;
+const STATISTICS_SHORT_RANGE_RENDER_POINTS = 120;
+const STATISTICS_LIVE_RANGE_RENDER_POINTS = 100;
+
 // Types
 interface MetricsHistory {
   timestamp: string;
@@ -900,12 +905,12 @@ export default function StatisticsPage() {
 
   const chartMaxPoints =
     timeRange === "30d" || timeRange === "21d"
-      ? 500
+      ? STATISTICS_LONG_RANGE_RENDER_POINTS
       : timeRange === "14d" || timeRange === "7d" || timeRange === "3d"
-        ? 300
+        ? STATISTICS_MEDIUM_RANGE_RENDER_POINTS
         : timeRange === "24h"
-          ? 200
-          : 100;
+          ? STATISTICS_SHORT_RANGE_RENDER_POINTS
+          : STATISTICS_LIVE_RANGE_RENDER_POINTS;
 
   const chartData = useMemo(
     () =>
