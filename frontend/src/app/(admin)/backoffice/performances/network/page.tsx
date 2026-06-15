@@ -48,6 +48,7 @@ import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResp
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceLoadingState,
   PerformancePageShell,
 } from "@/components/performances";
@@ -530,6 +531,12 @@ export default function NetworkPerformancePage() {
         </PerformanceEmptyState>
       ) : (
         <div className="space-y-8">
+          <PerformanceHistoryCaption
+            source="system_metrics"
+            timeRangeLabel={rangeLabel}
+            renderedPoints={series.length}
+            note="RX/TX persistés ; débits et corrélation CPU dérivés côté UI"
+          />
           <PerformanceChartCard
             title="Réception (RX) et émission (TX) — Mo (cumul)"
             periodLabel={rangeLabel}

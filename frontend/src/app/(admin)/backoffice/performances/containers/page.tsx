@@ -36,6 +36,7 @@ import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceLoadingState,
   PerformancePageShell,
 } from "@/components/performances";
@@ -759,32 +760,50 @@ export default function ContainersAnalyticsPage() {
           période.
         </PerformanceEmptyState>
       ) : isAllContainers && containerNamesForChart.length > 0 ? (
-        <AnalyticsContainersChartsBundle
-          mode="multi"
-          rangeLabel={rangeLabel}
-          chartXDomainMin={chartXDomainEffMin}
-          chartXDomainMax={chartXDomainEffMax}
-          containerAxisShowDate={containerAxisShowDate}
-          chartData={chartData}
-          containerNamesForChart={containerNamesForChart}
-          selectedContainerLabel=""
-          rawMetricsLength={totalRawContainerPoints}
-        />
+        <div className="space-y-4">
+          <PerformanceHistoryCaption
+            source="container_metrics"
+            timeRangeLabel={rangeLabel}
+            rawPoints={totalRawContainerPoints}
+            renderedPoints={chartData.length}
+            note="Toutes séries conteneurs ; codes C# et rendu adaptatif"
+          />
+          <AnalyticsContainersChartsBundle
+            mode="multi"
+            rangeLabel={rangeLabel}
+            chartXDomainMin={chartXDomainEffMin}
+            chartXDomainMax={chartXDomainEffMax}
+            containerAxisShowDate={containerAxisShowDate}
+            chartData={chartData}
+            containerNamesForChart={containerNamesForChart}
+            selectedContainerLabel=""
+            rawMetricsLength={totalRawContainerPoints}
+          />
+        </div>
       ) : (
-        <AnalyticsContainersChartsBundle
-          mode="single"
-          rangeLabel={rangeLabel}
-          chartXDomainMin={chartXDomainEffMin}
-          chartXDomainMax={chartXDomainEffMax}
-          containerAxisShowDate={containerAxisShowDate}
-          chartData={chartData}
-          containerNamesForChart={[]}
-          selectedContainerLabel={selectedContainer.replace(
-            /^jobbingtrack-/,
-            "",
-          )}
-          rawMetricsLength={rawMetrics.length}
-        />
+        <div className="space-y-4">
+          <PerformanceHistoryCaption
+            source="container_metrics"
+            timeRangeLabel={rangeLabel}
+            rawPoints={rawMetrics.length}
+            renderedPoints={chartData.length}
+            note="Conteneur sélectionné ; axe X calé sur la période demandée"
+          />
+          <AnalyticsContainersChartsBundle
+            mode="single"
+            rangeLabel={rangeLabel}
+            chartXDomainMin={chartXDomainEffMin}
+            chartXDomainMax={chartXDomainEffMax}
+            containerAxisShowDate={containerAxisShowDate}
+            chartData={chartData}
+            containerNamesForChart={[]}
+            selectedContainerLabel={selectedContainer.replace(
+              /^jobbingtrack-/,
+              "",
+            )}
+            rawMetricsLength={rawMetrics.length}
+          />
+        </div>
       )}
     </PerformancePageShell>
   );

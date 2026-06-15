@@ -38,6 +38,7 @@ import { analyticsService } from "@/lib/api/analytics.service";
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceInfoNotice,
   PerformanceLoadingState,
   PerformancePageShell,
@@ -692,6 +693,13 @@ export default function PerformancesDiskPage() {
               </p>
             </div>
           </div>
+
+          <PerformanceHistoryCaption
+            source="system_metrics"
+            timeRangeLabel={rangeLabel}
+            renderedPoints={systemRows.length}
+            note="Stockage système persisté ; Block I/O agrégé depuis container_metrics"
+          />
 
           {systemRows.length > 0 ? (
             <PerformanceChartCard
