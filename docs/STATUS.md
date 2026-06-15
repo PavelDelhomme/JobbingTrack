@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (remise à plat CI/PR/Playwright local en cours).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (lot P1D CI/PR/préprod clôturé).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — CI / PR / préprod Portainer P1D (clôture)
+
+- **PR #8** mergée dans `dev` (`73dea552`) : CI Playwright + performance.
+- **PR #7** fermée (conflictuelle) ; remplacée par **PR #9** mergée (`e6e5cb90`) : scan CVE full-scope (`scripts/security/cve-scan.py`, mount `/workspace`), jobs backoffice pollés (`securityJobStore`), UI `/b4ck0ff1ce/tests-security` avec progression live.
+- **Validations sans `make`** : Jest CVE **2 suites / 4 tests OK** ; smoke `cve-findings` **33 findings** ; smoke `cve-scan.py` full-scope (**24 surfaces Node**, Rust, **2 Flutter**) ; `format:check` / `type-check` / `lint --quiet` OK ; Jest CI frontend **42 suites / 179 tests OK** ; Playwright login sécurité **5/5** ; page `/tests-security` **2/2**.
+- **Préprod Portainer** : `deploy-preprod.yml` — branche `preprod` ou manuel, webhook `PREPROD_DEPLOY_URL` + `PREPROD_DEPLOY_TOKEN`, no-op documenté si URL absente, échec non masqué si webhook KO ; stratégie sans Portainer Business dans `docs/deployment/VPS_PORTAINER_NPM_OVH.md` §5.1.
+- **Mail récap** : sujet `[JobbingTrack] Recap P1D CI PR preprod 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — Performance UI : Réseau / Corrélation / P1B temps de réponse
 
@@ -16,11 +24,11 @@
 ## 15 juin 2026 — GitHub Actions / PR / préprod : diagnostic et premier correctif
 
 - **Cause CI confirmée** : le run GitHub échouait sur `Analyse de la qualite du code` à l'étape Prettier, pas parce que tous les workflows étaient absents. Reproduction locale du même périmètre : **75 fichiers** frontend non conformes ; après `prettier --write`, le check Prettier passe.
-- **Effet domino** : `Tests Backend`, `Tests Frontend`, intégration système et performance étaient `skipped` car ils dépendent de `code-quality`. PR #7 est encore ouverte et confirmée `CONFLICTING`, donc non mergable sans reprise.
+- **Effet domino** : `Tests Backend`, `Tests Frontend`, intégration système et performance étaient `skipped` car ils dépendent de `code-quality`. PR #7 était `CONFLICTING` — fermée et remplacée par PR #9 mergée le 15/06.
 - **Correctifs workflows** : `ci-cd.yml` aligné sur `dev/main` + familles de branches + `workflow_dispatch`; `database-validation.yml` et `deploy-dev.yml` alignés sur `dev`; `security-audit.yml` couvre `fix/security-*` et `security/**`; commandes E2E mobile/accessibilité corrigées vers des specs/projets existants; masquages `|| echo` sur ces tests retirés; étapes mortes `if: false` retirées.
 - **Jest / quota local** : le Jest CI frontend échouait ensuite sur `jest: failed to cache transform results in: /tmp/jest_rs/...` / `Unknown system error -122, write`. Correctif : `frontend/jest.config.js` force `cacheDirectory` vers `frontend/.tmp-jest`; le dossier est ignoré par Git/Prettier.
 - **Validations sans `make`** : `npm run format:check` OK ; `npm run type-check` OK ; `npm run lint -- --quiet` OK ; Jest frontend CI **40 suites / 175 tests OK** ; parsing YAML workflows OK ; recherche des anciens pièges (`develop`, projets mobiles inexistants, `test:a11y`, `if: false`, masquages E2E ciblés) OK.
-- **Limites restantes** : les workflows de déploiement Portainer restent placeholders `*_DEPLOY_URL`; PR #7 doit être rebasée/résolue séparément; l'environnement shell local affiche encore `débordement du quota d'espace disque` et `dump_zsh_state`, avec `/tmp` ~80 %. Rapport : `docs/ci/GITHUB_ACTIONS_AUDIT_2026-06-15.md`.
+- **Limites restantes** : les workflows de déploiement Portainer restent placeholders `*_DEPLOY_URL` tant que le VPS n’est pas raccordé ; stratégie documentée §5.1 `VPS_PORTAINER_NPM_OVH.md`. L'environnement shell local affiche encore `débordement du quota d'espace disque` et `dump_zsh_state`, avec `/tmp` ~80 %. Rapport : `docs/ci/GITHUB_ACTIONS_AUDIT_2026-06-15.md`.
 
 ## 15 juin 2026 — audit gateway remote host / shell / URL injection
 
