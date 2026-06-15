@@ -10,6 +10,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
+| P1D | GitHub Actions / PR / préprod Portainer — suite lot | Lot local commité `5697cafb` sur `chore/ci-playwright-performance-lot`, **PR #8** → `dev`. Branche suite : `chore/ci-pr-preprod-portainer`. À faire : surveiller checks GitHub PR #8, merger si vert, traiter PR #7, documenter stratégie Portainer préprod. | [ ] |
 | P0 | Cohérence du nouveau système de pilotage | Liens mis à jour vers `PILOTAGE.md`, `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md`; ancienne référence `A_VALIDER_VERIFIER.md` supprimée ou remplacée. | [x] |
 | P0 | Règle Cursor de pilotage | `.cursor/rules/pilotage-validation.mdc` existe et impose la lecture du pilotage avant action. | [x] |
 | P0 | Docs de suivi accessibles | `docs/README.md`, `docs/TODOS.md`, `docs/security/README.md`, `TRAITER_IMMEDIATEMENT.md` pointent vers les bons fichiers. | [x] |
