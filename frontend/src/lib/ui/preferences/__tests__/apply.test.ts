@@ -37,9 +37,8 @@ describe("applyCustomizationToDom — thème", () => {
 
     expect(localStorage.getItem("theme")).toBe("system");
     expect(
-      JSON.parse(
-        localStorage.getItem("jobbingtrack-ui-preferences-v1") || "{}",
-      ).customization.theme,
+      JSON.parse(localStorage.getItem("jobbingtrack-ui-preferences-v1") || "{}")
+        .customization.theme,
     ).toBe("auto");
   });
 });

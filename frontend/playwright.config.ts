@@ -1,21 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
-import fs from "fs";
 import path from "path";
 import { devBypassExtraHeaders } from "./tests/e2e/envDevBypass";
 import { loadRootEnv } from "./tests/e2e/loadRootEnv";
+import { applyPlaywrightRuntimeEnv } from "./tests/e2e/playwright-runtime-env";
 
 loadRootEnv();
-
-const playwrightTmpDir =
-  process.env.PLAYWRIGHT_TMPDIR || path.join(__dirname, ".tmp-playwright");
-fs.mkdirSync(playwrightTmpDir, { recursive: true });
-process.env.TMPDIR = process.env.TMPDIR || playwrightTmpDir;
-
-const playwrightBrowsersPath =
-  process.env.PLAYWRIGHT_BROWSERS_PATH ||
-  path.join(__dirname, ".cache-playwright");
-fs.mkdirSync(playwrightBrowsersPath, { recursive: true });
-process.env.PLAYWRIGHT_BROWSERS_PATH = playwrightBrowsersPath;
+applyPlaywrightRuntimeEnv(__dirname);
 
 const configuredRetries = process.env.PLAYWRIGHT_RETRIES
   ? Number(process.env.PLAYWRIGHT_RETRIES)
@@ -137,16 +127,9 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests. En Docker, réutiliser le serveur déjà sur 3000 (évite EADDRINUSE). */
-  /* Si PLAYWRIGHT_BASE_URL est défini (ex. http://localhost:5003), on réutilise ce serveur sans en lancer un. */
+  /* Si PLAYWRIGHT_BASE_URL est défini (ex. http://localhost:5003), pas de webServer : le frontend Docker doit déjà tourner. */
   webServer: baseURLFromEnv
-    ? [
-        {
-          command: "echo",
-          url: baseURLFromEnv,
-          reuseExistingServer: true,
-          timeout: 10_000,
-        },
-      ]
+    ? undefined
     : inDocker
       ? [
           {

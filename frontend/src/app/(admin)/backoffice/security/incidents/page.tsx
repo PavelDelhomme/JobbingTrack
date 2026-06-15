@@ -75,14 +75,8 @@ export default function SecurityIncidentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [kindFilter, setKindFilter] = useState<IncidentKindFilter>("all");
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<IncidentDetailFilters>(DEFAULT_INCIDENT_DETAIL_FILTERS);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<IncidentDetailFilters>(DEFAULT_INCIDENT_DETAIL_FILTERS);
   const [page, setPage] = useState(1);
   const [labBusy, setLabBusy] = useState(false);
   const [labMsg, setLabMsg] = useState<string | null>(null);
@@ -521,7 +515,6 @@ export default function SecurityIncidentsPage() {
             </div>
           </div>
         )}
-
       </div>
     </SecurityPageShell>
   );

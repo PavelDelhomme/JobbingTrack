@@ -11,7 +11,12 @@ export const testCompanies = [
 ];
 
 export const testContacts = [
-  { id: "1", firstName: "John", lastName: "Doe", email: "redacted@example.invalid" },
+  {
+    id: "1",
+    firstName: "John",
+    lastName: "Doe",
+    email: "redacted@example.invalid",
+  },
 ];
 
 export const testApplications = [

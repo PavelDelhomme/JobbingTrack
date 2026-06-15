@@ -70,6 +70,7 @@ scripts/
 | `scripts/testing/verify-all-metrics.sh` | Vérification manuelle metrics/services/historique sur stack active. |
 | `scripts/testing/test-relations.js` | Validation des relations BDD dans le contexte auth-service. |
 | `scripts/testing/test-enums.js` | Validation des enums Prisma. |
+| `scripts/testing/playwright-local.sh` | Playwright local fiable (bash, `TMPDIR`/`PLAYWRIGHT_BROWSERS_PATH` projet, frontend Docker `:5003`). |
 | `scripts/testing/playwright-frontend-e2e.sh` | Wrapper Playwright frontend smoke/full. |
 | `scripts/testing/playwright-mobile-e2e.sh` | Wrapper Playwright mobile smoke/full. |
 | `scripts/testing/playwright-tests-dir.sh` | Wrapper Playwright depuis le dossier `tests/`. |

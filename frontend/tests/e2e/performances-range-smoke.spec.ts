@@ -34,10 +34,12 @@ async function countRenderableCharts(page: import("@playwright/test").Page) {
     return charts.filter((svg) => {
       const box = svg.getBoundingClientRect();
       if (box.width < 80 || box.height < 80) return false;
-      const hasCurve = Array.from(svg.querySelectorAll("path.recharts-curve"))
-        .some((path) => (path.getAttribute("d") || "").length > 20);
-      const hasBar = Array.from(svg.querySelectorAll("path.recharts-rectangle"))
-        .some((path) => (path.getAttribute("d") || "").length > 20);
+      const hasCurve = Array.from(
+        svg.querySelectorAll("path.recharts-curve"),
+      ).some((path) => (path.getAttribute("d") || "").length > 20);
+      const hasBar = Array.from(
+        svg.querySelectorAll("path.recharts-rectangle"),
+      ).some((path) => (path.getAttribute("d") || "").length > 20);
       return hasCurve || hasBar;
     }).length;
   });

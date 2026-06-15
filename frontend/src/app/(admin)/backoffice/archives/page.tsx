@@ -224,7 +224,8 @@ export default function ArchivesManagementPage() {
                 </li>
                 <li>Les archives ne sont jamais supprimées automatiquement</li>
                 <li>
-                  Idéal pour conserver l&apos;historique sans encombrer l&apos;interface
+                  Idéal pour conserver l&apos;historique sans encombrer
+                  l&apos;interface
                 </li>
               </ul>
             </div>

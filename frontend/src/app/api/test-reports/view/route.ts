@@ -132,7 +132,10 @@ function formatSecurityNotes(notes: string): string {
     .join("")}</ul>`;
 }
 
-function generateSecurityMarkdownHTML(content: string, reportId: string): string {
+function generateSecurityMarkdownHTML(
+  content: string,
+  reportId: string,
+): string {
   const lines = content.split(/\r?\n/);
   const meta: Record<string, string> = {};
   const rows: Array<{
@@ -759,7 +762,8 @@ export async function GET(request: NextRequest) {
     );
 
     const isSecurityReport =
-      id?.startsWith("security-reports-") || id?.startsWith("security-results-");
+      id?.startsWith("security-reports-") ||
+      id?.startsWith("security-results-");
 
     // Si c'est un JSON (rapport performance), générer un HTML
     if (fullPath.endsWith(".json")) {

@@ -6,6 +6,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT/frontend" || exit 1
 npm install --no-audit --no-fund 2>/dev/null || true
 
+export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
+export PLAYWRIGHT_TMPDIR="${PLAYWRIGHT_TMPDIR:-$ROOT/frontend/.tmp-playwright}"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$ROOT/frontend/.cache-playwright}"
+export TMPDIR="${TMPDIR:-$PLAYWRIGHT_TMPDIR}"
+mkdir -p "$PLAYWRIGHT_TMPDIR" "$PLAYWRIGHT_BROWSERS_PATH"
+
 FRONTEND_MODE="${PLAYWRIGHT_FRONTEND_MODE:-smoke}"
 
 if [ "$FRONTEND_MODE" = "smoke" ]; then

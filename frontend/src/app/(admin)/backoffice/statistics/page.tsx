@@ -98,7 +98,10 @@ import {
   ymdLocal,
   type TimeRangeOption,
 } from "@/components/analytics";
-import { localCalendarDayBounds, MAX_CHART_API_POINTS } from "@/components/analytics/timeRangeUtils";
+import {
+  localCalendarDayBounds,
+  MAX_CHART_API_POINTS,
+} from "@/components/analytics/timeRangeUtils";
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
 
@@ -928,202 +931,202 @@ export default function StatisticsPage() {
 
   return (
     <StatisticsPageShell
-        title="Statistiques & Monitoring global"
-        description={
-          <>
-            Vue d’ensemble des données métier, services, sécurité et séries
-            historiques. Les onglets spécialisés gardent le même gabarit visuel
-            et détaillent les sources persistées sans dupliquer Performances.
-            {refreshing && (
-              <span className="ml-2 inline-flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Actualisation…
-              </span>
-            )}
-          </>
-        }
-        actions={
-          <>
+      title="Statistiques & Monitoring global"
+      description={
+        <>
+          Vue d’ensemble des données métier, services, sécurité et séries
+          historiques. Les onglets spécialisés gardent le même gabarit visuel et
+          détaillent les sources persistées sans dupliquer Performances.
+          {refreshing && (
+            <span className="ml-2 inline-flex items-center gap-2 text-blue-700 dark:text-blue-400">
+              <svg
+                className="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Actualisation…
+            </span>
+          )}
+        </>
+      }
+      actions={
+        <>
+          <button
+            onClick={() => setShowCustomization(!showCustomization)}
+            className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+            aria-label="Afficher les options de personnalisation"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </>
+      }
+    >
+      {/* Panneau de personnalisation */}
+      {showCustomization && (
+        <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Personnalisation
+            </h3>
             <button
-              onClick={() => setShowCustomization(!showCustomization)}
-              className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
-              aria-label="Afficher les options de personnalisation"
+              onClick={resetCustomization}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
-              <Settings className="w-5 h-5" />
+              Réinitialiser
             </button>
-          </>
-        }
-      >
-        {/* Panneau de personnalisation */}
-        {showCustomization && (
-          <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Personnalisation
-              </h3>
-              <button
-                onClick={resetCustomization}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Réinitialiser
-              </button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={customization.showApplications}
-                  onChange={(e) =>
-                    updateCustomization({ showApplications: e.target.checked })
-                  }
-                  className="rounded"
-                />
-                <span className="text-sm">Applications</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={customization.showSystem}
-                  onChange={(e) =>
-                    updateCustomization({ showSystem: e.target.checked })
-                  }
-                  className="rounded"
-                />
-                <span className="text-sm">Système</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={customization.showServices}
-                  onChange={(e) =>
-                    updateCustomization({ showServices: e.target.checked })
-                  }
-                  className="rounded"
-                />
-                <span className="text-sm">Services</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={customization.showNetwork}
-                  onChange={(e) =>
-                    updateCustomization({ showNetwork: e.target.checked })
-                  }
-                  className="rounded"
-                />
-                <span className="text-sm">Réseau</span>
-              </label>
-            </div>
-            <div className="mt-4 flex gap-4">
-              <select
-                value={customization.chartType}
-                onChange={(e) =>
-                  updateCustomization({ chartType: e.target.value as any })
-                }
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm"
-              >
-                <option value="line">Ligne</option>
-                <option value="area">Aire</option>
-                <option value="bar">Barres</option>
-              </select>
-            </div>
           </div>
-        )}
-
-        {/* Tabs */}
-        <div className="border-b border-gray-300 dark:border-gray-700">
-          <nav className="flex space-x-4 overflow-x-auto">
-            {[
-              { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
-              // ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services et Services & Logs
-              { id: "security", label: "🛡️ Santé technique", icon: Shield },
-              { id: "logs", label: "📊 Statistiques Logs", icon: FileText },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                    : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={customization.showApplications}
+                onChange={(e) =>
+                  updateCustomization({ showApplications: e.target.checked })
+                }
+                className="rounded"
+              />
+              <span className="text-sm">Applications</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={customization.showSystem}
+                onChange={(e) =>
+                  updateCustomization({ showSystem: e.target.checked })
+                }
+                className="rounded"
+              />
+              <span className="text-sm">Système</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={customization.showServices}
+                onChange={(e) =>
+                  updateCustomization({ showServices: e.target.checked })
+                }
+                className="rounded"
+              />
+              <span className="text-sm">Services</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={customization.showNetwork}
+                onChange={(e) =>
+                  updateCustomization({ showNetwork: e.target.checked })
+                }
+                className="rounded"
+              />
+              <span className="text-sm">Réseau</span>
+            </label>
+          </div>
+          <div className="mt-4 flex gap-4">
+            <select
+              value={customization.chartType}
+              onChange={(e) =>
+                updateCustomization({ chartType: e.target.value as any })
+              }
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm"
+            >
+              <option value="line">Ligne</option>
+              <option value="area">Aire</option>
+              <option value="bar">Barres</option>
+            </select>
+          </div>
         </div>
+      )}
 
-        <StickyTimeRangeToolbar>
-          <TimeRangeSelector
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-            useCustomRange={useCustomRange}
-            setUseCustomRange={setUseCustomRange}
-            customStart={customStart}
-            setCustomStart={setCustomStart}
-            customEnd={customEnd}
-            setCustomEnd={setCustomEnd}
-            rangeLabel={rangeLabel}
-            goPrev={goPrev}
-            goNext={goNext}
-            canGoNext={canGoNext}
-            onPeriodNow={onPeriodNow}
+      {/* Tabs */}
+      <div className="border-b border-gray-300 dark:border-gray-700">
+        <nav className="flex space-x-4 overflow-x-auto">
+          {[
+            { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
+            // ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services et Services & Logs
+            { id: "security", label: "🛡️ Santé technique", icon: Shield },
+            { id: "logs", label: "📊 Statistiques Logs", icon: FileText },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <StickyTimeRangeToolbar>
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={onPeriodNow}
+        />
+      </StickyTimeRangeToolbar>
+
+      {/* Contenu des onglets */}
+      <div>
+        {activeTab === "overview" && (
+          <OverviewTab
+            stats={stats}
+            previousStats={previousStats}
+            chartData={chartData}
+            customization={customization}
+            router={router}
+            dockerServices={dockerServicesSnapshot}
+            historySeriesMeta={historySeriesMeta}
+            timeRangeLabel={rangeLabel}
+            availabilityDomain={availabilityDomain}
           />
-        </StickyTimeRangeToolbar>
-
-        {/* Contenu des onglets */}
-        <div>
-          {activeTab === "overview" && (
-            <OverviewTab
-              stats={stats}
-              previousStats={previousStats}
-              chartData={chartData}
-              customization={customization}
-              router={router}
-              dockerServices={dockerServicesSnapshot}
-              historySeriesMeta={historySeriesMeta}
-              timeRangeLabel={rangeLabel}
-              availabilityDomain={availabilityDomain}
-            />
-          )}
-          {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
-          {activeTab === "security" && (
-            <SecurityTab
-              stats={stats}
-              chartData={chartData}
-              historySeriesMeta={historySeriesMeta}
-              availabilityDomain={availabilityDomain}
-              dockerServices={dockerServicesSnapshot}
-              timeRangeLabel={rangeLabel}
-            />
-          )}
-          {activeTab === "logs" && (
-            <LogsTab
-              serviceHistory={serviceHistory}
-              formatTimestamp={formatTimestamp}
-            />
-          )}
-        </div>
+        )}
+        {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
+        {activeTab === "security" && (
+          <SecurityTab
+            stats={stats}
+            chartData={chartData}
+            historySeriesMeta={historySeriesMeta}
+            availabilityDomain={availabilityDomain}
+            dockerServices={dockerServicesSnapshot}
+            timeRangeLabel={rangeLabel}
+          />
+        )}
+        {activeTab === "logs" && (
+          <LogsTab
+            serviceHistory={serviceHistory}
+            formatTimestamp={formatTimestamp}
+          />
+        )}
+      </div>
     </StatisticsPageShell>
   );
 }
@@ -2014,7 +2017,9 @@ function ServicesTab({
 
               <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  {service.nonHttpDependency ? "Disponibilité" : "Temps réponse"}
+                  {service.nonHttpDependency
+                    ? "Disponibilité"
+                    : "Temps réponse"}
                 </span>
                 <span
                   className={`text-sm font-semibold ${

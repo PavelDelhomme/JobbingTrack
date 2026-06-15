@@ -16,9 +16,18 @@ const API_URL =
   "http://localhost:5002";
 
 const VERIFICATION_EMAILS = [
-  requireEnvValue(["TEST_VERIFICATION_GMAIL_EMAIL"], "Email vérification Gmail"),
-  requireEnvValue(["TEST_VERIFICATION_PROTON_EMAIL"], "Email vérification Proton"),
-  requireEnvValue(["TEST_VERIFICATION_BLUEMAIL_EMAIL"], "Email vérification BlueMail"),
+  requireEnvValue(
+    ["TEST_VERIFICATION_GMAIL_EMAIL"],
+    "Email vérification Gmail",
+  ),
+  requireEnvValue(
+    ["TEST_VERIFICATION_PROTON_EMAIL"],
+    "Email vérification Proton",
+  ),
+  requireEnvValue(
+    ["TEST_VERIFICATION_BLUEMAIL_EMAIL"],
+    "Email vérification BlueMail",
+  ),
 ] as const;
 
 const PASSWORD = requireEnvValue(

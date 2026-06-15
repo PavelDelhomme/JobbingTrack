@@ -11,5 +11,4 @@ export const USER_TEST_FILTER_OPTIONS = [
   { value: "nottest", label: "Hors test" },
 ] as const;
 
-export type UserTestFilter =
-  (typeof USER_TEST_FILTER_OPTIONS)[number]["value"];
+export type UserTestFilter = (typeof USER_TEST_FILTER_OPTIONS)[number]["value"];

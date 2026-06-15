@@ -2029,7 +2029,8 @@ export default function UserJourneyPage() {
           // Simuler le reset de password
           // En production, l'utilisateur clique sur le lien dans l'email
           const storedResetEmail =
-            localStorage.getItem("resetTestEmail") || "redacted@example.invalid";
+            localStorage.getItem("resetTestEmail") ||
+            "redacted@example.invalid";
 
           result = {
             message: "Simulation reset password",

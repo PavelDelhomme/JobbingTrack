@@ -12,7 +12,9 @@ const TABS = [
 
 function isServicesTabActive(pathname: string, href: string): boolean {
   if (href === "/b4ck0ff1ce/services") {
-    return pathname === href || /^\/b4ck0ff1ce\/services\/[^/]+$/.test(pathname);
+    return (
+      pathname === href || /^\/b4ck0ff1ce\/services\/[^/]+$/.test(pathname)
+    );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

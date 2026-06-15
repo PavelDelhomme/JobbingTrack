@@ -23,6 +23,8 @@ describe("getCentralMetricsAggregatorBase (alias client metrics)", () => {
     process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND = "false";
     process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL = "http://localhost:5004/";
 
-    expect(getCentralMetricsAggregatorBase()).toBe("http://localhost:5004/api/v1");
+    expect(getCentralMetricsAggregatorBase()).toBe(
+      "http://localhost:5004/api/v1",
+    );
   });
 });

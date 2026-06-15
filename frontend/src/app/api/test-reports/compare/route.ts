@@ -42,7 +42,9 @@ function securityComparisonDiff(
   if (allPass) return "OK — aucun critical/high";
   if (allFail) return "À traiter — critical/high présents";
 
-  const scores = presentIds.map((id) => securityExploitScore(details[id]?.security));
+  const scores = presentIds.map((id) =>
+    securityExploitScore(details[id]?.security),
+  );
   const min = Math.min(...scores);
   const max = Math.max(...scores);
   if (min !== max) {
@@ -91,7 +93,8 @@ export async function GET(request: NextRequest) {
       return secureJson(
         {
           success: false,
-          error: "Comparaison limitée à 5 rapports pour éviter d'exposer trop de données sensibles d'un coup",
+          error:
+            "Comparaison limitée à 5 rapports pour éviter d'exposer trop de données sensibles d'un coup",
         },
         { status: 400 },
       );
@@ -100,7 +103,10 @@ export async function GET(request: NextRequest) {
     const invalidId = ids.find((id) => !/^[a-zA-Z0-9._-]+$/.test(id));
     if (invalidId) {
       return secureJson(
-        { success: false, error: `Identifiant de rapport invalide: ${invalidId}` },
+        {
+          success: false,
+          error: `Identifiant de rapport invalide: ${invalidId}`,
+        },
         { status: 400 },
       );
     }
@@ -202,7 +208,10 @@ export async function GET(request: NextRequest) {
           const allFail = statuses.every((s) => s === "fail");
           const allSkip = statuses.every((s) => s === "skip");
           const mixed =
-            !allPass && !allFail && !allSkip && statuses.some((s) => s !== "skip");
+            !allPass &&
+            !allFail &&
+            !allSkip &&
+            statuses.some((s) => s !== "skip");
           if (mixed) {
             const parts = reportsData.map((r) => {
               const d = details[r.id];

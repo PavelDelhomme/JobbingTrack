@@ -217,7 +217,9 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
 
     // Onglet Informations par défaut
     await expect(page.locator("text=Informations principales")).toBeVisible();
-    await expect(page.locator('input[value="redacted@example.invalid"]')).toBeVisible();
+    await expect(
+      page.locator('input[value="redacted@example.invalid"]'),
+    ).toBeVisible();
 
     // Aller à l'onglet Statut
     await page.locator("text=Statut").click();

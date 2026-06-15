@@ -1,10 +1,25 @@
 name: CI/CD Pipeline - JobbingTrack
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main, develop, feat/*, fix/*, hotfix/* , tech/*, database/*]
+    branches:
+      - main
+      - dev
+      - "feat/**"
+      - "fix/**"
+      - "hotfix/**"
+      - "tech/**"
+      - "database/**"
+      - "security/**"
+      - "docs/**"
+      - "test/**"
+      - "chore/**"
+      - "refactor/**"
   pull_request:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - dev
 
 env:
   DOCKER_BUILDKIT: 1
@@ -784,21 +799,6 @@ jobs:
 
           echo "✅ Tests des nouvelles fonctionnalités terminés"
 
-      - name: 🌐 Tests API backend (désactivés en CI générique)
-        if: ${{ false }}
-        run: |
-          echo "🌐 Exécution des tests API... (désactivés)"
-          make test-api || echo "⚠️ Tests API échoués"
-
-      - name: 🏥 Tests de santé des microservices (skippés en CI)
-        if: ${{ false }}
-        run: |
-          echo "🏥 Tests de santé des microservices... (skippés)"
-          for port in 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3013 3014; do
-            echo "🔍 Vérification du port $port..."
-            timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo "✅ Port $port accessible" || echo "⚠️ Port $port non accessible"
-          done
-
       - name: 📊 Collecte des rapports de test backend
         if: always()
         run: |
@@ -904,21 +904,21 @@ jobs:
           fi
 
       - name: Tests E2E avec Playwright (Chromium uniquement)
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
         run: |
           echo "Tests E2E avec Playwright (Chromium)..."
           cd frontend
           npx playwright install chromium --with-deps
-          npm run test:e2e:ci || echo "⚠️ Tests E2E échoués"
+          npm run test:e2e:ci
           echo "✅ Tests E2E (Chromium) terminés"
 
       - name: Tests E2E multi-navigateurs
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
+        if: contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
         run: |
           echo "Tests E2E multi-navigateurs..."
           cd frontend
           npx playwright install firefox webkit --with-deps
-          npx playwright test --project=firefox --project=webkit --reporter=json || echo "⚠️ Tests multi-navigateurs échoués"
+          npx playwright test --project=firefox --project=webkit --reporter=json
           echo "✅ Tests multi-navigateurs terminés"
 
       - name: Tests E2E mobile
@@ -926,7 +926,7 @@ jobs:
         run: |
           echo "Tests E2E mobile..."
           cd frontend
-          npx playwright test --project="Mobile Chrome" --project="Mobile Safari" --reporter=json || echo "⚠️ Tests mobile échoués"
+          FRONTEND_URL=http://localhost:3000 npx playwright test tests/e2e/mobile/mobile-auth.spec.ts --config=playwright.mobile.config.ts --project="iPhone 13 Pro" --reporter=json
           echo "✅ Tests mobile terminés"
 
       - name: Tests d'accessibilité
@@ -934,7 +934,7 @@ jobs:
         run: |
           echo "Tests d'accessibilité..."
           cd frontend
-          npm run test:a11y || echo "⚠️ Tests d'accessibilité échoués"
+          npx playwright test tests/e2e/accessibility.spec.ts --project=no-auth --reporter=json
           echo "✅ Tests d'accessibilité terminés"
 
       - name: 🏗️ Build de production
@@ -992,7 +992,7 @@ jobs:
     timeout-minutes: 20
     needs: [test-backend, test-frontend, database-schema-validation]
     # Tests d'intégration système optionnels - seulement sur branches principales
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
 
     steps:
       - name: Checkout du code
@@ -1075,7 +1075,7 @@ jobs:
     timeout-minutes: 20
     needs: [test-backend, test-frontend, database-schema-validation]
     # Tests de performance optionnels - seulement sur branches principales
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
 
     services:
       postgres:
@@ -1422,7 +1422,7 @@ jobs:
 
           echo "🎭 TESTS E2E (CONDITIONNELS)"
           echo "============================"
-          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/dev" ]; then
             echo "   ✅ Tests E2E exécutés (branche principale)"
           else
             echo "   ⏭️ Tests E2E ignorés (feature branch)"

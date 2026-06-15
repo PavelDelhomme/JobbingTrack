@@ -28,7 +28,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5003";
 // Données de test — utilisateur classique (rôle USER)
 const testUser = {
   email: `test-mobile-${Date.now()}@jobbingtrack.test`,
-  password: getGeneratedUserPassword("Mot de passe compte mobile créé par test"),
+  password: getGeneratedUserPassword(
+    "Mot de passe compte mobile créé par test",
+  ),
   firstName: "Test",
   lastName: "Mobile",
   phone: "0612345678",

@@ -84,7 +84,9 @@ function levelBadgeClass(level?: string): string {
   return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
 }
 
-function buildInitialFilters(searchParams: URLSearchParams): SecurityLogFilters {
+function buildInitialFilters(
+  searchParams: URLSearchParams,
+): SecurityLogFilters {
   return {
     level: searchParams.get("level") || "",
     category: searchParams.get("category") || "",
@@ -131,9 +133,7 @@ export default function SecurityLogsPage() {
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE),
       offset: String((page - 1) * PAGE_SIZE),
-      startDate: new Date(
-        Date.now() - applied.days * 86400000,
-      ).toISOString(),
+      startDate: new Date(Date.now() - applied.days * 86400000).toISOString(),
     });
     if (applied.level) params.set("level", applied.level);
     if (applied.category) params.set("category", applied.category);
@@ -317,7 +317,9 @@ export default function SecurityLogsPage() {
           onApply={handleApply}
           onReset={handleReset}
           sortBadge={`Tri Date : ${
-            applied.order === "desc" ? "plus récent d’abord" : "plus ancien d’abord"
+            applied.order === "desc"
+              ? "plus récent d’abord"
+              : "plus ancien d’abord"
           }`}
           badges={activeBadges}
         >

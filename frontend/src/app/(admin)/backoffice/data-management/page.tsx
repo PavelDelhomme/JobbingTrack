@@ -268,8 +268,8 @@ export default function DataManagementPage() {
             Zone Dangereuse
           </h2>
           <p className="text-sm text-red-700 dark:text-red-300 mb-4">
-            Ces actions sont irréversibles. Assurez-vous d&apos;avoir une sauvegarde
-            avant de continuer.
+            Ces actions sont irréversibles. Assurez-vous d&apos;avoir une
+            sauvegarde avant de continuer.
           </p>
           <div className="flex flex-wrap gap-2">
             <button

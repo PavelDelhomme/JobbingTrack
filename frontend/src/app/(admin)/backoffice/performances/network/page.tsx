@@ -437,13 +437,17 @@ export default function NetworkPerformancePage() {
     [networkRateRows],
   );
 
+  const hasNetworkData = useMemo(
+    () => series.some((d) => d.rxMb != null || d.txMb != null),
+    [series],
+  );
+
   const showCpuNetworkCorrelation = useMemo(() => {
-    const hasNet = series.some((d) => d.rxMb != null || d.txMb != null);
     const hasCpu = series.some(
       (d) => d.cpu != null && Number.isFinite(Number(d.cpu)),
     );
-    return hasNet && hasCpu;
-  }, [series]);
+    return hasNetworkData && hasCpu;
+  }, [hasNetworkData, series]);
 
   const showResponseTime = useMemo(
     () =>
@@ -477,21 +481,181 @@ export default function NetworkPerformancePage() {
         />
       }
     >
-        {loading && series.length === 0 ? (
-          <PerformanceLoadingState />
-        ) : series.length === 0 ? (
-          <PerformanceEmptyState>
-            Aucune donnée réseau disponible. Vérifiez que le metrics-aggregator
-            enregistre les métriques système.
-          </PerformanceEmptyState>
-        ) : (
-          <div className="space-y-8">
+      {loading && series.length === 0 ? (
+        <PerformanceLoadingState />
+      ) : series.length === 0 ? (
+        <PerformanceEmptyState>
+          Aucune donnée réseau disponible. Vérifiez que le metrics-aggregator
+          enregistre les métriques système.
+        </PerformanceEmptyState>
+      ) : !hasNetworkData ? (
+        <PerformanceEmptyState>
+          Les métriques système sont disponibles, mais les champs réseau RX/TX
+          ne sont pas alimentés sur cette période. Vérifiez la persistance
+          `networkRxBytes` / `networkTxBytes` ou essayez une plage plus large.
+        </PerformanceEmptyState>
+      ) : (
+        <div className="space-y-8">
+          <PerformanceChartCard
+            title="Réception (RX) et émission (TX) — Mo (cumul)"
+            periodLabel={rangeLabel}
+          >
+            <div className="w-full min-h-[240px] sm:min-h-[360px]">
+              <ResponsiveContainer width="100%" height={360} minHeight={240}>
+                <LineChart
+                  data={series}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={[chartXDomainMin, chartXDomainMax]}
+                    angle={networkAxisShowDate ? -40 : -35}
+                    textAnchor="end"
+                    height={networkAxisShowDate ? 72 : 60}
+                    minTickGap={networkAxisShowDate ? 32 : 22}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => `${v} Mo`}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip
+                    {...rechartsTooltipProps}
+                    labelFormatter={(_, payload: unknown) => {
+                      const ts = (
+                        payload as Array<{ payload?: { timestamp?: string } }>
+                      )?.[0]?.payload?.timestamp;
+                      return ts != null ? formatLocalDateTime(ts) : "—";
+                    }}
+                    formatter={(value, name) => {
+                      const n =
+                        typeof value === "number" ? value : Number(value);
+                      const label = name === "rxMb" ? "RX (Mo)" : "TX (Mo)";
+                      return [
+                        value != null && value !== "" && !Number.isNaN(n)
+                          ? `${n.toFixed(2)} Mo`
+                          : "—",
+                        label,
+                      ];
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="rxMb"
+                    stroke="#8B5CF6"
+                    strokeWidth={2}
+                    name="RX (Mo)"
+                    dot={false}
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="txMb"
+                    stroke="#F59E0B"
+                    strokeWidth={2}
+                    name="TX (Mo)"
+                    dot={false}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </PerformanceChartCard>
+
+          <PerformanceChartCard
+            title="Débit estimé — Mo/min"
+            periodLabel={rangeLabel}
+          >
+            <div className="w-full min-h-[220px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height={300} minHeight={220}>
+                <LineChart
+                  data={networkRateRows}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <XAxis
+                    dataKey="timeMs"
+                    type="number"
+                    domain={[chartXDomainMin, chartXDomainMax]}
+                    angle={networkAxisShowDate ? -40 : -35}
+                    textAnchor="end"
+                    height={networkAxisShowDate ? 72 : 60}
+                    minTickGap={networkAxisShowDate ? 32 : 22}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis
+                    domain={[0, networkRateYMax]}
+                    tickFormatter={(v) => `${Number(v).toFixed(3)}`}
+                    tick={{ fontSize: 11 }}
+                    label={{
+                      value: "Mo/min",
+                      angle: -90,
+                      position: "insideLeft",
+                      fill: "#9CA3AF",
+                      fontSize: 11,
+                    }}
+                  />
+                  <Tooltip
+                    {...rechartsTooltipProps}
+                    labelFormatter={(_, payload: unknown) => {
+                      const ts = (
+                        payload as Array<{ payload?: { timestamp?: string } }>
+                      )?.[0]?.payload?.timestamp;
+                      return ts != null ? formatLocalDateTime(ts) : "—";
+                    }}
+                    formatter={
+                      ((value: number, name: string) => [
+                        `${Number(value).toFixed(4)} Mo/min`,
+                        name === "networkRxMbPerMin"
+                          ? "RX (débit)"
+                          : "TX (débit)",
+                      ]) as (value: number, name: string) => [string, string]
+                    }
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="networkRxMbPerMin"
+                    stroke="#6366F1"
+                    strokeWidth={2}
+                    name="RX (Mo/min)"
+                    dot={false}
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="networkTxMbPerMin"
+                    stroke="#EA580C"
+                    strokeWidth={2}
+                    name="TX (Mo/min)"
+                    dot={false}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </PerformanceChartCard>
+
+          {showResponseTime ? (
             <PerformanceChartCard
-              title="Réception (RX) et émission (TX) — Mo (cumul)"
+              title="Temps de réponse agrégé (ms)"
               periodLabel={rangeLabel}
             >
-              <div className="w-full min-h-[240px] sm:min-h-[360px]">
-                <ResponsiveContainer width="100%" height={360} minHeight={240}>
+              <div className="w-full min-h-[220px] sm:min-h-[280px]">
+                <ResponsiveContainer width="100%" height={280} minHeight={220}>
                   <LineChart
                     data={series}
                     margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
@@ -516,127 +680,35 @@ export default function NetworkPerformancePage() {
                       tick={{ fontSize: 12 }}
                     />
                     <YAxis
-                      tickFormatter={(v) => `${v} Mo`}
+                      tickFormatter={(v) => `${Math.round(Number(v))} ms`}
                       tick={{ fontSize: 12 }}
                     />
                     <Tooltip
                       {...rechartsTooltipProps}
                       labelFormatter={(_, payload: unknown) => {
                         const ts = (
-                          payload as Array<{ payload?: { timestamp?: string } }>
-                        )?.[0]?.payload?.timestamp;
-                        return ts != null ? formatLocalDateTime(ts) : "—";
-                      }}
-                      formatter={(value, name) => {
-                        const n =
-                          typeof value === "number" ? value : Number(value);
-                        const label = name === "rxMb" ? "RX (Mo)" : "TX (Mo)";
-                        return [
-                          value != null && value !== "" && !Number.isNaN(n)
-                            ? `${n.toFixed(2)} Mo`
-                            : "—",
-                          label,
-                        ];
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="rxMb"
-                      stroke="#8B5CF6"
-                      strokeWidth={2}
-                      name="RX (Mo)"
-                      dot={false}
-                      connectNulls={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="txMb"
-                      stroke="#F59E0B"
-                      strokeWidth={2}
-                      name="TX (Mo)"
-                      dot={false}
-                      connectNulls={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </PerformanceChartCard>
-
-            <PerformanceChartCard
-              title="Débit estimé — Mo/min"
-              periodLabel={rangeLabel}
-            >
-              <div className="w-full min-h-[220px] sm:min-h-[300px]">
-                <ResponsiveContainer width="100%" height={300} minHeight={220}>
-                  <LineChart
-                    data={networkRateRows}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      className="opacity-50"
-                    />
-                    <XAxis
-                      dataKey="timeMs"
-                      type="number"
-                      domain={[chartXDomainMin, chartXDomainMax]}
-                      angle={networkAxisShowDate ? -40 : -35}
-                      textAnchor="end"
-                      height={networkAxisShowDate ? 72 : 60}
-                      minTickGap={networkAxisShowDate ? 32 : 22}
-                      tickFormatter={(ms) =>
-                        formatLocalChartAxisTick(ms, {
-                          withDate: networkAxisShowDate,
-                        })
-                      }
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      domain={[0, networkRateYMax]}
-                      tickFormatter={(v) => `${Number(v).toFixed(3)}`}
-                      tick={{ fontSize: 11 }}
-                      label={{
-                        value: "Mo/min",
-                        angle: -90,
-                        position: "insideLeft",
-                        fill: "#9CA3AF",
-                        fontSize: 11,
-                      }}
-                    />
-                    <Tooltip
-                      {...rechartsTooltipProps}
-                      labelFormatter={(_, payload: unknown) => {
-                        const ts = (
-                          payload as Array<{ payload?: { timestamp?: string } }>
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
                         )?.[0]?.payload?.timestamp;
                         return ts != null ? formatLocalDateTime(ts) : "—";
                       }}
                       formatter={
-                        ((value: number, name: string) => [
-                          `${Number(value).toFixed(4)} Mo/min`,
-                          name === "networkRxMbPerMin"
-                            ? "RX (débit)"
-                            : "TX (débit)",
-                        ]) as (value: number, name: string) => [string, string]
+                        ((value: number) => [
+                          value != null && Number.isFinite(Number(value))
+                            ? `${Number(value).toFixed(1)} ms`
+                            : "—",
+                          "Temps de réponse",
+                        ]) as (value: number) => [string, string]
                       }
                     />
                     <Legend />
                     <Line
                       type="monotone"
-                      dataKey="networkRxMbPerMin"
-                      stroke="#6366F1"
+                      dataKey="responseTimeMs"
+                      stroke="#0D9488"
                       strokeWidth={2}
-                      name="RX (Mo/min)"
-                      dot={false}
-                      connectNulls={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="networkTxMbPerMin"
-                      stroke="#EA580C"
-                      strokeWidth={2}
-                      name="TX (Mo/min)"
+                      name="Temps de réponse (ms)"
                       dot={false}
                       connectNulls={false}
                     />
@@ -644,102 +716,30 @@ export default function NetworkPerformancePage() {
                 </ResponsiveContainer>
               </div>
             </PerformanceChartCard>
+          ) : null}
 
-            {showResponseTime ? (
-              <PerformanceChartCard
-                title="Temps de réponse agrégé (ms)"
-                periodLabel={rangeLabel}
-              >
-                <div className="w-full min-h-[220px] sm:min-h-[280px]">
-                  <ResponsiveContainer
-                    width="100%"
-                    height={280}
-                    minHeight={220}
-                  >
-                    <LineChart
-                      data={series}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-50"
-                      />
-                      <XAxis
-                        dataKey="timeMs"
-                        type="number"
-                        domain={[chartXDomainMin, chartXDomainMax]}
-                        angle={networkAxisShowDate ? -40 : -35}
-                        textAnchor="end"
-                        height={networkAxisShowDate ? 72 : 60}
-                        minTickGap={networkAxisShowDate ? 32 : 22}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms, {
-                            withDate: networkAxisShowDate,
-                          })
-                        }
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `${Math.round(Number(v))} ms`}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        {...rechartsTooltipProps}
-                        labelFormatter={(_, payload: unknown) => {
-                          const ts = (
-                            payload as Array<{
-                              payload?: { timestamp?: string };
-                            }>
-                          )?.[0]?.payload?.timestamp;
-                          return ts != null ? formatLocalDateTime(ts) : "—";
-                        }}
-                        formatter={
-                          ((value: number) => [
-                            value != null && Number.isFinite(Number(value))
-                              ? `${Number(value).toFixed(1)} ms`
-                              : "—",
-                            "Temps de réponse",
-                          ]) as (value: number) => [string, string]
-                        }
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="responseTimeMs"
-                        stroke="#0D9488"
-                        strokeWidth={2}
-                        name="Temps de réponse (ms)"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </PerformanceChartCard>
-            ) : null}
+          {showCpuNetworkCorrelation ? (
+            <PerformanceChartCard
+              title="Corrélation CPU (%) vs débit réseau (Mo/min)"
+              periodLabel={rangeLabel}
+            >
+              <SystemCpuNetworkCorrelationChart
+                rows={networkRateRows}
+                xDomainMin={chartXDomainMin}
+                xDomainMax={chartXDomainMax}
+                axisShowDate={networkAxisShowDate}
+                rateMax={networkRateYMax}
+                height={320}
+              />
+            </PerformanceChartCard>
+          ) : null}
 
-            {showCpuNetworkCorrelation ? (
-              <PerformanceChartCard
-                title="Corrélation CPU (%) vs débit réseau (Mo/min)"
-                periodLabel={rangeLabel}
-              >
-                <SystemCpuNetworkCorrelationChart
-                  rows={networkRateRows}
-                  xDomainMin={chartXDomainMin}
-                  xDomainMax={chartXDomainMax}
-                  axisShowDate={networkAxisShowDate}
-                  rateMax={networkRateYMax}
-                  height={320}
-                />
-              </PerformanceChartCard>
-            ) : null}
-
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {series.length} points affichés après compression (max{" "}
-              {TARGET_POINTS}) pour lisibilité.
-            </p>
-          </div>
-        )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {series.length} points affichés après compression (max{" "}
+            {TARGET_POINTS}) pour lisibilité.
+          </p>
+        </div>
+      )}
     </PerformancePageShell>
   );
 }

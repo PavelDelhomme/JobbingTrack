@@ -29,8 +29,7 @@ async function openLoggedOutLogin(page: import("@playwright/test").Page) {
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
-    document.cookie =
-      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
   });
   await page.goto("/login", { waitUntil: "domcontentloaded" });
 }
@@ -45,9 +44,9 @@ test.describe.serial("Sécurité backoffice — login", () => {
     await expect(page.getByText(/Backoffice Administrateur/i)).toBeVisible();
     await expect(page.getByText(ADMIN_CREDENTIALS.password)).toHaveCount(0);
     await expect(page.getByText(ADMIN_CREDENTIALS.email)).toHaveCount(0);
-    await expect(page.getByText(/Compte de test|password123|admin123/i)).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByText(/Compte de test|password123|admin123/i),
+    ).toHaveCount(0);
 
     await expect(page.locator('input[name="email"]')).toHaveAttribute(
       "autocomplete",
@@ -78,7 +77,9 @@ test.describe.serial("Sécurité backoffice — login", () => {
     const knownBody = await knownWrongPassword.json();
     expect(String(unknownBody.error || "")).toBe("Invalid email or password");
     expect(String(knownBody.error || "")).toBe("Invalid email or password");
-    expect(JSON.stringify(unknownBody)).not.toMatch(/not found|unknown|existe/i);
+    expect(JSON.stringify(unknownBody)).not.toMatch(
+      /not found|unknown|existe/i,
+    );
     expect(JSON.stringify(knownBody)).not.toMatch(/hash|bcrypt|password123/i);
   });
 
@@ -97,7 +98,9 @@ test.describe.serial("Sécurité backoffice — login", () => {
       const response = await postLogin(request, payload);
       expect([400, 401, 403, 429]).toContain(response.status());
       const body = await response.text();
-      expect(body).not.toMatch(/token|Bearer|stack|PrismaClientKnownRequestError/i);
+      expect(body).not.toMatch(
+        /token|Bearer|stack|PrismaClientKnownRequestError/i,
+      );
       expect(body).not.toMatch(/SELECT|DROP TABLE|information_schema/i);
     }
   });

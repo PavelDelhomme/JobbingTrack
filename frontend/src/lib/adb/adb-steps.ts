@@ -11,7 +11,9 @@ function envValue(key: string): string {
 
 function requireRuntimeValue(value: string, label: string): string {
   if (!value) {
-    throw new Error(`${label} manquant: renseigner la variable d'environnement dédiée.`);
+    throw new Error(
+      `${label} manquant: renseigner la variable d'environnement dédiée.`,
+    );
   }
   return value;
 }
@@ -47,29 +49,40 @@ function getMobileTestPassword(): string {
 /** Emails utilisés pour les parcours inscription + vérification email (Gmail, Proton, BlueMail). */
 export const VERIFICATION_EMAIL_ACCOUNTS = {
   gmail: {
-    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL")),
+    email: sanitizeEmailForInput(
+      envValue("NEXT_PUBLIC_VERIFICATION_GMAIL_EMAIL"),
+    ),
     password: envValue("NEXT_PUBLIC_VERIFICATION_GMAIL_PASSWORD"),
     app: "Gmail",
   },
   proton: {
-    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL")),
+    email: sanitizeEmailForInput(
+      envValue("NEXT_PUBLIC_VERIFICATION_PROTON_EMAIL"),
+    ),
     password: envValue("NEXT_PUBLIC_VERIFICATION_PROTON_PASSWORD"),
     app: "Proton Mail",
   },
   bluemail: {
-    email: sanitizeEmailForInput(envValue("NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL")),
+    email: sanitizeEmailForInput(
+      envValue("NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL"),
+    ),
     password: envValue("NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD"),
     app: "BlueMail",
   },
 } as const;
 
-function requireVerificationAccount(
-  account: { email: string; password: string; app: string },
-): { email: string; password: string; app: string } {
+function requireVerificationAccount(account: {
+  email: string;
+  password: string;
+  app: string;
+}): { email: string; password: string; app: string } {
   return {
     ...account,
     email: requireRuntimeValue(account.email, `Email ${account.app}`),
-    password: requireRuntimeValue(account.password, `Mot de passe ${account.app}`),
+    password: requireRuntimeValue(
+      account.password,
+      `Mot de passe ${account.app}`,
+    ),
   };
 }
 

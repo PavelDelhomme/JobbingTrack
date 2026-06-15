@@ -558,32 +558,32 @@ export default function NetworkStatsPage() {
                 </thead>
                 <tbody>
                   {filteredDestinationPorts.map(([port, count]) => (
-                      <tr
-                        key={port}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="p-3 font-mono font-semibold">{port}</td>
-                        <td className="p-3">{count}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                              <div
-                                className="bg-green-600 h-2 rounded-full"
-                                style={{
-                                  width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {totalConnections
-                                ? Math.round((count / totalConnections) * 100)
-                                : 0}
-                              %
-                            </span>
+                    <tr
+                      key={port}
+                      className="border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <td className="p-3 font-mono font-semibold">{port}</td>
+                      <td className="p-3">{count}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full"
+                              style={{
+                                width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`,
+                              }}
+                            />
                           </div>
-                        </td>
-                      </tr>
-                    ))}
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {totalConnections
+                              ? Math.round((count / totalConnections) * 100)
+                              : 0}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

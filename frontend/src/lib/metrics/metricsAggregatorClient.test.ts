@@ -32,7 +32,9 @@ describe("metricsAggregatorClient", () => {
     process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND = "false";
     process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL = "http://localhost:5004/";
 
-    expect(getMetricsAggregatorClientBase()).toBe("http://localhost:5004/api/v1");
+    expect(getMetricsAggregatorClientBase()).toBe(
+      "http://localhost:5004/api/v1",
+    );
     expect(buildMetricsAggregatorUrl("metrics")).toBe(
       "http://localhost:5004/api/v1/metrics",
     );
