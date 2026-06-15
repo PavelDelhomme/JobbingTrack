@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data + vue d’ensemble renforcés, validations porteur en attente).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (P1B Statistics Sécurité + log-stats + app-data + vue d’ensemble + shell renforcés, validations porteur en attente).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — P1B Statistics moteur UI partagé shell
+
+- **UI** : les états chargement/erreur de la vue d’ensemble passent par `StatisticsPageShell`, avec sous-navigation et en-tête communs comme les états nominaux.
+- **E2E** : le smoke Statistics vérifie la sous-navigation partagée `Vue d’ensemble / App data / Sécurité / Logs (stats)` sur `/statistics`, `/statistics/security`, `/statistics/log-stats` et `/statistics/app-data`.
+- **API runtime** : `/api/v1/statistics` OK, `/api/v1/statistics/timeline` **1** point OK, `/api/v1/persistence/system/metrics` **50** points OK.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest ciblé **4 suites / 11 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics` ~70 ms, `/statistics/security` ~48 ms, `/statistics/log-stats` ~48 ms, `/statistics/app-data` ~85 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics shell 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — P1B Statistics vue d’ensemble dispo/erreur
 

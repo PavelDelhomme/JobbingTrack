@@ -21,6 +21,21 @@ for (const path of PAGES) {
     await expect(page.getByText(/Network Error|AxiosError/i)).toHaveCount(0);
     const body = (await page.locator("body").textContent()) ?? "";
     expect(body.length).toBeGreaterThan(200);
+    await expect(
+      page.getByRole("navigation", { name: "Sous-sections Statistiques" }),
+    ).toBeVisible();
+    for (const label of [
+      "Vue d’ensemble",
+      "App data",
+      "Sécurité",
+      "Logs (stats)",
+    ]) {
+      await expect(
+        page
+          .getByRole("navigation", { name: "Sous-sections Statistiques" })
+          .getByRole("link", { name: label }),
+      ).toBeVisible();
+    }
     if (path === "/b4ck0ff1ce/statistics") {
       await expect(
         page.getByRole("heading", { name: /Disponibilité dans le temps/i }),

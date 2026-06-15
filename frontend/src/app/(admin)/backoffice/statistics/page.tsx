@@ -9,7 +9,6 @@ import {
   lazy,
   useCallback,
 } from "react";
-import { AdminLayout } from "@/components/features";
 import { StatisticsPageShell } from "./StatisticsSubNav";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/hooks/auth";
@@ -910,22 +909,38 @@ export default function StatisticsPage() {
 
   if (authLoading || (loading && !stats)) {
     return (
-      <AdminLayout>
+      <StatisticsPageShell
+        title="Statistiques & Monitoring global"
+        description={
+          <>
+            Chargement des données consolidées de persistance, monitoring et
+            services.
+          </>
+        }
+      >
         <SectionLoader
           message="Chargement des statistiques…"
           className="min-h-[50vh]"
         />
-      </AdminLayout>
+      </StatisticsPageShell>
     );
   }
 
   if (!stats) {
     return (
-      <AdminLayout>
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+      <StatisticsPageShell
+        title="Statistiques & Monitoring global"
+        description={
+          <>
+            Les données de statistiques globales n’ont pas pu être chargées.
+            Vérifier l’API et relancer le rafraîchissement.
+          </>
+        }
+      >
+        <div className="py-12 text-center text-gray-500 dark:text-gray-400">
           Erreur de chargement des statistiques
         </div>
-      </AdminLayout>
+      </StatisticsPageShell>
     );
   }
 
