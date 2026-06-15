@@ -330,12 +330,13 @@ export function MonitoringServiceHistoryCharts({
 
           <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
-              Block I/O — débit estimé
+              Block I/O — débit observé
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Δ cumul / Δ temps entre points consécutifs (Mo/min). Peut chuter à
-              0 si le conteneur est recréé (cumuls remis à zéro) ou si
-              l&apos;écart temporel est filtré (&gt; 1 h).
+              Débit dérivé des compteurs Docker persistés : Δ cumul / Δ temps
+              entre points consécutifs (Mo/min). Peut chuter à 0 si le
+              conteneur est recréé (cumuls remis à zéro) ou si l&apos;écart
+              temporel est filtré (&gt; 1 h).
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={historyChartRowsIo}>
@@ -374,7 +375,7 @@ export function MonitoringServiceHistoryCharts({
                   dataKey="block_read_mb_per_min"
                   stroke="#4F46E5"
                   strokeWidth={2}
-                  name="Lecture (estim.)"
+                  name="Lecture observée"
                   dot={false}
                 />
                 <Line
@@ -382,7 +383,7 @@ export function MonitoringServiceHistoryCharts({
                   dataKey="block_write_mb_per_min"
                   stroke="#7C3AED"
                   strokeWidth={2}
-                  name="Écriture (estim.)"
+                  name="Écriture observée"
                   dot={false}
                 />
               </LineChart>

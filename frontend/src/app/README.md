@@ -77,9 +77,7 @@ Outils de développement (mode dev uniquement, rôle admin requis) :
 Routes API Next.js :
 
 - `/api/health` - Health check
-- `/api/cadvisor` - Proxy cAdvisor
 - `/api/middleware-test` - Test middleware
-- `/api/v1.3/docker` - API Docker
 
 ## 🎯 Avantages de cette Structure
 

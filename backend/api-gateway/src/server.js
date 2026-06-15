@@ -764,7 +764,7 @@ app.post('/api/v1/services/:serviceName/stop', async (req, res) => {
   }
 });
 
-// ✅ Endpoint Prometheus metrics pour l'API Gateway
+// Endpoint de métriques texte pour l'API Gateway (format OpenMetrics compatible).
 app.get('/metrics', async (req, res) => {
   try {
     const metrics = `# HELP api_gateway_requests_total Total number of requests

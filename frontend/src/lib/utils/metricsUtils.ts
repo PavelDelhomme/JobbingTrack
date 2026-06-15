@@ -23,9 +23,9 @@ export function formatServiceName(containerName: string): string {
     "jobbingtrack-postgres": "Base de Données",
     "jobbingtrack-redis": "Cache Redis",
     "jobbingtrack-metrics-aggregator": "Service de Métriques",
-    "jobbingtrack-prometheus": "Prometheus",
+    "jobbingtrack-monitoring-agent-rs": "Agent métriques Rust",
+    "jobbingtrack-log-collector-rs": "Collecteur logs Rust",
     "jobbingtrack-grafana": "Grafana",
-    "jobbingtrack-cadvisor": "cAdvisor",
     "jobbingtrack-simple-metrics": "Service de Métriques",
   };
 
@@ -59,7 +59,7 @@ export function getServiceUrl(serviceType: string): string {
     frontend: "http://localhost:3003",
     database: "http://localhost:5432",
     cache: "http://localhost:6379",
-    monitoring: "http://localhost:9090",
+    monitoring: "http://localhost:5004",
   };
 
   return urlMap[serviceType] || "http://localhost:3000";

@@ -30,7 +30,6 @@ export function getCentralMetricsAggregatorBase(): string {
 
 class CentralMetricsService {
   private apiUrl: string;
-  private prometheusUrl: string;
   private metricsAggregatorUrl: string;
   private token: string | null = null;
   private customization: UserCustomization | null = null;
@@ -48,8 +47,6 @@ class CentralMetricsService {
 
   constructor() {
     this.apiUrl = FRONTEND_URLS.api;
-    this.prometheusUrl =
-      process.env.NEXT_PUBLIC_PROMETHEUS_URL || "http://localhost:9090";
     // Côté navigateur, passer par le proxy Next pour injecter METRICS_API_KEY côté serveur.
     this.metricsAggregatorUrl = getCentralMetricsAggregatorBase();
     this.updateToken();
@@ -237,7 +234,7 @@ class CentralMetricsService {
     return false;
   }
 
-  // Récupération des métriques système depuis Prometheus via l'API Gateway
+  // Récupération des métriques système depuis metrics-aggregator.
   async getSystemMetrics(): Promise<SystemMetrics | null> {
     // Mettre à jour le token
     this.updateToken();
@@ -321,7 +318,7 @@ class CentralMetricsService {
     }
   }
 
-  // Récupération des métriques de conteneurs depuis Prometheus via le service agrégateur
+  // Récupération des métriques de conteneurs depuis metrics-aggregator.
   async getContainerMetrics(): Promise<ContainerMetrics | null> {
     // Mettre à jour le token
     this.updateToken();
@@ -354,7 +351,7 @@ class CentralMetricsService {
     }
   }
 
-  // Récupération des métriques de services depuis Prometheus
+  // Récupération des métriques de services depuis metrics-aggregator.
   async getServiceMetrics(): Promise<{ [key: string]: ServiceMetrics } | null> {
     // Mettre à jour le token
     this.updateToken();
@@ -415,13 +412,6 @@ class CentralMetricsService {
     }
   }
 
-  // Requête Prometheus générique via l'API Gateway (endpoint non disponible)
-  private async queryPrometheus(query: string): Promise<string | null> {
-    // Endpoint Prometheus non disponible, retourner null
-    console.log("[PROMETHEUS] Endpoint non disponible");
-    return null;
-  }
-
   // Récupération des métriques de maintenance depuis l'API Gateway
   async getMaintenanceMetrics(): Promise<any> {
     // Endpoint de maintenance non disponible, retourner des données par défaut
@@ -468,14 +458,8 @@ class CentralMetricsService {
     }
   }
 
-  // Récupération des métriques système depuis cAdvisor (non accessible depuis les conteneurs)
-  async getCadvisorMetrics(): Promise<any> {
-    console.log("[CADVISOR] Non accessible depuis les conteneurs");
-    return null;
-  }
-
   /**
-   * Normalise la réponse du metrics-aggregator (une seule source : monitoring-c → aggregator → frontend).
+   * Normalise la réponse du metrics-aggregator (monitoring-agent-rs → aggregator → frontend).
    * L'aggregator expose lastMetricsData avec responseTime, health, servicesList, system.monitoringC.
    */
   private formatMetricsFromAggregator(data: any): MetricsData {

@@ -295,7 +295,7 @@ const getServicesList = async (req, res) => {
           return {
             name: serviceName,
             status: status,
-            port: 'N/A', // Port non exposé par cAdvisor, nécessiterait inspection Docker
+            port: 'N/A', // Port non exposé par les métriques conteneur, nécessiterait inspection Docker
             url: `http://localhost:N/A`,
             health: container.health_status || status,
             version: 'N/A', // Version non disponible via métriques conteneur

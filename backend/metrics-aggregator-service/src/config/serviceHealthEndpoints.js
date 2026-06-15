@@ -25,8 +25,6 @@ const SERVICE_HEALTH_ENDPOINTS = {
   'jobbingtrack-frontend': { port: 3000, path: '/health' },
   'jobbingtrack-postgres': { type: 'database', port: 5432 },
   'jobbingtrack-redis': { type: 'cache', port: 6379 },
-  'jobbingtrack-cadvisor': { type: 'monitoring', port: 8080, path: '/' },
-  'jobbingtrack-prometheus': { type: 'monitoring', port: 9090, path: '/' },
 };
 
 function isNonHttpProbe(config) {

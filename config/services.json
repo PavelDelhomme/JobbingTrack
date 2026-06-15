@@ -168,27 +168,6 @@
       "profiles": ["monitoring", "full"],
       "restart_policy": "unless-stopped"
     },
-    "cadvisor": {
-      "essential": true,
-      "port": 8080,
-      "healthcheck": "http://localhost:8080/api/v1.3/docker/",
-      "description": "Monitoring des conteneurs Docker",
-      "depends_on": [],
-      "networks": ["jobbingtrack"],
-      "profiles": ["monitoring", "full"],
-      "restart_policy": "unless-stopped",
-      "privileged": true
-    },
-    "prometheus": {
-      "essential": false,
-      "port": 9090,
-      "healthcheck": "http://localhost:9090/-/healthy",
-      "description": "Collecte et stockage des métriques",
-      "depends_on": [],
-      "networks": ["jobbingtrack"],
-      "profiles": ["monitoring", "full"],
-      "restart_policy": "unless-stopped"
-    },
     "grafana": {
       "essential": false,
       "port": 4000,
@@ -213,13 +192,13 @@
     "events": ["event-service"],
     "followups": ["followup-service"],
     "workflows": ["workflow-service"],
-    "monitoring": ["jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"],
+    "monitoring": ["jobbingtrack-metrics-aggregator", "grafana"],
     "full": [
       "auth-service", "application-service", "company-service",
       "contact-service", "interview-service", "notification-service",
       "dashboard-service", "call-service", "profile-service",
       "event-service", "followup-service", "workflow-service",
-      "jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"
+      "jobbingtrack-metrics-aggregator", "grafana"
     ]
   },
   "networks": {
@@ -237,9 +216,6 @@
     },
     "grafana_data": {
       "name": "jobbingtrack_grafana_data"
-    },
-    "prometheus_data": {
-      "name": "jobbingtrack_prometheus_data"
     }
   }
 }

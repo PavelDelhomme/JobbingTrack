@@ -452,11 +452,14 @@ export default function NetworkPerformancePage() {
     [series],
   );
 
-  const showCpuNetworkCorrelation = useMemo(() => {
+  const showResourceNetworkCorrelation = useMemo(() => {
     const hasCpu = series.some(
       (d) => d.cpu != null && Number.isFinite(Number(d.cpu)),
     );
-    return hasNetworkData && hasCpu;
+    const hasMemory = series.some(
+      (d) => d.memory != null && Number.isFinite(Number(d.memory)),
+    );
+    return hasNetworkData && (hasCpu || hasMemory);
   }, [hasNetworkData, series]);
 
   const showResponseTime = useMemo(
@@ -490,7 +493,7 @@ export default function NetworkPerformancePage() {
   return (
     <PerformancePageShell
       title="Performances réseau"
-      description="Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU et temps de réponse agrégé quand la persistance les fournit."
+      description="Cumul RX/TX, débit observé (Mo/min), corrélation avec CPU/mémoire et temps de réponse agrégé quand la persistance les fournit."
       actions={
         <>
           <TimeRangeSelector
@@ -535,7 +538,7 @@ export default function NetworkPerformancePage() {
             source="system_metrics"
             timeRangeLabel={rangeLabel}
             renderedPoints={series.length}
-            note="RX/TX persistés ; débits et corrélation CPU dérivés côté UI"
+            note="RX/TX persistés ; débits observés et corrélation CPU/mémoire dérivés côté UI"
           />
           <PerformanceChartCard
             title="Réception (RX) et émission (TX) — Mo (cumul)"
@@ -625,7 +628,7 @@ export default function NetworkPerformancePage() {
           </PerformanceChartCard>
 
           <PerformanceChartCard
-            title="Débit estimé — Mo/min"
+            title="Débit observé — Mo/min"
             periodLabel={rangeLabel}
           >
             <div className="w-full min-h-[220px] sm:min-h-[300px]">
@@ -798,9 +801,9 @@ export default function NetworkPerformancePage() {
             </PerformanceChartCard>
           ) : null}
 
-          {showCpuNetworkCorrelation ? (
+          {showResourceNetworkCorrelation ? (
             <PerformanceChartCard
-              title="Corrélation CPU (%) vs débit réseau (Mo/min)"
+              title="Corrélation CPU & mémoire (%) vs débit réseau (Mo/min)"
               periodLabel={rangeLabel}
             >
               <SystemCpuNetworkCorrelationChart

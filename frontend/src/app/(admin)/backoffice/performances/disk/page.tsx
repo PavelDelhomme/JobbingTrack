@@ -224,6 +224,24 @@ function metricBag(row: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
+function liveBlockIoMb(container: ContainerInfo): number {
+  const bag = metricBag(container);
+  const merged = { ...bag, ...container };
+  const read =
+    pickMbFromBytes(
+      merged,
+      ["blockReadBytes", "block_read_bytes"],
+      ["blockReadMb", "block_read_mb"],
+    ) ?? 0;
+  const write =
+    pickMbFromBytes(
+      merged,
+      ["blockWriteBytes", "block_write_bytes"],
+      ["blockWriteMb", "block_write_mb"],
+    ) ?? 0;
+  return read + write;
+}
+
 export default function PerformancesDiskPage() {
   const [systemRows, setSystemRows] = useState<DiskMetricRow[]>([]);
   const [ioRows, setIoRows] = useState<AggregatedIoRow[]>([]);
@@ -422,7 +440,9 @@ export default function PerformancesDiskPage() {
           (container) => container.name,
         );
         setContainersCount(activeContainers.length);
-        const ioContainers = activeContainers.slice(0, MAX_IO_CONTAINERS);
+        const ioContainers = [...activeContainers]
+          .sort((a, b) => liveBlockIoMb(b) - liveBlockIoMb(a))
+          .slice(0, MAX_IO_CONTAINERS);
         const histories = await promisePool(
           ioContainers,
           HISTORY_FETCH_CONCURRENCY,
@@ -998,7 +1018,7 @@ export default function PerformancesDiskPage() {
 
           {ioRows.length > 0 ? (
             <PerformanceChartCard
-              title="Débit Block I/O estimé — Mo/min"
+              title="Débit Block I/O observé — Mo/min"
               periodLabel={rangeLabel}
             >
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
@@ -1058,8 +1078,8 @@ export default function PerformancesDiskPage() {
                           ? `${Number(value).toFixed(4)} Mo/min`
                           : "—",
                         name === "readMbPerMin"
-                          ? "Lecture (débit)"
-                          : "Écriture (débit)",
+                          ? "Lecture observée"
+                          : "Écriture observée",
                       ]}
                     />
                     <Legend />
@@ -1068,7 +1088,7 @@ export default function PerformancesDiskPage() {
                       dataKey="readMbPerMin"
                       stroke="#4F46E5"
                       strokeWidth={2}
-                      name="Lecture (Mo/min)"
+                      name="Lecture observée (Mo/min)"
                       dot={false}
                       connectNulls={false}
                     />
@@ -1077,7 +1097,7 @@ export default function PerformancesDiskPage() {
                       dataKey="writeMbPerMin"
                       stroke="#D97706"
                       strokeWidth={2}
-                      name="Écriture (Mo/min)"
+                      name="Écriture observée (Mo/min)"
                       dot={false}
                       connectNulls={false}
                     />
@@ -1099,6 +1119,12 @@ export default function PerformancesDiskPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Débit calculé depuis les compteurs Block I/O Docker persistés :
+                différence entre deux cumuls observés divisée par le temps
+                écoulé. Les conteneurs suivis sont priorisés par Block I/O réel
+                récent.
+              </p>
             </PerformanceChartCard>
           ) : (
             <PerformanceInfoNotice className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">

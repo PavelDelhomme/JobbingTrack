@@ -99,7 +99,7 @@
     "monitoring": {
       "name": "Monitoring",
       "description": "Services de surveillance et métriques système",
-      "services": ["jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"],
+      "services": ["jobbingtrack-metrics-aggregator", "jobbingtrack-monitoring-agent-rs", "jobbingtrack-log-collector-rs"],
       "color": "#6b7280",
       "icon": "📈",
       "essential": false,
@@ -113,7 +113,7 @@
         "contact-service", "interview-service", "notification-service",
         "dashboard-service", "call-service", "profile-service",
         "event-service", "followup-service", "workflow-service",
-        "jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"
+        "jobbingtrack-metrics-aggregator", "jobbingtrack-monitoring-agent-rs", "jobbingtrack-log-collector-rs"
       ],
       "color": "#059669",
       "icon": "🚀",
@@ -125,7 +125,7 @@
     "essential": {
       "name": "Services essentiels",
       "description": "Services toujours démarrés (base du système)",
-      "services": ["postgres", "redis", "api-gateway", "frontend", "jobbingtrack-metrics-aggregator", "cadvisor"],
+      "services": ["postgres", "redis", "api-gateway", "frontend", "jobbingtrack-metrics-aggregator"],
       "color": "#dc2626",
       "icon": "🔴",
       "always_running": true
@@ -145,7 +145,7 @@
     "monitoring": {
       "name": "Surveillance",
       "description": "Services de monitoring et métriques",
-      "services": ["prometheus", "grafana"],
+      "services": ["jobbingtrack-metrics-aggregator", "jobbingtrack-monitoring-agent-rs", "jobbingtrack-log-collector-rs"],
       "color": "#7c3aed",
       "icon": "📊"
     }
@@ -168,8 +168,7 @@
     "followup-service": ["postgres", "redis", "api-gateway"],
     "workflow-service": ["postgres", "redis", "api-gateway"],
     "jobbingtrack-metrics-aggregator": ["postgres"],
-    "cadvisor": [],
-    "prometheus": [],
-    "grafana": []
+    "jobbingtrack-monitoring-agent-rs": ["postgres"],
+    "jobbingtrack-log-collector-rs": []
   }
 }

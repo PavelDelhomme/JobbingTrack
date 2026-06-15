@@ -336,25 +336,6 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Monitoring avec Prometheus
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: jobbingtrack-prometheus-prod
-    mem_limit: ${PROMETHEUS_MEMORY_LIMIT:-512m}
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    networks:
-      - jobbingtrack-network
-
   # Grafana pour les dashboards
   grafana:
     image: grafana/grafana:latest
@@ -374,8 +355,6 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  prometheus_data:
     driver: local
   grafana_data:
     driver: local

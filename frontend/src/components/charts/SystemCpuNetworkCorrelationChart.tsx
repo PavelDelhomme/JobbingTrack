@@ -19,6 +19,7 @@ import {
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import {
   systemCpuAxisMax,
+  systemMemoryAxisMax,
   type SystemNetworkMbRateRow,
 } from "@/lib/charts/systemMetricsSeriesModel";
 
@@ -45,7 +46,8 @@ function tooltipLabel(_: unknown, payload: unknown) {
 }
 
 /**
- * **CPU %** (axe gauche) et **débit réseau** RX/TX Mo/min (axe droit) sur le même temps — corrélation visuelle.
+ * **CPU / mémoire %** (axe gauche) et **débit réseau** RX/TX Mo/min (axe droit)
+ * sur le même temps — corrélation visuelle.
  */
 export function SystemCpuNetworkCorrelationChart({
   rows,
@@ -59,6 +61,8 @@ export function SystemCpuNetworkCorrelationChart({
   onBrushChange,
 }: SystemCpuNetworkCorrelationChartProps) {
   const cpuMax = useMemo(() => systemCpuAxisMax(rows), [rows]);
+  const memoryMax = useMemo(() => systemMemoryAxisMax(rows), [rows]);
+  const percentMax = Math.max(cpuMax, memoryMax);
 
   const bottom = axisShowDate ? 72 : 60;
   const angle = axisShowDate ? -40 : -35;
@@ -87,11 +91,11 @@ export function SystemCpuNetworkCorrelationChart({
         <YAxis
           yAxisId="left"
           stroke="#3B82F6"
-          domain={[0, cpuMax]}
+          domain={[0, percentMax]}
           unit=" %"
           tick={{ fontSize: 11 }}
           label={{
-            value: "CPU %",
+            value: "CPU / mémoire %",
             angle: -90,
             position: "insideLeft",
             fill: "#60A5FA",
@@ -120,6 +124,11 @@ export function SystemCpuNetworkCorrelationChart({
             const n = Number(value);
             if (name === "cpu")
               return [`${Number.isFinite(n) ? n.toFixed(2) : "—"} %`, "CPU"];
+            if (name === "memory")
+              return [
+                `${Number.isFinite(n) ? n.toFixed(2) : "—"} %`,
+                "Mémoire",
+              ];
             if (name === "networkRxMbPerMin")
               return [`${n.toFixed(4)} Mo/min`, "RX débit"];
             if (name === "networkTxMbPerMin")
@@ -134,6 +143,16 @@ export function SystemCpuNetworkCorrelationChart({
           dataKey="cpu"
           name="CPU %"
           stroke="#3B82F6"
+          strokeWidth={2}
+          dot={false}
+          connectNulls={false}
+        />
+        <Line
+          yAxisId="left"
+          type="monotone"
+          dataKey="memory"
+          name="Mémoire %"
+          stroke="#22C55E"
           strokeWidth={2}
           dot={false}
           connectNulls={false}

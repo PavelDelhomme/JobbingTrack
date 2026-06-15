@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const router = express.Router();
 
 // Middleware d'authentification temporaire (simple vérification du token)
@@ -78,50 +77,6 @@ router.post('/:serviceName/deactivate', authenticate, (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la désactivation de la maintenance'
-    });
-  }
-});
-
-// ✅ NOUVEAU - Proxy vers Prometheus pour les métriques
-router.get('/metrics/prometheus/query', authenticate, async (req, res) => {
-  try {
-    const { query } = req.query;
-
-    if (!query) {
-      return res.status(400).json({
-        success: false,
-        message: 'Paramètre query requis'
-      });
-    }
-
-    // URL de Prometheus (en dur pour l'instant)
-    const prometheusUrl = 'http://prometheus:9090';
-
-    // Faire directement la requête (sans test de connectivité pour éviter les erreurs)
-    const response = await axios.get(`${prometheusUrl}/api/v1/query`, {
-      params: { query },
-      timeout: 5000
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Erreur proxy Prometheus:', error);
-
-    // Si c'est une erreur de connexion à Prometheus, retourner une erreur de service
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-      return res.status(503).json({
-        success: false,
-        message: 'Service Prometheus non disponible',
-        error: 'Prometheus n\'est pas démarré ou accessible',
-        available: false
-      });
-    }
-
-    // Autre erreur
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération des métriques Prometheus',
-      error: error.message
     });
   }
 });

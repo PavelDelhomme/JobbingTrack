@@ -5,7 +5,6 @@ import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { useMetrics } from "@/lib/hooks/useMetrics";
-import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import axios from "axios";
 
@@ -162,12 +161,6 @@ export default function ServicesPage() {
       port: 6379,
       serviceType: "cache",
     },
-    {
-      name: "Prometheus",
-      url: "http://localhost:9090/-/healthy",
-      port: 9090,
-      serviceType: "monitoring",
-    },
   ];
 
   const [services, setServices] = useState<ServiceStatus[]>([]);
@@ -284,7 +277,7 @@ export default function ServicesPage() {
   );
   const [serviceLogs, setServiceLogs] = useState<string[]>([]);
   const [maintenances, setMaintenances] = useState<{ [key: string]: any }>({});
-  const [prometheusMetrics, setPrometheusMetrics] = useState<{
+  const [aggregatorMetrics, setAggregatorMetrics] = useState<{
     [serviceName: string]: any;
   }>({});
 
@@ -292,38 +285,12 @@ export default function ServicesPage() {
     // Test automatique au chargement de la page
     testAllServices();
 
-    // Test automatique des métriques Prometheus pour l'API Gateway après 2 secondes
-    const prometheusTimeout = setTimeout(async () => {
-      try {
-        // Vérifier d'abord si Prometheus est disponible
-        const testResponse = await fetch(
-          `${API_GATEWAY_URL}/api/v1/metrics/prometheus/query?query=up`,
-          {
-            signal: AbortSignal.timeout(2000),
-          },
-        );
-
-        if (testResponse.ok) {
-          const apiGateway = services.find((s) => s.name === "API Gateway");
-          if (apiGateway) {
-            fetchPrometheusMetrics("API Gateway");
-            fetchServiceDetailedMetrics(apiGateway);
-          }
-        } else {
-          console.warn("Prometheus non disponible, test des métriques ignoré");
-        }
-      } catch (error) {
-        console.warn("Erreur lors du test Prometheus:", error);
-      }
-    }, 2000);
-
     let interval: NodeJS.Timeout;
     if (autoRefresh) {
       interval = setInterval(testAllServices, refreshInterval * 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
-      if (prometheusTimeout) clearTimeout(prometheusTimeout);
     };
   }, [autoRefresh, refreshInterval]);
 
@@ -384,25 +351,6 @@ export default function ServicesPage() {
             error:
               redisResult.status === "offline"
                 ? redisResult.message
-                : undefined,
-          };
-          return updated;
-        });
-      } else if (service.name === "cAdvisor") {
-        // Test cAdvisor
-        const cadvisorResult = await testCadvisor();
-        responseTime = Date.now() - startTime;
-
-        setServices((prev) => {
-          const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            status: cadvisorResult.status as any,
-            responseTime,
-            version: "cAdvisor v0.47.2",
-            error:
-              cadvisorResult.status === "offline"
-                ? cadvisorResult.message
                 : undefined,
           };
           return updated;
@@ -516,7 +464,7 @@ export default function ServicesPage() {
       const dockerName = SERVICE_TYPE_DOCKER[service.serviceType || ""];
       if (!dockerName) {
         setServiceLogs([
-          `[${new Date().toISOString()}] INFO: Aucun conteneur Docker mappé pour « ${service.name} » (ex. Prometheus hors stack).`,
+          `[${new Date().toISOString()}] INFO: Aucun conteneur Docker mappé pour « ${service.name} ».`,
         ]);
         return;
       }
@@ -605,14 +553,6 @@ export default function ServicesPage() {
     }
   };
 
-  // Fonction pour tester cAdvisor (désactivée car non accessible depuis les conteneurs)
-  const testCadvisor = async () => {
-    return {
-      status: "offline",
-      message: "cAdvisor non accessible depuis les conteneurs",
-    };
-  };
-
   // Fonctions pour gérer la maintenance (désactivées temporairement - service non disponible)
   const activateMaintenance = async (service: ServiceStatus) => {
     try {
@@ -657,79 +597,9 @@ export default function ServicesPage() {
     return service.serviceType ? maintenances[service.serviceType] : undefined;
   };
 
-  // Fonction pour récupérer les métriques Prometheus via l'API Gateway
-  const fetchPrometheusMetrics = async (serviceName: string) => {
-    try {
-      const apiUrl = API_GATEWAY_URL;
-
-      // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(
-          `${apiUrl}/api/v1/metrics/prometheus/query?query=up`,
-          {
-            signal: AbortSignal.timeout(2000),
-          },
-        );
-
-        if (!testResponse.ok) {
-          throw new Error("Prometheus non disponible");
-        }
-      } catch (prometheusError) {
-        console.warn(
-          `Prometheus non disponible pour ${serviceName}, utilisation des métriques fallback`,
-        );
-        return null;
-      }
-
-      // Construire la requête Prometheus pour les métriques du service
-      // Chercher les métriques de statut du service dans le job backend
-      const query = `up{job="jobbingtrack-backend"}`;
-
-      const response = await fetch(
-        `${apiUrl}/api/v1/metrics/prometheus/query?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-
-        if (data.status === "success" && data.data.result.length > 0) {
-          const result = data.data.result[0];
-          const value = parseFloat(result.value[1]); // 1 = up, 0 = down
-
-          setPrometheusMetrics((prev) => ({
-            ...prev,
-            [serviceName]: {
-              status: value === 1 ? "online" : "offline",
-              lastCheck: new Date().toISOString(),
-              source: "prometheus",
-            },
-          }));
-        }
-      }
-    } catch (error) {
-      console.error(
-        `Erreur récupération métriques Prometheus pour ${serviceName}:`,
-        error,
-      );
-    }
-  };
-
-  // Fonction pour récupérer les métriques détaillées d'un service depuis Prometheus via API Gateway
+  // Fonction pour récupérer les métriques détaillées d'un service via metrics-aggregator
   const fetchServiceDetailedMetrics = async (service: ServiceStatus) => {
     try {
-      const apiUrl = FRONTEND_URLS.api;
-
-      // Utiliser le service centralisé pour les métriques
-      const cpuMetrics = await centralMetricsService.getSystemMetrics();
-      const containerMetrics =
-        await centralMetricsService.getContainerMetrics();
-
       // Toutes les métriques détaillées sont maintenant N/A
       const metrics = {
         cpu: { usage: "N/A", percentage: "N/A" },
@@ -737,13 +607,13 @@ export default function ServicesPage() {
         source: "N/A",
       };
 
-      setPrometheusMetrics((prev) => ({
+      setAggregatorMetrics((prev) => ({
         ...prev,
         [service.name]: metrics,
       }));
     } catch (error) {
       console.error(
-        `Erreur récupération métriques détaillées Prometheus pour ${service.name}:`,
+        `Erreur récupération métriques détaillées metrics-aggregator pour ${service.name}:`,
         error,
       );
     }
@@ -751,11 +621,11 @@ export default function ServicesPage() {
 
   // Fonction pour récupérer les métriques pour un service spécifique
   const getServiceMetrics = (service: ServiceStatus) => {
-    // D'abord, chercher dans les métriques Prometheus (si disponibles)
-    if (prometheusMetrics[service.name]) {
+    // D'abord, chercher dans les métriques détaillées metrics-aggregator (si disponibles)
+    if (aggregatorMetrics[service.name]) {
       return {
-        type: "prometheus",
-        data: prometheusMetrics[service.name],
+        type: "aggregator",
+        data: aggregatorMetrics[service.name],
       };
     }
 
@@ -881,27 +751,10 @@ export default function ServicesPage() {
 
               <button
                 onClick={() => {
-                  // Récupérer les métriques Prometheus pour tous les services
-                  services.forEach((service) => {
-                    fetchPrometheusMetrics(service.name);
-                    fetchServiceDetailedMetrics(service);
-                  });
-                }}
-                className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
-              >
-                📊 Métriques Prometheus
-              </button>
-
-              <button
-                onClick={() => {
-                  // Test spécifique pour l'API Gateway avec les bonnes requêtes Prometheus
                   const apiGateway = services.find(
                     (s) => s.name === "API Gateway",
                   );
                   if (apiGateway) {
-                    // Requête spécifique pour l'API Gateway
-                    fetchPrometheusMetrics("API Gateway");
-                    // Requête spécifique pour les métriques de conteneur de l'API Gateway
                     fetchServiceDetailedMetrics(apiGateway);
                   }
                 }}
@@ -1425,10 +1278,10 @@ export default function ServicesPage() {
                         {(() => {
                           const serviceMetrics =
                             getServiceMetrics(selectedService);
-                          if (serviceMetrics?.type === "prometheus") {
+                          if (serviceMetrics?.type === "aggregator") {
                             return (
                               <span className="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-1 rounded">
-                                📊 Prometheus
+                                📊 Metrics aggregator
                               </span>
                             );
                           } else if (serviceMetrics?.type === "service") {
@@ -1461,7 +1314,7 @@ export default function ServicesPage() {
                                   <span className="text-gray-600 dark:text-gray-400">
                                     {serviceMetrics.type === "service"
                                       ? "Mémoire utilisée"
-                                      : serviceMetrics.type === "prometheus"
+                                      : serviceMetrics.type === "aggregator"
                                         ? "Mémoire consommée"
                                         : "Mémoire allouée"}
                                   </span>
@@ -1478,7 +1331,7 @@ export default function ServicesPage() {
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div
                                       className={`h-2 rounded-full transition-all ${
-                                        serviceMetrics.type === "prometheus"
+                                        serviceMetrics.type === "aggregator"
                                           ? "bg-purple-500"
                                           : serviceMetrics.type === "service"
                                             ? "bg-blue-500"
@@ -1506,7 +1359,7 @@ export default function ServicesPage() {
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div
                                       className={`h-2 rounded-full transition-all ${
-                                        serviceMetrics.type === "prometheus"
+                                        serviceMetrics.type === "aggregator"
                                           ? "bg-purple-500"
                                           : serviceMetrics.type === "service"
                                             ? "bg-blue-500"
@@ -1565,11 +1418,11 @@ export default function ServicesPage() {
                               <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
                                   Source:{" "}
-                                  {serviceMetrics.type === "prometheus"
-                                    ? "Prometheus (métriques temps réel)"
+                                  {serviceMetrics.type === "aggregator"
+                                    ? "metrics-aggregator"
                                     : serviceMetrics.type === "service"
                                       ? "Service interne"
-                                      : "cAdvisor (conteneur)"}
+                                      : "Docker / metrics-aggregator"}
                                 </div>
                               </div>
                             </div>
@@ -1587,7 +1440,7 @@ export default function ServicesPage() {
                               }
                               className="mt-2 text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 dark:text-purple-300 px-2 py-1 rounded transition-colors"
                             >
-                              🔄 Essayer Prometheus
+                              🔄 Charger via metrics-aggregator
                             </button>
                           </div>
                         );

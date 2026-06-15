@@ -1,7 +1,7 @@
 {
   "name": "jobbingtrack-metrics-aggregator-api",
   "version": "1.0.1",
-  "description": "API sécurisée pour exposer les métriques Prometheus et logs Loki",
+  "description": "API sécurisée pour exposer les métriques JobbingTrack et logs agrégés",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -17,8 +17,8 @@
   "keywords": [
     "metrics",
     "monitoring",
-    "prometheus",
-    "loki",
+    "monitoring-agent-rs",
+    "log-collector-rs",
     "api"
   ],
   "author": "JobbingTrack Team",
