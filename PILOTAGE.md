@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 15 juin 2026 (Lot A brush Réseau + Playwright Performances 5003)
+Dernière mise à jour : 15 juin 2026 (Services — premier correctif CPU/RAM frontend)
 
 ## Pause infra — courte (appliquée le 15/06)
 
@@ -43,9 +43,9 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Dernière mise à jour : 15 juin 2026 (Lot A brush Réseau + Playwright Performances 5003)
+Dernière mise à jour : 15 juin 2026 (Services — premier correctif CPU/RAM frontend)
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE, alertes email critiques et **P1C sécurité titres/libellés/navigation** validés localement. **15/06** : demande explicite porteur de reprendre **Lot A graphes** ; export CSV/JSON (`feat/monitoring-series-export`), mini-séries Services (`feat/services-history-sparklines`), Corrélation endpoint incidents (`fix/correlation-incident-context`), brush synchronisé Réseau (`feat/monitoring-brush-sync-network`). Playwright Performances fiable via `PLAYWRIGHT_BASE_URL=http://localhost:5003`.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE, alertes email critiques et **P1C sécurité titres/libellés/navigation** validés localement. **15/06** : demande explicite porteur de reprendre **Lot A graphes** ; export CSV/JSON (`feat/monitoring-series-export`), mini-séries Services (`feat/services-history-sparklines`), Corrélation endpoint incidents (`fix/correlation-incident-context`), brush synchronisé Réseau (`feat/monitoring-brush-sync-network`) puis premier correctif CPU/RAM frontend Services (`fix/frontend-services-performance`). Playwright Performances fiable via `PLAYWRIGHT_BASE_URL=http://localhost:5003`.
 
 Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — PR #8 et #9 mergées, PR #7 fermée, préprod Portainer cadrée (`deploy-preprod.yml`, `VPS_PORTAINER_NPM_OVH.md` §5.1), mail récap **3/3 SENT**. Le porteur demande de continuer le **Lot B complet**, avec mail récap à chaque bloc terminé, puis d’enchaîner Lot C selon le même processus.
 

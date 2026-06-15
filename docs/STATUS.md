@@ -1,8 +1,16 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/monitoring-brush-sync-network` (Lot A — brush synchronisé Performances Réseau).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/frontend-services-performance` (Services — premier correctif CPU/RAM frontend).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Frontend CPU/RAM : Services en mode sobre par défaut
+
+- **État Git corrigé** : sortie du HEAD détaché, suppression des caches `.tmp-jest`, reprise sur branche propre puis branche dédiée `fix/frontend-services-performance`.
+- **Liste Services** : auto-refresh désactivé par défaut ; bouton **Auto-refresh pause/actif** pour activer une cadence 60 s ; déduplication des chargements concurrents.
+- **Mini-séries Services** : limite réduite à **12** services visibles, **24** points par service, concurrence **2**.
+- **Fiche service** : auto-refresh désactivé par défaut ; cadence par défaut 60 s si activée ; logs limités à **60** lignes ; historique serveur **180** points et session **160**.
+- **Validations sans `make`** : TypeScript direct OK ; ESLint ciblé OK ; lints IDE OK ; Jest fiche service **1 suite / 33 tests OK** ; Playwright ciblé Services sur frontend Docker **5003** **3/3 OK**. Les wrappers `npm run type-check` et `npm run lint -- --quiet` sortent encore code 1 sans sortie exploitable, dette déjà tracée.
 
 ## 15 juin 2026 — Lot A graphes : brush synchronisé Performances Réseau
 

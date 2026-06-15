@@ -44,9 +44,10 @@ const CRITICAL_SERVICES = [
 const SERVICE_ROW_DETAIL_HINT =
   "Ouvre le détail du service : graphes d’historique (CPU, mémoire, réseau, Block I/O), encart sources (session / fichiers / BDD), logs et raccourcis.";
 
-const SERVICE_SPARKLINE_LIMIT = 36;
-const SERVICE_SPARKLINE_VISIBLE_LIMIT = 24;
-const SERVICE_SPARKLINE_CONCURRENCY = 3;
+const SERVICE_SPARKLINE_LIMIT = 24;
+const SERVICE_SPARKLINE_VISIBLE_LIMIT = 12;
+const SERVICE_SPARKLINE_CONCURRENCY = 2;
+const SERVICES_AUTO_REFRESH_INTERVAL_MS = 60000;
 
 type ServiceSparklineEntry = {
   status: "loading" | "ready" | "empty" | "error";
@@ -168,9 +169,20 @@ export default function ServicesPage() {
   const [serviceSparklines, setServiceSparklines] = useState<
     Record<string, ServiceSparklineEntry>
   >({});
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const sparklineRequestedRef = useRef<Set<string>>(new Set());
+  const servicesLoadInFlightRef = useRef(false);
+  const servicesRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const servicesProgressiveTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const loadServices = async (isInitial = false) => {
+    if (servicesLoadInFlightRef.current) return;
+    servicesLoadInFlightRef.current = true;
+
     try {
       // Pour le chargement initial, afficher le loading
       if (isInitial) {
@@ -292,7 +304,10 @@ export default function ServicesPage() {
               setInitialLoad(false);
 
               // Puis charger tous les services après un court délai
-              setTimeout(() => {
+              if (servicesProgressiveTimeoutRef.current) {
+                clearTimeout(servicesProgressiveTimeoutRef.current);
+              }
+              servicesProgressiveTimeoutRef.current = setTimeout(() => {
                 setServices(loadedServices);
                 setLastUpdate(new Date());
               }, 500);
@@ -335,7 +350,10 @@ export default function ServicesPage() {
           // Si on a déjà des services, les garder
           if (services.length === 0) {
             // Pas de services chargés, réessayer une fois après un délai
-            setTimeout(() => {
+            if (servicesRetryTimeoutRef.current) {
+              clearTimeout(servicesRetryTimeoutRef.current);
+            }
+            servicesRetryTimeoutRef.current = setTimeout(() => {
               loadServices(true).catch(() => {
                 setLoading(false);
                 setInitialLoad(false);
@@ -364,20 +382,32 @@ export default function ServicesPage() {
           }
         }
       }
+    } finally {
+      servicesLoadInFlightRef.current = false;
     }
   };
 
   useEffect(() => {
     loadServices(true); // Chargement initial
-    // Rafraîchir toutes les 20 secondes (plus long pour éviter les timeouts)
-    // ✅ OPTIMISATION : Arrêter le polling si la page n'est pas visible
+    return () => {
+      if (servicesRetryTimeoutRef.current) {
+        clearTimeout(servicesRetryTimeoutRef.current);
+      }
+      if (servicesProgressiveTimeoutRef.current) {
+        clearTimeout(servicesProgressiveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return undefined;
     const interval = setInterval(() => {
       if (document.visibilityState === "visible" && !document.hidden) {
         loadServices(false);
       }
-    }, 30000); // Augmenté de 20s à 30s pour réduire CPU
+    }, SERVICES_AUTO_REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [autoRefreshEnabled]);
 
   // Fonction de tri
   const handleSort = (column: string) => {
@@ -621,6 +651,23 @@ export default function ServicesPage() {
           >
             <RefreshCw className="h-4 w-4" />
             Rafraîchir
+          </button>
+          <button
+            type="button"
+            onClick={() => setAutoRefreshEnabled((enabled) => !enabled)}
+            className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors sm:w-auto ${
+              autoRefreshEnabled
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            }`}
+            title={
+              autoRefreshEnabled
+                ? "Désactiver le rafraîchissement automatique de la liste Services"
+                : "Activer le rafraîchissement automatique toutes les 60 secondes"
+            }
+          >
+            <RotateCw className="h-4 w-4" />
+            {autoRefreshEnabled ? "Auto-refresh actif" : "Auto-refresh pause"}
           </button>
         </>
       }
