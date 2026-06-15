@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type Key } from "react";
 import {
+  Brush,
   LineChart,
   Line,
   XAxis,
@@ -17,6 +18,7 @@ import {
   formatLocalDateTime,
 } from "@/lib/utils/date";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 
 function formatPercentTick(value: number | string): string {
   const n = Number(value);
@@ -505,6 +507,13 @@ export function AnalyticsContainersChartsBundle({
     [chartData.length, memorySeriesNames.length],
   );
 
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(chartData.length, 80);
+
+  const chartBottom = containerAxisShowDate ? 72 : 60;
+  const chartBottomBrush = chartBottom + 24;
+  const showSyncedBrush = chartData.length > 0;
+
   const toggleCpuSeries = (name: string) => {
     setCpuVisibleNames((current) => {
       const base = current ?? containerNamesForChart;
@@ -544,7 +553,12 @@ export function AnalyticsContainersChartsBundle({
             <ResponsiveContainer width="100%" height={400} minHeight={260}>
               <LineChart
                 data={chartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: showSyncedBrush ? chartBottomBrush : chartBottom,
+                }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                 <XAxis
@@ -600,6 +614,21 @@ export function AnalyticsContainersChartsBundle({
                     />
                   );
                 })}
+                {showSyncedBrush ? (
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: containerAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
+                ) : null}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -622,7 +651,12 @@ export function AnalyticsContainersChartsBundle({
             <ResponsiveContainer width="100%" height={400} minHeight={260}>
               <LineChart
                 data={chartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: showSyncedBrush ? chartBottomBrush : chartBottom,
+                }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                 <XAxis
@@ -678,14 +712,46 @@ export function AnalyticsContainersChartsBundle({
                     />
                   );
                 })}
+                {showSyncedBrush ? (
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: containerAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
+                ) : null}
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {containerNamesForChart.length} conteneur(s) · {chartData.length}{" "}
-          points affichés
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+          <p>
+            {containerNamesForChart.length} conteneur(s) · {chartData.length}{" "}
+            points affichés
+          </p>
+          {showSyncedBrush ? (
+            <p>
+              Glissez la barre brush sous un des graphiques pour zoomer CPU et
+              mémoire sur la même fenêtre.
+            </p>
+          ) : null}
+          {hasCustomBrush ? (
+            <button
+              type="button"
+              onClick={resetBrush}
+              className="text-indigo-600 hover:underline dark:text-indigo-400"
+            >
+              Réinitialiser le zoom
+            </button>
+          ) : null}
+        </div>
       </>
     );
   }
@@ -700,7 +766,12 @@ export function AnalyticsContainersChartsBundle({
         <ResponsiveContainer width="100%" height={400} minHeight={260}>
           <LineChart
             data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+            margin={{
+              top: 5,
+              right: 30,
+              left: 20,
+              bottom: showSyncedBrush ? chartBottomBrush : chartBottom,
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
             <XAxis
@@ -763,12 +834,38 @@ export function AnalyticsContainersChartsBundle({
               activeDot={{ r: 4 }}
               connectNulls={false}
             />
+            {showSyncedBrush ? (
+              <Brush
+                dataKey="timeMs"
+                height={18}
+                travellerWidth={8}
+                startIndex={brushStart}
+                endIndex={brushEnd}
+                tickFormatter={(ms) =>
+                  formatLocalChartAxisTick(ms as number, {
+                    withDate: containerAxisShowDate,
+                  })
+                }
+                onChange={onBrushChange}
+              />
+            ) : null}
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-        {rawMetricsLength} points → {chartData.length} affichés
-      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400 mt-2">
+        <p>
+          {rawMetricsLength} points → {chartData.length} affichés
+        </p>
+        {hasCustomBrush ? (
+          <button
+            type="button"
+            onClick={resetBrush}
+            className="text-indigo-600 hover:underline dark:text-indigo-400"
+          >
+            Réinitialiser le zoom
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
