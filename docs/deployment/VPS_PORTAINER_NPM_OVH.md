@@ -70,6 +70,23 @@ Le fait que Compose **remplace** l’URL pour les services **évite une classe d
 - **Préprod** : sous-domaines dédiés (`preprod-api.…`), base et secrets **distincts** de la prod.
 - **Prod** : sauvegardes BDD, mises à jour de stack documentées, surveillance (logs, métriques déjà présentes dans le projet).
 
+### 5.1 Déploiement préprod sans Portainer Business
+
+Le dépôt ne dépend pas de la synchronisation Git payante de Portainer. Le flux retenu pour la préprod est :
+
+1. GitHub Actions construit/valide le commit à publier.
+2. Le workflow **Deploy Preprod** est lancé manuellement ou depuis une branche `preprod`.
+3. Si `PREPROD_DEPLOY_URL` et `PREPROD_DEPLOY_TOKEN` sont configurés dans les secrets GitHub, le workflow appelle un webhook privé.
+4. Le webhook, hébergé hors Git sur le VPS ou dans le backoffice, exécute le runbook privé : `docker compose pull`, sauvegarde/migration si nécessaire, `docker compose up -d`, healthchecks, puis retour HTTP non-2xx en cas d’échec.
+5. Portainer reste l’interface de supervision et d’intervention manuelle sur la stack.
+
+Contraintes :
+
+- Le webhook doit être protégé par token, IP allowlist ou autre contrôle équivalent ; ne pas exposer une URL de déploiement publique sans authentification forte.
+- Les secrets préprod (`DATABASE_URL`, SMTP, JWT, clés internes, URLs publiques) restent dans GitHub Secrets / Portainer / coffre privé, jamais dans le dépôt.
+- Si `PREPROD_DEPLOY_URL` n’est pas défini, le workflow reste volontairement en no-op documenté.
+- Si l’URL est définie mais que le webhook échoue, le workflow doit échouer : pas de `|| true` sur un déploiement réel.
+
 ## 6. Vérifications rapides après déploiement
 
 - `https://api…/health` (ou route équivalente documentée dans le dépôt).
