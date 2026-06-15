@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { execSync } from "child_process";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import {
@@ -7,6 +6,12 @@ import {
   isRunningInFrontendContainer,
 } from "../testRunnerUtils";
 import { getTestsResultsDir } from "@/lib/test-reports/paths";
+import {
+  appendSecurityJobLog,
+  createSecurityJob,
+  getSecurityJob,
+  runSecurityShellJob,
+} from "../securityJobStore";
 
 const RUN_TIMEOUT_MS = 120000;
 
@@ -61,73 +66,70 @@ export async function POST(request: NextRequest) {
     const testCommand = inContainer
       ? "cd /app/tests && node security/test-security.js"
       : "make test-security";
-    const command = `cd "${projectRoot}" && sh "${scriptPath}" security "${testCommand}" "${testName}"`;
+    const command = `cd "${projectRoot}" && bash "${scriptPath}" security "${testCommand}" "${testName}"`;
 
-    let stdout = "";
-    let reportId: string | null = null;
-    let exitCode = 0;
-    try {
-      stdout = execSync(command, {
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-        timeout: RUN_TIMEOUT_MS,
-        env: {
-          ...process.env,
-          API_GATEWAY_URL:
-            process.env.API_GATEWAY_URL ||
-            (inContainer ? "http://api-gateway:3000" : undefined),
-          TESTS_RESULTS_DIR:
-            process.env.TESTS_RESULTS_DIR ||
-            (inContainer ? "/tmp/tests/results" : undefined),
-          METRICS_AGGREGATOR_INTERNAL_URL:
-            process.env.METRICS_AGGREGATOR_INTERNAL_URL ||
-            "http://jobbingtrack-metrics-aggregator:3014",
-        },
-      });
-      reportId = extractReportId(stdout);
-    } catch (err: unknown) {
-      const execErr = err as { stdout?: string; status?: number };
-      stdout = execErr.stdout ?? "";
-      reportId = stdout ? extractReportId(stdout) : null;
-      exitCode = execErr.status ?? 1;
-      console.log(
-        `${TESTS_TAG} Fin (exit ${exitCode}) — rapport: ${reportId ?? "N/A"}`,
-      );
-      if (!reportId) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: (err as Error).message || "Erreur exécution tests sécurité",
-            outputTail: stdout.slice(-3000),
-          },
-          { status: 500 },
+    const job = createSecurityJob("security-app", "Tests sécurité applicatifs");
+    appendSecurityJobLog(job, `Rapports écrits dans: ${getTestsResultsDir()}`);
+    runSecurityShellJob({
+      job,
+      command,
+      cwd: projectRoot,
+      timeoutMs: RUN_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        API_GATEWAY_URL:
+          process.env.API_GATEWAY_URL ||
+          (inContainer ? "http://api-gateway:3000" : undefined),
+        TESTS_RESULTS_DIR:
+          process.env.TESTS_RESULTS_DIR ||
+          (inContainer ? "/tmp/tests/results" : undefined),
+        METRICS_AGGREGATOR_INTERNAL_URL:
+          process.env.METRICS_AGGREGATOR_INTERNAL_URL ||
+          "http://jobbingtrack-metrics-aggregator:3014",
+      },
+      onComplete: (completedJob, output, exitCode) => {
+        const reportId = extractReportId(output);
+        completedJob.reportId = reportId;
+        if (!reportId) {
+          completedJob.status = "failed";
+          completedJob.error = "Tests terminés sans identifiant de rapport";
+          appendSecurityJobLog(completedJob, `❌ ${completedJob.error}`);
+          return;
+        }
+        const counts = readSecurityCounts(reportId);
+        const hasCriticalHigh = counts.critical > 0 || counts.high > 0;
+        const hasMediumLow = counts.medium > 0 || counts.low > 0;
+        completedJob.status =
+          !hasCriticalHigh && exitCode === 0 ? "success" : "failed";
+        completedJob.data = {
+          warning: hasMediumLow && !hasCriticalHigh,
+          counts,
+          reportLocation: "tests/results/",
+          reportKind: "security-app-tests",
+          hint: "Pour le scan CVE dépendances (npm/Rust/Docker), utilisez « Scan CVE ».",
+        };
+        appendSecurityJobLog(
+          completedJob,
+          hasCriticalHigh
+            ? `❌ Tests terminés — critical/high détectés — rapport ${reportId}`
+            : hasMediumLow
+              ? `⚠️ Tests terminés — avertissements medium/low — rapport ${reportId}`
+              : `✅ Tests sécurité applicatifs terminés — rapport ${reportId}`,
         );
-      }
-    }
-
-    const counts = readSecurityCounts(reportId);
-    const hasCriticalHigh = counts.critical > 0 || counts.high > 0;
-    const hasMediumLow = counts.medium > 0 || counts.low > 0;
-    const outputTail = stripAnsi(stdout).slice(-2500);
-
-    console.log(
-      `${TESTS_TAG} Fin — ${new Date().toLocaleString("fr-FR", { timeZone: process.env.TZ || "Europe/Paris" })} — rapport: ${reportId ?? "N/A"}`,
-    );
-    return NextResponse.json({
-      success: !hasCriticalHigh && exitCode === 0,
-      warning: hasMediumLow && !hasCriticalHigh,
-      message: hasCriticalHigh
-        ? "Tests terminés — vulnérabilités critical/high détectées"
-        : hasMediumLow
-          ? "Tests terminés — avertissements medium/low (niveau acceptable)"
-          : "Tests sécurité applicatifs terminés",
-      reportId,
-      reportLocation: "tests/results/",
-      reportKind: "security-app-tests",
-      counts,
-      hint: "Pour le scan CVE dépendances (npm/Rust/Docker), utilisez « Scan CVE ».",
-      outputTail,
+      },
     });
+
+    console.log(`${TESTS_TAG} Job lancé — ${job.id}`);
+    return NextResponse.json(
+      {
+        success: true,
+        jobId: job.id,
+        status: job.status,
+        message: "Tests sécurité lancés — progression disponible",
+        logs: job.logs,
+      },
+      { status: 202 },
+    );
   } catch (error: unknown) {
     console.log(
       `${TESTS_TAG} Fin (erreur) — ${new Date().toLocaleString("fr-FR", { timeZone: process.env.TZ || "Europe/Paris" })}`,
@@ -140,4 +142,27 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  const job = getSecurityJob(request.nextUrl.searchParams.get("jobId"));
+  if (!job) {
+    return NextResponse.json(
+      { success: false, error: "Job tests sécurité introuvable" },
+      { status: 404 },
+    );
+  }
+
+  const done = job.status !== "running";
+  return NextResponse.json({
+    success: job.status !== "failed",
+    jobId: job.id,
+    status: job.status,
+    done,
+    reportId: job.reportId,
+    exitCode: job.exitCode,
+    error: job.error,
+    logs: job.logs.map(stripAnsi),
+    ...job.data,
+  });
 }
