@@ -27,6 +27,7 @@ import {
 import { CpuMemoryServiceLinesChart } from "@/components/charts/CpuMemoryServiceLinesChart";
 import { SystemCpuMemoryAreaCharts } from "@/components/charts/SystemCpuMemoryAreaCharts";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import type { SystemPercentSeriesRow } from "@/lib/charts/systemMetricsSeriesModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
@@ -648,6 +649,11 @@ export default function CpuMemoryPerformancePage() {
   const axisShowDate =
     chartXDomainEffMax - chartXDomainEffMin > 24 * 60 * 60 * 1000;
 
+  const overviewSeriesLength =
+    activeView === "overview" ? effectiveSystemChartData.length : 0;
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(overviewSeriesLength, 80);
+
   const liveCpuAvg = average(containers.map(containerCpu));
   const liveMemoryAvg = average(containers.map(containerMemory));
   const runningCount = containers.filter(
@@ -881,7 +887,25 @@ export default function CpuMemoryPerformancePage() {
               axisShowDate={axisShowDate}
               chartHeight={260}
               emphasizePoints={systemChartData.length === 0}
+              brushStartIndex={brushStart}
+              brushEndIndex={brushEnd}
+              onBrushChange={onBrushChange}
             />
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+              <p>
+                Glissez la barre sous le graphique mémoire pour zoomer CPU et
+                mémoire sur la même fenêtre.
+              </p>
+              {hasCustomBrush ? (
+                <button
+                  type="button"
+                  onClick={resetBrush}
+                  className="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Réinitialiser le zoom
+                </button>
+              ) : null}
+            </div>
           </PerformanceChartCard>
         </div>
       ) : effectiveDetailChartData.length === 0 ||
