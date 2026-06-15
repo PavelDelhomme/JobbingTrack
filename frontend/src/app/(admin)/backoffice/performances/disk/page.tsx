@@ -17,6 +17,7 @@ import {
   localCalendarDayBounds,
 } from "@/components/analytics/timeRangeUtils";
 import {
+  Brush,
   CartesianGrid,
   Legend,
   Line,
@@ -33,6 +34,7 @@ import {
   normalizeMetricTimestampToIso,
 } from "@/lib/utils/date";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
@@ -154,6 +156,22 @@ function compressRows<T extends { timeMs: number }>(rows: T[]): T[] {
   if (rows.length <= TARGET_POINTS) return rows;
   const step = Math.ceil(rows.length / TARGET_POINTS);
   return rows.filter((_, index) => index % step === 0);
+}
+
+function rowsInBrushWindow<T extends { timeMs: number }>(
+  rows: T[],
+  masterRows: { timeMs: number }[],
+  brushStart: number,
+  brushEnd: number,
+): T[] {
+  if (rows.length === 0 || masterRows.length === 0) return rows;
+  const startMs = masterRows[brushStart]?.timeMs;
+  const endMs = masterRows[brushEnd]?.timeMs;
+  if (startMs == null || endMs == null) return rows;
+  const minMs = Math.min(startMs, endMs);
+  const maxMs = Math.max(startMs, endMs);
+  const filtered = rows.filter((r) => r.timeMs >= minMs && r.timeMs <= maxMs);
+  return filtered.length > 0 ? filtered : rows;
 }
 
 function buildIoRateRows(rows: AggregatedIoRow[]): AggregatedIoRow[] {
@@ -552,14 +570,41 @@ export default function PerformancesDiskPage() {
   }, [ioRows, rangeEnd, rangeStart, systemRows]);
 
   const axisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
+  const chartBottom = axisShowDate ? 72 : 60;
+  const chartBottomBrush = chartBottom + 24;
 
-  const latest = systemRows.length ? systemRows[systemRows.length - 1] : null;
-  const latestIo = ioRows.length ? ioRows[ioRows.length - 1] : null;
+  const brushMasterRows = systemRows.length > 0 ? systemRows : ioRows;
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(brushMasterRows.length, 80);
+
+  const displaySystemRows = useMemo(
+    () =>
+      rowsInBrushWindow(systemRows, brushMasterRows, brushStart, brushEnd),
+    [brushEnd, brushMasterRows, brushStart, systemRows],
+  );
+  const displayIoRows = useMemo(
+    () => rowsInBrushWindow(ioRows, brushMasterRows, brushStart, brushEnd),
+    [brushEnd, brushMasterRows, brushStart, ioRows],
+  );
+
+  const brushOnSystemCharts = systemRows.length > 0;
+  const brushOnIoRateChart = !brushOnSystemCharts && ioRows.length > 0;
+
+  const latest = displaySystemRows.length
+    ? displaySystemRows[displaySystemRows.length - 1]
+    : systemRows.length
+      ? systemRows[systemRows.length - 1]
+      : null;
+  const latestIo = displayIoRows.length
+    ? displayIoRows[displayIoRows.length - 1]
+    : ioRows.length
+      ? ioRows[ioRows.length - 1]
+      : null;
   const ioRateMax = maxWithFallback(
-    ioRows.flatMap((row) => [row.readMbPerMin, row.writeMbPerMin]),
+    displayIoRows.flatMap((row) => [row.readMbPerMin, row.writeMbPerMin]),
   );
   const ioCumulativeMax = maxWithFallback(
-    ioRows.flatMap((row) => [row.readMb ?? 0, row.writeMb ?? 0]),
+    displayIoRows.flatMap((row) => [row.readMb ?? 0, row.writeMb ?? 0]),
   );
 
   const goPrev = useCallback(() => {
@@ -709,8 +754,13 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[240px] sm:min-h-[340px]">
                 <ResponsiveContainer width="100%" height={340} minHeight={240}>
                   <LineChart
-                    data={systemRows}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    data={displaySystemRows}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: chartBottom,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -776,8 +826,13 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
                   <LineChart
-                    data={systemRows}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    data={displaySystemRows}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: brushOnSystemCharts ? chartBottomBrush : chartBottom,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -838,6 +893,21 @@ export default function PerformancesDiskPage() {
                       dot={false}
                       connectNulls={false}
                     />
+                    {brushOnSystemCharts ? (
+                      <Brush
+                        dataKey="timeMs"
+                        height={18}
+                        travellerWidth={8}
+                        startIndex={brushStart}
+                        endIndex={brushEnd}
+                        tickFormatter={(ms) =>
+                          formatLocalChartAxisTick(ms as number, {
+                            withDate: axisShowDate,
+                          })
+                        }
+                        onChange={onBrushChange}
+                      />
+                    ) : null}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -852,8 +922,13 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[320px]">
                 <ResponsiveContainer width="100%" height={320} minHeight={220}>
                   <LineChart
-                    data={ioRows}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    data={displayIoRows}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: chartBottom,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -929,8 +1004,13 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
                   <LineChart
-                    data={ioRows}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    data={displayIoRows}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: brushOnIoRateChart ? chartBottomBrush : chartBottom,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -1001,6 +1081,21 @@ export default function PerformancesDiskPage() {
                       dot={false}
                       connectNulls={false}
                     />
+                    {brushOnIoRateChart ? (
+                      <Brush
+                        dataKey="timeMs"
+                        height={18}
+                        travellerWidth={8}
+                        startIndex={brushStart}
+                        endIndex={brushEnd}
+                        tickFormatter={(ms) =>
+                          formatLocalChartAxisTick(ms as number, {
+                            withDate: axisShowDate,
+                          })
+                        }
+                        onChange={onBrushChange}
+                      />
+                    ) : null}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -1014,12 +1109,29 @@ export default function PerformancesDiskPage() {
             </PerformanceInfoNotice>
           )}
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {systemRows.length} point(s) stockage système · {ioRows.length}{" "}
-            point(s) Block I/O agrégés ·{" "}
-            {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount}{" "}
-            conteneur(s) inspectés.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <p>
+              {systemRows.length} point(s) stockage système · {ioRows.length}{" "}
+              point(s) Block I/O agrégés ·{" "}
+              {Math.min(containersCount, MAX_IO_CONTAINERS)}/{containersCount}{" "}
+              conteneur(s) inspectés.
+            </p>
+            {brushMasterRows.length > 0 ? (
+              <p>
+                Glissez la barre brush sous le dernier graphe système ou I/O pour
+                zoomer tous les graphes sur la même fenêtre.
+              </p>
+            ) : null}
+            {hasCustomBrush ? (
+              <button
+                type="button"
+                onClick={resetBrush}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Réinitialiser le zoom
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 
