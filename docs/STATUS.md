@@ -1,8 +1,15 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/monitoring-series-export` (Lot A graphes — export CSV/JSON séries affichées).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `feat/services-history-sparklines` (Lot A graphes — mini-séries historiques liste Services).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Lot A graphes : mini-séries historiques liste Services
+
+- **Liste Services** : la ligne service affiche une mini-série CPU historique SVG quand `/docker/service/:name/history` fournit au moins 2 points ; fallback conservé sur la jauge CPU instantanée si l’historique est absent.
+- **Performance UI** : chargement borné aux **24 premiers services visibles**, concurrence **3**, limite historique **36** points par service, sans Recharts sur la liste.
+- **Dette notée** : une “somme CPU” > 100 % ne doit pas être présentée comme CPU global machine ; distinguer CPU global 0–100 %, CPU conteneur Docker multi-cœur et somme conteneurs.
+- **Validations sans `make`** : frontend `format:check` OK ; `type-check` OK ; `lint --quiet` OK ; Jest `serviceCpuSparklineModel` **1 suite / 3 tests OK**.
 
 ## 15 juin 2026 — Lot A graphes : export CSV/JSON séries affichées
 

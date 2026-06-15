@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ServicesPageShell } from "./ServicesSubNav";
 import {
@@ -21,6 +21,11 @@ import {
   FileText,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  buildCpuSparklinePolyline,
+  normalizeServiceCpuHistoryRows,
+  type ServiceCpuSparklinePoint,
+} from "@/lib/monitoring/serviceCpuSparklineModel";
 
 // Une seule source : metrics-aggregator (récupère les données depuis monitoring-c, persiste en BDD)
 const METRICS_URL =
@@ -39,6 +44,15 @@ const CRITICAL_SERVICES = [
 const SERVICE_ROW_DETAIL_HINT =
   "Ouvre le détail du service : graphes d’historique (CPU, mémoire, réseau, Block I/O), encart sources (session / fichiers / BDD), logs et raccourcis.";
 
+const SERVICE_SPARKLINE_LIMIT = 36;
+const SERVICE_SPARKLINE_VISIBLE_LIMIT = 24;
+const SERVICE_SPARKLINE_CONCURRENCY = 3;
+
+type ServiceSparklineEntry = {
+  status: "loading" | "ready" | "empty" | "error";
+  points: ServiceCpuSparklinePoint[];
+};
+
 interface Service {
   name: string;
   status: string;
@@ -56,6 +70,90 @@ interface Service {
   } | null;
 }
 
+function shortServiceName(name: string): string {
+  return name.replace(/^jobbingtrack-/, "");
+}
+
+function fullServiceName(name: string): string {
+  return name.startsWith("jobbingtrack-") ? name : `jobbingtrack-${name}`;
+}
+
+function ServiceCpuMiniSeries({
+  entry,
+  fallbackCpu,
+}: {
+  entry?: ServiceSparklineEntry;
+  fallbackCpu?: number;
+}) {
+  const points = entry?.points ?? [];
+  const width = 96;
+  const height = 24;
+  const polyline = buildCpuSparklinePolyline(points, width, height);
+  const latest = points.at(-1)?.cpuPercent;
+
+  if (entry?.status === "ready" && polyline) {
+    return (
+      <div
+        className="mt-1 w-28"
+        title={`Mini-série CPU historique (${points.length} points). Dernier point : ${latest?.toFixed(2) ?? "—"} %.`}
+      >
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-7 w-28 overflow-visible"
+          role="img"
+          aria-label="Mini-série CPU historique"
+        >
+          <line
+            x1="0"
+            y1={height - 1}
+            x2={width}
+            y2={height - 1}
+            className="stroke-gray-200 dark:stroke-gray-700"
+            strokeWidth="1"
+          />
+          <polyline
+            fill="none"
+            points={polyline}
+            className="stroke-blue-500"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  if (entry?.status === "loading") {
+    return (
+      <div
+        className="mt-1 h-1 w-28 animate-pulse rounded-full bg-blue-200 dark:bg-blue-900"
+        title="Chargement de la mini-série CPU historique…"
+        aria-hidden
+      />
+    );
+  }
+
+  if (fallbackCpu == null) return null;
+
+  return (
+    <div
+      className="mt-1 max-w-[9rem]"
+      title="CPU instantané (agrégateur). Mini-série historique indisponible pour l’instant."
+      aria-hidden
+    >
+      <div className="h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
+        <div
+          className="h-full rounded-full bg-blue-500 transition-[width] duration-300"
+          style={{
+            width: `${Math.min(100, Math.max(0, fallbackCpu))}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function ServicesPage() {
   const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
@@ -67,6 +165,10 @@ export default function ServicesPage() {
   const [filterMemory, setFilterMemory] = useState<string>("all");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [serviceSparklines, setServiceSparklines] = useState<
+    Record<string, ServiceSparklineEntry>
+  >({});
+  const sparklineRequestedRef = useRef<Set<string>>(new Set());
 
   const loadServices = async (isInitial = false) => {
     try {
@@ -302,64 +404,160 @@ export default function ServicesPage() {
   };
 
   // Filtrage des services
-  const filteredServices = services.filter((service) => {
-    // Filtre par état
-    if (filterStatus === "running" && !service.is_running) return false;
-    if (filterStatus === "stopped" && service.is_running) return false;
-    if (
-      filterStatus === "unhealthy" &&
-      (service.is_healthy || !service.is_running)
-    )
-      return false;
+  const filteredServices = useMemo(
+    () =>
+      services.filter((service) => {
+        // Filtre par état
+        if (filterStatus === "running" && !service.is_running) return false;
+        if (filterStatus === "stopped" && service.is_running) return false;
+        if (
+          filterStatus === "unhealthy" &&
+          (service.is_healthy || !service.is_running)
+        )
+          return false;
 
-    // Filtre par CPU
-    if (filterCpu !== "all" && service.metrics) {
-      const cpu = service.metrics.cpu_percent;
-      if (filterCpu === "high" && cpu <= 80) return false;
-      if (filterCpu === "medium" && (cpu < 40 || cpu > 80)) return false;
-      if (filterCpu === "low" && cpu >= 40) return false;
-    }
+        // Filtre par CPU
+        if (filterCpu !== "all" && service.metrics) {
+          const cpu = service.metrics.cpu_percent;
+          if (filterCpu === "high" && cpu <= 80) return false;
+          if (filterCpu === "medium" && (cpu < 40 || cpu > 80)) return false;
+          if (filterCpu === "low" && cpu >= 40) return false;
+        }
 
-    // Filtre par Mémoire
-    if (filterMemory !== "all" && service.metrics) {
-      const memory = service.metrics.memory_percent;
-      if (filterMemory === "high" && memory <= 80) return false;
-      if (filterMemory === "medium" && (memory < 40 || memory > 80))
-        return false;
-      if (filterMemory === "low" && memory >= 40) return false;
-    }
+        // Filtre par Mémoire
+        if (filterMemory !== "all" && service.metrics) {
+          const memory = service.metrics.memory_percent;
+          if (filterMemory === "high" && memory <= 80) return false;
+          if (filterMemory === "medium" && (memory < 40 || memory > 80))
+            return false;
+          if (filterMemory === "low" && memory >= 40) return false;
+        }
 
-    return true;
-  });
+        return true;
+      }),
+    [services, filterStatus, filterCpu, filterMemory],
+  );
 
   // Appliquer le tri
-  const sortedServices = [...filteredServices].sort((a, b) => {
-    if (!sortColumn) return 0;
+  const sortedServices = useMemo(
+    () =>
+      [...filteredServices].sort((a, b) => {
+        if (!sortColumn) return 0;
 
-    let aValue: any;
-    let bValue: any;
+        let aValue: string | number;
+        let bValue: string | number;
 
-    switch (sortColumn) {
-      case "service":
-        aValue = a.name.replace("jobbingtrack-", "").toLowerCase();
-        bValue = b.name.replace("jobbingtrack-", "").toLowerCase();
-        break;
-      case "cpu":
-        aValue = a.metrics?.cpu_percent ?? 0;
-        bValue = b.metrics?.cpu_percent ?? 0;
-        break;
-      case "memory":
-        aValue = a.metrics?.memory_percent ?? 0;
-        bValue = b.metrics?.memory_percent ?? 0;
-        break;
-      default:
+        switch (sortColumn) {
+          case "service":
+            aValue = shortServiceName(a.name).toLowerCase();
+            bValue = shortServiceName(b.name).toLowerCase();
+            break;
+          case "cpu":
+            aValue = a.metrics?.cpu_percent ?? 0;
+            bValue = b.metrics?.cpu_percent ?? 0;
+            break;
+          case "memory":
+            aValue = a.metrics?.memory_percent ?? 0;
+            bValue = b.metrics?.memory_percent ?? 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
         return 0;
-    }
+      }),
+    [filteredServices, sortColumn, sortDirection],
+  );
 
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
+  const visibleSparklineKey = useMemo(
+    () =>
+      sortedServices
+        .filter((service) => service.is_running)
+        .slice(0, SERVICE_SPARKLINE_VISIBLE_LIMIT)
+        .map((service) => shortServiceName(service.name))
+        .join("|"),
+    [sortedServices],
+  );
+
+  useEffect(() => {
+    if (!visibleSparklineKey) return;
+
+    const names = visibleSparklineKey.split("|").filter(Boolean);
+    const missing = names.filter(
+      (name) => !sparklineRequestedRef.current.has(name),
+    );
+    if (missing.length === 0) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    missing.forEach((name) => sparklineRequestedRef.current.add(name));
+    setServiceSparklines((prev) => {
+      const next = { ...prev };
+      missing.forEach((name) => {
+        next[name] = { status: "loading", points: [] };
+      });
+      return next;
+    });
+
+    const loadOne = async (name: string) => {
+      const candidates = [fullServiceName(name), name];
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(
+            `${METRICS_URL}/api/v1/docker/service/${encodeURIComponent(candidate)}/history?limit=${SERVICE_SPARKLINE_LIMIT}`,
+            {
+              signal: controller.signal,
+              headers: { Accept: "application/json" },
+            },
+          );
+          if (!response.ok) continue;
+          const payload = await response.json();
+          const raw = Array.isArray(payload?.data) ? payload.data : [];
+          const points = normalizeServiceCpuHistoryRows(raw);
+          if (points.length >= 2) {
+            if (!cancelled) {
+              setServiceSparklines((prev) => ({
+                ...prev,
+                [name]: { status: "ready", points },
+              }));
+            }
+            return;
+          }
+        } catch (error: any) {
+          if (error?.name === "AbortError") return;
+        }
+      }
+
+      if (!cancelled) {
+        setServiceSparklines((prev) => ({
+          ...prev,
+          [name]: { status: "empty", points: [] },
+        }));
+      }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(SERVICE_SPARKLINE_CONCURRENCY, missing.length) },
+      async (_, workerIndex) => {
+        for (
+          let index = workerIndex;
+          index < missing.length;
+          index += SERVICE_SPARKLINE_CONCURRENCY
+        ) {
+          await loadOne(missing[index]);
+        }
+      },
+    );
+    void Promise.all(workers);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [visibleSparklineKey]);
 
   const runningServices = services.filter((s) => s.is_running);
   const stoppedServices = services.filter((s) => !s.is_running);
@@ -630,24 +828,16 @@ export default function ServicesPage() {
                           <Server className="h-5 w-5 text-blue-500 mr-2 shrink-0" />
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {service.name.replace("jobbingtrack-", "")}
+                              {shortServiceName(service.name)}
                             </div>
-                            {service.metrics != null ? (
-                              <div
-                                className="mt-1 max-w-[9rem]"
-                                title="CPU instantané (agrégateur). Courbe complète et sources d’historique sur la page détail."
-                                aria-hidden
-                              >
-                                <div className="h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
-                                  <div
-                                    className="h-full rounded-full bg-blue-500 transition-[width] duration-300"
-                                    style={{
-                                      width: `${Math.min(100, Math.max(0, service.metrics.cpu_percent))}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            ) : null}
+                            <ServiceCpuMiniSeries
+                              entry={
+                                serviceSparklines[
+                                  shortServiceName(service.name)
+                                ]
+                              }
+                              fallbackCpu={service.metrics?.cpu_percent}
+                            />
                           </div>
                         </div>
                       </td>

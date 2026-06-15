@@ -440,7 +440,7 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 - [x] **Réseau** : débit **Mo/min** sur **Performances** ; page détail **`/backoffice/performances/network`**.
 - [x] **Temps de réponse** : persistance + instantané par service sur **Performances**.
 - [x] **Statistiques** : sous-pages **App data** / **Sécurité** / **Logs (stats)** branchées.
-- [ ] **Liste services** : **vraie** sparkline / mini-série **historique** (API légère ou cache) — aujourd’hui **jauge CPU** instantanée + **`title`** ligne (voir **A1d**).
+- [ ] **Liste services** : **vraie** sparkline / mini-série **historique** (API légère ou cache) — aujourd’hui **jauge CPU** instantanée + **`title`** ligne (voir **A1d**). **Partiel 15/06** : mini-série CPU historique légère sur les premiers services visibles (`/docker/service/:name/history`, limite basse, concurrence 3), fallback jauge instantanée si historique absent.
 - [ ] **Export** : CSV / JSON des séries affichées (performances, réseau, détail service) pour analyse externe. **Partiel 15/06** : boutons CSV/JSON sur **Performances → Réseau** (cumuls RX/TX, débits, CPU, mémoire, latence) et **détail service** (CPU/mémoire/réseau/Block I/O cumul + débit estimé) via `SeriesExportButtons` + modèle testé `seriesExport`.
 - [ ] **Brush / plage** : zoom synchronisé entre plusieurs graphes d’une même page (**A1e**).
 - [ ] **Seuils & alertes visuelles** : bandes ou lignes de référence (CPU %, latence ms) configurables.
@@ -448,6 +448,7 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 - [ ] **Heatmap** : charge par service × tranche horaire (données agrégateur / BDD à dimensionner).
 - [ ] **Comparatif** : superposer deux périodes ou deux conteneurs sur un même graphe (hors simple multi-line actuel).
 - [ ] **PIDs historisés** : courbe ou tableau si **A1f** (contrat API) validé produit.
+- [ ] **CPU global / sommes CPU** : revoir les agrégations qui affichent une “somme CPU” > 100 % (ex. 131,4 %). Distinguer clairement **CPU machine global** borné 0–100 %, **CPU conteneur Docker multi-cœur** potentiellement >100 % selon convention, et **somme conteneurs** qui ne doit pas être présentée comme “CPU global utilisé”.
 
 ---
 
@@ -469,7 +470,7 @@ CPU / mémoire / réseau / **Block I/O** (cumul + débit) sur l’historique ; *
 
 - [x] **A1c — partiel (étendu 07/04)** : **`next/dynamic`** pour **`MonitoringServiceHistoryCharts`** (détail service) ; **`SystemCpuMemoryAreaCharts`** + **`SystemCpuNetworkCorrelationChart`** (**Performances**) ; **`SystemCpuNetworkCorrelationChart`** (**Analytics réseau**). **Reste** : extraire / lazy les gros **`LineChart`** encore inline (**hub analytics**, **containers**, **statistiques**) si le bundle reste trop lourd.
 
-- [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`/backoffice/statistics`** (axes, gaps, légendes) ; liste **`/backoffice/services`** : **fait (partiel)** — **`title`** ligne + **jauge CPU** sous le nom (pas de Recharts) ; suite = sparkline **historique** si tu valides l’API.
+- [ ] **A1d** — Réutiliser le **patron** détail service sur : **`/backoffice`** (mini-séries si API OK) ; **`analytics/*`**, **`/backoffice/statistics`** (axes, gaps, légendes) ; liste **`/backoffice/services`** : **fait (partiel)** — **`title`** ligne + mini-série CPU historique légère sous le nom (sans Recharts), fallback jauge instantanée ; suite = élargir mémoire/réseau si utile et valider la charge API.
 
 - [ ] **A1e** — Brush / zoom ; couleurs + légendes + **`rechartsTooltipTheme`** partout ; aligner **`maxPoints`** / sous-échantillonnage avec **Performances** ; exports des séries affichées. **Partiel** : tooltips **`performances/containers`** (graph mémoire multi-conteneurs) alignés thème ; **`/backoffice/statistics`** vue d’ensemble (**`page.tsx`**, **07/04**) ; export CSV/JSON **Réseau + détail service** (**15/06**, branche `feat/monitoring-series-export`).
 
