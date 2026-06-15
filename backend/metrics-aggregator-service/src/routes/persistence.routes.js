@@ -497,82 +497,9 @@ router.get('/logs', async (req, res) => {
  * Récupérer des statistiques globales sur les données persistées
  */
 router.get('/stats', async (req, res) => {
-  let prisma = null;
   try {
-    const { PrismaClient } = require('@prisma/client');
-    prisma = new PrismaClient();
-
-    const countTables = [
-      ['systemMetricsSnapshots', 'system_metrics_snapshots'],
-      ['containerMetricsSnapshots', 'container_metrics_snapshots'],
-      ['containerLogs', 'container_logs'],
-      ['securityMetrics', 'security_metrics'],
-      ['securityLogs', 'security_logs'],
-      ['events', 'system_events'],
-      ['aggregatedLogs', 'aggregated_logs'],
-      ['logCollectorLogs', 'log_collector_logs'],
-      ['systemMetricsRaw', 'system_metrics'],
-      ['containerMetricsRaw', 'container_metrics'],
-      ['serviceAvailability', 'service_availability_history'],
-      ['serviceNetwork', 'service_network_history'],
-    ];
-
-    const countTable = async (tableName) => {
-      const tableExists = await prisma.$queryRawUnsafe(
-        `SELECT to_regclass('public.${tableName}')::text AS table_name`,
-      );
-      if (!tableExists?.[0]?.table_name) return 0;
-
-      const rows = await prisma.$queryRawUnsafe(
-        `SELECT COUNT(*)::bigint AS count FROM public.${tableName}`,
-      );
-      return Number(rows?.[0]?.count || 0);
-    };
-
-    const counts = {};
-    await Promise.all(
-      countTables.map(async ([key, tableName]) => {
-        counts[key] = await countTable(tableName).catch(() => 0);
-      }),
-    );
-
-    // Compatibilité UI historique : ces clés restent les totaux "principaux".
-    counts.systemMetrics = counts.systemMetricsSnapshots + counts.systemMetricsRaw;
-    counts.containerMetrics = counts.containerMetricsSnapshots + counts.containerMetricsRaw;
-    counts.total = countTables
-      .map(([key]) => counts[key] || 0)
-      .reduce((sum, value) => sum + value, 0);
-
-    let rangeRows = [{ oldest: null, newest: null }];
-    try {
-      rangeRows = await Promise.resolve(prisma.$queryRawUnsafe(`
-        SELECT MIN(ts) AS oldest, MAX(ts) AS newest
-        FROM (
-          SELECT timestamp AS ts FROM public.system_metrics_snapshots
-          UNION ALL SELECT timestamp AS ts FROM public.container_metrics_snapshots
-          UNION ALL SELECT timestamp AS ts FROM public.system_events
-          UNION ALL SELECT timestamp AS ts FROM public.aggregated_logs
-          UNION ALL SELECT timestamp AS ts FROM public.log_collector_logs
-          UNION ALL SELECT timestamp AS ts FROM public.system_metrics
-          UNION ALL SELECT timestamp AS ts FROM public.container_metrics
-          UNION ALL SELECT timestamp AS ts FROM public.service_availability_history
-        ) AS persisted_timestamps
-      `));
-    } catch {
-      rangeRows = [{ oldest: null, newest: null }];
-    }
-    const range = rangeRows?.[0] || {};
-
-    res.json({
-      success: true,
-      data: {
-        counts,
-        dataRange: {
-          oldest: range.oldest || null,
-          newest: range.newest || null,
-        },
-      },
-    });
+    const data = await persistenceService.getPersistenceTableStats();
+    res.json({ success: true, data });
   } catch (error) {
     console.warn('[API] Erreur récupération stats (retour minimal):', error.message);
     res.status(200).json({
@@ -593,15 +520,6 @@ router.get('/stats', async (req, res) => {
       },
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
-  } finally {
-    if (prisma) {
-      await Promise.resolve(prisma.$disconnect()).catch((disconnectError) => {
-        console.warn(
-          '[API] Impossible de fermer PrismaClient persistence/stats:',
-          disconnectError.message
-        );
-      });
-    }
   }
 });
 

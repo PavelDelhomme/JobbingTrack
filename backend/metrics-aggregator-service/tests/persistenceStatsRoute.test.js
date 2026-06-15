@@ -1,27 +1,10 @@
-const mockDisconnect = jest.fn();
-const mockQueryRawUnsafe = jest.fn(async (sql) => {
-  if (String(sql).includes('to_regclass')) {
-    return [{ table_name: 'public.mock_table' }];
-  }
-  if (String(sql).includes('COUNT(*)')) {
-    return [{ count: 42n }];
-  }
-  return [
-    {
-      oldest: new Date('2026-06-15T08:00:00.000Z'),
-      newest: new Date('2026-06-15T10:00:00.000Z'),
-    },
-  ];
-});
+const mockGetPersistenceTableStats = jest.fn();
+
+jest.mock('../src/services/persistence.service', () => ({
+  getPersistenceTableStats: (...args) => mockGetPersistenceTableStats(...args),
+}));
 
 function getRouteHandler(path) {
-  jest.resetModules();
-  jest.doMock('@prisma/client', () => ({
-    PrismaClient: jest.fn(() => ({
-      $queryRawUnsafe: mockQueryRawUnsafe,
-      $disconnect: mockDisconnect,
-    })),
-  }));
   const router = require('../src/routes/persistence.routes');
   const layer = router.stack.find((entry) => entry.route?.path === path);
   return layer?.route?.stack?.[0]?.handle;
@@ -29,16 +12,15 @@ function getRouteHandler(path) {
 
 describe('persistence stats route', () => {
   beforeEach(() => {
-    mockDisconnect.mockClear();
-    mockDisconnect.mockResolvedValue(undefined);
-    mockQueryRawUnsafe.mockClear();
+    jest.resetModules();
+    mockGetPersistenceTableStats.mockReset();
+    mockGetPersistenceTableStats.mockResolvedValue({
+      counts: { systemMetrics: 42, total: 42 },
+      dataRange: { oldest: null, newest: null },
+    });
   });
 
-  afterEach(() => {
-    jest.dontMock('@prisma/client');
-  });
-
-  it('ferme le PrismaClient créé pour éviter de saturer Postgres', async () => {
+  it('délègue au singleton persistenceService sans créer de PrismaClient éphémère', async () => {
     const handler = getRouteHandler('/stats');
     const res = {
       json: jest.fn(),
@@ -49,9 +31,14 @@ describe('persistence stats route', () => {
 
     await handler({}, res);
 
+    expect(mockGetPersistenceTableStats).toHaveBeenCalledTimes(1);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true }),
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          counts: expect.objectContaining({ systemMetrics: 42 }),
+        }),
+      }),
     );
-    expect(mockDisconnect).toHaveBeenCalledTimes(1);
   });
 });
