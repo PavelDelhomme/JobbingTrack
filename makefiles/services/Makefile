@@ -1389,10 +1389,16 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 		fi; \
 	done
 	@echo ""
-	@up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
-	all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
-	if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
-	if [ "$$up_count" -eq 0 ] && [ "$$all_count" -eq 0 ]; then \
+	@up_count=0; expected_count=0; \
+	for service in postgres redis frontend api-gateway auth-service dashboard-service company-service application-service contact-service interview-service call-service followup-service event-service monitoring-agent-rs log-collector-rs metrics-aggregator security-service notification-service profile-service workflow-service deployment-service; do \
+		expected_count=$$((expected_count + 1)); \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			up_count=$$((up_count + 1)); \
+		fi; \
+	done; \
+	if [ "$$expected_count" -eq 0 ]; then expected_count="$$up_count"; fi; \
+	if [ "$$up_count" -eq 0 ] && [ "$$expected_count" -eq 0 ]; then \
 		printf "📊 Résumé : \033[1;31maucun\033[0m conteneur \033[0;90mjobbingtrack-*\033[0m (stack non démarrée ou Docker inaccessible)\n"; \
 		if ! docker info >/dev/null 2>&1; then \
 			printf '%b\n' "\033[1;33m    → \`docker info\` échoue : démarrez Docker / droits (groupe docker) / contexte (\`docker context show\`).\033[0m"; \
@@ -1400,11 +1406,11 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 			printf '%b\n' "\033[1;33m    → À la racine du dépôt : \033[0;36mmake up-full\033[1;33m ou \033[0;36mmake up\033[1;33m, puis \033[0;36mmake status\033[0m.\033[0m"; \
 		fi; \
 	elif [ "$$up_count" -eq 0 ]; then \
-		printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
-	elif [ "$$up_count" -lt "$$all_count" ]; then \
-		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+		printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m (catalogue make status)\n" "$$up_count" "$$expected_count"; \
+	elif [ "$$up_count" -lt "$$expected_count" ]; then \
+		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m (catalogue make status)\n" "$$up_count" "$$expected_count"; \
 	else \
-		printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+		printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m (catalogue make status)\n" "$$up_count" "$$expected_count"; \
 	fi
 	@echo ""
 	@echo "🔍 Vérification des tables Prisma..."

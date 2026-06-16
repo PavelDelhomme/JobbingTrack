@@ -1667,17 +1667,22 @@ export default function BackofficePage() {
                     Services
                   </div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {serviceHealthSummary.healthy}/
-                    {serviceHealthSummary.totalRunning}
+                    {serviceHealthSummary.healthy} sains ·{" "}
+                    {serviceHealthSummary.totalRunning}/
+                    {serviceHealthSummary.expectedTotal} actifs
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {loadingSystemMetrics
                       ? "..."
-                      : serviceHealthSummary.degraded > 0
-                        ? `🟡 ${serviceHealthSummary.degraded} dégradé(s)`
-                        : serviceHealthSummary.totalRunning > 0
-                          ? "🟢 Conteneurs en cours"
-                          : "—"}
+                      : serviceHealthSummary.notDeployed > 0
+                        ? `⚪ ${serviceHealthSummary.notDeployed} non déployé(s) · ${serviceHealthSummary.stopped - serviceHealthSummary.notDeployed} arrêté(s)`
+                        : serviceHealthSummary.degraded > 0
+                          ? `🟡 ${serviceHealthSummary.degraded} dégradé(s)`
+                          : serviceHealthSummary.stopped > 0
+                            ? `🔴 ${serviceHealthSummary.stopped} hors ligne`
+                            : serviceHealthSummary.totalRunning > 0
+                              ? "Catalogue aligné make status"
+                              : "—"}
                   </div>
                 </div>
               </div>

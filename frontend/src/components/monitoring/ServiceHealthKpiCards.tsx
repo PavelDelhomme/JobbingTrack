@@ -23,16 +23,22 @@ export function ServiceHealthKpiCards({
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <HealthCard label="Sains" value={summary.healthy} tone="green" />
         <HealthCard label="Dégradés" value={summary.degraded} tone="yellow" />
-        <HealthCard label="En cours" value={summary.totalRunning} tone="blue" />
-        <HealthCard label="Arrêtés" value={summary.stopped} tone="red" />
+        <HealthCard
+          label="Actifs"
+          value={summary.totalRunning}
+          suffix={`/${summary.expectedTotal}`}
+          tone="blue"
+        />
+        <HealthCard label="Arrêtés" value={Math.max(0, summary.stopped - summary.notDeployed)} tone="red" />
+        <HealthCard label="Non déployés" value={summary.notDeployed} tone="red" />
       </div>
       {!hideHint && (
         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           {hint ??
-            "Sains / dégradés = conteneurs en cours d'exécution. Arrêtés = conteneurs connus mais non démarrés — aligné avec /backoffice/services."}
+            `Périmètre catalogue JobbingTrack : ${summary.expectedTotal} services attendus. Sains/dégradés = conteneurs en cours. Non déployés = jamais créés (⚪ DOWN make status) — lancer make up-full ou le profile compose adéquat.`}
         </p>
       )}
     </div>
@@ -42,10 +48,12 @@ export function ServiceHealthKpiCards({
 function HealthCard({
   label,
   value,
+  suffix,
   tone,
 }: {
   label: string;
   value: number;
+  suffix?: string;
   tone: "green" | "yellow" | "blue" | "red";
 }) {
   const shell: Record<typeof tone, string> = {
@@ -69,6 +77,11 @@ function HealthCard({
         </span>
         <span className={`text-2xl font-bold tabular-nums ${valueColor[tone]}`}>
           {value}
+          {suffix ? (
+            <span className="text-base font-semibold text-gray-500 dark:text-gray-400">
+              {suffix}
+            </span>
+          ) : null}
         </span>
       </div>
     </div>
