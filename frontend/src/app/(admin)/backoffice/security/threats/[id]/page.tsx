@@ -10,7 +10,6 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
-  formatSecurityEventTypeLabel,
   formatSecuritySeverity,
   formatThreatTypeLabel,
   normalizeSecuritySeverity,
@@ -21,7 +20,9 @@ import {
   threatBlockStatusToneClass,
   type BlockedIpConsolidatedEntry,
 } from "@/lib/security/threatBlockPresentation";
+import { buildThreatInvestigationTimeline } from "@/lib/security/threatInvestigationTimeline";
 import { NetworkConnectionSourceTable } from "@/components/security/NetworkConnectionSourceTable";
+import { ThreatInvestigationTimeline } from "@/components/security/ThreatInvestigationTimeline";
 import {
   AlertTriangle,
   Shield,
@@ -240,7 +241,6 @@ export default function ThreatDetailsPage() {
           : appLogs?.riskSource === "ddos_attacks"
             ? "Calculé depuis les attaques DDoS corrélées."
             : "Source du score non déterminée.";
-  const recentEvents = investigation.application?.recentEvents || [];
   const missingTelemetry = investigation.missingTelemetry || [];
   const networkConnectionDetails =
     Array.isArray(investigation.network?.connectionDetails) &&
@@ -293,6 +293,17 @@ export default function ThreatDetailsPage() {
           : "Monitoring continu, sans action bloquante immédiate.";
 
   const blockStatus = resolveThreatBlockStatus(threat, consolidatedEntry);
+  const investigationTimeline = buildThreatInvestigationTimeline({
+    threat: {
+      id: threat.id,
+      threatType: threat.threatType,
+      severity: threat.severity,
+      detectedAt: threat.detectedAt,
+      blocked: threat.blocked,
+      sourceIp: threat.sourceIp,
+    },
+    investigation,
+  });
 
   return (
     <SecurityPageShell
@@ -835,56 +846,17 @@ export default function ThreatDetailsPage() {
           </div>
         )}
 
-        {recentEvents.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Logs applicatifs corrélés
-            </h2>
-            <div className="space-y-2">
-              {recentEvents.map((event) => (
-                <details
-                  key={event.id}
-                  className="rounded border border-gray-200 dark:border-gray-700 text-sm group"
-                >
-                  <summary className="cursor-pointer list-none p-3 [&::-webkit-details-marker]:hidden">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">
-                        {formatSecurityEventTypeLabel(
-                          String(event.eventType || ""),
-                        )}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {event.level}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {formatLocalDateTime(event.timestamp)}
-                      </span>
-                      {event.isBlocked && (
-                        <span className="text-red-600">bloqué</span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-gray-700 dark:text-gray-300">
-                      {event.message}
-                    </p>
-                    <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
-                      {event.method || "—"}{" "}
-                      {event.endpoint || "endpoint non journalisé"} · HTTP{" "}
-                      {event.statusCode ?? "—"} ·{" "}
-                      {event.responseTime != null
-                        ? `${event.responseTime} ms`
-                        : "—"}
-                    </p>
-                  </summary>
-                  {event.metadata && (
-                    <pre className="mx-3 mb-3 bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto font-mono text-[11px] border-t border-gray-200 dark:border-gray-700 pt-2">
-                      {JSON.stringify(event.metadata, null, 2)}
-                    </pre>
-                  )}
-                </details>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+            <Activity className="h-6 w-6" />
+            Timeline d&apos;investigation (24 h)
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Menace, logs sécurité, tentatives d&apos;intrusion, attaques DDoS et
+            connexions réseau corrélées, triées du plus récent au plus ancien.
+          </p>
+          <ThreatInvestigationTimeline items={investigationTimeline} />
+        </div>
 
         {networkConnectionDetails.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
