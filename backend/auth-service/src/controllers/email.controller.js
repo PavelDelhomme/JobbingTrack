@@ -493,7 +493,7 @@ const sendTestEmail = async (req, res) => {
         return;
       }
 
-      // Email de test générique
+      // Email de test générique (pipeline Node / Nodemailer — aligné sur test-smtp)
       const emailSubject = subject || '🧪 Test Email - JobbingTrack';
       const emailContent = content || `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -504,125 +504,56 @@ const sendTestEmail = async (req, res) => {
         </div>
       `;
 
-      // Logger l'email avant l'envoi
       let emailLog = null;
       try {
-        const createData = {
+        emailLog = await emailService.logEmail({
+          userId:
+            userId &&
+            !userId.toString().startsWith('test-') &&
+            !userId.toString().startsWith('temp-')
+              ? userId
+              : null,
           to,
           from: process.env.SMTP_FROM || 'redacted@example.invalid',
           subject: emailSubject,
           type: 'TEST',
-          status: 'PENDING',
           emailContent,
-          metadata: { test: true, sentBy: userId }
-        };
-        
-        // Ajouter userId seulement si valide
-        if (userId && !userId.toString().startsWith('test-') && !userId.toString().startsWith('temp-')) {
-          try {
-            const user = await prisma.user.findUnique({
-              where: { id: userId },
-              select: { id: true }
-            });
-            if (user) {
-              createData.user = {
-                connect: { id: userId }
-              };
-            }
-          } catch (userError) {
-            logger.debug(`[EmailController] Utilisateur ${userId} non trouvé, userId sera null`);
-          }
-        }
-        
-        emailLog = await prisma.emailLog.create({
-          data: createData
+          metadata: { test: true, sentBy: userId || null },
         });
       } catch (dbError) {
-        // Si la table n'existe pas, continuer sans log
-        if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
-          logger.warn('Table EmailLog non trouvée, email sera envoyé sans log. Exécutez: make db-push-all');
-          emailLog = { id: 'temp-' + Date.now() };
-        } else if (dbError.code === 'P2003') {
-          // Erreur de clé étrangère - userId invalide, réessayer sans userId
-          logger.warn(`[EmailController] userId invalide (${userId}), création sans userId`);
-          try {
-            emailLog = await prisma.emailLog.create({
-              data: {
-                to,
-                from: process.env.SMTP_FROM || 'redacted@example.invalid',
-                subject: emailSubject,
-                type: 'TEST',
-                status: 'PENDING',
-                emailContent,
-                metadata: { test: true, sentBy: null }
-              }
-            });
-          } catch (retryError) {
-            logger.error(`[EmailController] Erreur création log email (retry): ${retryError.message}`);
-            emailLog = { id: 'temp-' + Date.now() };
-          }
-        } else {
-          logger.error('Erreur création log email:', dbError);
-          emailLog = { id: 'temp-' + Date.now() };
-        }
+        logger.warn('[EmailController] Log email test ignoré:', dbError.message);
+        emailLog = { id: `temp-${Date.now()}` };
       }
 
-      // Utiliser le service Python pour envoyer un email générique
-      const { exec } = require('child_process');
-      const { promisify } = require('util');
-      const path = require('path');
-      const execAsync = promisify(exec);
-      const pythonScript = path.join(__dirname, '../services/email/email_service.py');
-      
-      // Échapper correctement les guillemets et caractères spéciaux
-      const escapedContent = emailContent.replace(/"/g, '\\"').replace(/\$/g, '\\$');
-      const command = `python3 "${pythonScript}" send_generic "${to}" "${emailSubject}" "${escapedContent}" "${escapedContent}"`;
-      
       try {
-        const { stdout } = await execAsync(command, {
-          env: process.env,
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: parseInt(process.env.SMTP_TIMEOUT || '45000') // 45 secondes timeout par défaut
+        const sendResult = await emailService.sendGenericEmail({
+          to,
+          subject: emailSubject,
+          htmlContent: emailContent,
+          from: process.env.SMTP_FROM || 'redacted@example.invalid',
+          replyTo: process.env.SMTP_REPLY_TO || 'redacted@example.invalid',
         });
 
-        const result = JSON.parse(stdout.trim());
-        
-        // Mettre à jour le statut
-        if (emailLog && emailLog.id) {
-          if (result.success) {
-            await prisma.emailLog.update({
-              where: { id: emailLog.id },
-              data: { status: 'SENT', sentAt: new Date() }
-            });
-          } else {
-            await prisma.emailLog.update({
-              where: { id: emailLog.id },
-              data: { status: 'FAILED', error: result.error }
-            });
-          }
+        if (emailLog?.id && !String(emailLog.id).startsWith('temp-')) {
+          await emailService.updateEmailLogStatus(emailLog.id, 'SENT');
         }
-        
-        if (result.success) {
-          res.json({
-            success: true,
-            message: 'Email de test envoyé avec succès',
-            data: { 
-              type: 'test',
-              emailLogId: emailLog?.id 
-            }
-          });
-        } else {
-          throw new Error(result.error || 'Erreur lors de l\'envoi');
+
+        return res.json({
+          success: true,
+          message: 'Email de test envoyé avec succès',
+          data: {
+            type: 'test',
+            emailLogId: emailLog?.id,
+            provider: sendResult?.provider || emailService.getProvider()?.getProviderName?.(),
+          },
+        });
+      } catch (sendError) {
+        if (emailLog?.id && !String(emailLog.id).startsWith('temp-')) {
+          await emailService
+            .updateEmailLogStatus(emailLog.id, 'FAILED', sendError)
+            .catch(() => {});
         }
-      } catch (execError) {
-        // Mettre à jour le statut en cas d'erreur
-        if (emailLog && emailLog.id) {
-          await prisma.emailLog.update({
-            where: { id: emailLog.id },
-            data: { status: 'FAILED', error: execError.message }
-          }).catch(() => {});
-        }
-        throw execError;
+        throw sendError;
       }
     } catch (error) {
       logger.error('Erreur envoi email test:', error);
@@ -879,6 +810,8 @@ const testSMTPConnection = async (req, res) => {
     useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
     user: process.env.SMTP_USER || 'Non configuré',
     from: process.env.SMTP_FROM || 'Non configuré',
+    replyTo: process.env.SMTP_REPLY_TO || 'Non configuré',
+    provider: process.env.EMAIL_PROVIDER || 'SMTP',
     suggestion: 'Vérifiez SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM dans .env puis redémarrez auth-service.',
   });
 

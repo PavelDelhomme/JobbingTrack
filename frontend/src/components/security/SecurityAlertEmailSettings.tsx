@@ -177,12 +177,8 @@ export function SecurityAlertEmailSettings() {
           Alertes email — menaces &amp; disponibilité
         </CardTitle>
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          Destinataires pour les alertes <strong>critical</strong> /{" "}
-          <strong>high</strong> (menaces réseau, CVE, service down). En
-          l&apos;absence d&apos;adresse ici, repli sur{" "}
-          <code className="text-xs">SECURITY_ALERT_EMAIL</code> ou{" "}
-          <code className="text-xs">CRASH_REPORT_EMAIL</code> du{" "}
-          <code className="text-xs">.env</code>.
+          Menaces <strong>critical</strong> / <strong>high</strong> et
+          indisponibilités majeures.
           {source ? (
             <Badge variant="outline" className="ml-2 align-middle">
               source: {source}
@@ -192,12 +188,7 @@ export function SecurityAlertEmailSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <Label>Envoi email activé</Label>
-            <p className="text-xs text-gray-500">
-              Désactiver stoppe les envois (alertes restent en base).
-            </p>
-          </div>
+          <Label>Envoi email activé</Label>
           <Switch checked={enabled} onCheckedChange={setEnabled} />
         </div>
 
@@ -277,10 +268,6 @@ export function SecurityAlertEmailSettings() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
           />
-          <p className="text-xs text-gray-500">
-            Requis pour enregistrer ou envoyer un email de test. L&apos;action
-            est journalisée dans les logs de sécurité.
-          </p>
         </div>
 
         {error && (

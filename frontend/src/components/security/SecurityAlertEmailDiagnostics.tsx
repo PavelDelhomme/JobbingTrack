@@ -130,13 +130,6 @@ export function SecurityAlertEmailDiagnostics() {
         </div>
       </CardHeader>
       <CardContent className="min-w-0 space-y-3">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Source `EmailLog` type <strong>NOTIFICATION</strong>. Le badge miroir
-          confirme l&apos;acceptation SMTP côté serveur. La réception réelle des
-          alertes critiques est validée ; ce panneau sert maintenant au suivi
-          opérationnel des derniers envois.
-        </p>
-
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         )}

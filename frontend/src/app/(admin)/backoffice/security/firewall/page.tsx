@@ -404,13 +404,9 @@ export default function FirewallPage() {
 
           {showAddRule && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-4">
                 Nouvelle règle de firewall
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Créez une règle pour bloquer ou autoriser le trafic réseau. Les
-                règles sont appliquées via iptables.
-              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -493,10 +489,6 @@ export default function FirewallPage() {
                       {formatFirewallActionLabel("ALLOW")} explicitement
                     </option>
                   </select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Bloquer (DROP) : le paquet est supprimé sans réponse.
-                    Rejeter : le paquet est refusé avec un message ICMP.
-                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -864,13 +856,6 @@ export default function FirewallPage() {
               ) : null}
             </p>
           )}
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-            Astuce : pour tester sans risque, utilise l&apos;IP de documentation{" "}
-            <span className="font-mono">{SAFE_TEST_IP}</span> (RFC 5737). Le
-            serveur refuse de bloquer la même IP que celle de ta requête
-            (anti-verrouillage) ; le mode lab n&apos;accepte que cette IP de
-            test.
-          </p>
 
           {showAddBlockedIp && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">

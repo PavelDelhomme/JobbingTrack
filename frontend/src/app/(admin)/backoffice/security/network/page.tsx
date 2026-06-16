@@ -11,6 +11,8 @@ import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import type { FilterBadge } from "@/lib/filters/types";
+import { NetworkConnectionSourceTable } from "@/components/security/NetworkConnectionSourceTable";
+import type { ConnectionSourcePresentation } from "@/lib/security/connectionSourcePresentation";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
 import axios from "axios";
 
@@ -86,6 +88,9 @@ export default function NetworkStatsPage() {
   useDocumentTitle("Sécurité réseau");
 
   const [stats, setStats] = useState<NetworkStats | null>(null);
+  const [connections, setConnections] = useState<ConnectionSourcePresentation[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -119,12 +124,18 @@ export default function NetworkStatsPage() {
       if (response.data.success) {
         const statsData = response.data.data.stats;
         setStats(statsData);
+        setConnections(
+          Array.isArray(response.data.data.connections)
+            ? response.data.data.connections
+            : [],
+        );
       } else {
         setError("Erreur lors du chargement des statistiques");
       }
     } catch (err: any) {
       console.error("Erreur chargement stats réseau:", err);
       setStats(null);
+      setConnections([]);
       setError(
         err.response?.data?.error ||
           "Erreur lors du chargement des statistiques",
@@ -446,11 +457,19 @@ export default function NetworkStatsPage() {
           </div>
           {(stats?.unmappedConnections || 0) > 0 && (
             <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-              {stats?.unmappedConnections} connexion(s) n&apos;ont pas pu être
-              rattachées à un conteneur (label `unmapped`). Vérifie les
-              namespaces réseau Docker pour améliorer la corrélation.
+              {stats?.unmappedConnections} connexion(s) non corrélée(s).
             </p>
           )}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Connexions observées (lecture source)
+          </h2>
+          <NetworkConnectionSourceTable
+            connections={connections}
+            emptyMessage="Aucune connexion réseau disponible pour le moment."
+          />
         </div>
 
         {/* Connexions par conteneur */}
@@ -477,11 +496,7 @@ export default function NetworkStatsPage() {
                         key={container}
                         className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        <td className="p-3 font-semibold">
-                          {container === "unmapped"
-                            ? "non-corrélé (à qualifier)"
-                            : container || "non-corrélé (à qualifier)"}
-                        </td>
+                        <td className="p-3 font-semibold">{container}</td>
                         <td className="p-3">{count}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">

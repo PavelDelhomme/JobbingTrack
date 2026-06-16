@@ -16,6 +16,13 @@ import {
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
 import {
+  findConsolidatedBlockEntry,
+  resolveThreatBlockStatus,
+  threatBlockStatusToneClass,
+  type BlockedIpConsolidatedEntry,
+} from "@/lib/security/threatBlockPresentation";
+import { NetworkConnectionSourceTable } from "@/components/security/NetworkConnectionSourceTable";
+import {
   AlertTriangle,
   Shield,
   Ban,
@@ -27,12 +34,6 @@ import {
 import axios from "axios";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
-
-function normalizeFirewallListedIp(ip: string) {
-  const s = String(ip || "").trim();
-  if (s.startsWith("::ffff:")) return s.slice(7);
-  return s;
-}
 
 interface NetworkThreat {
   id: string;
@@ -85,9 +86,8 @@ export default function ThreatDetailsPage() {
   const [threat, setThreat] = useState<NetworkThreat | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inConsolidatedBlocklist, setInConsolidatedBlocklist] = useState<
-    boolean | null
-  >(null);
+  const [consolidatedEntry, setConsolidatedEntry] =
+    useState<BlockedIpConsolidatedEntry | null>(null);
   useDocumentTitle(
     threat
       ? `Menace ${formatThreatTypeLabel(threat.threatType)} · ${threat.sourceIp || String(params.id).slice(0, 8)}`
@@ -140,26 +140,23 @@ export default function ThreatDetailsPage() {
         if (cancelled) return;
         const list =
           res.data?.success && Array.isArray(res.data?.data)
-            ? res.data.data
+            ? (res.data.data as BlockedIpConsolidatedEntry[])
             : [];
-        const normSource = normalizeFirewallListedIp(threat.sourceIp || "");
-        const match = list.some(
-          (item: string | { ip?: string; threatId?: string }) => {
-            const row = typeof item === "string" ? { ip: item } : item;
-            if (row?.threatId && String(row.threatId) === String(threat.id))
-              return true;
-            if (
-              row?.ip &&
-              normSource &&
-              normalizeFirewallListedIp(row.ip) === normSource
-            )
-              return true;
-            return false;
-          },
+        const normalized = list.map((item) =>
+          typeof item === "string" ? { ip: item } : item,
         );
-        setInConsolidatedBlocklist(match);
+        if (!cancelled) {
+          setConsolidatedEntry(
+            threat
+              ? findConsolidatedBlockEntry(
+                  { id: threat.id, sourceIp: threat.sourceIp },
+                  normalized,
+                )
+              : null,
+          );
+        }
       } catch {
-        if (!cancelled) setInConsolidatedBlocklist(null);
+        if (!cancelled) setConsolidatedEntry(null);
       }
     })();
     return () => {
@@ -295,6 +292,8 @@ export default function ThreatDetailsPage() {
           ? "Surveillance renforcée et corrélation avec les événements des 24 dernières heures."
           : "Monitoring continu, sans action bloquante immédiate.";
 
+  const blockStatus = resolveThreatBlockStatus(threat, consolidatedEntry);
+
   return (
     <SecurityPageShell
       showSubNav={false}
@@ -308,7 +307,7 @@ export default function ThreatDetailsPage() {
       }
       description={formatThreatTypeLabel(threat.threatType)}
       actions={
-        !threat.blocked ? (
+        blockStatus.showBlockButton ? (
           <button
             onClick={handleBlock}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
@@ -320,26 +319,32 @@ export default function ThreatDetailsPage() {
       }
     >
       <div className="space-y-6">
-        {threat.blocked && (
-          <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-900 dark:text-red-100">
-            <p className="font-semibold mb-1">Menace marquée comme bloquée</p>
-            <p className="mb-2">
-              L&apos;IP source peut figurer dans la liste consolidée (règles,
-              iptables, menaces, logs). Vérifie le pare-feu pour l&apos;origine
-              exacte du blocage.
-            </p>
-            <Link
-              href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
-              className="text-blue-700 dark:text-blue-300 font-medium hover:underline"
-            >
-              Ouvrir la liste des IPs bloquées
-            </Link>
-            {inConsolidatedBlocklist === false && (
-              <p className="mt-2 text-amber-800 dark:text-amber-200 text-xs">
-                Cette IP n&apos;apparaît pas dans la vue consolidée actuelle
-                (délai de fusion ou blocage uniquement iptables). Rafraîchis la
-                page Firewall.
-              </p>
+        {(threat.blocked || blockStatus.kind === "recommended") && (
+          <div
+            className={`rounded-lg border p-4 text-sm ${
+              blockStatus.kind === "recommended"
+                ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100"
+                : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100"
+            }`}
+          >
+            <p className="font-semibold mb-1">{blockStatus.label}</p>
+            <p className="mb-2">{blockStatus.detail}</p>
+            {(threat.blocked || consolidatedEntry) && (
+              <>
+                <Link
+                  href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+                  className="text-blue-700 dark:text-blue-300 font-medium hover:underline"
+                >
+                  Ouvrir la liste des IPs bloquées
+                </Link>
+                {threat.blocked && !consolidatedEntry && (
+                  <p className="mt-2 text-amber-800 dark:text-amber-200 text-xs">
+                    Cette IP n&apos;apparaît pas dans la vue consolidée actuelle
+                    (délai de fusion ou blocage uniquement iptables). Rafraîchis
+                    la page Firewall.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -372,18 +377,21 @@ export default function ThreatDetailsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Statut
+                  Statut blocage
                 </p>
-                <p className="font-semibold">
-                  {threat.blocked ? (
-                    <span className="text-red-600 flex items-center gap-1">
-                      <Ban className="h-4 w-4" />
-                      Bloqué
-                    </span>
-                  ) : (
-                    <span className="text-yellow-600">Non bloqué</span>
+                <p
+                  className={`font-semibold flex items-center gap-1 ${threatBlockStatusToneClass(blockStatus.tone)}`}
+                >
+                  {blockStatus.kind.startsWith("blocked") && (
+                    <Ban className="h-4 w-4" />
                   )}
+                  {blockStatus.label}
                 </p>
+                {blockStatus.detail && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {blockStatus.detail}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -878,56 +886,33 @@ export default function ThreatDetailsPage() {
           </div>
         )}
 
-        {/* Connexions détaillées */}
         {networkConnectionDetails.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Connexions Détectées</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left p-3">Observé</th>
-                    <th className="text-left p-3">IP Locale</th>
-                    <th className="text-left p-3">Port Local</th>
-                    <th className="text-left p-3">Port Distant</th>
-                    <th className="text-left p-3">Protocole</th>
-                    <th className="text-left p-3">État</th>
-                    <th className="text-left p-3">Service / conteneur</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {networkConnectionDetails.map((conn: any, idx: number) => (
-                    <tr
-                      key={idx}
-                      className="border-b border-gray-200 dark:border-gray-700"
-                    >
-                      <td className="p-3 text-xs whitespace-nowrap">
-                        {conn.observedAt
-                          ? formatLocalDateTime(conn.observedAt)
-                          : formatLocalDateTime(threat.detectedAt)}
-                      </td>
-                      <td className="p-3 font-mono text-sm">{conn.localIp}</td>
-                      <td className="p-3">{conn.localPort}</td>
-                      <td className="p-3">{conn.remotePort}</td>
-                      <td className="p-3">{conn.protocol}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                          {conn.state}
-                        </span>
-                      </td>
-                      <td className="p-3 text-sm">
-                        {conn.containerName ||
-                          conn.serviceLabel ||
-                          conn.serviceName ||
-                          (conn.remotePort === 3008
-                            ? "port-3008 (service interne Docker)"
-                            : "Non corrélé")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <h2 className="text-xl font-semibold mb-4">Connexions détectées</h2>
+            <NetworkConnectionSourceTable
+              connections={networkConnectionDetails}
+              showObservedAt
+              enrichmentByIp={
+                attacker.ip || threat.sourceIp
+                  ? {
+                      [String(attacker.ip || threat.sourceIp)]: {
+                        vpn: attacker.vpn,
+                        proxy: attacker.proxy,
+                        tor: attacker.tor,
+                        asn: attacker.asn,
+                        organization: attacker.organization,
+                        country: attacker.country,
+                        enrichmentConfidence: attacker.enrichmentConfidence,
+                        enrichmentSource: Array.isArray(
+                          attacker.enrichmentSources,
+                        )
+                          ? attacker.enrichmentSources.join(", ")
+                          : null,
+                      },
+                    }
+                  : {}
+              }
+            />
           </div>
         )}
 

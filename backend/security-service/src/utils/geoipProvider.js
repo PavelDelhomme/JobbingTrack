@@ -26,6 +26,15 @@ function isPrivateOrReservedIp(ip) {
   );
 }
 
+function isDocumentationIp(ip) {
+  const s = normalizeIp(ip);
+  return (
+    s.startsWith('192.0.2.') ||
+    s.startsWith('198.51.100.') ||
+    s.startsWith('203.0.113.')
+  );
+}
+
 const geoCache = new Map();
 const GEO_CACHE_TTL_MS = Number(process.env.GEOIP_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 
@@ -60,8 +69,63 @@ function privateGeoResult() {
     rdap: null,
     sources: ['local-classification'],
     confidence: 'high',
+    enrichedAt: new Date().toISOString(),
     note:
       'IP privée ou réseau Docker/LAN — géolocalisation publique, VPN/Tor/proxy et ASN non applicables'
+  };
+}
+
+function documentationGeoResult(ip) {
+  const s = normalizeIp(ip);
+  const profile =
+    s.startsWith('203.0.113.')
+      ? {
+          asn: 'AS64513',
+          organization: 'JobbingTrack Lab Datacenter / Proxy',
+          proxy: true,
+          vpn: true,
+          tor: false,
+          note: 'IP RFC5737 lab — profil datacenter/proxy déterministe'
+        }
+      : s.startsWith('192.0.2.')
+        ? {
+            asn: 'AS64512',
+            organization: 'JobbingTrack Lab Tor Exit',
+            proxy: true,
+            vpn: false,
+            tor: true,
+            note: 'IP RFC5737 lab — profil Tor déterministe'
+          }
+        : {
+            asn: 'AS64514',
+            organization: 'JobbingTrack Lab Public Source',
+            proxy: false,
+            vpn: false,
+            tor: false,
+            note: 'IP RFC5737 lab — profil public de démonstration'
+          };
+
+  return {
+    private: false,
+    country: 'Documentation',
+    city: 'Lab',
+    region: 'RFC5737',
+    timezone: 'UTC',
+    ll: null,
+    reverseDns: [`${s.replace(/\./g, '-')}.rfc5737.jobbingtrack.test`],
+    rdap: {
+      handle: 'RFC5737-JOBBINGTRACK-LAB',
+      name: 'JobbingTrack reserved documentation range',
+      type: 'ALLOCATED',
+      country: 'ZZ',
+      startAddress: s.split('.').slice(0, 3).join('.') + '.0',
+      endAddress: s.split('.').slice(0, 3).join('.') + '.255',
+      entities: ['JobbingTrack Security Lab']
+    },
+    sources: ['rfc5737-lab-fixture'],
+    confidence: 'high',
+    enrichedAt: new Date().toISOString(),
+    ...profile
   };
 }
 
@@ -133,6 +197,10 @@ async function lookupGeoIp(ip) {
   const normalized = normalizeIp(ip);
   if (!normalized) return null;
 
+  if (isDocumentationIp(normalized)) {
+    return documentationGeoResult(normalized);
+  }
+
   if (isPrivateOrReservedIp(normalized)) {
     return privateGeoResult();
   }
@@ -190,7 +258,8 @@ async function lookupGeoIp(ip) {
         ...(reverseDnsResult.value?.length ? ['reverse-dns'] : []),
         ...(rdapResult.value ? ['rdap'] : [])
       ],
-      confidence: rdapResult.value || reverseDnsResult.value?.length ? 'medium' : 'low'
+      confidence: rdapResult.value || reverseDnsResult.value?.length ? 'medium' : 'low',
+      enrichedAt: new Date().toISOString()
     };
     writeCache(normalized, result);
     return result;
@@ -202,5 +271,6 @@ async function lookupGeoIp(ip) {
 module.exports = {
   lookupGeoIp,
   isPrivateOrReservedIp,
+  isDocumentationIp,
   normalizeIp
 };

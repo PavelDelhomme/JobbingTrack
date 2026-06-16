@@ -2,6 +2,8 @@ const axios = require('axios');
 const { logger } = require('../utils/logger');
 const securityNotificationSettings = require('./securityNotificationSettings');
 
+const notificationBuckets = new Map();
+
 function getRecipients() {
   return securityNotificationSettings.getEffectiveSettings().recipients;
 }
@@ -12,6 +14,67 @@ function getNotifiedLevels() {
 
 function isEnabled() {
   return securityNotificationSettings.getEffectiveSettings().enabled;
+}
+
+function getRateLimitWindowMs() {
+  const configured = Number(process.env.SECURITY_ALERT_EMAIL_RATE_LIMIT_WINDOW_MS);
+  if (Number.isFinite(configured) && configured >= 0) return configured;
+  return 15 * 60 * 1000;
+}
+
+function buildAlertGroupKey(alert) {
+  const metadata = alert?.metadata && typeof alert.metadata === 'object' ? alert.metadata : {};
+  return [
+    String(alert?.level || '').toLowerCase(),
+    String(alert?.category || 'unknown').toLowerCase(),
+    String(metadata.alertType || metadata.reason || alert?.title || 'alert').toLowerCase(),
+    String(metadata.serviceName || metadata.sourceIp || metadata.threatId || alert?.source || 'unknown').toLowerCase()
+  ].join('|');
+}
+
+function resolveNotificationWindow(alert, now = Date.now()) {
+  const windowMs = getRateLimitWindowMs();
+  if (windowMs === 0) {
+    return {
+      allowed: true,
+      groupKey: buildAlertGroupKey(alert),
+      windowMs,
+      suppressedSinceLastEmail: 0
+    };
+  }
+
+  const groupKey = buildAlertGroupKey(alert);
+  const current = notificationBuckets.get(groupKey);
+  if (current && current.nextAllowedAt > now) {
+    const suppressedCount = current.suppressedCount + 1;
+    notificationBuckets.set(groupKey, {
+      ...current,
+      suppressedCount,
+      lastSuppressedAt: now
+    });
+    return {
+      allowed: false,
+      groupKey,
+      windowMs,
+      suppressedCount,
+      nextAllowedAt: current.nextAllowedAt
+    };
+  }
+
+  const suppressedSinceLastEmail = current?.suppressedCount || 0;
+  notificationBuckets.set(groupKey, {
+    firstSentAt: now,
+    nextAllowedAt: now + windowMs,
+    suppressedCount: 0,
+    lastSuppressedAt: null
+  });
+
+  return {
+    allowed: true,
+    groupKey,
+    windowMs,
+    suppressedSinceLastEmail
+  };
 }
 
 function htmlEscape(value) {
@@ -106,6 +169,12 @@ function buildContextRows(alert, metadata) {
   if (metadata.correlationId) {
     rows.push(['Correlation ID', metadata.correlationId]);
   }
+  if (metadata.notification?.suppressedSinceLastEmail > 0) {
+    rows.push([
+      'Alertes similaires regroupées',
+      `${metadata.notification.suppressedSinceLastEmail} dans les ${Math.round((metadata.notification.rateLimitWindowMs || 0) / 60000)} min précédentes`
+    ]);
+  }
 
   return rows.filter(([, value]) => value != null && String(value).trim() !== '');
 }
@@ -168,7 +237,36 @@ async function notifySecurityAlert(alert) {
     return { sent: false, reason: 'missing_notification_service_config' };
   }
 
-  const payload = buildPayload(alert);
+  const notificationWindow = resolveNotificationWindow(alert);
+  if (!notificationWindow.allowed) {
+    logger.info('Email alerte sécurité regroupé par rate-limit', {
+      alertId: alert.id,
+      groupKey: notificationWindow.groupKey,
+      suppressedCount: notificationWindow.suppressedCount,
+      nextAllowedAt: new Date(notificationWindow.nextAllowedAt).toISOString()
+    });
+    return {
+      sent: false,
+      reason: 'rate_limited',
+      groupKey: notificationWindow.groupKey,
+      suppressedCount: notificationWindow.suppressedCount,
+      nextAllowedAt: new Date(notificationWindow.nextAllowedAt).toISOString()
+    };
+  }
+
+  const alertForPayload = {
+    ...alert,
+    metadata: {
+      ...(alert.metadata && typeof alert.metadata === 'object' ? alert.metadata : {}),
+      notification: {
+        groupKey: notificationWindow.groupKey,
+        rateLimitWindowMs: notificationWindow.windowMs,
+        suppressedSinceLastEmail: notificationWindow.suppressedSinceLastEmail
+      }
+    }
+  };
+
+  const payload = buildPayload(alertForPayload);
   const endpoint = `${notificationServiceUrl.replace(/\/$/, '')}/api/v1/notifications/internal/security-alert-email`;
   const results = [];
 
@@ -185,7 +283,9 @@ async function notifySecurityAlert(alert) {
             level: alert.level,
             title: alert.title,
             category: alert.category,
-            source: alert.source
+            source: alert.source,
+            groupKey: notificationWindow.groupKey,
+            suppressedSinceLastEmail: notificationWindow.suppressedSinceLastEmail
           }
         },
         {
@@ -216,5 +316,8 @@ module.exports = {
   notifySecurityAlert,
   buildPayload,
   redactSensitiveMetadata,
-  buildDiagnosticLinks
+  buildDiagnosticLinks,
+  buildAlertGroupKey,
+  resolveNotificationWindow,
+  resetNotificationRateLimitForTests: () => notificationBuckets.clear()
 };

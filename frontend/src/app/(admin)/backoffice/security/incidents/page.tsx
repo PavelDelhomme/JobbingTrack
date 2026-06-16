@@ -423,10 +423,6 @@ export default function SecurityIncidentsPage() {
         ) : pageItems.length === 0 ? (
           <div className={uiSurfaces.emptyState}>
             <p>Aucun incident sur les {LOGS_WINDOW_DAYS} derniers jours.</p>
-            <p className="mt-2">
-              Utilisez « Menace lab (test) » pour générer une fiche forensics
-              avec IP publique de démo (198.51.100.42).
-            </p>
           </div>
         ) : (
           <div className={`${uiSurfaces.tableWrap} overflow-x-auto`}>

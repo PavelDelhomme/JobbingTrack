@@ -903,6 +903,11 @@ export default function SecurityOverviewPage() {
             <strong>Blocages auto</strong> = moteur menaces / politiques
             (threat_blocked, etc.).
           </span>
+          <span className="ml-2">
+            Erreurs connues :{" "}
+            <code className="font-mono text-[11px]">docs/ERRORS.md</code>{" "}
+            (dépôt — pièges d’interprétation dashboard sécurité).
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

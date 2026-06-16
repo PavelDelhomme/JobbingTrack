@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { SecurityPageShell } from "../SecuritySubNav";
@@ -13,6 +13,10 @@ import {
   formatSecuritySeverity,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
+import {
+  buildSecurityPolicyPosture,
+  type SecurityPolicyPostureItem,
+} from "@/lib/security/securityPolicyPresentation";
 import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
@@ -53,6 +57,25 @@ type BlockedIpEntry = {
   threatId?: string;
 };
 
+type NotificationSettings = {
+  enabled: boolean;
+  recipients: string[];
+  levels: string[];
+};
+
+function policyStatusClass(status: SecurityPolicyPostureItem["status"]) {
+  if (status === "ok") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100";
+  }
+  if (status === "danger") {
+    return "border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100";
+  }
+  if (status === "warning") {
+    return "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100";
+  }
+  return "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100";
+}
+
 export default function SecurityPoliciesPage() {
   useDocumentTitle("Politiques sécurité");
 
@@ -68,6 +91,8 @@ export default function SecurityPoliciesPage() {
   const [maintenanceResult, setMaintenanceResult] = useState<string | null>(
     null,
   );
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings | null>(null);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -123,6 +148,29 @@ export default function SecurityPoliciesPage() {
     }
   }, []);
 
+  const fetchNotificationSettings = useCallback(async () => {
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/v1/security/notification-settings`,
+        {
+          headers: getAuthHeaders(),
+          timeout: 5000,
+        },
+      );
+      const data = res.data?.data;
+      if (data) {
+        setNotificationSettings({
+          enabled: Boolean(data.enabled),
+          recipients: Array.isArray(data.recipients) ? data.recipients : [],
+          levels: Array.isArray(data.levels) ? data.levels : [],
+        });
+      }
+    } catch (e) {
+      console.error("Erreur paramètres notifications sécurité:", e);
+      setNotificationSettings(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -131,13 +179,30 @@ export default function SecurityPoliciesPage() {
         fetchWafConfig(),
         fetchFirewallRules(),
         fetchBlockedIPs(),
+        fetchNotificationSettings(),
       ]);
       if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [fetchWafConfig, fetchFirewallRules, fetchBlockedIPs]);
+  }, [
+    fetchWafConfig,
+    fetchFirewallRules,
+    fetchBlockedIPs,
+    fetchNotificationSettings,
+  ]);
+
+  const posture = useMemo(
+    () =>
+      buildSecurityPolicyPosture({
+        waf: wafConfig,
+        firewallRulesCount: firewallRules.length,
+        blockedIpsCount: blockedIPs.length,
+        notifications: notificationSettings,
+      }),
+    [blockedIPs.length, firewallRules.length, notificationSettings, wafConfig],
+  );
 
   const handleWafToggle = async (enabled: boolean) => {
     setWafSaving(true);
@@ -304,9 +369,22 @@ export default function SecurityPoliciesPage() {
   return (
     <SecurityPageShell
       title="Politiques de sécurité"
-      description="Paramétrage détaillé : WAF, règles firewall, blocage IP."
+      description="Posture globale : WAF, firewall, notifications, réponses et limites d'automatisation."
     >
       <div className="space-y-8">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {posture.map((item) => (
+            <div
+              key={item.key}
+              className={`rounded-lg border p-4 ${policyStatusClass(item.status)}`}
+            >
+              <p className="text-sm font-medium opacity-80">{item.label}</p>
+              <p className="mt-1 text-2xl font-bold">{item.value}</p>
+              <p className="mt-2 text-xs opacity-80">{item.detail}</p>
+            </div>
+          ))}
+        </section>
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
