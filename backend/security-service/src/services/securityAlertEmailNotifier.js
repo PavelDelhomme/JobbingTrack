@@ -131,7 +131,9 @@ function resolveBackofficeBaseUrl() {
 
 function buildDiagnosticLinks() {
   const base = resolveBackofficeBaseUrl();
-  const backoffice = base.includes('/b4ck0ff1ce') ? base : `${base}/b4ck0ff1ce`;
+  const backoffice = base.includes('/backoffice')
+    ? base
+    : `${base}/backoffice`;
   return {
     emailMonitor: `${backoffice}/email-monitor?type=NOTIFICATION`,
     security: `${backoffice}/security`,

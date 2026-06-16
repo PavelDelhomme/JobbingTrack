@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/statistics", label: "Vue d’ensemble" },
-  { href: "/b4ck0ff1ce/statistics/app-data", label: "App data" },
-  { href: "/b4ck0ff1ce/statistics/security", label: "Sécurité" },
-  { href: "/b4ck0ff1ce/statistics/log-stats", label: "Logs (stats)" },
+  { href: "/backoffice/statistics", label: "Vue d’ensemble" },
+  { href: "/backoffice/statistics/app-data", label: "App data" },
+  { href: "/backoffice/statistics/security", label: "Sécurité" },
+  { href: "/backoffice/statistics/log-stats", label: "Logs (stats)" },
 ] as const;
 
 export function StatisticsSubNav() {
@@ -22,8 +22,8 @@ export function StatisticsSubNav() {
     >
       {TABS.map(({ href, label }) => {
         const isActive =
-          href === "/b4ck0ff1ce/statistics"
-            ? pathname === "/b4ck0ff1ce/statistics"
+          href === "/backoffice/statistics"
+            ? pathname === "/backoffice/statistics"
             : pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

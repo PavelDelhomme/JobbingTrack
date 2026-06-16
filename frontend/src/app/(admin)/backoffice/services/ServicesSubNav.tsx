@@ -6,14 +6,14 @@ import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/services", label: "Liste des services" },
-  { href: "/b4ck0ff1ce/services/logs", label: "Services & Logs" },
+  { href: "/backoffice/services", label: "Liste des services" },
+  { href: "/backoffice/services/logs", label: "Services & Logs" },
 ] as const;
 
 function isServicesTabActive(pathname: string, href: string): boolean {
-  if (href === "/b4ck0ff1ce/services") {
+  if (href === "/backoffice/services") {
     return (
-      pathname === href || /^\/b4ck0ff1ce\/services\/[^/]+$/.test(pathname)
+      pathname === href || /^\/backoffice\/services\/[^/]+$/.test(pathname)
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

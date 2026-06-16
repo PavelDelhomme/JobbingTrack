@@ -2015,7 +2015,7 @@ function MobileJourneyPanel({
         <strong>Lancer le parcours</strong>. Les actions s’exécutent en live sur
         l’appareil. Consultez{" "}
         <a
-          href="/b4ck0ff1ce/email-monitor"
+          href="/backoffice/email-monitor"
           className="text-indigo-600 dark:text-indigo-400 underline"
         >
           Email Monitor
@@ -2060,7 +2060,7 @@ function MobileJourneyPanel({
           &quot;Vérifiez votre email&quot; → ouvrir Gmail/Proton/OVH sur
           l&apos;appareil → cliquer le lien → retour app → Se connecter →
           Dashboard. Vérifiez les envois dans{" "}
-          <a href="/b4ck0ff1ce/email-monitor" className="underline">
+          <a href="/backoffice/email-monitor" className="underline">
             Email Monitor
           </a>{" "}
           et dans votre boîte réelle.
@@ -2174,25 +2174,25 @@ function MobileJourneyPanel({
         )}
         <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
           <a
-            href="/b4ck0ff1ce/user-journey"
+            href="/backoffice/user-journey"
             className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Tous les parcours
           </a>
           <a
-            href="/b4ck0ff1ce/user-journey/custom"
+            href="/backoffice/user-journey/custom"
             className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Personnalise
           </a>
           <a
-            href="/b4ck0ff1ce/user-journey/reports"
+            href="/backoffice/user-journey/reports"
             className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Rapports
           </a>
           <a
-            href="/b4ck0ff1ce/email-monitor"
+            href="/backoffice/email-monitor"
             className="flex-1 px-3 py-1.5 text-center text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition sm:flex-none"
           >
             Email Monitor

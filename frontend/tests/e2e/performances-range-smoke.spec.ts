@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 const PAGES = [
-  "/b4ck0ff1ce/performances",
-  "/b4ck0ff1ce/performances/network",
-  "/b4ck0ff1ce/performances/disk",
-  "/b4ck0ff1ce/performances/containers",
-  "/b4ck0ff1ce/performances/latency",
-  "/b4ck0ff1ce/performances/correlation",
+  "/backoffice/performances",
+  "/backoffice/performances/network",
+  "/backoffice/performances/disk",
+  "/backoffice/performances/containers",
+  "/backoffice/performances/latency",
+  "/backoffice/performances/correlation",
 ] as const;
 
 async function waitForChartsReady(page: import("@playwright/test").Page) {

@@ -654,7 +654,7 @@ export default function ThreatsPage() {
                                 )}
                                 {inList && (
                                   <Link
-                                    href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+                                    href="/backoffice/security/firewall#liste-ips-bloquees"
                                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                   >
                                     Liste consolidée
@@ -669,7 +669,7 @@ export default function ThreatsPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/b4ck0ff1ce/security/threats/${threat.id}`,
+                                  `/backoffice/security/threats/${threat.id}`,
                                 )
                               }
                               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"

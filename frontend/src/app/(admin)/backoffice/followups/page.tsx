@@ -330,13 +330,13 @@ export default function FollowupsPage() {
           onClose={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push("/b4ck0ff1ce/followups");
+              router.push("/backoffice/followups");
             }
           }}
           onSuccess={() => {
             setShowCreateModal(false);
             if (applicationIdFromUrl) {
-              router.push("/b4ck0ff1ce/followups");
+              router.push("/backoffice/followups");
             }
             loadFollowups();
           }}

@@ -175,7 +175,7 @@ export default function ThreatDetailsPage() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
-      router.push("/b4ck0ff1ce/security/threats");
+      router.push("/backoffice/security/threats");
     } catch (err: any) {
       console.error("Erreur blocage menace:", err);
       alert("Erreur lors du blocage de la menace");
@@ -211,7 +211,7 @@ export default function ThreatDetailsPage() {
     return (
       <SecurityPageShell
         showSubNav={false}
-        backHref="/b4ck0ff1ce/security/threats"
+        backHref="/backoffice/security/threats"
         backLabel="Retour aux menaces"
         title="Menace introuvable"
       >
@@ -308,7 +308,7 @@ export default function ThreatDetailsPage() {
   return (
     <SecurityPageShell
       showSubNav={false}
-      backHref="/b4ck0ff1ce/security/threats"
+      backHref="/backoffice/security/threats"
       backLabel="Retour aux menaces"
       title={
         <span className="flex items-center gap-2">
@@ -343,7 +343,7 @@ export default function ThreatDetailsPage() {
             {(threat.blocked || consolidatedEntry) && (
               <>
                 <Link
-                  href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+                  href="/backoffice/security/firewall#liste-ips-bloquees"
                   className="text-blue-700 dark:text-blue-300 font-medium hover:underline"
                 >
                   Ouvrir la liste des IPs bloquées

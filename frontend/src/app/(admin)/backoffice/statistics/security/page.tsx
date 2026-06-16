@@ -209,7 +209,7 @@ export default function StatisticsSecurityPage() {
           metrics-aggregator (fenêtre {hoursWindow} h). Les compteurs live,
           menaces récentes et pilotage restent sous{" "}
           <Link
-            href="/b4ck0ff1ce/security"
+            href="/backoffice/security"
             className="font-medium text-violet-700 underline hover:no-underline dark:text-violet-300"
           >
             Sécurité
@@ -246,7 +246,7 @@ export default function StatisticsSecurityPage() {
                 Total brut agrégateur, toutes périodes confondues. À ne pas
                 comparer directement au compteur live de{" "}
                 <Link
-                  href="/b4ck0ff1ce/security"
+                  href="/backoffice/security"
                   className="font-medium underline hover:no-underline"
                 >
                   Sécurité
@@ -283,7 +283,7 @@ export default function StatisticsSecurityPage() {
                 </p>
               </div>
               <Link
-                href="/b4ck0ff1ce/security"
+                href="/backoffice/security"
                 className="shrink-0 font-medium underline hover:no-underline"
               >
                 Ouvrir /security →
@@ -338,7 +338,7 @@ export default function StatisticsSecurityPage() {
                 Aucune série sécurité persistée exploitable sur les{" "}
                 {hoursWindow} h. La console{" "}
                 <Link
-                  href="/b4ck0ff1ce/security"
+                  href="/backoffice/security"
                   className="font-medium underline hover:no-underline"
                 >
                   Sécurité
@@ -572,19 +572,19 @@ export default function StatisticsSecurityPage() {
 
           <div className="flex flex-wrap gap-3 text-sm">
             <Link
-              href="/b4ck0ff1ce/statistics"
+              href="/backoffice/statistics"
               className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               ← Statistiques
             </Link>
             <Link
-              href="/b4ck0ff1ce/security"
+              href="/backoffice/security"
               className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               Sécurité (opérationnel) →
             </Link>
             <Link
-              href="/b4ck0ff1ce/security/analysis"
+              href="/backoffice/security/analysis"
               className="font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               Analyse →

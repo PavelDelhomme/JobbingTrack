@@ -149,7 +149,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   };
 
   const handleViewProfile = () => {
-    router.push("/b4ck0ff1ce/profile");
+    router.push("/backoffice/profile");
     onClose();
   };
 

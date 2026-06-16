@@ -63,7 +63,7 @@ describe("PriorityResponseServicesSummary", () => {
     expect(rendered).toEqual(["auth-service", "notification-service"]);
     expect(
       screen.getByRole("link", { name: /détail latence/i }),
-    ).toHaveAttribute("href", "/b4ck0ff1ce/performances/latency");
+    ).toHaveAttribute("href", "/backoffice/performances/latency");
     expect(screen.getByText(/moyenne des endpoints affichés/i)).toHaveTextContent(
       "10ms",
     );
@@ -81,7 +81,7 @@ describe("PriorityResponseServicesSummary", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Services" })).toHaveAttribute(
       "href",
-      "/b4ck0ff1ce/services",
+      "/backoffice/services",
     );
   });
 });

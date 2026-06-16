@@ -61,6 +61,10 @@ class SecurityService {
     endDate?: string;
     level?: string;
     category?: string;
+    eventType?: string;
+    requestId?: string;
+    q?: string;
+    order?: "asc" | "desc";
     limit?: number;
     offset?: number;
   }): Promise<SecurityLog[]> {
@@ -71,6 +75,10 @@ class SecurityService {
       if (params?.endDate) queryParams.append("endDate", params.endDate);
       if (params?.level) queryParams.append("level", params.level);
       if (params?.category) queryParams.append("category", params.category);
+      if (params?.eventType) queryParams.append("eventType", params.eventType);
+      if (params?.requestId) queryParams.append("requestId", params.requestId);
+      if (params?.q) queryParams.append("q", params.q);
+      if (params?.order) queryParams.append("order", params.order);
       if (params?.limit) queryParams.append("limit", params.limit.toString());
       if (params?.offset)
         queryParams.append("offset", params.offset.toString());

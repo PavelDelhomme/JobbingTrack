@@ -329,7 +329,7 @@ export default function TestsHubPage() {
             <Shield className="w-4 h-4" />
             Périmètre offensif lab
           </Button>
-          <Link href="/b4ck0ff1ce/test-reports">
+          <Link href="/backoffice/test-reports">
             <Button variant="outline" className="gap-2">
               <BarChart3 className="w-4 h-4" />
               Voir tous les rapports
@@ -337,7 +337,7 @@ export default function TestsHubPage() {
           </Link>
           {lastReportId && (
             <Link
-              href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(lastReportId)}`}
+              href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}
             >
               <Button
                 variant="outline"

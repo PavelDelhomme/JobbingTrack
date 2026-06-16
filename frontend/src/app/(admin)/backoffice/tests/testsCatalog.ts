@@ -54,7 +54,7 @@ export const CATEGORIES = [
     id: "api",
     name: "Tests API",
     description: "Lancer les tests API et consulter les rapports",
-    href: "/b4ck0ff1ce/tests-api",
+    href: "/backoffice/tests-api",
     icon: Server,
     bgClass:
       "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800",
@@ -66,7 +66,7 @@ export const CATEGORIES = [
     name: "Tests Backend",
     description:
       "Tests des services backend (auth, companies, applications, etc.)",
-    href: "/b4ck0ff1ce/tests-backend",
+    href: "/backoffice/tests-backend",
     icon: Server,
     bgClass:
       "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800",
@@ -77,7 +77,7 @@ export const CATEGORIES = [
     id: "frontend",
     name: "Tests Frontend",
     description: "Tests unitaires des composants et du frontend",
-    href: "/b4ck0ff1ce/tests-frontend",
+    href: "/backoffice/tests-frontend",
     icon: Monitor,
     bgClass:
       "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800",
@@ -88,7 +88,7 @@ export const CATEGORIES = [
     id: "backoffice",
     name: "Tests Backoffice",
     description: "Tests E2E de l'interface d'administration",
-    href: "/b4ck0ff1ce/tests-backoffice",
+    href: "/backoffice/tests-backoffice",
     icon: Shield,
     bgClass:
       "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800",
@@ -99,7 +99,7 @@ export const CATEGORIES = [
     id: "backoffice-only",
     name: "Backoffice uniquement",
     description: "Uniquement le spec backoffice.spec.ts (rapide)",
-    href: "/b4ck0ff1ce/tests-backoffice",
+    href: "/backoffice/tests-backoffice",
     icon: Shield,
     bgClass:
       "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800",
@@ -110,7 +110,7 @@ export const CATEGORIES = [
     id: "database",
     name: "Tests BDD",
     description: "Tests base de données (connexion, enums, relations)",
-    href: "/b4ck0ff1ce/tests-backend",
+    href: "/backoffice/tests-backend",
     icon: Database,
     bgClass:
       "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800",
@@ -121,7 +121,7 @@ export const CATEGORIES = [
     id: "security",
     name: "Tests Sécurité",
     description: "WAF, authentification, injection, en-têtes",
-    href: "/b4ck0ff1ce/tests-security",
+    href: "/backoffice/tests-security",
     icon: Shield,
     bgClass: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
     textClass: "text-red-700 dark:text-red-300",
@@ -131,7 +131,7 @@ export const CATEGORIES = [
     id: "performance",
     name: "Tests Performance",
     description: "Métriques de charge et temps de réponse",
-    href: "/b4ck0ff1ce/performance-tests",
+    href: "/backoffice/performance-tests",
     icon: Zap,
     bgClass:
       "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800",
@@ -143,7 +143,7 @@ export const CATEGORIES = [
     name: "Suite P1B latence",
     description:
       "Jest ciblé : services prioritaires, Postgres santé Docker, panneau latence",
-    href: "/b4ck0ff1ce/statistics",
+    href: "/backoffice/statistics",
     icon: BarChart3,
     bgClass: "bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800",
     textClass: "text-sky-700 dark:text-sky-300",
@@ -154,7 +154,7 @@ export const CATEGORIES = [
     name: "Agent email / triage",
     description:
       "Suite dédiée : classification candidature, digest programmé, expéditeur JobbingTrack",
-    href: "/b4ck0ff1ce/test-reports",
+    href: "/backoffice/test-reports",
     icon: MailCheck,
     bgClass:
       "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800",
@@ -166,7 +166,7 @@ export const CATEGORIES = [
     name: "Tests offensifs contrôlés",
     description:
       "Préflight + manifeste périmètre lab plan-only (aucun payload, dryRun)",
-    href: "/b4ck0ff1ce/tests-security",
+    href: "/backoffice/tests-security",
     icon: Shield,
     bgClass:
       "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800",
@@ -177,7 +177,7 @@ export const CATEGORIES = [
     id: "playwright",
     name: "Tests Playwright",
     description: "Tests E2E Playwright (scénarios complets)",
-    href: "/b4ck0ff1ce/playwright-tests",
+    href: "/backoffice/playwright-tests",
     icon: Play,
     bgClass:
       "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800",
@@ -188,7 +188,7 @@ export const CATEGORIES = [
     id: "schedule",
     name: "Programmer tests",
     description: "Planifier l'exécution automatique des tests",
-    href: "/b4ck0ff1ce/performance-tests/schedule",
+    href: "/backoffice/performance-tests/schedule",
     icon: Calendar,
     bgClass:
       "bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-700",
@@ -200,7 +200,7 @@ export const CATEGORIES = [
     name: "Rapports de tests",
     description:
       "Consulter tous les rapports générés (API, backend, frontend, E2E, etc.)",
-    href: "/b4ck0ff1ce/test-reports",
+    href: "/backoffice/test-reports",
     icon: FileText,
     bgClass:
       "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800",

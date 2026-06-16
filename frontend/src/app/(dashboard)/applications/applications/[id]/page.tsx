@@ -85,7 +85,7 @@ export default function ApplicationDetailPage() {
     } catch (error) {
       console.error("Erreur chargement candidature:", error);
       alert("Candidature non trouvée");
-      router.push("/b4ck0ff1ce/applications");
+      router.push("/backoffice/applications");
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ export default function ApplicationDetailPage() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => router.push("/b4ck0ff1ce/datas")}
+            onClick={() => router.push("/backoffice/datas")}
             className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-4 flex items-center transition-colors"
           >
             ← Retour aux candidatures
@@ -163,7 +163,7 @@ export default function ApplicationDetailPage() {
                 onClick={async () => {
                   if (confirm("Supprimer cette candidature ?")) {
                     await applicationService.delete(application.id);
-                    router.push("/b4ck0ff1ce/datas");
+                    router.push("/backoffice/datas");
                   }
                 }}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"

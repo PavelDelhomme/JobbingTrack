@@ -4,19 +4,19 @@ import type { Browser, Page } from "@playwright/test";
 
 /** Routes qui compilent tard et déclenchent souvent un restart Next dev en fin de campagne. */
 export const BACKOFFICE_HEAVY_ROUTES = [
-  "/b4ck0ff1ce/search",
-  "/b4ck0ff1ce/tests-frontend",
-  "/b4ck0ff1ce/user-journey/custom",
-  "/b4ck0ff1ce/api-tester",
-  "/b4ck0ff1ce/performance-tests",
-  "/b4ck0ff1ce/performance-tests/schedule",
-  "/b4ck0ff1ce/test-data",
-  "/b4ck0ff1ce/emails/templates",
-  "/b4ck0ff1ce/services/api-gateway",
-  "/b4ck0ff1ce/followups",
-  "/b4ck0ff1ce/datas?tab=billing",
-  "/b4ck0ff1ce/statistics",
-  "/b4ck0ff1ce/tests",
+  "/backoffice/search",
+  "/backoffice/tests-frontend",
+  "/backoffice/user-journey/custom",
+  "/backoffice/api-tester",
+  "/backoffice/performance-tests",
+  "/backoffice/performance-tests/schedule",
+  "/backoffice/test-data",
+  "/backoffice/emails/templates",
+  "/backoffice/services/api-gateway",
+  "/backoffice/followups",
+  "/backoffice/datas?tab=billing",
+  "/backoffice/statistics",
+  "/backoffice/tests",
 ] as const;
 
 const RETRYABLE_GOTO =

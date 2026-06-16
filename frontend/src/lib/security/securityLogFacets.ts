@@ -9,6 +9,7 @@ export type SecurityLogFacets = FacetGroups & {
   sourceIPs?: Array<{ value: string; count?: number }>;
   endpoints?: Array<{ value: string; count?: number }>;
   methods?: Array<{ value: string; count?: number }>;
+  requestIds?: Array<{ value: string; count?: number }>;
   messages?: Array<{ value: string; count?: number }>;
 };
 

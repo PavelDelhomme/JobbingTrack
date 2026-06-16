@@ -1,81 +1,85 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  BACKOFFICE_BASE_PATH,
+  BACKOFFICE_LEGACY_PATH,
+} from "@/config/backoffice.config";
 
-const ADMIN_PUBLIC_PATH = "/b4ck0ff1ce";
-const ADMIN_INTERNAL_PATH = "/backoffice";
+function hasValidSessionToken(token: string | undefined): boolean {
+  if (!token) return false;
+  return (
+    token.includes(".") ||
+    (process.env.NODE_ENV === "development" &&
+      token.startsWith("mock-jwt-token"))
+  );
+}
+
+function readSessionToken(request: NextRequest): string | undefined {
+  return (
+    request.cookies.get("token")?.value ||
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+    request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "")
+  );
+}
+
+function normalizeBackofficePath(pathname: string): string {
+  let path = pathname;
+  if (
+    path === `${BACKOFFICE_BASE_PATH}/services/logs` ||
+    path.startsWith(`${BACKOFFICE_BASE_PATH}/services/logs/`)
+  ) {
+    path = path.replace(
+      `${BACKOFFICE_BASE_PATH}/services/logs`,
+      `${BACKOFFICE_BASE_PATH}/services/service-logs`,
+    );
+  }
+  return path;
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Ancien alias → chemin canonique /backoffice (auth identique).
   if (
-    pathname === ADMIN_INTERNAL_PATH ||
-    pathname.startsWith(`${ADMIN_INTERNAL_PATH}/`)
+    pathname === BACKOFFICE_LEGACY_PATH ||
+    pathname.startsWith(`${BACKOFFICE_LEGACY_PATH}/`)
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname.replace(ADMIN_INTERNAL_PATH, ADMIN_PUBLIC_PATH);
-    return NextResponse.redirect(url);
+    url.pathname = pathname.replace(BACKOFFICE_LEGACY_PATH, BACKOFFICE_BASE_PATH);
+    return NextResponse.redirect(url, 308);
   }
 
   if (
-    pathname === ADMIN_PUBLIC_PATH ||
-    pathname.startsWith(`${ADMIN_PUBLIC_PATH}/`)
+    pathname === BACKOFFICE_BASE_PATH ||
+    pathname.startsWith(`${BACKOFFICE_BASE_PATH}/`)
   ) {
-    const rewriteUrl = request.nextUrl.clone();
-    let internalPath = pathname.replace(ADMIN_PUBLIC_PATH, ADMIN_INTERNAL_PATH);
-    if (
-      internalPath === `${ADMIN_INTERNAL_PATH}/services/logs` ||
-      internalPath.startsWith(`${ADMIN_INTERNAL_PATH}/services/logs/`)
-    ) {
-      internalPath = internalPath.replace(
-        `${ADMIN_INTERNAL_PATH}/services/logs`,
-        `${ADMIN_INTERNAL_PATH}/services/service-logs`,
-      );
+    const token = readSessionToken(request);
+    if (!hasValidSessionToken(token)) {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
-    rewriteUrl.pathname = internalPath;
-    const response = handleAdminAuth(request);
-    if (response) return response;
-    return NextResponse.rewrite(rewriteUrl);
+
+    const normalized = normalizeBackofficePath(pathname);
+    if (normalized !== pathname) {
+      const url = request.nextUrl.clone();
+      url.pathname = normalized;
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
   }
 
-  // Essayer d'abord les cookies, puis les headers Authorization
-  const token =
-    request.cookies.get("token")?.value ||
-    request.headers.get("authorization")?.replace("Bearer ", "") ||
-    request.headers.get("Authorization")?.replace("Bearer ", "");
-
-  // Rediriger les utilisateurs connectés depuis la page de login vers le backoffice
-  // Mais seulement si le token est valide (format JWT ou mock en dev)
-  if (pathname === "/login" && token) {
-    // Vérifier que le token a un format valide (JWT ou mock)
-    const isValidToken =
-      token.includes(".") ||
-      (process.env.NODE_ENV === "development" &&
-        token.startsWith("mock-jwt-token"));
-    if (isValidToken) {
-      return NextResponse.redirect(new URL(ADMIN_PUBLIC_PATH, request.url));
-    }
+  const token = readSessionToken(request);
+  if (pathname === "/login" && hasValidSessionToken(token)) {
+    return NextResponse.redirect(new URL(BACKOFFICE_BASE_PATH, request.url));
   }
 
   return NextResponse.next();
 }
 
-function handleAdminAuth(request: NextRequest) {
-  const token =
-    request.cookies.get("token")?.value ||
-    request.headers.get("authorization")?.replace("Bearer ", "") ||
-    request.headers.get("Authorization")?.replace("Bearer ", "");
-
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (token.startsWith("mock-jwt-token-") || token.includes(".")) {
-    return null;
-  }
-
-  return null;
-}
-
 export const config = {
-  matcher: ["/login", "/backoffice/:path*", "/b4ck0ff1ce/:path*"],
+  matcher: [
+    "/login",
+    "/backoffice/:path*",
+    "/b4ck0ff1ce/:path*",
+  ],
 };

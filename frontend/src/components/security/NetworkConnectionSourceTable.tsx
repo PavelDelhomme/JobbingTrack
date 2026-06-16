@@ -150,7 +150,13 @@ export function NetworkConnectionSourceTable({
                     ) : null}
                     {!threatHref && !logsHref ? (
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        —
+                        {sourceIp
+                          ? /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|::1)/.test(
+                                sourceIp,
+                              )
+                            ? "IP interne — pas de menace publique"
+                            : "Aucun lien corrélé"
+                          : "IP source absente"}
                       </span>
                     ) : null}
                   </div>

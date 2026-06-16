@@ -6,13 +6,13 @@ import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/datas", label: "Données applicatives" },
-  { href: "/b4ck0ff1ce/suivi-interim", label: "Suivi intérim" },
-  { href: "/b4ck0ff1ce/user-stats", label: "Stats utilisateur" },
-  { href: "/b4ck0ff1ce/billing", label: "Facturation" },
-  { href: "/b4ck0ff1ce/test-data", label: "Données de test" },
-  { href: "/b4ck0ff1ce/archives", label: "Archives" },
-  { href: "/b4ck0ff1ce/trash", label: "Corbeille" },
+  { href: "/backoffice/datas", label: "Données applicatives" },
+  { href: "/backoffice/suivi-interim", label: "Suivi intérim" },
+  { href: "/backoffice/user-stats", label: "Stats utilisateur" },
+  { href: "/backoffice/billing", label: "Facturation" },
+  { href: "/backoffice/test-data", label: "Données de test" },
+  { href: "/backoffice/archives", label: "Archives" },
+  { href: "/backoffice/trash", label: "Corbeille" },
 ] as const;
 
 export function AdministrationDataSubNav() {

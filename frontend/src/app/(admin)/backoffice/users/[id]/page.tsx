@@ -231,9 +231,9 @@ export default function UserDetailPage() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response.data?.user?.id) {
-        router.push(`/b4ck0ff1ce/users/${response.data.user.id}`);
+        router.push(`/backoffice/users/${response.data.user.id}`);
       } else {
-        router.push("/b4ck0ff1ce/users");
+        router.push("/backoffice/users");
       }
     } catch (err: unknown) {
       const axErr = err as { response?: { data?: { error?: string } } };
@@ -313,7 +313,7 @@ export default function UserDetailPage() {
       });
 
       alert("Utilisateur supprimé avec succès");
-      router.push("/b4ck0ff1ce/users");
+      router.push("/backoffice/users");
     } catch (error: any) {
       console.error("Erreur suppression utilisateur:", error);
       alert(error.response?.data?.error || "Erreur lors de la suppression");
@@ -425,7 +425,7 @@ export default function UserDetailPage() {
       <UsersPageShell
         title="Chargement utilisateur"
         description="Récupération des informations du compte."
-        backHref="/b4ck0ff1ce/users"
+        backHref="/backoffice/users"
         backLabel="Retour aux utilisateurs"
       >
         <div className="flex items-center justify-center py-24">
@@ -439,7 +439,7 @@ export default function UserDetailPage() {
     return (
       <UsersPageShell
         title="Utilisateur introuvable"
-        backHref="/b4ck0ff1ce/users"
+        backHref="/backoffice/users"
         backLabel="Retour aux utilisateurs"
       >
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
@@ -461,7 +461,7 @@ export default function UserDetailPage() {
       <UsersPageShell
         title="Nouvel utilisateur"
         description="Créer un compte et définir son rôle initial."
-        backHref="/b4ck0ff1ce/users"
+        backHref="/backoffice/users"
         backLabel="Retour aux utilisateurs"
       >
         <div className="space-y-6">
@@ -543,7 +543,7 @@ export default function UserDetailPage() {
                   {creating ? "Création..." : "Créer"}
                 </button>
                 <button
-                  onClick={() => router.push("/b4ck0ff1ce/users")}
+                  onClick={() => router.push("/backoffice/users")}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   Annuler
@@ -574,7 +574,7 @@ export default function UserDetailPage() {
         </span>
       }
       description={user.email}
-      backHref="/b4ck0ff1ce/users"
+      backHref="/backoffice/users"
       backLabel="Retour aux utilisateurs"
       actions={
         <div className="flex items-center gap-2">
@@ -866,7 +866,7 @@ export default function UserDetailPage() {
             Gérer l&apos;abonnement et la facturation pour cet utilisateur.
           </p>
           <Link
-            href={`/b4ck0ff1ce/billing?userId=${user.id}`}
+            href={`/backoffice/billing?userId=${user.id}`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             Voir / gérer l&apos;abonnement

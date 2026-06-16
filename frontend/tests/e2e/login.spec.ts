@@ -15,7 +15,7 @@ async function detectLoginOutcome(
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeout) {
     const url = page.url();
-    if (url.includes("/b4ck0ff1ce")) {
+    if (url.includes("/backoffice")) {
       return "success";
     }
 
@@ -25,7 +25,7 @@ async function detectLoginOutcome(
       )
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
-        // Pendant une redirection /login -> /b4ck0ff1ce, le contexte JS peut être recréé.
+        // Pendant une redirection /login -> /backoffice, le contexte JS peut être recréé.
         // Ce cas est transitoire: on continue simplement la boucle de détection.
         if (
           /Execution context was destroyed|Cannot find context/i.test(message)
@@ -123,7 +123,7 @@ test.describe("🔐 Authentification - Page de connexion", () => {
     expect(outcome).toBe("success");
 
     // Vérification fonctionnelle : accès backoffice sans retour sur /login.
-    await page.goto("/b4ck0ff1ce", {
+    await page.goto("/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });

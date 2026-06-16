@@ -28,14 +28,14 @@ test.describe("⚡ Tests de Performance", () => {
   }) => {
     const startTime = Date.now();
 
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     const loadTime = Date.now() - startTime;
     expect(loadTime).toBeLessThan(2000);
   });
 
   test("devrait gérer la charge de données importantes", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Simuler une grande quantité de données dans les applications
     await page.route("**/api/v1/applications*", async (route) => {
@@ -90,7 +90,7 @@ test.describe("⚡ Tests de Performance", () => {
   test("devrait maintenir les performances lors du filtrage et tri", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Aller dans les applications
     await page.locator("text=Applications").click();
@@ -120,7 +120,7 @@ test.describe("⚡ Tests de Performance", () => {
   test("devrait résister à une charge utilisateur simulée", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Simuler plusieurs actions rapides
     const actions = [
@@ -153,7 +153,7 @@ test.describe("⚡ Tests de Performance", () => {
 
     const startTime = Date.now();
 
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     const loadTime = Date.now() - startTime;
 
@@ -181,7 +181,7 @@ test.describe("⚡ Tests de Performance", () => {
       });
     });
 
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Vérifier que les ressources sont optimisées
     const cssRequests = requests.filter((r) => r.resourceType === "stylesheet");
@@ -197,7 +197,7 @@ test.describe("⚡ Tests de Performance", () => {
   });
 
   test("devrait gérer efficacement la mémoire", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Mesurer l'utilisation mémoire avant et après les actions
     const memoryBefore = await page.evaluate(
@@ -227,7 +227,7 @@ test.describe("⚡ Tests de Performance", () => {
   });
 
   test("devrait maintenir les performances sous charge", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Créer plusieurs éléments rapidement
     await page.locator("text=Entreprises").click();

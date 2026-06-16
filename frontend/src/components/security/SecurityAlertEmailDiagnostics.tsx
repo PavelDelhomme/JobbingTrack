@@ -122,7 +122,7 @@ export function SecurityAlertEmailDiagnostics() {
             Actualiser
           </Button>
           <Link
-            href="/b4ck0ff1ce/email-monitor?type=NOTIFICATION"
+            href="/backoffice/email-monitor?type=NOTIFICATION"
             className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
           >
             Email Monitor

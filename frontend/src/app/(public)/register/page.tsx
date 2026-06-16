@@ -63,7 +63,7 @@ export default function RegisterPage() {
       localStorage.setItem("token", data.token);
 
       // Redirection vers le dashboard
-      router.push("/b4ck0ff1ce");
+      router.push("/backoffice");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue");
     } finally {

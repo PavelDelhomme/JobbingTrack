@@ -19,6 +19,10 @@ export type LoadServerHistoryParams = {
   historyLimit?: number;
   /** Max points issus du fallback chartData */
   chartDataMaxPoints?: number;
+  /** Fenêtre récente demandée explicitement à l'agrégateur. */
+  historyWindowMs?: number;
+  /** Injection testable de l'instant courant. */
+  nowMs?: number;
 };
 
 /**
@@ -115,12 +119,23 @@ export async function loadServerHistoryPoints(
     serviceName,
     historyLimit = 280,
     chartDataMaxPoints = 80,
+    historyWindowMs = 60 * 60 * 1000,
+    nowMs = Date.now(),
   } = params;
 
   let serverHistoryPoints: ServiceHistoryPoint[] = [];
   try {
+    const endTime = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const startTime = Math.max(0, endTime - historyWindowMs);
+    const query = new URLSearchParams({
+      limit: String(historyLimit),
+      startTime: String(startTime),
+      endTime: String(endTime),
+      _: String(endTime),
+    });
     const historyResponse = await fetch(
-      `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(fullServiceName)}/history?limit=${historyLimit}`,
+      `${metricsUrl}/api/v1/docker/service/${encodeURIComponent(fullServiceName)}/history?${query.toString()}`,
+      { cache: "no-store" },
     );
     if (historyResponse.ok) {
       const historyData = await historyResponse.json();

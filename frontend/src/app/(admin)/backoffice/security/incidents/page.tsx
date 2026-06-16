@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SecurityPageShell } from "../SecuritySubNav";
 import {
   FacetAutocompleteField,
@@ -18,6 +19,7 @@ import {
   type IncidentRow,
   alertHref,
   isIncidentLog,
+  isMobileIncidentRow,
   logHref,
   threatHref,
 } from "@/lib/security/incidents";
@@ -32,6 +34,7 @@ import {
   getSecuritySeverityFilterOptions,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
+import { SecurityNatureBadge } from "@/components/security/SecurityNatureBadge";
 import { TablePanelSkeleton, uiSurfaces, uiText } from "@/lib/ui";
 import { AlertTriangle, FlaskConical, RefreshCw } from "lucide-react";
 import axios from "axios";
@@ -68,13 +71,43 @@ function kindLabel(kind: IncidentRow["kind"]): string {
   return "Événement";
 }
 
+function incidentNatureBadge(item: IncidentRow) {
+  if (item.kind === "threat" && item.threatId) {
+    return (
+      <SecurityNatureBadge
+        eventType={item.eventType || "network_threat_detected"}
+        blockOrigin={item.blockOrigin}
+        showOrigin
+      />
+    );
+  }
+  if (item.kind === "event" && item.eventType) {
+    return (
+      <SecurityNatureBadge
+        eventType={item.eventType}
+        blockOrigin={item.blockOrigin}
+        showOrigin={Boolean(item.blockOrigin)}
+      />
+    );
+  }
+  return (
+    <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+      {item.kind === "alert" ? "Alerte" : "—"}
+    </span>
+  );
+}
+
 export default function SecurityIncidentsPage() {
   useDocumentTitle("Incidents & menaces");
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [kindFilter, setKindFilter] = useState<IncidentKindFilter>("all");
+  const [mobileOnly, setMobileOnly] = useState(
+    () => searchParams.get("mobile") === "1",
+  );
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
     useAppliedFilters<IncidentDetailFilters>(DEFAULT_INCIDENT_DETAIL_FILTERS);
   const [page, setPage] = useState(1);
@@ -129,6 +162,14 @@ export default function SecurityIncidentsPage() {
               ),
               href: threatHref(id),
               threatId: id,
+              eventType: String(t.threatType || "network_threat_detected"),
+              blockOrigin:
+                typeof meta.blockOrigin === "string"
+                  ? meta.blockOrigin
+                  : t.isBlocked || t.blocked
+                    ? "automatic_threat"
+                    : null,
+              blocked: Boolean(t.isBlocked || t.blocked),
             });
           }
         }
@@ -167,7 +208,7 @@ export default function SecurityIncidentsPage() {
           for (const l of logs) {
             const eventType = String(l.eventType || "");
             const level = String(l.level || "");
-            if (!isIncidentLog(eventType, level)) continue;
+            if (!isIncidentLog(eventType, level, String(l.category || ""))) continue;
             const meta =
               l.metadata && typeof l.metadata === "object" ? l.metadata : {};
             const threatId = meta.threatId ? String(meta.threatId) : null;
@@ -194,6 +235,11 @@ export default function SecurityIncidentsPage() {
               href: threatId ? threatHref(threatId) : logHref(logId, eventType),
               threatId: threatId || undefined,
               logId,
+              eventType,
+              blockOrigin:
+                typeof meta.blockOrigin === "string"
+                  ? meta.blockOrigin
+                  : null,
             });
           }
         }
@@ -284,10 +330,13 @@ export default function SecurityIncidentsPage() {
     return badges;
   }, [applied]);
 
-  const filtered = useMemo(
-    () => filterIncidentRows(incidents, kindFilter, applied),
-    [incidents, kindFilter, applied],
-  );
+  const filtered = useMemo(() => {
+    let rows = filterIncidentRows(incidents, kindFilter, applied);
+    if (mobileOnly) {
+      rows = rows.filter((row) => isMobileIncidentRow(row));
+    }
+    return rows;
+  }, [incidents, kindFilter, applied, mobileOnly]);
 
   const handleApplyFilters = () => {
     setPage(1);
@@ -384,6 +433,28 @@ export default function SecurityIncidentsPage() {
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileOnly((prev) => !prev);
+              setPage(1);
+            }}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              mobileOnly
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+            }`}
+          >
+            Signaux mobile
+          </button>
+          {mobileOnly ? (
+            <Link
+              href="/backoffice/security/logs?category=mobile"
+              className="rounded-md border border-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
+            >
+              Ouvrir logs mobile
+            </Link>
+          ) : null}
         </div>
 
         <FilterBar
@@ -430,6 +501,7 @@ export default function SecurityIncidentsPage() {
               <thead className={uiSurfaces.tableHead}>
                 <tr>
                   <th className="p-3">Type</th>
+                  <th className="p-3">Nature</th>
                   <th className="p-3">Incident</th>
                   <th className="p-3">Gravité</th>
                   <th className="p-3">Source</th>
@@ -448,6 +520,7 @@ export default function SecurityIncidentsPage() {
                         {kindLabel(item.kind)}
                       </span>
                     </td>
+                    <td className="p-3">{incidentNatureBadge(item)}</td>
                     <td className="p-3">
                       <div className="font-medium text-gray-900 dark:text-gray-100">
                         {item.title}

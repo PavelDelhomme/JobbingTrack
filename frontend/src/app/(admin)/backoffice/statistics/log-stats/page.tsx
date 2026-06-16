@@ -2,7 +2,7 @@
 
 /**
  * Route **log-stats** (et non `…/logs`) : le motif `logs/` est dans le `.gitignore` du dépôt.
- * URL canonique : `/b4ck0ff1ce/statistics/log-stats`.
+ * URL canonique : `/backoffice/statistics/log-stats`.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -478,13 +478,13 @@ export default function StatisticsLogStatsPage() {
 
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/b4ck0ff1ce/statistics"
+              href="/backoffice/statistics"
               className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               ← Vue d’ensemble
             </Link>
             <Link
-              href="/b4ck0ff1ce/services/logs"
+              href="/backoffice/services/logs"
               className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               Logs centralisés services →

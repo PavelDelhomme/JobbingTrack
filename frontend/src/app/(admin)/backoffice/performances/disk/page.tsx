@@ -1163,7 +1163,7 @@ export default function PerformancesDiskPage() {
 
       <div className="flex flex-wrap gap-2">
         <Link
-          href="/b4ck0ff1ce/services"
+          href="/backoffice/services"
           className="inline-flex rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800"
         >
           Voir les détails par service

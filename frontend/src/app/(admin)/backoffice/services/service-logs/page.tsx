@@ -191,7 +191,7 @@ export default function ServiceLogsPage() {
           rechargent l&apos;API à l&apos;application.
         </>
       }
-      backHref="/b4ck0ff1ce/services"
+      backHref="/backoffice/services"
       backLabel="Services"
       actions={
         <button

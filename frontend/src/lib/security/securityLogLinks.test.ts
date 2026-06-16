@@ -47,7 +47,7 @@ describe("securityLogLinks", () => {
         linkReason: "metadata_threat_id",
       }),
     ).toMatchObject({
-      href: `/b4ck0ff1ce/security/threats/${VALID_CUID}`,
+      href: `/backoffice/security/threats/${VALID_CUID}`,
       label: "Menace liée",
     });
 
@@ -58,7 +58,7 @@ describe("securityLogLinks", () => {
         linkReason: "correlation_ip_temps",
       }),
     ).toMatchObject({
-      href: "/b4ck0ff1ce/security/threats/c9876543210zyxwvutsrqpon",
+      href: "/backoffice/security/threats/c9876543210zyxwvutsrqpon",
       label: "Menace corrélée",
     });
 

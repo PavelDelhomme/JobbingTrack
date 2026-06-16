@@ -1,4 +1,4 @@
-// Tests E2E Suivi intérim (backoffice) — page /b4ck0ff1ce/suivi-interim, données agences/candidatures
+// Tests E2E Suivi intérim (backoffice) — page /backoffice/suivi-interim, données agences/candidatures
 import { test, expect } from "@playwright/test";
 import { getAdminToken } from "./test-data-helper";
 
@@ -8,7 +8,7 @@ test.describe("👔 Suivi intérim (backoffice)", () => {
   test.setTimeout(50000);
 
   test("la page Suivi intérim charge sans erreur", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/suivi-interim");
+    await page.goto("/backoffice/suivi-interim");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 25000 });
     const heading = page
@@ -31,7 +31,7 @@ test.describe("👔 Suivi intérim (backoffice)", () => {
   test("la page affiche soit des agences soit le message invitant à en créer", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/suivi-interim");
+    await page.goto("/backoffice/suivi-interim");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 25000 });
     const heading = page
@@ -68,7 +68,7 @@ test.describe("👔 Suivi intérim (backoffice)", () => {
       test.skip(true, "generate-test-data non disponible ou erreur");
     }
 
-    await page.goto("/b4ck0ff1ce/suivi-interim");
+    await page.goto("/backoffice/suivi-interim");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 25000 });
     const heading = page
@@ -100,7 +100,7 @@ test.describe("👔 Suivi intérim (backoffice)", () => {
       test.skip(true, "generate-test-data non disponible");
     }
 
-    await page.goto("/b4ck0ff1ce/suivi-interim");
+    await page.goto("/backoffice/suivi-interim");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 25000 });
     const agencyItem = page
@@ -116,19 +116,19 @@ test.describe("🖥️ Pages Backoffice Suivi intérim", () => {
   test("la page Suivi intérim est accessible depuis le menu", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 25000 });
     // « Suivi intérim » est un sous-lien sous « Gestion des données ».
-    const dataLink = page.locator('a[href="/b4ck0ff1ce/datas"]').first();
+    const dataLink = page.locator('a[href="/backoffice/datas"]').first();
     await expect(dataLink).toBeVisible({ timeout: 15000 });
     const suiviLink = page
-      .locator('a[href="/b4ck0ff1ce/suivi-interim"]')
+      .locator('a[href="/backoffice/suivi-interim"]')
       .first();
     if (!(await suiviLink.isVisible().catch(() => false))) {
       const dataExpander = page
         .locator(
-          'a[href="/b4ck0ff1ce/datas"] + button[aria-label="Expander les sous-items"]',
+          'a[href="/backoffice/datas"] + button[aria-label="Expander les sous-items"]',
         )
         .first();
       await expect(dataExpander).toBeVisible({ timeout: 10000 });
@@ -136,7 +136,7 @@ test.describe("🖥️ Pages Backoffice Suivi intérim", () => {
     }
     await expect(suiviLink).toBeVisible({ timeout: 15000 });
     await suiviLink.click();
-    await page.waitForURL(/\/b4ck0ff1ce\/suivi-interim/, { timeout: 15000 });
+    await page.waitForURL(/\/backoffice\/suivi-interim/, { timeout: 15000 });
     const heading = page
       .getByRole("heading", { name: /Suivi intérim/i })
       .or(page.locator("h2").filter({ hasText: /Suivi intérim/i }));

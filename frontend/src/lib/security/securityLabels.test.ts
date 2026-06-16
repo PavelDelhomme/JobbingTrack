@@ -1,6 +1,8 @@
 import {
+  classifySecurityEventNature,
   formatBlockOriginLabel,
   formatFirewallActionLabel,
+  formatSecurityEventNatureLabel,
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
   formatThreatTypeLabel,
@@ -35,7 +37,18 @@ describe("securityLabels", () => {
   it("traduit les origines de blocage firewall", () => {
     expect(formatBlockOriginLabel("lab_simulation")).toBe("Test lab");
     expect(formatBlockOriginLabel("automatic_threat")).toBe("Automatique");
+    expect(formatBlockOriginLabel("unknown")).toBe("Origine inconnue");
     expect(formatBlockOriginLabel(undefined)).toBeNull();
+  });
+
+  it("classifie la nature détection vs blocage", () => {
+    expect(classifySecurityEventNature("waf_blocked")).toBe("detection");
+    expect(classifySecurityEventNature("ip_blocked_manually")).toBe(
+      "manual_block",
+    );
+    expect(formatSecurityEventNatureLabel("threat_blocked")).toBe(
+      "Blocage automatique",
+    );
   });
 
   it("traduit les types d'événements sécurité", () => {

@@ -220,10 +220,10 @@ function classifyDestinationSide(
 
 export function threatLinkForSourceIp(ip?: string | null): string | null {
   if (!ip || isPrivateIp(ip)) return null;
-  return `/b4ck0ff1ce/security/threats?sourceIp=${encodeURIComponent(ip)}`;
+  return `/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`;
 }
 
 export function logsLinkForSourceIp(ip?: string | null): string | null {
   if (!ip) return null;
-  return `/b4ck0ff1ce/security/logs?q=${encodeURIComponent(ip)}`;
+  return `/backoffice/security/logs?q=${encodeURIComponent(ip)}`;
 }

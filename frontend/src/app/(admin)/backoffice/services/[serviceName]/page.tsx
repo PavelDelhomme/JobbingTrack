@@ -442,8 +442,9 @@ export default function ServiceDetailPage() {
         metricsUrl,
         fullServiceName,
         serviceName,
-        historyLimit: 180,
+        historyLimit: 320,
         chartDataMaxPoints: 80,
+        historyWindowMs: 6 * 60 * 60 * 1000,
       });
 
       if (merged) {
@@ -514,7 +515,7 @@ export default function ServiceDetailPage() {
     return (
       <ServicesPageShell
         showSubNav={false}
-        backHref="/b4ck0ff1ce/services"
+        backHref="/backoffice/services"
         backLabel="Retour à la liste des services"
         title={serviceName}
         description="Monitoring détaillé du service"
@@ -571,7 +572,7 @@ export default function ServiceDetailPage() {
   return (
     <ServicesPageShell
       showSubNav={false}
-      backHref="/b4ck0ff1ce/services"
+      backHref="/backoffice/services"
       backLabel="Retour à la liste des services"
       title={
         <span className="flex items-center gap-3">

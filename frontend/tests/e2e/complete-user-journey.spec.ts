@@ -119,7 +119,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     // ====================================
     console.log("🔵 Étape 3: Création d'une entreprise...");
 
-    await page.goto("http://localhost:3000/b4ck0ff1ce/companies");
+    await page.goto("http://localhost:3000/backoffice/companies");
     await page.waitForTimeout(1000);
 
     // Cliquer sur le bouton de création
@@ -170,7 +170,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     // ====================================
     console.log("🔵 Étape 4: Création d'une candidature...");
 
-    await page.goto("http://localhost:3000/b4ck0ff1ce/applications");
+    await page.goto("http://localhost:3000/backoffice/applications");
     await page.waitForTimeout(1000);
 
     // Cliquer sur le bouton de création
@@ -286,7 +286,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     // ====================================
     console.log("🔵 Étape 6: Planification d'un entretien...");
 
-    await page.goto("http://localhost:3000/b4ck0ff1ce/interviews");
+    await page.goto("http://localhost:3000/backoffice/interviews");
     await page.waitForTimeout(1000);
 
     // Créer un entretien
@@ -339,7 +339,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     // ====================================
     console.log("🔵 Étape 7: Planification d'une relance...");
 
-    await page.goto("http://localhost:3000/b4ck0ff1ce/followups");
+    await page.goto("http://localhost:3000/backoffice/followups");
     await page.waitForTimeout(1000);
 
     // Créer une relance
@@ -392,7 +392,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     // ====================================
     console.log("🔵 Étape 8: Vérification du dashboard...");
 
-    await page.goto("http://localhost:3000/b4ck0ff1ce");
+    await page.goto("http://localhost:3000/backoffice");
     await page.waitForTimeout(2000);
 
     // Vérifier que les statistiques sont mises à jour
@@ -421,7 +421,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
 
     // Aller à la page de gestion des données si elle existe
     const dataManagementUrl =
-      "http://localhost:3000/b4ck0ff1ce/data-management";
+      "http://localhost:3000/backoffice/data-management";
     await page.goto(dataManagementUrl);
     await page.waitForTimeout(1000);
 
@@ -527,7 +527,7 @@ test.describe("Parcours utilisateur complet - JobbingTrack", () => {
     await page.waitForTimeout(2000);
 
     // Aller sur les candidatures
-    await page.goto("http://localhost:3000/b4ck0ff1ce/applications");
+    await page.goto("http://localhost:3000/backoffice/applications");
     await page.waitForTimeout(1000);
 
     // Créer une nouvelle candidature avec une entreprise inexistante

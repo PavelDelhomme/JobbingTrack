@@ -92,6 +92,7 @@ type SecurityOverview = {
   automaticBlocksCount: number;
   detectionsCount: number;
   mobileCrashesCount: number;
+  mobileSecurityEventsCount: number;
 };
 
 type IncidentItem = {
@@ -130,6 +131,7 @@ const defaultOverview: SecurityOverview = {
   automaticBlocksCount: 0,
   detectionsCount: 0,
   mobileCrashesCount: 0,
+  mobileSecurityEventsCount: 0,
 };
 
 export default function SecurityOverviewPage() {
@@ -276,6 +278,11 @@ export default function SecurityOverviewPage() {
       );
       const detectionsCount =
         logDetectionsNoNetworkRow + sqlT + xssT + otherT + ddosT;
+      const mobileSecurityEventsCount = logsForStats.filter(
+        (l: Record<string, unknown>) =>
+          l?.category === "mobile" ||
+          String(l?.eventType || "").startsWith("mobile_"),
+      ).length;
 
       if (
         fetchFailures.length === 0 &&
@@ -441,6 +448,7 @@ export default function SecurityOverviewPage() {
         automaticBlocksCount,
         detectionsCount,
         mobileCrashesCount: crashList.length,
+        mobileSecurityEventsCount,
       });
     } finally {
       refreshInFlightRef.current = false;
@@ -485,49 +493,55 @@ export default function SecurityOverviewPage() {
       subtitle: overview.logsTruncated
         ? `Tronqué : ≥${SECURITY_LOGS_FETCH_LIMIT} entrées sur ${overview.logsPeriodDays} j. — politique rétention : docs/security/SECURITY_LOGS_RETENTION.md`
         : `${overview.logsCount} entrée(s) sur ${overview.logsPeriodDays} j. (max UI ${SECURITY_LOGS_FETCH_LIMIT})`,
-      href: "/b4ck0ff1ce/security/logs",
+      href: "/backoffice/security/logs",
     },
     {
       title: "Menaces",
       value: overview.threatsCount,
       subtitle: "Détections réseau",
-      href: "/b4ck0ff1ce/security/threats",
+      href: "/backoffice/security/threats",
     },
     {
       title: "IPs bloquées",
       value: overview.blockedIpsCount,
       subtitle: overview.blockedIpsSubtitle,
-      href: "/b4ck0ff1ce/security/firewall",
+      href: "/backoffice/security/firewall",
     },
     {
       title: "Règles firewall",
       value: overview.firewallRulesCount,
       subtitle: "Configuration active",
-      href: "/b4ck0ff1ce/security/firewall",
+      href: "/backoffice/security/firewall",
     },
     {
       title: "Détections",
       value: overview.detectionsCount,
       subtitle: "Logs (hors doublon network_threat) + menaces (page courante)",
-      href: "/b4ck0ff1ce/security/analysis",
+      href: "/backoffice/security/analysis",
     },
     {
       title: "Blocages manuels",
       value: overview.manualBlocksCount,
       subtitle: "Opérateur + tests lab (RFC5737)",
-      href: "/b4ck0ff1ce/security/firewall",
+      href: "/backoffice/security/firewall",
     },
     {
       title: "Blocages automatiques",
       value: overview.automaticBlocksCount,
       subtitle: "Réponse moteur",
-      href: "/b4ck0ff1ce/security/firewall",
+      href: "/backoffice/security/firewall",
     },
     {
       title: "Crashes mobile",
       value: overview.mobileCrashesCount,
       subtitle: "Rapports API mobile",
-      href: "/b4ck0ff1ce/statistics",
+      href: "/backoffice/statistics",
+    },
+    {
+      title: "Signaux sécurité mobile",
+      value: overview.mobileSecurityEventsCount,
+      subtitle: "Logs category=mobile (fenêtre 30 j)",
+      href: "/backoffice/security/logs?category=mobile",
     },
   ];
 
@@ -813,7 +827,7 @@ export default function SecurityOverviewPage() {
               Incidents temps réel (corrélés)
             </h2>
             <Link
-              href="/b4ck0ff1ce/security/incidents"
+              href="/backoffice/security/incidents"
               className="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400"
             >
               Voir tous les incidents →
@@ -932,7 +946,7 @@ export default function SecurityOverviewPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link
-            href="/b4ck0ff1ce/security/analysis"
+            href="/backoffice/security/analysis"
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
           >
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">
@@ -943,7 +957,7 @@ export default function SecurityOverviewPage() {
             </p>
           </Link>
           <Link
-            href="/b4ck0ff1ce/security/policies"
+            href="/backoffice/security/policies"
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
           >
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">
@@ -954,7 +968,7 @@ export default function SecurityOverviewPage() {
             </p>
           </Link>
           <Link
-            href="/b4ck0ff1ce/security/network"
+            href="/backoffice/security/network"
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
           >
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">

@@ -84,35 +84,35 @@ export default function SearchPage() {
           title: result.title || "Candidature sans titre",
           subtitle: result.companyName || "Entreprise inconnue",
           details: `${result.status} • ${result.createdAt ? new Date(result.createdAt).toLocaleDateString() : ""}`,
-          link: `/b4ck0ff1ce/applications/${result.id}`,
+          link: `/backoffice/applications/${result.id}`,
         };
       case "companies":
         return {
           title: result.name,
           subtitle: `${result.sector} • ${result.location || ""}`,
           details: result.website || "",
-          link: `/b4ck0ff1ce/companies/${result.id}`,
+          link: `/backoffice/companies/${result.id}`,
         };
       case "contacts":
         return {
           title: `${result.firstName} ${result.lastName}`,
           subtitle: result.position || "",
           details: `${result.email} • ${result.companyName || ""}`,
-          link: `/b4ck0ff1ce/contacts/${result.id}`,
+          link: `/backoffice/contacts/${result.id}`,
         };
       case "interviews":
         return {
           title: result.type || "Entretien",
           subtitle: result.companyName || "",
           details: `${result.status} • ${result.scheduledAt ? new Date(result.scheduledAt).toLocaleDateString() : ""}`,
-          link: `/b4ck0ff1ce/interviews/${result.id}`,
+          link: `/backoffice/interviews/${result.id}`,
         };
       case "calls":
         return {
           title: result.title || "Appel",
           subtitle: result.companyName || "",
           details: `${result.status} • ${result.scheduledAt ? new Date(result.scheduledAt).toLocaleDateString() : ""}`,
-          link: `/b4ck0ff1ce/calls/${result.id}`,
+          link: `/backoffice/calls/${result.id}`,
         };
       default:
         return {

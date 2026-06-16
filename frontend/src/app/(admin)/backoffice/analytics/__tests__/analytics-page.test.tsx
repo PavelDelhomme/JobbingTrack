@@ -1,5 +1,5 @@
 /**
- * Tests page /b4ck0ff1ce/analytics (hub application & utilisateurs)
+ * Tests page /backoffice/analytics (hub application & utilisateurs)
  */
 
 import React from "react";
@@ -13,7 +13,7 @@ jest.mock("@/components/features", () => ({
   ),
 }));
 
-describe("AnalyticsPage (/b4ck0ff1ce/analytics)", () => {
+describe("AnalyticsPage (/backoffice/analytics)", () => {
   it("rend la page sans erreur React", async () => {
     await act(async () => {
       render(<AnalyticsPage />);
@@ -30,11 +30,11 @@ describe("AnalyticsPage (/b4ck0ff1ce/analytics)", () => {
     });
     expect(screen.getByRole("link", { name: /Application/i })).toHaveAttribute(
       "href",
-      "/b4ck0ff1ce/analytics/application/performance",
+      "/backoffice/analytics/application/performance",
     );
     expect(screen.getByRole("link", { name: /Utilisateurs/i })).toHaveAttribute(
       "href",
-      "/b4ck0ff1ce/user-analytics",
+      "/backoffice/user-analytics",
     );
   });
 });

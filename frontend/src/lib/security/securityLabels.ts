@@ -44,6 +44,13 @@ const SECURITY_EVENT_TYPE_LABELS: Record<string, string> = {
   FAILED_LOGIN: "Connexion échouée",
   INVALID_TOKEN: "Jeton invalide",
   MOBILE_CRASH_REPORT: "Rapport crash mobile",
+  MOBILE_AUTH_FAILURE: "Échec authentification mobile",
+  MOBILE_LOGOUT: "Déconnexion mobile",
+  MOBILE_SESSION_REVOKED: "Session mobile révoquée",
+  MOBILE_OTP_FAILED: "OTP mobile échoué",
+  MOBILE_PASSWORD_CHANGED: "Mot de passe mobile modifié",
+  MOBILE_FORCED_LOGOUT: "Déconnexion forcée mobile",
+  MOBILE_SECURITY_EVENT: "Événement sécurité mobile",
 };
 
 const BLOCK_ORIGIN_LABELS: Record<string, string> = {
@@ -52,6 +59,24 @@ const BLOCK_ORIGIN_LABELS: Record<string, string> = {
   automatic_threat: "Automatique",
   iptables: "iptables",
   log_inferred: "Déduit des logs",
+  unknown: "Origine inconnue",
+};
+
+export type SecurityEventNature =
+  | "detection"
+  | "manual_block"
+  | "auto_block"
+  | "policy_change"
+  | "auth"
+  | "other";
+
+const SECURITY_EVENT_NATURE_LABELS: Record<SecurityEventNature, string> = {
+  detection: "Détection",
+  manual_block: "Blocage manuel",
+  auto_block: "Blocage automatique",
+  policy_change: "Changement politique",
+  auth: "Authentification",
+  other: "Événement",
 };
 
 const FIREWALL_ACTION_LABELS: Record<string, string> = {
@@ -106,6 +131,64 @@ export function formatBlockOriginLabel(value?: string | null): string | null {
   const key = String(value || "").trim();
   if (!key) return null;
   return BLOCK_ORIGIN_LABELS[key] || enumToReadable(value);
+}
+
+export function formatBlockOriginLabelOrUnknown(
+  value?: string | null,
+): string {
+  return formatBlockOriginLabel(value) || BLOCK_ORIGIN_LABELS.unknown;
+}
+
+export function classifySecurityEventNature(
+  eventType?: string | null,
+): SecurityEventNature {
+  const key = String(eventType || "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase();
+
+  if (
+    key.includes("WAF") ||
+    key.includes("INTRUSION") ||
+    key.includes("DETECTED") ||
+    key.includes("ATTACK") ||
+    key.includes("SCAN") ||
+    key.includes("FLOOD") ||
+    key === "FAILED_LOGIN"
+  ) {
+    return "detection";
+  }
+  if (
+    key.includes("BLOCKED") ||
+    key === "THREAT_BLOCKED" ||
+    key === "IP_BLOCKED_MANUALLY" ||
+    key === "IP_BLOCKED_LAB_SIMULATION"
+  ) {
+    if (key.includes("MANUAL") || key.includes("LAB")) return "manual_block";
+    return "auto_block";
+  }
+  if (
+    key.includes("TOGGLED") ||
+    key.includes("SETTINGS") ||
+    key === "SECURITY_ALERT_EMAIL_SETTINGS_UPDATED"
+  ) {
+    return "policy_change";
+  }
+  if (
+    key.includes("LOGIN") ||
+    key.includes("AUTH") ||
+    key.includes("TOKEN")
+  ) {
+    return "auth";
+  }
+  return "other";
+}
+
+export function formatSecurityEventNatureLabel(
+  eventType?: string | null,
+): string {
+  const nature = classifySecurityEventNature(eventType);
+  return SECURITY_EVENT_NATURE_LABELS[nature];
 }
 
 export function formatFirewallActionLabel(value?: string | null): string {

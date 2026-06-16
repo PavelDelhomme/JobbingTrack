@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     const scriptPath = `${projectRoot}/scripts/reports/generate-test-report.sh`;
     const inContainer = isRunningInFrontendContainer();
     const testCommand = inContainer
-      ? "npx playwright test tests/e2e/b4ck0ff1ce.spec.ts"
-      : `cd "${projectRoot}/frontend" && npx playwright test tests/e2e/b4ck0ff1ce.spec.ts`;
+      ? "npx playwright test tests/e2e/backoffice.spec.ts"
+      : `cd "${projectRoot}/frontend" && npx playwright test tests/e2e/backoffice.spec.ts`;
     const command = `cd "${projectRoot}" && sh "${scriptPath}" backoffice-only "${testCommand}" "${testName}"`;
 
     let stdout = "";

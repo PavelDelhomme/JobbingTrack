@@ -155,7 +155,7 @@ export default function ApplicationsPage() {
                     onClick={(e) => {
                       // Ne pas déclencher si on clique sur les boutons d'action
                       if ((e.target as HTMLElement).closest("button")) return;
-                      router.push(`/b4ck0ff1ce/applications/${app.id}`);
+                      router.push(`/backoffice/applications/${app.id}`);
                     }}
                   >
                     <td className="px-6 py-4">
@@ -186,7 +186,7 @@ export default function ApplicationsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/b4ck0ff1ce/applications/${app.id}`);
+                          router.push(`/backoffice/applications/${app.id}`);
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                       >
@@ -215,7 +215,7 @@ export default function ApplicationsPage() {
                 key={app.id}
                 className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                 onClick={() =>
-                  router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                  router.push(`/backoffice/applications/${app.id}`)
                 }
               >
                 <div className="flex justify-between items-start mb-2">
@@ -248,7 +248,7 @@ export default function ApplicationsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/b4ck0ff1ce/applications/${app.id}`);
+                      router.push(`/backoffice/applications/${app.id}`);
                     }}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >

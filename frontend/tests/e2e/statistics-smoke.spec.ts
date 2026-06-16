@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 const PAGES = [
-  "/b4ck0ff1ce/statistics",
-  "/b4ck0ff1ce/statistics/security",
-  "/b4ck0ff1ce/statistics/log-stats",
-  "/b4ck0ff1ce/statistics/app-data",
+  "/backoffice/statistics",
+  "/backoffice/statistics/security",
+  "/backoffice/statistics/log-stats",
+  "/backoffice/statistics/app-data",
 ] as const;
 
 for (const path of PAGES) {
@@ -36,7 +36,7 @@ for (const path of PAGES) {
           .getByRole("link", { name: label }),
       ).toBeVisible();
     }
-    if (path === "/b4ck0ff1ce/statistics") {
+    if (path === "/backoffice/statistics") {
       await expect(
         page.getByRole("heading", { name: /Disponibilité dans le temps/i }),
       ).toBeVisible({ timeout: 90_000 });
@@ -48,7 +48,7 @@ for (const path of PAGES) {
         timeout: 90_000,
       });
     }
-    if (path === "/b4ck0ff1ce/statistics/security") {
+    if (path === "/backoffice/statistics/security") {
       await expect(
         page.getByText(/Cohérence avec la console Sécurité live/i),
       ).toBeVisible({ timeout: 90_000 });

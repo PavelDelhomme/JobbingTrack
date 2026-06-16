@@ -74,7 +74,7 @@ export default function SecurityAlertDetailPage() {
   return (
     <SecurityPageShell
       showSubNav={false}
-      backHref="/b4ck0ff1ce/security/incidents"
+      backHref="/backoffice/security/incidents"
       backLabel="Retour aux incidents"
       title={alert?.title ?? "Détail alerte"}
     >

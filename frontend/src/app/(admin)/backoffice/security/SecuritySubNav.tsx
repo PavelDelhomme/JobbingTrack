@@ -7,26 +7,27 @@ import { AdminLayout } from "@/components/features";
 import { SecurityIncidentsTabs } from "./SecurityIncidentsTabs";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/security", label: "Vue d'ensemble" },
-  { href: "/b4ck0ff1ce/security/analysis", label: "Analyse" },
-  { href: "/b4ck0ff1ce/security/logs", label: "Logs" },
-  { href: "/b4ck0ff1ce/security/incidents", label: "Incidents" },
-  { href: "/b4ck0ff1ce/security/firewall", label: "Firewall" },
-  { href: "/b4ck0ff1ce/security/network", label: "Réseau" },
-  { href: "/b4ck0ff1ce/security/alerts", label: "Alertes email" },
-  { href: "/b4ck0ff1ce/security/policies", label: "Politiques" },
+  { href: "/backoffice/security", label: "Vue d'ensemble" },
+  { href: "/backoffice/security/analysis", label: "Analyse" },
+  { href: "/backoffice/security/logs", label: "Logs" },
+  { href: "/backoffice/security/incidents", label: "Incidents" },
+  { href: "/backoffice/security/investigation", label: "Investigation" },
+  { href: "/backoffice/security/firewall", label: "Firewall" },
+  { href: "/backoffice/security/network", label: "Réseau" },
+  { href: "/backoffice/security/alerts", label: "Alertes email" },
+  { href: "/backoffice/security/policies", label: "Politiques" },
 ] as const;
 
 function isSecurityTabActive(pathname: string, href: string): boolean {
-  if (href === "/b4ck0ff1ce/security") {
-    return pathname === "/b4ck0ff1ce/security";
+  if (href === "/backoffice/security") {
+    return pathname === "/backoffice/security";
   }
-  if (href === "/b4ck0ff1ce/security/incidents") {
+  if (href === "/backoffice/security/incidents") {
     return (
       pathname === href ||
       pathname.startsWith(`${href}/`) ||
-      pathname === "/b4ck0ff1ce/security/threats" ||
-      pathname.startsWith("/b4ck0ff1ce/security/threats/")
+      pathname === "/backoffice/security/threats" ||
+      pathname.startsWith("/backoffice/security/threats/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

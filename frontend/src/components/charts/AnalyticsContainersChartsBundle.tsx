@@ -443,7 +443,7 @@ export type AnalyticsContainersChartsBundleProps = {
   rawMetricsLength: number;
 };
 
-/** Recharts pour Performances — conteneurs (`/b4ck0ff1ce/performances/containers`) — chunk séparé via `dynamic` sur la page. */
+/** Recharts pour Performances — conteneurs (`/backoffice/performances/containers`) — chunk séparé via `dynamic` sur la page. */
 export function AnalyticsContainersChartsBundle({
   mode,
   rangeLabel,

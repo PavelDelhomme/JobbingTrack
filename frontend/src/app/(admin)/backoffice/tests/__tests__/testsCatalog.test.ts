@@ -9,7 +9,7 @@ describe("testsCatalog", () => {
         expect.objectContaining({
           id: "email-triage",
           name: "Agent email / triage",
-          href: "/b4ck0ff1ce/test-reports",
+          href: "/backoffice/test-reports",
         }),
       ]),
     );

@@ -1,8 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ServicesPageShell } from "./ServicesSubNav";
+import { FilterBar, FilterSelectField } from "@/components/filters";
+import { useAppliedFilters } from "@/hooks/useAppliedFilters";
+import {
+  buildServiceListFiltersFromSearchParams,
+  DEFAULT_SERVICE_LIST_FILTERS,
+  matchesServiceListFilters,
+  SERVICE_CPU_FILTER_OPTIONS,
+  SERVICE_MEMORY_FILTER_OPTIONS,
+  SERVICE_STATUS_FILTER_OPTIONS,
+  serviceListFilterBadges,
+  serviceListFiltersToSearchParams,
+  type ServiceListFilters,
+} from "@/lib/monitoring/serviceListFilters";
 import {
   Activity,
   Server,
@@ -157,13 +170,48 @@ function ServiceCpuMiniSeries({
 
 export default function ServicesPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialFilters = useMemo(
+    () => buildServiceListFiltersFromSearchParams(searchParams),
+    [searchParams],
+  );
+  const {
+    applied,
+    draft,
+    updateDraft,
+    apply,
+    reset,
+    hasDraftChanges,
+  } = useAppliedFilters<ServiceListFilters>(initialFilters);
+
+  const syncFiltersToUrl = useCallback(
+    (filters: ServiceListFilters) => {
+      const qs = serviceListFiltersToSearchParams(filters).toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router],
+  );
+
+  const handleApplyFilters = useCallback(() => {
+    syncFiltersToUrl(draft);
+    apply();
+  }, [apply, draft, syncFiltersToUrl]);
+
+  const handleResetFilters = useCallback(() => {
+    reset(DEFAULT_SERVICE_LIST_FILTERS);
+    syncFiltersToUrl(DEFAULT_SERVICE_LIST_FILTERS);
+  }, [reset, syncFiltersToUrl]);
+
+  const filterBadges = useMemo(
+    () => serviceListFilterBadges(applied),
+    [applied],
+  );
+
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterCpu, setFilterCpu] = useState<string>("all");
-  const [filterMemory, setFilterMemory] = useState<string>("all");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [serviceSparklines, setServiceSparklines] = useState<
@@ -433,39 +481,9 @@ export default function ServicesPage() {
     );
   };
 
-  // Filtrage des services
   const filteredServices = useMemo(
-    () =>
-      services.filter((service) => {
-        // Filtre par état
-        if (filterStatus === "running" && !service.is_running) return false;
-        if (filterStatus === "stopped" && service.is_running) return false;
-        if (
-          filterStatus === "unhealthy" &&
-          (service.is_healthy || !service.is_running)
-        )
-          return false;
-
-        // Filtre par CPU
-        if (filterCpu !== "all" && service.metrics) {
-          const cpu = service.metrics.cpu_percent;
-          if (filterCpu === "high" && cpu <= 80) return false;
-          if (filterCpu === "medium" && (cpu < 40 || cpu > 80)) return false;
-          if (filterCpu === "low" && cpu >= 40) return false;
-        }
-
-        // Filtre par Mémoire
-        if (filterMemory !== "all" && service.metrics) {
-          const memory = service.metrics.memory_percent;
-          if (filterMemory === "high" && memory <= 80) return false;
-          if (filterMemory === "medium" && (memory < 40 || memory > 80))
-            return false;
-          if (filterMemory === "low" && memory >= 40) return false;
-        }
-
-        return true;
-      }),
-    [services, filterStatus, filterCpu, filterMemory],
+    () => services.filter((service) => matchesServiceListFilters(service, applied)),
+    [services, applied],
   );
 
   // Appliquer le tri
@@ -639,7 +657,7 @@ export default function ServicesPage() {
       actions={
         <>
           <Link
-            href="/b4ck0ff1ce/services/logs"
+            href="/backoffice/services/logs"
             className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
           >
             <FileText className="w-4 h-4" />
@@ -732,58 +750,36 @@ export default function ServicesPage() {
           </div>
         </div>
 
-        {/* Filtres */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filtres :
-            </span>
-            <select
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">Tous les états</option>
-              <option value="running">Actifs</option>
-              <option value="stopped">Arrêtés</option>
-              <option value="unhealthy">Non sains</option>
-            </select>
-            <select
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-              value={filterCpu}
-              onChange={(e) => setFilterCpu(e.target.value)}
-            >
-              <option value="all">Tous les CPU</option>
-              <option value="high">CPU élevé (&gt; 80%)</option>
-              <option value="medium">CPU moyen (40-80%)</option>
-              <option value="low">CPU faible (&lt; 40%)</option>
-            </select>
-            <select
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-              value={filterMemory}
-              onChange={(e) => setFilterMemory(e.target.value)}
-            >
-              <option value="all">Toutes les mémoires</option>
-              <option value="high">Mémoire élevée (&gt; 80%)</option>
-              <option value="medium">Mémoire moyenne (40-80%)</option>
-              <option value="low">Mémoire faible (&lt; 40%)</option>
-            </select>
-            {(filterStatus !== "all" ||
-              filterCpu !== "all" ||
-              filterMemory !== "all") && (
-              <button
-                onClick={() => {
-                  setFilterStatus("all");
-                  setFilterCpu("all");
-                  setFilterMemory("all");
-                }}
-                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-              >
-                Réinitialiser
-              </button>
-            )}
+        <FilterBar
+          hasDraftChanges={hasDraftChanges}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          badges={filterBadges}
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <FilterSelectField
+              label="État"
+              value={draft.status}
+              onChange={(value) => updateDraft("status", value)}
+              options={[...SERVICE_STATUS_FILTER_OPTIONS]}
+              placeholder="Tous les états"
+            />
+            <FilterSelectField
+              label="CPU"
+              value={draft.cpu}
+              onChange={(value) => updateDraft("cpu", value)}
+              options={[...SERVICE_CPU_FILTER_OPTIONS]}
+              placeholder="Tous les CPU"
+            />
+            <FilterSelectField
+              label="Mémoire"
+              value={draft.memory}
+              onChange={(value) => updateDraft("memory", value)}
+              options={[...SERVICE_MEMORY_FILTER_OPTIONS]}
+              placeholder="Toutes les mémoires"
+            />
           </div>
-        </div>
+        </FilterBar>
 
         {/* Liste des services */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -866,7 +862,7 @@ export default function ServicesPage() {
                       title={SERVICE_ROW_DETAIL_HINT}
                       onClick={() =>
                         router.push(
-                          `/b4ck0ff1ce/services/${service.name.replace("jobbingtrack-", "")}`,
+                          `/backoffice/services/${service.name.replace("jobbingtrack-", "")}`,
                         )
                       }
                     >
@@ -952,7 +948,7 @@ export default function ServicesPage() {
                         <div className="flex items-center gap-2">
                           {/* ✅ NOUVEAU : Bouton "Voir les logs" */}
                           <Link
-                            href={`/b4ck0ff1ce/services/logs?service=${encodeURIComponent(service.name.replace("jobbingtrack-", ""))}`}
+                            href={`/backoffice/services/logs?service=${encodeURIComponent(service.name.replace("jobbingtrack-", ""))}`}
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                           >

@@ -6,16 +6,16 @@ import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/emails", label: "Dashboard" },
-  { href: "/b4ck0ff1ce/email-monitor", label: "Email Monitor" },
-  { href: "/b4ck0ff1ce/emails/templates", label: "Templates" },
-  { href: "/b4ck0ff1ce/emails/settings", label: "Configuration" },
-  { href: "/b4ck0ff1ce/emails/deliverability", label: "Déliverabilité" },
-  { href: "/b4ck0ff1ce/emails/mailhog", label: "MailHog" },
+  { href: "/backoffice/emails", label: "Dashboard" },
+  { href: "/backoffice/email-monitor", label: "Email Monitor" },
+  { href: "/backoffice/emails/templates", label: "Templates" },
+  { href: "/backoffice/emails/settings", label: "Configuration" },
+  { href: "/backoffice/emails/deliverability", label: "Déliverabilité" },
+  { href: "/backoffice/emails/mailhog", label: "MailHog" },
 ] as const;
 
 function isEmailTabActive(pathname: string, href: string): boolean {
-  if (href === "/b4ck0ff1ce/emails") {
+  if (href === "/backoffice/emails") {
     return pathname === href;
   }
   return pathname === href || pathname.startsWith(`${href}/`);

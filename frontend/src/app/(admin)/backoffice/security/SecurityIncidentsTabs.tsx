@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/b4ck0ff1ce/security/incidents", label: "Synthèse incidents" },
-  { href: "/b4ck0ff1ce/security/threats", label: "Menaces réseau" },
+  { href: "/backoffice/security/incidents", label: "Synthèse incidents" },
+  { href: "/backoffice/security/threats", label: "Menaces réseau" },
 ] as const;
 
 export function SecurityIncidentsTabs() {

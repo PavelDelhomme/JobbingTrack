@@ -20,7 +20,7 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
         /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
           userAgent.toLowerCase(),
         );
-      const isBackoffice = pathname?.startsWith("/b4ck0ff1ce");
+      const isBackoffice = pathname?.startsWith("/backoffice");
 
       // Tracker uniquement sur mobile et pas dans le backoffice
       if (isMobile && !isBackoffice) {

@@ -560,7 +560,7 @@ export default function SecurityTestsPage() {
             </li>
             <li>
               Rapports :{" "}
-              <Link href="/b4ck0ff1ce/test-reports" className="underline">
+              <Link href="/backoffice/test-reports" className="underline">
                 Rapports de tests
               </Link>{" "}
               (catégorie Sécurité).
@@ -691,7 +691,7 @@ export default function SecurityTestsPage() {
                       <>
                         {" "}
                         <Link
-                          href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(hit.reportId)}`}
+                          href={`/backoffice/test-reports?open=${encodeURIComponent(hit.reportId)}`}
                           className="text-blue-600 hover:underline"
                         >
                           ouvrir
@@ -785,7 +785,7 @@ export default function SecurityTestsPage() {
         {reportId && (
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <Link
-              href={`/b4ck0ff1ce/test-reports?open=${encodeURIComponent(reportId)}`}
+              href={`/backoffice/test-reports?open=${encodeURIComponent(reportId)}`}
               className="inline-flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:underline font-medium"
             >
               <FileText className="w-4 h-4" />

@@ -22,7 +22,7 @@ export function PerformancePageShell({
   children,
   actions,
   notice,
-  backHref = "/b4ck0ff1ce/performances",
+  backHref = "/backoffice/performances",
   backLabel = "Retour à Performances",
   topLinks,
 }: PerformancePageShellProps) {

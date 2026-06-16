@@ -5,14 +5,14 @@ import { loginAsAdmin } from "./test-data-helper";
 test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await page.waitForLoadState("domcontentloaded");
   });
 
   test("devrait permettre la navigation vers la gestion des données", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Vérifier que la page se charge correctement
     await expect(page.locator("h1")).toContainText("Gestion des Données");
@@ -26,7 +26,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   test("devrait permettre la navigation entre les onglets", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Onglet Parcourir (par défaut)
     await expect(page.locator("text=Table : User")).toBeVisible();
@@ -51,7 +51,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   test("devrait permettre le chargement et la navigation des tables", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données pour la table User
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -102,7 +102,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre l'export avancé des données", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données pour l'export
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -159,7 +159,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   test("devrait permettre la modification avancée des données", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -246,7 +246,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre les tests de base de données", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Aller à l'onglet Tests DB
     await page.locator("text=Tests DB").click();
@@ -286,7 +286,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre l'import de données", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Aller à l'onglet Import
     await page.locator("text=Import").click();
@@ -306,7 +306,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre les opérations en masse", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -347,7 +347,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait gérer les erreurs correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock d'erreur serveur
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -371,7 +371,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
   });
 
   test("devrait maintenir l'état lors de la navigation", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Sélectionner une table et un onglet
     await page.locator("text=Export").click();
@@ -388,7 +388,7 @@ test.describe("💾 Gestion des Données - Tests Complets (admin)", () => {
     // Définir la viewport mobile
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Vérifier que l'interface s'adapte
     await expect(page.locator("h1")).toBeVisible();

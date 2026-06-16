@@ -151,7 +151,7 @@ export default function CallDetailPage({
 
       if (!response.ok) throw new Error("Erreur lors de la suppression");
 
-      router.push("/b4ck0ff1ce/calls");
+      router.push("/backoffice/calls");
     } catch (err: any) {
       alert(err.message);
     }
@@ -220,7 +220,7 @@ export default function CallDetailPage({
             {error || "Appel non trouvé"}
           </p>
           <Link
-            href="/b4ck0ff1ce/calls"
+            href="/backoffice/calls"
             className="text-blue-600 hover:underline mt-2 inline-block"
           >
             Retour à la liste
@@ -240,7 +240,7 @@ export default function CallDetailPage({
         <div className="flex justify-between items-start">
           <div>
             <Link
-              href="/b4ck0ff1ce/calls"
+              href="/backoffice/calls"
               className="text-blue-600 hover:underline mb-2 inline-block"
             >
               ← Retour aux appels
@@ -570,7 +570,7 @@ export default function CallDetailPage({
                     </div>
                   </div>
                   <Link
-                    href={`/b4ck0ff1ce/applications/${call.applicationId}`}
+                    href={`/backoffice/applications/${call.applicationId}`}
                     className="inline-block mt-2 text-blue-600 hover:underline text-sm"
                   >
                     Voir la candidature →
@@ -625,7 +625,7 @@ export default function CallDetailPage({
                     </div>
                   )}
                   <Link
-                    href={`/b4ck0ff1ce/contacts/${call.contactId}`}
+                    href={`/backoffice/contacts/${call.contactId}`}
                     className="inline-block mt-2 text-blue-600 hover:underline text-sm"
                   >
                     Voir le contact →

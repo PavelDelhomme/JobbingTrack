@@ -61,7 +61,7 @@ export function PriorityResponseServicesSummary({
           </p>
         </div>
         <Link
-          href="/b4ck0ff1ce/performances/latency"
+          href="/backoffice/performances/latency"
           className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline shrink-0"
         >
           Détail latence →
@@ -80,7 +80,7 @@ export function PriorityResponseServicesSummary({
         <p className="text-xs text-blue-900/70 dark:text-blue-100/70">
           Aucun service prioritaire en cours d&apos;exécution — vérifier la
           stack Docker ou l&apos;onglet{" "}
-          <Link href="/b4ck0ff1ce/services" className="underline">
+          <Link href="/backoffice/services" className="underline">
             Services
           </Link>
           .

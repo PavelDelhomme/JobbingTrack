@@ -402,7 +402,7 @@ export default function UsersManagementPage() {
       description="Gérez les comptes utilisateurs et leurs permissions"
       actions={
         <button
-          onClick={() => router.push("/b4ck0ff1ce/users/new")}
+          onClick={() => router.push("/backoffice/users/new")}
           className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors sm:w-auto"
         >
           <Plus className="h-5 w-5" />
@@ -564,7 +564,7 @@ export default function UsersManagementPage() {
                 {pagination.paginatedItems.map((user) => (
                   <tr
                     key={user.id}
-                    onClick={() => router.push(`/b4ck0ff1ce/users/${user.id}`)}
+                    onClick={() => router.push(`/backoffice/users/${user.id}`)}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                     title="Voir le détail de l'utilisateur"
                   >
@@ -658,7 +658,7 @@ export default function UsersManagementPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() =>
-                            router.push(`/b4ck0ff1ce/users/${user.id}`)
+                            router.push(`/backoffice/users/${user.id}`)
                           }
                           className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                           title="Modifier"

@@ -210,8 +210,8 @@ export default function SecurityLogsPage() {
   const categorySuggestions = useMemo(
     () =>
       mergeFacetSuggestions(
-        facets.categories,
-        logs.map((log) => log.category),
+        [{ value: "mobile" }],
+        mergeFacetSuggestions(facets.categories, logs.map((log) => log.category)),
       ),
     [facets.categories, logs],
   );
@@ -276,6 +276,18 @@ export default function SecurityLogsPage() {
   const handleApply = () => {
     setPage(1);
     apply();
+  };
+
+  const applyMobilePreset = () => {
+    setPage(1);
+    const next = {
+      ...applied,
+      category: "mobile",
+      eventType: "",
+      query: "",
+    };
+    setApplied(next);
+    setDraft(next);
   };
 
   const handleReset = () => {
@@ -374,6 +386,28 @@ export default function SecurityLogsPage() {
             />
           </div>
         </FilterBar>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={applyMobilePreset}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              applied.category === "mobile"
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+            }`}
+          >
+            Signaux mobile
+          </button>
+          {applied.category === "mobile" ? (
+            <Link
+              href="/backoffice/security/incidents?mobile=1"
+              className="rounded-md border border-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
+            >
+              Voir aussi dans Incidents
+            </Link>
+          ) : null}
+        </div>
 
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">

@@ -512,7 +512,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     de test — page dédiée hors de cette popup.
                   </p>
                   <Link
-                    href="/b4ck0ff1ce/security/alerts"
+                    href="/backoffice/security/alerts"
                     onClick={onClose}
                     className="mt-3 inline-flex max-w-full items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
                   >

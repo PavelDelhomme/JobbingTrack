@@ -3031,7 +3031,7 @@ export default function UserJourneyPage() {
               <Trash2 className="h-4 w-4" />
             </Button>
 
-            <Link href="/b4ck0ff1ce/user-journey/reports">
+            <Link href="/backoffice/user-journey/reports">
               <Button
                 variant="outline"
                 size="sm"
@@ -3465,7 +3465,7 @@ export default function UserJourneyPage() {
                           personnalisés) :
                         </p>
                         <Link
-                          href="/b4ck0ff1ce/user-journey/reports"
+                          href="/backoffice/user-journey/reports"
                           className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           <FileText className="h-4 w-4" />

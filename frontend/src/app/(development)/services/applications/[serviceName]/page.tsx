@@ -9,7 +9,7 @@ export default function ServiceDetailPage() {
 
   useEffect(() => {
     // Redirection automatique vers la page principale des services
-    router.push("/b4ck0ff1ce/services");
+    router.push("/backoffice/services");
   }, [router]);
 
   return (

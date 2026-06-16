@@ -493,7 +493,7 @@ export default function SecurityPoliciesPage() {
               </p>
             </div>
             <Link
-              href="/b4ck0ff1ce/security/firewall"
+              href="/backoffice/security/firewall"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
             >
               Ouvrir Firewall
@@ -571,7 +571,7 @@ export default function SecurityPoliciesPage() {
                       )}
                       {row?.threatId && (
                         <Link
-                          href={`/b4ck0ff1ce/security/threats/${row.threatId}`}
+                          href={`/backoffice/security/threats/${row.threatId}`}
                           className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           Fiche menace
@@ -605,21 +605,21 @@ export default function SecurityPoliciesPage() {
         <div className="text-sm text-gray-500 dark:text-gray-400">
           Voir aussi :{" "}
           <Link
-            href="/b4ck0ff1ce/security/firewall"
+            href="/backoffice/security/firewall"
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Firewall
           </Link>
           {" · "}
           <Link
-            href="/b4ck0ff1ce/security/logs"
+            href="/backoffice/security/logs"
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Logs de sécurité
           </Link>
           {" · "}
           <Link
-            href="/b4ck0ff1ce/security/threats"
+            href="/backoffice/security/threats"
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Menaces

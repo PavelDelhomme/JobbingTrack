@@ -7,7 +7,7 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     page,
     request,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await expect(page).toHaveURL("/login");
 
     const creds = await ensureTestUser(request);
@@ -19,13 +19,13 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     // Un user classique devrait être redirigé (accès refusé ou page user)
     await page.waitForTimeout(2000);
     const url = page.url();
-    expect(url.includes("/b4ck0ff1ce")).toBeFalsy();
+    expect(url.includes("/backoffice")).toBeFalsy();
   });
 
   test("devrait gérer correctement les sessions et timeouts", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Simuler une expiration de session
     await page.route("**/api/v1/auth/profile", async (route) => {
@@ -39,14 +39,14 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     });
 
     // Essayer d'accéder à une page protégée
-    await page.goto("/b4ck0ff1ce/users");
+    await page.goto("/backoffice/users");
 
     // Devrait être redirigé vers login
     await expect(page).toHaveURL("/login");
   });
 
   test("devrait empêcher les attaques CSRF", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Essayer d'envoyer une requête CSRF depuis un autre domaine
     await page.route("**/api/v1/applications", async (route) => {
@@ -63,7 +63,7 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     });
 
     // La requête devrait réussir car elle vient du bon domaine avec les bons headers
-    await page.goto("/b4ck0ff1ce/applications");
+    await page.goto("/backoffice/applications");
     await expect(page.locator("text=Applications")).toBeVisible();
   });
 
@@ -90,7 +90,7 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     await expect(page.locator("text=Identifiants invalides")).toBeVisible();
 
     // Aller dans le backoffice et tester XSS
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Créer une entreprise avec du contenu XSS
     await page.locator("text=Entreprises").click();
@@ -112,14 +112,14 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
   test("devrait gérer correctement les permissions granulaires", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Devrait pouvoir accéder aux candidatures
     await page.locator("text=Applications").click();
     await expect(page.locator("text=Candidatures")).toBeVisible();
 
     // Ne devrait pas pouvoir accéder à la gestion des utilisateurs (admin)
-    await page.goto("/b4ck0ff1ce/users");
+    await page.goto("/backoffice/users");
 
     // Devrait être redirigé ou voir une erreur 403
     await expect(page.locator("text=Accès refusé")).toBeVisible();
@@ -130,14 +130,14 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     await expect(page.locator('input[name="position"]')).toBeVisible();
 
     // Mais ne devrait pas pouvoir supprimer des candidatures (permission manquante)
-    await page.goto("/b4ck0ff1ce/applications");
+    await page.goto("/backoffice/applications");
     await expect(
       page.locator("button").filter({ hasText: /Supprimer/ }),
     ).not.toBeVisible();
   });
 
   test("devrait sécuriser les téléchargements et exports", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Aller dans les rapports et essayer d'exporter
     await page.locator("text=Analytics").click();
@@ -215,11 +215,11 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
       "text",
     );
 
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Vérifier que les données sensibles ne sont pas exposées dans les logs réseau
     // (Cette vérification serait normalement faite en analysant les requêtes réseau)
-    await page.goto("/b4ck0ff1ce/users");
+    await page.goto("/backoffice/users");
 
     // Les données utilisateur ne devraient pas être visibles sans authentification appropriée
     await expect(page.locator('input[type="password"]')).not.toBeVisible();
@@ -229,12 +229,12 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
     page,
   }) => {
     // Essayer d'accéder à une URL malformée
-    await page.goto("/b4ck0ff1ce/%3Cscript%3Ealert(1)%3C/script%3E");
+    await page.goto("/backoffice/%3Cscript%3Ealert(1)%3C/script%3E");
 
     // Devrait recevoir une erreur 400 ou 404 appropriée
     await expect(page.locator("text=Page non trouvée")).toBeVisible();
 
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Essayer d'envoyer des données malformées
     await page.route("**/api/v1/applications", async (route) => {
@@ -259,7 +259,7 @@ test.describe("🔒 Tests de Sécurité Avancés", () => {
   test("devrait maintenir la sécurité lors des changements de rôle", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
 
     // Accéder à la gestion des utilisateurs
     await page.locator("text=Utilisateurs").click();

@@ -270,7 +270,7 @@ export default function StatisticsPage() {
   const [dockerServicesSnapshot, setDockerServicesSnapshot] = useState<
     DockerServiceRow[] | null
   >(null);
-  // ✅ SUPPRESSION : onglet services retiré — voir /b4ck0ff1ce/services et Services & Logs
+  // ✅ SUPPRESSION : onglet services retiré — voir /backoffice/services et Services & Logs
   const [activeTab, setActiveTab] = useState<"overview" | "security" | "logs">(
     "overview",
   );
@@ -1126,7 +1126,7 @@ export default function StatisticsPage() {
         <nav className="flex space-x-4 overflow-x-auto">
           {[
             { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
-            // ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services et Services & Logs
+            // ✅ SUPPRESSION : onglet Services — /backoffice/services et Services & Logs
             { id: "security", label: "🛡️ Santé technique", icon: Shield },
             { id: "logs", label: "📊 Statistiques Logs", icon: FileText },
           ].map((tab) => (
@@ -1181,7 +1181,7 @@ export default function StatisticsPage() {
             chartAxisShowDate={chartAxisShowDate}
           />
         )}
-        {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
+        {/* ✅ SUPPRESSION : onglet Services — /backoffice/services, Services & Logs */}
         {activeTab === "security" && (
           <SecurityTab
             stats={stats}
@@ -1279,19 +1279,19 @@ const OverviewTab = memo(function OverviewTab({
       </Suspense>
       <div className="flex flex-wrap gap-3 text-sm">
         <Link
-          href="/b4ck0ff1ce/statistics/security"
+          href="/backoffice/statistics/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Sécurité (persistance) →
         </Link>
         <Link
-          href="/b4ck0ff1ce/statistics/log-stats"
+          href="/backoffice/statistics/log-stats"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Logs agrégés →
         </Link>
         <Link
-          href="/b4ck0ff1ce/services"
+          href="/backoffice/services"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Services & monitoring →
@@ -2037,7 +2037,7 @@ function ServicesTab({
         {RESPONSE_TIME_SOURCE_NOTE} Historique par service non persisté — courbe
         globale dans{" "}
         <Link
-          href="/b4ck0ff1ce/performances/latency"
+          href="/backoffice/performances/latency"
           className="text-blue-600 dark:text-blue-400 hover:underline"
         >
           Performances → Temps de réponse
@@ -2552,14 +2552,14 @@ const SecurityTab = memo(function SecurityTab({
           Cette vue est une synthèse technique (disponibilité, requêtes,
           erreurs, santé services). Les chiffres sécurité applicative sont dans{" "}
           <Link
-            href="/b4ck0ff1ce/statistics/security"
+            href="/backoffice/statistics/security"
             className="font-medium underline hover:no-underline"
           >
             Sécurité persistée
           </Link>{" "}
           et la console opérationnelle dans{" "}
           <Link
-            href="/b4ck0ff1ce/security"
+            href="/backoffice/security"
             className="font-medium underline hover:no-underline"
           >
             Sécurité live
@@ -2567,13 +2567,13 @@ const SecurityTab = memo(function SecurityTab({
           .
         </div>
         <Link
-          href="/b4ck0ff1ce/statistics/security"
+          href="/backoffice/statistics/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Détail sécurité persistée →
         </Link>
         <Link
-          href="/b4ck0ff1ce/security"
+          href="/backoffice/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Console sécurité live →

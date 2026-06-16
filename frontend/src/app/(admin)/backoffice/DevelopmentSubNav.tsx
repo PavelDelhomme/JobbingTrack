@@ -6,11 +6,11 @@ import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
 const TEST_TABS = [
-  { href: "/b4ck0ff1ce/tests", label: "Vue d'ensemble" },
-  { href: "/b4ck0ff1ce/tests-api", label: "Tests API" },
-  { href: "/b4ck0ff1ce/tests-backend", label: "Tests Backend" },
-  { href: "/b4ck0ff1ce/tests-frontend", label: "Tests Frontend" },
-  { href: "/b4ck0ff1ce/tests-backoffice", label: "Tests Backoffice" },
+  { href: "/backoffice/tests", label: "Vue d'ensemble" },
+  { href: "/backoffice/tests-api", label: "Tests API" },
+  { href: "/backoffice/tests-backend", label: "Tests Backend" },
+  { href: "/backoffice/tests-frontend", label: "Tests Frontend" },
+  { href: "/backoffice/tests-backoffice", label: "Tests Backoffice" },
 ] as const;
 
 export function DevelopmentTestsSubNav() {

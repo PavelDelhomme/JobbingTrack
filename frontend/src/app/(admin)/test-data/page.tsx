@@ -733,7 +733,7 @@ export default function TestDataGeneratorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <button
                 onClick={() =>
-                  window.open("/b4ck0ff1ce/playwright-tests", "_blank")
+                  window.open("/backoffice/playwright-tests", "_blank")
                 }
                 className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-left"
               >
@@ -933,7 +933,7 @@ export default function TestDataGeneratorPage() {
                       },
                     });
                     setTimeout(() => {
-                      window.open("/b4ck0ff1ce/playwright-tests", "_blank");
+                      window.open("/backoffice/playwright-tests", "_blank");
                     }, 1000);
                     alert("✅ Données E2E générées + Tests lancés !");
                   } catch (error) {

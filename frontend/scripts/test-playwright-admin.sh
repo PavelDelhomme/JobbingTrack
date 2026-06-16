@@ -86,7 +86,7 @@ echo -e "${YELLOW}👤 Création d'un utilisateur de test via l'interface...${NC
 # Pour l'instant, on teste que l'interface est accessible
 # (Les tests Playwright complets nécessiteraient un navigateur headless)
 
-if curl -s http://localhost:8080/b4ck0ff1ce/playwright-tests > /dev/null; then
+if curl -s http://localhost:8080/backoffice/playwright-tests > /dev/null; then
     echo -e "${GREEN}✅ Interface d'administration accessible${NC}"
 else
     echo -e "${YELLOW}⚠️ Interface d'administration inaccessible${NC}"
@@ -142,7 +142,7 @@ echo -e "${GREEN}🎉 Tests de l'interface d'administration terminés !${NC}"
 # Afficher les instructions
 echo ""
 echo -e "${BLUE}📊 Interface d'administration :${NC}"
-echo "   http://localhost:8080/b4ck0ff1ce/playwright-tests"
+echo "   http://localhost:8080/backoffice/playwright-tests"
 echo ""
 echo -e "${BLUE}🎭 Tests disponibles :${NC}"
 echo "   npm run test:e2e:mobile           # Tests de l'application mobile"

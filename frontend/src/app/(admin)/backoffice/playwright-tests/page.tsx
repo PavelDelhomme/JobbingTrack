@@ -72,7 +72,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce/contacts",
+        target: "/backoffice/contacts",
         description: "Naviguer vers la page Contacts",
       },
       {
@@ -133,7 +133,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce/contacts",
+        target: "/backoffice/contacts",
         description: "Naviguer vers la page Contacts",
       },
       {
@@ -166,7 +166,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce/contacts",
+        target: "/backoffice/contacts",
         description: "Naviguer vers la page Contacts",
       },
       {
@@ -220,7 +220,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce/applications",
+        target: "/backoffice/applications",
         description: "Naviguer vers les candidatures",
       },
       {
@@ -267,7 +267,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce/followups",
+        target: "/backoffice/followups",
         description: "Naviguer vers les relances",
       },
       {
@@ -314,7 +314,7 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
       {
         id: "1",
         action: "navigate",
-        target: "/b4ck0ff1ce",
+        target: "/backoffice",
         description: "Naviguer vers le dashboard",
       },
       {
@@ -474,7 +474,7 @@ export default function PlaywrightTestsPage() {
       const data = await res.json().catch(() => ({}));
       if (data.reportId) {
         window.open(
-          `/b4ck0ff1ce/test-reports?open=${encodeURIComponent(data.reportId)}`,
+          `/backoffice/test-reports?open=${encodeURIComponent(data.reportId)}`,
           "_blank",
         );
         alert(

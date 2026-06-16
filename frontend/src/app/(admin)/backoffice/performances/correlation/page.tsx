@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { PerformancesSubNav } from "../PerformancesSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
+import { FRONTEND_URLS } from "@/config/ports.config";
 import {
   normalizeMetricTimestampToIso,
   metricRowToTimeMs,
@@ -14,6 +15,13 @@ import {
   buildIncidentEmptyReason,
   formatIncidentTableCell,
 } from "@/lib/metrics/performanceCorrelationModel";
+import {
+  enrichAggLogRows,
+  isCorrelationTableEligibleRow,
+  isIpLikeString,
+  mergeAggLogMetadata,
+  readFirstIpFromUnknownList,
+} from "@/lib/metrics/incidentForensics";
 import {
   ResponsiveContainer,
   LineChart,
@@ -249,11 +257,43 @@ function readNestedNumber(
 }
 
 type AggLogRow = {
+  id?: string | null;
   level?: string | null;
   message?: string | null;
   serviceName?: string | null;
   timestamp?: string | Date;
   eventType?: string | null;
+  requestId?: string | null;
+  method?: string | null;
+  httpMethod?: string | null;
+  endpoint?: string | null;
+  path?: string | null;
+  url?: string | null;
+  sourceIP?: string | null;
+  sourceIp?: string | null;
+  source_ip?: string | null;
+  clientIp?: string | null;
+  client_ip?: string | null;
+  ip?: string | null;
+  statusCode?: string | number | null;
+  httpStatus?: string | number | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+type SecurityLogApiRow = {
+  id?: string | null;
+  timestamp?: string | Date;
+  level?: string | null;
+  category?: string | null;
+  eventType?: string | null;
+  message?: string | null;
+  sourceIP?: string | null;
+  userId?: string | null;
+  endpoint?: string | null;
+  method?: string | null;
+  statusCode?: number | string | null;
+  responseTime?: number | string | null;
+  isBlocked?: boolean | null;
   requestId?: string | null;
   metadata?: Record<string, unknown> | null;
 };
@@ -356,16 +396,179 @@ function countSecuritySignalsInLogs(rows: AggLogRow[]): number {
   }).length;
 }
 
-/** Winston / central logger peuvent imbriquer les champs dans `metadata.metadata`. */
-function mergeAggLogMetadata(row: AggLogRow): Record<string, unknown> | null {
-  const raw = row.metadata;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const o = raw as Record<string, unknown>;
-  const inner = o.metadata;
-  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-    return { ...o, ...(inner as Record<string, unknown>) };
+function readLooseString(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function firstMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  keys: string[],
+): string | null {
+  if (!metadata) return null;
+  for (const key of keys) {
+    const value = readLooseString(metadata[key]);
+    if (value) return value;
   }
-  return o;
+  return null;
+}
+
+function serviceAliasesForName(name: string): string[] {
+  const clean = String(name || "").trim();
+  if (!clean) return [];
+  const noPrefix = clean.replace(/^jobbingtrack-/, "");
+  const withPrefix = noPrefix.startsWith("jobbingtrack-")
+    ? noPrefix
+    : `jobbingtrack-${noPrefix}`;
+  return Array.from(new Set([clean, noPrefix, withPrefix]));
+}
+
+function inferServiceNameFromEndpoint(endpoint: string | null): string | null {
+  if (!endpoint) return null;
+  const path = endpoint.startsWith("http") ? parseEndpointUrl(endpoint).endpoint : endpoint;
+  if (!path) return null;
+  const routes: Array<[RegExp, string]> = [
+    [/^\/api\/v1\/(auth|users|emails|preferences)\b/, "auth-service"],
+    [/^\/api\/v1\/applications\b/, "application-service"],
+    [/^\/api\/v1\/companies\b/, "company-service"],
+    [/^\/api\/v1\/contacts\b/, "contact-service"],
+    [/^\/api\/v1\/interviews\b/, "interview-service"],
+    [/^\/api\/v1\/notifications\b/, "notification-service"],
+    [/^\/api\/v1\/(dashboard|statistics|analytics)\b/, "dashboard-service"],
+    [/^\/api\/v1\/calls\b/, "call-service"],
+    [/^\/api\/v1\/profile\b/, "profile-service"],
+    [/^\/api\/v1\/events\b/, "event-service"],
+    [/^\/api\/v1\/followups\b/, "followup-service"],
+    [/^\/api\/v1\/workflows\b/, "workflow-service"],
+    [/^\/api\/v1\/(security|logs|alerts|intrusions|ddos|vulnerabilities)\b/, "security-service"],
+  ];
+  return routes.find(([pattern]) => pattern.test(path))?.[1] ?? null;
+}
+
+function pickSecurityLogRequestId(row: SecurityLogApiRow): string | null {
+  return (
+    readLooseString(row.requestId) ||
+    firstMetadataString(row.metadata, [
+      "requestId",
+      "correlationId",
+      "xRequestId",
+      "x-request-id",
+    ])
+  );
+}
+
+function securityLogServiceCandidates(row: SecurityLogApiRow): string[] {
+  const metadata = row.metadata || {};
+  const candidates = new Set<string>();
+  const directService = firstMetadataString(metadata, [
+    "serviceName",
+    "service",
+    "targetService",
+    "containerName",
+  ]);
+  const source = firstMetadataString(metadata, ["source", "sourceService"]);
+  const endpointService = inferServiceNameFromEndpoint(row.endpoint || null);
+
+  for (const value of [directService, endpointService, source]) {
+    if (!value) continue;
+    const normalized =
+      value.includes("api-gateway") || value.startsWith("api-gateway-")
+        ? "api-gateway"
+        : value;
+    serviceAliasesForName(normalized).forEach((alias) => candidates.add(alias));
+  }
+
+  if (source?.includes("api-gateway")) {
+    serviceAliasesForName("api-gateway").forEach((alias) => candidates.add(alias));
+  }
+
+  // Ces lignes viennent de security_logs : le service sécurité doit toujours pouvoir les diagnostiquer.
+  serviceAliasesForName("security-service").forEach((alias) => candidates.add(alias));
+  return Array.from(candidates);
+}
+
+function securityLogMatchesFocus(row: SecurityLogApiRow, focusAliases: string[]): boolean {
+  const wanted = new Set(focusAliases.map((value) => value.toLowerCase()));
+  return securityLogServiceCandidates(row).some((candidate) =>
+    wanted.has(candidate.toLowerCase()),
+  );
+}
+
+function mapSecurityLogToAggLog(row: SecurityLogApiRow): AggLogRow {
+  const metadata =
+    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? { ...row.metadata }
+      : {};
+  const requestId = pickSecurityLogRequestId(row);
+  const endpoint = readLooseString(row.endpoint);
+  const endpointParsed = parseEndpointUrl(endpoint);
+  const statusCode = readLooseString(row.statusCode);
+  const sourceIp = readLooseString(row.sourceIP);
+  const method = readLooseString(row.method);
+  const primaryService =
+    firstMetadataString(metadata, ["serviceName", "service", "targetService"]) ||
+    inferServiceNameFromEndpoint(endpoint) ||
+    "security-service";
+
+  return {
+    id: row.id,
+    level: row.level,
+    message: row.message,
+    serviceName: primaryService,
+    timestamp: row.timestamp,
+    eventType: row.eventType,
+    requestId,
+    metadata: {
+      ...metadata,
+      sourceTable: "security_logs",
+      securityLogId: row.id || null,
+      category: row.category || metadata.category,
+      eventType: row.eventType || metadata.eventType,
+      requestId: requestId || metadata.requestId,
+      method: method || metadata.method,
+      endpoint: endpointParsed.endpoint || endpoint || metadata.endpoint,
+      originalUrl: endpoint || metadata.originalUrl,
+      httpStatus: statusCode || metadata.httpStatus,
+      statusCode: statusCode || metadata.statusCode,
+      clientIp: sourceIp || metadata.clientIp,
+      ip: sourceIp || metadata.ip,
+      sourceIP: sourceIp || metadata.sourceIP,
+      responseTime: readLooseString(row.responseTime) || metadata.responseTime,
+      isBlocked: row.isBlocked ?? metadata.isBlocked,
+      serviceName: primaryService,
+      protocol: metadata.protocol || metadata.proto || endpointParsed.protocol,
+      port: metadata.port || endpointParsed.port,
+      serviceCandidates: securityLogServiceCandidates(row),
+    },
+  };
+}
+
+async function fetchSecurityLogsForCorrelation(options: {
+  startDate: string;
+  endDate: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<SecurityLogApiRow[]> {
+  const params = new URLSearchParams({
+    startDate: options.startDate,
+    endDate: options.endDate,
+    limit: String(options.limit ?? 1200),
+    order: "desc",
+  });
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const res = await fetch(`${FRONTEND_URLS.api}/api/v1/security/logs?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal: options.signal,
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || json?.success === false) {
+    throw new Error(
+      json?.message || `Logs sécurité indisponibles (HTTP ${res.status})`,
+    );
+  }
+  return Array.isArray(json?.data) ? json.data : [];
 }
 
 function parseJsonObjectFromLogMessage(
@@ -461,6 +664,21 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
   const message = String(row.message || "");
   const messageJson = parseJsonObjectFromLogMessage(message);
   const ctx: Record<string, unknown> = {
+    serviceName: row.serviceName,
+    requestId: row.requestId,
+    method: row.method,
+    httpMethod: row.httpMethod,
+    endpoint: row.endpoint,
+    path: row.path,
+    url: row.url,
+    sourceIP: row.sourceIP,
+    sourceIp: row.sourceIp,
+    source_ip: row.source_ip,
+    clientIp: row.clientIp,
+    client_ip: row.client_ip,
+    ip: row.ip,
+    statusCode: row.statusCode,
+    httpStatus: row.httpStatus,
     ...(metadata || {}),
     ...(messageJson || {}),
   };
@@ -491,6 +709,16 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     requestId = ctx.correlationId.trim();
     requestIdSrc =
       "metadata.correlationId (fusion metadata + JSON dans message)";
+  } else if (typeof ctx.xRequestId === "string" && ctx.xRequestId.trim()) {
+    requestId = ctx.xRequestId.trim();
+    requestIdSrc = "metadata.xRequestId (fusion metadata + JSON dans message)";
+  } else if (
+    typeof ctx["x-request-id"] === "string" &&
+    ctx["x-request-id"].trim()
+  ) {
+    requestId = ctx["x-request-id"].trim();
+    requestIdSrc =
+      "metadata['x-request-id'] (fusion metadata + JSON dans message)";
   } else if (requestIdFromMessage) {
     requestId = requestIdFromMessage;
     requestIdSrc =
@@ -508,6 +736,8 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     [["method"], "metadata.method"],
     [["httpMethod"], "metadata.httpMethod"],
     [["requestMethod"], "metadata.requestMethod"],
+    [["context", "method"], "metadata.context.method"],
+    [["context", "httpMethod"], "metadata.context.httpMethod"],
     [["request", "method"], "metadata.request.method"],
     [["req", "method"], "metadata.req.method"],
   ];
@@ -548,6 +778,9 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     [["path"], "metadata.path"],
     [["url"], "metadata.url"],
     [["requestUrl"], "metadata.requestUrl"],
+    [["context", "endpoint"], "metadata.context.endpoint"],
+    [["context", "originalUrl"], "metadata.context.originalUrl"],
+    [["context", "url"], "metadata.context.url"],
     [["request", "url"], "metadata.request.url"],
     [["request", "path"], "metadata.request.path"],
     [["req", "originalUrl"], "metadata.req.originalUrl"],
@@ -585,12 +818,38 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   let ip: string | null = null;
   let ipSrc = "";
+  const suspiciousIp = readFirstIpFromUnknownList(ctx.suspiciousIPs);
+  const sourceAsIp =
+    typeof ctx.source === "string" && isIpLikeString(ctx.source)
+      ? ctx.source.trim()
+      : null;
   const ipCandidates: [unknown, string][] = [
+    [suspiciousIp, "metadata.suspiciousIPs[0] (analyse agrégée)"],
+    [sourceAsIp, "metadata.source (adresse IP attaquant)"],
     [ctx.ip, "metadata.ip"],
+    [ctx.sourceIP, "metadata.sourceIP"],
+    [ctx.sourceIp, "metadata.sourceIp"],
+    [ctx.source_ip, "metadata.source_ip"],
     [ctx.clientIp, "metadata.clientIp"],
+    [ctx.client_ip, "metadata.client_ip"],
+    [ctx.client_ip_address, "metadata.client_ip_address"],
+    [ctx.ipAddress, "metadata.ipAddress"],
+    [ctx.ip_address, "metadata.ip_address"],
+    [(ctx.context as Record<string, unknown> | undefined)?.clientIp, "metadata.context.clientIp"],
+    [(ctx.context as Record<string, unknown> | undefined)?.client_ip, "metadata.context.client_ip"],
+    [(ctx.context as Record<string, unknown> | undefined)?.ip, "metadata.context.ip"],
+    [(ctx.request as Record<string, unknown> | undefined)?.ip, "metadata.request.ip"],
+    [(ctx.request as Record<string, unknown> | undefined)?.clientIp, "metadata.request.clientIp"],
+    [(ctx.req as Record<string, unknown> | undefined)?.ip, "metadata.req.ip"],
+    [(ctx.req as Record<string, unknown> | undefined)?.clientIp, "metadata.req.clientIp"],
     [ctx.forwardedFor, "metadata.forwardedFor (1re valeur)"],
     [ctx.xForwardedFor, "metadata.xForwardedFor (1re valeur)"],
+    [ctx["x-forwarded-for"], "metadata['x-forwarded-for'] (1re valeur)"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["x-forwarded-for"], "metadata.headers['x-forwarded-for'] (1re valeur)"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["x-real-ip"], "metadata.headers['x-real-ip']"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["cf-connecting-ip"], "metadata.headers['cf-connecting-ip']"],
     [ctx.remoteAddress, "metadata.remoteAddress"],
+    [ctx.remote_address, "metadata.remote_address"],
   ];
   for (const [v, label] of ipCandidates) {
     if (typeof v === "string" && v.trim()) {
@@ -623,6 +882,8 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     [["protocol"], "metadata.protocol"],
     [["proto"], "metadata.proto"],
     [["scheme"], "metadata.scheme"],
+    [["context", "protocol"], "metadata.context.protocol"],
+    [["context", "proto"], "metadata.context.proto"],
     [["request", "protocol"], "metadata.request.protocol"],
     [["req", "protocol"], "metadata.req.protocol"],
   ] as const) {
@@ -658,6 +919,9 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     readContextString(ctx, ["localPort"]) ||
     readContextString(ctx, ["serverPort"]) ||
     readContextString(ctx, ["remotePort"]) ||
+    readContextString(ctx, ["context", "port"]) ||
+    readContextString(ctx, ["context", "localPort"]) ||
+    readContextString(ctx, ["context", "serverPort"]) ||
     readContextString(ctx, ["request", "port"]) ||
     readContextString(ctx, ["req", "port"]);
   if (portFromCtx) {
@@ -692,8 +956,33 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   let httpStatus: string | null = null;
   let httpSrc = "";
-  for (const k of ["httpStatus", "statusCode", "upstreamHttpStatus"] as const) {
-    const v = ctx[k];
+  for (const [path, label] of [
+    [["httpStatus"], "metadata.httpStatus"],
+    [["statusCode"], "metadata.statusCode"],
+    [["status"], "metadata.status"],
+    [["upstreamHttpStatus"], "metadata.upstreamHttpStatus"],
+    [["context", "httpStatus"], "metadata.context.httpStatus"],
+    [["context", "statusCode"], "metadata.context.statusCode"],
+    [["response", "statusCode"], "metadata.response.statusCode"],
+    [["res", "statusCode"], "metadata.res.statusCode"],
+  ] as const) {
+    const v = readContextString(ctx, path);
+    if (v && /^\d{1,3}$/.test(v.trim())) {
+      httpStatus = v.trim();
+      httpSrc = `${label} (contexte fusionné)`;
+      break;
+    }
+    const direct = path.length === 1 ? ctx[path[0]] : null;
+    const vNumber = typeof direct === "number" ? direct : null;
+    if (vNumber != null && Number.isFinite(vNumber)) {
+      httpStatus = String(Math.trunc(vNumber));
+      httpSrc = `${label} (nombre)`;
+      break;
+    }
+  }
+  if (!httpStatus) {
+    for (const k of ["httpStatus", "statusCode", "upstreamHttpStatus"] as const) {
+      const v = ctx[k];
     if (typeof v === "number" && Number.isFinite(v)) {
       httpStatus = String(Math.trunc(v));
       httpSrc = `metadata.${k} (nombre)`;
@@ -704,6 +993,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
       httpSrc = `metadata.${k} (chaîne numérique)`;
       break;
     }
+  }
   }
   if (!httpStatus) {
     const m1 = message.match(
@@ -1558,6 +1848,7 @@ export default function PerformancesCorrelationPage() {
   const firstRequestRef = useRef(true);
   const bootstrappedRef = useRef(false);
   const loadAbortRef = useRef<AbortController | null>(null);
+  const incidentsAbortRef = useRef<AbortController | null>(null);
   const containerRowsRef = useRef<Record<string, ContainerPoint[]>>({});
   const availabilityByServiceRef = useRef<Record<string, AvailabilityPoint[]>>(
     {},
@@ -1802,17 +2093,10 @@ export default function PerformancesCorrelationPage() {
 
   useEffect(() => {
     void load();
-    const id =
-      autoRefreshEnabled && typeof window !== "undefined"
-        ? window.setInterval(() => {
-            if (document.visibilityState === "visible") void load();
-          }, limits.autoRefreshMs)
-        : null;
     return () => {
-      if (id != null) window.clearInterval(id);
       loadAbortRef.current?.abort();
     };
-  }, [load, limits.autoRefreshMs, autoRefreshEnabled]);
+  }, [load]);
 
   useEffect(() => {
     setLoadedOrder((prev) => prev.slice(-limits.maxHistoriesLoaded));
@@ -2173,20 +2457,24 @@ export default function PerformancesCorrelationPage() {
     };
   }, [loadedOrder, limits, windowMode, presetHours, appliedCustom]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    if (!focusName) {
-      setFocusIncidents(null);
-      setSecurityWindowScore(null);
-      setFocusLogs([]);
-      setFocusPersistenceLogsLoading(false);
-      setFocusSecuritySummaryLoading(false);
-      return;
-    }
-    (async () => {
-      setFocusPersistenceLogsLoading(true);
-      setFocusSecuritySummaryLoading(true);
+  const loadFocusIncidentData = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      incidentsAbortRef.current?.abort();
+      const controller = new AbortController();
+      incidentsAbortRef.current = controller;
+      if (!focusName) {
+        setFocusIncidents(null);
+        setSecurityWindowScore(null);
+        setFocusLogs([]);
+        setFocusPersistenceLogsLoading(false);
+        setFocusSecuritySummaryLoading(false);
+        return;
+      }
+      const activeFocusName = focusName;
+      if (showLoading) {
+        setFocusPersistenceLogsLoading(true);
+        setFocusSecuritySummaryLoading(true);
+      }
       const bounds = computeQueryBounds({
         windowMode,
         presetHours,
@@ -2196,21 +2484,56 @@ export default function PerformancesCorrelationPage() {
 
       const loadLogs = async () => {
         try {
-          const logs = await analyticsService.getPersistenceLogs({
-            serviceNames: persistenceServiceAliases(focusName),
-            startDate: bounds.start.toISOString(),
-            endDate: bounds.end.toISOString(),
-            limit: 1200,
-            signal: controller.signal,
+          const focusAliases = persistenceServiceAliases(activeFocusName);
+          const [persistedLogs, securityLogs] = await Promise.all([
+            analyticsService.getPersistenceLogs({
+              serviceNames: focusAliases,
+              startDate: bounds.start.toISOString(),
+              endDate: bounds.end.toISOString(),
+              limit: 1200,
+              signal: controller.signal,
+            }),
+            fetchSecurityLogsForCorrelation({
+              startDate: bounds.start.toISOString(),
+              endDate: bounds.end.toISOString(),
+              limit: 1200,
+              signal: controller.signal,
+            }).catch((error) => {
+              console.warn(
+                "Logs sécurité indisponibles pour la corrélation fine:",
+                error instanceof Error ? error.message : error,
+              );
+              return [];
+            }),
+          ]);
+          if (controller.signal.aborted) return;
+          const securityLogsRaw = Array.isArray(securityLogs) ? securityLogs : [];
+          const persistenceRows = enrichAggLogRows(
+            (Array.isArray(persistedLogs) ? persistedLogs : []) as AggLogRow[],
+            securityLogsRaw,
+          );
+          const securityRows = securityLogsRaw
+            .filter((row) => securityLogMatchesFocus(row, focusAliases))
+            .map(mapSecurityLogToAggLog)
+            .map((row) =>
+              enrichAggLogRows([row], securityLogsRaw)[0] ?? row,
+            );
+          const rows = [...persistenceRows, ...securityRows].sort((a, b) => {
+            const ta = new Date(String(a.timestamp || 0)).getTime();
+            const tb = new Date(String(b.timestamp || 0)).getTime();
+            return tb - ta;
           });
-          if (cancelled) return;
-          const rows = (Array.isArray(logs) ? logs : []) as AggLogRow[];
           setFocusLogs(rows);
           const errorCount = rows.filter(
-            (r) => String(r.level || "").toUpperCase() === "ERROR",
+            (r) =>
+              String(r.level || "").toUpperCase() === "ERROR" ||
+              String(r.level || "").toUpperCase() === "CRITICAL" ||
+              String(r.level || "").toUpperCase() === "FATAL",
           ).length;
           const warnCount = rows.filter(
-            (r) => String(r.level || "").toUpperCase() === "WARN",
+            (r) =>
+              String(r.level || "").toUpperCase() === "WARN" ||
+              String(r.level || "").toUpperCase() === "WARNING",
           ).length;
           setFocusIncidents({
             total: rows.length,
@@ -2219,7 +2542,13 @@ export default function PerformancesCorrelationPage() {
             securitySignals: countSecuritySignalsInLogs(rows),
           });
         } finally {
-          if (!cancelled) setFocusPersistenceLogsLoading(false);
+          if (
+            showLoading &&
+            !controller.signal.aborted &&
+            incidentsAbortRef.current === controller
+          ) {
+            setFocusPersistenceLogsLoading(false);
+          }
         }
       };
 
@@ -2230,26 +2559,46 @@ export default function PerformancesCorrelationPage() {
               hours,
               controller.signal,
             );
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
           const avg =
             secSummary && typeof secSummary === "object"
               ? readNumericField(secSummary, ["avgSecurityScore"])
               : null;
           setSecurityWindowScore(avg);
         } finally {
-          if (!cancelled) setFocusSecuritySummaryLoading(false);
+          if (
+            showLoading &&
+            !controller.signal.aborted &&
+            incidentsAbortRef.current === controller
+          ) {
+            setFocusSecuritySummaryLoading(false);
+          }
         }
       };
 
       await Promise.all([loadLogs(), loadSecuritySummary()]);
-    })();
+    },
+    [focusName, windowMode, presetHours, appliedCustom],
+  );
+
+  useEffect(() => {
+    void loadFocusIncidentData({ showLoading: true });
     return () => {
-      cancelled = true;
-      controller.abort();
+      incidentsAbortRef.current?.abort();
       setFocusPersistenceLogsLoading(false);
       setFocusSecuritySummaryLoading(false);
     };
-  }, [focusName, windowMode, presetHours, appliedCustom]);
+  }, [loadFocusIncidentData]);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled || typeof window === "undefined") return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadFocusIncidentData({ showLoading: false });
+      }
+    }, limits.autoRefreshMs);
+    return () => window.clearInterval(id);
+  }, [autoRefreshEnabled, limits.autoRefreshMs, loadFocusIncidentData]);
 
   useEffect(() => {
     setIncidentContextDiagKey(null);
@@ -2407,6 +2756,17 @@ export default function PerformancesCorrelationPage() {
         };
       })
       .filter((x): x is FocusIncidentAlignedRow => x != null)
+      .filter((row) =>
+        isCorrelationTableEligibleRow(row.rawLog, {
+          requestId: row.requestId,
+          httpMethod: row.httpMethod,
+          endpoint: row.endpoint,
+          ip: row.ip,
+          protocol: row.protocol,
+          port: row.port,
+          httpStatus: row.httpStatus,
+        }),
+      )
       .map(
         (row): FocusIncidentAlignedRow => ({
           ...row,
@@ -2613,7 +2973,7 @@ export default function PerformancesCorrelationPage() {
     <AdminLayout>
       <div className="p-6 space-y-6 w-full max-w-[1600px] mx-auto">
         <Link
-          href="/b4ck0ff1ce/performances"
+          href="/backoffice/performances"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
         >
           <span aria-hidden>←</span>
@@ -3677,8 +4037,15 @@ export default function PerformancesCorrelationPage() {
                                               r.deltaSec
                                             )}
                                           </td>
-                                          <td className="max-w-[24rem] truncate px-2 py-1.5 text-gray-700 dark:text-gray-300">
-                                            {r.message || "—"}
+                                          <td className="max-w-[24rem] px-2 py-1.5 text-gray-700 dark:text-gray-300">
+                                            <div className="truncate">
+                                              {r.message || "—"}
+                                            </div>
+                                            {r.emptyReason ? (
+                                              <div className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+                                                {r.emptyReason}
+                                              </div>
+                                            ) : null}
                                           </td>
                                         </tr>
                                       );
