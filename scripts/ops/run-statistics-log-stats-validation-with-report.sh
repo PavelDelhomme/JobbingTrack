@@ -37,52 +37,7 @@ run_step "persistence_stats_smoke" "${OUT_DIR}/persistence-stats-smoke.txt" \
   /usr/bin/node scripts/ops/smoke-persistence-stats.cjs || STATS_EXIT=$?
 
 run_step "log_stats_api_smoke" "${OUT_DIR}/log-stats-api-smoke.json" \
-  python3 - "${OUT_DIR}" <<'PY' || API_EXIT=$?
-import json
-import subprocess
-import sys
-from datetime import datetime, timedelta, timezone
-
-out_dir = sys.argv[1]
-key = subprocess.check_output(
-    ["docker", "exec", "jobbingtrack-metrics-aggregator", "sh", "-lc", "printf %s \"$METRICS_API_KEY\""],
-    text=True,
-).strip()
-since = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat().replace("+00:00", "Z")
-
-endpoints = [
-    "/api/v1/persistence/stats",
-    f"/api/v1/persistence/logs?limit=800&startDate={since}",
-    f"/api/v1/persistence/logs?limit=50&level=WARN&startDate={since}",
-    f"/api/v1/persistence/logs?limit=50&serviceName=jobbingtrack-api-gateway&startDate={since}",
-]
-
-results = []
-for path in endpoints:
-    import urllib.request
-
-    req = urllib.request.Request(
-        "http://localhost:5004" + path,
-        headers={"X-API-Key": key, "User-Agent": "JobbingTrack-statistics-log-stats-validation"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as response:
-        data = json.loads(response.read().decode("utf-8", "replace"))
-        item = {
-            "path": path.split("?")[0],
-            "query": path.split("?", 1)[1] if "?" in path else "",
-            "status": response.status,
-            "success": bool(data.get("success", True)),
-            "count": data.get("count"),
-        }
-        if path.endswith("/stats"):
-            counts = (data.get("data") or {}).get("counts") or {}
-            item["aggregatedLogs"] = counts.get("aggregatedLogs")
-            item["logCollectorLogs"] = counts.get("logCollectorLogs")
-            item["containerLogs"] = counts.get("containerLogs")
-        results.append(item)
-
-print(json.dumps({"success": True, "endpoints": results}, indent=2))
-PY
+  /usr/bin/node scripts/ops/smoke-statistics-log-stats-api.cjs || API_EXIT=$?
 
 run_step "aggregated_logs_db" "${OUT_DIR}/aggregated-logs-db.txt" \
   docker exec jobbingtrack-postgres sh -lc \
