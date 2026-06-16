@@ -51,10 +51,13 @@ Ne pas reboucler indéfiniment sur `dev-https-certs.sh` : **le TLS côté proxy 
 
 ## URLs
 
-| Surface | URL HTTPS |
-| --- | --- |
-| Frontend | `https://jobbingtrack.localhost:5443` |
-| API Gateway | `https://api.jobbingtrack.localhost:5443` |
+| Surface | URL HTTPS (recommandée) | URL legacy |
+| --- | --- | --- |
+| Frontend | `https://jobbingtrack.localhost` (port **443**) | `https://jobbingtrack.localhost:5443` |
+| API Gateway | `https://api.jobbingtrack.localhost` | `https://api.jobbingtrack.localhost:5443` |
+| Redirect HTTP | `http://jobbingtrack.localhost` → **308** HTTPS (port **80**) | — |
+
+Le proxy `dev-https-proxy` doit être démarré (profile Docker `https` ou `make dev-https-up` / `make up-full`). Sans lui, seul `http://localhost:5003` répond — **`jobbingtrack.localhost` reste injoignable**.
 
 Les appels internes Docker restent en HTTP privé (`frontend:3000`, `api-gateway:3000`). Le TLS est terminé par le proxy dev `dev-https-proxy`.
 
