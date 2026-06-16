@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 
@@ -7,6 +8,11 @@ class AuthProvider with ChangeNotifier {
   User? _user;
   String? _token;
   bool _isLoading = false;
+  bool _handlingSessionRevoke = false;
+
+  AuthProvider() {
+    _wireSecurityCallbacks();
+  }
 
   User? get user => _user;
   String? get token => _token;
@@ -31,6 +37,12 @@ class AuthProvider with ChangeNotifier {
         throw Exception(response['message'] ?? 'Erreur de connexion');
       }
     } catch (e) {
+      final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+      ApiService.postSecurityEvent(
+        eventType: 'auth_failure',
+        message: e.toString(),
+        deviceId: deviceId,
+      );
       _isLoading = false;
       notifyListeners();
       rethrow;
@@ -69,6 +81,16 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+    final userId = _user?.id;
+    final token = _token;
+    ApiService.postSecurityEvent(
+      eventType: 'mobile_logout',
+      message: 'Déconnexion utilisateur mobile',
+      deviceId: deviceId,
+      userId: userId,
+      token: token,
+    );
     CrashReporter.trackAction('logout');
     CrashReporter.setToken(null);
     _user = null;
@@ -115,10 +137,39 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+      ApiService.postSecurityEvent(
+        eventType: 'otp_failed',
+        message: 'Échec vérification email/token: ${e.toString()}',
+        deviceId: deviceId,
+      );
       _isLoading = false;
       notifyListeners();
       rethrow;
     }
+  }
+
+  void _wireSecurityCallbacks() {
+    ApiService.onSessionRevoked = (path, statusCode) async {
+      if (_handlingSessionRevoke || _token == null) return;
+      _handlingSessionRevoke = true;
+      try {
+        final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+        await ApiService.postSecurityEvent(
+          eventType: 'session_revoked',
+          message: 'Session invalidée (HTTP $statusCode) sur $path',
+          deviceId: deviceId,
+          userId: _user?.id,
+          token: _token,
+        );
+        CrashReporter.setToken(null);
+        _user = null;
+        _token = null;
+        notifyListeners();
+      } finally {
+        _handlingSessionRevoke = false;
+      }
+    };
   }
 
   bool get isAuthenticated => _token != null && _user != null;
