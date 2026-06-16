@@ -1,5 +1,6 @@
 import axios from "axios";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import type { SecurityScoreWeights } from "@/lib/security/securityScore";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -222,6 +223,46 @@ class SecurityService {
       console.error("Erreur triggerSecurityAnalysis:", error);
       throw error;
     }
+  }
+
+  async getScoreSettings(): Promise<{
+    weights: SecurityScoreWeights;
+    updatedAt: string | null;
+    source: string;
+  }> {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const response = await axios.get<{
+      success: boolean;
+      data: {
+        weights: SecurityScoreWeights;
+        updatedAt: string | null;
+        source: string;
+      };
+    }>(`${API_URL}/api/v1/security/score-settings`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.data.success) {
+      throw new Error("Impossible de lire la pondération du score");
+    }
+    return response.data.data;
+  }
+
+  async updateScoreSettings(
+    weights: SecurityScoreWeights,
+  ): Promise<SecurityScoreWeights> {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const response = await axios.put<{
+      success: boolean;
+      data: { weights: SecurityScoreWeights };
+    }>(`${API_URL}/api/v1/security/score-settings`, { weights }, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.data.success) {
+      throw new Error("Impossible de mettre à jour la pondération du score");
+    }
+    return response.data.data.weights;
   }
 }
 

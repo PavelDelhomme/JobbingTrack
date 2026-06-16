@@ -26,6 +26,7 @@ import {
   SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
   type SecurityScoreWeights,
 } from "@/lib/security/securityScore";
+import securityService from "@/lib/services/securityService";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -147,37 +148,116 @@ export default function SecurityOverviewPage() {
   const [weights, setWeights] = useState<SecurityScoreWeights>(
     DEFAULT_SECURITY_SCORE_WEIGHTS,
   );
+  const [weightsSource, setWeightsSource] = useState<
+    "default" | "server" | "local"
+  >("default");
+  const saveWeightsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [incidentsPage, setIncidentsPage] = useState(1);
   const [testIpBusy, setTestIpBusy] = useState(false);
   const [testIpMessage, setTestIpMessage] = useState<string | null>(null);
   const SAFE_TEST_IP = "203.0.113.77";
   const incidentsPageSize = 6;
 
-  useEffect(() => {
-    const raw = localStorage.getItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw);
-      setWeights(sanitizeSecurityScoreWeights(parsed));
-    } catch {
-      // ignore
+  const persistWeights = useCallback((next: SecurityScoreWeights) => {
+    localStorage.setItem(
+      SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+      JSON.stringify(next),
+    );
+    if (saveWeightsTimerRef.current) {
+      clearTimeout(saveWeightsTimerRef.current);
     }
+    saveWeightsTimerRef.current = setTimeout(() => {
+      securityService
+        .updateScoreSettings(next)
+        .then(() => setWeightsSource("server"))
+        .catch(() => setWeightsSource("local"));
+    }, 400);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const remote = await securityService.getScoreSettings();
+        if (cancelled) return;
+
+        const serverWeights = sanitizeSecurityScoreWeights(remote.weights);
+        const raw = localStorage.getItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
+
+        if (remote.source === "default" && raw) {
+          try {
+            const local = sanitizeSecurityScoreWeights(JSON.parse(raw));
+            if (
+              JSON.stringify(local) !==
+              JSON.stringify(DEFAULT_SECURITY_SCORE_WEIGHTS)
+            ) {
+              const migrated = await securityService.updateScoreSettings(local);
+              if (cancelled) return;
+              const sanitized = sanitizeSecurityScoreWeights(migrated);
+              setWeights(sanitized);
+              setWeightsSource("server");
+              localStorage.setItem(
+                SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+                JSON.stringify(sanitized),
+              );
+              return;
+            }
+          } catch {
+            // ignore migration locale invalide
+          }
+        }
+
+        setWeights(serverWeights);
+        setWeightsSource(remote.source === "file" ? "server" : "default");
+        localStorage.setItem(
+          SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+          JSON.stringify(serverWeights),
+        );
+      } catch {
+        const raw = localStorage.getItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
+        if (!raw) return;
+        try {
+          setWeights(sanitizeSecurityScoreWeights(JSON.parse(raw)));
+          setWeightsSource("local");
+        } catch {
+          // ignore
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (saveWeightsTimerRef.current) {
+        clearTimeout(saveWeightsTimerRef.current);
+      }
+    };
   }, []);
 
   const updateWeight = (key: keyof SecurityScoreWeights, value: number) => {
     setWeights((prev) => {
       const next = sanitizeSecurityScoreWeights({ ...prev, [key]: value });
-      localStorage.setItem(
-        SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
-        JSON.stringify(next),
-      );
+      persistWeights(next);
       return next;
     });
   };
 
-  const resetScoreWeights = () => {
+  const resetScoreWeights = async () => {
+    const next = DEFAULT_SECURITY_SCORE_WEIGHTS;
     localStorage.removeItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
-    setWeights(DEFAULT_SECURITY_SCORE_WEIGHTS);
+    setWeights(next);
+    try {
+      await securityService.updateScoreSettings(next);
+      setWeightsSource("server");
+      localStorage.setItem(
+        SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+        JSON.stringify(next),
+      );
+    } catch {
+      setWeightsSource("local");
+    }
   };
 
   const load = useCallback(async () => {
@@ -738,12 +818,16 @@ export default function SecurityOverviewPage() {
                 Pondération du score sécurité
               </h2>
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                Réglage local navigateur, stocké dans{" "}
+                {weightsSource === "server"
+                  ? "Réglage persisté côté serveur (security-service) pour tous les admins."
+                  : weightsSource === "local"
+                    ? "Serveur indisponible : repli local navigateur uniquement."
+                    : "Valeurs par défaut serveur ; ajustez les curseurs pour enregistrer."}{" "}
+                Cache local :{" "}
                 <span className="font-mono">
                   {SECURITY_SCORE_WEIGHTS_STORAGE_KEY}
                 </span>
-                . Il ne modifie pas la politique serveur ni les alertes
-                automatiques.
+                . N&apos;influence pas les alertes email automatiques.
               </p>
             </div>
             <button
