@@ -256,9 +256,13 @@ class SecurityService {
     const response = await axios.put<{
       success: boolean;
       data: { weights: SecurityScoreWeights };
-    }>(`${API_URL}/api/v1/security/score-settings`, { weights }, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    }>(
+      `${API_URL}/api/v1/security/score-settings`,
+      { weights },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
     if (!response.data.success) {
       throw new Error("Impossible de mettre à jour la pondération du score");
     }

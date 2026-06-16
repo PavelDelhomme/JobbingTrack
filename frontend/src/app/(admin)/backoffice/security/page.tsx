@@ -846,9 +846,9 @@ export default function SecurityOverviewPage() {
             relèvent de la performance, pas du risque sécurité.
           </p>
           <p className="mb-3 rounded-lg bg-gray-50 p-2 font-mono text-xs text-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            Score = 100 - min(40, menaces × {weights.threats}) - min(30,
-            max(0, logs - 20) × {weights.logsNoise}) - pénalité IP bloquée (10)
-            - pénalité WAF off ({weights.wafDisabled})
+            Score = 100 - min(40, menaces × {weights.threats}) - min(30, max(0,
+            logs - 20) × {weights.logsNoise}) - pénalité IP bloquée (10) -
+            pénalité WAF off ({weights.wafDisabled})
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <label>
@@ -1003,8 +1003,8 @@ export default function SecurityOverviewPage() {
           </span>
           <span className="ml-2">
             Erreurs connues :{" "}
-            <code className="font-mono text-[11px]">docs/ERRORS.md</code>{" "}
-            (dépôt — pièges d’interprétation dashboard sécurité).
+            <code className="font-mono text-[11px]">docs/ERRORS.md</code> (dépôt
+            — pièges d’interprétation dashboard sécurité).
           </span>
         </div>
 
