@@ -548,7 +548,12 @@ export default function NetworkPerformancePage() {
               <ResponsiveContainer width="100%" height={360} minHeight={240}>
                 <LineChart
                   data={series}
-                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: chartBottomMargin,
+                  }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -635,7 +640,12 @@ export default function NetworkPerformancePage() {
               <ResponsiveContainer width="100%" height={300} minHeight={220}>
                 <LineChart
                   data={networkRateRows}
-                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: chartBottomMargin,
+                  }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -728,7 +738,12 @@ export default function NetworkPerformancePage() {
                 <ResponsiveContainer width="100%" height={280} minHeight={220}>
                   <LineChart
                     data={series}
-                    margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: chartBottomMargin,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"

@@ -89,7 +89,8 @@ export function buildSecurityPolicyPosture({
       label: "Auto-blocage",
       value: "Borné",
       status: "warning",
-      detail: "High/critical restent en recommandation tant que B12 n'est pas validé",
+      detail:
+        "High/critical restent en recommandation tant que B12 n'est pas validé",
     },
   ];
 }

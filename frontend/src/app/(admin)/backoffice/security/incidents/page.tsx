@@ -208,7 +208,8 @@ export default function SecurityIncidentsPage() {
           for (const l of logs) {
             const eventType = String(l.eventType || "");
             const level = String(l.level || "");
-            if (!isIncidentLog(eventType, level, String(l.category || ""))) continue;
+            if (!isIncidentLog(eventType, level, String(l.category || "")))
+              continue;
             const meta =
               l.metadata && typeof l.metadata === "object" ? l.metadata : {};
             const threatId = meta.threatId ? String(meta.threatId) : null;
@@ -237,9 +238,7 @@ export default function SecurityIncidentsPage() {
               logId,
               eventType,
               blockOrigin:
-                typeof meta.blockOrigin === "string"
-                  ? meta.blockOrigin
-                  : null,
+                typeof meta.blockOrigin === "string" ? meta.blockOrigin : null,
             });
           }
         }

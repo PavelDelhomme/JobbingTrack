@@ -702,7 +702,6 @@ export default function PerformancesPage() {
               ) : null}
             </PerformanceChartCard>
           )}
-
         </>
       )}
 

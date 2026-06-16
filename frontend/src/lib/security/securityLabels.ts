@@ -133,9 +133,7 @@ export function formatBlockOriginLabel(value?: string | null): string | null {
   return BLOCK_ORIGIN_LABELS[key] || enumToReadable(value);
 }
 
-export function formatBlockOriginLabelOrUnknown(
-  value?: string | null,
-): string {
+export function formatBlockOriginLabelOrUnknown(value?: string | null): string {
   return formatBlockOriginLabel(value) || BLOCK_ORIGIN_LABELS.unknown;
 }
 
@@ -174,11 +172,7 @@ export function classifySecurityEventNature(
   ) {
     return "policy_change";
   }
-  if (
-    key.includes("LOGIN") ||
-    key.includes("AUTH") ||
-    key.includes("TOKEN")
-  ) {
+  if (key.includes("LOGIN") || key.includes("AUTH") || key.includes("TOKEN")) {
     return "auth";
   }
   return "other";

@@ -83,7 +83,10 @@ export function ThreatInvestigationTimeline({
                 {item.detail}
               </p>
             )}
-            {(item.endpoint || item.method || item.requestId || item.userId) && (
+            {(item.endpoint ||
+              item.method ||
+              item.requestId ||
+              item.userId) && (
               <p className="mt-2 font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
                 {[item.method, item.endpoint].filter(Boolean).join(" ")}
                 {item.requestId ? ` · requestId ${item.requestId}` : ""}
@@ -120,7 +123,8 @@ export function ThreatInvestigationTimeline({
       ))}
       {items.length > maxItems && (
         <li className="ml-4 text-xs text-gray-500 dark:text-gray-400">
-          {items.length - maxItems} événement(s) supplémentaire(s) non affiché(s).
+          {items.length - maxItems} événement(s) supplémentaire(s) non
+          affiché(s).
         </li>
       )}
     </ol>

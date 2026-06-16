@@ -135,7 +135,11 @@ export const CpuSystemChart = memo(function CpuSystemChart({
   );
 });
 
-export const MemoryChart = memo(function MemoryChart({ data }: { data: any[] }) {
+export const MemoryChart = memo(function MemoryChart({
+  data,
+}: {
+  data: any[];
+}) {
   const chartData = useMemo(
     () => buildChartData(data, "memory_percent"),
     [data],
@@ -209,7 +213,11 @@ export const MemoryChart = memo(function MemoryChart({ data }: { data: any[] }) 
   );
 });
 
-export const NetworkChart = memo(function NetworkChart({ data }: { data: any[] }) {
+export const NetworkChart = memo(function NetworkChart({
+  data,
+}: {
+  data: any[];
+}) {
   const chartData = useMemo(() => {
     return data.slice(-80).map((p: any) => {
       const ts = p.timestamp

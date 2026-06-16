@@ -176,14 +176,8 @@ export default function ServicesPage() {
     () => buildServiceListFiltersFromSearchParams(searchParams),
     [searchParams],
   );
-  const {
-    applied,
-    draft,
-    updateDraft,
-    apply,
-    reset,
-    hasDraftChanges,
-  } = useAppliedFilters<ServiceListFilters>(initialFilters);
+  const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
+    useAppliedFilters<ServiceListFilters>(initialFilters);
 
   const syncFiltersToUrl = useCallback(
     (filters: ServiceListFilters) => {
@@ -482,7 +476,8 @@ export default function ServicesPage() {
   };
 
   const filteredServices = useMemo(
-    () => services.filter((service) => matchesServiceListFilters(service, applied)),
+    () =>
+      services.filter((service) => matchesServiceListFilters(service, applied)),
     [services, applied],
   );
 

@@ -34,10 +34,7 @@ export type SystemCpuMemoryAreaChartsProps = {
   emphasizePoints?: boolean;
   brushStartIndex?: number;
   brushEndIndex?: number;
-  onBrushChange?: (range: {
-    startIndex?: number;
-    endIndex?: number;
-  }) => void;
+  onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
 };
 
 function tooltipLabel(_: unknown, payload: unknown) {
@@ -71,16 +68,12 @@ export function SystemCpuMemoryAreaCharts({
 
   const bottom = axisShowDate ? 72 : 60;
   const memoryBottom =
-    onBrushChange != null &&
-    brushStartIndex != null &&
-    brushEndIndex != null
+    onBrushChange != null && brushStartIndex != null && brushEndIndex != null
       ? bottom + 24
       : bottom;
   const angle = axisShowDate ? -40 : -35;
   const showBrush =
-    onBrushChange != null &&
-    brushStartIndex != null &&
-    brushEndIndex != null;
+    onBrushChange != null && brushStartIndex != null && brushEndIndex != null;
 
   return (
     <div className="space-y-8">

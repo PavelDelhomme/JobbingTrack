@@ -94,7 +94,12 @@ export function resolveConnectionPresentation(
   }
 
   const source = classifySourceSide(remoteIp);
-  const destination = classifyDestinationSide(conn, localIp, localPort, remotePort);
+  const destination = classifyDestinationSide(
+    conn,
+    localIp,
+    localPort,
+    remotePort,
+  );
 
   return {
     remoteIp,
@@ -173,7 +178,12 @@ function classifyDestinationSide(
 ): ConnectionDestinationSide {
   const containerName = String(conn.containerName || "").trim();
   if (containerName && containerName.toLowerCase() !== "unknown") {
-    return { kind: "docker", label: containerName, confidence: "high", port: localPort };
+    return {
+      kind: "docker",
+      label: containerName,
+      confidence: "high",
+      port: localPort,
+    };
   }
   if (localIp === "127.0.0.1" || localIp === "::1") {
     return {
@@ -215,7 +225,12 @@ function classifyDestinationSide(
       port: localPort,
     };
   }
-  return { kind: "unmapped", label: "Non corrélé", confidence: "low", port: localPort };
+  return {
+    kind: "unmapped",
+    label: "Non corrélé",
+    confidence: "low",
+    port: localPort,
+  };
 }
 
 export function threatLinkForSourceIp(ip?: string | null): string | null {

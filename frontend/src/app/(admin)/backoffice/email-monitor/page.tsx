@@ -696,7 +696,9 @@ export default function EmailMonitorPage() {
                           <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
                           {email.sentAt ? (
                             <span className="min-w-0 break-words">
-                              {email.status === "FAILED" ? "Tentative" : "Envoyé"}{" "}
+                              {email.status === "FAILED"
+                                ? "Tentative"
+                                : "Envoyé"}{" "}
                               : {formatLocalDateTime(email.sentAt)}
                             </span>
                           ) : email.createdAt ? (

@@ -505,8 +505,9 @@ export default function SecurityAnalysisPage() {
                   },
                   index: number,
                 ) => {
-                  const originLabel =
-                    formatBlockOriginLabelOrUnknown(ipItem.blockOrigin);
+                  const originLabel = formatBlockOriginLabelOrUnknown(
+                    ipItem.blockOrigin,
+                  );
                   return (
                     <div
                       key={index}

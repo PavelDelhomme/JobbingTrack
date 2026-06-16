@@ -873,7 +873,9 @@ export default function CpuMemoryPerformancePage() {
       ) : activeView === "overview" ? (
         <div className="space-y-6">
           <PerformanceHistoryCaption
-            source={systemChartData.length > 0 ? "system_metrics" : "docker_live"}
+            source={
+              systemChartData.length > 0 ? "system_metrics" : "docker_live"
+            }
             timeRangeLabel={rangeLabel}
             rawPoints={rawSystemMetrics.length}
             renderedPoints={effectiveSystemChartData.length}

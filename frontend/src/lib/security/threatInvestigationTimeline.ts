@@ -69,7 +69,9 @@ function pickRequestId(meta: Record<string, unknown> | null): string | null {
   return null;
 }
 
-export function formatTimelineSourceLabel(source: ThreatTimelineSource): string {
+export function formatTimelineSourceLabel(
+  source: ThreatTimelineSource,
+): string {
   const labels: Record<ThreatTimelineSource, string> = {
     threat: "Menace",
     security_log: "Log sécurité",

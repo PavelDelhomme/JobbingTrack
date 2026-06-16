@@ -104,8 +104,7 @@ function contrastingTextColor(hex: string) {
 
 function buildContainerSeriesColorMap(seriesNames: string[]) {
   return seriesNames.reduce<Record<string, string>>((acc, name, index) => {
-    acc[name] =
-      CONTAINER_SERIES_COLORS[index % CONTAINER_SERIES_COLORS.length];
+    acc[name] = CONTAINER_SERIES_COLORS[index % CONTAINER_SERIES_COLORS.length];
     return acc;
   }, {});
 }
@@ -216,14 +215,7 @@ function SeriesSymbol({
   }
   if (marker === "barre") {
     return (
-      <rect
-        x={2}
-        y={mid - 2}
-        width={size - 4}
-        height={4}
-        fill={color}
-        rx={2}
-      />
+      <rect x={2} y={mid - 2} width={size - 4} height={4} fill={color} rx={2} />
     );
   }
   if (marker === "chevron") {
@@ -491,7 +483,9 @@ export function AnalyticsContainersChartsBundle({
       Math.max(
         10,
         Math.ceil(chartData.length / 4),
-        Math.ceil((chartData.length * Math.max(cpuSeriesNames.length, 1)) / 120),
+        Math.ceil(
+          (chartData.length * Math.max(cpuSeriesNames.length, 1)) / 120,
+        ),
       ),
     [chartData.length, cpuSeriesNames.length],
   );
@@ -603,11 +597,7 @@ export function AnalyticsContainersChartsBundle({
                       strokeWidth={2.4}
                       name={`${code} · ${shortName} · ${marker.label}`}
                       dot={(props) =>
-                        renderSeriesPointDot(
-                          props,
-                          seriesIndex,
-                          cpuMarkerEvery,
-                        )
+                        renderSeriesPointDot(props, seriesIndex, cpuMarkerEvery)
                       }
                       activeDot={{ r: 4 }}
                       connectNulls={false}

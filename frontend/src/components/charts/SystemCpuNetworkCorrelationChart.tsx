@@ -33,10 +33,7 @@ export type SystemCpuNetworkCorrelationChartProps = {
   height?: number;
   brushStartIndex?: number;
   brushEndIndex?: number;
-  onBrushChange?: (range: {
-    startIndex?: number;
-    endIndex?: number;
-  }) => void;
+  onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
 };
 
 function tooltipLabel(_: unknown, payload: unknown) {

@@ -4,6 +4,7 @@ const securityController = require('../controllers/securityController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
 const auditController = require('../controllers/auditController');
 const investigationController = require('../controllers/investigationController');
+const scoreSettingsController = require('../controllers/scoreSettingsController');
 const { requireFirewallWafAccess } = require('../middleware/firewallWafAuth');
 const { requireAdminAccess } = require('../middleware/requireAdminAccess');
 
@@ -55,6 +56,20 @@ router.post(
   requireFirewallWafAccess,
   requireAdminAccess,
   notificationSettingsController.sendTestNotificationEmail
+);
+
+// Pondération score sécurité (B10) — persistance serveur admin
+router.get(
+  '/score-settings',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  scoreSettingsController.getScoreSettings
+);
+router.put(
+  '/score-settings',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  scoreSettingsController.updateScoreSettings
 );
 
 // Audit append-only (B7)

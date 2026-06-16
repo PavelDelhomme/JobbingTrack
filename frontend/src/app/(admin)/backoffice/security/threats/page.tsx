@@ -160,10 +160,9 @@ export default function ThreatsPage() {
             blockedRes.data?.success &&
             Array.isArray(blockedRes.data?.data)
           ) {
-            const normalized = (blockedRes.data.data as (
-              | string
-              | BlockedIpConsolidatedEntry
-            )[]).map((item) => (typeof item === "string" ? { ip: item } : item));
+            const normalized = (
+              blockedRes.data.data as (string | BlockedIpConsolidatedEntry)[]
+            ).map((item) => (typeof item === "string" ? { ip: item } : item));
             setConsolidatedEntries(normalized);
           }
         } else {
@@ -628,10 +627,11 @@ export default function ThreatsPage() {
                         </td>
                         <td className="p-3">
                           {(() => {
-                            const consolidatedEntry = findConsolidatedBlockEntry(
-                              threat,
-                              consolidatedEntries,
-                            );
+                            const consolidatedEntry =
+                              findConsolidatedBlockEntry(
+                                threat,
+                                consolidatedEntries,
+                              );
                             const blockStatus = resolveThreatBlockStatus(
                               threat,
                               consolidatedEntry,

@@ -92,12 +92,12 @@ export default function NetworkStatsPage() {
   useDocumentTitle("Sécurité réseau");
 
   const [stats, setStats] = useState<NetworkStats | null>(null);
-  const [connections, setConnections] = useState<ConnectionSourcePresentation[]>(
-    [],
-  );
-  const [ipEnrichment, setIpEnrichment] = useState<Record<string, IpEnrichmentHints>>(
-    {},
-  );
+  const [connections, setConnections] = useState<
+    ConnectionSourcePresentation[]
+  >([]);
+  const [ipEnrichment, setIpEnrichment] = useState<
+    Record<string, IpEnrichmentHints>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -702,64 +702,68 @@ export default function NetworkStatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monitoredSourceIps.map(({ ip, count, nature, reason, enrichment }) => (
-                    <tr
-                      key={ip}
-                      className="border-b border-gray-200 dark:border-gray-700"
-                    >
-                      <td className="p-3 font-mono text-sm">{ip}</td>
-                      <td className="p-3 text-sm">{nature}</td>
-                      <td className="p-3 text-xs">
-                        {enrichment?.country ? (
-                          <span>{enrichment.country}</span>
-                        ) : (
-                          <span className="text-gray-500">—</span>
-                        )}
-                        {formatReputationBadges(enrichment).length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {formatReputationBadges(enrichment).map((badge) => (
-                              <span
-                                key={badge}
-                                className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800"
-                              >
-                                {badge}
-                              </span>
-                            ))}
+                  {monitoredSourceIps.map(
+                    ({ ip, count, nature, reason, enrichment }) => (
+                      <tr
+                        key={ip}
+                        className="border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <td className="p-3 font-mono text-sm">{ip}</td>
+                        <td className="p-3 text-sm">{nature}</td>
+                        <td className="p-3 text-xs">
+                          {enrichment?.country ? (
+                            <span>{enrichment.country}</span>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
+                          {formatReputationBadges(enrichment).length > 0 ? (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {formatReputationBadges(enrichment).map(
+                                (badge) => (
+                                  <span
+                                    key={badge}
+                                    className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800"
+                                  >
+                                    {badge}
+                                  </span>
+                                ),
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="p-3">{count}</td>
+                        <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
+                          {reason}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className="bg-orange-600 h-2 rounded-full"
+                                style={{
+                                  width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {totalConnections
+                                ? Math.round((count / totalConnections) * 100)
+                                : 0}
+                              %
+                            </span>
                           </div>
-                        ) : null}
-                      </td>
-                      <td className="p-3">{count}</td>
-                      <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
-                        {reason}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-orange-600 h-2 rounded-full"
-                              style={{
-                                width: `${totalConnections ? (count / totalConnections) * 100 : 0}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {totalConnections
-                              ? Math.round((count / totalConnections) * 100)
-                              : 0}
-                            %
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <Link
-                          href={`/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`}
-                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Voir menaces
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="p-3">
+                          <Link
+                            href={`/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            Voir menaces
+                          </Link>
+                        </td>
+                      </tr>
+                    ),
+                  )}
                 </tbody>
               </table>
             </div>
