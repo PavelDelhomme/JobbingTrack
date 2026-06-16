@@ -32,8 +32,16 @@ export function ServiceHealthKpiCards({
           suffix={`/${summary.expectedTotal}`}
           tone="blue"
         />
-        <HealthCard label="Arrêtés" value={Math.max(0, summary.stopped - summary.notDeployed)} tone="red" />
-        <HealthCard label="Non déployés" value={summary.notDeployed} tone="red" />
+        <HealthCard
+          label="Arrêtés"
+          value={Math.max(0, summary.stopped - summary.notDeployed)}
+          tone="red"
+        />
+        <HealthCard
+          label="Non déployés"
+          value={summary.notDeployed}
+          tone="red"
+        />
       </div>
       {!hideHint && (
         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">

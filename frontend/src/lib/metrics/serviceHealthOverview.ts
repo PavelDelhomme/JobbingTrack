@@ -127,8 +127,8 @@ export function countNotDeployedDockerServices(
     if (isServiceRunning(service)) return false;
     const status = String(service.status || "").toLowerCase();
     const deploymentState = String(
-      (service as DockerServiceRow & { deployment_state?: string }).deployment_state ||
-        "",
+      (service as DockerServiceRow & { deployment_state?: string })
+        .deployment_state || "",
     ).toLowerCase();
     return status === "not_deployed" || deploymentState === "not_created";
   }).length;

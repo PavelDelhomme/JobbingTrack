@@ -2679,7 +2679,8 @@ const SecurityTab = memo(function SecurityTab({
                     name: "Arrêtés",
                     value: Math.max(
                       0,
-                      serviceHealthSummary.stopped - serviceHealthSummary.notDeployed,
+                      serviceHealthSummary.stopped -
+                        serviceHealthSummary.notDeployed,
                     ),
                   },
                   {
