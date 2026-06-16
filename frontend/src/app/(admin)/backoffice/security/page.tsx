@@ -19,6 +19,13 @@ import {
   formatSecuritySeverity,
   formatThreatTypeLabel,
 } from "@/lib/security/securityLabels";
+import {
+  calculateSecurityScore,
+  DEFAULT_SECURITY_SCORE_WEIGHTS,
+  sanitizeSecurityScoreWeights,
+  SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+  type SecurityScoreWeights,
+} from "@/lib/security/securityScore";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -97,12 +104,6 @@ type IncidentItem = {
   href: string;
 };
 
-type SecurityWeights = {
-  threats: number;
-  logsNoise: number;
-  wafDisabled: number;
-};
-
 const LOGS_WINDOW_DAYS = 30;
 const SECURITY_LOGS_FETCH_LIMIT = 500;
 const SECURITY_OVERVIEW_REFRESH_MS = 15000;
@@ -141,11 +142,9 @@ export default function SecurityOverviewPage() {
   const [newThreatSignal, setNewThreatSignal] = useState(0);
   const previousTopThreatRef = useRef<string | null>(null);
   const refreshInFlightRef = useRef(false);
-  const [weights, setWeights] = useState<SecurityWeights>({
-    threats: 2,
-    logsNoise: 1,
-    wafDisabled: 15,
-  });
+  const [weights, setWeights] = useState<SecurityScoreWeights>(
+    DEFAULT_SECURITY_SCORE_WEIGHTS,
+  );
   const [incidentsPage, setIncidentsPage] = useState(1);
   const [testIpBusy, setTestIpBusy] = useState(false);
   const [testIpMessage, setTestIpMessage] = useState<string | null>(null);
@@ -153,22 +152,30 @@ export default function SecurityOverviewPage() {
   const incidentsPageSize = 6;
 
   useEffect(() => {
-    const raw = localStorage.getItem("securityScoreWeights");
+    const raw = localStorage.getItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw);
-      setWeights((prev) => ({ ...prev, ...parsed }));
+      setWeights(sanitizeSecurityScoreWeights(parsed));
     } catch {
       // ignore
     }
   }, []);
 
-  const updateWeight = (key: keyof SecurityWeights, value: number) => {
+  const updateWeight = (key: keyof SecurityScoreWeights, value: number) => {
     setWeights((prev) => {
-      const next = { ...prev, [key]: value };
-      localStorage.setItem("securityScoreWeights", JSON.stringify(next));
+      const next = sanitizeSecurityScoreWeights({ ...prev, [key]: value });
+      localStorage.setItem(
+        SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+        JSON.stringify(next),
+      );
       return next;
     });
+  };
+
+  const resetScoreWeights = () => {
+    localStorage.removeItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
+    setWeights(DEFAULT_SECURITY_SCORE_WEIGHTS);
   };
 
   const load = useCallback(async () => {
@@ -452,13 +459,7 @@ export default function SecurityOverviewPage() {
   }, [load]);
 
   const securityScore = useMemo(() => {
-    const score =
-      100 -
-      Math.min(40, overview.threatsCount * weights.threats) -
-      Math.min(30, Math.max(0, overview.logsCount - 20) * weights.logsNoise) -
-      Math.min(20, overview.blockedIpsCount > 0 ? 10 : 0) -
-      (overview.wafEnabled === false ? weights.wafDisabled : 0);
-    return Math.max(0, Math.min(100, Math.round(score)));
+    return calculateSecurityScore(overview, weights);
   }, [overview, weights]);
 
   const scoreColor =
@@ -717,15 +718,39 @@ export default function SecurityOverviewPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            Pondération du score sécurité
-          </h2>
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+                Pondération du score sécurité
+              </h2>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                Réglage local navigateur, stocké dans{" "}
+                <span className="font-mono">
+                  {SECURITY_SCORE_WEIGHTS_STORAGE_KEY}
+                </span>
+                . Il ne modifie pas la politique serveur ni les alertes
+                automatiques.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetScoreWeights}
+              className="self-start rounded border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              Réinitialiser les poids
+            </button>
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
             Le score part de 100 puis retire des points selon les menaces
             détectées, le volume de logs sécurité au-delà du bruit normal, les
             IPs bloquées et l&apos;état du WAF. Les métriques CPU, mémoire,
             disque, services et conteneurs ne sont pas utilisées ici : elles
             relèvent de la performance, pas du risque sécurité.
+          </p>
+          <p className="mb-3 rounded-lg bg-gray-50 p-2 font-mono text-xs text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            Score = 100 - min(40, menaces × {weights.threats}) - min(30,
+            max(0, logs - 20) × {weights.logsNoise}) - pénalité IP bloquée (10)
+            - pénalité WAF off ({weights.wafDisabled})
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <label>
