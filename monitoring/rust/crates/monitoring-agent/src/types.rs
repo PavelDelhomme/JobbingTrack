@@ -52,6 +52,8 @@ pub struct ContainerMetrics {
     pub network_tx_bytes: U64,
     pub network_rx_mb: f64,
     pub network_tx_mb: f64,
+    pub block_read_bytes: U64,
+    pub block_write_bytes: U64,
     pub response_time_ms: f64,
     pub http_status: u16,
 }
