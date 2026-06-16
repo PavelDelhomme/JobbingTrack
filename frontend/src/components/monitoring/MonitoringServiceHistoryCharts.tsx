@@ -334,9 +334,9 @@ export function MonitoringServiceHistoryCharts({
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Débit dérivé des compteurs Docker persistés : Δ cumul / Δ temps
-              entre points consécutifs (Mo/min). Peut chuter à 0 si le
-              conteneur est recréé (cumuls remis à zéro) ou si l&apos;écart
-              temporel est filtré (&gt; 1 h).
+              entre points consécutifs (Mo/min). Peut chuter à 0 si le conteneur
+              est recréé (cumuls remis à zéro) ou si l&apos;écart temporel est
+              filtré (&gt; 1 h).
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={historyChartRowsIo}>

@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SecurityPageShell } from "../SecuritySubNav";
-import { FilterBar, FilterSelectField, FacetAutocompleteField } from "@/components/filters";
+import {
+  FilterBar,
+  FilterSelectField,
+  FacetAutocompleteField,
+} from "@/components/filters";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -124,16 +128,21 @@ export default function SecurityInvestigationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportHash, setExportHash] = useState<string | null>(null);
-  const [exportAuditRecorded, setExportAuditRecorded] = useState<boolean | null>(
-    null,
-  );
-  const [tableMissing, setTableMissing] = useState({ audit: false, aggregated: false });
+  const [exportAuditRecorded, setExportAuditRecorded] = useState<
+    boolean | null
+  >(null);
+  const [tableMissing, setTableMissing] = useState({
+    audit: false,
+    aggregated: false,
+  });
 
   const [auditRows, setAuditRows] = useState<AuditRow[]>([]);
   const [threats, setThreats] = useState<ThreatRow[]>([]);
   const [aggregatedLogs, setAggregatedLogs] = useState<AggregatedRow[]>([]);
   const [securityLogs, setSecurityLogs] = useState<SecurityRow[]>([]);
-  const [impactedAccounts, setImpactedAccounts] = useState<ImpactedAccount[]>([]);
+  const [impactedAccounts, setImpactedAccounts] = useState<ImpactedAccount[]>(
+    [],
+  );
 
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
     useAppliedFilters<InvestigationFilters>(DEFAULT_FILTERS);
@@ -145,24 +154,39 @@ export default function SecurityInvestigationPage() {
 
   const buildSearchParams = useCallback(() => {
     const params = new URLSearchParams({ startDate, limit: "200" });
-    if (applied.sourceIp.trim()) params.set("sourceIp", applied.sourceIp.trim());
-    if (applied.requestId.trim()) params.set("requestId", applied.requestId.trim());
-    if (applied.serviceName.trim()) params.set("serviceName", applied.serviceName.trim());
-    if (applied.threatType.trim()) params.set("threatType", applied.threatType.trim());
+    if (applied.sourceIp.trim())
+      params.set("sourceIp", applied.sourceIp.trim());
+    if (applied.requestId.trim())
+      params.set("requestId", applied.requestId.trim());
+    if (applied.serviceName.trim())
+      params.set("serviceName", applied.serviceName.trim());
+    if (applied.threatType.trim())
+      params.set("threatType", applied.threatType.trim());
     return params;
-  }, [applied.requestId, applied.serviceName, applied.sourceIp, applied.threatType, startDate]);
+  }, [
+    applied.requestId,
+    applied.serviceName,
+    applied.sourceIp,
+    applied.threatType,
+    startDate,
+  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = buildSearchParams();
-      const res = await fetch(`${API_URL}/api/v1/security/investigation/search?${params}`, {
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        `${API_URL}/api/v1/security/investigation/search?${params}`,
+        {
+          headers: authHeaders(),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || json?.success === false) {
-        throw new Error(json?.message || `Investigation indisponible (HTTP ${res.status})`);
+        throw new Error(
+          json?.message || `Investigation indisponible (HTTP ${res.status})`,
+        );
       }
       const data = json?.data || {};
       const auditData = Array.isArray(data.auditEvents) ? data.auditEvents : [];
@@ -173,7 +197,8 @@ export default function SecurityInvestigationPage() {
               if (applied.action && row.action !== applied.action) return false;
               if (
                 applied.outcome &&
-                String(row.outcome || "").toLowerCase() !== applied.outcome.toLowerCase()
+                String(row.outcome || "").toLowerCase() !==
+                  applied.outcome.toLowerCase()
               ) {
                 return false;
               }
@@ -182,15 +207,23 @@ export default function SecurityInvestigationPage() {
 
       setAuditRows(filteredAudit);
       setThreats(Array.isArray(data.threats) ? data.threats : []);
-      setAggregatedLogs(Array.isArray(data.aggregatedLogs) ? data.aggregatedLogs : []);
-      setSecurityLogs(Array.isArray(data.securityLogs) ? data.securityLogs : []);
-      setImpactedAccounts(Array.isArray(data.impactedAccounts) ? data.impactedAccounts : []);
+      setAggregatedLogs(
+        Array.isArray(data.aggregatedLogs) ? data.aggregatedLogs : [],
+      );
+      setSecurityLogs(
+        Array.isArray(data.securityLogs) ? data.securityLogs : [],
+      );
+      setImpactedAccounts(
+        Array.isArray(data.impactedAccounts) ? data.impactedAccounts : [],
+      );
       setTableMissing({
         audit: Boolean(data.tableMissing?.audit),
         aggregated: Boolean(data.tableMissing?.aggregated),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur chargement investigation");
+      setError(
+        err instanceof Error ? err.message : "Erreur chargement investigation",
+      );
       setAuditRows([]);
       setThreats([]);
       setAggregatedLogs([]);
@@ -232,7 +265,9 @@ export default function SecurityInvestigationPage() {
     });
     if (!res.ok) {
       const json = await res.json().catch(() => null);
-      throw new Error(json?.message || `Export indisponible (HTTP ${res.status})`);
+      throw new Error(
+        json?.message || `Export indisponible (HTTP ${res.status})`,
+      );
     }
     if (format === "csv") {
       const csv = await res.text();
@@ -247,7 +282,11 @@ export default function SecurityInvestigationPage() {
     const content = JSON.stringify(json?.data ?? {}, null, 2);
     const hash = await sha256Hex(content);
     setExportHash(hash);
-    downloadBlob(content, `investigation-bundle-${Date.now()}.json`, "application/json");
+    downloadBlob(
+      content,
+      `investigation-bundle-${Date.now()}.json`,
+      "application/json",
+    );
   };
 
   const handleExportAuditLocal = async () => {
@@ -260,7 +299,11 @@ export default function SecurityInvestigationPage() {
     const json = JSON.stringify(bundle, null, 2);
     const hash = await sha256Hex(json);
     setExportHash(hash);
-    downloadBlob(json, `investigation-audit-${Date.now()}.json`, "application/json");
+    downloadBlob(
+      json,
+      `investigation-audit-${Date.now()}.json`,
+      "application/json",
+    );
   };
 
   const actionOptions = useMemo(() => {
@@ -276,19 +319,36 @@ export default function SecurityInvestigationPage() {
   const filterBadges = useMemo((): FilterBadge[] => {
     const badges: FilterBadge[] = [];
     if (applied.sourceIp.trim()) {
-      badges.push({ key: "sourceIp", label: `IP : ${applied.sourceIp.trim()}` });
+      badges.push({
+        key: "sourceIp",
+        label: `IP : ${applied.sourceIp.trim()}`,
+      });
     }
     if (applied.requestId.trim()) {
-      badges.push({ key: "requestId", label: `requestId : ${applied.requestId.trim()}` });
+      badges.push({
+        key: "requestId",
+        label: `requestId : ${applied.requestId.trim()}`,
+      });
     }
     if (applied.serviceName.trim()) {
-      badges.push({ key: "serviceName", label: `Service : ${applied.serviceName.trim()}` });
+      badges.push({
+        key: "serviceName",
+        label: `Service : ${applied.serviceName.trim()}`,
+      });
     }
     if (applied.threatType.trim()) {
-      badges.push({ key: "threatType", label: `Type : ${applied.threatType.trim()}` });
+      badges.push({
+        key: "threatType",
+        label: `Type : ${applied.threatType.trim()}`,
+      });
     }
     return badges;
-  }, [applied.requestId, applied.serviceName, applied.sourceIp, applied.threatType]);
+  }, [
+    applied.requestId,
+    applied.serviceName,
+    applied.sourceIp,
+    applied.threatType,
+  ]);
 
   return (
     <SecurityPageShell
@@ -298,8 +358,10 @@ export default function SecurityInvestigationPage() {
       <div className="space-y-6">
         {(tableMissing.audit || tableMissing.aggregated) && (
           <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            {tableMissing.audit && "Table `audit_logs` absente — migration Prisma requise. "}
-            {tableMissing.aggregated && "Table `aggregated_logs` absente — corrélation gateway limitée."}
+            {tableMissing.audit &&
+              "Table `audit_logs` absente — migration Prisma requise. "}
+            {tableMissing.aggregated &&
+              "Table `aggregated_logs` absente — corrélation gateway limitée."}
           </p>
         )}
         {error && (
@@ -313,7 +375,8 @@ export default function SecurityInvestigationPage() {
             <span className="font-mono break-all">{exportHash}</span>
             {exportAuditRecorded != null && (
               <span className="ml-2">
-                · audit `security_export` : {exportAuditRecorded ? "enregistré" : "non enregistré"}
+                · audit `security_export` :{" "}
+                {exportAuditRecorded ? "enregistré" : "non enregistré"}
               </span>
             )}
           </p>
@@ -339,7 +402,11 @@ export default function SecurityInvestigationPage() {
           </button>
           <button
             type="button"
-            onClick={() => void postExport(["threats"], "csv").catch((e) => setError(String(e.message)))}
+            onClick={() =>
+              void postExport(["threats"], "csv").catch((e) =>
+                setError(String(e.message)),
+              )
+            }
             disabled={threats.length === 0}
             className="inline-flex items-center gap-2 rounded-md bg-orange-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
           >
@@ -350,7 +417,13 @@ export default function SecurityInvestigationPage() {
             type="button"
             onClick={() =>
               void postExport(
-                ["audit", "threats", "aggregated", "security", "impactedAccounts"],
+                [
+                  "audit",
+                  "threats",
+                  "aggregated",
+                  "security",
+                  "impactedAccounts",
+                ],
                 "json",
               ).catch((e) => setError(String(e.message)))
             }
@@ -447,7 +520,9 @@ export default function SecurityInvestigationPage() {
         ) : activeTab === "audit" ? (
           auditRows.length === 0 ? (
             <div className={uiSurfaces.emptyState}>
-              <p>Aucun événement d’audit sur les {WINDOW_DAYS} derniers jours.</p>
+              <p>
+                Aucun événement d’audit sur les {WINDOW_DAYS} derniers jours.
+              </p>
             </div>
           ) : (
             <div className={`${uiSurfaces.tableWrap} overflow-x-auto`}>
@@ -475,12 +550,16 @@ export default function SecurityInvestigationPage() {
                       <td className="p-3 text-xs">
                         {row.resource}
                         {row.resourceId ? ` / ${row.resourceId}` : ""}
-                        <div className="text-xs text-gray-500">{row.outcome}</div>
+                        <div className="text-xs text-gray-500">
+                          {row.outcome}
+                        </div>
                       </td>
                       <td className="p-3 text-xs">
                         {row.actorEmail || row.actorRole || "—"}
                       </td>
-                      <td className="p-3 font-mono text-xs">{row.clientIp || "—"}</td>
+                      <td className="p-3 font-mono text-xs">
+                        {row.clientIp || "—"}
+                      </td>
                       <td className="p-3 font-mono text-xs">
                         {row.requestId ? (
                           <Link
@@ -502,7 +581,9 @@ export default function SecurityInvestigationPage() {
         ) : activeTab === "correlation" ? (
           <div className="space-y-6">
             <section>
-              <h3 className="mb-2 text-sm font-semibold">Menaces ({threats.length})</h3>
+              <h3 className="mb-2 text-sm font-semibold">
+                Menaces ({threats.length})
+              </h3>
               {threats.length === 0 ? (
                 <div className={uiSurfaces.emptyState}>
                   <p>Aucune menace sur la fenêtre filtrée.</p>
@@ -522,16 +603,28 @@ export default function SecurityInvestigationPage() {
                     </thead>
                     <tbody>
                       {threats.map((row) => (
-                        <tr key={row.id} className="border-t border-gray-200 dark:border-gray-700">
+                        <tr
+                          key={row.id}
+                          className="border-t border-gray-200 dark:border-gray-700"
+                        >
                           <td className="p-3 text-xs whitespace-nowrap">
                             {formatLocalDateTime(row.detectedAt)}
                           </td>
-                          <td className="p-3 font-mono text-xs">{row.threatType}</td>
+                          <td className="p-3 font-mono text-xs">
+                            {row.threatType}
+                          </td>
                           <td className="p-3 text-xs">{row.severity}</td>
-                          <td className="p-3 font-mono text-xs">{row.sourceIp}</td>
-                          <td className="p-3 text-xs">{row.blocked ? "Oui" : "Non"}</td>
+                          <td className="p-3 font-mono text-xs">
+                            {row.sourceIp}
+                          </td>
                           <td className="p-3 text-xs">
-                            <Link href={`/backoffice/security/threats/${row.id}`} className={uiText.link}>
+                            {row.blocked ? "Oui" : "Non"}
+                          </td>
+                          <td className="p-3 text-xs">
+                            <Link
+                              href={`/backoffice/security/threats/${row.id}`}
+                              className={uiText.link}
+                            >
                               Ouvrir
                             </Link>
                           </td>
@@ -565,7 +658,10 @@ export default function SecurityInvestigationPage() {
                     </thead>
                     <tbody>
                       {aggregatedLogs.map((row) => (
-                        <tr key={row.id} className="border-t border-gray-200 dark:border-gray-700">
+                        <tr
+                          key={row.id}
+                          className="border-t border-gray-200 dark:border-gray-700"
+                        >
                           <td className="p-3 text-xs whitespace-nowrap">
                             {formatLocalDateTime(row.timestamp)}
                           </td>
@@ -617,13 +713,22 @@ export default function SecurityInvestigationPage() {
                     </thead>
                     <tbody>
                       {securityLogs.map((row) => (
-                        <tr key={row.id} className="border-t border-gray-200 dark:border-gray-700">
+                        <tr
+                          key={row.id}
+                          className="border-t border-gray-200 dark:border-gray-700"
+                        >
                           <td className="p-3 text-xs whitespace-nowrap">
                             {formatLocalDateTime(row.timestamp)}
                           </td>
-                          <td className="p-3 font-mono text-xs">{row.eventType}</td>
-                          <td className="p-3 font-mono text-xs">{row.sourceIP || "—"}</td>
-                          <td className="p-3 font-mono text-xs">{row.userId || "—"}</td>
+                          <td className="p-3 font-mono text-xs">
+                            {row.eventType}
+                          </td>
+                          <td className="p-3 font-mono text-xs">
+                            {row.sourceIP || "—"}
+                          </td>
+                          <td className="p-3 font-mono text-xs">
+                            {row.userId || "—"}
+                          </td>
                           <td className="p-3 font-mono text-xs">
                             {row.requestId ? (
                               <Link
@@ -647,7 +752,8 @@ export default function SecurityInvestigationPage() {
         ) : impactedAccounts.length === 0 ? (
           <div className={uiSurfaces.emptyState}>
             <p>
-              Aucun compte impacté corrélé (audit auth, logs sécurité ou agrégés avec userId).
+              Aucun compte impacté corrélé (audit auth, logs sécurité ou agrégés
+              avec userId).
             </p>
           </div>
         ) : (
@@ -671,7 +777,9 @@ export default function SecurityInvestigationPage() {
                     className="border-t border-gray-200 dark:border-gray-700"
                   >
                     <td className="p-3 text-xs whitespace-nowrap">
-                      {row.lastSeenAt ? formatLocalDateTime(row.lastSeenAt) : "—"}
+                      {row.lastSeenAt
+                        ? formatLocalDateTime(row.lastSeenAt)
+                        : "—"}
                     </td>
                     <td className="p-3 text-xs">
                       {row.displayName || row.email || "—"}
@@ -679,13 +787,17 @@ export default function SecurityInvestigationPage() {
                         <div className="text-xs text-gray-500">{row.email}</div>
                       ) : null}
                       {row.userId ? (
-                        <div className="font-mono text-xs text-gray-500">{row.userId}</div>
+                        <div className="font-mono text-xs text-gray-500">
+                          {row.userId}
+                        </div>
                       ) : null}
                     </td>
                     <td className="p-3 text-xs">{row.role || "—"}</td>
                     <td className="p-3 text-xs">{row.sources.join(", ")}</td>
                     <td className="p-3 font-mono text-xs">
-                      {row.clientIps.length > 0 ? row.clientIps.join(", ") : "—"}
+                      {row.clientIps.length > 0
+                        ? row.clientIps.join(", ")
+                        : "—"}
                     </td>
                     <td className="p-3 text-xs">{row.loginFailures}</td>
                     <td className="p-3 text-xs">{row.loginSuccesses}</td>

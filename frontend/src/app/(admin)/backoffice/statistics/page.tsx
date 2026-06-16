@@ -467,8 +467,7 @@ export default function StatisticsPage() {
 
   // ✅ Charger les préférences de rafraîchissement
   const [statsRefreshInterval, setStatsRefreshInterval] = useState(60000);
-  const [statsAutoRefreshEnabled, setStatsAutoRefreshEnabled] =
-    useState(false);
+  const [statsAutoRefreshEnabled, setStatsAutoRefreshEnabled] = useState(false);
 
   useEffect(() => {
     const loadRefreshInterval = async () => {

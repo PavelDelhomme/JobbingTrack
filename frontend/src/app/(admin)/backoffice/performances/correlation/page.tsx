@@ -426,7 +426,9 @@ function serviceAliasesForName(name: string): string[] {
 
 function inferServiceNameFromEndpoint(endpoint: string | null): string | null {
   if (!endpoint) return null;
-  const path = endpoint.startsWith("http") ? parseEndpointUrl(endpoint).endpoint : endpoint;
+  const path = endpoint.startsWith("http")
+    ? parseEndpointUrl(endpoint).endpoint
+    : endpoint;
   if (!path) return null;
   const routes: Array<[RegExp, string]> = [
     [/^\/api\/v1\/(auth|users|emails|preferences)\b/, "auth-service"],
@@ -441,7 +443,10 @@ function inferServiceNameFromEndpoint(endpoint: string | null): string | null {
     [/^\/api\/v1\/events\b/, "event-service"],
     [/^\/api\/v1\/followups\b/, "followup-service"],
     [/^\/api\/v1\/workflows\b/, "workflow-service"],
-    [/^\/api\/v1\/(security|logs|alerts|intrusions|ddos|vulnerabilities)\b/, "security-service"],
+    [
+      /^\/api\/v1\/(security|logs|alerts|intrusions|ddos|vulnerabilities)\b/,
+      "security-service",
+    ],
   ];
   return routes.find(([pattern]) => pattern.test(path))?.[1] ?? null;
 }
@@ -480,15 +485,22 @@ function securityLogServiceCandidates(row: SecurityLogApiRow): string[] {
   }
 
   if (source?.includes("api-gateway")) {
-    serviceAliasesForName("api-gateway").forEach((alias) => candidates.add(alias));
+    serviceAliasesForName("api-gateway").forEach((alias) =>
+      candidates.add(alias),
+    );
   }
 
   // Ces lignes viennent de security_logs : le service sécurité doit toujours pouvoir les diagnostiquer.
-  serviceAliasesForName("security-service").forEach((alias) => candidates.add(alias));
+  serviceAliasesForName("security-service").forEach((alias) =>
+    candidates.add(alias),
+  );
   return Array.from(candidates);
 }
 
-function securityLogMatchesFocus(row: SecurityLogApiRow, focusAliases: string[]): boolean {
+function securityLogMatchesFocus(
+  row: SecurityLogApiRow,
+  focusAliases: string[],
+): boolean {
   const wanted = new Set(focusAliases.map((value) => value.toLowerCase()));
   return securityLogServiceCandidates(row).some((candidate) =>
     wanted.has(candidate.toLowerCase()),
@@ -497,7 +509,9 @@ function securityLogMatchesFocus(row: SecurityLogApiRow, focusAliases: string[])
 
 function mapSecurityLogToAggLog(row: SecurityLogApiRow): AggLogRow {
   const metadata =
-    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+    row.metadata &&
+    typeof row.metadata === "object" &&
+    !Array.isArray(row.metadata)
       ? { ...row.metadata }
       : {};
   const requestId = pickSecurityLogRequestId(row);
@@ -507,7 +521,11 @@ function mapSecurityLogToAggLog(row: SecurityLogApiRow): AggLogRow {
   const sourceIp = readLooseString(row.sourceIP);
   const method = readLooseString(row.method);
   const primaryService =
-    firstMetadataString(metadata, ["serviceName", "service", "targetService"]) ||
+    firstMetadataString(metadata, [
+      "serviceName",
+      "service",
+      "targetService",
+    ]) ||
     inferServiceNameFromEndpoint(endpoint) ||
     "security-service";
 
@@ -558,10 +576,13 @@ async function fetchSecurityLogsForCorrelation(options: {
   });
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const res = await fetch(`${FRONTEND_URLS.api}/api/v1/security/logs?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    signal: options.signal,
-  });
+  const res = await fetch(
+    `${FRONTEND_URLS.api}/api/v1/security/logs?${params}`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: options.signal,
+    },
+  );
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.success === false) {
     throw new Error(
@@ -835,19 +856,48 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     [ctx.client_ip_address, "metadata.client_ip_address"],
     [ctx.ipAddress, "metadata.ipAddress"],
     [ctx.ip_address, "metadata.ip_address"],
-    [(ctx.context as Record<string, unknown> | undefined)?.clientIp, "metadata.context.clientIp"],
-    [(ctx.context as Record<string, unknown> | undefined)?.client_ip, "metadata.context.client_ip"],
-    [(ctx.context as Record<string, unknown> | undefined)?.ip, "metadata.context.ip"],
-    [(ctx.request as Record<string, unknown> | undefined)?.ip, "metadata.request.ip"],
-    [(ctx.request as Record<string, unknown> | undefined)?.clientIp, "metadata.request.clientIp"],
+    [
+      (ctx.context as Record<string, unknown> | undefined)?.clientIp,
+      "metadata.context.clientIp",
+    ],
+    [
+      (ctx.context as Record<string, unknown> | undefined)?.client_ip,
+      "metadata.context.client_ip",
+    ],
+    [
+      (ctx.context as Record<string, unknown> | undefined)?.ip,
+      "metadata.context.ip",
+    ],
+    [
+      (ctx.request as Record<string, unknown> | undefined)?.ip,
+      "metadata.request.ip",
+    ],
+    [
+      (ctx.request as Record<string, unknown> | undefined)?.clientIp,
+      "metadata.request.clientIp",
+    ],
     [(ctx.req as Record<string, unknown> | undefined)?.ip, "metadata.req.ip"],
-    [(ctx.req as Record<string, unknown> | undefined)?.clientIp, "metadata.req.clientIp"],
+    [
+      (ctx.req as Record<string, unknown> | undefined)?.clientIp,
+      "metadata.req.clientIp",
+    ],
     [ctx.forwardedFor, "metadata.forwardedFor (1re valeur)"],
     [ctx.xForwardedFor, "metadata.xForwardedFor (1re valeur)"],
     [ctx["x-forwarded-for"], "metadata['x-forwarded-for'] (1re valeur)"],
-    [(ctx.headers as Record<string, unknown> | undefined)?.["x-forwarded-for"], "metadata.headers['x-forwarded-for'] (1re valeur)"],
-    [(ctx.headers as Record<string, unknown> | undefined)?.["x-real-ip"], "metadata.headers['x-real-ip']"],
-    [(ctx.headers as Record<string, unknown> | undefined)?.["cf-connecting-ip"], "metadata.headers['cf-connecting-ip']"],
+    [
+      (ctx.headers as Record<string, unknown> | undefined)?.["x-forwarded-for"],
+      "metadata.headers['x-forwarded-for'] (1re valeur)",
+    ],
+    [
+      (ctx.headers as Record<string, unknown> | undefined)?.["x-real-ip"],
+      "metadata.headers['x-real-ip']",
+    ],
+    [
+      (ctx.headers as Record<string, unknown> | undefined)?.[
+        "cf-connecting-ip"
+      ],
+      "metadata.headers['cf-connecting-ip']",
+    ],
     [ctx.remoteAddress, "metadata.remoteAddress"],
     [ctx.remote_address, "metadata.remote_address"],
   ];
@@ -981,19 +1031,23 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     }
   }
   if (!httpStatus) {
-    for (const k of ["httpStatus", "statusCode", "upstreamHttpStatus"] as const) {
+    for (const k of [
+      "httpStatus",
+      "statusCode",
+      "upstreamHttpStatus",
+    ] as const) {
       const v = ctx[k];
-    if (typeof v === "number" && Number.isFinite(v)) {
-      httpStatus = String(Math.trunc(v));
-      httpSrc = `metadata.${k} (nombre)`;
-      break;
+      if (typeof v === "number" && Number.isFinite(v)) {
+        httpStatus = String(Math.trunc(v));
+        httpSrc = `metadata.${k} (nombre)`;
+        break;
+      }
+      if (typeof v === "string" && /^\d{1,3}$/.test(v.trim())) {
+        httpStatus = v.trim();
+        httpSrc = `metadata.${k} (chaîne numérique)`;
+        break;
+      }
     }
-    if (typeof v === "string" && /^\d{1,3}$/.test(v.trim())) {
-      httpStatus = v.trim();
-      httpSrc = `metadata.${k} (chaîne numérique)`;
-      break;
-    }
-  }
   }
   if (!httpStatus) {
     const m1 = message.match(
@@ -2507,7 +2561,9 @@ export default function PerformancesCorrelationPage() {
             }),
           ]);
           if (controller.signal.aborted) return;
-          const securityLogsRaw = Array.isArray(securityLogs) ? securityLogs : [];
+          const securityLogsRaw = Array.isArray(securityLogs)
+            ? securityLogs
+            : [];
           const persistenceRows = enrichAggLogRows(
             (Array.isArray(persistedLogs) ? persistedLogs : []) as AggLogRow[],
             securityLogsRaw,
@@ -2515,9 +2571,7 @@ export default function PerformancesCorrelationPage() {
           const securityRows = securityLogsRaw
             .filter((row) => securityLogMatchesFocus(row, focusAliases))
             .map(mapSecurityLogToAggLog)
-            .map((row) =>
-              enrichAggLogRows([row], securityLogsRaw)[0] ?? row,
-            );
+            .map((row) => enrichAggLogRows([row], securityLogsRaw)[0] ?? row);
           const rows = [...persistenceRows, ...securityRows].sort((a, b) => {
             const ta = new Date(String(a.timestamp || 0)).getTime();
             const tb = new Date(String(b.timestamp || 0)).getTime();

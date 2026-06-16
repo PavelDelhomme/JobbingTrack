@@ -45,7 +45,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(`${BACKOFFICE_LEGACY_PATH}/`)
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname.replace(BACKOFFICE_LEGACY_PATH, BACKOFFICE_BASE_PATH);
+    url.pathname = pathname.replace(
+      BACKOFFICE_LEGACY_PATH,
+      BACKOFFICE_BASE_PATH,
+    );
     return NextResponse.redirect(url, 308);
   }
 
@@ -77,9 +80,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/login",
-    "/backoffice/:path*",
-    "/b4ck0ff1ce/:path*",
-  ],
+  matcher: ["/login", "/backoffice/:path*", "/b4ck0ff1ce/:path*"],
 };

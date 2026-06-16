@@ -107,7 +107,9 @@ export function mergeAggLogMetadata(
   return o;
 }
 
-function pickSecurityLogRequestId(row: SecurityLogForensicsSource): string | null {
+function pickSecurityLogRequestId(
+  row: SecurityLogForensicsSource,
+): string | null {
   return (
     readLooseString(row.requestId) ||
     firstMetadataString(row.metadata, [
@@ -123,7 +125,9 @@ function forensicsFromSecurityLog(
   row: SecurityLogForensicsSource,
 ): Record<string, unknown> {
   const metadata =
-    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+    row.metadata &&
+    typeof row.metadata === "object" &&
+    !Array.isArray(row.metadata)
       ? row.metadata
       : {};
   const requestId = pickSecurityLogRequestId(row);
@@ -227,8 +231,7 @@ export function enrichAggLogRow(
   return {
     ...row,
     requestId: topRequestId,
-    method:
-      readLooseString(row.method) || readLooseString(mergedMeta.method),
+    method: readLooseString(row.method) || readLooseString(mergedMeta.method),
     httpMethod:
       readLooseString(row.httpMethod) ||
       readLooseString(mergedMeta.httpMethod) ||
@@ -246,7 +249,8 @@ export function enrichAggLogRow(
       readLooseString(row.clientIp) ||
       readLooseString(mergedMeta.clientIp) ||
       suspiciousIp,
-    ip: readLooseString(row.ip) || readLooseString(mergedMeta.ip) || suspiciousIp,
+    ip:
+      readLooseString(row.ip) || readLooseString(mergedMeta.ip) || suspiciousIp,
     statusCode:
       readLooseNumberOrString(row.statusCode) ??
       readLooseNumberOrString(mergedMeta.statusCode) ??
@@ -285,7 +289,9 @@ export type MinimalHttpForensicsShape = {
 };
 
 /** Corrélation fine : une ligne HTTP doit avoir tous ces champs (pas de demi-contexte). */
-export function hasMinimalHttpForensics(ctx: MinimalHttpForensicsShape): boolean {
+export function hasMinimalHttpForensics(
+  ctx: MinimalHttpForensicsShape,
+): boolean {
   return Boolean(
     ctx.requestId?.trim() &&
       ctx.httpMethod?.trim() &&
@@ -298,7 +304,9 @@ export function hasMinimalHttpForensics(ctx: MinimalHttpForensicsShape): boolean
 }
 
 /** Alerte cron analyseur sans requête HTTP — ne doit pas polluer le tableau corrélation. */
-export function isAnalyzerAggregateWithoutHttp(row: AggLogForensicsRow): boolean {
+export function isAnalyzerAggregateWithoutHttp(
+  row: AggLogForensicsRow,
+): boolean {
   const meta = mergeAggLogMetadata(row);
   const eventType = String(
     row.eventType || meta?.eventType || "",

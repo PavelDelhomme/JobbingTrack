@@ -64,9 +64,9 @@ describe("PriorityResponseServicesSummary", () => {
     expect(
       screen.getByRole("link", { name: /détail latence/i }),
     ).toHaveAttribute("href", "/backoffice/performances/latency");
-    expect(screen.getByText(/moyenne des endpoints affichés/i)).toHaveTextContent(
-      "10ms",
-    );
+    expect(
+      screen.getByText(/moyenne des endpoints affichés/i),
+    ).toHaveTextContent("10ms");
   });
 
   it("rend un état vide explicite si aucun service prioritaire n'est présent", () => {

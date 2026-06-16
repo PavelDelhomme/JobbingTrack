@@ -58,9 +58,8 @@ export function StatisticsErrorAvailabilityCharts({
     maxErrorRate <= 5 ? 5 : Math.min(100, Math.ceil(maxErrorRate * 1.2));
   const axisBottom = axisShowDate ? 72 : 60;
   const tooltipLabel = (_: unknown, payload: unknown) => {
-    const timeMs = (
-      payload as Array<{ payload?: { timeMs?: number } }>
-    )?.[0]?.payload?.timeMs;
+    const timeMs = (payload as Array<{ payload?: { timeMs?: number } }>)?.[0]
+      ?.payload?.timeMs;
     return timeMs != null ? formatLocalDateTime(new Date(timeMs)) : "—";
   };
 
@@ -97,10 +96,7 @@ export function StatisticsErrorAvailabilityCharts({
               style={{ fontSize: "12px" }}
               domain={availabilityDomain}
             />
-            <Tooltip
-              {...rechartsTooltipProps}
-              labelFormatter={tooltipLabel}
-            />
+            <Tooltip {...rechartsTooltipProps} labelFormatter={tooltipLabel} />
             <Line
               type="monotone"
               dataKey="availability"
@@ -163,10 +159,7 @@ export function StatisticsErrorAvailabilityCharts({
               style={{ fontSize: "12px" }}
               domain={[0, errorRateDomainMax]}
             />
-            <Tooltip
-              {...rechartsTooltipProps}
-              labelFormatter={tooltipLabel}
-            />
+            <Tooltip {...rechartsTooltipProps} labelFormatter={tooltipLabel} />
             <Area
               type="monotone"
               dataKey="errorRate"

@@ -76,14 +76,10 @@ export function NetworkConnectionSourceTable({
               >
                 {showObservedAt && (
                   <td className="p-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
-                    {row.observedAt
-                      ? formatLocalDateTime(row.observedAt)
-                      : "—"}
+                    {row.observedAt ? formatLocalDateTime(row.observedAt) : "—"}
                   </td>
                 )}
-                <td className="p-3 font-mono text-xs">
-                  {sourceIp || "—"}
-                </td>
+                <td className="p-3 font-mono text-xs">{sourceIp || "—"}</td>
                 <td className="p-3">{row.source?.label || "—"}</td>
                 <td className="p-3">
                   {row.destination?.label || row.serviceLabel || "—"}
@@ -152,8 +148,8 @@ export function NetworkConnectionSourceTable({
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {sourceIp
                           ? /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|::1)/.test(
-                                sourceIp,
-                              )
+                              sourceIp,
+                            )
                             ? "IP interne — pas de menace publique"
                             : "Aucun lien corrélé"
                           : "IP source absente"}

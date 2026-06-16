@@ -76,10 +76,8 @@ describe("threatBlockPresentation", () => {
       { threatId: "abc", blockOrigin: "automatic_threat" },
     ];
     expect(
-      findConsolidatedBlockEntry(
-        { id: "abc", sourceIp: "1.2.3.4" },
-        entries,
-      )?.blockOrigin,
+      findConsolidatedBlockEntry({ id: "abc", sourceIp: "1.2.3.4" }, entries)
+        ?.blockOrigin,
     ).toBe("automatic_threat");
     expect(
       findConsolidatedBlockEntry(

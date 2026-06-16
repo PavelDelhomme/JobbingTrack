@@ -22,10 +22,7 @@ function clampBrushRange(
   dataLength: number,
 ): ChartBrushIndexRange {
   if (dataLength <= 0) return { startIndex: 0, endIndex: 0 };
-  const startIndex = Math.max(
-    0,
-    Math.min(range.startIndex, dataLength - 1),
-  );
+  const startIndex = Math.max(0, Math.min(range.startIndex, dataLength - 1));
   const endIndex = Math.max(
     startIndex,
     Math.min(range.endIndex, dataLength - 1),

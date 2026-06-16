@@ -211,7 +211,10 @@ export default function SecurityLogsPage() {
     () =>
       mergeFacetSuggestions(
         [{ value: "mobile" }],
-        mergeFacetSuggestions(facets.categories, logs.map((log) => log.category)),
+        mergeFacetSuggestions(
+          facets.categories,
+          logs.map((log) => log.category),
+        ),
       ),
     [facets.categories, logs],
   );

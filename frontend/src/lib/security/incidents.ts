@@ -22,7 +22,9 @@ export function isIncidentLog(
   category?: string,
 ): boolean {
   const et = String(eventType || "").trim();
-  const cat = String(category || "").trim().toLowerCase();
+  const cat = String(category || "")
+    .trim()
+    .toLowerCase();
   if (cat === "mobile" || et.startsWith("mobile_")) return true;
   if (!et) return false;
   if (INCIDENT_LOG_EVENT_TYPES.has(et)) return true;

@@ -598,8 +598,7 @@ export default function PerformancesDiskPage() {
     useSyncedChartBrushRange(brushMasterRows.length, 80);
 
   const displaySystemRows = useMemo(
-    () =>
-      rowsInBrushWindow(systemRows, brushMasterRows, brushStart, brushEnd),
+    () => rowsInBrushWindow(systemRows, brushMasterRows, brushStart, brushEnd),
     [brushEnd, brushMasterRows, brushStart, systemRows],
   );
   const displayIoRows = useMemo(
@@ -851,7 +850,9 @@ export default function PerformancesDiskPage() {
                       top: 5,
                       right: 30,
                       left: 20,
-                      bottom: brushOnSystemCharts ? chartBottomBrush : chartBottom,
+                      bottom: brushOnSystemCharts
+                        ? chartBottomBrush
+                        : chartBottom,
                     }}
                   >
                     <CartesianGrid
@@ -1029,7 +1030,9 @@ export default function PerformancesDiskPage() {
                       top: 5,
                       right: 30,
                       left: 20,
-                      bottom: brushOnIoRateChart ? chartBottomBrush : chartBottom,
+                      bottom: brushOnIoRateChart
+                        ? chartBottomBrush
+                        : chartBottom,
                     }}
                   >
                     <CartesianGrid
@@ -1144,8 +1147,8 @@ export default function PerformancesDiskPage() {
             </p>
             {brushMasterRows.length > 0 ? (
               <p>
-                Glissez la barre brush sous le dernier graphe système ou I/O pour
-                zoomer tous les graphes sur la même fenêtre.
+                Glissez la barre brush sous le dernier graphe système ou I/O
+                pour zoomer tous les graphes sur la même fenêtre.
               </p>
             ) : null}
             {hasCustomBrush ? (

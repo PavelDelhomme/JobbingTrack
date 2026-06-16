@@ -89,8 +89,7 @@ function devHttpsSameOrigin(
   port: string,
   protocol: string,
 ): string {
-  const portSuffix =
-    port && port !== "443" && port !== "" ? `:${port}` : "";
+  const portSuffix = port && port !== "443" && port !== "" ? `:${port}` : "";
   return `${protocol}//${hostname}${portSuffix}`;
 }
 
