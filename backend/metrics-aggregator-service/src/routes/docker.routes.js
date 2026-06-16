@@ -23,6 +23,61 @@ const FIVE_MINUTES_IN_MINUTES = 5;
 const SERVICES_ALL_CACHE_TTL_MS = Number(process.env.DOCKER_SERVICES_ALL_CACHE_TTL_MS || 60000);
 let servicesAllCache = null;
 
+const OPTIONAL_SERVICE_SUFFIXES = [
+  'workflow-service',
+  'notification-service',
+  'deployment-service',
+  'profile-service',
+  'event-service',
+  'security-service',
+];
+
+function normalizeCatalogServiceKey(name = '') {
+  return String(name).replace(/^jobbingtrack-/, '').trim().toLowerCase();
+}
+
+function shouldIncludeExpectedCatalogService(fullName, { includeOptional }) {
+  if (includeOptional !== false) return true;
+  const short = normalizeCatalogServiceKey(fullName);
+  return !OPTIONAL_SERVICE_SUFFIXES.includes(short);
+}
+
+/** Ajoute les services du catalogue sans conteneur Docker (⚪ DOWN make status). */
+function appendMissingExpectedServices(existingServices, options = {}) {
+  const present = new Set(
+    existingServices.map((service) => normalizeCatalogServiceKey(service.name || '')),
+  );
+  const augmented = [...existingServices];
+
+  for (const fullName of Object.keys(SERVICE_HEALTH_ENDPOINTS)) {
+    const key = normalizeCatalogServiceKey(fullName);
+    if (!key || present.has(key)) continue;
+    if (!shouldIncludeExpectedCatalogService(fullName, options)) continue;
+
+    augmented.push({
+      name: fullName,
+      status: 'not_deployed',
+      health_status: 'none',
+      is_running: false,
+      is_healthy: false,
+      deployment_state: 'not_created',
+      created: null,
+      ports: null,
+      image: null,
+      metrics: null,
+      health: {
+        status: 'not_deployed',
+        health_status_docker: 'none',
+        health_status_http: 'offline',
+        responseTime: null,
+        error: 'Conteneur non créé — make up-full ou profile compose',
+      },
+    });
+  }
+
+  return augmented;
+}
+
 /** `docker ps --format "{{json .}}"` : le champ Names peut être `/jobbingtrack-foo` ; la persistance et Prisma utilisent `jobbingtrack-foo`. */
 function normalizeDockerPsName(namesField) {
   if (namesField == null) return '';
@@ -822,17 +877,27 @@ router.get('/services/all', async (req, res) => {
       };
     });
     
+    const servicesWithCatalog = appendMissingExpectedServices(services, {
+      includeOptional,
+      includeMailhog,
+    });
+
     // Séparer les services en catégories
-    const running = services.filter(s => s.is_running);
-    const stopped = services.filter(s => !s.is_running);
+    const running = servicesWithCatalog.filter(s => s.is_running);
+    const stopped = servicesWithCatalog.filter(s => !s.is_running);
+    const notDeployed = servicesWithCatalog.filter(
+      (s) => s.deployment_state === 'not_created' || s.status === 'not_deployed',
+    );
     
     const payload = {
       success: true,
       timestamp: new Date().toISOString(),
-      total: services.length,
+      total: servicesWithCatalog.length,
+      expected: servicesWithCatalog.length,
       running: running.length,
       stopped: stopped.length,
-      services: services
+      not_deployed: notDeployed.length,
+      services: servicesWithCatalog
     };
 
     if (SERVICES_ALL_CACHE_TTL_MS > 0) {

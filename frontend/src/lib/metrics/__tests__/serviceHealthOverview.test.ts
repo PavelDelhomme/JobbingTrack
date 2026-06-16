@@ -95,6 +95,24 @@ describe("serviceHealthOverview", () => {
     expect(summary.degraded).toBe(1);
     expect(summary.stopped).toBe(1);
     expect(summary.totalRunning).toBe(2);
+    expect(summary.expectedTotal).toBe(3);
+    expect(summary.notDeployed).toBe(0);
+  });
+
+  it("compte les services non déployés du catalogue", () => {
+    const summary = summarizeDockerServiceHealth([
+      { name: "jobbingtrack-frontend", is_running: true, is_healthy: true },
+      {
+        name: "jobbingtrack-application-service",
+        is_running: false,
+        status: "not_deployed",
+        deployment_state: "not_created",
+      },
+    ]);
+    expect(summary.healthy).toBe(1);
+    expect(summary.expectedTotal).toBe(2);
+    expect(summary.notDeployed).toBe(1);
+    expect(summary.stopped).toBe(1);
   });
 
   it("ne transforme pas un stopped en offline dans les entrées Statistics", () => {

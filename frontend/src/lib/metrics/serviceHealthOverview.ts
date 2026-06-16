@@ -114,15 +114,38 @@ export function countStoppedDockerServices(
 
 export interface ServiceHealthSummary extends ServiceHealthCounts {
   stopped: number;
+  /** Tous les services du catalogue (actifs + arrêtés + non déployés). */
+  expectedTotal: number;
+  /** Conteneur jamais créé (⚪ DOWN make status). */
+  notDeployed: number;
+}
+
+export function countNotDeployedDockerServices(
+  services: DockerServiceRow[],
+): number {
+  return dedupeDockerServices(services).filter((service) => {
+    if (isServiceRunning(service)) return false;
+    const status = String(service.status || "").toLowerCase();
+    const deploymentState = String(
+      (service as DockerServiceRow & { deployment_state?: string })
+        .deployment_state || "",
+    ).toLowerCase();
+    return status === "not_deployed" || deploymentState === "not_created";
+  }).length;
 }
 
 export function summarizeDockerServiceHealth(
   services: DockerServiceRow[],
 ): ServiceHealthSummary {
-  const buckets = countServiceHealthBuckets(services);
+  const deduped = dedupeDockerServices(services);
+  const buckets = countServiceHealthBuckets(deduped);
+  const stopped = countStoppedDockerServices(deduped);
+  const notDeployed = countNotDeployedDockerServices(deduped);
   return {
     ...buckets,
-    stopped: countStoppedDockerServices(services),
+    stopped,
+    notDeployed,
+    expectedTotal: deduped.length,
   };
 }
 

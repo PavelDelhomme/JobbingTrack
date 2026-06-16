@@ -2677,7 +2677,15 @@ const SecurityTab = memo(function SecurityTab({
                   },
                   {
                     name: "Arrêtés",
-                    value: serviceHealthSummary.stopped,
+                    value: Math.max(
+                      0,
+                      serviceHealthSummary.stopped -
+                        serviceHealthSummary.notDeployed,
+                    ),
+                  },
+                  {
+                    name: "Non déployés",
+                    value: serviceHealthSummary.notDeployed,
                   },
                 ]}
                 dataKey="value"
@@ -2690,6 +2698,7 @@ const SecurityTab = memo(function SecurityTab({
                 <Cell fill={COLORS.success} />
                 <Cell fill={COLORS.warning} />
                 <Cell fill={COLORS.danger} />
+                <Cell fill="#94a3b8" />
               </Pie>
               <Tooltip {...rechartsTooltipProps} />
             </RechartsPieChart>
