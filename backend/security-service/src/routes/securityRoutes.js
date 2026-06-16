@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const securityController = require('../controllers/securityController');
 const notificationSettingsController = require('../controllers/notificationSettingsController');
+const auditController = require('../controllers/auditController');
+const investigationController = require('../controllers/investigationController');
 const { requireFirewallWafAccess } = require('../middleware/firewallWafAuth');
 const { requireAdminAccess } = require('../middleware/requireAdminAccess');
 
@@ -53,6 +55,33 @@ router.post(
   requireFirewallWafAccess,
   requireAdminAccess,
   notificationSettingsController.sendTestNotificationEmail
+);
+
+// Audit append-only (B7)
+router.get(
+  '/audit',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  auditController.getAuditEvents
+);
+router.post(
+  '/audit/events',
+  auditController.requireInternalOrAdmin,
+  auditController.recordAuditEvent
+);
+
+// Investigation multi-sources (B8) + export horodaté (B7)
+router.get(
+  '/investigation/search',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  investigationController.searchInvestigation
+);
+router.post(
+  '/investigation/export',
+  requireFirewallWafAccess,
+  requireAdminAccess,
+  investigationController.exportInvestigation
 );
 
 // Générer des données de développement (pour les tests)

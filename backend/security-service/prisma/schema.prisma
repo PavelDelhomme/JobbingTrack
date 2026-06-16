@@ -1243,6 +1243,27 @@ model SecurityLog {
   @@map("security_logs")
 }
 
+/// Journal d'audit append-only (B7) — actions sensibles admin/backoffice
+model AuditLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  actorUserId String?  @db.VarChar(100)
+  actorEmail  String?  @db.VarChar(255)
+  actorRole   String?  @db.VarChar(50)
+  action      String   @db.VarChar(100)
+  resource    String   @db.VarChar(100)
+  resourceId  String?  @db.VarChar(200)
+  outcome     String   @default("success") @db.VarChar(20)
+  clientIp    String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+  requestId   String?  @db.VarChar(128)
+  metadata    Json?
+  @@index([timestamp(sort: Desc)])
+  @@index([action])
+  @@index([actorUserId])
+  @@map("audit_logs")
+}
+
 model Vulnerability {
   id                String    @id @default(cuid())
   title             String    @db.VarChar(200)
