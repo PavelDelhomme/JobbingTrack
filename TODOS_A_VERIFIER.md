@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 15 juin 2026
+Dernière mise à jour : 16 juin 2026
 
 ## Rôle
 
@@ -263,6 +263,10 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | P1C | Campagne tests agent — post-merge PR #11/#12 | **16/06 nuit** : `tsc --noEmit` OK ; security-service Jest ciblé **23/23** ; frontend Jest ciblé **15/15** ; `smoke-persistence-stats.cjs` OK (`securityMetrics=109813`, `aggregatedLogs=26595`) ; Playwright investigation **2/2** + Statistics **5/5** + Services filtres B10 **1/1** (~33 s campagne combinée) ; `GET /login` **200**. Performances range smoke lancé séparément (spec longue). | [x] |
 | P1C | Merge PR #13 — Playwright filtres Services B10 | **16/06 nuit** : PR #13 mergée (`d0ae9370`) ; spec `services-list-filters-b10.spec.ts` ; CI **verte** (backend + frontend + sécurité). Playwright local **3/3** (setup + security-logs-filters + services-filters). | [x] |
 | P1B | Statistics log-stats — revalidation script rapport | **16/06 23:21** : `run-statistics-log-stats-validation-with-report.sh` → `tests/results/statistics-log-stats/20260616-232133` **4/4 OK** ; `aggregatedLogs=26645`, 14 j API **800** lignes, filtre WARN **50**, filtre gateway **50** ; page smoke OK. Notes agent ligne 307 `TODOS_A_VALIDER.md` enrichie. | [x] |
+| P1B | Statistics app-data — script validation Node (login + API) | **16/06 23:34** : remplacement login Python par `load-root-env.cjs` + `smoke-statistics-app-data-api.cjs` ; pages `/backoffice/statistics/...` via `smoke-backoffice-page-urls.cjs` ; précheck `ensure-dashboard-service-ready.sh` (profile compose `dashboard-service`). Rapport `tests/results/statistics-app-data/20260616-233410` **4/4 OK** ; `/api/v1/statistics` **200**, `undefinedHits=0`, timeline **1** point + note fallback ; BDD counts OK. Notes agent ligne 308 `TODOS_A_VALIDER.md` enrichie. | [x] |
+| P1B | Statistics vue d’ensemble — revalidation script overview | **16/06 23:34** : `run-statistics-overview-validation-with-report.sh` → `tests/results/statistics-overview/20260616-233410` **4/4 OK** ; history 7 j **45** points ; ranges **24h=91**, **7d=174** ; Jest `statisticsTimeSeries` OK ; pages `/backoffice/statistics` + log-stats + app-data smoke OK. Notes agent ligne 309 `TODOS_A_VALIDER.md` enrichie. | [x] |
+| P1C | Lot B10 — filtres FilterBar Menaces + Incidents | **16/06 23:34** : spec Playwright `security-filters-b10.spec.ts` — Menaces (sévérité Haute, apply explicite) + Incidents (gravité Critique, apply explicite). Playwright local **3/3 OK** (~16 s) via `PLAYWRIGHT_BASE_URL=http://localhost:5003` + `playwright-local.sh`. `tsc --noEmit` OK. Branche `fix/statistics-validation-scripts-b10`. | [x] |
+| P1B | Statistics log-stats — migration API smoke Node | **16/06 23:38** : `smoke-statistics-log-stats-api.cjs` remplace bloc Python ; rapport `statistics-log-stats/20260616-233835` **4/4 OK**. Script récap `send-agent-recap-email.cjs` ajouté. PR **#15** en attente CI. | [x] |
 
 ## Vérifications récurrentes
 

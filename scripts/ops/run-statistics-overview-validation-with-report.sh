@@ -101,17 +101,10 @@ run_step "frontend_statistics_time_series" "${OUT_DIR}/frontend-statistics-time-
     'cd frontend && ./node_modules/.bin/jest --runTestsByPath src/lib/metrics/__tests__/statisticsTimeSeries.test.ts --runInBand --silent' || JEST_EXIT=$?
 
 run_step "statistics_overview_page_smoke" "${OUT_DIR}/statistics-overview-page-smoke.txt" \
-  python3 - <<'PY' || PAGE_EXIT=$?
-import urllib.request
-
-for url in [
-    "http://localhost:5003/b4ck0ff1ce/statistics",
-    "http://localhost:5003/b4ck0ff1ce/statistics/log-stats",
-    "http://localhost:5003/b4ck0ff1ce/statistics/app-data",
-]:
-    with urllib.request.urlopen(url, timeout=20) as response:
-        print(url, response.status)
-PY
+  /usr/bin/node scripts/ops/smoke-backoffice-page-urls.cjs \
+    /backoffice/statistics \
+    /backoffice/statistics/log-stats \
+    /backoffice/statistics/app-data || PAGE_EXIT=$?
 
 node - "${OUT_DIR}" "${SUMMARY_JSON}" "${SUMMARY_TXT}" <<'NODE'
 const fs = require('fs');
