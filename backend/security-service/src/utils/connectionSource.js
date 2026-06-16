@@ -13,7 +13,14 @@ const PORT_SERVICE_HINTS = {
   3012: 'followups (3012)',
   3013: 'workflow (3013)',
   3014: 'metrics-aggregator (3014)',
+  3015: 'deployment-service (3015)',
   3017: 'security-service (3017)',
+  443: 'nginx HTTPS (443)',
+  80: 'nginx HTTP (80)',
+  5443: 'dev-https-proxy (5443)',
+  5002: 'api-gateway exposé (5002)',
+  5003: 'frontend dev (5003)',
+  8015: 'monitoring-agent-rs (8015)',
   5432: 'postgres (5432)',
   6379: 'redis (6379)',
 };
@@ -43,7 +50,11 @@ function resolveConnectionSource(conn = {}) {
   const localIp = normalizeIp(conn.localIp || conn.destIp);
   const localPort = Number(conn.localPort ?? conn.destPort ?? 0) || null;
   const remotePort = Number(conn.remotePort ?? conn.sourcePort ?? 0) || null;
-  const containerName = String(conn.containerName || '').trim();
+  const containerNameRaw = String(conn.containerName || '').trim();
+  const containerName =
+    containerNameRaw && containerNameRaw.toLowerCase() !== 'unknown'
+      ? containerNameRaw
+      : '';
   const containerId = String(conn.containerId || '').trim();
 
   let sourceKind = 'unknown';
@@ -65,7 +76,9 @@ function resolveConnectionSource(conn = {}) {
     sourceKind = 'docker-internal';
     sourceLabel = 'Réseau Docker / interne';
     sourceConfidence = 'high';
-    sourceDetail = remoteIp;
+    sourceDetail = remotePort && PORT_SERVICE_HINTS[remotePort]
+      ? `Client interne (${PORT_SERVICE_HINTS[remotePort]})`
+      : remoteIp;
   } else {
     sourceKind = 'public';
     sourceLabel = 'IP publique';
@@ -77,13 +90,17 @@ function resolveConnectionSource(conn = {}) {
   let destLabel = 'Non corrélé';
   let destConfidence = 'low';
 
-  if (containerName && containerName.toLowerCase() !== 'unknown') {
+  if (containerName) {
     destKind = 'docker';
     destLabel = containerName;
     destConfidence = 'high';
   } else if (containerId) {
     destKind = 'docker';
     destLabel = `Conteneur ${containerId.slice(0, 12)}`;
+    destConfidence = 'medium';
+  } else if (localPort && PORT_SERVICE_HINTS[localPort]) {
+    destKind = 'service-hint';
+    destLabel = PORT_SERVICE_HINTS[localPort];
     destConfidence = 'medium';
   } else if (localIp === '127.0.0.1' || localIp === '::1') {
     destKind = 'host-local';
@@ -92,10 +109,6 @@ function resolveConnectionSource(conn = {}) {
   } else if (isPrivateIp(localIp)) {
     destKind = 'host-network';
     destLabel = 'Interface Docker / privée';
-    destConfidence = 'medium';
-  } else if (localPort && PORT_SERVICE_HINTS[localPort]) {
-    destKind = 'service-hint';
-    destLabel = PORT_SERVICE_HINTS[localPort];
     destConfidence = 'medium';
   } else if (remotePort && PORT_SERVICE_HINTS[remotePort]) {
     destKind = 'service-hint';

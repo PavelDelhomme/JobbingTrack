@@ -33,6 +33,22 @@ describe('connectionSource', () => {
     expect(resolved.source.label).toBe('Port éphémère');
   });
 
+  it('résout containerName unknown via hint port local', () => {
+    const resolved = resolveConnectionSource({
+      remoteIp: '172.19.0.3',
+      localIp: '172.19.0.8',
+      localPort: 3017,
+      remotePort: 3001,
+      containerName: 'unknown',
+      protocol: 'TCP',
+    });
+
+    expect(resolved.destination.kind).toBe('service-hint');
+    expect(resolved.destination.label).toBe('security-service (3017)');
+    expect(resolved.source.detail).toContain('Client interne');
+    expect(resolved.source.detail).toContain('auth-service');
+  });
+
   it('bucketise la corrélation conteneur', () => {
     expect(
       bucketConnectionCorrelation({
