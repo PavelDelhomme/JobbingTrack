@@ -6,6 +6,8 @@ const axios = require('axios');
 const {
   isDocumentationIp,
   lookupGeoIp,
+  enrichIpBatch,
+  mapGeoToEnrichmentHints,
   normalizeIp
 } = require('../src/utils/geoipProvider');
 
@@ -59,6 +61,29 @@ describe('geoipProvider', () => {
         proxy: true,
         vpn: false,
         tor: true
+      })
+    );
+  });
+
+  test('enrichIpBatch produit des hints pour plusieurs IPs lab', async () => {
+    const map = await enrichIpBatch(['203.0.113.77', '192.0.2.55', '203.0.113.77'], 5);
+    expect(map['203.0.113.77']).toEqual(
+      expect.objectContaining({
+        country: expect.any(String),
+        proxy: true,
+        enrichmentSource: 'rfc5737-lab-fixture',
+      })
+    );
+    expect(map['192.0.2.55'].tor).toBe(true);
+    expect(Object.keys(map)).toHaveLength(2);
+  });
+
+  test('mapGeoToEnrichmentHints extrait les champs UI', async () => {
+    const geo = await lookupGeoIp('198.51.100.42');
+    expect(mapGeoToEnrichmentHints(geo)).toEqual(
+      expect.objectContaining({
+        country: expect.any(String),
+        enrichmentConfidence: 'high',
       })
     );
   });

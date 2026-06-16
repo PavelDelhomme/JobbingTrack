@@ -134,7 +134,12 @@ describe('NetworkThreatDetector - détection et blocage réel simulé', () => {
     );
     expect(mockPrisma.networkThreat.update).toHaveBeenCalledWith({
       where: { id: 'threat-ddos-critical' },
-      data: { blocked: true }
+      data: expect.objectContaining({
+        blocked: true,
+        metadata: expect.objectContaining({
+          blockOrigin: 'automatic_threat',
+        }),
+      }),
     });
     expect(mockPrisma.securityAlert.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

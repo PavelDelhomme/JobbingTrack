@@ -14,6 +14,9 @@ const mockPrisma = {
   },
   networkConnection: {
     findMany: jest.fn()
+  },
+  aggregatedLog: {
+    findMany: jest.fn().mockResolvedValue([])
   }
 };
 
@@ -452,7 +455,13 @@ describe('Firewall threats - détails forensics', () => {
     expect(firewallEngine.blockIp).toHaveBeenCalledWith('8.8.4.4', 'Threat: DDOS');
     expect(mockPrisma.networkThreat.update).toHaveBeenCalledWith({
       where: { id: threat.id },
-      data: { blocked: true }
+      data: expect.objectContaining({
+        blocked: true,
+        metadata: expect.objectContaining({
+          blockOrigin: 'manual_rule',
+          blockedBy: 'admin-1',
+        }),
+      }),
     });
     expect(securityService.createSecurityLog).toHaveBeenCalledWith(
       expect.objectContaining({

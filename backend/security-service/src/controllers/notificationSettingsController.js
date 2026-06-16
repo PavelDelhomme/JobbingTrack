@@ -26,6 +26,15 @@ function buildSettingsDiff(before, after) {
 
 async function auditSettingsChange(req, eventType, message, metadata) {
   const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
+  const auditService = require('../services/auditService');
+  await auditService.recordAuditEvent(
+    auditService.auditFromRequest(req, {
+      action: 'notification_settings_update',
+      resource: 'notification_settings',
+      outcome: 'success',
+      metadata: { eventType, message, ...metadata },
+    })
+  ).catch(() => {});
   await securityService.createSecurityLog({
     level: 'info',
     category: 'security',

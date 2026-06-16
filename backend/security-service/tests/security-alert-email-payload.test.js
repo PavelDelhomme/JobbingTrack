@@ -10,7 +10,7 @@ describe('Security alert email payload', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      BACKOFFICE_FRONTEND_URL: 'https://jobbingtrack.localhost:5443/b4ck0ff1ce'
+      BACKOFFICE_FRONTEND_URL: 'https://jobbingtrack.localhost:5443/backoffice'
     };
   });
 
@@ -55,7 +55,7 @@ describe('Security alert email payload', () => {
     expect(payload.html).toContain('Service touché');
     expect(payload.html).toContain('jobbingtrack-auth-service');
     expect(payload.html).toContain('Email Monitor — notifications');
-    expect(payload.html).toContain('/b4ck0ff1ce/email-monitor?type=NOTIFICATION');
+    expect(payload.html).toContain('/backoffice/email-monitor?type=NOTIFICATION');
     expect(payload.html).toContain('[redacted]');
     expect(payload.html).not.toContain('hidden');
   });
@@ -65,9 +65,9 @@ describe('Security alert email payload', () => {
     process.env.FRONTEND_URL = 'https://jobbingtrack.localhost:5443';
 
     expect(buildDiagnosticLinks()).toEqual({
-      emailMonitor: 'https://jobbingtrack.localhost:5443/b4ck0ff1ce/email-monitor?type=NOTIFICATION',
-      security: 'https://jobbingtrack.localhost:5443/b4ck0ff1ce/security',
-      securityAlerts: 'https://jobbingtrack.localhost:5443/b4ck0ff1ce/security/alerts'
+      emailMonitor: 'https://jobbingtrack.localhost:5443/backoffice/email-monitor?type=NOTIFICATION',
+      security: 'https://jobbingtrack.localhost:5443/backoffice/security',
+      securityAlerts: 'https://jobbingtrack.localhost:5443/backoffice/security/alerts'
     });
   });
 });

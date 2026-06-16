@@ -1,3 +1,34 @@
+jest.mock('../src/services/securityScheduler', () => ({
+  start: jest.fn(),
+  stop: jest.fn(),
+}));
+
+jest.mock('../src/config/database', () => {
+  const prisma = {
+    $queryRaw: jest.fn().mockResolvedValue([{ exists: true }]),
+    $connect: jest.fn().mockResolvedValue(),
+    securityLog: {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    networkThreat: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    auditLog: {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    },
+  };
+  return {
+    prisma,
+    initializeDatabase: jest.fn().mockResolvedValue(),
+    checkTableExists: jest.fn().mockResolvedValue(true),
+    clearTableExistsCache: jest.fn(),
+    isTableNotFoundError: jest.fn(() => false),
+    handleTableNotFoundError: jest.fn(() => false),
+  };
+});
+
 const request = require('supertest');
 const app = require('../src/server');
 

@@ -7,7 +7,7 @@ const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('../services/securityService');
-const { lookupGeoIp } = require('../utils/geoipProvider');
+const { lookupGeoIp, enrichIpBatch } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
 const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
@@ -86,7 +86,12 @@ function enrichThreatForApi(threat) {
   return { ...threat, destIp };
 }
 
-function summarizeApplicationContext(logs, intrusionAttempts = [], ddosAttacks = []) {
+function summarizeApplicationContext(
+  logs,
+  intrusionAttempts = [],
+  ddosAttacks = [],
+  aggregatedLogs = []
+) {
   const endpoints = new Set();
   const methods = new Set();
   const services = new Set();
@@ -128,8 +133,21 @@ function summarizeApplicationContext(logs, intrusionAttempts = [], ddosAttacks =
     if (attack.targetEndpoint) endpoints.add(attack.targetEndpoint);
   }
 
+  for (const row of aggregatedLogs) {
+    correlationSources.add('aggregated_logs');
+    const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    const endpoint = meta.endpoint || meta.originalUrl || meta.url;
+    const method = meta.method || meta.httpMethod;
+    if (endpoint) endpoints.add(String(endpoint));
+    if (method) methods.add(String(method));
+    if (row.serviceName) services.add(String(row.serviceName));
+    if (meta.httpStatus >= 400 || meta.statusCode >= 400) blockedEvents += 1;
+    registerRisk(meta.riskScore, 'aggregated_logs');
+  }
+
   return {
     total: logs.length,
+    aggregatedLogs: aggregatedLogs.length,
     intrusionAttempts: intrusionAttempts.length,
     ddosAttacks: ddosAttacks.length,
     blockedEvents,
@@ -181,7 +199,8 @@ async function buildThreatInvestigation(threat, related) {
   const logsSummary = summarizeApplicationContext(
     related.securityLogs,
     related.intrusionAttempts,
-    related.ddosAttacks
+    related.ddosAttacks,
+    related.aggregatedLogs || []
   );
   const threatSeverityRiskScore = riskScoreFromThreatSeverity(enriched.severity);
   const effectiveRiskScore = Math.max(logsSummary.maxRiskScore, threatSeverityRiskScore);
@@ -242,6 +261,9 @@ async function buildThreatInvestigation(threat, related) {
   }
   if (connectionDetails.length === 0) missingTelemetry.push('Aucun détail de connexion réseau brut conservé');
   if (related.securityLogs.length === 0) missingTelemetry.push('Aucun log sécurité corrélé à cette IP ou menace');
+  if ((related.aggregatedLogs || []).length === 0) {
+    missingTelemetry.push('Aucun log agrégé gateway/service corrélé (requestId ou IP)');
+  }
 
   return {
     attacker: {
@@ -303,7 +325,16 @@ async function buildThreatInvestigation(threat, related) {
     },
     related: {
       intrusionAttempts: related.intrusionAttempts,
-      ddosAttacks: related.ddosAttacks
+      ddosAttacks: related.ddosAttacks,
+      aggregatedLogs: (related.aggregatedLogs || []).slice(0, 20).map((row) => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        level: row.level,
+        serviceName: row.serviceName,
+        message: row.message,
+        requestId: row.requestId,
+        metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : null,
+      })),
     },
     missingTelemetry
   };
@@ -931,12 +962,33 @@ async function getNetworkStats(req, res) {
       dockerNamedPercent: Math.round((correlation.dockerNamed / denom) * 100)
     };
 
+    if (n === 0) {
+      stats.correlationHint =
+        'Aucune connexion observée sur cet hôte — vérifier que le security-service a accès au socket Docker ou que le monitoring réseau est actif.';
+    } else if (stats.containerCorrelation.unmappedPercent >= 40) {
+      stats.correlationHint =
+        `${stats.containerCorrelation.unmappedPercent}% des connexions ne sont pas mappées à un conteneur nommé — vérifier les labels Docker, le socket /var/run/docker.sock et les services arrêtés.`;
+    } else if (stats.containerCorrelation.hostLayerPercent >= 60) {
+      stats.correlationHint =
+        `${stats.containerCorrelation.hostLayerPercent}% des connexions sont au niveau hôte (host-network / ports éphémères) — filtrer par IP publique ou ouvrir la fiche menace pour la réputation.`;
+    } else if (stats.containerCorrelation.dockerNamedPercent < 20) {
+      stats.correlationHint =
+        'Peu de connexions sont corrélées à un service Docker nommé — la corrélation fine menace↔conteneur peut rester partielle.';
+    }
+
+    const ipsForEnrichment = [
+      ...Object.keys(stats.topSourceIps || {}),
+      ...connections.map((c) => c.remoteIp).filter(Boolean),
+    ];
+    const ipEnrichment = await enrichIpBatch(ipsForEnrichment, 12);
+
     res.json({
       success: true,
       data: {
         stats,
-        connections: enrichedConnections.slice(0, 50)
-      }
+        connections: enrichedConnections.slice(0, 50),
+        ipEnrichment,
+      },
     });
   } catch (error) {
     logger.error('Erreur récupération stats réseau:', error);
@@ -1224,7 +1276,8 @@ async function getThreatDetails(req, res) {
       securityLogs: [],
       intrusionAttempts: [],
       ddosAttacks: [],
-      networkConnections: []
+      networkConnections: [],
+      aggregatedLogs: [],
     };
 
     try {
@@ -1272,6 +1325,50 @@ async function getThreatDetails(req, res) {
       related.intrusionAttempts = intrusionAttempts.status === 'fulfilled' ? intrusionAttempts.value : [];
       related.ddosAttacks = ddosAttacks.status === 'fulfilled' ? ddosAttacks.value : [];
       related.networkConnections = networkConnections.status === 'fulfilled' ? networkConnections.value : [];
+
+      const requestIds = new Set();
+      for (const log of related.securityLogs) {
+        const meta = log.metadata && typeof log.metadata === 'object' ? log.metadata : {};
+        if (meta.requestId) requestIds.add(String(meta.requestId));
+        if (meta.correlationId) requestIds.add(String(meta.correlationId));
+        if (meta.xRequestId) requestIds.add(String(meta.xRequestId));
+      }
+
+      const aggregatedOr = [
+        {
+          metadata: {
+            path: ['clientIp'],
+            equals: threat.sourceIp,
+          },
+        },
+        {
+          metadata: {
+            path: ['ip'],
+            equals: threat.sourceIp,
+          },
+        },
+      ];
+      if (requestIds.size > 0) {
+        aggregatedOr.push({ requestId: { in: Array.from(requestIds) } });
+      }
+
+      try {
+        related.aggregatedLogs = await prisma.aggregatedLog.findMany({
+          where: {
+            timestamp: { gte: since },
+            level: { in: ['WARN', 'ERROR', 'FATAL'] },
+            OR: aggregatedOr,
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 40,
+        });
+      } catch (aggErr) {
+        if (aggErr.code !== 'P2021' && !String(aggErr.message || '').includes('does not exist')) {
+          logger.warn('Corrélation aggregated_logs partielle:', aggErr.message);
+        }
+        related.aggregatedLogs = [];
+      }
+
       const rejectedCorrelations = [securityLogs, intrusionAttempts, ddosAttacks, networkConnections]
         .filter((result) => result.status === 'rejected');
       if (rejectedCorrelations.length > 0) {
@@ -1667,6 +1764,23 @@ async function unblockIp(req, res) {
     const userAgent = req.get('User-Agent') || 'unknown';
     
     if (result.success) {
+      const auditService = require('../services/auditService');
+      await auditService.recordAuditEvent(
+        auditService.auditFromRequest(req, {
+          action: 'ip_unblock',
+          resource: 'firewall_ip',
+          resourceId: ipNorm,
+          outcome: 'success',
+          metadata: {
+            unblockedIp: ipNorm,
+            disabledRules: disabledRulesCount,
+            unblockedThreats: unblockedThreatsCount,
+          },
+        })
+      ).catch((err) => {
+        logger.warn('Audit déblocage IP non enregistré:', err.message);
+      });
+
       await securityService.createSecurityLog({
         level: 'warning',
         category: 'firewall',

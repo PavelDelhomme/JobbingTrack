@@ -268,8 +268,47 @@ async function lookupGeoIp(ip) {
   }
 }
 
+function mapGeoToEnrichmentHints(geo) {
+  if (!geo) return null;
+  const sources = Array.isArray(geo.sources) ? geo.sources : geo.sources ? [geo.sources] : [];
+  return {
+    vpn: geo.vpn ?? null,
+    proxy: geo.proxy ?? null,
+    tor: geo.tor ?? null,
+    asn: geo.asn ?? null,
+    organization: geo.organization ?? null,
+    country: geo.country ?? null,
+    enrichmentConfidence: geo.confidence ?? null,
+    enrichmentSource: sources.length > 0 ? sources.join(', ') : null,
+  };
+}
+
+async function enrichIpBatch(ips, limit = 12) {
+  const seen = new Set();
+  const unique = [];
+  for (const raw of ips || []) {
+    const ip = normalizeIp(raw);
+    if (!ip || seen.has(ip)) continue;
+    seen.add(ip);
+    unique.push(ip);
+    if (unique.length >= limit) break;
+  }
+
+  const map = {};
+  await Promise.all(
+    unique.map(async (ip) => {
+      const geo = await lookupGeoIp(ip);
+      const hints = mapGeoToEnrichmentHints(geo);
+      if (hints) map[ip] = hints;
+    })
+  );
+  return map;
+}
+
 module.exports = {
   lookupGeoIp,
+  enrichIpBatch,
+  mapGeoToEnrichmentHints,
   isPrivateOrReservedIp,
   isDocumentationIp,
   normalizeIp
