@@ -24,8 +24,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Correlation-Id', 'X-Requested-With'],
   exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
 }));
-app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 app.use(requestContextMiddleware);
+app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 app.use(express.json());
 
 app.get('/health', (req, res) => {

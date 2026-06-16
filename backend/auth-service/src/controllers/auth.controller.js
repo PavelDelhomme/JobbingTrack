@@ -804,6 +804,11 @@ const updateUserRole = async (req, res, next) => {
       });
     }
 
+    const previousUser = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, email: true },
+    });
+
     const user = await prisma.user.update({
       where: { id },
       data: { role },
@@ -820,6 +825,21 @@ const updateUserRole = async (req, res, next) => {
       success: true,
       message: 'Rôle mis à jour',
       user
+    });
+
+    await sendSecurityLog('info', 'user_administration', 'role_change', `Rôle modifié: ${previousUser?.email || id}`, {
+      userId: id,
+      sourceIP: req.ip,
+      endpoint: req.originalUrl,
+      method: req.method,
+      userAgent: req.get('user-agent'),
+      requestId: req.requestId || req.headers['x-request-id'],
+      metadata: {
+        previousRole: previousUser?.role ?? null,
+        newRole: role,
+        actorId: req.user?.id ?? null,
+        actorEmail: req.user?.email ?? null,
+      },
     });
 
     logger.info(`Rôle utilisateur modifié: ${id} -> ${role}`);
@@ -1374,55 +1394,66 @@ const saveUserCustomization = async (req, res) => {
 
 // Fonction pour envoyer les logs de sécurité au security-service
 async function sendSecurityLog(level, category, eventType, message, additionalData = {}) {
-  // 🔧 DÉSACTIVÉ TEMPORAIREMENT pour éviter les timeouts
-  // Le security-service sera réactivé une fois les problèmes de communication résolus
-  return Promise.resolve();
-
-  /* DÉSACTIVÉ TEMPORAIREMENT
   try {
-    const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
+    const axios = require('axios');
+    const securityServiceUrl = (
+      process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017'
+    ).replace(/\/$/, '');
+    const internalSecret = process.env.SECURITY_INTERNAL_SECRET;
+    if (!internalSecret) return Promise.resolve();
 
-    // Obtenir la géolocalisation de l'IP
-    let geoInfo = null;
-    try {
-      const geoip = require('geoip-lite');
-      geoInfo = geoip.lookup(additionalData.sourceIP || '127.0.0.1');
-    } catch (error) {
-      // Fallback si geoip-lite n'est pas disponible
-    }
-
-    const securityLog = {
-      level,
-      category,
-      eventType,
-      message,
-      sourceIP: additionalData.sourceIP,
-      country: geoInfo?.country,
-      city: geoInfo?.city,
-      endpoint: additionalData.endpoint,
-      method: additionalData.method,
-      userAgent: additionalData.userAgent,
-      riskScore: additionalData.riskScore || 10,
-      isBlocked: additionalData.isBlocked || false,
-      metadata: {
-        ...additionalData.metadata,
-        timestamp: new Date(),
-        source: 'auth-service'
-      }
+    const loginActionMap = {
+      login_success: 'admin_login_success',
+      login_failure: 'admin_login_failure',
+      login_email_not_verified: 'admin_login_failure',
+      registration_success: 'admin_registration_success',
+      registration_validation_error: 'admin_registration_failure',
+      role_change: 'role_change',
     };
+    const action =
+      loginActionMap[eventType] ||
+      `security_${String(eventType || 'event').replace(/[^a-z0-9_]+/gi, '_').toLowerCase()}`;
+    const outcome =
+      String(level).toLowerCase().includes('warn') ||
+      String(level).toLowerCase().includes('error') ||
+      String(eventType).includes('failure')
+        ? 'failure'
+        : 'success';
 
-    await axios.post(`${securityServiceUrl}/api/v1/logs`, securityLog, {
-      timeout: 2000,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Source': 'auth-service'
+    await axios.post(
+      `${securityServiceUrl}/api/v1/security/audit/events`,
+      {
+        action,
+        resource: category || 'authentication',
+        resourceId: additionalData.userId || additionalData.metadata?.userId || null,
+        outcome,
+        clientIp: additionalData.sourceIP || additionalData.ip || null,
+        metadata: {
+          eventType,
+          message,
+          level,
+          category,
+          endpoint: additionalData.endpoint,
+          method: additionalData.method,
+          userAgent: additionalData.userAgent,
+          ...additionalData.metadata,
+        },
+      },
+      {
+        timeout: 2000,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+          ...(additionalData.requestId
+            ? { 'X-Request-Id': String(additionalData.requestId) }
+            : {}),
+        },
       }
-    });
-
-  } catch (error) {
-    // Ne pas logger l'erreur pour éviter le spam si le security-service n'est pas disponible
+    );
+  } catch {
+    // Non bloquant — l’auth ne doit pas échouer si l’audit est indisponible
   }
-  */
+  return Promise.resolve();
 }
 
 // Déplacer getActiveSessions et getSecurityMetrics en dehors du scope

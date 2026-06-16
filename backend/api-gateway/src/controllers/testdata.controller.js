@@ -5,6 +5,27 @@ const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
 const path = require('path');
 
+async function recordSecurityAuditEvent(req, payload) {
+  const internalSecret = process.env.SECURITY_INTERNAL_SECRET;
+  if (!internalSecret) return;
+  try {
+    const axios = require('axios');
+    const securityServiceUrl = (
+      process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017'
+    ).replace(/\/$/, '');
+    await axios.post(`${securityServiceUrl}/api/v1/security/audit/events`, payload, {
+      timeout: 2000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': internalSecret,
+        ...(req.headers['x-request-id'] ? { 'X-Request-Id': String(req.headers['x-request-id']) } : {}),
+      },
+    });
+  } catch (auditError) {
+    logger.warn('Audit clear_test_data ignoré:', auditError.message);
+  }
+}
+
 /**
  * Génère des données de test cohérentes
  */
@@ -315,7 +336,21 @@ const clearTestData = async (req, res) => {
       const totalDeleted = Object.values(deletedCounts).reduce((sum, count) => sum + count, 0);
       
       logger.info(`✅ ${totalDeleted} données de test nettoyées`);
-      
+
+      await recordSecurityAuditEvent(req, {
+        action: 'clear_test_data',
+        resource: 'testdata',
+        resourceId: tag || 'all',
+        outcome: 'success',
+        clientIp: req.ip,
+        metadata: {
+          deletedCounts,
+          tag: tag || null,
+          totalDeleted,
+          actorEmail: req.user?.email ?? null,
+        },
+      });
+
       res.json({
         success: true,
         message: `${totalDeleted} données de test supprimées`,

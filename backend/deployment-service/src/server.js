@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const deploymentRoutes = require('./routes/deploymentRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
 const rollbackRoutes = require('./routes/rollbackRoutes');
@@ -25,6 +26,7 @@ app.use(cors({
   exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
 }));
 app.use(requestContextMiddleware);
+app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

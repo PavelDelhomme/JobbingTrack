@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 
 const logger = require('./utils/logger');
 const { requestContextMiddleware } = require('./utils/requestContext');
@@ -18,6 +19,7 @@ app.use(cors({
   exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
 }));
 app.use(requestContextMiddleware);
+app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 app.use(express.json());
 
 // Health à la racine (pour curl localhost:PORT/health)
