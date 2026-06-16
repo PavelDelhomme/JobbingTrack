@@ -516,7 +516,7 @@ export default function CustomJourneyPage() {
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
             <Link
-              href="/b4ck0ff1ce/user-journey/reports"
+              href="/backoffice/user-journey/reports"
               className="w-full sm:w-auto"
             >
               <Button
@@ -967,7 +967,7 @@ export default function CustomJourneyPage() {
                   <CheckCircle className="w-5 h-5" />
                   <span>Rapport sauvegardé dans Rapports de tests</span>
                 </div>
-                <Link href="/b4ck0ff1ce/user-journey/reports">
+                <Link href="/backoffice/user-journey/reports">
                   <Button variant="outline" size="sm" className="gap-2">
                     <FileText className="w-4 h-4" />
                     Voir les rapports de parcours

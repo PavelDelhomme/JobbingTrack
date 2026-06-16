@@ -5,14 +5,14 @@ import { loginAsAdmin } from "./test-data-helper";
 test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await page.waitForLoadState("domcontentloaded");
   });
 
   test("devrait permettre l'export CSV complet avec données complexes", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données complexes pour l'export CSV
     await page.route("**/api/v1/companies*", async (route) => {
@@ -73,7 +73,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   test("devrait permettre l'export JSON avec sélection multiple", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock des données pour plusieurs tables
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -140,7 +140,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   });
 
   test("devrait gérer les erreurs d'export correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock d'erreur serveur pour l'export
     await page.route("**/api/v1/auth/users*", async (route) => {
@@ -172,7 +172,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre l'import de fichiers CSV", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Aller à l'onglet Import
     await page.locator("text=Import").click();
@@ -211,7 +211,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre l'import de fichiers JSON", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Aller à l'onglet Import
     await page.locator("text=Import").click();
@@ -257,7 +257,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   test("devrait tester les performances de l'export avec de gros volumes", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Mock de données volumineuses pour tester les performances
     const largeDataset = Array.from({ length: 1000 }, (_, i) => ({
@@ -309,7 +309,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
   });
 
   test("devrait permettre l'export avec filtrage avancé", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/analytics");
+    await page.goto("/backoffice/analytics");
 
     // Mock des données d'analytics
     await page.route("**/api/v1/analytics*", async (route) => {
@@ -379,14 +379,14 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
     page,
   }) => {
     // Test Analytics
-    await page.goto("/b4ck0ff1ce/analytics");
+    await page.goto("/backoffice/analytics");
     await expect(page.locator("text=Performances & Analytics")).toBeVisible();
     await expect(
       page.locator("button").filter({ hasText: "Exporter" }),
     ).toBeVisible();
 
     // Test Data Management
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
     await expect(page.locator("text=Gestion des Données")).toBeVisible();
     await expect(
       page.locator("button").filter({ hasText: "Exporter" }),
@@ -410,7 +410,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
     page,
   }) => {
     // Vérifier que les deux pages utilisent le même style d'exporteur
-    await page.goto("/b4ck0ff1ce/analytics");
+    await page.goto("/backoffice/analytics");
 
     // Ouvrir l'exporteur dans Analytics
     await page.locator("button").filter({ hasText: "Exporter" }).click();
@@ -418,7 +418,7 @@ test.describe("📤📥 Export/Import Avancé - Tests Complets (admin)", () => {
 
     // Fermer et aller à Data Management
     await page.locator("button").filter({ hasText: "✕" }).click();
-    await page.goto("/b4ck0ff1ce/data-management");
+    await page.goto("/backoffice/data-management");
 
     // Ouvrir l'exporteur dans Data Management
     await page.locator("button").filter({ hasText: "Exporter" }).click();

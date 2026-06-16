@@ -35,8 +35,8 @@ Pages principales de l'application (authentification requise) :
 
 Pages d'administration système (rôle admin requis) :
 
-- `/b4ck0ff1ce` - Vue d'ensemble administration
-  - `/b4ck0ff1ce/analytics` - Analyses admin
+- `/backoffice` - Vue d'ensemble administration
+  - `/backoffice/analytics` - Analyses admin
 - `/analytics` - Métriques et analyses système
 - `/settings` - Configuration système
 - `/notifications` - Gestion des notifications
@@ -70,16 +70,14 @@ Outils de développement (mode dev uniquement, rôle admin requis) :
 - `/tests/playwright` - Tests Playwright
 - `/mobile-emulator` - Émulateur mobile
 - `/services/applications` - Services applicatifs
-- `/services/b4ck0ff1ce` - Services backoffice
+- `/services/backoffice` - Services backoffice
 
 ### `api/` - API Routes
 
 Routes API Next.js :
 
 - `/api/health` - Health check
-- `/api/cadvisor` - Proxy cAdvisor
 - `/api/middleware-test` - Test middleware
-- `/api/v1.3/docker` - API Docker
 
 ## 🎯 Avantages de cette Structure
 

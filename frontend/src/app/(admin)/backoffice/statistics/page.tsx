@@ -9,7 +9,6 @@ import {
   lazy,
   useCallback,
 } from "react";
-import { AdminLayout } from "@/components/features";
 import { StatisticsPageShell } from "./StatisticsSubNav";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/hooks/auth";
@@ -87,7 +86,7 @@ import {
   useStatisticsPanelPrefs,
 } from "@/lib/ui";
 import { MetricsSeriesCaption } from "@/components/monitoring/MetricsSeriesCaption";
-import { StatisticsErrorAvailabilityCharts } from "@/components/monitoring/StatisticsErrorAvailabilityCharts";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import {
   TimeRangeSelector,
   StickyTimeRangeToolbar,
@@ -104,6 +103,17 @@ import {
 } from "@/components/analytics/timeRangeUtils";
 import type { StatisticsTimeRange } from "@/lib/ui/preferences/panels";
 import Link from "next/link";
+
+const StatisticsErrorAvailabilityCharts = lazy(() =>
+  import("@/components/monitoring/StatisticsErrorAvailabilityCharts").then(
+    (m) => ({ default: m.StatisticsErrorAvailabilityCharts }),
+  ),
+);
+
+const STATISTICS_LONG_RANGE_RENDER_POINTS = 160;
+const STATISTICS_MEDIUM_RANGE_RENDER_POINTS = 140;
+const STATISTICS_SHORT_RANGE_RENDER_POINTS = 120;
+const STATISTICS_LIVE_RANGE_RENDER_POINTS = 100;
 
 // Types
 interface MetricsHistory {
@@ -260,7 +270,7 @@ export default function StatisticsPage() {
   const [dockerServicesSnapshot, setDockerServicesSnapshot] = useState<
     DockerServiceRow[] | null
   >(null);
-  // ✅ SUPPRESSION : onglet services retiré — voir /b4ck0ff1ce/services et Services & Logs
+  // ✅ SUPPRESSION : onglet services retiré — voir /backoffice/services et Services & Logs
   const [activeTab, setActiveTab] = useState<"overview" | "security" | "logs">(
     "overview",
   );
@@ -457,6 +467,8 @@ export default function StatisticsPage() {
 
   // ✅ Charger les préférences de rafraîchissement
   const [statsRefreshInterval, setStatsRefreshInterval] = useState(60000);
+  const [statsAutoRefreshEnabled, setStatsAutoRefreshEnabled] =
+    useState(false);
 
   useEffect(() => {
     const loadRefreshInterval = async () => {
@@ -479,14 +491,21 @@ export default function StatisticsPage() {
       }
 
       // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire et avec délai
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       if (needsHistory || needsServiceHistory) {
         // Délai pour permettre au stats de charger d'abord
-        setTimeout(() => {
+        timeout = setTimeout(() => {
           fetchMetricsHistory();
         }, 100);
       }
 
-      // ✅ Actualiser selon les préférences utilisateur
+      if (!statsAutoRefreshEnabled) {
+        return () => {
+          if (timeout) clearTimeout(timeout);
+        };
+      }
+
+      // ✅ Actualiser uniquement si l'utilisateur active l'auto-refresh
       const interval = setInterval(() => {
         if (document.visibilityState !== "visible") return;
         if (needsStats) {
@@ -497,7 +516,10 @@ export default function StatisticsPage() {
           fetchMetricsHistory();
         }
       }, statsRefreshInterval);
-      return () => clearInterval(interval);
+      return () => {
+        if (timeout) clearTimeout(timeout);
+        clearInterval(interval);
+      };
     }
   }, [
     isAuthenticated,
@@ -507,6 +529,7 @@ export default function StatisticsPage() {
     windowBounds.limit,
     activeTab,
     statsRefreshInterval,
+    statsAutoRefreshEnabled,
   ]);
 
   const fetchMetricsHistory = async () => {
@@ -888,12 +911,12 @@ export default function StatisticsPage() {
 
   const chartMaxPoints =
     timeRange === "30d" || timeRange === "21d"
-      ? 500
+      ? STATISTICS_LONG_RANGE_RENDER_POINTS
       : timeRange === "14d" || timeRange === "7d" || timeRange === "3d"
-        ? 300
+        ? STATISTICS_MEDIUM_RANGE_RENDER_POINTS
         : timeRange === "24h"
-          ? 200
-          : 100;
+          ? STATISTICS_SHORT_RANGE_RENDER_POINTS
+          : STATISTICS_LIVE_RANGE_RENDER_POINTS;
 
   const chartData = useMemo(
     () =>
@@ -908,24 +931,51 @@ export default function StatisticsPage() {
     [chartData],
   );
 
+  const [chartXMin, chartXMax] = useMemo(
+    () =>
+      chartXDomainFromDataRange(
+        windowBounds.startTime,
+        windowBounds.endTime,
+        chartData.map((point) => point.timeMs),
+      ),
+    [chartData, windowBounds.endTime, windowBounds.startTime],
+  );
+  const chartAxisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
+
   if (authLoading || (loading && !stats)) {
     return (
-      <AdminLayout>
+      <StatisticsPageShell
+        title="Statistiques & Monitoring global"
+        description={
+          <>
+            Chargement des données consolidées de persistance, monitoring et
+            services.
+          </>
+        }
+      >
         <SectionLoader
           message="Chargement des statistiques…"
           className="min-h-[50vh]"
         />
-      </AdminLayout>
+      </StatisticsPageShell>
     );
   }
 
   if (!stats) {
     return (
-      <AdminLayout>
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+      <StatisticsPageShell
+        title="Statistiques & Monitoring global"
+        description={
+          <>
+            Les données de statistiques globales n’ont pas pu être chargées.
+            Vérifier l’API et relancer le rafraîchissement.
+          </>
+        }
+      >
+        <div className="py-12 text-center text-gray-500 dark:text-gray-400">
           Erreur de chargement des statistiques
         </div>
-      </AdminLayout>
+      </StatisticsPageShell>
     );
   }
 
@@ -965,7 +1015,26 @@ export default function StatisticsPage() {
         </>
       }
       actions={
-        <>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (needsStats) fetchStatistics(true);
+              if (needsHistory || needsServiceHistory) fetchMetricsHistory();
+            }}
+            className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/60"
+          >
+            Actualiser
+          </button>
+          <button
+            onClick={() => setStatsAutoRefreshEnabled((value) => !value)}
+            className={`rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors ${
+              statsAutoRefreshEnabled
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
+          >
+            Auto-refresh {statsAutoRefreshEnabled ? "actif" : "pause"}
+          </button>
           <button
             onClick={() => setShowCustomization(!showCustomization)}
             className="rounded-lg border border-gray-300 bg-white p-2 text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -973,7 +1042,7 @@ export default function StatisticsPage() {
           >
             <Settings className="w-5 h-5" />
           </button>
-        </>
+        </div>
       }
     >
       {/* Panneau de personnalisation */}
@@ -1057,7 +1126,7 @@ export default function StatisticsPage() {
         <nav className="flex space-x-4 overflow-x-auto">
           {[
             { id: "overview", label: "📊 Vue d'ensemble", icon: BarChart3 },
-            // ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services et Services & Logs
+            // ✅ SUPPRESSION : onglet Services — /backoffice/services et Services & Logs
             { id: "security", label: "🛡️ Santé technique", icon: Shield },
             { id: "logs", label: "📊 Statistiques Logs", icon: FileText },
           ].map((tab) => (
@@ -1107,9 +1176,12 @@ export default function StatisticsPage() {
             historySeriesMeta={historySeriesMeta}
             timeRangeLabel={rangeLabel}
             availabilityDomain={availabilityDomain}
+            chartXMin={chartXMin}
+            chartXMax={chartXMax}
+            chartAxisShowDate={chartAxisShowDate}
           />
         )}
-        {/* ✅ SUPPRESSION : onglet Services — /b4ck0ff1ce/services, Services & Logs */}
+        {/* ✅ SUPPRESSION : onglet Services — /backoffice/services, Services & Logs */}
         {activeTab === "security" && (
           <SecurityTab
             stats={stats}
@@ -1118,6 +1190,9 @@ export default function StatisticsPage() {
             availabilityDomain={availabilityDomain}
             dockerServices={dockerServicesSnapshot}
             timeRangeLabel={rangeLabel}
+            chartXMin={chartXMin}
+            chartXMax={chartXMax}
+            chartAxisShowDate={chartAxisShowDate}
           />
         )}
         {activeTab === "logs" && (
@@ -1142,6 +1217,9 @@ const OverviewTab = memo(function OverviewTab({
   historySeriesMeta,
   timeRangeLabel,
   availabilityDomain,
+  chartXMin,
+  chartXMax,
+  chartAxisShowDate,
 }: any) {
   // Calculer les tendances en comparant avec les stats précédentes
   const usersTrend = previousStats
@@ -1182,26 +1260,38 @@ const OverviewTab = memo(function OverviewTab({
         source={historySeriesMeta?.source}
         timeRangeLabel={timeRangeLabel}
       />
-      <StatisticsErrorAvailabilityCharts
-        chartData={chartData}
-        availabilityDomain={availabilityDomain}
-        errorDerived={historySeriesMeta?.errorDerived}
-      />
+      <Suspense
+        fallback={
+          <SectionLoader
+            message="Chargement des graphiques disponibilité / erreur…"
+            className="min-h-[280px]"
+          />
+        }
+      >
+        <StatisticsErrorAvailabilityCharts
+          chartData={chartData}
+          availabilityDomain={availabilityDomain}
+          errorDerived={historySeriesMeta?.errorDerived}
+          xDomainMin={chartXMin}
+          xDomainMax={chartXMax}
+          axisShowDate={chartAxisShowDate}
+        />
+      </Suspense>
       <div className="flex flex-wrap gap-3 text-sm">
         <Link
-          href="/b4ck0ff1ce/statistics/security"
+          href="/backoffice/statistics/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Sécurité (persistance) →
         </Link>
         <Link
-          href="/b4ck0ff1ce/statistics/log-stats"
+          href="/backoffice/statistics/log-stats"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Logs agrégés →
         </Link>
         <Link
-          href="/b4ck0ff1ce/services"
+          href="/backoffice/services"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Services & monitoring →
@@ -1947,7 +2037,7 @@ function ServicesTab({
         {RESPONSE_TIME_SOURCE_NOTE} Historique par service non persisté — courbe
         globale dans{" "}
         <Link
-          href="/b4ck0ff1ce/performances/latency"
+          href="/backoffice/performances/latency"
           className="text-blue-600 dark:text-blue-400 hover:underline"
         >
           Performances → Temps de réponse
@@ -2446,6 +2536,9 @@ const SecurityTab = memo(function SecurityTab({
   availabilityDomain,
   dockerServices,
   timeRangeLabel,
+  chartXMin,
+  chartXMax,
+  chartAxisShowDate,
 }: any) {
   const serviceHealthSummary = useMemo(
     () => summarizeDockerServiceHealth(dockerServices || []),
@@ -2459,14 +2552,14 @@ const SecurityTab = memo(function SecurityTab({
           Cette vue est une synthèse technique (disponibilité, requêtes,
           erreurs, santé services). Les chiffres sécurité applicative sont dans{" "}
           <Link
-            href="/b4ck0ff1ce/statistics/security"
+            href="/backoffice/statistics/security"
             className="font-medium underline hover:no-underline"
           >
             Sécurité persistée
           </Link>{" "}
           et la console opérationnelle dans{" "}
           <Link
-            href="/b4ck0ff1ce/security"
+            href="/backoffice/security"
             className="font-medium underline hover:no-underline"
           >
             Sécurité live
@@ -2474,13 +2567,13 @@ const SecurityTab = memo(function SecurityTab({
           .
         </div>
         <Link
-          href="/b4ck0ff1ce/statistics/security"
+          href="/backoffice/statistics/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Détail sécurité persistée →
         </Link>
         <Link
-          href="/b4ck0ff1ce/security"
+          href="/backoffice/security"
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
           Console sécurité live →
@@ -2544,11 +2637,23 @@ const SecurityTab = memo(function SecurityTab({
         </div>
       </DashboardLayoutRegion>
 
-      <StatisticsErrorAvailabilityCharts
-        chartData={chartData}
-        availabilityDomain={availabilityDomain}
-        errorDerived={historySeriesMeta?.errorDerived}
-      />
+      <Suspense
+        fallback={
+          <SectionLoader
+            message="Chargement des graphiques disponibilité / erreur…"
+            className="min-h-[280px]"
+          />
+        }
+      >
+        <StatisticsErrorAvailabilityCharts
+          chartData={chartData}
+          availabilityDomain={availabilityDomain}
+          errorDerived={historySeriesMeta?.errorDerived}
+          xDomainMin={chartXMin}
+          xDomainMax={chartXMax}
+          axisShowDate={chartAxisShowDate}
+        />
+      </Suspense>
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

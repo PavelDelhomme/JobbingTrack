@@ -21,6 +21,7 @@ import {
 import type { FilterBadge } from "@/lib/filters/types";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { EmailHtmlPreview } from "@/components/emails/EmailHtmlPreview";
 import {
   Mail,
   Send,
@@ -693,13 +694,14 @@ export default function EmailMonitorPage() {
                         </div>
                         <div className="flex min-w-0 items-start gap-1">
                           <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                          {email.status === "FAILED" ? (
-                            <span className="min-w-0 break-words text-red-600 dark:text-red-400">
-                              Échoué : {email.error || "Erreur inconnue"}
-                            </span>
-                          ) : email.sentAt ? (
+                          {email.sentAt ? (
                             <span className="min-w-0 break-words">
-                              Envoyé : {formatLocalDateTime(email.sentAt)}
+                              {email.status === "FAILED" ? "Tentative" : "Envoyé"}{" "}
+                              : {formatLocalDateTime(email.sentAt)}
+                            </span>
+                          ) : email.createdAt ? (
+                            <span className="min-w-0 break-words text-gray-500 dark:text-gray-400">
+                              Créé : {formatLocalDateTime(email.createdAt)}
                             </span>
                           ) : (
                             <span className="text-gray-500 dark:text-gray-400">
@@ -707,6 +709,17 @@ export default function EmailMonitorPage() {
                             </span>
                           )}
                         </div>
+                        {email.status === "FAILED" && (
+                          <div className="flex min-w-0 items-start gap-1 text-red-600 dark:text-red-400 sm:col-span-2">
+                            <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span className="min-w-0 break-words">
+                              Échec SMTP : {email.error || "Erreur inconnue"}
+                              {email.metadata?.mirror?.error
+                                ? ` · miroir : ${email.metadata.mirror.error}`
+                                : ""}
+                            </span>
+                          </div>
+                        )}
                         {email.openedAt && (
                           <div className="flex min-w-0 items-start gap-1 text-purple-600 dark:text-purple-400">
                             <Eye className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -727,10 +740,10 @@ export default function EmailMonitorPage() {
                         )}
                       </div>
 
-                      {/* Erreur */}
-                      {email.error && (
-                        <div className="mt-2 break-words rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-                          ❌ {email.error}
+                      {/* Erreur détaillée (liste) */}
+                      {email.error && email.status === "FAILED" && (
+                        <div className="mt-2 break-words rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                          {email.error}
                         </div>
                       )}
 
@@ -831,67 +844,33 @@ export default function EmailMonitorPage() {
 
               <div className="border-t dark:border-gray-700 pt-4">
                 {selectedEmail.emailContent ? (
-                  <div
-                    className="prose max-w-none overflow-x-auto break-words dark:prose-invert"
-                    dangerouslySetInnerHTML={{
-                      __html: selectedEmail.emailContent,
-                    }}
+                  <EmailHtmlPreview
+                    html={selectedEmail.emailContent}
+                    title={selectedEmail.subject}
                   />
                 ) : (
                   <p className="text-gray-500 dark:text-gray-400">
                     Contenu non disponible
                   </p>
                 )}
+                {selectedEmail.status === "FAILED" && (
+                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                    <p className="font-medium">Raison d&apos;échec</p>
+                    <p className="mt-1 break-words">
+                      {selectedEmail.error || "Erreur SMTP non renseignée"}
+                    </p>
+                    {selectedEmail.metadata?.mirror?.error && (
+                      <p className="mt-2 break-words">
+                        Miroir SMTP : {selectedEmail.metadata.mirror.error}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Info Box */}
-      <Card className="min-w-0 border-blue-300 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-blue-600" />
-            Comment Utiliser Email Monitor
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="min-w-0 space-y-2 break-words text-sm">
-            <p>
-              <strong>Voir les emails envoyés</strong> : Cette page affiche tous
-              les emails envoyés par JobbingTrack. Avec « Temps réel » activé,
-              la liste et les stats sont rafraîchies toutes les 3 secondes. Un
-              rafraîchissement a aussi lieu dès que vous revenez sur l’onglet.
-            </p>
-            <p>
-              <strong>Configuration actuelle</strong> :{" "}
-              <code className="break-all rounded bg-gray-200 px-2 py-1">
-                {process.env.SMTP_HOST || "Non configuré"}
-              </code>
-            </p>
-            <p>
-              <strong>Pour tester</strong> :
-            </p>
-            <ul className="ml-4 list-inside list-disc space-y-1">
-              <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
-              <li>
-                Utiliser <strong>Emails → Configuration</strong> ou{" "}
-                <strong>Emails → Déliverabilité</strong> pour envoyer des emails
-                de test
-              </li>
-              <li>
-                Utiliser le scénario &quot;Vérification Email et Reset
-                Password&quot; dans User Journey
-              </li>
-            </ul>
-            <p className="mt-4 text-blue-700">
-              <strong>📖 Documentation complète</strong> :{" "}
-              <code>docs/emails/</code>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </EmailBackofficePageShell>
   );
 }

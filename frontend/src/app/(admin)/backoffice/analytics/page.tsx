@@ -7,24 +7,24 @@ import { AnalyticsPageShell } from "./application/ApplicationSubNav";
 
 /**
  * Hub Analytics : résumé orienté **données produit** (application, utilisateurs).
- * CPU / conteneurs / réseau système → **`/b4ck0ff1ce/performances`**.
+ * CPU / conteneurs / réseau système → **`/backoffice/performances`**.
  */
 export default function AnalyticsPage() {
   const cards = [
     {
-      href: "/b4ck0ff1ce/analytics/application/performance",
+      href: "/backoffice/analytics/application/performance",
       title: "Application",
       desc: "Performances live mobile, activité & traces, retours et signalements.",
       icon: Smartphone,
     },
     {
-      href: "/b4ck0ff1ce/user-analytics",
+      href: "/backoffice/user-analytics",
       title: "Utilisateurs",
       desc: "Analytics utilisateur (parcours, engagement, segments).",
       icon: Users,
     },
     {
-      href: "/b4ck0ff1ce/performances",
+      href: "/backoffice/performances",
       title: "Performances (infra)",
       desc: "CPU, mémoire, conteneurs Docker, réseau système — hors périmètre « analytics » métier.",
       icon: BarChart3,
@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
           . Les métriques machine (charge, conteneurs, réseau hôte) sont
           regroupées sous{" "}
           <Link
-            href="/b4ck0ff1ce/performances"
+            href="/backoffice/performances"
             className="font-medium text-blue-600 underline hover:no-underline dark:text-blue-400"
           >
             Performances
@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
       <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
         Statistiques agrégées (app data, sécurité, logs) :{" "}
         <Link
-          href="/b4ck0ff1ce/statistics"
+          href="/backoffice/statistics"
           className="font-medium text-blue-600 underline dark:text-blue-400"
         >
           Statistiques

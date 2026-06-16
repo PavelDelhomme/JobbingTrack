@@ -30,6 +30,7 @@
     "test:analytics:validate": "./scripts/validate-analytics-page.sh",
     "test:analytics:complete": "./scripts/test-analytics-complete.sh",
     "test:e2e": "playwright test",
+    "test:e2e:performances": "playwright test tests/e2e/performances-range-smoke.spec.ts --config=playwright.standalone.config.ts --project=chromium",
     "test:e2e:ci": "playwright test --reporter=html",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

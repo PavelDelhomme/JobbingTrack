@@ -1,5 +1,6 @@
 const winston = require('winston');
 const { getRequestContext } = require('../middleware/requestCorrelation');
+const { pickCentralLogForensics } = require('../../../shared/utils/httpForensics');
 
 let centralLogger;
 try {
@@ -15,18 +16,7 @@ class CentralLoggerTransport extends winston.Transport {
       const level = info.level.toUpperCase();
       if (level === 'ERROR' || level === 'WARN' || level === 'FATAL') {
         const ctx = getRequestContext() || {};
-        centralLogger.addLog(level, info.message, {
-          ...info,
-          stackTrace: info.stack || (info.error && info.error.stack),
-          requestId: info.requestId || ctx.requestId || null,
-          correlationId: info.correlationId || ctx.correlationId || null,
-          endpoint: info.endpoint || ctx.endpoint || null,
-          method: info.method || ctx.method || null,
-          protocol: info.protocol || ctx.protocol || null,
-          port: info.port ?? ctx.port ?? null,
-          clientIp: info.clientIp || ctx.clientIp || null,
-          httpStatus: info.httpStatus ?? info.statusCode ?? info.upstreamHttpStatus ?? null,
-        });
+        centralLogger.addLog(level, info.message, pickCentralLogForensics(info, ctx));
       }
     }
     callback();

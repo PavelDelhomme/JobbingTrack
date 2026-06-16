@@ -1,8 +1,116 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `dev` (remise à plat CI/PR/Playwright local en cours).
+**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/frontend-services-performance` (Services — premier correctif CPU/RAM frontend).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 15 juin 2026 — Frontend CPU/RAM : Services en mode sobre par défaut
+
+- **État Git corrigé** : sortie du HEAD détaché, suppression des caches `.tmp-jest`, reprise sur branche propre puis branche dédiée `fix/frontend-services-performance`.
+- **Liste Services** : auto-refresh désactivé par défaut ; bouton **Auto-refresh pause/actif** pour activer une cadence 60 s ; déduplication des chargements concurrents.
+- **Mini-séries Services** : limite réduite à **12** services visibles, **24** points par service, concurrence **2**.
+- **Fiche service** : auto-refresh désactivé par défaut ; cadence par défaut 60 s si activée ; logs limités à **60** lignes ; historique serveur **180** points et session **160**.
+- **Validations sans `make`** : TypeScript direct OK ; ESLint ciblé OK ; lints IDE OK ; Jest fiche service **1 suite / 33 tests OK** ; Playwright ciblé Services sur frontend Docker **5003** **3/3 OK**. Les wrappers `npm run type-check` et `npm run lint -- --quiet` sortent encore code 1 sans sortie exploitable, dette déjà tracée.
+
+## 15 juin 2026 — Lot A graphes : brush synchronisé Performances Réseau
+
+- **Hook partagé** : `useSyncedChartBrushRange` pour partager `startIndex` / `endIndex` entre graphes Recharts d’une même page.
+- **Page Réseau** : brush synchronisé sur RX/TX cumul, débit Mo/min, temps de réponse (si présent) et corrélation CPU vs réseau ; bouton **Réinitialiser le zoom**.
+- **Corrélation** : brush déjà présent sur les 5 graphes service (branche `fix/correlation-incident-context`).
+- **Validations sans `make`** : Jest hook **1 suite / 2 tests OK** ; `type-check` OK ; `lint --quiet` OK ; Playwright `npm run test:e2e:performances` + frontend Docker **5003** → **7/7 OK** (~1,1 min).
+
+## 15 juin 2026 — Performances Corrélation : contexte endpoint incidents
+
+- **Corrélation fine incidents** : le tableau expose maintenant une colonne **Méthode** en plus de **Endpoint**, **HTTP**, **Proto** et **Port**.
+- **Parsing renforcé** : extraction depuis metadata/message (`method`, `httpMethod`, `requestMethod`, `request.method`, `endpoint`, `originalUrl`, `path`, `url`, `request.url`, `req.url`), URL complète (protocole + port 80/443) et `host:port` / ports techniques (`port`, `localPort`, `serverPort`, `remotePort`).
+- **Diagnostic ligne** : clic sur une ligne affiche aussi **Méthode HTTP** avec source technique et suggestion de correction. Si le log source n’a jamais persisté le champ, l’UI garde `—` et explique le manque au lieu d’inventer une valeur.
+- **Validations sans `make`** : Prettier ciblé OK ; frontend `type-check` OK ; `lint --quiet` OK ; Jest `performanceCorrelationModel` **1 suite / 5 tests OK** ; lints IDE OK.
+- **E2E Performances** : échec initial car tentative sur port **3000** (fermé) ; relance via `playwright.standalone.config.ts` + frontend Docker **5003** → `performances-range-smoke.spec.ts` **7/7 OK** (**48,3 s**). Script dédié : `npm run test:e2e:performances`.
+
+## 15 juin 2026 — Lot A graphes : mini-séries historiques liste Services
+
+- **Liste Services** : la ligne service affiche une mini-série CPU historique SVG quand `/docker/service/:name/history` fournit au moins 2 points ; fallback conservé sur la jauge CPU instantanée si l’historique est absent.
+- **Performance UI** : chargement borné aux **24 premiers services visibles**, concurrence **3**, limite historique **36** points par service, sans Recharts sur la liste.
+- **Dette notée** : une “somme CPU” > 100 % ne doit pas être présentée comme CPU global machine ; distinguer CPU global 0–100 %, CPU conteneur Docker multi-cœur et somme conteneurs.
+- **Validations sans `make`** : frontend `format:check` OK ; `type-check` OK ; `lint --quiet` OK ; Jest `serviceCpuSparklineModel` **1 suite / 3 tests OK**.
+
+## 15 juin 2026 — Lot A graphes : export CSV/JSON séries affichées
+
+- **Export commun** : ajout de `SeriesExportButtons` et du modèle `seriesExport` pour télécharger les lignes affichées en CSV ou JSON depuis le navigateur.
+- **Performances Réseau** : export des séries visibles : timestamp, cumul RX/TX, débit RX/TX Mo/min, CPU %, mémoire %, temps de réponse agrégé.
+- **Détail service** : export depuis le bloc “Historique des Performances” : CPU, mémoire, réseau, Block I/O cumul et débit estimé.
+- **Validations sans `make`** : frontend `type-check` OK ; `lint --quiet` OK ; Jest export **1 suite / 3 tests OK** ; Jest fiche service **1 suite / 33 tests OK**.
+- **Limite E2E** : smoke Playwright Performances **7/7 OK** via `PLAYWRIGHT_BASE_URL=http://localhost:5003` et script `npm run test:e2e:performances` (port 3000 fermé en local Docker).
+- **Reste Lot A** : brush sur autres pages Performances, seuils visuels configurables, tri/mémorisation tableaux lourds, heatmap, comparatif et PIDs historisés.
+
+## 15 juin 2026 — Retour porteur Statistics overview + Corrélation Performances
+
+- **Statistics overview** : les graphes **Disponibilité dans le temps** et **Taux d’erreur dans le temps** sont désormais empilés en deux cartes pleine largeur, au lieu d’être compressés en deux colonnes.
+- **Corrélation Performances** : démarrage sur un seul service préféré (`security-service`, `auth-service`, `contact-service`, `api-gateway`, puis fallback), auto-refresh lourd **en pause par défaut**, toggle persistant session, clic nom service = focus + filtre, bouton `Charger/Voir`, mode complet jusqu’à **24** services.
+- **Performance Corrélation** : cache historique par période ; ajouter un service ne refetch plus tous les services déjà chargés si la période n’a pas changé.
+- **Dettes notées** : sécurité historique long terme au-delà de 30 j / 2000 lignes, snapshots score sécurité horodatés, analytics utilisateur/application/mobile et rapports d’erreurs corrélés logs/contexte.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest monitoring/metrics **2 suites / 12 tests OK** ; Playwright `statistics-smoke` + `performances-range-smoke` **11/11 OK**.
+- **Limite vérification navigateur MCP** : session manuelle redirigée vers `/login`; pas de contournement manuel, validation réalisée via storage admin Playwright.
+
+## 15 juin 2026 — Incident Postgres `too many clients already`
+
+- **Symptôme** : logs `jobbingtrack-postgres` `FATAL: sorry, too many clients already` lors du chargement Statistics (`/persistence/stats`, `/persistence/logs`, `/persistence/security/metrics`) — ex. 09:54 UTC pendant navigation `/statistics/log-stats`.
+- **Mesures runtime** : `max_connections=100` ; au repos **~80–86** connexions client (`idle`) — principaux émetteurs : `dashboard-service` (~15), `security-service` (~13), `call-service` / `followup-service` (~9 chacun). Marge quasi nulle avant tout pic.
+- **Cause racine** : architecture **~15 microservices** Node, chacun avec un `PrismaClient` et pool par défaut (souvent ~5–10 connexions/service) sur **une seule** instance Postgres `max_connections=100`. Correctif partiel déjà en place le 15/06 sur `/persistence/stats` (`$disconnect` en `finally`) ; refactor suite : délégation au **singleton** `persistence.service.getPersistenceTableStats()` (plus de client éphémère par requête). Burst test post-fix : **30** requêtes `/stats` parallèles → connexions stables (~81).
+- **Mesures complémentaires** : `docker-compose.yml` local — `max_connections` porté à **200** via `POSTGRES_MAX_CONNECTIONS`. **Appliqué 15/06** : recreate `postgres` + `jobbingtrack-metrics-aggregator` ; `SHOW max_connections` = **200** ; repos **~5** connexions, post-burst **~18** ; `/persistence/stats` **20/20** via singleton. Commits `f86fd05b` + `8d3ec45a` sur `chore/ci-pr-preprod-portainer`. Mail récap `[JobbingTrack] Recap infra Postgres saturation 2026-06-15` : **3/3 SENT**, miroir **3/3**.
+- **Reste** : injecter `?connection_limit=2` ou `3` dans les `DATABASE_URL` Compose ; auditer `new PrismaClient()` ad hoc.
+- **Versionnement** : dette notée dans `docs/BACKLOG.md` — pas de semver/changelog/tags release cohérents ; à traiter en lot H avant toute annonce de version produit.
+- **Agent mail futur** : précision porteur notée sans démarrer l’implémentation : boîtes IMAP à connecter, détection candidatures/entretiens/relances, consultation de l’historique de communication (emails/réponses/relances/appels tracés) avant recommandations ; à garder pour la fin après les logs/observabilité et P0/P1 prioritaires.
+
+## 15 juin 2026 — P1B Statistics moteur UI partagé shell
+
+- **UI** : les états chargement/erreur de la vue d’ensemble passent par `StatisticsPageShell`, avec sous-navigation et en-tête communs comme les états nominaux.
+- **E2E** : le smoke Statistics vérifie la sous-navigation partagée `Vue d’ensemble / App data / Sécurité / Logs (stats)` sur `/statistics`, `/statistics/security`, `/statistics/log-stats` et `/statistics/app-data`.
+- **API runtime** : `/api/v1/statistics` OK, `/api/v1/statistics/timeline` **1** point OK, `/api/v1/persistence/system/metrics` **50** points OK.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest ciblé **4 suites / 11 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics` ~70 ms, `/statistics/security` ~48 ms, `/statistics/log-stats` ~48 ms, `/statistics/app-data` ~85 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics shell 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — P1B Statistics vue d’ensemble dispo/erreur
+
+- **UI/E2E** : le smoke Playwright de `/b4ck0ff1ce/statistics` vérifie maintenant les graphes **Disponibilité dans le temps**, la source `Persistance system_metrics`, la période visible et la mention **taux d’erreur dérivé (100 − disponibilité)**.
+- **API runtime** : `/api/v1/persistence/system/metrics` 24h et 7j OK, **500** points chaque, disponibilité **500/500**, `errorRate` explicite **0/500** ; le graphe erreur reflète donc bien une dérivation depuis disponibilité.
+- **Validations sans `make`** : frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest `statisticsTimeSeries` **1 suite / 3 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics` ~97 ms, `/statistics/security` ~69 ms, `/statistics/app-data` ~66 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics overview 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — P1B Statistics app-data fallback explicite
+
+- **UI** : `/b4ck0ff1ce/statistics/app-data` affiche maintenant la note renvoyée par l’API timeline quand l’historique applicatif n’a qu’un snapshot courant, au lieu de masquer la raison du fallback.
+- **API runtime** : `/api/v1/statistics` HTTP 200 (`applications=1043`, `users=146`, `companies=761`, `contacts=2`, `interviews=128`, `calls=200`, `followups=140`, `events=973`) ; `/api/v1/statistics/timeline?time_range=7d&limit=500` HTTP 200, **1 point**, note `Timeline simplifiée (fallback)…`, aucun `undefined` brut dans les payloads.
+- **Validations sans `make`** : `node --check` controller statistics OK ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest app-data/statistics **2 suites / 5 tests OK** ; Jest CI frontend **45 suites / 187 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics/app-data` ~222 ms, `/statistics` ~49 ms, `/statistics/log-stats` ~54 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics app-data 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — P1B Statistics Sécurité cohérent avec `/security`
+
+- **UI** : `/b4ck0ff1ce/statistics/security` affiche un bloc “Cohérence avec la console Sécurité live” : score persisté 7 j, score live 30 j, événements live, critical/DDoS, points persistés et message d’alerte si le live contredit un score persisté élevé.
+- **Constat runtime** : persistance metrics `source=security_metrics`, `dataPoints=2000`, score persisté ~99.1 ; `/security` live 30 j expose encore des incidents récents (`criticalEvents=4`, `ddosAttacks=258`, score live 0), donc Statistics est présenté comme tendance persistée et non feu vert opérationnel.
+- **Validations sans `make`** : API metrics/security summary/metrics/stats OK ; API `/security` stats/logs OK ; backend metrics-aggregator Jest **2/2** ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest Statistics **2 suites / 6 tests OK** ; Jest CI frontend **43 suites / 182 tests OK** ; Playwright Statistics **5/5 OK** ; Playwright Sécurité titres **9 passed + 1 flaky retry OK** (`/security/threats` `ERR_EMPTY_RESPONSE` puis retry OK).
+- **Performance locale** : moyennes HTTP simples `/statistics/security` ~104 ms, `/security` ~57 ms, `/statistics` ~86 ms.
+- **Mail récap** : `[JobbingTrack] Recap P1B Statistics Securite 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — P1B Statistics log-stats filtres + fuite Prisma
+
+- **UI** : `/b4ck0ff1ce/statistics/log-stats` conserve maintenant les options **Niveau** et **Service** depuis un échantillon non filtré. Un filtre actif ne masque plus les autres choix disponibles sans reset.
+- **Backend** : `/api/v1/persistence/stats` fermait un nouveau `PrismaClient` jamais explicitement déconnecté ; les smokes répétés ont déclenché `too many clients`. La route ferme désormais le client en `finally` avec `Promise.resolve(prisma.$disconnect())`, et un test backend vérifie l’appel à `$disconnect`.
+- **Runtime post-restart** : `metrics-aggregator` healthy ; `/persistence/stats` `aggregatedLogs=28121` ; `/persistence/logs` 14 j **800**, filtre `WARN` **800**, filtre `jobbingtrack-api-gateway` **66** ; boucle `/persistence/stats` **20/20 OK**.
+- **Validations sans `make`** : `node --check` route/tests OK ; backend Jest persistence **2 suites / 3 tests OK** ; frontend `format:check`, `type-check`, `lint --quiet` OK ; Jest ciblé **2 suites / 6 tests OK** ; Jest CI frontend **44 suites / 185 tests OK** ; Playwright Statistics **5/5 OK**.
+- **Performance locale** : moyennes HTTP simples `/statistics/log-stats` ~135 ms, `/statistics` ~244 ms, `/services/logs` ~105 ms.
+- **Mail récap final** : `[JobbingTrack] Recap P1B Statistics log-stats FINAL 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
+
+## 15 juin 2026 — CI / PR / préprod Portainer P1D (clôture)
+
+- **PR #8** mergée dans `dev` (`73dea552`) : CI Playwright + performance.
+- **PR #7** fermée (conflictuelle) ; remplacée par **PR #9** mergée (`e6e5cb90`) : scan CVE full-scope (`scripts/security/cve-scan.py`, mount `/workspace`), jobs backoffice pollés (`securityJobStore`), UI `/b4ck0ff1ce/tests-security` avec progression live.
+- **Validations sans `make`** : Jest CVE **2 suites / 4 tests OK** ; smoke `cve-findings` **33 findings** ; smoke `cve-scan.py` full-scope (**24 surfaces Node**, Rust, **2 Flutter**) ; `format:check` / `type-check` / `lint --quiet` OK ; Jest CI frontend **42 suites / 179 tests OK** ; Playwright login sécurité **5/5** ; page `/tests-security` **2/2**.
+- **Préprod Portainer** : `deploy-preprod.yml` — branche `preprod` ou manuel, webhook `PREPROD_DEPLOY_URL` + `PREPROD_DEPLOY_TOKEN`, no-op documenté si URL absente, échec non masqué si webhook KO ; stratégie sans Portainer Business dans `docs/deployment/VPS_PORTAINER_NPM_OVH.md` §5.1.
+- **Mail récap** : sujet `[JobbingTrack] Recap P1D CI PR preprod 2026-06-15` via `notification-service` à `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh` ; `EmailLog` **3/3 SENT**, `metadata.mirror.sent=true` **3/3**.
 
 ## 15 juin 2026 — Performance UI : Réseau / Corrélation / P1B temps de réponse
 
@@ -16,11 +124,11 @@
 ## 15 juin 2026 — GitHub Actions / PR / préprod : diagnostic et premier correctif
 
 - **Cause CI confirmée** : le run GitHub échouait sur `Analyse de la qualite du code` à l'étape Prettier, pas parce que tous les workflows étaient absents. Reproduction locale du même périmètre : **75 fichiers** frontend non conformes ; après `prettier --write`, le check Prettier passe.
-- **Effet domino** : `Tests Backend`, `Tests Frontend`, intégration système et performance étaient `skipped` car ils dépendent de `code-quality`. PR #7 est encore ouverte et confirmée `CONFLICTING`, donc non mergable sans reprise.
+- **Effet domino** : `Tests Backend`, `Tests Frontend`, intégration système et performance étaient `skipped` car ils dépendent de `code-quality`. PR #7 était `CONFLICTING` — fermée et remplacée par PR #9 mergée le 15/06.
 - **Correctifs workflows** : `ci-cd.yml` aligné sur `dev/main` + familles de branches + `workflow_dispatch`; `database-validation.yml` et `deploy-dev.yml` alignés sur `dev`; `security-audit.yml` couvre `fix/security-*` et `security/**`; commandes E2E mobile/accessibilité corrigées vers des specs/projets existants; masquages `|| echo` sur ces tests retirés; étapes mortes `if: false` retirées.
 - **Jest / quota local** : le Jest CI frontend échouait ensuite sur `jest: failed to cache transform results in: /tmp/jest_rs/...` / `Unknown system error -122, write`. Correctif : `frontend/jest.config.js` force `cacheDirectory` vers `frontend/.tmp-jest`; le dossier est ignoré par Git/Prettier.
 - **Validations sans `make`** : `npm run format:check` OK ; `npm run type-check` OK ; `npm run lint -- --quiet` OK ; Jest frontend CI **40 suites / 175 tests OK** ; parsing YAML workflows OK ; recherche des anciens pièges (`develop`, projets mobiles inexistants, `test:a11y`, `if: false`, masquages E2E ciblés) OK.
-- **Limites restantes** : les workflows de déploiement Portainer restent placeholders `*_DEPLOY_URL`; PR #7 doit être rebasée/résolue séparément; l'environnement shell local affiche encore `débordement du quota d'espace disque` et `dump_zsh_state`, avec `/tmp` ~80 %. Rapport : `docs/ci/GITHUB_ACTIONS_AUDIT_2026-06-15.md`.
+- **Limites restantes** : les workflows de déploiement Portainer restent placeholders `*_DEPLOY_URL` tant que le VPS n’est pas raccordé ; stratégie documentée §5.1 `VPS_PORTAINER_NPM_OVH.md`. L'environnement shell local affiche encore `débordement du quota d'espace disque` et `dump_zsh_state`, avec `/tmp` ~80 %. Rapport : `docs/ci/GITHUB_ACTIONS_AUDIT_2026-06-15.md`.
 
 ## 15 juin 2026 — audit gateway remote host / shell / URL injection
 

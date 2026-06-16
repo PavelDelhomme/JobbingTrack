@@ -36,7 +36,7 @@ export type BackofficeAnalyticsHubCpuChartsProps = {
   chartPeriodLabel: string;
 };
 
-/** Bloc Recharts CPU (hub historique) — réutilisable ; le hub canonique infra est **`/b4ck0ff1ce/performances`**. */
+/** Bloc Recharts CPU (hub historique) — réutilisable ; le hub canonique infra est **`/backoffice/performances`**. */
 export function BackofficeAnalyticsHubCpuCharts({
   loading,
   cpuDataLength,

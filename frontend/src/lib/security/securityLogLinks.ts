@@ -81,7 +81,7 @@ export function resolveSecurityLogLink(log: SecurityLogLinkFields): {
 
   return {
     href: null,
-    label: "—",
+    label: formatSecurityLogLinkReason(log.linkReason),
     title: formatSecurityLogLinkReason(log.linkReason),
   };
 }

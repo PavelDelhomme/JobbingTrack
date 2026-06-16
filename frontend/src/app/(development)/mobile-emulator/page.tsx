@@ -2545,7 +2545,7 @@ function MobileApp({
           <button
             onClick={() => {
               // Basculer en plein écran web
-              window.open("http://localhost:8080/b4ck0ff1ce", "_blank");
+              window.open("http://localhost:8080/backoffice", "_blank");
             }}
             className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
           >
@@ -2556,7 +2556,7 @@ function MobileApp({
         {/* Iframe du backoffice web adapté au mobile */}
         <div className="flex-1 overflow-hidden relative">
           <iframe
-            src="http://localhost:8080/b4ck0ff1ce"
+            src="http://localhost:8080/backoffice"
             className="w-full h-full border-0"
             style={{
               transform: "scale(1)",

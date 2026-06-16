@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   PRIORITY_RESPONSE_SERVICES,
   RESPONSE_TIME_SOURCE_NOTE,
+  averagePriorityResponseTimeMs,
   isPriorityResponseService,
   normalizeServiceShortName,
 } from "@/lib/metrics/responseTimePresentation";
@@ -44,6 +45,7 @@ export function PriorityResponseServicesSummary({
   className = "",
 }: PriorityResponseServicesSummaryProps) {
   const priority = sortByPriority(services);
+  const averageMs = averagePriorityResponseTimeMs(priority);
 
   return (
     <div
@@ -59,18 +61,26 @@ export function PriorityResponseServicesSummary({
           </p>
         </div>
         <Link
-          href="/b4ck0ff1ce/performances/latency"
+          href="/backoffice/performances/latency"
           className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline shrink-0"
         >
           Détail latence →
         </Link>
       </div>
+      {averageMs != null ? (
+        <p className="text-xs text-blue-900/80 dark:text-blue-100/80">
+          Moyenne des endpoints affichés :{" "}
+          <strong className="font-semibold tabular-nums">
+            {Math.round(averageMs)}ms
+          </strong>
+        </p>
+      ) : null}
 
       {priority.length === 0 ? (
         <p className="text-xs text-blue-900/70 dark:text-blue-100/70">
           Aucun service prioritaire en cours d&apos;exécution — vérifier la
           stack Docker ou l&apos;onglet{" "}
-          <Link href="/b4ck0ff1ce/services" className="underline">
+          <Link href="/backoffice/services" className="underline">
             Services
           </Link>
           .

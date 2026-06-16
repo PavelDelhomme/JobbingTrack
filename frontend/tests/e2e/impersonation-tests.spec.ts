@@ -9,7 +9,7 @@ const createdUserPassword = getGeneratedUserPassword(
 test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)", () => {
   test("👤 Création d'utilisateur de test via interface", async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/b4ck0ff1ce/playwright-tests");
+    await page.goto("/backoffice/playwright-tests");
 
     // Cliquer sur le bouton "Créer Utilisateur Test"
     await page.click('button:has-text("Créer Utilisateur Test")');
@@ -33,7 +33,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
 
   test("🔄 Impersonnalisation utilisateur normal", async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/b4ck0ff1ce/playwright-tests");
+    await page.goto("/backoffice/playwright-tests");
 
     await page.click('button:has-text("Créer Utilisateur Test")');
     const testEmail = `testuser_${Date.now()}@jobbingtrack.test`;
@@ -67,7 +67,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
 
   test("👑 Impersonnalisation administrateur", async ({ page }) => {
     // Naviguer vers l'interface d'administration des tests
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Créer un utilisateur admin de test
     await page.click('button:has-text("Créer Utilisateur Test")');
@@ -96,7 +96,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
 
   test("🧪 Test de différents rôles utilisateur", async ({ page }) => {
     // Naviguer vers l'interface d'administration des tests
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Créer des utilisateurs avec différents rôles
     const testUsers = [
@@ -154,7 +154,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
 
   test("🗑️ Suppression d'utilisateur de test", async ({ page }) => {
     // Naviguer vers l'interface d'administration des tests
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Créer un utilisateur de test à supprimer
     await page.click('button:has-text("Créer Utilisateur Test")');
@@ -185,7 +185,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
     await expect(page.locator("text=JobbingTrack")).toBeVisible();
 
     // Retourner à l'interface d'administration
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Supprimer l'utilisateur (cette fonctionnalité devra être ajoutée)
     // Pour l'instant, on teste que l'interface est accessible
@@ -198,7 +198,7 @@ test.describe("🎭 Tests d'impersonnalisation - Interface Utilisateur (admin)",
 test.describe("🎭 Tests d'impersonnalisation avancée", () => {
   test("🔄 Changement rapide d'utilisateur", async ({ page }) => {
     // Naviguer vers l'interface d'administration des tests
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Créer plusieurs utilisateurs de test
     const users = [];
@@ -237,7 +237,7 @@ test.describe("🎭 Tests d'impersonnalisation avancée", () => {
 
   test("📊 Test de données utilisateur spécifiques", async ({ page }) => {
     // Naviguer vers l'interface d'administration des tests
-    await page.goto("http://localhost:8080/b4ck0ff1ce/playwright-tests");
+    await page.goto("http://localhost:8080/backoffice/playwright-tests");
 
     // Créer un utilisateur avec des données spécifiques
     await page.click('button:has-text("Créer Utilisateur Test")');

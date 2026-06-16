@@ -49,6 +49,7 @@ const statusLabels: Record<string, string> = {
 export default function StatisticsAppDataPage() {
   const [stats, setStats] = useState<ApplicationStatistics | null>(null);
   const [timeline, setTimeline] = useState<StatisticsTimelineEntry[]>([]);
+  const [timelineNote, setTimelineNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,10 +59,11 @@ export default function StatisticsAppDataPage() {
     try {
       const [s, tl] = await Promise.all([
         statisticsService.getCurrentStatistics(),
-        statisticsService.getStatisticsTimeline("7d", 500),
+        statisticsService.getStatisticsTimelineResult("7d", 500),
       ]);
       setStats(s);
-      setTimeline(Array.isArray(tl) ? tl : []);
+      setTimeline(tl.timeline);
+      setTimelineNote(tl.note);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -399,6 +401,11 @@ export default function StatisticsAppDataPage() {
                 graphe temporel apparaîtra dès que plusieurs snapshots
                 historiques seront disponibles.
               </p>
+              {timelineNote ? (
+                <p className="mt-2 rounded-lg bg-blue-100/70 px-3 py-2 text-xs text-blue-900 dark:bg-blue-900/30 dark:text-blue-100">
+                  Note API : {timelineNote}
+                </p>
+              ) : null}
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <SnapshotMetric
                   label="Candidatures"
@@ -441,11 +448,12 @@ export default function StatisticsAppDataPage() {
               Aucune donnée timeline renvoyée par l’API. Les cartes restent la
               source principale tant que l’historique applicatif dédié n’est pas
               alimenté.
+              {timelineNote ? ` Note API : ${timelineNote}` : ""}
             </div>
           )}
 
           <Link
-            href="/b4ck0ff1ce/statistics"
+            href="/backoffice/statistics"
             className="inline-flex text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
           >
             ← Vue d’ensemble Statistiques

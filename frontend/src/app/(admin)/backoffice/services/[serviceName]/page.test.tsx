@@ -3,7 +3,7 @@
  * Vérifie que tous les éléments nécessaires sont affichés correctement
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useParams, useRouter } from "next/navigation";
 import ServiceDetailPage from "./page";
 
@@ -230,7 +230,7 @@ describe("ServiceDetailPage", () => {
       });
 
       const backButton = screen.getByTitle(/Retour à la liste des services/i);
-      expect(backButton).toHaveAttribute("href", "/b4ck0ff1ce/services");
+      expect(backButton).toHaveAttribute("href", "/backoffice/services");
       // Pas de click : jsdom déclencherait une navigation non implémentée sur <a href>.
     });
 
@@ -238,7 +238,9 @@ describe("ServiceDetailPage", () => {
       render(<ServiceDetailPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Actualiser/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /Actualiser/i }),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -551,20 +553,25 @@ describe("ServiceDetailPage", () => {
   });
 
   describe("Rafraîchissement automatique", () => {
-    it("devrait indiquer la cadence d’auto-rafraîchissement (défaut 15 s)", async () => {
+    it("démarre avec l’auto-rafraîchissement désactivé", async () => {
       render(<ServiceDetailPage />);
 
       await waitFor(() => {
         expect(
-          screen.getByText(/aligné sur la cadence ci-dessus \(15 s\)/i),
+          screen.getByText(/Auto-rafraîchissement désactivé/i),
         ).toBeInTheDocument();
       });
     });
 
-    it("programme le rafraîchissement automatique selon l’intervalle sélectionné (15 s par défaut)", () => {
+    it("programme le rafraîchissement automatique seulement après activation", async () => {
       const spy = jest.spyOn(global, "setInterval");
       render(<ServiceDetailPage />);
-      expect(spy).toHaveBeenCalledWith(expect.any(Function), 15000);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Auto/i)).toBeInTheDocument();
+      });
+      expect(spy).not.toHaveBeenCalledWith(expect.any(Function), 15000);
+      fireEvent.click(screen.getByLabelText(/Auto/i));
+      expect(spy).toHaveBeenCalledWith(expect.any(Function), 60000);
       spy.mockRestore();
     });
   });

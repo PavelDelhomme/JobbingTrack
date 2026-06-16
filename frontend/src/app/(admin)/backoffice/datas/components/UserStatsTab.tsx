@@ -138,7 +138,7 @@ export default function UserStatsTab() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
               Vue détaillée (graphiques, pages, appareils) :{" "}
               <Link
-                href="/b4ck0ff1ce/user-analytics"
+                href="/backoffice/user-analytics"
                 className="text-blue-600 dark:text-blue-400 underline"
               >
                 Analytics utilisateur
@@ -155,7 +155,7 @@ export default function UserStatsTab() {
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
             <Link
-              href="/b4ck0ff1ce/user-analytics"
+              href="/backoffice/user-analytics"
               className="text-blue-600 dark:text-blue-400 underline"
             >
               Analytics utilisateur

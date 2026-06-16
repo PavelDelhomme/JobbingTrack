@@ -14,7 +14,7 @@ import {
   isSqliThreat,
   isXssThreat,
 } from "@/lib/security/threatSignals";
-import { formatBlockOriginLabel } from "@/lib/security/securityLabels";
+import { formatBlockOriginLabelOrUnknown } from "@/lib/security/securityLabels";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Shield, AlertTriangle, Lock, Eye, Activity } from "@/lib/icons";
 import axios from "axios";
@@ -294,7 +294,7 @@ export default function SecurityAnalysisPage() {
         {/* Métriques clés */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Link
-            href="/b4ck0ff1ce/security/threats?threatType=BRUTE_FORCE"
+            href="/backoffice/security/threats?threatType=BRUTE_FORCE"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -312,7 +312,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/b4ck0ff1ce/security/threats?blocked=false"
+            href="/backoffice/security/threats?blocked=false"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -330,7 +330,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+            href="/backoffice/security/firewall#liste-ips-bloquees"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -348,7 +348,7 @@ export default function SecurityAnalysisPage() {
           </Link>
 
           <Link
-            href="/b4ck0ff1ce/security/threats?threatType=SQL_INJECTION"
+            href="/backoffice/security/threats?threatType=SQL_INJECTION"
             className="block bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
@@ -484,7 +484,7 @@ export default function SecurityAnalysisPage() {
                 API consolidée : {summary.blockedIpsMeta.count} entrée(s) — voir
                 aussi{" "}
                 <Link
-                  href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+                  href="/backoffice/security/firewall#liste-ips-bloquees"
                   className="text-blue-600 hover:underline"
                 >
                   Firewall
@@ -506,7 +506,7 @@ export default function SecurityAnalysisPage() {
                   index: number,
                 ) => {
                   const originLabel =
-                    formatBlockOriginLabel(ipItem.blockOrigin) || "Actif";
+                    formatBlockOriginLabelOrUnknown(ipItem.blockOrigin);
                   return (
                     <div
                       key={index}
@@ -528,7 +528,7 @@ export default function SecurityAnalysisPage() {
                         )}
                         {ipItem.threatId && (
                           <Link
-                            href={`/b4ck0ff1ce/security/threats/${ipItem.threatId}`}
+                            href={`/backoffice/security/threats/${ipItem.threatId}`}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             Fiche menace

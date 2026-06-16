@@ -7,12 +7,12 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Backoffice — Émulateur mobile", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/mobile-emulator");
+    await page.goto("/backoffice/mobile-emulator");
     await page.waitForLoadState("domcontentloaded");
   });
 
   test("affiche la page Émulateur mobile après connexion", async ({ page }) => {
-    await expect(page).toHaveURL(/\/b4ck0ff1ce\/mobile-emulator/);
+    await expect(page).toHaveURL(/\/backoffice\/mobile-emulator/);
     await expect(
       page.locator("text=Parcours utilisateur mobile").first(),
     ).toBeVisible({ timeout: 10000 });
@@ -127,7 +127,7 @@ test.describe("Backoffice — Émulateur mobile", () => {
 
 test.describe("Backoffice — Émulateur mobile (interface complète, boutons et sections)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/mobile-emulator");
+    await page.goto("/backoffice/mobile-emulator");
     await page.waitForLoadState("domcontentloaded");
   });
 
@@ -218,7 +218,7 @@ test.describe("Backoffice — Émulateur mobile (interface complète, boutons et
 
 test.describe("Backoffice — Émulateur mobile (parcours avec données)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/mobile-emulator");
+    await page.goto("/backoffice/mobile-emulator");
     await page.waitForLoadState("domcontentloaded");
   });
 
@@ -276,7 +276,7 @@ test.describe("Backoffice — Émulateur mobile (parcours avec données)", () =>
 
 test.describe("Backoffice — Émulateur mobile (exécution via système de scénarios)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/mobile-emulator");
+    await page.goto("/backoffice/mobile-emulator");
     await page.waitForLoadState("domcontentloaded");
   });
 

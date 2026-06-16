@@ -11,6 +11,7 @@ services:
     image: postgres:15
     container_name: jobbingtrack-postgres
     mem_limit: ${POSTGRES_MEMORY_LIMIT:-768m}
+    command: ["postgres", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-200}"]
     environment:
       # `public.system_metrics.timestamp` = TIMESTAMP sans fuseau, alimenté par NOW() (monitoring-c).
       # Session UTC explicite : alignée avec `toIsoUtcString` côté metrics-aggregator (suffixe Z).

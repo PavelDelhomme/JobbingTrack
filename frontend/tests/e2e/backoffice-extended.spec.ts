@@ -19,7 +19,7 @@ async function expectLoaded(page: import("@playwright/test").Page) {
 test.describe("📋 Données individuelles – interactions", () => {
   test.describe.configure({ timeout: 90_000 });
   test("page Entretiens : table et éléments interactifs", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/interviews", {
+    await page.goto("/backoffice/interviews", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -30,7 +30,7 @@ test.describe("📋 Données individuelles – interactions", () => {
   });
 
   test("page Appels : table et boutons", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/calls", {
+    await page.goto("/backoffice/calls", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -40,7 +40,7 @@ test.describe("📋 Données individuelles – interactions", () => {
   });
 
   test("page Relances : table et boutons", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/followups", {
+    await page.goto("/backoffice/followups", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -50,7 +50,7 @@ test.describe("📋 Données individuelles – interactions", () => {
   });
 
   test("page Événements : liste et boutons", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/events", {
+    await page.goto("/backoffice/events", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -60,7 +60,7 @@ test.describe("📋 Données individuelles – interactions", () => {
   });
 
   test("page Notifications : liste et actions", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/notifications", {
+    await page.goto("/backoffice/notifications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -78,7 +78,7 @@ test.describe("📈 Analytics – interactions avancées", () => {
   test("page Performances réseau affiche métriques et boutons", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/performances/network", {
+    await page.goto("/backoffice/performances/network", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -90,7 +90,7 @@ test.describe("📈 Analytics – interactions avancées", () => {
   test("page Performances applicatives affiche des données", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/analytics/application", {
+    await page.goto("/backoffice/analytics/application", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -98,7 +98,7 @@ test.describe("📈 Analytics – interactions avancées", () => {
   });
 
   test("page Analytics conteneurs affiche des conteneurs", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/performances/containers", {
+    await page.goto("/backoffice/performances/containers", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -110,7 +110,7 @@ test.describe("📈 Analytics – interactions avancées", () => {
   test("page Analytics CPU/système avec boutons interactifs", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/analytics", {
+    await page.goto("/backoffice/analytics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -126,7 +126,7 @@ test.describe("📈 Analytics – interactions avancées", () => {
 test.describe("🔒 Sécurité – interactions avancées", () => {
   test.describe.configure({ timeout: 90_000 });
   test("page Analyse de sécurité affiche des résultats", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/security/analysis", {
+    await page.goto("/backoffice/security/analysis", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -138,7 +138,7 @@ test.describe("🔒 Sécurité – interactions avancées", () => {
   test("page Réseau (sécurité) affiche des données réseau", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/security/network", {
+    await page.goto("/backoffice/security/network", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -146,7 +146,7 @@ test.describe("🔒 Sécurité – interactions avancées", () => {
   });
 
   test("page Menaces affiche la liste des menaces", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/security/threats", {
+    await page.goto("/backoffice/security/threats", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -162,7 +162,7 @@ test.describe("🔒 Sécurité – interactions avancées", () => {
 test.describe("📧 Emails – pages complémentaires", () => {
   test.describe.configure({ timeout: 90_000 });
   test("page Email Monitor affiche le suivi détaillé", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/email-monitor", {
+    await page.goto("/backoffice/email-monitor", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -172,7 +172,7 @@ test.describe("📧 Emails – pages complémentaires", () => {
   });
 
   test("page Configuration SMTP affiche les paramètres", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails/settings", {
+    await page.goto("/backoffice/emails/settings", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -182,7 +182,7 @@ test.describe("📧 Emails – pages complémentaires", () => {
   });
 
   test("page Délivrabilité affiche les métriques", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails/deliverability", {
+    await page.goto("/backoffice/emails/deliverability", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -192,7 +192,7 @@ test.describe("📧 Emails – pages complémentaires", () => {
   });
 
   test("page Historique Emails affiche les logs", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails/logs", {
+    await page.goto("/backoffice/emails/logs", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -208,7 +208,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   test("page Tests API affiche les endpoints et résultats", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/tests-api", {
+    await page.goto("/backoffice/tests-api", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -218,7 +218,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Backend avec boutons de lancement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/tests-backend", {
+    await page.goto("/backoffice/tests-backend", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -226,7 +226,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Frontend avec résultats", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/tests-frontend", {
+    await page.goto("/backoffice/tests-frontend", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -234,7 +234,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Backoffice avec interface", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/tests-backoffice", {
+    await page.goto("/backoffice/tests-backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -242,7 +242,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Emails - Configuration avec vérifications", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails/settings", {
+    await page.goto("/backoffice/emails/settings", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -250,7 +250,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Sécurité avec scans", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/tests-security", {
+    await page.goto("/backoffice/tests-security", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -258,7 +258,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Performance avec benchmarks", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/tests-performance", {
+    await page.goto("/backoffice/tests-performance", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -266,7 +266,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Programmer Tests Performance", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/performance-tests/schedule", {
+    await page.goto("/backoffice/performance-tests/schedule", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -274,7 +274,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Performance Tests standalone", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/performance-tests", {
+    await page.goto("/backoffice/performance-tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -284,7 +284,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   test("page Données de Test (générateur) est interactive", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/test-data", {
+    await page.goto("/backoffice/test-data", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -294,7 +294,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Tests Playwright avec interface", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/playwright-tests", {
+    await page.goto("/backoffice/playwright-tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -302,7 +302,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
   });
 
   test("page Rapports Parcours avec résultats", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/user-journey/reports", {
+    await page.goto("/backoffice/user-journey/reports", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -316,7 +316,7 @@ test.describe("🧪 Tests & Outils – interactions avancées", () => {
 test.describe("📱 Émulateur Mobile", () => {
   test.describe.configure({ timeout: 90_000 });
   test("page Émulateur Mobile est accessible", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/mobile-emulator", {
+    await page.goto("/backoffice/mobile-emulator", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -332,7 +332,7 @@ test.describe("📱 Émulateur Mobile", () => {
 test.describe("🔧 Services – détails étendus", () => {
   test.describe.configure({ timeout: 90_000 });
   test("page détail auth-service avec métriques", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/services/auth-service", {
+    await page.goto("/backoffice/services/auth-service", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });

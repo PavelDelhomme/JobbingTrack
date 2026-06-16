@@ -36,3 +36,27 @@ export function isPriorityResponseService(serviceName: string): boolean {
   const key = normalizeServiceShortName(serviceName);
   return (PRIORITY_RESPONSE_SERVICES as readonly string[]).includes(key);
 }
+
+export type ResponseTimeServiceLike = {
+  name: string;
+  responseTime?: number | null;
+  nonHttpDependency?: boolean;
+};
+
+export function averagePriorityResponseTimeMs(
+  services: ResponseTimeServiceLike[],
+): number | null {
+  const values = services
+    .filter(
+      (service) =>
+        !service.nonHttpDependency && isPriorityResponseService(service.name),
+    )
+    .map((service) => service.responseTime)
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value) && value > 0,
+    );
+
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}

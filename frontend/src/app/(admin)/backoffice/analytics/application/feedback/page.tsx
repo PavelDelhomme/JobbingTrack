@@ -16,7 +16,7 @@ export default function ApplicationFeedbackPage() {
           liens croisés à prévoir.
         </p>
       }
-      backHref="/b4ck0ff1ce/analytics"
+      backHref="/backoffice/analytics"
       showApplicationSubNav
       maxWidthClassName="mx-auto max-w-3xl"
     >

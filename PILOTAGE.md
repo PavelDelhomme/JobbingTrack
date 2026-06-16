@@ -1,6 +1,17 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 11 juin 2026 (mode avance rapide porteur — validations groupées en fin de lot)
+Dernière mise à jour : 15 juin 2026 (Services — premier correctif CPU/RAM frontend)
+
+## Pause infra — courte (appliquée le 15/06)
+
+**15/06** : incident Postgres `too many clients already` confirmé sur stack locale full. Actions courtes **faites** :
+
+1. Recreate `postgres` → `max_connections=200` (`POSTGRES_MAX_CONNECTIONS`, Compose).
+2. `pg_stat_activity` au repos **~5–18** connexions sur **200** (< 10 %).
+3. Recreate `jobbingtrack-metrics-aggregator` → `/persistence/stats` via singleton `getPersistenceTableStats()` ; burst **20/20 OK**.
+4. **Reste** : `connection_limit` Prisma par service (dette `docs/BACKLOG.md`).
+
+**Versionnement** : système de versions produit à reprendre (semver, CHANGELOG, tags, affichage UI) — voir `docs/BACKLOG.md` § « Système de versionnement ». Ne pas annoncer de release tant que le cadrage lot H n’est pas fait.
 
 ## Règle principale
 
@@ -32,18 +43,19 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 
 ## État actuel
 
-Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE, alertes email critiques et **P1C sécurité titres/libellés/navigation** validés localement.
+Dernière mise à jour : 15 juin 2026 (Services — premier correctif CPU/RAM frontend)
 
-Exception porteur 15/06 : avant de reprendre les prochains lots produit, traiter en priorité le lot **P1D CI/PR/déploiement** : GitHub Actions opérationnelles sur `dev`/PR, PR ouvertes clarifiées, gate Prettier/type/lint/tests remis au vert, et trajectoire préprod Portainer documentée sans coût supplémentaire.
+Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécurité, Rapports sécurité, comparaison CVE, menaces lab, localisation CVE, alertes email critiques et **P1C sécurité titres/libellés/navigation** validés localement. **15/06** : demande explicite porteur de reprendre **Lot A graphes** ; export CSV/JSON (`feat/monitoring-series-export`), mini-séries Services (`feat/services-history-sparklines`), Corrélation endpoint incidents (`fix/correlation-incident-context`), brush synchronisé Réseau (`feat/monitoring-brush-sync-network`) puis premier correctif CPU/RAM frontend Services (`fix/frontend-services-performance`). Playwright Performances fiable via `PLAYWRIGHT_BASE_URL=http://localhost:5003`.
+
+Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — PR #8 et #9 mergées, PR #7 fermée, préprod Portainer cadrée (`deploy-preprod.yml`, `VPS_PORTAINER_NPM_OVH.md` §5.1), mail récap **3/3 SENT**. Le porteur demande de continuer le **Lot B complet**, avec mail récap à chaque bloc terminé, puis d’enchaîner Lot C selon le même processus.
 
 Priorité immédiate stricte :
 
-1. Traiter le lot exceptionnel **P1D CI/PR/déploiement** demandé le 15/06 avant toute nouvelle fonctionnalité : workflows GitHub actifs et alignés sur `dev`, échec Prettier corrigé, jobs non masqués par des `skipped` injustifiés, PR #7 clarifiée/fermée ou reprise, stratégie préprod Portainer cadrée.
-2. Reprendre ensuite la première ligne ouverte de `TODOS_A_VALIDER.md` : **Statistics — onglet Sécurité cohérent avec `/security`**.
-3. Attendre validation explicite du porteur ou corriger le problème signalé.
-4. Déplacer la ligne validée vers `TODOS_DONE.md`.
-5. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C/P1D, une ligne à la fois).
-6. Reprendre `docs/TODOS.md` uniquement quand les validations porteur bloquantes sont validées ou explicitement reclassées.
+1. Après les incréments explicitement demandés **Lot A graphes** (`feat/monitoring-series-export`, `feat/services-history-sparklines`), reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent pour **Statistics** (5 lignes) et **Performances Réseau/Corrélation** : **P1A Sécurité login backoffice**, puis **P1A WAF gateway**.
+2. Attendre validation explicite du porteur ou corriger le problème signalé.
+3. Déplacer la ligne validée vers `TODOS_DONE.md`.
+4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C/P1D, une ligne à la fois).
+5. Reprendre `docs/TODOS.md` uniquement quand les validations porteur bloquantes sont validées ou explicitement reclassées.
 
 ## Flux de travail
 

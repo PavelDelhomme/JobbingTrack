@@ -1,5 +1,5 @@
 /**
- * Modèle dérivé pour les graphes d’historique service (détail `/b4ck0ff1ce/services/[nom]`).
+ * Modèle dérivé pour les graphes d’historique service (détail `/backoffice/services/[nom]`).
  * Fonctions pures — réutilisables par d’autres vues monitoring (lot A1) et testables sans React.
  */
 import { metricTimestampToMs } from "@/lib/utils/date";

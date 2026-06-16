@@ -83,12 +83,13 @@ app.use(cors({
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-Id', 'X-Correlation-Id'],
+  exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
   exposedHeaders: ['set-cookie']
 }));
+app.use(requestContextMiddleware);
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(cookieParser()); // ✅ Middleware pour gérer les cookies
-app.use(requestContextMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

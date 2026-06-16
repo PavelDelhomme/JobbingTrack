@@ -12,8 +12,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
-import { DashboardLayoutRegion } from "@/lib/ui";
 import type { StatisticsChartPoint } from "@/lib/metrics/statisticsTimeSeries";
+import {
+  formatLocalChartAxisTick,
+  formatLocalDateTime,
+} from "@/lib/utils/date";
 
 const COLORS = {
   success: "#22C55E",
@@ -24,10 +27,16 @@ export function StatisticsErrorAvailabilityCharts({
   chartData,
   availabilityDomain,
   errorDerived,
+  xDomainMin,
+  xDomainMax,
+  axisShowDate = false,
 }: {
   chartData: StatisticsChartPoint[];
   availabilityDomain: [number, number];
   errorDerived?: boolean;
+  xDomainMin: number;
+  xDomainMax: number;
+  axisShowDate?: boolean;
 }) {
   if (chartData.length === 0) {
     return (
@@ -47,27 +56,51 @@ export function StatisticsErrorAvailabilityCharts({
   );
   const errorRateDomainMax =
     maxErrorRate <= 5 ? 5 : Math.min(100, Math.ceil(maxErrorRate * 1.2));
+  const axisBottom = axisShowDate ? 72 : 60;
+  const tooltipLabel = (_: unknown, payload: unknown) => {
+    const timeMs = (
+      payload as Array<{ payload?: { timeMs?: number } }>
+    )?.[0]?.payload?.timeMs;
+    return timeMs != null ? formatLocalDateTime(new Date(timeMs)) : "—";
+  };
 
   return (
-    <DashboardLayoutRegion variant="section">
+    <div className="space-y-6">
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
           Disponibilité dans le temps
         </h3>
         <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={chartData}>
+          <LineChart
+            data={chartData}
+            margin={{ top: 8, right: 16, left: 8, bottom: axisBottom }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
-              dataKey="time"
+              dataKey="timeMs"
+              type="number"
+              domain={[xDomainMin, xDomainMax]}
               stroke="#9CA3AF"
-              style={{ fontSize: "12px" }}
+              angle={axisShowDate ? -40 : -35}
+              textAnchor="end"
+              height={axisBottom}
+              minTickGap={axisShowDate ? 32 : 22}
+              tickFormatter={(ms) =>
+                formatLocalChartAxisTick(ms as number, {
+                  withDate: axisShowDate,
+                })
+              }
+              tick={{ fontSize: 12 }}
             />
             <YAxis
               stroke="#9CA3AF"
               style={{ fontSize: "12px" }}
               domain={availabilityDomain}
             />
-            <Tooltip {...rechartsTooltipProps} />
+            <Tooltip
+              {...rechartsTooltipProps}
+              labelFormatter={tooltipLabel}
+            />
             <Line
               type="monotone"
               dataKey="availability"
@@ -98,7 +131,10 @@ export function StatisticsErrorAvailabilityCharts({
           </p>
         )}
         <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={chartData}>
+          <AreaChart
+            data={chartData}
+            margin={{ top: 8, right: 16, left: 8, bottom: axisBottom }}
+          >
             <defs>
               <linearGradient id="statsColorError" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.danger} stopOpacity={0.8} />
@@ -107,16 +143,30 @@ export function StatisticsErrorAvailabilityCharts({
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
-              dataKey="time"
+              dataKey="timeMs"
+              type="number"
+              domain={[xDomainMin, xDomainMax]}
               stroke="#9CA3AF"
-              style={{ fontSize: "12px" }}
+              angle={axisShowDate ? -40 : -35}
+              textAnchor="end"
+              height={axisBottom}
+              minTickGap={axisShowDate ? 32 : 22}
+              tickFormatter={(ms) =>
+                formatLocalChartAxisTick(ms as number, {
+                  withDate: axisShowDate,
+                })
+              }
+              tick={{ fontSize: 12 }}
             />
             <YAxis
               stroke="#9CA3AF"
               style={{ fontSize: "12px" }}
               domain={[0, errorRateDomainMax]}
             />
-            <Tooltip {...rechartsTooltipProps} />
+            <Tooltip
+              {...rechartsTooltipProps}
+              labelFormatter={tooltipLabel}
+            />
             <Area
               type="monotone"
               dataKey="errorRate"
@@ -129,6 +179,6 @@ export function StatisticsErrorAvailabilityCharts({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </DashboardLayoutRegion>
+    </div>
   );
 }

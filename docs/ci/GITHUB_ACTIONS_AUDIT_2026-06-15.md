@@ -11,7 +11,7 @@ Cause directe reproduite localement :
 
 Autres problèmes trouvés :
 
-- PR #7 encore ouverte et `CONFLICTING` (`fix/security-cve-scan-full-scope` vers `dev`).
+- PR #7 était ouverte et `CONFLICTING` (`fix/security-cve-scan-full-scope` vers `dev`) — **fermée** le 15/06, remplacée par **PR #9** mergée (`e6e5cb90`).
 - Plusieurs workflows ciblaient encore `develop` alors que la branche de vie locale est `dev`.
 - `security-audit.yml` ne couvrait pas les branches `security/**` ni `fix/security-*`.
 - Le workflow appelait des projets Playwright mobiles inexistants (`Mobile Chrome`, `Mobile Safari`) dans la config par défaut.
@@ -47,5 +47,5 @@ Commandes directes, sans `make` :
 ## Limites restantes
 
 - Les warnings locaux `write failed: débordement du quota d'espace disque` et `dump_zsh_state` viennent de l'environnement shell local, pas des workflows GitHub. Le disque racine n'est pas plein, mais `/tmp` reste haut (~80 %). Les caches Playwright et Jest sont maintenant forcés hors `/tmp`; continuer à appliquer cette règle aux futurs outils qui écrivent beaucoup.
-- Les workflows de déploiement `deploy-dev`, `deploy-preprod`, `deploy-prod` restent des placeholders tant que les secrets `*_DEPLOY_URL` ou la stratégie Portainer ne sont pas raccordés.
-- PR #7 doit être reprise séparément : elle est en conflit avec `dev` et ses checks datent du 09/06.
+- Les workflows de déploiement `deploy-dev`, `deploy-preprod`, `deploy-prod` restent des placeholders tant que les secrets `*_DEPLOY_URL` ne sont pas configurés sur le VPS ; la stratégie préprod sans Portainer Business est documentée dans `docs/deployment/VPS_PORTAINER_NPM_OVH.md` §5.1 et `deploy-preprod.yml`.
+- PR #7 / PR #9 : résolu le 15/06 — PR #9 apporte le scan CVE full-scope et les jobs pollés backoffice.

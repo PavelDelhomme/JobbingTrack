@@ -265,14 +265,14 @@ export default function TestDataTab() {
           Supprimer données isTestData
         </button>
         <Link
-          href="/b4ck0ff1ce/test-data"
+          href="/backoffice/test-data"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
         >
           <TestTube className="h-4 w-4" />
           Générateur avancé
         </Link>
         <Link
-          href="/b4ck0ff1ce/datas?tab=applications"
+          href="/backoffice/datas?tab=applications"
           className="inline-flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
         >
           Voir les candidatures

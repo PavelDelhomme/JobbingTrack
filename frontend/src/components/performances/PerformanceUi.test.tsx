@@ -35,7 +35,7 @@ describe("Performance UI shared components", () => {
     expect(screen.getByTestId("admin-layout")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /retour à performances/i }),
-    ).toHaveAttribute("href", "/b4ck0ff1ce/performances");
+    ).toHaveAttribute("href", "/backoffice/performances");
     expect(
       screen.getByRole("navigation", { name: "Performances" }),
     ).toBeInTheDocument();

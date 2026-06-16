@@ -71,11 +71,11 @@ const speedLimiter = slowDown({
 });
 app.use('/api/v1/security/sensitive', speedLimiter);
 
-// Logging des requêtes HTTP
+app.use(requestContextMiddleware);
+// Logging des requêtes HTTP avec contexte requestId/correlationId disponible.
 app.use(morgan('combined', {
   stream: { write: msg => logger.info(msg.trim()) }
 }));
-app.use(requestContextMiddleware);
 
 // Middleware de sécurité personnalisé (lier le contexte avec bind)
 app.use((req, res, next) => {

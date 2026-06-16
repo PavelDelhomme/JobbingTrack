@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 const PAGES = [
-  "/b4ck0ff1ce/statistics",
-  "/b4ck0ff1ce/statistics/log-stats",
-  "/b4ck0ff1ce/statistics/app-data",
+  "/backoffice/statistics",
+  "/backoffice/statistics/security",
+  "/backoffice/statistics/log-stats",
+  "/backoffice/statistics/app-data",
 ] as const;
 
 for (const path of PAGES) {
@@ -20,10 +21,41 @@ for (const path of PAGES) {
     await expect(page.getByText(/Network Error|AxiosError/i)).toHaveCount(0);
     const body = (await page.locator("body").textContent()) ?? "";
     expect(body.length).toBeGreaterThan(200);
-    if (path === "/b4ck0ff1ce/statistics") {
+    await expect(
+      page.getByRole("navigation", { name: "Sous-sections Statistiques" }),
+    ).toBeVisible();
+    for (const label of [
+      "Vue d’ensemble",
+      "App data",
+      "Sécurité",
+      "Logs (stats)",
+    ]) {
+      await expect(
+        page
+          .getByRole("navigation", { name: "Sous-sections Statistiques" })
+          .getByRole("link", { name: label }),
+      ).toBeVisible();
+    }
+    if (path === "/backoffice/statistics") {
       await expect(
         page.getByRole("heading", { name: /Disponibilité dans le temps/i }),
       ).toBeVisible({ timeout: 90_000 });
+      await expect(
+        page.getByText(/Source : Persistance system_metrics/i),
+      ).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText(/Taux d'erreur dérivé/i)).toBeVisible();
+      await expect(page.getByText(/Période : /i)).toBeVisible({
+        timeout: 90_000,
+      });
+    }
+    if (path === "/backoffice/statistics/security") {
+      await expect(
+        page.getByText(/Cohérence avec la console Sécurité live/i),
+      ).toBeVisible({ timeout: 90_000 });
+      await expect(
+        page.getByText("Score persisté", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText("Score live", { exact: true })).toBeVisible();
     }
   });
 }

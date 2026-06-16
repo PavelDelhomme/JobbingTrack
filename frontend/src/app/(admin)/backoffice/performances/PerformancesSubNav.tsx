@@ -5,28 +5,28 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   {
-    href: "/b4ck0ff1ce/performances",
+    href: "/backoffice/performances",
     label: "Synthèse",
   },
   {
-    href: "/b4ck0ff1ce/performances/cpu-memory",
+    href: "/backoffice/performances/cpu-memory",
     label: "CPU & Mémoire",
   },
   {
-    href: "/b4ck0ff1ce/performances/latency",
+    href: "/backoffice/performances/latency",
     label: "Temps de réponse",
   },
   {
-    href: "/b4ck0ff1ce/performances/containers",
+    href: "/backoffice/performances/containers",
     label: "Conteneurs",
   },
-  { href: "/b4ck0ff1ce/performances/disk", label: "Disque" },
+  { href: "/backoffice/performances/disk", label: "Disque" },
   {
-    href: "/b4ck0ff1ce/performances/network",
+    href: "/backoffice/performances/network",
     label: "Réseau (détail)",
   },
   {
-    href: "/b4ck0ff1ce/performances/correlation",
+    href: "/backoffice/performances/correlation",
     label: "Corrélation",
   },
 ] as const;
@@ -35,8 +35,8 @@ export function PerformancesSubNav() {
   const pathname = usePathname();
 
   const isActive = (tab: (typeof TABS)[number]) => {
-    if (tab.href === "/b4ck0ff1ce/performances") {
-      return pathname === "/b4ck0ff1ce/performances";
+    if (tab.href === "/backoffice/performances") {
+      return pathname === "/backoffice/performances";
     }
     return pathname === tab.href || pathname.startsWith(`${tab.href}/`);
   };

@@ -16,8 +16,14 @@ export const INCIDENT_LOG_EVENT_TYPES = new Set([
   "security_alert_email_settings_updated",
 ]);
 
-export function isIncidentLog(eventType: string, level?: string): boolean {
+export function isIncidentLog(
+  eventType: string,
+  level?: string,
+  category?: string,
+): boolean {
   const et = String(eventType || "").trim();
+  const cat = String(category || "").trim().toLowerCase();
+  if (cat === "mobile" || et.startsWith("mobile_")) return true;
   if (!et) return false;
   if (INCIDENT_LOG_EVENT_TYPES.has(et)) return true;
   const lv = String(level || "").toLowerCase();
@@ -39,18 +45,31 @@ export type IncidentRow = {
   threatId?: string;
   alertId?: string;
   logId?: string;
+  eventType?: string;
+  blockOrigin?: string | null;
+  blocked?: boolean;
 };
 
+export function isMobileIncidentRow(row: {
+  eventType?: string;
+  subtitle?: string;
+}): boolean {
+  const et = String(row.eventType || "").toLowerCase();
+  if (et.startsWith("mobile_")) return true;
+  const sub = String(row.subtitle || "").toLowerCase();
+  return sub.includes("mobile") || sub.includes("app mobile");
+}
+
 export function threatHref(threatId: string): string {
-  return `/b4ck0ff1ce/security/threats/${threatId}`;
+  return `/backoffice/security/threats/${threatId}`;
 }
 
 export function alertHref(alertId: string): string {
-  return `/b4ck0ff1ce/security/incidents/alert/${alertId}`;
+  return `/backoffice/security/incidents/alert/${alertId}`;
 }
 
 export function logHref(logId: string, eventType?: string): string {
   const q = new URLSearchParams({ highlight: logId });
   if (eventType) q.set("eventType", eventType);
-  return `/b4ck0ff1ce/security/logs?${q.toString()}`;
+  return `/backoffice/security/logs?${q.toString()}`;
 }

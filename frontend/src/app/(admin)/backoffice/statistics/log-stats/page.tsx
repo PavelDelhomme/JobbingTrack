@@ -2,7 +2,7 @@
 
 /**
  * Route **log-stats** (et non `…/logs`) : le motif `logs/` est dans le `.gitignore` du dépôt.
- * URL canonique : `/b4ck0ff1ce/statistics/log-stats`.
+ * URL canonique : `/backoffice/statistics/log-stats`.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -25,6 +25,11 @@ import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { STATS_PERIOD_OPTIONS } from "@/lib/filters/periodOptions";
 import type { FilterBadge } from "@/lib/filters/types";
+import {
+  buildLogStatsLevelOptions,
+  buildLogStatsServiceOptions,
+  filterLogStatsRows,
+} from "@/lib/metrics/logStatsFilters";
 import {
   DashboardLayoutRegion,
   SectionLoader,
@@ -157,6 +162,7 @@ function sourceStatusClass(status: SourceStatus, value: number) {
 export default function StatisticsLogStatsPage() {
   const [stats, setStats] = useState<PersistenceStats | null>(null);
   const [logs, setLogs] = useState<AggLog[]>([]);
+  const [optionLogs, setOptionLogs] = useState<AggLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
@@ -169,7 +175,7 @@ export default function StatisticsLogStatsPage() {
       const since = new Date(
         Date.now() - applied.periodDays * 24 * 60 * 60 * 1000,
       ).toISOString();
-      const [st, rows] = await Promise.all([
+      const [st, rows, optionRows] = await Promise.all([
         analyticsService.getPersistenceStats(),
         analyticsService.getPersistenceLogs({
           limit: 800,
@@ -177,9 +183,14 @@ export default function StatisticsLogStatsPage() {
           level: applied.level || undefined,
           serviceName: applied.service || undefined,
         }),
+        analyticsService.getPersistenceLogs({
+          limit: 800,
+          startDate: since,
+        }),
       ]);
       setStats(st && typeof st === "object" ? st : null);
       setLogs(Array.isArray(rows) ? (rows as AggLog[]) : []);
+      setOptionLogs(Array.isArray(optionRows) ? (optionRows as AggLog[]) : []);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -192,21 +203,14 @@ export default function StatisticsLogStatsPage() {
   }, [load]);
 
   const levelOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const row of logs) {
-      set.add((row.level || "inconnu").toString());
-    }
-    return Array.from(set).sort();
-  }, [logs]);
+    return buildLogStatsLevelOptions(optionLogs.length > 0 ? optionLogs : logs);
+  }, [logs, optionLogs]);
 
   const serviceOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const row of logs) {
-      const s = (row.serviceName || "").toString().trim();
-      if (s) set.add(s);
-    }
-    return Array.from(set).sort();
-  }, [logs]);
+    return buildLogStatsServiceOptions(
+      optionLogs.length > 0 ? optionLogs : logs,
+    );
+  }, [logs, optionLogs]);
 
   const periodOptions = useMemo(
     () =>
@@ -233,17 +237,7 @@ export default function StatisticsLogStatsPage() {
   }, [applied]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter((row) => {
-      if (applied.level) {
-        const lv = (row.level || "inconnu").toString();
-        if (lv !== applied.level) return false;
-      }
-      if (applied.service) {
-        if ((row.serviceName || "").toString() !== applied.service)
-          return false;
-      }
-      return true;
-    });
+    return filterLogStatsRows(logs, applied);
   }, [logs, applied.level, applied.service]);
 
   const byLevel = useMemo(() => {
@@ -484,13 +478,13 @@ export default function StatisticsLogStatsPage() {
 
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/b4ck0ff1ce/statistics"
+              href="/backoffice/statistics"
               className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               ← Vue d’ensemble
             </Link>
             <Link
-              href="/b4ck0ff1ce/services/logs"
+              href="/backoffice/services/logs"
               className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               Logs centralisés services →

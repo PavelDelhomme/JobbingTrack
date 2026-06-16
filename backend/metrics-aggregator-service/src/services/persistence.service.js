@@ -37,6 +37,22 @@ function clampMetricsHistoryLimit(raw, fallback = 100) {
   return Math.min(Math.floor(n), METRICS_HISTORY_LIMIT_MAX);
 }
 
+function metricsHistoryBucketSeconds(startDate, endDate, limit) {
+  if (!startDate || !endDate || !limit) return null;
+  const startMs = new Date(startDate).getTime();
+  const endMs = new Date(endDate).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return null;
+  }
+  return Math.max(1, Math.ceil((endMs - startMs) / 1000 / Math.max(1, limit)));
+}
+
+function sqlEpochSeconds(value) {
+  const ms = new Date(value).getTime();
+  if (!Number.isFinite(ms)) return null;
+  return Math.floor(ms / 1000);
+}
+
 /**
  * Driver SQL / Prisma peut renvoyer Date ou chaîne sans fuseau. On expose toujours de l’ISO UTC
  * pour le JSON afin que le front (fuseau navigateur) convertisse correctement.
@@ -64,6 +80,162 @@ function toIsoUtcString(ts) {
   }
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function mapRawSystemMetricsRows(rawResults) {
+  return rawResults
+    .map((row) => {
+      const iso = toIsoUtcString(row.timestamp);
+      if (!iso) return null;
+      const timestamp = new Date(iso);
+      const timestampMs = timestamp.getTime();
+      return {
+        id: `system_${timestamp.getTime()}`,
+        timestamp: iso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
+        cpuUsagePercent: row.cpu_usage_percent || 0,
+        cpu_percent: row.cpu_usage_percent || 0,
+        cpuCores: row.cpu_cores || 0,
+        cpuLoadAverage1m: row.cpu_load_1,
+        cpuLoadAverage5m: row.cpu_load_5,
+        cpuLoadAverage15m: row.cpu_load_15,
+        memoryUsagePercent: row.memory_usage_percent || 0,
+        memory_usage_percent: row.memory_usage_percent || 0,
+        memoryUsedBytes: row.memory_used_mb
+          ? Number(row.memory_used_mb) * 1024 * 1024
+          : 0,
+        memoryTotalBytes: row.memory_total_mb
+          ? Number(row.memory_total_mb) * 1024 * 1024
+          : 0,
+        memoryFreeBytes: row.memory_free_mb
+          ? Number(row.memory_free_mb) * 1024 * 1024
+          : 0,
+        diskUsagePercent: row.disk_usage_percent,
+        diskUsedBytes: row.disk_used_gb
+          ? Math.round(Number(row.disk_used_gb) * 1024 * 1024 * 1024)
+          : null,
+        diskTotalBytes: row.disk_total_gb
+          ? Math.round(Number(row.disk_total_gb) * 1024 * 1024 * 1024)
+          : null,
+        diskFreeBytes: row.disk_free_gb
+          ? Math.round(Number(row.disk_free_gb) * 1024 * 1024 * 1024)
+          : null,
+        networkRxBytes: row.total_network_rx_bytes
+          ? Number(row.total_network_rx_bytes)
+          : null,
+        networkTxBytes: row.total_network_tx_bytes
+          ? Number(row.total_network_tx_bytes)
+          : null,
+        total_network_rx_bytes: row.total_network_rx_bytes
+          ? Number(row.total_network_rx_bytes)
+          : null,
+        total_network_tx_bytes: row.total_network_tx_bytes
+          ? Number(row.total_network_tx_bytes)
+          : null,
+        availabilityPercent: row.availability_percent,
+        loadScore: row.load_score,
+        errorCount: null,
+        errorRate: null,
+        responseTimeAvg: row.avg_response_time_ms,
+        project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
+        project_memory_mb: row.project_memory_mb
+          ? Number(row.project_memory_mb)
+          : null,
+        createdAt: iso,
+        _historySource: 'system_metrics',
+      };
+    })
+    .filter(Boolean);
+}
+
+function mergeSystemMetricRows(rows, options = {}) {
+  const { startDate = null, endDate = null } = options;
+  const limit = clampMetricsHistoryLimit(options.limit, 100);
+  const offset = Number.parseInt(options.offset, 10) || 0;
+  const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+  const startEpoch = sqlEpochSeconds(startDate);
+  const byBucket = new Map();
+
+  for (const row of rows) {
+    const timestampMs = Number(row?.timestampMs ?? Date.parse(row?.timestamp || ''));
+    if (!Number.isFinite(timestampMs)) continue;
+    const bucketKey =
+      bucketSeconds && startEpoch != null
+        ? Math.floor((Math.floor(timestampMs / 1000) - startEpoch) / bucketSeconds)
+        : timestampMs;
+    const current = byBucket.get(bucketKey);
+    const rowIsRaw = row._historySource === 'system_metrics';
+    const currentIsRaw = current?._historySource === 'system_metrics';
+    if (!current || (rowIsRaw && !currentIsRaw)) {
+      byBucket.set(bucketKey, row);
+    }
+  }
+
+  return Array.from(byBucket.values())
+    .sort((a, b) => Number(b.timestampMs || 0) - Number(a.timestampMs || 0))
+    .slice(offset, offset + limit)
+    .map(({ _historySource, ...row }) => row);
+}
+
+function mapServiceAvailabilityHistoryRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const tsIso = toIsoUtcString(row.timestamp);
+      if (!tsIso) return null;
+      return {
+        id: row.id,
+        timestamp: tsIso,
+        timestampMs: Date.parse(tsIso),
+        serviceName: row.serviceName,
+        isAvailable: Boolean(row.isAvailable),
+        responseTimeMs:
+          row.responseTimeMs != null ? Number(row.responseTimeMs) : null,
+        statusCode: row.statusCode != null ? Number(row.statusCode) : null,
+        errorMessage: row.errorMessage ?? null,
+        uptimePercent:
+          row.uptimePercent != null ? Number(row.uptimePercent) : null,
+        createdAt: toIsoUtcString(row.createdAt) || tsIso,
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildNearestContainerBlockIoLookup(rows, maxDistanceMs = 120000) {
+  const points = Array.isArray(rows)
+    ? rows
+        .map((row) => {
+          const tsIso =
+            toIsoUtcString(row.timestamp) ||
+            (row.timestamp instanceof Date
+              ? row.timestamp.toISOString()
+              : String(row.timestamp));
+          const timeMs = Date.parse(tsIso);
+          return {
+            timeMs,
+            blockReadBytes:
+              row.blockReadBytes != null ? Number(row.blockReadBytes) : null,
+            blockWriteBytes:
+              row.blockWriteBytes != null ? Number(row.blockWriteBytes) : null,
+          };
+        })
+        .filter((row) => Number.isFinite(row.timeMs))
+    : [];
+
+  return (targetMs) => {
+    if (!Number.isFinite(targetMs) || points.length === 0) {
+      return { blockReadBytes: null, blockWriteBytes: null };
+    }
+    let best = null;
+    let bestDistance = Infinity;
+    for (const point of points) {
+      const distance = Math.abs(point.timeMs - targetMs);
+      if (distance <= maxDistanceMs && distance < bestDistance) {
+        best = point;
+        bestDistance = distance;
+      }
+    }
+    return best || { blockReadBytes: null, blockWriteBytes: null };
+  };
 }
 
 /**
@@ -105,6 +277,95 @@ class PersistenceService {
    */
   isDatabaseEnabled() {
     return databaseEnabled && prisma !== null;
+  }
+
+  /**
+   * Compteurs globaux des tables de persistance (route /persistence/stats).
+   * Utilise le PrismaClient singleton du service — pas de client éphémère par requête.
+   */
+  async getPersistenceTableStats() {
+    if (!this.isDatabaseEnabled()) {
+      return {
+        counts: {
+          systemMetrics: 0,
+          containerMetrics: 0,
+          containerLogs: 0,
+          securityMetrics: 0,
+          events: 0,
+          total: 0,
+        },
+        dataRange: { oldest: null, newest: null },
+      };
+    }
+
+    const countTables = [
+      ['systemMetricsSnapshots', 'system_metrics_snapshots'],
+      ['containerMetricsSnapshots', 'container_metrics_snapshots'],
+      ['containerLogs', 'container_logs'],
+      ['securityMetrics', 'security_metrics'],
+      ['securityLogs', 'security_logs'],
+      ['events', 'system_events'],
+      ['aggregatedLogs', 'aggregated_logs'],
+      ['logCollectorLogs', 'log_collector_logs'],
+      ['systemMetricsRaw', 'system_metrics'],
+      ['containerMetricsRaw', 'container_metrics'],
+      ['serviceAvailability', 'service_availability_history'],
+      ['serviceNetwork', 'service_network_history'],
+    ];
+
+    const countTable = async (tableName) => {
+      const tableExists = await prisma.$queryRawUnsafe(
+        `SELECT to_regclass('public.${tableName}')::text AS table_name`,
+      );
+      if (!tableExists?.[0]?.table_name) return 0;
+
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT COUNT(*)::bigint AS count FROM public.${tableName}`,
+      );
+      return Number(rows?.[0]?.count || 0);
+    };
+
+    const counts = {};
+    await Promise.all(
+      countTables.map(async ([key, tableName]) => {
+        counts[key] = await countTable(tableName).catch(() => 0);
+      }),
+    );
+
+    counts.systemMetrics = counts.systemMetricsSnapshots + counts.systemMetricsRaw;
+    counts.containerMetrics =
+      counts.containerMetricsSnapshots + counts.containerMetricsRaw;
+    counts.total = countTables
+      .map(([key]) => counts[key] || 0)
+      .reduce((sum, value) => sum + value, 0);
+
+    let rangeRows = [{ oldest: null, newest: null }];
+    try {
+      rangeRows = await prisma.$queryRawUnsafe(`
+        SELECT MIN(ts) AS oldest, MAX(ts) AS newest
+        FROM (
+          SELECT timestamp AS ts FROM public.system_metrics_snapshots
+          UNION ALL SELECT timestamp AS ts FROM public.container_metrics_snapshots
+          UNION ALL SELECT timestamp AS ts FROM public.system_events
+          UNION ALL SELECT timestamp AS ts FROM public.aggregated_logs
+          UNION ALL SELECT timestamp AS ts FROM public.log_collector_logs
+          UNION ALL SELECT timestamp AS ts FROM public.system_metrics
+          UNION ALL SELECT timestamp AS ts FROM public.container_metrics
+          UNION ALL SELECT timestamp AS ts FROM public.service_availability_history
+        ) AS persisted_timestamps
+      `);
+    } catch {
+      rangeRows = [{ oldest: null, newest: null }];
+    }
+    const range = rangeRows?.[0] || {};
+
+    return {
+      counts,
+      dataRange: {
+        oldest: range.oldest || null,
+        newest: range.newest || null,
+      },
+    };
   }
 
   /**
@@ -538,6 +799,7 @@ class PersistenceService {
       endDate = null,
     } = options;
     const limit = clampMetricsHistoryLimit(rawLimit, 100);
+    const offsetInt = Number.parseInt(offset, 10) || 0;
     const tsExpr = systemMetricsTimestampAtTzSql();
 
     const where = {};
@@ -551,35 +813,6 @@ class PersistenceService {
       // ✅ CORRECTION : Utiliser $queryRaw pour accéder directement à la table system_metrics
       // créée par monitoring-c (qui contient project_cpu_avg et project_memory_mb)
       // au lieu de SystemMetricsSnapshot (Prisma) qui n'a pas ces champs
-      let query = `
-        SELECT 
-          ${tsExpr} AS "timestamp",
-          cpu_load_1,
-          cpu_load_5,
-          cpu_load_15,
-          cpu_cores,
-          cpu_usage_percent,
-          memory_total_mb,
-          memory_used_mb,
-          memory_free_mb,
-          memory_usage_percent,
-          disk_total_gb,
-          disk_used_gb,
-          disk_free_gb,
-          disk_usage_percent,
-          container_count,
-          avg_response_time_ms,
-          avg_cpu_percent,
-          avg_memory_percent,
-          availability_percent,
-          load_score,
-          total_network_rx_bytes,
-          total_network_tx_bytes,
-          project_cpu_avg,
-          project_memory_mb
-        FROM system_metrics
-      `;
-      
       // ✅ CORRECTION : Construire la requête avec des valeurs directement (sécurisé car les valeurs sont contrôlées)
       const conditions = [];
       if (where.timestamp) {
@@ -592,12 +825,111 @@ class PersistenceService {
           conditions.push(`${tsExpr} <= '${lteDate}'::timestamptz`);
         }
       }
-      
-      if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+
+      const whereSql = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      let query;
+
+      if (bucketSeconds && startEpoch != null) {
+        query = `
+          WITH source AS (
+            SELECT
+              ${tsExpr} AS ts,
+              cpu_load_1,
+              cpu_load_5,
+              cpu_load_15,
+              cpu_cores,
+              cpu_usage_percent,
+              memory_total_mb,
+              memory_used_mb,
+              memory_free_mb,
+              memory_usage_percent,
+              disk_total_gb,
+              disk_used_gb,
+              disk_free_gb,
+              disk_usage_percent,
+              container_count,
+              avg_response_time_ms,
+              avg_cpu_percent,
+              avg_memory_percent,
+              availability_percent,
+              load_score,
+              total_network_rx_bytes,
+              total_network_tx_bytes,
+              project_cpu_avg,
+              project_memory_mb
+            FROM system_metrics
+            ${whereSql}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+            AVG(cpu_load_1) AS cpu_load_1,
+            AVG(cpu_load_5) AS cpu_load_5,
+            AVG(cpu_load_15) AS cpu_load_15,
+            MAX(cpu_cores) AS cpu_cores,
+            AVG(cpu_usage_percent) AS cpu_usage_percent,
+            MAX(memory_total_mb) AS memory_total_mb,
+            AVG(memory_used_mb) AS memory_used_mb,
+            AVG(memory_free_mb) AS memory_free_mb,
+            AVG(memory_usage_percent) AS memory_usage_percent,
+            MAX(disk_total_gb) AS disk_total_gb,
+            AVG(disk_used_gb) AS disk_used_gb,
+            AVG(disk_free_gb) AS disk_free_gb,
+            AVG(disk_usage_percent) AS disk_usage_percent,
+            MAX(container_count) AS container_count,
+            AVG(avg_response_time_ms) AS avg_response_time_ms,
+            AVG(avg_cpu_percent) AS avg_cpu_percent,
+            AVG(avg_memory_percent) AS avg_memory_percent,
+            AVG(availability_percent) AS availability_percent,
+            AVG(load_score) AS load_score,
+            MAX(total_network_rx_bytes) AS total_network_rx_bytes,
+            MAX(total_network_tx_bytes) AS total_network_tx_bytes,
+            AVG(project_cpu_avg) AS project_cpu_avg,
+            AVG(project_memory_mb) AS project_memory_mb
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY "timestamp" DESC
+          LIMIT ${limit + offsetInt} OFFSET 0
+        `;
+      } else {
+        query = `
+          SELECT
+            ${tsExpr} AS "timestamp",
+            cpu_load_1,
+            cpu_load_5,
+            cpu_load_15,
+            cpu_cores,
+            cpu_usage_percent,
+            memory_total_mb,
+            memory_used_mb,
+            memory_free_mb,
+            memory_usage_percent,
+            disk_total_gb,
+            disk_used_gb,
+            disk_free_gb,
+            disk_usage_percent,
+            container_count,
+            avg_response_time_ms,
+            avg_cpu_percent,
+            avg_memory_percent,
+            availability_percent,
+            load_score,
+            total_network_rx_bytes,
+            total_network_tx_bytes,
+            project_cpu_avg,
+            project_memory_mb
+          FROM system_metrics
+          ${whereSql}
+          ORDER BY ${tsExpr} DESC LIMIT ${limit + offsetInt} OFFSET 0
+        `;
       }
-      
-      query += ` ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${offset}`;
       
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
@@ -631,44 +963,27 @@ class PersistenceService {
         console.log('[PERSISTENCE] 🔍 Premier résultat:', JSON.stringify(firstRowForLog, null, 2));
       }
       
-      // Convertir les résultats en format compatible avec SystemMetricsSnapshot
-      return rawResults
-        .map((row) => {
-        const iso = toIsoUtcString(row.timestamp);
-        if (!iso) return null;
-        const timestamp = new Date(iso);
-        const timestampMs = timestamp.getTime();
-        return {
-        id: `system_${timestamp.getTime()}`,
-        timestamp: iso,
-        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
-        cpuUsagePercent: row.cpu_usage_percent || 0,
-        cpuCores: row.cpu_cores || 0,
-        cpuLoadAverage1m: row.cpu_load_1,
-        cpuLoadAverage5m: row.cpu_load_5,
-        cpuLoadAverage15m: row.cpu_load_15,
-        memoryUsagePercent: row.memory_usage_percent || 0,
-        memoryUsedBytes: row.memory_used_mb ? Number(row.memory_used_mb) * 1024 * 1024 : 0,
-        memoryTotalBytes: row.memory_total_mb ? Number(row.memory_total_mb) * 1024 * 1024 : 0,
-        memoryFreeBytes: row.memory_free_mb ? Number(row.memory_free_mb) * 1024 * 1024 : 0,
-        diskUsagePercent: row.disk_usage_percent,
-        diskUsedBytes: row.disk_used_gb ? Math.round(Number(row.disk_used_gb) * 1024 * 1024 * 1024) : null,
-        diskTotalBytes: row.disk_total_gb ? Math.round(Number(row.disk_total_gb) * 1024 * 1024 * 1024) : null,
-        diskFreeBytes: row.disk_free_gb ? Math.round(Number(row.disk_free_gb) * 1024 * 1024 * 1024) : null,
-        networkRxBytes: row.total_network_rx_bytes ? Number(row.total_network_rx_bytes) : null,
-        networkTxBytes: row.total_network_tx_bytes ? Number(row.total_network_tx_bytes) : null,
-        availabilityPercent: row.availability_percent,
-        loadScore: row.load_score,
-        errorCount: null,
-        errorRate: null,
-        responseTimeAvg: row.avg_response_time_ms,
-        // ✅ NOUVEAU : Inclure project_cpu_avg et project_memory_mb depuis system_metrics
-        project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
-        project_memory_mb: row.project_memory_mb ? Number(row.project_memory_mb) : null,
-        createdAt: iso
-      };
-      })
-        .filter(Boolean);
+      const rawRows = mapRawSystemMetricsRows(rawResults);
+      let snapshotRows = [];
+      try {
+        snapshotRows = await this.getSystemMetricsHistoryFromSnapshot({
+          ...options,
+          offset: 0,
+          limit: limit + offsetInt,
+        });
+      } catch (snapshotError) {
+        console.warn(
+          '[PERSISTENCE] ⚠️ Fusion snapshots ignorée:',
+          snapshotError.message,
+        );
+      }
+
+      return mergeSystemMetricRows([...rawRows, ...snapshotRows], {
+        startDate,
+        endDate,
+        limit,
+        offset: offsetInt,
+      });
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('table')) {
@@ -692,6 +1007,7 @@ class PersistenceService {
     if (!this.isDatabaseEnabled()) return [];
     const { offset = 0, startDate = null, endDate = null } = options;
     const limit = clampMetricsHistoryLimit(options.limit, 100);
+    const offsetInt = Number.parseInt(offset, 10) || 0;
     const where = {};
     if (startDate || endDate) {
       where.timestamp = {};
@@ -699,12 +1015,89 @@ class PersistenceService {
       if (endDate) where.timestamp.lte = new Date(endDate);
     }
     try {
-      const rows = await prisma.systemMetricsSnapshot.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-        skip: offset,
-      });
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      let rows;
+
+      if (bucketSeconds && startEpoch != null) {
+        const conditions = [];
+        if (where.timestamp?.gte) {
+          conditions.push(`timestamp >= '${where.timestamp.gte.toISOString()}'::timestamptz`);
+        }
+        if (where.timestamp?.lte) {
+          conditions.push(`timestamp <= '${where.timestamp.lte.toISOString()}'::timestamptz`);
+        }
+        const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        rows = await prisma.$queryRawUnsafe(`
+          WITH source AS (
+            SELECT
+              timestamp AS ts,
+              "cpuUsagePercent",
+              "cpuCores",
+              "cpuLoadAverage1m",
+              "cpuLoadAverage5m",
+              "cpuLoadAverage15m",
+              "memoryUsagePercent",
+              "memoryUsedBytes",
+              "memoryTotalBytes",
+              "memoryFreeBytes",
+              "diskUsagePercent",
+              "diskUsedBytes",
+              "diskTotalBytes",
+              "diskFreeBytes",
+              "networkRxBytes",
+              "networkTxBytes",
+              "availabilityPercent",
+              "loadScore",
+              "errorCount",
+              "errorRate",
+              "responseTimeAvg"
+            FROM public.system_metrics_snapshots
+            ${whereSql}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            CONCAT('system_snapshot_', bucket::text) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS timestamp,
+            AVG("cpuUsagePercent") AS "cpuUsagePercent",
+            MAX("cpuCores") AS "cpuCores",
+            AVG("cpuLoadAverage1m") AS "cpuLoadAverage1m",
+            AVG("cpuLoadAverage5m") AS "cpuLoadAverage5m",
+            AVG("cpuLoadAverage15m") AS "cpuLoadAverage15m",
+            AVG("memoryUsagePercent") AS "memoryUsagePercent",
+            AVG("memoryUsedBytes") AS "memoryUsedBytes",
+            MAX("memoryTotalBytes") AS "memoryTotalBytes",
+            AVG("memoryFreeBytes") AS "memoryFreeBytes",
+            AVG("diskUsagePercent") AS "diskUsagePercent",
+            AVG("diskUsedBytes") AS "diskUsedBytes",
+            MAX("diskTotalBytes") AS "diskTotalBytes",
+            AVG("diskFreeBytes") AS "diskFreeBytes",
+            MAX("networkRxBytes") AS "networkRxBytes",
+            MAX("networkTxBytes") AS "networkTxBytes",
+            AVG("availabilityPercent") AS "availabilityPercent",
+            AVG("loadScore") AS "loadScore",
+            SUM("errorCount") AS "errorCount",
+            AVG("errorRate") AS "errorRate",
+            AVG("responseTimeAvg") AS "responseTimeAvg"
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY timestamp DESC
+          LIMIT ${limit + offsetInt} OFFSET 0
+        `);
+      } else {
+        rows = await prisma.systemMetricsSnapshot.findMany({
+          where,
+          orderBy: { timestamp: 'desc' },
+          take: limit + offsetInt,
+          skip: 0,
+        });
+      }
+
       return rows.map((row) => {
         const tsIso =
           toIsoUtcString(row.timestamp) ||
@@ -722,16 +1115,22 @@ class PersistenceService {
         memoryUsedBytes: row.memoryUsedBytes != null ? Number(row.memoryUsedBytes) : 0,
         memoryTotalBytes: row.memoryTotalBytes != null ? Number(row.memoryTotalBytes) : 0,
         memoryFreeBytes: row.memoryFreeBytes != null ? Number(row.memoryFreeBytes) : 0,
+        diskUsagePercent: row.diskUsagePercent ?? null,
+        diskUsedBytes: row.diskUsedBytes != null ? Number(row.diskUsedBytes) : null,
+        diskTotalBytes: row.diskTotalBytes != null ? Number(row.diskTotalBytes) : null,
+        diskFreeBytes: row.diskFreeBytes != null ? Number(row.diskFreeBytes) : null,
         networkRxBytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
         networkTxBytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
         total_network_rx_bytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
         total_network_tx_bytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
         availabilityPercent: row.availabilityPercent ?? null,
         loadScore: row.loadScore ?? null,
+        errorCount: row.errorCount != null ? Number(row.errorCount) : null,
+        errorRate: row.errorRate ?? null,
         responseTimeAvg: row.responseTimeAvg ?? null,
         createdAt: tsIso,
       };
-      });
+      }).slice(offsetInt, offsetInt + limit);
     } catch (e) {
       console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
       return [];
@@ -783,32 +1182,158 @@ class PersistenceService {
         }
       }
 
-      const rawQuery = `
-        SELECT
-          id,
-          ${tsExpr} AS "timestamp",
-          container_name,
-          cpu_percent,
-          memory_mb,
-          memory_limit_mb,
-          memory_percent,
-          network_rx_bytes,
-          network_tx_bytes,
-          response_time_ms,
-          http_status
-        FROM container_metrics
-        WHERE ${conditions.join(' AND ')}
-        ORDER BY ${tsExpr} DESC
-        LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
-      `;
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      const rawQuery = bucketSeconds && startEpoch != null
+        ? `
+          WITH source AS (
+            SELECT
+              id,
+              ${tsExpr} AS ts,
+              container_name,
+              cpu_percent,
+              memory_mb,
+              memory_limit_mb,
+              memory_percent,
+              network_rx_bytes,
+              network_tx_bytes,
+              response_time_ms,
+              http_status
+            FROM container_metrics
+            WHERE ${conditions.join(' AND ')}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            MIN(id) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+            MAX(container_name) AS container_name,
+            AVG(cpu_percent) AS cpu_percent,
+            AVG(memory_mb) AS memory_mb,
+            MAX(memory_limit_mb) AS memory_limit_mb,
+            AVG(memory_percent) AS memory_percent,
+            MAX(network_rx_bytes) AS network_rx_bytes,
+            MAX(network_tx_bytes) AS network_tx_bytes,
+            AVG(response_time_ms) AS response_time_ms,
+            MAX(http_status) AS http_status
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY "timestamp" DESC
+          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `
+        : `
+          SELECT
+            id,
+            ${tsExpr} AS "timestamp",
+            container_name,
+            cpu_percent,
+            memory_mb,
+            memory_limit_mb,
+            memory_percent,
+            network_rx_bytes,
+            network_tx_bytes,
+            response_time_ms,
+            http_status
+          FROM container_metrics
+          WHERE ${conditions.join(' AND ')}
+          ORDER BY ${tsExpr} DESC
+          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+        `;
 
       const rawRows = await prisma.$queryRawUnsafe(rawQuery);
       if (Array.isArray(rawRows) && rawRows.length > 0) {
-        return rawRows.map((row) => {
+        const snapshotConditions = [`"containerName" = '${escapedName}'`];
+        if (where.timestamp) {
+          if (where.timestamp.gte) {
+            const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
+            snapshotConditions.push(`"timestamp" >= '${gteDate}'::timestamptz`);
+          }
+          if (where.timestamp.lte) {
+            const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
+            snapshotConditions.push(`"timestamp" <= '${lteDate}'::timestamptz`);
+          }
+        }
+        const snapshotQuery = bucketSeconds && startEpoch != null
+          ? `
+            WITH source AS (
+              SELECT
+                id,
+                "timestamp" AS ts,
+                "containerName",
+                "cpuUsagePercent",
+                "memoryUsagePercent",
+                "memoryUsageBytes",
+                "memoryLimitBytes",
+                "networkRxBytes",
+                "networkTxBytes",
+                "blockReadBytes",
+                "blockWriteBytes",
+                status
+              FROM container_metrics_snapshots
+              WHERE ${snapshotConditions.join(' AND ')}
+            ),
+            bucketed AS (
+              SELECT
+                FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+                *
+              FROM source
+            )
+            SELECT
+              MIN(id) AS id,
+              to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS "timestamp",
+              MAX("containerName") AS "containerName",
+              AVG("cpuUsagePercent") AS "cpuUsagePercent",
+              AVG("memoryUsagePercent") AS "memoryUsagePercent",
+              MAX("memoryUsageBytes") AS "memoryUsageBytes",
+              MAX("memoryLimitBytes") AS "memoryLimitBytes",
+              MAX("networkRxBytes") AS "networkRxBytes",
+              MAX("networkTxBytes") AS "networkTxBytes",
+              MAX("blockReadBytes") AS "blockReadBytes",
+              MAX("blockWriteBytes") AS "blockWriteBytes",
+              MAX(status) AS status
+            FROM bucketed
+            GROUP BY bucket
+            ORDER BY "timestamp" DESC
+            LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          `
+          : `
+            SELECT
+              id,
+              "timestamp",
+              "containerName",
+              "cpuUsagePercent",
+              "memoryUsagePercent",
+              "memoryUsageBytes",
+              "memoryLimitBytes",
+              "networkRxBytes",
+              "networkTxBytes",
+              "blockReadBytes",
+              "blockWriteBytes",
+              status
+            FROM container_metrics_snapshots
+            WHERE ${snapshotConditions.join(' AND ')}
+            ORDER BY "timestamp" DESC
+            LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          `;
+        const snapshotRows = await prisma.$queryRawUnsafe(snapshotQuery).catch((error) => {
+          if (this._isTableMissing(error, 'container_metrics_snapshots')) {
+            this._warnOnceMissing('container_metrics_snapshots', 'container_metrics_snapshots');
+            return [];
+          }
+          throw error;
+        });
+        const nearestBlockIo = buildNearestContainerBlockIoLookup(snapshotRows);
+
+        const rawMapped = rawRows.map((row) => {
           const tsIso = toIsoUtcString(row.timestamp) || String(row.timestamp);
           const timestampMs = Date.parse(tsIso);
           const memoryMb = row.memory_mb != null ? Number(row.memory_mb) : null;
           const memoryLimitMb = row.memory_limit_mb != null ? Number(row.memory_limit_mb) : null;
+          const blockIo = nearestBlockIo(timestampMs);
           return {
             id: `container_metrics_${String(row.id)}`,
             timestamp: tsIso,
@@ -826,13 +1351,53 @@ class PersistenceService {
             networkRxBytes: row.network_rx_bytes != null ? Number(row.network_rx_bytes) : null,
             networkTxBytes: row.network_tx_bytes != null ? Number(row.network_tx_bytes) : null,
             responseTimeMs: row.response_time_ms != null ? Number(row.response_time_ms) : null,
-            blockReadBytes: null,
-            blockWriteBytes: null,
+            blockReadBytes: blockIo.blockReadBytes,
+            blockWriteBytes: blockIo.blockWriteBytes,
             image: null,
             labels: null,
             createdAt: tsIso,
           };
         });
+        const rawTimestamps = rawMapped
+          .map((row) => row.timestampMs)
+          .filter((timeMs) => Number.isFinite(timeMs));
+        const snapshotOnlyRows = snapshotRows
+          .map((row) => {
+            const tsIso = toIsoUtcString(row.timestamp) || String(row.timestamp);
+            const timestampMs = Date.parse(tsIso);
+            return {
+              id: `container_metrics_snapshot_${String(row.id)}`,
+              timestamp: tsIso,
+              ...(Number.isFinite(timestampMs) ? { timestampMs } : {}),
+              containerName: row.containerName,
+              containerId: null,
+              status: row.status || 'running',
+              cpuUsagePercent: row.cpuUsagePercent != null ? Number(row.cpuUsagePercent) : null,
+              cpu_percent: row.cpuUsagePercent != null ? Number(row.cpuUsagePercent) : null,
+              cpuUsageNano: 0,
+              memoryUsagePercent: row.memoryUsagePercent != null ? Number(row.memoryUsagePercent) : null,
+              memory_percent: row.memoryUsagePercent != null ? Number(row.memoryUsagePercent) : null,
+              memoryUsageBytes: row.memoryUsageBytes != null ? Number(row.memoryUsageBytes) : null,
+              memoryLimitBytes: row.memoryLimitBytes != null ? Number(row.memoryLimitBytes) : null,
+              networkRxBytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
+              networkTxBytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
+              responseTimeMs: null,
+              blockReadBytes: row.blockReadBytes != null ? Number(row.blockReadBytes) : null,
+              blockWriteBytes: row.blockWriteBytes != null ? Number(row.blockWriteBytes) : null,
+              image: null,
+              labels: null,
+              createdAt: tsIso,
+            };
+          })
+          .filter((row) => {
+            if (!Number.isFinite(row.timestampMs)) return false;
+            return !rawTimestamps.some(
+              (timeMs) => Math.abs(timeMs - row.timestampMs) <= 120000,
+            );
+          });
+        return [...rawMapped, ...snapshotOnlyRows].sort(
+          (a, b) => (b.timestampMs || 0) - (a.timestampMs || 0),
+        );
       }
     } catch (rawError) {
       if (rawError.code === 'P2021' || rawError.message?.includes('does not exist') || rawError.message?.includes('relation') || rawError.message?.includes('container_metrics')) {
@@ -1094,20 +1659,13 @@ class PersistenceService {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     let history;
     try {
-      for (const candidate of aliases) {
-        history = await prisma.serviceAvailabilityHistory.findMany({
-          where: {
-            serviceName: candidate,
-            timestamp: { gte: since },
-          },
-          orderBy: { timestamp: 'asc' },
-        });
-        if (history.length > 0) {
-          serviceName = candidate;
-          break;
-        }
-      }
-      history = history || [];
+      history = await prisma.serviceAvailabilityHistory.findMany({
+        where: {
+          serviceName: { in: aliases },
+          timestamp: { gte: since },
+        },
+        orderBy: { timestamp: 'asc' },
+      });
     } catch (error) {
       if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
         return defaultStats;
@@ -1133,7 +1691,7 @@ class PersistenceService {
       .map(h => h.responseTimeMs);
 
     return {
-      serviceName,
+      serviceName: normalizedServiceName || serviceName,
       uptimePercent: (availableChecks / history.length) * 100,
       totalChecks: history.length,
       availableChecks,
@@ -1177,20 +1735,70 @@ class PersistenceService {
       return where;
     };
     try {
-      for (const candidate of aliases) {
-        const rows = await prisma.serviceAvailabilityHistory.findMany({
-          where: buildWhere(candidate),
-          orderBy: { timestamp: 'desc' },
-          take: limit,
-        });
-        if (rows.length === 0) continue;
-        const chronological = rows.slice().reverse();
-        return chronological.map((row) => ({
-          ...row,
-          timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
-        }));
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      if (bucketSeconds && startEpoch != null) {
+        const escapedAliases = aliases
+          .map((candidate) => `'${String(candidate).replace(/'/g, "''")}'`)
+          .join(', ');
+        const conditions = [`"serviceName" IN (${escapedAliases})`];
+        if (startDate) {
+          conditions.push(`"timestamp" >= '${new Date(startDate).toISOString()}'::timestamptz`);
+        }
+        if (endDate) {
+          conditions.push(`"timestamp" <= '${new Date(endDate).toISOString()}'::timestamptz`);
+        }
+        const rows = await prisma.$queryRawUnsafe(`
+          WITH source AS (
+            SELECT
+              id,
+              timestamp AS ts,
+              "serviceName",
+              "isAvailable",
+              "responseTimeMs",
+              "statusCode",
+              "errorMessage",
+              "uptimePercent",
+              "createdAt"
+            FROM service_availability_history
+            WHERE ${conditions.join(' AND ')}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            CONCAT('service_availability_', bucket::text) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS timestamp,
+            MAX("serviceName") AS "serviceName",
+            BOOL_OR("isAvailable") AS "isAvailable",
+            AVG("responseTimeMs") AS "responseTimeMs",
+            MAX("statusCode") AS "statusCode",
+            MAX("errorMessage") AS "errorMessage",
+            AVG("uptimePercent") AS "uptimePercent",
+            MAX("createdAt") AS "createdAt"
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY timestamp DESC
+          LIMIT ${limit}
+        `);
+        return mapServiceAvailabilityHistoryRows(rows).sort(
+          (a, b) => Number(a.timestampMs || 0) - Number(b.timestampMs || 0)
+        );
       }
-      return [];
+
+      const rows = await prisma.serviceAvailabilityHistory.findMany({
+        where: {
+          ...buildWhere(aliases[0]),
+          serviceName: { in: aliases },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      });
+      return mapServiceAvailabilityHistoryRows(rows)
+        .sort((a, b) => Number(a.timestampMs || 0) - Number(b.timestampMs || 0));
     } catch (error) {
       if (this._isTableMissing(error, 'service_availability_history')) {
         this._warnOnceMissing('service_availability_history', 'service_availability_history');

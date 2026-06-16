@@ -2,18 +2,18 @@ name: Deploy Preprod
 
 on:
   push:
-    branches: [main]
+    branches: [preprod]
   workflow_dispatch:
 
 env:
   DOCKER_BUILDKIT: 1
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   deploy-preprod:
     name: Deploy environnement preprod
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/preprod' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 25
 
     steps:
@@ -25,14 +25,20 @@ jobs:
           echo "## Deploiement Preprod - JobbingTrack" >> $GITHUB_STEP_SUMMARY
           echo "- Branche: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "Configurer PREPROD_DEPLOY_URL pour activer le deploiement reel."
+          echo "Configurer PREPROD_DEPLOY_URL pour activer le webhook preprod."
 
       - name: Deploiement (placeholder)
         run: |
           if [ -n "${{ secrets.PREPROD_DEPLOY_URL }}" ]; then
-            curl -f -X POST "${{ secrets.PREPROD_DEPLOY_URL }}" \
+            if [ -z "${{ secrets.PREPROD_DEPLOY_TOKEN }}" ]; then
+              echo "PREPROD_DEPLOY_TOKEN non defini : refus d'appeler le webhook preprod."
+              exit 1
+            fi
+            curl --fail --show-error --silent --max-time 30 -X POST "${{ secrets.PREPROD_DEPLOY_URL }}" \
               -H "Content-Type: application/json" \
-              -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}" || true
+              -H "X-JobbingTrack-Deploy-Token: ${{ secrets.PREPROD_DEPLOY_TOKEN }}" \
+              -d "{\"environment\":\"preprod\",\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\",\"repository\":\"${{ github.repository }}\"}"
+            echo "Webhook preprod appele avec succes."
           else
             echo "PREPROD_DEPLOY_URL non defini : deploiement preprod non execute."
           fi

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
@@ -8,43 +9,32 @@ import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import {
   Settings,
   Play,
-  Pause,
   StopCircle,
   BarChart3,
   Activity,
-  Cpu,
-  MemoryStick,
-  Network,
-  Clock,
-  Zap,
-  TrendingUp,
   Download,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+  AVAILABLE_METRICS,
+  type TestsPerformanceMetricPoint,
+} from "@/components/charts/TestsPerformanceCharts";
 
-// Types
-interface MetricPoint {
-  timestamp: string;
-  cpu_percent: number;
-  memory_percent: number;
-  network_rx_mb: number;
-  network_tx_mb: number;
-  response_time_avg: number;
-  error_rate: number;
-  availability_percent: number;
-  load_score: number;
-}
+const TestsPerformanceRealtimeChart = dynamic(
+  () =>
+    import("@/components/charts/TestsPerformanceCharts").then(
+      (m) => m.TestsPerformanceRealtimeChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[500px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-400">
+        Chargement du graphique…
+      </div>
+    ),
+  },
+);
+
+type MetricPoint = TestsPerformanceMetricPoint;
 
 interface TestConfig {
   duration: number; // en secondes
@@ -52,63 +42,6 @@ interface TestConfig {
   requestsPerInterval: number;
   targetService: string;
 }
-
-const COLORS = {
-  primary: "#3B82F6",
-  secondary: "#10B981",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-  info: "#8B5CF6",
-  success: "#22C55E",
-  purple: "#A855F7",
-  cyan: "#06B6D4",
-};
-
-const AVAILABLE_METRICS = [
-  { key: "cpu_percent", label: "CPU (%)", color: COLORS.primary, icon: Cpu },
-  {
-    key: "memory_percent",
-    label: "Mémoire (%)",
-    color: COLORS.secondary,
-    icon: MemoryStick,
-  },
-  {
-    key: "network_rx_mb",
-    label: "Réseau RX (MB)",
-    color: COLORS.info,
-    icon: Network,
-  },
-  {
-    key: "network_tx_mb",
-    label: "Réseau TX (MB)",
-    color: COLORS.warning,
-    icon: Network,
-  },
-  {
-    key: "response_time_avg",
-    label: "Temps de réponse (ms)",
-    color: COLORS.purple,
-    icon: Clock,
-  },
-  {
-    key: "error_rate",
-    label: "Taux d'erreur (%)",
-    color: COLORS.danger,
-    icon: Activity,
-  },
-  {
-    key: "availability_percent",
-    label: "Disponibilité (%)",
-    color: COLORS.success,
-    icon: TrendingUp,
-  },
-  {
-    key: "load_score",
-    label: "Score de charge",
-    color: COLORS.cyan,
-    icon: Zap,
-  },
-];
 
 export default function TestsPerformancePage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -494,39 +427,10 @@ export default function TestsPerformancePage() {
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={500}>
-              <LineChart data={metricsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="timestamp"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis stroke="#9CA3AF" style={{ fontSize: "12px" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "none",
-                    borderRadius: "8px",
-                    color: "#F3F4F6",
-                  }}
-                />
-                <Legend />
-                {AVAILABLE_METRICS.filter((m) =>
-                  selectedMetrics.includes(m.key),
-                ).map((metric) => (
-                  <Line
-                    key={metric.key}
-                    type="monotone"
-                    dataKey={metric.key}
-                    stroke={metric.color}
-                    strokeWidth={2}
-                    name={metric.label}
-                    dot={false}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <TestsPerformanceRealtimeChart
+              metricsData={metricsData}
+              selectedMetrics={selectedMetrics}
+            />
           )}
         </div>
 

@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Backoffice – Utilisateurs (filtre test, nettoyage, abonnement)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/users");
+    await page.goto("/backoffice/users");
     await page.waitForLoadState("domcontentloaded");
   });
 
@@ -32,7 +32,7 @@ test.describe("Backoffice – Utilisateurs (filtre test, nettoyage, abonnement)"
     const firstRow = page.locator("table tbody tr").first();
     if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
       await firstRow.click();
-      await page.waitForURL(/\/b4ck0ff1ce\/users\/[^/]+$/).catch(() => {});
+      await page.waitForURL(/\/backoffice\/users\/[^/]+$/).catch(() => {});
       await expect(page.getByText(/Abonnement & facturation/i)).toBeVisible({
         timeout: 5000,
       });
@@ -46,7 +46,7 @@ test.describe("Backoffice – Utilisateurs (filtre test, nettoyage, abonnement)"
   test("page Billing avec userId affiche le contexte utilisateur", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/billing?userId=test-user-id");
+    await page.goto("/backoffice/billing?userId=test-user-id");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.getByText(/Abonnement & facturation/i)).toBeVisible({
       timeout: 10000,

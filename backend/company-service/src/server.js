@@ -32,8 +32,8 @@ app.use(cors({
   origin: getAllowedOrigins(),
   credentials: true
 }));
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(requestContextMiddleware);
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

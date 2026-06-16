@@ -27,17 +27,17 @@ import {
   isHighOrCriticalSeverity,
   normalizeSecuritySeverity,
 } from "@/lib/security/securityLabels";
+import {
+  findConsolidatedBlockEntry,
+  resolveThreatBlockStatus,
+  threatBlockStatusToneClass,
+  type BlockedIpConsolidatedEntry,
+} from "@/lib/security/threatBlockPresentation";
 import { AlertTriangle, Ban, RefreshCw, Eye } from "lucide-react";
 import axios from "axios";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
 const THREATS_PAGE_SIZE = 50;
-
-function normalizeFirewallListedIp(ip: string) {
-  const s = String(ip || "").trim();
-  if (s.startsWith("::ffff:")) return s.slice(7);
-  return s;
-}
 
 interface NetworkThreat {
   id: string;
@@ -109,16 +109,15 @@ export default function ThreatsPage() {
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
     useAppliedFilters<ThreatFilters>(initialThreatFilters);
   const [serviceError, setServiceError] = useState<string | null>(null);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(60_000);
   const [refreshing, setRefreshing] = useState(false);
   const [newThreatsCount, setNewThreatsCount] = useState(0);
   const previousTopThreatTsRef = useRef<string | null>(null);
   const refreshInFlightRef = useRef(false);
-  const [consolidatedBlocked, setConsolidatedBlocked] = useState<{
-    ipKeys: Set<string>;
-    threatIds: Set<string>;
-  }>({ ipKeys: new Set(), threatIds: new Set() });
+  const [consolidatedEntries, setConsolidatedEntries] = useState<
+    BlockedIpConsolidatedEntry[]
+  >([]);
 
   const loadThreats = useCallback(
     async (options: { silent?: boolean } = {}) => {
@@ -161,20 +160,14 @@ export default function ThreatsPage() {
             blockedRes.data?.success &&
             Array.isArray(blockedRes.data?.data)
           ) {
-            const ipKeys = new Set<string>();
-            const threatIds = new Set<string>();
-            for (const item of blockedRes.data.data as (
+            const normalized = (blockedRes.data.data as (
               | string
-              | { ip?: string; threatId?: string }
-            )[]) {
-              const row = typeof item === "string" ? { ip: item } : item;
-              if (row?.ip) ipKeys.add(normalizeFirewallListedIp(row.ip));
-              if (row?.threatId) threatIds.add(String(row.threatId));
-            }
-            setConsolidatedBlocked({ ipKeys, threatIds });
+              | BlockedIpConsolidatedEntry
+            )[]).map((item) => (typeof item === "string" ? { ip: item } : item));
+            setConsolidatedEntries(normalized);
           }
         } else {
-          setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
+          setConsolidatedEntries([]);
         }
         if (threatsOutcome.status !== "fulfilled") {
           throw threatsOutcome.reason;
@@ -220,7 +213,7 @@ export default function ThreatsPage() {
         console.error("Erreur chargement menaces:", err);
         setThreats([]);
         setTotal(0);
-        setConsolidatedBlocked({ ipKeys: new Set(), threatIds: new Set() });
+        setConsolidatedEntries([]);
         setServiceError(
           err.response?.data?.error ||
             err.message ||
@@ -238,10 +231,10 @@ export default function ThreatsPage() {
   useEffect(() => {
     loadThreats();
     if (!autoRefreshEnabled) return;
-    const interval = setInterval(
-      () => loadThreats({ silent: true }),
-      refreshIntervalMs,
-    );
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadThreats({ silent: true });
+    }, refreshIntervalMs);
     return () => clearInterval(interval);
   }, [loadThreats, autoRefreshEnabled, refreshIntervalMs]);
 
@@ -484,11 +477,13 @@ export default function ThreatsPage() {
               value={String(refreshIntervalMs)}
               onChange={(e) => setRefreshIntervalMs(Number(e.target.value))}
               className="px-2 py-1 border rounded dark:bg-gray-700 dark:text-gray-100 text-sm"
+              disabled={!autoRefreshEnabled}
             >
-              <option value="3000">3s</option>
-              <option value="5000">5s</option>
-              <option value="10000">10s</option>
               <option value="15000">15s</option>
+              <option value="30000">30s</option>
+              <option value="60000">60s</option>
+              <option value="10000">10s</option>
+              <option value="5000">5s</option>
             </select>
           </div>
         </div>
@@ -633,25 +628,33 @@ export default function ThreatsPage() {
                         </td>
                         <td className="p-3">
                           {(() => {
-                            const inList =
-                              consolidatedBlocked.ipKeys.has(
-                                normalizeFirewallListedIp(threat.sourceIp),
-                              ) || consolidatedBlocked.threatIds.has(threat.id);
+                            const consolidatedEntry = findConsolidatedBlockEntry(
+                              threat,
+                              consolidatedEntries,
+                            );
+                            const blockStatus = resolveThreatBlockStatus(
+                              threat,
+                              consolidatedEntry,
+                            );
+                            const inList = Boolean(consolidatedEntry);
                             return (
                               <div className="flex flex-col gap-1 items-start">
-                                {threat.blocked ? (
-                                  <span className="flex items-center gap-1 text-red-600">
+                                <span
+                                  className={`flex items-center gap-1 font-medium ${threatBlockStatusToneClass(blockStatus.tone)}`}
+                                >
+                                  {blockStatus.kind.startsWith("blocked") && (
                                     <Ban className="h-4 w-4" />
-                                    Bloqué (BDD)
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-500 dark:text-gray-400">
-                                    Non bloqué
+                                  )}
+                                  {blockStatus.label}
+                                </span>
+                                {blockStatus.detail && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
+                                    {blockStatus.detail}
                                   </span>
                                 )}
                                 {inList && (
                                   <Link
-                                    href="/b4ck0ff1ce/security/firewall#liste-ips-bloquees"
+                                    href="/backoffice/security/firewall#liste-ips-bloquees"
                                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                   >
                                     Liste consolidée
@@ -666,7 +669,7 @@ export default function ThreatsPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/b4ck0ff1ce/security/threats/${threat.id}`,
+                                  `/backoffice/security/threats/${threat.id}`,
                                 )
                               }
                               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
@@ -674,7 +677,13 @@ export default function ThreatsPage() {
                               <Eye className="h-4 w-4" />
                               Détails
                             </button>
-                            {!threat.blocked && (
+                            {resolveThreatBlockStatus(
+                              threat,
+                              findConsolidatedBlockEntry(
+                                threat,
+                                consolidatedEntries,
+                              ),
+                            ).showBlockButton && (
                               <button
                                 onClick={() => handleBlockThreat(threat.id)}
                                 className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"

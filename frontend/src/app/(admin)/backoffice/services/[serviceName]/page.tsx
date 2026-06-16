@@ -158,8 +158,8 @@ export default function ServiceDetailPage() {
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [isLogsWidgetVisible, setIsLogsWidgetVisible] = useState(false);
   const [lastMetricsAt, setLastMetricsAt] = useState<Date | null>(null);
-  const [refreshIntervalSec, setRefreshIntervalSec] = useState(15);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(60);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [hostDiskContext, setHostDiskContext] = useState<HostDiskContext>(null);
   const sessionHistoryRef = useRef<ServiceHistoryPoint[]>([]);
 
@@ -394,7 +394,7 @@ export default function ServiceDetailPage() {
       // Récupérer les logs : metrics-aggregator (docker service logs) — l'API gateway n'expose pas /api/v1/logs/:service
       try {
         const logsResponse = await fetch(
-          `${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`,
+          `${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=60`,
         );
         if (logsResponse.ok) {
           const logsData = await logsResponse.json();
@@ -442,8 +442,9 @@ export default function ServiceDetailPage() {
         metricsUrl,
         fullServiceName,
         serviceName,
-        historyLimit: 280,
+        historyLimit: 320,
         chartDataMaxPoints: 80,
+        historyWindowMs: 6 * 60 * 60 * 1000,
       });
 
       if (merged) {
@@ -460,7 +461,7 @@ export default function ServiceDetailPage() {
             block_read_mb: Number(merged.block_read_mb) || 0,
             block_write_mb: Number(merged.block_write_mb) || 0,
           },
-        ].slice(-260);
+        ].slice(-160);
         setLastMetricsAt(new Date());
       }
 
@@ -514,7 +515,7 @@ export default function ServiceDetailPage() {
     return (
       <ServicesPageShell
         showSubNav={false}
-        backHref="/b4ck0ff1ce/services"
+        backHref="/backoffice/services"
         backLabel="Retour à la liste des services"
         title={serviceName}
         description="Monitoring détaillé du service"
@@ -571,7 +572,7 @@ export default function ServiceDetailPage() {
   return (
     <ServicesPageShell
       showSubNav={false}
-      backHref="/b4ck0ff1ce/services"
+      backHref="/backoffice/services"
       backLabel="Retour à la liste des services"
       title={
         <span className="flex items-center gap-3">
@@ -911,6 +912,7 @@ export default function ServiceDetailPage() {
           historyAxisShowDate={historyAxisShowDate}
           historyBlockMbMax={historyBlockMbMax}
           historyIoRateMax={historyIoRateMax}
+          exportBaseName={`service-${serviceName}-history-series`}
         />
 
         {/* Logs en Temps Réel */}

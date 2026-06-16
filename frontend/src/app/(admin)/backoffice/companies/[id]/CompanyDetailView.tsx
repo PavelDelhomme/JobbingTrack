@@ -95,7 +95,7 @@ export default function CompanyDetailView() {
       return;
     try {
       await companyService.delete(companyId);
-      router.push("/b4ck0ff1ce/companies");
+      router.push("/backoffice/companies");
     } catch (error) {
       console.error("Erreur suppression:", error);
       alert("Erreur lors de la suppression");
@@ -120,7 +120,7 @@ export default function CompanyDetailView() {
             Entreprise non trouvée
           </h2>
           <button
-            onClick={() => router.push("/b4ck0ff1ce/companies")}
+            onClick={() => router.push("/backoffice/companies")}
             className="text-blue-600 dark:text-blue-400"
           >
             ← Retour à la liste
@@ -137,7 +137,7 @@ export default function CompanyDetailView() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push("/b4ck0ff1ce/companies")}
+                onClick={() => router.push("/backoffice/companies")}
                 className="text-gray-600 dark:text-gray-400"
               >
                 ← Retour
@@ -347,7 +347,7 @@ export default function CompanyDetailView() {
                       key={app.id}
                       className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                       onClick={() =>
-                        router.push(`/b4ck0ff1ce/applications/${app.id}`)
+                        router.push(`/backoffice/applications/${app.id}`)
                       }
                     >
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">

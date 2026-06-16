@@ -7,15 +7,15 @@ import { AdminLayout } from "@/components/features";
 
 const TABS = [
   {
-    href: "/b4ck0ff1ce/analytics/application/performance",
+    href: "/backoffice/analytics/application/performance",
     label: "Performances live",
   },
   {
-    href: "/b4ck0ff1ce/analytics/application/activity",
+    href: "/backoffice/analytics/application/activity",
     label: "Activité & traces",
   },
   {
-    href: "/b4ck0ff1ce/analytics/application/feedback",
+    href: "/backoffice/analytics/application/feedback",
     label: "Retours & signalements",
   },
 ] as const;

@@ -1,6 +1,6 @@
 /**
  * Tests légers liés à la page Performances (séries CPU / mémoire — source).
- * L’ancien hub CPU sous `/b4ck0ff1ce/analytics` a été retiré au profit d’un hub métier.
+ * L’ancien hub CPU sous `/backoffice/analytics` a été retiré au profit d’un hub métier.
  */
 
 import { readFileSync, existsSync } from "fs";

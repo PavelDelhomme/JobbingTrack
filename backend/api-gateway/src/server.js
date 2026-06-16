@@ -18,6 +18,8 @@ const {
   requestCorrelationMiddleware,
   forwardCorrelationHeaders,
 } = require('./middleware/requestCorrelation');
+const { httpForensicsAccessLogMiddleware } = require('./middleware/httpForensicsAccessLog');
+const { buildHttpForensicsFromRequest } = require('../../shared/utils/httpForensics');
 const { logMetricsAggregatorFailure } = require('./utils/logMetricsAggregatorFailure');
 const { buildFallbackServicesPayload } = require('./utils/servicesMetricsFallback');
 
@@ -136,8 +138,18 @@ function getAllowedCorsOrigins() {
     'https://127.0.0.1:5002',
     'http://frontend:3000',
     'http://api-gateway:3000',
-    'http://jobbingtrack-metrics-aggregator:3014'
+    'http://jobbingtrack-metrics-aggregator:3014',
+    // HTTPS dev sans port explicite (443) + alias api.* (fallback si appels cross-origin).
+    'https://jobbingtrack.localhost',
+    'https://api.jobbingtrack.localhost',
+    'https://jobbingtrack.localhost:5443',
+    'https://api.jobbingtrack.localhost:5443',
   ];
+}
+
+function isDevJobbingtrackHttpsOrigin(origin) {
+  if (process.env.NODE_ENV === 'production') return false;
+  return /^https:\/\/(api\.)?jobbingtrack\.localhost(?::\d+)?$/.test(origin);
 }
 
 const ALLOWED_CORS_ORIGINS = getAllowedCorsOrigins();
@@ -207,7 +219,11 @@ app.use(cors({
     // Dev uniquement : autoriser les origines LAN HTTP/HTTPS pour tests téléphone/tablette.
     const localNetworkPattern = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
     
-    if (ALLOWED_CORS_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && localNetworkPattern.test(origin))) {
+    if (
+      ALLOWED_CORS_ORIGINS.includes(origin) ||
+      isDevJobbingtrackHttpsOrigin(origin) ||
+      (process.env.NODE_ENV !== 'production' && localNetworkPattern.test(origin))
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -237,6 +253,8 @@ app.use(helmet());
 
 // ✅ Corrélation requêtes (B6) : avant parsers pour tracer aussi les 413 / chemins sans body
 app.use(requestCorrelationMiddleware);
+// ✅ Forensics HTTP (4xx/5xx) → aggregated_logs pour corrélation fine
+app.use(httpForensicsAccessLogMiddleware());
 
 // ✅ Middleware de base (limite payload 64 Ko pour rejeter overflow → 413, conforme test E2E sécurité)
 app.use(express.json({ limit: '64kb' }));
@@ -313,6 +331,18 @@ const apiLimiter = rateLimit({
   }
 });
 
+const mobileSecurityEventsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.MOBILE_SECURITY_EVENTS_RATE_LIMIT || '30', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Trop de signaux sécurité mobile',
+    message: 'Rate limit atteint — réessayez dans une minute.',
+  },
+});
+
 // 4. Appliquer le rate limiting
 if (process.env.RATE_LIMIT_ENABLED !== 'false') {
   app.use(apiLimiter);
@@ -373,6 +403,65 @@ app.post('/api/v1/crashes', (req, res) => {
   } catch (err) {
     logger.error('Crash report save error:', err.message);
     res.status(500).json({ success: false, error: 'Erreur enregistrement rapport' });
+  }
+});
+
+// ✅ Signaux sécurité mobile (B9) — rate-limit dédié, persistance security_logs
+app.post('/api/v1/mobile/security-events', mobileSecurityEventsLimiter, async (req, res) => {
+  try {
+    const raw = req.body || {};
+    const eventType = String(raw.eventType || '').trim();
+    if (!eventType) {
+      return res.status(400).json({ success: false, error: 'eventType requis' });
+    }
+    const allowed = new Set([
+      'auth_failure',
+      'session_revoked',
+      'forced_logout',
+      'mobile_logout',
+      'password_changed',
+      'otp_failed',
+      'app_error',
+      'security_signal',
+    ]);
+    const normalized = allowed.has(eventType) ? eventType : 'security_signal';
+    const payload = {
+      level: normalized === 'auth_failure' || normalized === 'otp_failed' ? 'warning' : 'info',
+      category: 'mobile',
+      eventType: `mobile_${normalized}`,
+      message: String(raw.message || `Événement mobile ${normalized}`).slice(0, 2000),
+      sourceIP: req.ip,
+      userId: raw.userId || null,
+      metadata: {
+        source: 'mobile',
+        deviceId: raw.deviceId || null,
+        appVersion: raw.appVersion || null,
+        platform: raw.platform || raw.os || null,
+        requestId: req.requestId,
+        correlationId: req.correlationId,
+        ...(raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {}),
+      },
+    };
+    const internalSecret = effectiveSecurityInternalSecret();
+    await axios.post(`${SECURITY_SERVICE_URL}/api/v1/logs`, payload, {
+      timeout: 3000,
+      headers: {
+        'Content-Type': 'application/json',
+        ...forwardCorrelationHeaders(req),
+        ...(internalSecret ? { 'X-Internal-Secret': internalSecret } : {}),
+      },
+    });
+    return res.status(201).json({ success: true, eventType: normalized });
+  } catch (error) {
+    logger.warn('Échec persistance signal sécurité mobile', {
+      message: error.message,
+      requestId: req.requestId,
+    });
+    return res.status(503).json({
+      success: false,
+      error: 'Service sécurité indisponible',
+      message: error.message,
+    });
   }
 });
 
@@ -764,7 +853,7 @@ app.post('/api/v1/services/:serviceName/stop', async (req, res) => {
   }
 });
 
-// ✅ Endpoint Prometheus metrics pour l'API Gateway
+// Endpoint de métriques texte pour l'API Gateway (format OpenMetrics compatible).
 app.get('/metrics', async (req, res) => {
   try {
     const metrics = `# HELP api_gateway_requests_total Total number of requests
@@ -894,6 +983,8 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
       }
 
       // Transmit status and data
+      res.locals.upstreamServiceName = serviceName;
+      res.locals.upstreamHttpStatus = response.status;
       res.status(response.status).json(response.data);
     } catch (error) {
       // Fallback DNS pour security-service: certains redémarrages Docker exposent
@@ -929,6 +1020,8 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
             if (fallbackResponse.headers['content-type']) {
               res.set('Content-Type', fallbackResponse.headers['content-type']);
             }
+            res.locals.upstreamServiceName = serviceName;
+            res.locals.upstreamHttpStatus = fallbackResponse.status;
             return res.status(fallbackResponse.status).json(fallbackResponse.data);
           } catch (fallbackError) {
             logger.error('Fallback proxy security-service a échoué', {
@@ -950,15 +1043,17 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
                                 error.message?.includes('connect') ||
                                 error.message?.includes('timeout');
       
-      logger.error(`Error proxying ${path}:`, {
+      logger.error(`Error proxying ${path}:`, buildHttpForensicsFromRequest(req, {
         message: error.message,
         code: error.code,
         url: errorTargetUrl,
-        method: req.method,
+        targetUrl: errorTargetUrl,
         isConnectionError,
         upstreamHttpStatus: error.response?.status ?? null,
         httpStatus: error.response?.status ?? (isConnectionError ? 503 : null),
-      });
+        targetService: serviceName,
+        upstreamService: serviceName,
+      }));
       
       // Si c'est une erreur de connexion, retourner 503 (Service Unavailable)
       if (isConnectionError) {

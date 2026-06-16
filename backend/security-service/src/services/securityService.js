@@ -152,6 +152,7 @@ class SecurityService {
         level,
         category,
         eventType,
+        requestId,
         q,
         order = 'desc',
         limit = 100,
@@ -166,6 +167,10 @@ class SecurityService {
       if (level) where.level = level;
       if (category) where.category = category;
       if (eventType) where.eventType = eventType;
+      const normalizedRequestId = typeof requestId === 'string' ? requestId.trim() : '';
+      if (normalizedRequestId) {
+        where.metadata = { path: ['requestId'], equals: normalizedRequestId };
+      }
 
       const query = typeof q === 'string' ? q.trim() : '';
       if (query) {
@@ -176,7 +181,11 @@ class SecurityService {
           { category: { contains: query, mode: 'insensitive' } },
           { eventType: { contains: query, mode: 'insensitive' } },
           { level: { contains: query, mode: 'insensitive' } },
-          { method: { contains: query, mode: 'insensitive' } }
+          { method: { contains: query, mode: 'insensitive' } },
+          { metadata: { path: ['requestId'], equals: query } },
+          { metadata: { path: ['correlationId'], equals: query } },
+          { metadata: { path: ['xRequestId'], equals: query } },
+          { metadata: { path: ['x-request-id'], equals: query } }
         ];
       }
 
@@ -263,7 +272,8 @@ class SecurityService {
           sourceIP: true,
           endpoint: true,
           method: true,
-          message: true
+          message: true,
+          metadata: true
         }
       });
 
@@ -280,6 +290,18 @@ class SecurityService {
           .map(([value, count]) => ({ value, count }));
       };
 
+      const requestIdFromMetadata = (metadata) => {
+        if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+        const candidates = [
+          metadata.requestId,
+          metadata.correlationId,
+          metadata.xRequestId,
+          metadata['x-request-id']
+        ];
+        const match = candidates.find((value) => typeof value === 'string' && value.trim());
+        return match ? match.trim() : null;
+      };
+
       return {
         sampleSize: logs.length,
         levels: toTopValues(logs.map((log) => log.level), 20),
@@ -288,6 +310,7 @@ class SecurityService {
         sourceIPs: toTopValues(logs.map((log) => log.sourceIP), 80),
         endpoints: toTopValues(logs.map((log) => log.endpoint), 80),
         methods: toTopValues(logs.map((log) => log.method), 20),
+        requestIds: toTopValues(logs.map((log) => requestIdFromMetadata(log.metadata)), 80),
         messages: toTopValues(logs.map((log) => log.message), 50)
       };
     } catch (error) {
@@ -698,14 +721,23 @@ class SecurityService {
         }
       });
 
-      // Logger l'alerte
-      logSecurityEvent(level, 'alert', 'security_alert_created', `Alerte de sécurité créée: ${title}`, {
-        alertId: alert.id,
-        level,
-        category,
-        source,
-        ...(metadata && typeof metadata === 'object' ? metadata : {})
-      });
+      // Logger l'alerte (sauf agrégats cron sans requête HTTP — bruit corrélation fine)
+      const alertMeta = metadata && typeof metadata === 'object' ? metadata : {};
+      const rep = alertMeta.representativeForensics && typeof alertMeta.representativeForensics === 'object'
+        ? alertMeta.representativeForensics
+        : {};
+      const skipCentralForAnalyzerAggregate =
+        category === 'threat_analysis' && source === 'security-analyzer';
+      if (!skipCentralForAnalyzerAggregate) {
+        logSecurityEvent(level, 'alert', 'security_alert_created', `Alerte de sécurité créée: ${title}`, {
+          alertId: alert.id,
+          level,
+          category,
+          source,
+          ...alertMeta,
+          ...rep,
+        });
+      }
 
       await securityAlertEmailNotifier.notifySecurityAlert(alert);
 
@@ -1588,8 +1620,11 @@ class SecurityService {
       intrusionAttempts: 0,
       suspiciousIPs: new Set(),
       attackTypes: {},
-      countries: {}
+      countries: {},
+      representativeForensics: null,
     };
+
+    let representativeLog = null;
 
     logs.forEach(log => {
       if (log.level === 'critical' || log.level === 'error') {
@@ -1606,6 +1641,10 @@ class SecurityService {
         if (log.country) {
           analysis.countries[log.country] = (analysis.countries[log.country] || 0) + 1;
         }
+
+        if (!representativeLog) {
+          representativeLog = log;
+        }
       }
 
       // Compter les types d'attaques
@@ -1615,6 +1654,35 @@ class SecurityService {
     });
 
     analysis.suspiciousIPs = Array.from(analysis.suspiciousIPs);
+
+    if (representativeLog) {
+      const meta = representativeLog.metadata && typeof representativeLog.metadata === 'object'
+        ? representativeLog.metadata
+        : {};
+      const statusCode = representativeLog.statusCode ?? meta.httpStatus ?? meta.statusCode ?? null;
+      analysis.representativeForensics = {
+        logId: representativeLog.id || null,
+        requestId: meta.requestId || meta.correlationId || null,
+        correlationId: meta.correlationId || meta.requestId || null,
+        method: representativeLog.method || meta.method || meta.httpMethod || null,
+        endpoint: representativeLog.endpoint || meta.endpoint || meta.originalUrl || meta.path || null,
+        originalUrl: representativeLog.endpoint || meta.originalUrl || meta.endpoint || null,
+        clientIp: representativeLog.sourceIP || meta.clientIp || meta.ip || null,
+        sourceIP: representativeLog.sourceIP || meta.sourceIP || meta.ip || null,
+        ip: representativeLog.sourceIP || meta.ip || meta.clientIp || null,
+        protocol: meta.protocol || meta.proto || null,
+        port: meta.port ?? meta.localPort ?? null,
+        httpStatus: statusCode,
+        statusCode,
+      };
+    } else if (analysis.suspiciousIPs.length > 0) {
+      const firstIp = analysis.suspiciousIPs[0];
+      analysis.representativeForensics = {
+        clientIp: firstIp,
+        sourceIP: firstIp,
+        ip: firstIp,
+      };
+    }
 
     return analysis;
   }

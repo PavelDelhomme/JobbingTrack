@@ -7,7 +7,7 @@ test.describe("🏢 CRUD Entreprises (interactions)", () => {
   test("ouvrir le modal de création, remplir le formulaire et annuler", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/companies", {
+    await page.goto("/backoffice/companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -42,7 +42,7 @@ test.describe("🏢 CRUD Entreprises (interactions)", () => {
   test("le champ de recherche filtre les entreprises en temps réel", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/companies", {
+    await page.goto("/backoffice/companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -64,7 +64,7 @@ test.describe("🏢 CRUD Entreprises (interactions)", () => {
   test("filtrer avec un terme inexistant donne zéro résultat", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/companies", {
+    await page.goto("/backoffice/companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -78,7 +78,7 @@ test.describe("🏢 CRUD Entreprises (interactions)", () => {
   });
 
   test("le bouton Supprimer déclenche une confirmation", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/companies", {
+    await page.goto("/backoffice/companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -105,7 +105,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
   test("ouvrir le modal de création, remplir les champs et annuler", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/contacts", {
+    await page.goto("/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -139,7 +139,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
   });
 
   test("rechercher un contact via le champ de recherche", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/contacts", {
+    await page.goto("/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -158,7 +158,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
   test("le bouton d'édition ouvre le modal de modification", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/contacts", {
+    await page.goto("/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -183,7 +183,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
   test("le bouton de suppression déclenche une confirmation", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/contacts", {
+    await page.goto("/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -206,7 +206,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
   });
 
   test("le bouton Actualiser recharge les contacts", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/contacts", {
+    await page.goto("/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -228,7 +228,7 @@ test.describe("👤 CRUD Contacts (interactions)", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("📧 Interactions Emails", () => {
   test("remplir et envoyer un email de test", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails", {
+    await page.goto("/backoffice/emails", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -272,7 +272,7 @@ test.describe("📧 Interactions Emails", () => {
   test("basculer entre onglets Email de Test et Reset Password", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/emails", {
+    await page.goto("/backoffice/emails", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -298,7 +298,7 @@ test.describe("📧 Interactions Emails", () => {
   });
 
   test("cliquer Actualiser rafraîchit les statistiques", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/emails", {
+    await page.goto("/backoffice/emails", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -320,7 +320,7 @@ test.describe("📧 Interactions Emails", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("👥 Interactions Utilisateurs", () => {
   test("rechercher un utilisateur par nom ou email", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/users", {
+    await page.goto("/backoffice/users", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -337,7 +337,7 @@ test.describe("👥 Interactions Utilisateurs", () => {
   });
 
   test("filtrer les utilisateurs par rôle", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/users", {
+    await page.goto("/backoffice/users", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -357,7 +357,7 @@ test.describe("👥 Interactions Utilisateurs", () => {
   });
 
   test("cliquer Actualiser recharge la liste", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/users", {
+    await page.goto("/backoffice/users", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -378,7 +378,7 @@ test.describe("👥 Interactions Utilisateurs", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("💾 Interactions Data Management", () => {
   test("les boutons d'export sont cliquables", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management", {
+    await page.goto("/backoffice/data-management", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -400,7 +400,7 @@ test.describe("💾 Interactions Data Management", () => {
   });
 
   test("la zone d'import fichier est visible", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management", {
+    await page.goto("/backoffice/data-management", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -414,7 +414,7 @@ test.describe("💾 Interactions Data Management", () => {
 
   test("onglets de la page Data sont cliquables", async ({ page }) => {
     test.setTimeout(90000);
-    await page.goto("/b4ck0ff1ce/datas", {
+    await page.goto("/backoffice/datas", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -461,7 +461,7 @@ test.describe("📊 Interactions Statistiques", () => {
     page,
   }) => {
     test.setTimeout(90000);
-    await page.goto("/b4ck0ff1ce/statistics", {
+    await page.goto("/backoffice/statistics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -514,7 +514,7 @@ test.describe("📊 Interactions Statistiques", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔧 Interactions Services", () => {
   test("cliquer onglets Services / Logs Système", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/services", {
+    await page.goto("/backoffice/services", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -540,7 +540,7 @@ test.describe("🔧 Interactions Services", () => {
   });
 
   test("naviguer vers le détail d'un service", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/services/api-gateway", {
+    await page.goto("/backoffice/services/api-gateway", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -557,7 +557,7 @@ test.describe("🔧 Interactions Services", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("⚡ Interactions Analytics", () => {
   test("cliquer onglets Analytics utilisateur", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/user-analytics", {
+    await page.goto("/backoffice/user-analytics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -583,7 +583,7 @@ test.describe("⚡ Interactions Analytics", () => {
   test("page Performances affiche des métriques interactives", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/performances", {
+    await page.goto("/backoffice/performances", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -603,7 +603,7 @@ test.describe("⚡ Interactions Analytics", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔒 Interactions Sécurité", () => {
   test("page Firewall affiche des éléments interactifs", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/security/firewall", {
+    await page.goto("/backoffice/security/firewall", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -619,7 +619,7 @@ test.describe("🔒 Interactions Sécurité", () => {
   });
 
   test("page Politiques de sécurité est interactive", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/security/policies", {
+    await page.goto("/backoffice/security/policies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -638,7 +638,7 @@ test.describe("🔒 Interactions Sécurité", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔍 Interactions Recherche", () => {
   test("la page de recherche est interactive", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/search", {
+    await page.goto("/backoffice/search", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -664,7 +664,7 @@ test.describe("🔍 Interactions Recherche", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🏠 Interactions Dashboard", () => {
   test("cliquer un lien de navigation change de page", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce", {
+    await page.goto("/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -672,7 +672,7 @@ test.describe("🏠 Interactions Dashboard", () => {
     await page.locator("nav").first().waitFor({ timeout: 10000 });
 
     const subLinks = page
-      .locator('nav a[href*="/b4ck0ff1ce/"]')
+      .locator('nav a[href*="/backoffice/"]')
       .filter({ hasText: /.+/ });
     const count = await subLinks.count();
     expect(count).toBeGreaterThan(0);
@@ -682,14 +682,14 @@ test.describe("🏠 Interactions Dashboard", () => {
       const href = (await link.getAttribute("href")) ?? "";
       await link.click();
       await page.waitForLoadState("domcontentloaded");
-      expect(page.url()).toContain("/b4ck0ff1ce");
+      expect(page.url()).toContain("/backoffice");
     }
   });
 
   test("les cartes de métriques sont présentes et cliquables", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce", {
+    await page.goto("/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -697,7 +697,7 @@ test.describe("🏠 Interactions Dashboard", () => {
     await page.locator("nav").first().waitFor({ timeout: 10000 });
 
     const cards = page
-      .locator('a[href*="/b4ck0ff1ce/"], [role="link"]')
+      .locator('a[href*="/backoffice/"], [role="link"]')
       .filter({ hasText: /.+/ });
     const count = await cards.count();
     expect(count).toBeGreaterThan(0);
@@ -711,7 +711,7 @@ test.describe("📦 Interactions Archives & Corbeille", () => {
   test("page Archives affiche les filtres et éléments interactifs", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/archives", {
+    await page.goto("/backoffice/archives", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -733,7 +733,7 @@ test.describe("📦 Interactions Archives & Corbeille", () => {
 
   test("page Corbeille affiche les éléments interactifs", async ({ page }) => {
     test.setTimeout(90000);
-    await page.goto("/b4ck0ff1ce/trash", {
+    await page.goto("/backoffice/trash", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -764,7 +764,7 @@ test.describe("🎯 Interactions Parcours", () => {
   test("page Parcours prédéfinis affiche des scénarios cliquables", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/user-journey", {
+    await page.goto("/backoffice/user-journey", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -782,7 +782,7 @@ test.describe("🎯 Interactions Parcours", () => {
   });
 
   test("page Parcours personnalisé est interactive", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/user-journey/custom", {
+    await page.goto("/backoffice/user-journey/custom", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -800,7 +800,7 @@ test.describe("🧪 Interactions Tests & API", () => {
   test("page Testeur d'API permet de configurer une requête", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/api-tester", {
+    await page.goto("/backoffice/api-tester", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -834,7 +834,7 @@ test.describe("🧪 Interactions Tests & API", () => {
   test("page Hub Tests affiche les catégories de tests cliquables", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/tests", {
+    await page.goto("/backoffice/tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -853,7 +853,7 @@ test.describe("🧪 Interactions Tests & API", () => {
   test("page Rapports de tests affiche les rapports et permet le tri", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/test-reports", {
+    await page.goto("/backoffice/test-reports", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -879,7 +879,7 @@ test.describe("📝 Interactions Templates Emails", () => {
   test("cliquer onglets Prévisualisation / Code / Variables", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/emails/templates", {
+    await page.goto("/backoffice/emails/templates", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });

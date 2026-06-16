@@ -32,6 +32,7 @@ import {
 import type { MetricsData } from "@/lib/interfaces";
 import {
   PerformanceChartCard,
+  PerformanceHistoryCaption,
   PerformanceInfoNotice,
   PerformancePageShell,
 } from "@/components/performances";
@@ -50,12 +51,21 @@ import {
 } from "recharts";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 
 type LatencyRow = {
   timestamp: string;
   timeMs: number;
   responseTimeMs: number | null;
 };
+
+const LATENCY_RENDER_POINTS = 160;
+
+function sampleRows<T>(rows: T[], targetMax: number): T[] {
+  if (rows.length <= targetMax) return rows;
+  const step = Math.ceil(rows.length / targetMax);
+  return rows.filter((_, index) => index % step === 0);
+}
 
 export default function PerformancesLatencyPage() {
   const [rows, setRows] = useState<LatencyRow[]>([]);
@@ -75,10 +85,6 @@ export default function PerformancesLatencyPage() {
   });
   const [customEnd, setCustomEnd] = useState(() => ymdLocal());
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [brushRange, setBrushRange] = useState<{
-    start: number;
-    end: number;
-  } | null>(null);
 
   const { rangeHydrated } = usePersistedSharedAnalyticsRange({
     timeRange,
@@ -180,13 +186,13 @@ export default function PerformancesLatencyPage() {
     return () => controller.abort();
   }, [fetchData, softTick, rangeHydrated]);
 
-  useEffect(() => {
-    if (rows.length === 0) {
-      setBrushRange(null);
-      return;
-    }
-    setBrushRange({ start: 0, end: rows.length - 1 });
-  }, [rows]);
+  const chartRows = useMemo(
+    () => sampleRows(rows, LATENCY_RENDER_POINTS),
+    [rows],
+  );
+
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(chartRows.length, 80);
 
   const bumpWindowEndToNow = useCallback(() => {
     silentNextFetch.current = true;
@@ -223,14 +229,9 @@ export default function PerformancesLatencyPage() {
   const axisShowDate = chartXEffMax - chartXEffMin > 24 * 60 * 60 * 1000;
 
   const brushAvgMs = useMemo(() => {
-    if (!brushRange || rows.length === 0) return null;
-    const s = Math.max(0, Math.min(brushRange.start, brushRange.end));
-    const e = Math.min(
-      rows.length - 1,
-      Math.max(brushRange.start, brushRange.end),
-    );
-    const slice = rows
-      .slice(s, e + 1)
+    if (chartRows.length === 0) return null;
+    const slice = chartRows
+      .slice(brushStart, brushEnd + 1)
       .filter(
         (r) =>
           r.responseTimeMs != null && Number.isFinite(Number(r.responseTimeMs)),
@@ -239,7 +240,7 @@ export default function PerformancesLatencyPage() {
     return (
       slice.reduce((acc, r) => acc + Number(r.responseTimeMs), 0) / slice.length
     );
-  }, [brushRange, rows]);
+  }, [brushEnd, brushStart, chartRows]);
 
   const goPrev = useCallback(() => {
     setFollowLive(false);
@@ -362,19 +363,37 @@ export default function PerformancesLatencyPage() {
         />
       }
     >
+      <PerformanceHistoryCaption
+        source={rows.length > 0 ? "system_metrics" : "empty"}
+        timeRangeLabel={rangeLabel}
+        rawPoints={rows.length}
+        renderedPoints={chartRows.length}
+        note="Temps de réponse agrégé ; instantané par service en dessous"
+      />
       <PerformanceChartCard title="Historique agrégé (ms)">
-        {rows.length > 0 && (
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {brushAvgMs != null
-              ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
-              : "Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus."}
-          </p>
+        {chartRows.length > 0 && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+            <p>
+              {brushAvgMs != null
+                ? `Moyenne sur la plage sélectionnée : ${brushAvgMs.toFixed(1)} ms`
+                : "Ajustez la sélection sous le graphique ; la moyenne s’affiche quand des points mesurés sont inclus."}
+            </p>
+            {hasCustomBrush ? (
+              <button
+                type="button"
+                onClick={resetBrush}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Réinitialiser le zoom
+              </button>
+            ) : null}
+          </div>
         )}
         {loadingHistory && rows.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
             Chargement…
           </p>
-        ) : rows.length === 0 ? (
+        ) : chartRows.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
             Aucune donnée sur la période.
           </p>
@@ -382,7 +401,7 @@ export default function PerformancesLatencyPage() {
           <div className="mt-4 w-full min-h-[260px]">
             <ResponsiveContainer width="100%" height={380}>
               <LineChart
-                data={rows}
+                data={chartRows}
                 margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-40" />
@@ -432,17 +451,14 @@ export default function PerformancesLatencyPage() {
                   stroke="#64748b"
                   fill="rgba(100, 116, 139, 0.12)"
                   travellerWidth={10}
+                  startIndex={brushStart}
+                  endIndex={brushEnd}
                   tickFormatter={(v) =>
                     formatLocalChartAxisTick(Number(v), {
                       withDate: axisShowDate,
                     })
                   }
-                  onChange={(
-                    e: { startIndex?: number; endIndex?: number } | undefined,
-                  ) => {
-                    if (e?.startIndex == null || e?.endIndex == null) return;
-                    setBrushRange({ start: e.startIndex, end: e.endIndex });
-                  }}
+                  onChange={onBrushChange}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -20,7 +20,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Forcer la redirection immédiatement
-      router.push("/b4ck0ff1ce");
+      router.push("/backoffice");
       router.refresh();
     }
   }, [isAuthenticated, user, router]);
@@ -44,7 +44,7 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Forcer la redirection immédiatement
-      router.push("/b4ck0ff1ce");
+      router.push("/backoffice");
       router.refresh(); // Forcer le rafraîchissement pour que le middleware se déclenche
     } catch (err: any) {
       console.error("❌ Login error:", err);

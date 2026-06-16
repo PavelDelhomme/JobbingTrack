@@ -258,7 +258,7 @@ export default function EmailsPage() {
           Dashboard de gestion et monitoring des emails envoyés.
           <span className="ml-2 text-sm">
             <Link
-              href="/b4ck0ff1ce/email-monitor"
+              href="/backoffice/email-monitor"
               className="text-blue-600 hover:underline dark:text-blue-400"
             >
               Voir Email Monitor pour le suivi détaillé

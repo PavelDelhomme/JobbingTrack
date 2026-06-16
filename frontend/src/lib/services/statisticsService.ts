@@ -3,6 +3,10 @@
  */
 
 import { FRONTEND_URLS } from "@/config/ports.config";
+import {
+  normalizeStatisticsTimelineResponse,
+  type StatisticsTimelineResult,
+} from "@/lib/metrics/appDataTimeline";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -169,6 +173,14 @@ class StatisticsService {
     timeRange: string = "24h",
     limit: number = 1000,
   ): Promise<StatisticsTimelineEntry[]> {
+    const result = await this.getStatisticsTimelineResult(timeRange, limit);
+    return result.timeline;
+  }
+
+  async getStatisticsTimelineResult(
+    timeRange: string = "24h",
+    limit: number = 1000,
+  ): Promise<StatisticsTimelineResult> {
     try {
       const response = await fetch(
         `${API_URL}/api/v1/statistics/timeline?time_range=${timeRange}&limit=${limit}`,
@@ -182,10 +194,10 @@ class StatisticsService {
       }
 
       const data = await response.json();
-      return data.timeline as StatisticsTimelineEntry[];
+      return normalizeStatisticsTimelineResponse(data);
     } catch (error) {
       console.error("[STATISTICS] Erreur timeline:", error);
-      return [];
+      return { timeline: [], note: null, timeRange: null, limit: null };
     }
   }
 

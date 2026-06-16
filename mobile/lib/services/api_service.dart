@@ -15,6 +15,9 @@ class ApiService {
 
   static String? _resolvedBaseUrl;
 
+  /// Appelé quand une requête authentifiée reçoit 401/403 (session révoquée côté serveur).
+  static Future<void> Function(String path, int statusCode)? onSessionRevoked;
+
   /// URL de l'API. Par défaut en local : 127.0.0.1 (adb reverse) ou 10.0.2.2 (émulateur).
   static String get baseUrl {
     const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
@@ -84,30 +87,97 @@ class ApiService {
     return true;
   }
 
-  static Future<http.Response> _get(String path, {Map<String, String>? headers}) {
+  static Future<http.Response> _get(String path, {Map<String, String>? headers}) async {
     debugPrint('[API] GET $baseUrl$path');
-    return http.get(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+    final response =
+        await http.get(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+    _maybeNotifySessionRevoked(response, headers, path);
+    return response;
   }
 
-  static Future<http.Response> _post(String path, {Map<String, String>? headers, Object? body}) {
+  static Future<http.Response> _post(String path, {Map<String, String>? headers, Object? body}) async {
     debugPrint('[API] POST $baseUrl$path');
-    return http.post(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+    final response =
+        await http.post(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+    _maybeNotifySessionRevoked(response, headers, path);
+    return response;
   }
 
-  static Future<http.Response> _put(String path, {Map<String, String>? headers, Object? body}) {
+  static Future<http.Response> _put(String path, {Map<String, String>? headers, Object? body}) async {
     debugPrint('[API] PUT $baseUrl$path');
-    return http.put(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+    final response =
+        await http.put(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+    _maybeNotifySessionRevoked(response, headers, path);
+    return response;
   }
 
-  static Future<http.Response> _delete(String path, {Map<String, String>? headers}) {
+  static Future<http.Response> _delete(String path, {Map<String, String>? headers}) async {
     debugPrint('[API] DELETE $baseUrl$path');
-    return http.delete(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+    final response =
+        await http.delete(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+    _maybeNotifySessionRevoked(response, headers, path);
+    return response;
+  }
+
+  static void _maybeNotifySessionRevoked(
+    http.Response response,
+    Map<String, String>? headers,
+    String path,
+  ) {
+    final auth = headers?['Authorization'];
+    if (auth == null || !auth.startsWith('Bearer ')) return;
+    if (response.statusCode != 401 && response.statusCode != 403) return;
+    if (path.contains('/mobile/security-events')) return;
+    final handler = onSessionRevoked;
+    if (handler != null) {
+      handler(path, response.statusCode);
+    }
   }
 
   static Map<String, String> _jsonHeaders([String? token]) => {
     'Content-Type': 'application/json',
     if (token != null) 'Authorization': 'Bearer $token',
+    ..._correlationHeaders(),
   };
+
+  static String _newRequestId() =>
+      'mob-${DateTime.now().millisecondsSinceEpoch}-${DateTime.now().microsecond}';
+
+  static Map<String, String> _correlationHeaders() {
+    final requestId = _newRequestId();
+    return {
+      'X-Request-Id': requestId,
+      'X-Correlation-Id': requestId,
+    };
+  }
+
+  /// Signaux sécurité mobile (session révoquée, échec auth, etc.) — B9
+  static Future<void> postSecurityEvent({
+    required String eventType,
+    String? message,
+    String? deviceId,
+    String? userId,
+    Map<String, dynamic>? metadata,
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/mobile/security-events',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          'eventType': eventType,
+          'message': message,
+          'deviceId': deviceId,
+          'userId': userId,
+          'metadata': metadata ?? {},
+          'timestamp': DateTime.now().toUtc().toIso8601String(),
+          'source': 'mobile',
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] security-event non envoyé: $e');
+    }
+  }
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {

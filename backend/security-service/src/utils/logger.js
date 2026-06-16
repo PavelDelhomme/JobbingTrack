@@ -44,6 +44,18 @@ try {
   centralLogger = null;
 }
 
+function metadataHasMinimalHttpForensics(payload = {}) {
+  return Boolean(
+    payload.requestId &&
+    (payload.method || payload.httpMethod) &&
+    (payload.endpoint || payload.originalUrl) &&
+    (payload.clientIp || payload.sourceIP || payload.ip) &&
+    (payload.httpStatus != null || payload.statusCode != null) &&
+    payload.protocol &&
+    payload.port != null
+  );
+}
+
 class CentralLoggerTransport extends winston.Transport {
   log(info, callback) {
     setImmediate(() => this.emit('logged', info));
@@ -51,6 +63,17 @@ class CentralLoggerTransport extends winston.Transport {
       const level = info.level.toUpperCase();
       if (level === 'ERROR' || level === 'WARN' || level === 'FATAL') {
         const ctx = getRequestContext() || {};
+        const eventType = String(info.eventType || '').toLowerCase();
+        const category = String(info.category || '').toLowerCase();
+        const source = String(info.source || '').toLowerCase();
+        const isAnalyzerAggregate =
+          eventType === 'security_alert_created' &&
+          (category === 'threat_analysis' || source === 'security-analyzer');
+        const forensicsPayload = { ...ctx, ...info };
+        if (isAnalyzerAggregate && !metadataHasMinimalHttpForensics(forensicsPayload)) {
+          callback();
+          return;
+        }
         centralLogger.addLog(level, info.message, {
           stackTrace: info.stack || (info.error && info.error.stack),
           requestId: info.requestId || ctx.requestId || null,
@@ -221,7 +244,16 @@ function logSecurityEvent(level, category, eventType, message, metadata = {}) {
   logger.log(winstonLevel, message, {
     category,
     eventType,
-    ...safeMeta
+    requestId: logEntry.requestId,
+    correlationId: logEntry.correlationId,
+    endpoint: logEntry.endpoint,
+    method: logEntry.method,
+    protocol: logEntry.protocol,
+    port: logEntry.port,
+    clientIp: logEntry.clientIp,
+    httpStatus: safeMeta.httpStatus ?? safeMeta.statusCode ?? null,
+    statusCode: safeMeta.statusCode ?? safeMeta.httpStatus ?? null,
+    ...safeMeta,
   });
 
   return logEntry;

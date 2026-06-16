@@ -173,9 +173,20 @@ async function handleAnomaly(anomaly, metrics) {
       );
 
       if (blockResult.success) {
+        const prevMeta =
+          threat.metadata && typeof threat.metadata === 'object' && !Array.isArray(threat.metadata)
+            ? threat.metadata
+            : {};
         await prisma.networkThreat.update({
           where: { id: threat.id },
-          data: { blocked: true }
+          data: {
+            blocked: true,
+            metadata: {
+              ...prevMeta,
+              blockOrigin: 'automatic_threat',
+              autoBlockedAt: new Date().toISOString()
+            }
+          }
         });
 
         logger.info(`🔒 IP ${anomaly.sourceIp} bloquée automatiquement`);

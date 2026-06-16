@@ -20,6 +20,7 @@ Le système doit aider le porteur à :
 ## Sources à connecter
 
 - Un ou plusieurs comptes Gmail de recherche connectés via OAuth et scopes minimaux, configurés hors Git.
+- Une ou plusieurs boîtes **IMAP** configurées hors Git, en lecture seule au départ, pour les comptes qui ne passent pas par Gmail ou pour des boîtes candidatures dédiées.
 - Boîte JobbingTrack dédiée aux candidatures, alias ou transfert, configurée hors Git.
 - Candidatures, entreprises, contacts, relances, appels, entretiens et événements déjà présents dans JobbingTrack.
 - Google Tasks et Google Calendar sont obligatoires pour le MVP : tâches de relance/préparation et événements d’entretien doivent être synchronisés proprement.
@@ -37,6 +38,7 @@ Le système doit aider le porteur à :
 - IA locale ensuite, en renfort du moteur de règles : résumé, aide à la rédaction, priorisation et détection de cas ambigus.
 - Le cœur de l’agent est la création et la planification de tâches/événements à faire par l’utilisateur. Aucun envoi d’email externe ni archivage massif sans validation utilisateur explicite.
 - Le premier usage cible est le compte personnel non-admin du porteur : l’agent recherche d’emploi doit fonctionner pour un utilisateur standard autorisé, pas seulement pour un administrateur. En revanche, cette capacité ne doit pas être activée automatiquement pour tout compte créé.
+- Priorité produit confirmée 15/06 : ce lot reste à traiter **en fin de séquence**, après les logs, validations et dettes P0/P1 déjà ouvertes. Ne pas interrompre la finalisation des logs/observabilité pour démarrer l’agent mail.
 
 ## Accès et permissions
 
@@ -73,6 +75,7 @@ Ne pas mélanger cette expérience avec le backoffice email transactionnel qui s
 - dashboard responsive mobile pour consulter rapidement tâches, emails importants, relances, entretiens, appels et événements ;
 - file d’emails à traiter ;
 - fiches emails reliées à une candidature, entreprise ou contact ;
+- historique de communication par candidature/entreprise/contact : emails reçus/envoyés, relances faites, réponses, propositions d’entretien, appels planifiés et appels éventuellement déjà passés si une trace existe dans JobbingTrack ;
 - recherche simple dans les emails, candidatures, entreprises, contacts, tâches et événements liés ;
 - actions rapides : créer tâche, programmer appel, créer relance, créer événement, archiver, marquer refus, marquer entretien ;
 - demandes de revalidation sensibles dans l’interface avec PIN de connexion et clavier numérique affiché automatiquement ;
@@ -95,6 +98,7 @@ Décision produit à confirmer avant implémentation : cette interface doit êtr
 
 - Suivi recherche : vue synthèse des candidatures, relances, appels, entretiens, emails utiles, tâches Google Tasks et événements Calendar.
 - Emails : liste des emails reçus, tri par candidature/relance/entreprise/contact, classification manuelle ou automatique, rattachement et correction mémorisée.
+- Boîtes IMAP : connexion/configuration par utilisateur, test de connexion, statut de dernière synchronisation, erreurs lisibles, lecture bornée par période/label/dossier et aucun secret affiché dans les logs.
 - Envoi contrôlé : préparer/envoyer une relance ou une réponse depuis l’interface uniquement après validation explicite, avec identité d’envoi choisie et journalisation. Ce n’est pas le cœur du MVP : la priorité est la création de tâches/événements et leur visibilité dans le dashboard/digest.
 - Actions manuelles : programmer un appel, une relance, une tâche ou un rappel depuis une fiche candidature, contact ou entreprise, même sans email déclencheur.
 - Candidature : relances créables uniquement depuis une fiche candidature, préparation entretien visible sur la fiche, sauvegarde PDF de l’offre depuis une URL.
@@ -116,6 +120,7 @@ P0 :
 - lecture Gmail/boîte candidatures en lecture seule avec consentement explicite ;
 - connexion OAuth d’un ou plusieurs comptes Gmail, avec liste des comptes connectés, statut de synchronisation, révocation et revalidation PIN ;
 - stockage interne des emails utiles, threads, classifications et décisions ;
+- consultation de l’historique de communication pour éviter les faux doublons : ne pas proposer une relance si un appel, une réponse ou une relance récente est déjà tracée ;
 - synchronisation Google Tasks et Google Calendar obligatoire pour les relances, préparations d’entretien et événements ;
 - garde-fou Calendar : ne jamais créer d’événement à `00:00` par défaut. Si l’email ne contient qu’une date sans heure, créer une tâche à planifier ou un événement journée entière/proposé, jamais un horaire inventé ;
 - fenêtre horaire Calendar : ne jamais créer automatiquement un événement avant `05:00` ou après `23:00` ; créer une tâche “horaire à vérifier” ou demander validation utilisateur ;
@@ -191,6 +196,7 @@ La suite de test dédiée doit être créée avec des fixtures non sensibles et 
 - tests identité digest : expéditeur `@jobbingtrack.com`, destinataire configuré hors Git, refus des placeholders et des expéditeurs personnels ;
 - tests programmation digest : quotidien 18h par défaut, horaire paramétrable, hebdomadaire optionnel, refus des heures hors fenêtre ;
 - tests permissions : compte sans `JOB_SEARCH_AGENT_ENABLED` bloqué, compte personnel autorisé OK, admin sans consentement utilisateur incapable de lire le contenu email personnel ;
+- tests historique communication : une relance déjà faite, un appel déjà passé ou une réponse récente empêchent une recommandation de relance automatique sans confirmation ;
 - rapports : produire un dossier `tests/results/email-triage/<timestamp>` avec résumé JSON/HTML/TXT, scénarios exécutés, variables manquantes masquées et décisions Calendar/Tasks expliquées.
 - socle de tests déjà amorcé : `tests/email-triage/README.md`, moteur de classification `tests/email-triage/lib/classification-rules.js`, politique horaire `tests/email-triage/lib/calendar-time-policy.js`, digest planifié/identité d’envoi, lancement `bash tests/email-triage/run-with-report.sh`.
 

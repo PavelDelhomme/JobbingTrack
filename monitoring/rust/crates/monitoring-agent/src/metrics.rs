@@ -1,4 +1,5 @@
 mod cgroup;
+mod io;
 mod network;
 mod response;
 
@@ -11,6 +12,7 @@ use crate::procfs::{
 use crate::storage::{HistoryQuery, Storage};
 use crate::types::{CollectorState, ContainerMetrics, DockerContainer, MetricsResponse};
 use cgroup::{read_container_cpu, read_container_memory, resolve_cgroup_dir};
+use io::read_container_block_io;
 use network::{build_container_pid_map, read_container_network};
 use response::build_response;
 use std::sync::Mutex;
@@ -71,6 +73,9 @@ impl MetricsCollector {
         let network = pid
             .and_then(|pid| read_container_network(&self.config, *pid))
             .unwrap_or_default();
+        let block_io = pid
+            .and_then(|pid| read_container_block_io(&self.config, *pid))
+            .unwrap_or_default();
 
         ContainerMetrics {
             name: container.name.clone(),
@@ -82,6 +87,8 @@ impl MetricsCollector {
             network_tx_bytes: network.tx_bytes,
             network_rx_mb: bytes_to_mib(network.rx_bytes),
             network_tx_mb: bytes_to_mib(network.tx_bytes),
+            block_read_bytes: block_io.read_bytes,
+            block_write_bytes: block_io.write_bytes,
             response_time_ms: 0.0,
             http_status: 0,
         }

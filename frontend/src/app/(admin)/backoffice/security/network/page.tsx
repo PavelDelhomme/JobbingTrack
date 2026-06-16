@@ -11,6 +11,12 @@ import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import type { FilterBadge } from "@/lib/filters/types";
+import { NetworkConnectionSourceTable } from "@/components/security/NetworkConnectionSourceTable";
+import type {
+  ConnectionSourcePresentation,
+  IpEnrichmentHints,
+} from "@/lib/security/connectionSourcePresentation";
+import { formatReputationBadges } from "@/lib/security/connectionSourcePresentation";
 import { Activity, Server, Network, TrendingUp, RefreshCw } from "lucide-react";
 import axios from "axios";
 
@@ -86,6 +92,12 @@ export default function NetworkStatsPage() {
   useDocumentTitle("Sécurité réseau");
 
   const [stats, setStats] = useState<NetworkStats | null>(null);
+  const [connections, setConnections] = useState<ConnectionSourcePresentation[]>(
+    [],
+  );
+  const [ipEnrichment, setIpEnrichment] = useState<Record<string, IpEnrichmentHints>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -119,14 +131,27 @@ export default function NetworkStatsPage() {
       if (response.data.success) {
         const statsData = response.data.data.stats;
         setStats(statsData);
+        setConnections(
+          Array.isArray(response.data.data.connections)
+            ? response.data.data.connections
+            : [],
+        );
+        setIpEnrichment(
+          response.data.data.ipEnrichment &&
+            typeof response.data.data.ipEnrichment === "object"
+            ? response.data.data.ipEnrichment
+            : {},
+        );
       } else {
         setError("Erreur lors du chargement des statistiques");
       }
     } catch (err: any) {
       console.error("Erreur chargement stats réseau:", err);
       setStats(null);
+      setConnections([]);
       setError(
         err.response?.data?.error ||
+          err.response?.data?.message ||
           "Erreur lors du chargement des statistiques",
       );
     } finally {
@@ -137,8 +162,10 @@ export default function NetworkStatsPage() {
 
   useEffect(() => {
     loadStats();
-    // ✅ OPTIMISATION : Rafraîchir toutes les 45 secondes au lieu de 30
-    const interval = setInterval(loadStats, 45000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadStats();
+    }, 60_000);
     return () => clearInterval(interval);
   }, [loadStats]);
 
@@ -178,9 +205,10 @@ export default function NetworkStatsPage() {
               count,
               nature: getIpNature(ip),
               reason: getIpMonitoringReason(ip, count, suspiciousIpThreshold),
+              enrichment: ipEnrichment[ip],
             }))
         : [],
-    [stats?.topSourceIps, suspiciousIpThreshold],
+    [stats?.topSourceIps, suspiciousIpThreshold, ipEnrichment],
   );
   const portSuggestions = useMemo(
     () =>
@@ -442,13 +470,48 @@ export default function NetworkStatsPage() {
               )}
             </div>
           </div>
-          {(stats?.unmappedConnections || 0) > 0 && (
+          {(stats?.correlationHint || stats?.containerCorrelation) && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+              {stats?.containerCorrelation ? (
+                <p className="mb-1 font-medium">
+                  Corrélation conteneurs :{" "}
+                  {stats.containerCorrelation.dockerNamedPercent}% nommés ·{" "}
+                  {stats.containerCorrelation.hostLayerPercent}% hôte ·{" "}
+                  {stats.containerCorrelation.unmappedPercent}% non mappés
+                </p>
+              ) : null}
+              {stats?.correlationHint ? (
+                <p className="text-xs opacity-90">{stats.correlationHint}</p>
+              ) : null}
+            </div>
+          )}
+          {(stats?.unmappedConnections || 0) > 0 && !stats?.correlationHint && (
             <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-              {stats?.unmappedConnections} connexion(s) n&apos;ont pas pu être
-              rattachées à un conteneur (label `unmapped`). Vérifie les
-              namespaces réseau Docker pour améliorer la corrélation.
+              {stats?.unmappedConnections} connexion(s) non corrélée(s).
             </p>
           )}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Connexions observées (lecture source)
+          </h2>
+          <NetworkConnectionSourceTable
+            connections={connections}
+            enrichmentByIp={ipEnrichment}
+            emptyMessage={
+              stats?.correlationHint
+                ? stats.correlationHint
+                : (stats?.totalConnections ?? 0) === 0
+                  ? "Aucune connexion réseau observée. Vérifiez que le monitoring-agent et l’accès docker.sock sont actifs, puis relancez Actualiser."
+                  : "Aucune connexion réseau disponible pour le moment."
+            }
+          />
+          {(stats?.totalConnections ?? 0) === 0 && stats?.correlationHint ? (
+            <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+              {stats.correlationHint}
+            </p>
+          ) : null}
         </div>
 
         {/* Connexions par conteneur */}
@@ -475,11 +538,7 @@ export default function NetworkStatsPage() {
                         key={container}
                         className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        <td className="p-3 font-semibold">
-                          {container === "unmapped"
-                            ? "non-corrélé (à qualifier)"
-                            : container || "non-corrélé (à qualifier)"}
-                        </td>
+                        <td className="p-3 font-semibold">{container}</td>
                         <td className="p-3">{count}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
@@ -635,6 +694,7 @@ export default function NetworkStatsPage() {
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left p-3">IP Source</th>
                     <th className="text-left p-3">Nature</th>
+                    <th className="text-left p-3">Pays / réputation</th>
                     <th className="text-left p-3">Connexions</th>
                     <th className="text-left p-3">Motif</th>
                     <th className="text-left p-3">Pourcentage</th>
@@ -642,13 +702,32 @@ export default function NetworkStatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monitoredSourceIps.map(({ ip, count, nature, reason }) => (
+                  {monitoredSourceIps.map(({ ip, count, nature, reason, enrichment }) => (
                     <tr
                       key={ip}
                       className="border-b border-gray-200 dark:border-gray-700"
                     >
                       <td className="p-3 font-mono text-sm">{ip}</td>
                       <td className="p-3 text-sm">{nature}</td>
+                      <td className="p-3 text-xs">
+                        {enrichment?.country ? (
+                          <span>{enrichment.country}</span>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                        {formatReputationBadges(enrichment).length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {formatReputationBadges(enrichment).map((badge) => (
+                              <span
+                                key={badge}
+                                className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800"
+                              >
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </td>
                       <td className="p-3">{count}</td>
                       <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
                         {reason}
@@ -673,7 +752,7 @@ export default function NetworkStatsPage() {
                       </td>
                       <td className="p-3">
                         <Link
-                          href={`/b4ck0ff1ce/security/threats?sourceIp=${encodeURIComponent(ip)}`}
+                          href={`/backoffice/security/threats?sourceIp=${encodeURIComponent(ip)}`}
                           className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           Voir menaces

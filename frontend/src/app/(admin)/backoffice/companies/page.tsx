@@ -233,7 +233,7 @@ export default function CompaniesPage() {
                     onClick={(e) => {
                       // Ne pas déclencher si on clique sur les boutons d'action
                       if ((e.target as HTMLElement).closest("button")) return;
-                      window.location.href = `/b4ck0ff1ce/companies/${company.id}`;
+                      window.location.href = `/backoffice/companies/${company.id}`;
                     }}
                   >
                     <td className="px-6 py-4">
@@ -289,7 +289,7 @@ export default function CompaniesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`;
+                          window.location.href = `/backoffice/companies/${company.id}?edit=true`;
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                       >
@@ -318,7 +318,7 @@ export default function CompaniesPage() {
                 key={company.id}
                 className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                 onClick={() =>
-                  (window.location.href = `/b4ck0ff1ce/companies/${company.id}`)
+                  (window.location.href = `/backoffice/companies/${company.id}`)
                 }
               >
                 <div className="flex items-center justify-between mb-2">
@@ -370,7 +370,7 @@ export default function CompaniesPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = `/b4ck0ff1ce/companies/${company.id}?edit=true`;
+                      window.location.href = `/backoffice/companies/${company.id}?edit=true`;
                     }}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >

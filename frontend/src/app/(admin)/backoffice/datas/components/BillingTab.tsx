@@ -19,7 +19,7 @@ export default function BillingTab({ userId }: BillingTabProps) {
             </code>
             .
             <Link
-              href={`/b4ck0ff1ce/users/${userId}`}
+              href={`/backoffice/users/${userId}`}
               className="ml-2 text-blue-600 dark:text-blue-400 hover:underline"
             >
               Voir la fiche utilisateur

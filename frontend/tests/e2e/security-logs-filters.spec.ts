@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("Logs sécurité expose tri Date et autocomplétion des filtres", async ({
   page,
 }) => {
-  await page.goto("/b4ck0ff1ce/security/logs", {
+  await page.goto("/backoffice/security/logs", {
     waitUntil: "domcontentloaded",
     timeout: 90_000,
   });

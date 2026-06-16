@@ -16,7 +16,7 @@ export default function ApplicationActivityPage() {
           itérer sans casser la page Performances live.
         </p>
       }
-      backHref="/b4ck0ff1ce/analytics"
+      backHref="/backoffice/analytics"
       showApplicationSubNav
       maxWidthClassName="mx-auto max-w-3xl"
     >

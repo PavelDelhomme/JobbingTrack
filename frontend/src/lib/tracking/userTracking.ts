@@ -79,7 +79,7 @@ class UserTracking {
     const isSmallScreen = window.innerWidth <= 768;
 
     // Vérifier si on est dans le backoffice (ne pas tracker)
-    const isBackoffice = window.location.pathname.startsWith("/b4ck0ff1ce");
+    const isBackoffice = window.location.pathname.startsWith("/backoffice");
 
     // Le tracking est uniquement pour mobile ET pas dans le backoffice
     return isMobile && !isBackoffice;
@@ -91,7 +91,7 @@ class UserTracking {
   private async init() {
     if (typeof window === "undefined") return;
 
-    // ✅ DÉSACTIVER le tracking pour le web/b4ck0ff1ce - uniquement pour mobile
+    // ✅ DÉSACTIVER le tracking pour le web/backoffice - uniquement pour mobile
     if (!this.isMobilePlatform()) {
       this.enabled = false;
       return;

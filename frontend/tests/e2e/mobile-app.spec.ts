@@ -400,7 +400,7 @@ test.describe("🧪 Tests d'intégration mobile", () => {
     await webPage.fill('input[type="email"]', mobileUser.email);
     await webPage.fill('input[type="password"]', mobileUser.password);
     await webPage.click('button[type="submit"]');
-    await webPage.waitForURL("**/b4ck0ff1ce");
+    await webPage.waitForURL("**/backoffice");
 
     // Se connecter sur le mobile
     await mobilePage.goto("http://localhost:8090");

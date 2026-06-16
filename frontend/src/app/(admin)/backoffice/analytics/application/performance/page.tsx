@@ -225,7 +225,7 @@ export default function ApplicationPerformancePage() {
           onPeriodNow={handlePeriodNow}
         />
       }
-      backHref="/b4ck0ff1ce/analytics"
+      backHref="/backoffice/analytics"
       showApplicationSubNav
     >
       <ChartPeriodCaption label={rangeLabel} />

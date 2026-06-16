@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { PerformancesSubNav } from "../PerformancesSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
+import { FRONTEND_URLS } from "@/config/ports.config";
 import {
   normalizeMetricTimestampToIso,
   metricRowToTimeMs,
@@ -14,6 +15,13 @@ import {
   buildIncidentEmptyReason,
   formatIncidentTableCell,
 } from "@/lib/metrics/performanceCorrelationModel";
+import {
+  enrichAggLogRows,
+  isCorrelationTableEligibleRow,
+  isIpLikeString,
+  mergeAggLogMetadata,
+  readFirstIpFromUnknownList,
+} from "@/lib/metrics/incidentForensics";
 import {
   ResponsiveContainer,
   LineChart,
@@ -29,10 +37,18 @@ import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 type PerfMode = "light" | "full";
 
 const PERF_MODE_STORAGE_KEY = "jobbingtrack-perf-correlation-mode";
+const AUTO_REFRESH_STORAGE_KEY = "jobbingtrack-perf-correlation-auto-refresh";
 const FETCH_CONCURRENCY = 3;
 const MERGE_SYSTEM_MAX_DELTA_MS = 180_000;
 const MERGE_AVAILABILITY_MAX_DELTA_MS = 120_000;
 const INCIDENT_ALIGNMENT_MAX_DELTA_MS = 45 * 60 * 1000;
+const DEFAULT_FOCUS_SERVICE_HINTS = [
+  "jobbingtrack-security-service",
+  "jobbingtrack-auth-service",
+  "jobbingtrack-contact-service",
+  "jobbingtrack-api-gateway",
+  "jobbingtrack-metrics-aggregator",
+];
 
 function readStoredPerfMode(): PerfMode {
   if (typeof window === "undefined") return "light";
@@ -44,13 +60,22 @@ function readStoredPerfMode(): PerfMode {
   }
 }
 
+function readStoredAutoRefreshEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(AUTO_REFRESH_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function limitsForMode(mode: PerfMode) {
   if (mode === "full") {
     return {
-      maxHistoriesLoaded: 16,
-      historyLimit: 180,
+      maxHistoriesLoaded: 24,
+      historyLimit: 120,
       systemHistoryLimit: 360,
-      pointsPerSubchart: 220,
+      pointsPerSubchart: 180,
       autoRefreshMs: 120_000,
       subChartHeight: 120,
     };
@@ -232,11 +257,43 @@ function readNestedNumber(
 }
 
 type AggLogRow = {
+  id?: string | null;
   level?: string | null;
   message?: string | null;
   serviceName?: string | null;
   timestamp?: string | Date;
   eventType?: string | null;
+  requestId?: string | null;
+  method?: string | null;
+  httpMethod?: string | null;
+  endpoint?: string | null;
+  path?: string | null;
+  url?: string | null;
+  sourceIP?: string | null;
+  sourceIp?: string | null;
+  source_ip?: string | null;
+  clientIp?: string | null;
+  client_ip?: string | null;
+  ip?: string | null;
+  statusCode?: string | number | null;
+  httpStatus?: string | number | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+type SecurityLogApiRow = {
+  id?: string | null;
+  timestamp?: string | Date;
+  level?: string | null;
+  category?: string | null;
+  eventType?: string | null;
+  message?: string | null;
+  sourceIP?: string | null;
+  userId?: string | null;
+  endpoint?: string | null;
+  method?: string | null;
+  statusCode?: number | string | null;
+  responseTime?: number | string | null;
+  isBlocked?: boolean | null;
   requestId?: string | null;
   metadata?: Record<string, unknown> | null;
 };
@@ -250,6 +307,7 @@ type FocusIncidentSummary = {
 
 type IncidentContextFieldKey =
   | "requestId"
+  | "httpMethod"
   | "endpoint"
   | "ip"
   | "httpStatus"
@@ -272,6 +330,7 @@ type FocusIncidentAlignedRow = {
   timestamp: string;
   level: string;
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -302,6 +361,7 @@ type IncidentSortKey =
   | "timestamp"
   | "level"
   | "requestId"
+  | "httpMethod"
   | "endpoint"
   | "ip"
   | "httpStatus"
@@ -336,16 +396,179 @@ function countSecuritySignalsInLogs(rows: AggLogRow[]): number {
   }).length;
 }
 
-/** Winston / central logger peuvent imbriquer les champs dans `metadata.metadata`. */
-function mergeAggLogMetadata(row: AggLogRow): Record<string, unknown> | null {
-  const raw = row.metadata;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const o = raw as Record<string, unknown>;
-  const inner = o.metadata;
-  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-    return { ...o, ...(inner as Record<string, unknown>) };
+function readLooseString(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function firstMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  keys: string[],
+): string | null {
+  if (!metadata) return null;
+  for (const key of keys) {
+    const value = readLooseString(metadata[key]);
+    if (value) return value;
   }
-  return o;
+  return null;
+}
+
+function serviceAliasesForName(name: string): string[] {
+  const clean = String(name || "").trim();
+  if (!clean) return [];
+  const noPrefix = clean.replace(/^jobbingtrack-/, "");
+  const withPrefix = noPrefix.startsWith("jobbingtrack-")
+    ? noPrefix
+    : `jobbingtrack-${noPrefix}`;
+  return Array.from(new Set([clean, noPrefix, withPrefix]));
+}
+
+function inferServiceNameFromEndpoint(endpoint: string | null): string | null {
+  if (!endpoint) return null;
+  const path = endpoint.startsWith("http") ? parseEndpointUrl(endpoint).endpoint : endpoint;
+  if (!path) return null;
+  const routes: Array<[RegExp, string]> = [
+    [/^\/api\/v1\/(auth|users|emails|preferences)\b/, "auth-service"],
+    [/^\/api\/v1\/applications\b/, "application-service"],
+    [/^\/api\/v1\/companies\b/, "company-service"],
+    [/^\/api\/v1\/contacts\b/, "contact-service"],
+    [/^\/api\/v1\/interviews\b/, "interview-service"],
+    [/^\/api\/v1\/notifications\b/, "notification-service"],
+    [/^\/api\/v1\/(dashboard|statistics|analytics)\b/, "dashboard-service"],
+    [/^\/api\/v1\/calls\b/, "call-service"],
+    [/^\/api\/v1\/profile\b/, "profile-service"],
+    [/^\/api\/v1\/events\b/, "event-service"],
+    [/^\/api\/v1\/followups\b/, "followup-service"],
+    [/^\/api\/v1\/workflows\b/, "workflow-service"],
+    [/^\/api\/v1\/(security|logs|alerts|intrusions|ddos|vulnerabilities)\b/, "security-service"],
+  ];
+  return routes.find(([pattern]) => pattern.test(path))?.[1] ?? null;
+}
+
+function pickSecurityLogRequestId(row: SecurityLogApiRow): string | null {
+  return (
+    readLooseString(row.requestId) ||
+    firstMetadataString(row.metadata, [
+      "requestId",
+      "correlationId",
+      "xRequestId",
+      "x-request-id",
+    ])
+  );
+}
+
+function securityLogServiceCandidates(row: SecurityLogApiRow): string[] {
+  const metadata = row.metadata || {};
+  const candidates = new Set<string>();
+  const directService = firstMetadataString(metadata, [
+    "serviceName",
+    "service",
+    "targetService",
+    "containerName",
+  ]);
+  const source = firstMetadataString(metadata, ["source", "sourceService"]);
+  const endpointService = inferServiceNameFromEndpoint(row.endpoint || null);
+
+  for (const value of [directService, endpointService, source]) {
+    if (!value) continue;
+    const normalized =
+      value.includes("api-gateway") || value.startsWith("api-gateway-")
+        ? "api-gateway"
+        : value;
+    serviceAliasesForName(normalized).forEach((alias) => candidates.add(alias));
+  }
+
+  if (source?.includes("api-gateway")) {
+    serviceAliasesForName("api-gateway").forEach((alias) => candidates.add(alias));
+  }
+
+  // Ces lignes viennent de security_logs : le service sécurité doit toujours pouvoir les diagnostiquer.
+  serviceAliasesForName("security-service").forEach((alias) => candidates.add(alias));
+  return Array.from(candidates);
+}
+
+function securityLogMatchesFocus(row: SecurityLogApiRow, focusAliases: string[]): boolean {
+  const wanted = new Set(focusAliases.map((value) => value.toLowerCase()));
+  return securityLogServiceCandidates(row).some((candidate) =>
+    wanted.has(candidate.toLowerCase()),
+  );
+}
+
+function mapSecurityLogToAggLog(row: SecurityLogApiRow): AggLogRow {
+  const metadata =
+    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? { ...row.metadata }
+      : {};
+  const requestId = pickSecurityLogRequestId(row);
+  const endpoint = readLooseString(row.endpoint);
+  const endpointParsed = parseEndpointUrl(endpoint);
+  const statusCode = readLooseString(row.statusCode);
+  const sourceIp = readLooseString(row.sourceIP);
+  const method = readLooseString(row.method);
+  const primaryService =
+    firstMetadataString(metadata, ["serviceName", "service", "targetService"]) ||
+    inferServiceNameFromEndpoint(endpoint) ||
+    "security-service";
+
+  return {
+    id: row.id,
+    level: row.level,
+    message: row.message,
+    serviceName: primaryService,
+    timestamp: row.timestamp,
+    eventType: row.eventType,
+    requestId,
+    metadata: {
+      ...metadata,
+      sourceTable: "security_logs",
+      securityLogId: row.id || null,
+      category: row.category || metadata.category,
+      eventType: row.eventType || metadata.eventType,
+      requestId: requestId || metadata.requestId,
+      method: method || metadata.method,
+      endpoint: endpointParsed.endpoint || endpoint || metadata.endpoint,
+      originalUrl: endpoint || metadata.originalUrl,
+      httpStatus: statusCode || metadata.httpStatus,
+      statusCode: statusCode || metadata.statusCode,
+      clientIp: sourceIp || metadata.clientIp,
+      ip: sourceIp || metadata.ip,
+      sourceIP: sourceIp || metadata.sourceIP,
+      responseTime: readLooseString(row.responseTime) || metadata.responseTime,
+      isBlocked: row.isBlocked ?? metadata.isBlocked,
+      serviceName: primaryService,
+      protocol: metadata.protocol || metadata.proto || endpointParsed.protocol,
+      port: metadata.port || endpointParsed.port,
+      serviceCandidates: securityLogServiceCandidates(row),
+    },
+  };
+}
+
+async function fetchSecurityLogsForCorrelation(options: {
+  startDate: string;
+  endDate: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<SecurityLogApiRow[]> {
+  const params = new URLSearchParams({
+    startDate: options.startDate,
+    endDate: options.endDate,
+    limit: String(options.limit ?? 1200),
+    order: "desc",
+  });
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const res = await fetch(`${FRONTEND_URLS.api}/api/v1/security/logs?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal: options.signal,
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || json?.success === false) {
+    throw new Error(
+      json?.message || `Logs sécurité indisponibles (HTTP ${res.status})`,
+    );
+  }
+  return Array.isArray(json?.data) ? json.data : [];
 }
 
 function parseJsonObjectFromLogMessage(
@@ -370,6 +593,7 @@ function parseJsonObjectFromLogMessage(
 
 type ParsedIncidentContext = {
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -379,11 +603,82 @@ type ParsedIncidentContext = {
   sources: Record<IncidentContextFieldKey, string>;
 };
 
+function readContextString(
+  ctx: Record<string, unknown>,
+  path: readonly string[],
+): string | null {
+  let cur: unknown = ctx;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return null;
+    cur = (cur as Record<string, unknown>)[key];
+  }
+  if (typeof cur !== "string" && typeof cur !== "number") return null;
+  const value = String(cur).trim();
+  return value.length > 0 ? value : null;
+}
+
+function normalizeHttpMethod(value: string | null): string | null {
+  if (!value) return null;
+  const method = value.trim().toUpperCase();
+  return /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$/.test(method)
+    ? method
+    : null;
+}
+
+function parseEndpointUrl(value: string | null): {
+  endpoint: string | null;
+  protocol: string | null;
+  port: string | null;
+} {
+  if (!value) return { endpoint: null, protocol: null, port: null };
+  try {
+    const parsed = new URL(value);
+    return {
+      endpoint: `${parsed.pathname}${parsed.search}`,
+      protocol: parsed.protocol.replace(/:$/, "") || null,
+      port:
+        parsed.port ||
+        (parsed.protocol === "https:"
+          ? "443"
+          : parsed.protocol === "http:"
+            ? "80"
+            : null),
+    };
+  } catch {
+    return {
+      endpoint: value,
+      protocol: null,
+      port: null,
+    };
+  }
+}
+
+function parsePortFromHost(value: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/:(\d{2,5})$/);
+  return match?.[1] ?? null;
+}
+
 function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
   const metadata = mergeAggLogMetadata(row);
   const message = String(row.message || "");
   const messageJson = parseJsonObjectFromLogMessage(message);
   const ctx: Record<string, unknown> = {
+    serviceName: row.serviceName,
+    requestId: row.requestId,
+    method: row.method,
+    httpMethod: row.httpMethod,
+    endpoint: row.endpoint,
+    path: row.path,
+    url: row.url,
+    sourceIP: row.sourceIP,
+    sourceIp: row.sourceIp,
+    source_ip: row.source_ip,
+    clientIp: row.clientIp,
+    client_ip: row.client_ip,
+    ip: row.ip,
+    statusCode: row.statusCode,
+    httpStatus: row.httpStatus,
     ...(metadata || {}),
     ...(messageJson || {}),
   };
@@ -414,6 +709,16 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     requestId = ctx.correlationId.trim();
     requestIdSrc =
       "metadata.correlationId (fusion metadata + JSON dans message)";
+  } else if (typeof ctx.xRequestId === "string" && ctx.xRequestId.trim()) {
+    requestId = ctx.xRequestId.trim();
+    requestIdSrc = "metadata.xRequestId (fusion metadata + JSON dans message)";
+  } else if (
+    typeof ctx["x-request-id"] === "string" &&
+    ctx["x-request-id"].trim()
+  ) {
+    requestId = ctx["x-request-id"].trim();
+    requestIdSrc =
+      "metadata['x-request-id'] (fusion metadata + JSON dans message)";
   } else if (requestIdFromMessage) {
     requestId = requestIdFromMessage;
     requestIdSrc =
@@ -425,28 +730,83 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
         : "aucune valeur (pas de metadata exploitable ni JSON parseable dans le message)";
   }
 
+  let httpMethod: string | null = null;
+  let httpMethodSrc = "";
+  const methodCandidates: Array<[string[], string]> = [
+    [["method"], "metadata.method"],
+    [["httpMethod"], "metadata.httpMethod"],
+    [["requestMethod"], "metadata.requestMethod"],
+    [["context", "method"], "metadata.context.method"],
+    [["context", "httpMethod"], "metadata.context.httpMethod"],
+    [["request", "method"], "metadata.request.method"],
+    [["req", "method"], "metadata.req.method"],
+  ];
+  for (const [path, label] of methodCandidates) {
+    const method = normalizeHttpMethod(readContextString(ctx, path));
+    if (method) {
+      httpMethod = method;
+      httpMethodSrc = `${label} (fusion metadata + JSON message)`;
+      break;
+    }
+  }
+  if (!httpMethod) {
+    const methodFromMessage =
+      message.match(
+        /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)/i,
+      )?.[1] ??
+      message.match(
+        /"(?:method|httpMethod|requestMethod)"\s*:\s*"([^"]+)"/i,
+      )?.[1] ??
+      null;
+    httpMethod = normalizeHttpMethod(methodFromMessage);
+    httpMethodSrc = httpMethod
+      ? "heuristique message (méthode HTTP ou JSON method)"
+      : hasMetadata || hasMessageJson
+        ? "aucune valeur (method / httpMethod / request.method absents du contexte)"
+        : "aucune valeur (pas de metadata ni motif méthode HTTP dans le message)";
+  }
+
   let endpoint: string | null = null;
   let endpointSrc = "";
-  const epCandidates: [string, string][] = [
-    ["endpoint", "metadata.endpoint"],
-    ["originalUrl", "metadata.originalUrl"],
-    ["requestPath", "metadata.requestPath"],
-    ["route", "metadata.route"],
-    ["path", "metadata.path"],
-    ["url", "metadata.url"],
+  let urlProtocol: string | null = null;
+  let urlPort: string | null = null;
+  const epCandidates: Array<[string[], string]> = [
+    [["endpoint"], "metadata.endpoint"],
+    [["originalUrl"], "metadata.originalUrl"],
+    [["requestPath"], "metadata.requestPath"],
+    [["route"], "metadata.route"],
+    [["path"], "metadata.path"],
+    [["url"], "metadata.url"],
+    [["requestUrl"], "metadata.requestUrl"],
+    [["context", "endpoint"], "metadata.context.endpoint"],
+    [["context", "originalUrl"], "metadata.context.originalUrl"],
+    [["context", "url"], "metadata.context.url"],
+    [["request", "url"], "metadata.request.url"],
+    [["request", "path"], "metadata.request.path"],
+    [["req", "originalUrl"], "metadata.req.originalUrl"],
+    [["req", "url"], "metadata.req.url"],
+    [["req", "path"], "metadata.req.path"],
   ];
-  for (const [k, label] of epCandidates) {
-    const v = ctx[k];
-    if (typeof v === "string" && v.trim()) {
-      endpoint = v.trim();
+  for (const [path, label] of epCandidates) {
+    const v = readContextString(ctx, path);
+    if (v) {
+      const parsed = parseEndpointUrl(v);
+      endpoint = parsed.endpoint;
+      urlProtocol = parsed.protocol;
+      urlPort = parsed.port;
       endpointSrc = `${label} (fusion metadata + JSON message)`;
       break;
     }
   }
   if (!endpoint) {
-    const m = message.match(/\b(GET|POST|PUT|PATCH|DELETE)\s+([^\s]+)/i);
+    const m = message.match(
+      /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+([^\s]+)/i,
+    );
     if (m?.[2]) {
-      endpoint = m[2];
+      const parsed = parseEndpointUrl(m[2]);
+      endpoint = parsed.endpoint;
+      urlProtocol = parsed.protocol;
+      urlPort = parsed.port;
       endpointSrc = "heuristique message (MÉTHODE + chemin)";
     } else {
       endpointSrc =
@@ -458,12 +818,38 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   let ip: string | null = null;
   let ipSrc = "";
+  const suspiciousIp = readFirstIpFromUnknownList(ctx.suspiciousIPs);
+  const sourceAsIp =
+    typeof ctx.source === "string" && isIpLikeString(ctx.source)
+      ? ctx.source.trim()
+      : null;
   const ipCandidates: [unknown, string][] = [
+    [suspiciousIp, "metadata.suspiciousIPs[0] (analyse agrégée)"],
+    [sourceAsIp, "metadata.source (adresse IP attaquant)"],
     [ctx.ip, "metadata.ip"],
+    [ctx.sourceIP, "metadata.sourceIP"],
+    [ctx.sourceIp, "metadata.sourceIp"],
+    [ctx.source_ip, "metadata.source_ip"],
     [ctx.clientIp, "metadata.clientIp"],
+    [ctx.client_ip, "metadata.client_ip"],
+    [ctx.client_ip_address, "metadata.client_ip_address"],
+    [ctx.ipAddress, "metadata.ipAddress"],
+    [ctx.ip_address, "metadata.ip_address"],
+    [(ctx.context as Record<string, unknown> | undefined)?.clientIp, "metadata.context.clientIp"],
+    [(ctx.context as Record<string, unknown> | undefined)?.client_ip, "metadata.context.client_ip"],
+    [(ctx.context as Record<string, unknown> | undefined)?.ip, "metadata.context.ip"],
+    [(ctx.request as Record<string, unknown> | undefined)?.ip, "metadata.request.ip"],
+    [(ctx.request as Record<string, unknown> | undefined)?.clientIp, "metadata.request.clientIp"],
+    [(ctx.req as Record<string, unknown> | undefined)?.ip, "metadata.req.ip"],
+    [(ctx.req as Record<string, unknown> | undefined)?.clientIp, "metadata.req.clientIp"],
     [ctx.forwardedFor, "metadata.forwardedFor (1re valeur)"],
     [ctx.xForwardedFor, "metadata.xForwardedFor (1re valeur)"],
+    [ctx["x-forwarded-for"], "metadata['x-forwarded-for'] (1re valeur)"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["x-forwarded-for"], "metadata.headers['x-forwarded-for'] (1re valeur)"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["x-real-ip"], "metadata.headers['x-real-ip']"],
+    [(ctx.headers as Record<string, unknown> | undefined)?.["cf-connecting-ip"], "metadata.headers['cf-connecting-ip']"],
     [ctx.remoteAddress, "metadata.remoteAddress"],
+    [ctx.remote_address, "metadata.remote_address"],
   ];
   for (const [v, label] of ipCandidates) {
     if (typeof v === "string" && v.trim()) {
@@ -492,64 +878,111 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   let protocol: string | null = null;
   let protocolSrc = "";
-  for (const [k, label] of [
-    ["protocol", "metadata.protocol"],
-    ["proto", "metadata.proto"],
-    ["scheme", "metadata.scheme"],
+  for (const [path, label] of [
+    [["protocol"], "metadata.protocol"],
+    [["proto"], "metadata.proto"],
+    [["scheme"], "metadata.scheme"],
+    [["context", "protocol"], "metadata.context.protocol"],
+    [["context", "proto"], "metadata.context.proto"],
+    [["request", "protocol"], "metadata.request.protocol"],
+    [["req", "protocol"], "metadata.req.protocol"],
   ] as const) {
-    const v = ctx[k];
-    if (typeof v === "string" && v.trim()) {
-      protocol = v.trim();
+    const v = readContextString(ctx, path);
+    if (v) {
+      protocol = v.replace(/:$/, "").trim().toLowerCase();
       protocolSrc = `${label} (fusion metadata + JSON message)`;
       break;
     }
   }
   if (!protocol) {
-    const m = message.match(/\b(https?|grpc|ws|wss)\b/i);
-    if (m?.[1]) {
-      protocol = m[1].toLowerCase();
-      protocolSrc = "heuristique message (mot-clé http/https/grpc/ws)";
+    if (urlProtocol) {
+      protocol = urlProtocol;
+      protocolSrc = "URL endpoint complète (protocole déduit)";
     } else {
-      protocolSrc =
-        hasMetadata || hasMessageJson
-          ? "aucune valeur (protocol / proto / scheme absents du contexte)"
-          : "aucune valeur (pas de metadata ni motif protocole dans le message)";
+      const m = message.match(/\b(https?|grpc|ws|wss)\b/i);
+      if (m?.[1]) {
+        protocol = m[1].toLowerCase();
+        protocolSrc = "heuristique message (mot-clé http/https/grpc/ws)";
+      } else {
+        protocolSrc =
+          hasMetadata || hasMessageJson
+            ? "aucune valeur (protocol / proto / scheme absents du contexte)"
+            : "aucune valeur (pas de metadata ni motif protocole dans le message)";
+      }
     }
   }
 
   let port: string | null = null;
   let portSrc = "";
   const portFromCtx =
-    (typeof ctx.port === "number" || typeof ctx.port === "string"
-      ? String(ctx.port).trim()
-      : "") ||
-    (typeof ctx.localPort === "number" || typeof ctx.localPort === "string"
-      ? String(ctx.localPort).trim()
-      : "") ||
-    (typeof ctx.serverPort === "number" || typeof ctx.serverPort === "string"
-      ? String(ctx.serverPort).trim()
-      : "");
+    readContextString(ctx, ["port"]) ||
+    readContextString(ctx, ["localPort"]) ||
+    readContextString(ctx, ["serverPort"]) ||
+    readContextString(ctx, ["remotePort"]) ||
+    readContextString(ctx, ["context", "port"]) ||
+    readContextString(ctx, ["context", "localPort"]) ||
+    readContextString(ctx, ["context", "serverPort"]) ||
+    readContextString(ctx, ["request", "port"]) ||
+    readContextString(ctx, ["req", "port"]);
   if (portFromCtx) {
     port = portFromCtx;
-    portSrc = "metadata.port | localPort | serverPort (fusion)";
+    portSrc = "metadata.port | localPort | serverPort | remotePort (fusion)";
+  } else if (urlPort) {
+    port = urlPort;
+    portSrc = "URL endpoint complète (port déduit)";
   } else {
-    const m1 = message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1];
-    const m2 = message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1];
-    if (m1 || m2) {
-      port = m1 || m2 || null;
-      portSrc = "heuristique message (clé port dans JSON ou texte)";
+    const hostPort =
+      parsePortFromHost(
+        readContextString(ctx, ["host"]) ||
+          readContextString(ctx, ["hostname"]),
+      ) || parsePortFromHost(readContextString(ctx, ["headers", "host"]));
+    if (hostPort) {
+      port = hostPort;
+      portSrc = "metadata.host / headers.host (port déduit)";
     } else {
-      portSrc =
-        hasMetadata || hasMessageJson
-          ? "aucune valeur (port / localPort / serverPort absents du contexte)"
-          : "aucune valeur (pas de metadata ni motif port dans le message)";
+      const m1 = message.match(/"port"\s*:\s*(\d{2,5})/i)?.[1];
+      const m2 = message.match(/\bport\s*[:=]?\s*(\d{2,5})\b/i)?.[1];
+      if (m1 || m2) {
+        port = m1 || m2 || null;
+        portSrc = "heuristique message (clé port dans JSON ou texte)";
+      } else {
+        portSrc =
+          hasMetadata || hasMessageJson
+            ? "aucune valeur (port / localPort / serverPort absents du contexte)"
+            : "aucune valeur (pas de metadata ni motif port dans le message)";
+      }
     }
   }
 
   let httpStatus: string | null = null;
   let httpSrc = "";
-  for (const k of ["httpStatus", "statusCode", "upstreamHttpStatus"] as const) {
-    const v = ctx[k];
+  for (const [path, label] of [
+    [["httpStatus"], "metadata.httpStatus"],
+    [["statusCode"], "metadata.statusCode"],
+    [["status"], "metadata.status"],
+    [["upstreamHttpStatus"], "metadata.upstreamHttpStatus"],
+    [["context", "httpStatus"], "metadata.context.httpStatus"],
+    [["context", "statusCode"], "metadata.context.statusCode"],
+    [["response", "statusCode"], "metadata.response.statusCode"],
+    [["res", "statusCode"], "metadata.res.statusCode"],
+  ] as const) {
+    const v = readContextString(ctx, path);
+    if (v && /^\d{1,3}$/.test(v.trim())) {
+      httpStatus = v.trim();
+      httpSrc = `${label} (contexte fusionné)`;
+      break;
+    }
+    const direct = path.length === 1 ? ctx[path[0]] : null;
+    const vNumber = typeof direct === "number" ? direct : null;
+    if (vNumber != null && Number.isFinite(vNumber)) {
+      httpStatus = String(Math.trunc(vNumber));
+      httpSrc = `${label} (nombre)`;
+      break;
+    }
+  }
+  if (!httpStatus) {
+    for (const k of ["httpStatus", "statusCode", "upstreamHttpStatus"] as const) {
+      const v = ctx[k];
     if (typeof v === "number" && Number.isFinite(v)) {
       httpStatus = String(Math.trunc(v));
       httpSrc = `metadata.${k} (nombre)`;
@@ -560,6 +993,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
       httpSrc = `metadata.${k} (chaîne numérique)`;
       break;
     }
+  }
   }
   if (!httpStatus) {
     const m1 = message.match(
@@ -579,6 +1013,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
   return {
     requestId,
+    httpMethod,
     endpoint,
     ip,
     protocol,
@@ -586,6 +1021,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
     httpStatus,
     sources: {
       requestId: requestIdSrc,
+      httpMethod: httpMethodSrc,
       endpoint: endpointSrc,
       ip: ipSrc,
       protocol: protocolSrc,
@@ -597,6 +1033,7 @@ function parseIncidentContextFull(row: AggLogRow): ParsedIncidentContext {
 
 function parseIncidentContext(row: AggLogRow): {
   requestId: string | null;
+  httpMethod: string | null;
   endpoint: string | null;
   ip: string | null;
   protocol: string | null;
@@ -606,6 +1043,7 @@ function parseIncidentContext(row: AggLogRow): {
   const p = parseIncidentContextFull(row);
   return {
     requestId: p.requestId,
+    httpMethod: p.httpMethod,
     endpoint: p.endpoint,
     ip: p.ip,
     protocol: p.protocol,
@@ -616,6 +1054,7 @@ function parseIncidentContext(row: AggLogRow): {
 
 const INCIDENT_FIELD_LABELS: Record<IncidentContextFieldKey, string> = {
   requestId: "requestId / correlationId",
+  httpMethod: "Méthode HTTP",
   endpoint: "Endpoint (chemin / URL)",
   ip: "IP client",
   httpStatus: "Code HTTP",
@@ -626,6 +1065,8 @@ const INCIDENT_FIELD_LABELS: Record<IncidentContextFieldKey, string> = {
 const INCIDENT_FIELD_FIX: Record<IncidentContextFieldKey, string> = {
   requestId:
     "Propager requestId/correlationId dans le middleware (gateway + services) et les inclure dans metadata du central logger sur WARN/ERROR.",
+  httpMethod:
+    "Inclure method/httpMethod/request.method dans metadata du central logger sur WARN/ERROR et proxy gateway.",
   endpoint:
     "Enrichir metadata (originalUrl, path ou route) depuis la requête Express/Fastify au moment du log.",
   ip: "Journaliser IP réelle (req.ip / X-Forwarded-For tronqué) dans metadata pour les routes exposées derrière proxy.",
@@ -642,6 +1083,7 @@ function buildIncidentContextFieldDiagnostics(
   const p = parseIncidentContextFull(row);
   const keys: IncidentContextFieldKey[] = [
     "requestId",
+    "httpMethod",
     "endpoint",
     "ip",
     "httpStatus",
@@ -825,6 +1267,14 @@ function persistenceServiceAliases(containerFullName: string): string[] {
 
 function shortContainerName(full: string) {
   return full.replace(/^jobbingtrack-/, "");
+}
+
+function pickInitialFocusService(names: string[]): string | null {
+  for (const preferred of DEFAULT_FOCUS_SERVICE_HINTS) {
+    const found = names.find((name) => name === preferred);
+    if (found) return found;
+  }
+  return names[0] ?? null;
 }
 
 /** Pousse `name` en fin de file (MRU) et coupe au plafond — le plus ancien sort en premier. */
@@ -1393,19 +1843,39 @@ function ServiceDashboardCard({
 
 export default function PerformancesCorrelationPage() {
   const [perfMode, setPerfMode] = useState<PerfMode>("light");
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const limits = useMemo(() => limitsForMode(perfMode), [perfMode]);
   const firstRequestRef = useRef(true);
   const bootstrappedRef = useRef(false);
   const loadAbortRef = useRef<AbortController | null>(null);
+  const incidentsAbortRef = useRef<AbortController | null>(null);
+  const containerRowsRef = useRef<Record<string, ContainerPoint[]>>({});
+  const availabilityByServiceRef = useRef<Record<string, AvailabilityPoint[]>>(
+    {},
+  );
+  const historyRangeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     setPerfMode(readStoredPerfMode());
+    setAutoRefreshEnabled(readStoredAutoRefreshEnabled());
   }, []);
 
   const persistPerfMode = (mode: PerfMode) => {
     setPerfMode(mode);
     try {
       window.sessionStorage.setItem(PERF_MODE_STORAGE_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const persistAutoRefreshEnabled = (enabled: boolean) => {
+    setAutoRefreshEnabled(enabled);
+    try {
+      window.sessionStorage.setItem(
+        AUTO_REFRESH_STORAGE_KEY,
+        enabled ? "1" : "0",
+      );
     } catch {
       /* ignore */
     }
@@ -1478,6 +1948,14 @@ export default function PerformancesCorrelationPage() {
   } | null>(null);
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [bulkHint, setBulkHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    containerRowsRef.current = containerRows;
+  }, [containerRows]);
+
+  useEffect(() => {
+    availabilityByServiceRef.current = availabilityByService;
+  }, [availabilityByService]);
 
   const enterCustomRangeDefaults = useCallback(() => {
     const end = new Date();
@@ -1554,9 +2032,9 @@ export default function PerformancesCorrelationPage() {
 
       if (!bootstrappedRef.current && names.length > 0) {
         bootstrappedRef.current = true;
-        const first = names[0];
+        const first = pickInitialFocusService(names);
         setFocusName(first);
-        setLoadedOrder(names.slice(0, limits.maxHistoriesLoaded));
+        setLoadedOrder(first ? [first] : []);
       } else {
         setFocusName((prev) => {
           if (prev && names.includes(prev)) return prev;
@@ -1615,14 +2093,10 @@ export default function PerformancesCorrelationPage() {
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, limits.autoRefreshMs);
     return () => {
-      window.clearInterval(id);
       loadAbortRef.current?.abort();
     };
-  }, [load, limits.autoRefreshMs]);
+  }, [load]);
 
   useEffect(() => {
     setLoadedOrder((prev) => prev.slice(-limits.maxHistoriesLoaded));
@@ -1668,8 +2142,28 @@ export default function PerformancesCorrelationPage() {
           15000,
           Math.max(200, fetchLimits.historyLimit * 3),
         );
+        const rangeKey = [
+          opts.startDate,
+          opts.endDate,
+          fetchLimits.historyLimit,
+          availLimit,
+        ].join("|");
+        const refreshAll = historyRangeKeyRef.current !== rangeKey;
+        const namesToFetch = refreshAll
+          ? loadedOrder
+          : loadedOrder.filter(
+              (name) =>
+                (containerRowsRef.current[name]?.length ?? 0) === 0 ||
+                (availabilityByServiceRef.current[name]?.length ?? 0) === 0,
+            );
+
+        if (namesToFetch.length === 0) {
+          setHistoriesLoading(false);
+          return;
+        }
+
         const results = await promisePool(
-          loadedOrder,
+          namesToFetch,
           FETCH_CONCURRENCY,
           async (name) => {
             const [rows, availRaw, availStats, liveStats] = await Promise.all([
@@ -1912,6 +2406,7 @@ export default function PerformancesCorrelationPage() {
           },
         );
         if (cancelled) return;
+        historyRangeKeyRef.current = rangeKey;
         setContainerRows((prev) => {
           const next: Record<string, ContainerPoint[]> = { ...prev };
           for (const k of Object.keys(next)) {
@@ -1962,20 +2457,24 @@ export default function PerformancesCorrelationPage() {
     };
   }, [loadedOrder, limits, windowMode, presetHours, appliedCustom]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    if (!focusName) {
-      setFocusIncidents(null);
-      setSecurityWindowScore(null);
-      setFocusLogs([]);
-      setFocusPersistenceLogsLoading(false);
-      setFocusSecuritySummaryLoading(false);
-      return;
-    }
-    (async () => {
-      setFocusPersistenceLogsLoading(true);
-      setFocusSecuritySummaryLoading(true);
+  const loadFocusIncidentData = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      incidentsAbortRef.current?.abort();
+      const controller = new AbortController();
+      incidentsAbortRef.current = controller;
+      if (!focusName) {
+        setFocusIncidents(null);
+        setSecurityWindowScore(null);
+        setFocusLogs([]);
+        setFocusPersistenceLogsLoading(false);
+        setFocusSecuritySummaryLoading(false);
+        return;
+      }
+      const activeFocusName = focusName;
+      if (showLoading) {
+        setFocusPersistenceLogsLoading(true);
+        setFocusSecuritySummaryLoading(true);
+      }
       const bounds = computeQueryBounds({
         windowMode,
         presetHours,
@@ -1985,21 +2484,56 @@ export default function PerformancesCorrelationPage() {
 
       const loadLogs = async () => {
         try {
-          const logs = await analyticsService.getPersistenceLogs({
-            serviceNames: persistenceServiceAliases(focusName),
-            startDate: bounds.start.toISOString(),
-            endDate: bounds.end.toISOString(),
-            limit: 1200,
-            signal: controller.signal,
+          const focusAliases = persistenceServiceAliases(activeFocusName);
+          const [persistedLogs, securityLogs] = await Promise.all([
+            analyticsService.getPersistenceLogs({
+              serviceNames: focusAliases,
+              startDate: bounds.start.toISOString(),
+              endDate: bounds.end.toISOString(),
+              limit: 1200,
+              signal: controller.signal,
+            }),
+            fetchSecurityLogsForCorrelation({
+              startDate: bounds.start.toISOString(),
+              endDate: bounds.end.toISOString(),
+              limit: 1200,
+              signal: controller.signal,
+            }).catch((error) => {
+              console.warn(
+                "Logs sécurité indisponibles pour la corrélation fine:",
+                error instanceof Error ? error.message : error,
+              );
+              return [];
+            }),
+          ]);
+          if (controller.signal.aborted) return;
+          const securityLogsRaw = Array.isArray(securityLogs) ? securityLogs : [];
+          const persistenceRows = enrichAggLogRows(
+            (Array.isArray(persistedLogs) ? persistedLogs : []) as AggLogRow[],
+            securityLogsRaw,
+          );
+          const securityRows = securityLogsRaw
+            .filter((row) => securityLogMatchesFocus(row, focusAliases))
+            .map(mapSecurityLogToAggLog)
+            .map((row) =>
+              enrichAggLogRows([row], securityLogsRaw)[0] ?? row,
+            );
+          const rows = [...persistenceRows, ...securityRows].sort((a, b) => {
+            const ta = new Date(String(a.timestamp || 0)).getTime();
+            const tb = new Date(String(b.timestamp || 0)).getTime();
+            return tb - ta;
           });
-          if (cancelled) return;
-          const rows = (Array.isArray(logs) ? logs : []) as AggLogRow[];
           setFocusLogs(rows);
           const errorCount = rows.filter(
-            (r) => String(r.level || "").toUpperCase() === "ERROR",
+            (r) =>
+              String(r.level || "").toUpperCase() === "ERROR" ||
+              String(r.level || "").toUpperCase() === "CRITICAL" ||
+              String(r.level || "").toUpperCase() === "FATAL",
           ).length;
           const warnCount = rows.filter(
-            (r) => String(r.level || "").toUpperCase() === "WARN",
+            (r) =>
+              String(r.level || "").toUpperCase() === "WARN" ||
+              String(r.level || "").toUpperCase() === "WARNING",
           ).length;
           setFocusIncidents({
             total: rows.length,
@@ -2008,7 +2542,13 @@ export default function PerformancesCorrelationPage() {
             securitySignals: countSecuritySignalsInLogs(rows),
           });
         } finally {
-          if (!cancelled) setFocusPersistenceLogsLoading(false);
+          if (
+            showLoading &&
+            !controller.signal.aborted &&
+            incidentsAbortRef.current === controller
+          ) {
+            setFocusPersistenceLogsLoading(false);
+          }
         }
       };
 
@@ -2019,26 +2559,46 @@ export default function PerformancesCorrelationPage() {
               hours,
               controller.signal,
             );
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
           const avg =
             secSummary && typeof secSummary === "object"
               ? readNumericField(secSummary, ["avgSecurityScore"])
               : null;
           setSecurityWindowScore(avg);
         } finally {
-          if (!cancelled) setFocusSecuritySummaryLoading(false);
+          if (
+            showLoading &&
+            !controller.signal.aborted &&
+            incidentsAbortRef.current === controller
+          ) {
+            setFocusSecuritySummaryLoading(false);
+          }
         }
       };
 
       await Promise.all([loadLogs(), loadSecuritySummary()]);
-    })();
+    },
+    [focusName, windowMode, presetHours, appliedCustom],
+  );
+
+  useEffect(() => {
+    void loadFocusIncidentData({ showLoading: true });
     return () => {
-      cancelled = true;
-      controller.abort();
+      incidentsAbortRef.current?.abort();
       setFocusPersistenceLogsLoading(false);
       setFocusSecuritySummaryLoading(false);
     };
-  }, [focusName, windowMode, presetHours, appliedCustom]);
+  }, [loadFocusIncidentData]);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled || typeof window === "undefined") return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadFocusIncidentData({ showLoading: false });
+      }
+    }, limits.autoRefreshMs);
+    return () => window.clearInterval(id);
+  }, [autoRefreshEnabled, limits.autoRefreshMs, loadFocusIncidentData]);
 
   useEffect(() => {
     setIncidentContextDiagKey(null);
@@ -2171,6 +2731,7 @@ export default function PerformancesCorrelationPage() {
           timestamp: new Date(ts).toISOString(),
           level: String(row.level || "INFO").toUpperCase(),
           requestId: ctx.requestId,
+          httpMethod: ctx.httpMethod,
           endpoint: ctx.endpoint,
           ip: ctx.ip,
           protocol: ctx.protocol,
@@ -2195,6 +2756,17 @@ export default function PerformancesCorrelationPage() {
         };
       })
       .filter((x): x is FocusIncidentAlignedRow => x != null)
+      .filter((row) =>
+        isCorrelationTableEligibleRow(row.rawLog, {
+          requestId: row.requestId,
+          httpMethod: row.httpMethod,
+          endpoint: row.endpoint,
+          ip: row.ip,
+          protocol: row.protocol,
+          port: row.port,
+          httpStatus: row.httpStatus,
+        }),
+      )
       .map(
         (row): FocusIncidentAlignedRow => ({
           ...row,
@@ -2230,6 +2802,7 @@ export default function PerformancesCorrelationPage() {
       rows = rows.filter((r) =>
         [
           r.message,
+          r.httpMethod,
           r.endpoint,
           r.ip,
           r.requestId,
@@ -2259,6 +2832,10 @@ export default function PerformancesCorrelationPage() {
           return a.level.localeCompare(b.level) * dir;
         case "requestId":
           return withStr(a.requestId).localeCompare(withStr(b.requestId)) * dir;
+        case "httpMethod":
+          return (
+            withStr(a.httpMethod).localeCompare(withStr(b.httpMethod)) * dir
+          );
         case "endpoint":
           return withStr(a.endpoint).localeCompare(withStr(b.endpoint)) * dir;
         case "ip":
@@ -2328,6 +2905,15 @@ export default function PerformancesCorrelationPage() {
     [limits.maxHistoriesLoaded],
   );
 
+  const onSelectServiceAndFilter = useCallback(
+    (name: string) => {
+      setListFilter(shortContainerName(name));
+      setBulkHint(null);
+      onSelectService(name);
+    },
+    [onSelectService],
+  );
+
   const unloadService = useCallback((name: string) => {
     setLoadedOrder((prev) => prev.filter((n) => n !== name));
   }, []);
@@ -2387,7 +2973,7 @@ export default function PerformancesCorrelationPage() {
     <AdminLayout>
       <div className="p-6 space-y-6 w-full max-w-[1600px] mx-auto">
         <Link
-          href="/b4ck0ff1ce/performances"
+          href="/backoffice/performances"
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
         >
           <span aria-hidden>←</span>
@@ -2439,6 +3025,17 @@ export default function PerformancesCorrelationPage() {
             >
               Rafraîchir
             </button>
+            <button
+              type="button"
+              onClick={() => persistAutoRefreshEnabled(!autoRefreshEnabled)}
+              className={`rounded border px-2 py-1 text-xs ${
+                autoRefreshEnabled
+                  ? "border-blue-600 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-100"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              Auto-refresh {autoRefreshEnabled ? "actif" : "en pause"}
+            </button>
             {refreshing && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Actualisation…
@@ -2455,6 +3052,13 @@ export default function PerformancesCorrelationPage() {
               </span>
             )}
           </div>
+          {!autoRefreshEnabled && (
+            <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100">
+              Auto-refresh en pause : les historiques lourds restent stables
+              pendant l'analyse. Utilisez <strong>Rafraîchir</strong> pour
+              reprendre un instantané.
+            </p>
+          )}
 
           <div className="mb-4 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-600 dark:bg-gray-900/40">
             <div className="flex flex-wrap items-center gap-2">
@@ -2628,7 +3232,8 @@ export default function PerformancesCorrelationPage() {
                 </ul>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   Max {limits.maxHistoriesLoaded} en mémoire (LRU au clic). «
-                  Tout charger » = résultats du filtre, dans la limite.
+                  Tout charger » = résultats du filtre, dans la limite. Cliquez
+                  un nom de service pour le placer en focus et isoler le filtre.
                 </p>
               </aside>
 
@@ -2795,7 +3400,16 @@ export default function PerformancesCorrelationPage() {
                                 }
                               >
                                 <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">
-                                  {short}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onSelectServiceAndFilter(name)
+                                    }
+                                    className="max-w-[16rem] truncate text-left hover:underline"
+                                    title={`Filtrer et afficher ${short}`}
+                                  >
+                                    {short}
+                                  </button>
                                 </td>
                                 <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                                   {sum ? sum.points : loaded ? "0" : "—"}
@@ -2836,7 +3450,11 @@ export default function PerformancesCorrelationPage() {
                                     onClick={() => onSelectService(name)}
                                     className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                                   >
-                                    {isFocus ? "Actif" : "Voir"}
+                                    {isFocus
+                                      ? "Actif"
+                                      : loaded
+                                        ? "Voir"
+                                        : "Charger"}
                                   </button>
                                 </td>
                               </tr>
@@ -3008,18 +3626,19 @@ export default function PerformancesCorrelationPage() {
                               onChange={(e) =>
                                 setIncidentSearch(e.target.value)
                               }
-                              placeholder="Filtre texte (message/endpoint/IP/HTTP/requestId)…"
+                              placeholder="Filtre texte (message/méthode/endpoint/IP/HTTP/requestId)…"
                               className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             />
                           </div>
                           {focusPersistenceLogsLoading ? (
                             <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-                              <table className="w-full min-w-[1040px] text-left text-xs">
+                              <table className="w-full min-w-[1100px] text-left text-xs">
                                 <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                   <tr>
                                     <th className="px-2 py-2">Horodatage</th>
                                     <th className="px-2 py-2">Niveau</th>
                                     <th className="px-2 py-2">requestId</th>
+                                    <th className="px-2 py-2">Méthode</th>
                                     <th className="px-2 py-2">Endpoint</th>
                                     <th className="px-2 py-2">IP</th>
                                     <th className="px-2 py-2 text-right">
@@ -3048,7 +3667,7 @@ export default function PerformancesCorrelationPage() {
                                       key={`incident-loading-row-${idx}`}
                                       className="animate-pulse"
                                     >
-                                      {Array.from({ length: 13 }).map(
+                                      {Array.from({ length: 14 }).map(
                                         (__, c) => (
                                           <td
                                             key={`incident-loading-cell-${idx}-${c}`}
@@ -3108,11 +3727,11 @@ export default function PerformancesCorrelationPage() {
                               <p className="text-[11px] text-gray-500 dark:text-gray-400">
                                 Cliquez une ligne pour afficher le diagnostic
                                 contexte (source technique, raison si vide,
-                                correctif suggéré) pour requestId, endpoint, IP,
-                                HTTP, proto et port.
+                                correctif suggéré) pour requestId, méthode,
+                                endpoint, IP, HTTP, proto et port.
                               </p>
                               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-                                <table className="w-full min-w-[1040px] text-left text-xs">
+                                <table className="w-full min-w-[1100px] text-left text-xs">
                                   <thead className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                     <tr>
                                       <th className="px-2 py-2">
@@ -3161,6 +3780,23 @@ export default function PerformancesCorrelationPage() {
                                           <span className="text-[10px] text-gray-500">
                                             {sortGlyph(
                                               incidentSort.key === "requestId",
+                                              incidentSort.direction,
+                                            )}
+                                          </span>
+                                        </button>
+                                      </th>
+                                      <th className="px-2 py-2">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onToggleIncidentSort("httpMethod")
+                                          }
+                                          className="inline-flex items-center gap-1 hover:underline"
+                                        >
+                                          Méthode
+                                          <span className="text-[10px] text-gray-500">
+                                            {sortGlyph(
+                                              incidentSort.key === "httpMethod",
                                               incidentSort.direction,
                                             )}
                                           </span>
@@ -3339,6 +3975,11 @@ export default function PerformancesCorrelationPage() {
                                               r.requestId,
                                             )}
                                           </td>
+                                          <td className="px-2 py-1.5 font-mono text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                                            {formatIncidentTableCell(
+                                              r.httpMethod,
+                                            )}
+                                          </td>
                                           <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
                                             {formatIncidentTableCell(
                                               r.endpoint,
@@ -3396,8 +4037,15 @@ export default function PerformancesCorrelationPage() {
                                               r.deltaSec
                                             )}
                                           </td>
-                                          <td className="max-w-[24rem] truncate px-2 py-1.5 text-gray-700 dark:text-gray-300">
-                                            {r.message || "—"}
+                                          <td className="max-w-[24rem] px-2 py-1.5 text-gray-700 dark:text-gray-300">
+                                            <div className="truncate">
+                                              {r.message || "—"}
+                                            </div>
+                                            {r.emptyReason ? (
+                                              <div className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+                                                {r.emptyReason}
+                                              </div>
+                                            ) : null}
                                           </td>
                                         </tr>
                                       );

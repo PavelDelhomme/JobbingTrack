@@ -45,7 +45,7 @@ async function expectTabClickable(page: Page, tabText: string) {
 // ═══════════════════════════════════════════════════════
 test.describe("🏠 Dashboard principal", () => {
   test.beforeEach(async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce", {
+    await gotoBackofficePage(page, "/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -55,7 +55,7 @@ test.describe("🏠 Dashboard principal", () => {
   test("affiche le dashboard avec nav et métriques", async ({ page }) => {
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 10000 });
     const hasMetrics = await page
-      .locator('[href="/b4ck0ff1ce/users"], [href*="security"]')
+      .locator('[href="/backoffice/users"], [href*="security"]')
       .first()
       .isVisible()
       .catch(() => false);
@@ -72,7 +72,7 @@ test.describe("🏠 Dashboard principal", () => {
   test("maintient la session après rechargement", async ({ page }) => {
     await page.reload();
     await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/b4ck0ff1ce");
+    expect(page.url()).toContain("/backoffice");
     await expect(page.locator("nav").first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -89,7 +89,7 @@ test.describe("🏠 Dashboard principal", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("📊 Statistiques & Monitoring", () => {
   test("page Statistiques & Monitoring Global", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/statistics", {
+    await gotoBackofficePage(page, "/backoffice/statistics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -97,7 +97,7 @@ test.describe("📊 Statistiques & Monitoring", () => {
   });
 
   test("onglets Vue ensemble / Sécurité / Logs", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/statistics", {
+    await gotoBackofficePage(page, "/backoffice/statistics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -108,7 +108,7 @@ test.describe("📊 Statistiques & Monitoring", () => {
   });
 
   test("page Statistics (alias)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/statistics", {
+    await gotoBackofficePage(page, "/backoffice/statistics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -121,7 +121,7 @@ test.describe("📊 Statistiques & Monitoring", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("⚡ Performances & Analytics", () => {
   test("page Performances complètes", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/performances", {
+    await gotoBackofficePage(page, "/backoffice/performances", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -129,7 +129,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("page Performances réseau", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/performances/network", {
+    await gotoBackofficePage(page, "/backoffice/performances/network", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -137,7 +137,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("page Performances applicatives", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/analytics/application", {
+    await gotoBackofficePage(page, "/backoffice/analytics/application", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -145,7 +145,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("page Analytics conteneurs", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/performances/containers", {
+    await gotoBackofficePage(page, "/backoffice/performances/containers", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -153,7 +153,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("page Analytics utilisateur", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-analytics", {
+    await gotoBackofficePage(page, "/backoffice/user-analytics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -161,7 +161,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("onglets Analytics utilisateur", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-analytics", {
+    await gotoBackofficePage(page, "/backoffice/user-analytics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -173,7 +173,7 @@ test.describe("⚡ Performances & Analytics", () => {
   });
 
   test("page Analytics CPU/système", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/analytics", {
+    await gotoBackofficePage(page, "/backoffice/analytics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -186,7 +186,7 @@ test.describe("⚡ Performances & Analytics", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔒 Sécurité", () => {
   test("page Analyse de sécurité", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/security/analysis", {
+    await gotoBackofficePage(page, "/backoffice/security/analysis", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -194,7 +194,7 @@ test.describe("🔒 Sécurité", () => {
   });
 
   test("page Firewall", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/security/firewall", {
+    await gotoBackofficePage(page, "/backoffice/security/firewall", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -202,7 +202,7 @@ test.describe("🔒 Sécurité", () => {
   });
 
   test("page Réseau (sécurité)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/security/network", {
+    await gotoBackofficePage(page, "/backoffice/security/network", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -210,7 +210,7 @@ test.describe("🔒 Sécurité", () => {
   });
 
   test("page Politiques de sécurité", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/security/policies", {
+    await gotoBackofficePage(page, "/backoffice/security/policies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -219,7 +219,7 @@ test.describe("🔒 Sécurité", () => {
 
   test("page Menaces", async ({ page }) => {
     test.setTimeout(90000);
-    await gotoBackofficePage(page, "/b4ck0ff1ce/security/threats", {
+    await gotoBackofficePage(page, "/backoffice/security/threats", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -230,7 +230,7 @@ test.describe("🔒 Sécurité", () => {
     page,
   }) => {
     test.setTimeout(90000);
-    await gotoBackofficePage(page, "/b4ck0ff1ce/statistics", {
+    await gotoBackofficePage(page, "/backoffice/statistics", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -244,7 +244,7 @@ test.describe("🔒 Sécurité", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔧 Services", () => {
   test("page Liste des services", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/services", {
+    await gotoBackofficePage(page, "/backoffice/services", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -252,7 +252,7 @@ test.describe("🔧 Services", () => {
   });
 
   test("onglets Services / Logs Système", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/services", {
+    await gotoBackofficePage(page, "/backoffice/services", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -262,7 +262,7 @@ test.describe("🔧 Services", () => {
   });
 
   test("page détail d'un service (api-gateway)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/services/api-gateway", {
+    await gotoBackofficePage(page, "/backoffice/services/api-gateway", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -270,7 +270,7 @@ test.describe("🔧 Services", () => {
   });
 
   test("page détail d'un service (auth-service)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/services/auth-service", {
+    await gotoBackofficePage(page, "/backoffice/services/auth-service", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -279,7 +279,7 @@ test.describe("🔧 Services", () => {
 
   test("page Applications/Gestion des Services", async ({ page }) => {
     test.setTimeout(90000);
-    await gotoBackofficePage(page, "/b4ck0ff1ce/applications", {
+    await gotoBackofficePage(page, "/backoffice/applications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -293,7 +293,7 @@ test.describe("🔧 Services", () => {
 test.describe("💾 Gestion des données", () => {
   test("page principale Gestion des données", async ({ page }) => {
     test.setTimeout(90000);
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas", {
+    await gotoBackofficePage(page, "/backoffice/datas", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -301,7 +301,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Candidatures", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=applications", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=applications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -309,7 +309,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Entreprises", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=companies", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -317,7 +317,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Contacts", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=contacts", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -325,7 +325,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Entretiens", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=interviews", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=interviews", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -333,7 +333,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Appels", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=calls", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=calls", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -341,7 +341,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Relances", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=followups", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=followups", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -349,7 +349,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Événements", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=events", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=events", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -357,7 +357,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Notifications", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=notifications", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=notifications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -365,7 +365,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Stats utilisateur", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=user-stats", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=user-stats", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -373,7 +373,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Abonnement & facturation", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=billing", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=billing", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -381,7 +381,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("onglet Données de test", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/datas?tab=test-data", {
+    await gotoBackofficePage(page, "/backoffice/datas?tab=test-data", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -389,7 +389,7 @@ test.describe("💾 Gestion des données", () => {
   });
 
   test("page standalone Data Management", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/data-management", {
+    await gotoBackofficePage(page, "/backoffice/data-management", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -402,7 +402,7 @@ test.describe("💾 Gestion des données", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("📋 Pages données individuelles", () => {
   test("page Entreprises", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/companies", {
+    await gotoBackofficePage(page, "/backoffice/companies", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -410,7 +410,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Contacts", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/contacts", {
+    await gotoBackofficePage(page, "/backoffice/contacts", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -418,7 +418,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Entretiens", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/interviews", {
+    await gotoBackofficePage(page, "/backoffice/interviews", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -426,7 +426,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Appels", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/calls", {
+    await gotoBackofficePage(page, "/backoffice/calls", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -434,7 +434,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Relances", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/followups", {
+    await gotoBackofficePage(page, "/backoffice/followups", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -442,7 +442,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Événements", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/events", {
+    await gotoBackofficePage(page, "/backoffice/events", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -450,7 +450,7 @@ test.describe("📋 Pages données individuelles", () => {
   });
 
   test("page Notifications", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/notifications", {
+    await gotoBackofficePage(page, "/backoffice/notifications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -463,7 +463,7 @@ test.describe("📋 Pages données individuelles", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("📦 Archives & Corbeille", () => {
   test("page Archives", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/archives", {
+    await gotoBackofficePage(page, "/backoffice/archives", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -471,7 +471,7 @@ test.describe("📦 Archives & Corbeille", () => {
   });
 
   test("page Corbeille", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/trash", {
+    await gotoBackofficePage(page, "/backoffice/trash", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -484,7 +484,7 @@ test.describe("📦 Archives & Corbeille", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("👥 Utilisateurs", () => {
   test("page Gestion des utilisateurs", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/users", {
+    await gotoBackofficePage(page, "/backoffice/users", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -492,7 +492,7 @@ test.describe("👥 Utilisateurs", () => {
   });
 
   test("page affiche un filtre de rôles ou recherche", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/users", {
+    await gotoBackofficePage(page, "/backoffice/users", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -508,7 +508,7 @@ test.describe("👥 Utilisateurs", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("📧 Emails", () => {
   test("page Gestion des emails", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails", {
+    await gotoBackofficePage(page, "/backoffice/emails", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -516,7 +516,7 @@ test.describe("📧 Emails", () => {
   });
 
   test("onglets Email de Test / Reset Password", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails", {
+    await gotoBackofficePage(page, "/backoffice/emails", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -526,7 +526,7 @@ test.describe("📧 Emails", () => {
   });
 
   test("page Email Monitor", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/email-monitor", {
+    await gotoBackofficePage(page, "/backoffice/email-monitor", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -534,7 +534,7 @@ test.describe("📧 Emails", () => {
   });
 
   test("page Templates emails", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails/templates", {
+    await gotoBackofficePage(page, "/backoffice/emails/templates", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -544,7 +544,7 @@ test.describe("📧 Emails", () => {
   test("onglets Templates (Prévisualisation / Code / Variables)", async ({
     page,
   }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails/templates", {
+    await gotoBackofficePage(page, "/backoffice/emails/templates", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -555,7 +555,7 @@ test.describe("📧 Emails", () => {
   });
 
   test("page Configuration SMTP", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails/settings", {
+    await gotoBackofficePage(page, "/backoffice/emails/settings", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -563,7 +563,7 @@ test.describe("📧 Emails", () => {
   });
 
   test("page Délivrabilité", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails/deliverability", {
+    await gotoBackofficePage(page, "/backoffice/emails/deliverability", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -576,7 +576,7 @@ test.describe("📧 Emails", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🧪 Tests & API", () => {
   test("page Hub Tests principal", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests", {
+    await gotoBackofficePage(page, "/backoffice/tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -584,7 +584,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests API", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-api", {
+    await gotoBackofficePage(page, "/backoffice/tests-api", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -592,7 +592,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Backend", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-backend", {
+    await gotoBackofficePage(page, "/backoffice/tests-backend", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -600,7 +600,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Frontend", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-frontend", {
+    await gotoBackofficePage(page, "/backoffice/tests-frontend", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -608,7 +608,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Backoffice", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-backoffice", {
+    await gotoBackofficePage(page, "/backoffice/tests-backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -616,7 +616,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Emails - Déliverabilité", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/emails/deliverability", {
+    await gotoBackofficePage(page, "/backoffice/emails/deliverability", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -624,7 +624,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Sécurité", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-security", {
+    await gotoBackofficePage(page, "/backoffice/tests-security", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -632,7 +632,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Performance", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/tests-performance", {
+    await gotoBackofficePage(page, "/backoffice/tests-performance", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -640,7 +640,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Testeur d'API", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/api-tester", {
+    await gotoBackofficePage(page, "/backoffice/api-tester", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -648,7 +648,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Rapports de tests", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/test-reports", {
+    await gotoBackofficePage(page, "/backoffice/test-reports", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -656,7 +656,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Programmer tests", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/performance-tests/schedule", {
+    await gotoBackofficePage(page, "/backoffice/performance-tests/schedule", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -664,7 +664,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Performance (standalone)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/performance-tests", {
+    await gotoBackofficePage(page, "/backoffice/performance-tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -672,7 +672,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Données de test (générateur)", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/test-data", {
+    await gotoBackofficePage(page, "/backoffice/test-data", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -680,7 +680,7 @@ test.describe("🧪 Tests & API", () => {
   });
 
   test("page Tests Playwright", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/playwright-tests", {
+    await gotoBackofficePage(page, "/backoffice/playwright-tests", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -693,7 +693,7 @@ test.describe("🧪 Tests & API", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🎯 Parcours utilisateur", () => {
   test("page Parcours prédéfinis", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-journey", {
+    await gotoBackofficePage(page, "/backoffice/user-journey", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -701,7 +701,7 @@ test.describe("🎯 Parcours utilisateur", () => {
   });
 
   test("page affiche les scénarios disponibles", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-journey", {
+    await gotoBackofficePage(page, "/backoffice/user-journey", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -712,7 +712,7 @@ test.describe("🎯 Parcours utilisateur", () => {
   });
 
   test("page Parcours personnalisé", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-journey/custom", {
+    await gotoBackofficePage(page, "/backoffice/user-journey/custom", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -720,7 +720,7 @@ test.describe("🎯 Parcours utilisateur", () => {
   });
 
   test("page Rapports de parcours", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/user-journey/reports", {
+    await gotoBackofficePage(page, "/backoffice/user-journey/reports", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -733,7 +733,7 @@ test.describe("🎯 Parcours utilisateur", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🔍 Recherche", () => {
   test("page Recherche optimisée", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce/search", {
+    await gotoBackofficePage(page, "/backoffice/search", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -746,7 +746,7 @@ test.describe("🔍 Recherche", () => {
 // ═══════════════════════════════════════════════════════
 test.describe("🧭 Navigation sidebar", () => {
   test("sidebar visible avec liens principaux", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce", {
+    await gotoBackofficePage(page, "/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -762,13 +762,13 @@ test.describe("🧭 Navigation sidebar", () => {
   });
 
   test("liens de navigation fonctionnels", async ({ page }) => {
-    await gotoBackofficePage(page, "/b4ck0ff1ce", {
+    await gotoBackofficePage(page, "/backoffice", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
     await page.waitForLoadState("networkidle");
 
-    const navLinks = page.locator('nav a[href*="/b4ck0ff1ce/"]');
+    const navLinks = page.locator('nav a[href*="/backoffice/"]');
     const count = await navLinks.count();
     expect(count).toBeGreaterThan(5);
   });

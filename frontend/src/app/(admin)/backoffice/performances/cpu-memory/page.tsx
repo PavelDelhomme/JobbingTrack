@@ -27,6 +27,7 @@ import {
 import { CpuMemoryServiceLinesChart } from "@/components/charts/CpuMemoryServiceLinesChart";
 import { SystemCpuMemoryAreaCharts } from "@/components/charts/SystemCpuMemoryAreaCharts";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import type { SystemPercentSeriesRow } from "@/lib/charts/systemMetricsSeriesModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
@@ -39,6 +40,7 @@ import {
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceLoadingState,
   PerformancePageShell,
 } from "@/components/performances";
@@ -46,6 +48,9 @@ import {
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const METRICS_HISTORY_FETCH_CONCURRENCY = 5;
 const DEFAULT_SELECTED_SERVICE_COUNT = 6;
+const SYSTEM_RENDER_POINTS = 160;
+const DETAIL_RENDER_POINTS = 160;
+const MANY_SERIES_DETAIL_RENDER_POINTS = 120;
 const VIEWS = [
   { id: "overview", label: "Vue globale" },
   { id: "cpu", label: "CPU détaillé" },
@@ -163,6 +168,12 @@ function normalizeSystemMetrics(
         (a.timeMs ?? metricTimestampToMs(a.timestamp) ?? 0) -
         (b.timeMs ?? metricTimestampToMs(b.timestamp) ?? 0),
     );
+}
+
+function sampleRows<T>(rows: T[], targetMax: number): T[] {
+  if (rows.length <= targetMax) return rows;
+  const step = Math.ceil(rows.length / targetMax);
+  return rows.filter((_, index) => index % step === 0);
 }
 
 function average(values: Array<number | undefined>): number | null {
@@ -441,7 +452,7 @@ export default function CpuMemoryPerformancePage() {
 
   const systemChartData = useMemo<SystemPercentSeriesRow[]>(
     () =>
-      rawSystemMetrics.map((metric) => {
+      sampleRows(rawSystemMetrics, SYSTEM_RENDER_POINTS).map((metric) => {
         const timeMs =
           typeof metric.timeMs === "number" && Number.isFinite(metric.timeMs)
             ? metric.timeMs
@@ -519,7 +530,12 @@ export default function CpuMemoryPerformancePage() {
       });
     });
     const sortedMs = Array.from(allMs).sort((a, b) => a - b);
-    const step = sortedMs.length <= 240 ? 1 : Math.ceil(sortedMs.length / 240);
+    const target =
+      names.length >= DEFAULT_SELECTED_SERVICE_COUNT
+        ? MANY_SERIES_DETAIL_RENDER_POINTS
+        : DETAIL_RENDER_POINTS;
+    const step =
+      sortedMs.length <= target ? 1 : Math.ceil(sortedMs.length / target);
     const sampledMs = sortedMs.filter((_, index) => index % step === 0);
 
     return sampledMs.map((targetMs) => {
@@ -589,6 +605,14 @@ export default function CpuMemoryPerformancePage() {
         .map(serviceKey),
     [rawMetricsByContainer],
   );
+  const totalRawServicePoints = useMemo(
+    () =>
+      Object.values(rawMetricsByContainer).reduce(
+        (total, rows) => total + rows.length,
+        0,
+      ),
+    [rawMetricsByContainer],
+  );
 
   const liveSelectedServiceKeys = useMemo(
     () =>
@@ -624,6 +648,11 @@ export default function CpuMemoryPerformancePage() {
   );
   const axisShowDate =
     chartXDomainEffMax - chartXDomainEffMin > 24 * 60 * 60 * 1000;
+
+  const overviewSeriesLength =
+    activeView === "overview" ? effectiveSystemChartData.length : 0;
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(overviewSeriesLength, 80);
 
   const liveCpuAvg = average(containers.map(containerCpu));
   const liveMemoryAvg = average(containers.map(containerMemory));
@@ -843,6 +872,13 @@ export default function CpuMemoryPerformancePage() {
         </PerformanceEmptyState>
       ) : activeView === "overview" ? (
         <div className="space-y-6">
+          <PerformanceHistoryCaption
+            source={systemChartData.length > 0 ? "system_metrics" : "docker_live"}
+            timeRangeLabel={rangeLabel}
+            rawPoints={rawSystemMetrics.length}
+            renderedPoints={effectiveSystemChartData.length}
+            note="CPU et mémoire machine ; axe X calé sur la période demandée"
+          />
           <PerformanceChartCard title="CPU & mémoire globaux">
             <SystemCpuMemoryAreaCharts
               chartData={effectiveSystemChartData}
@@ -851,7 +887,25 @@ export default function CpuMemoryPerformancePage() {
               axisShowDate={axisShowDate}
               chartHeight={260}
               emphasizePoints={systemChartData.length === 0}
+              brushStartIndex={brushStart}
+              brushEndIndex={brushEnd}
+              onBrushChange={onBrushChange}
             />
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+              <p>
+                Glissez la barre sous le graphique mémoire pour zoomer CPU et
+                mémoire sur la même fenêtre.
+              </p>
+              {hasCustomBrush ? (
+                <button
+                  type="button"
+                  onClick={resetBrush}
+                  className="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Réinitialiser le zoom
+                </button>
+              ) : null}
+            </div>
           </PerformanceChartCard>
         </div>
       ) : effectiveDetailChartData.length === 0 ||
@@ -860,21 +914,30 @@ export default function CpuMemoryPerformancePage() {
           Aucune métrique CPU/mémoire disponible pour les services sélectionnés.
         </PerformanceEmptyState>
       ) : (
-        <CpuMemoryServiceLinesChart
-          metric={activeView === "cpu" ? "cpu" : "memory"}
-          title={
-            activeView === "cpu"
-              ? "CPU détaillé par service"
-              : "Mémoire détaillée par service"
-          }
-          rangeLabel={rangeLabel}
-          chartXDomainMin={chartXDomainEffMin}
-          chartXDomainMax={chartXDomainEffMax}
-          axisShowDate={axisShowDate}
-          chartData={effectiveDetailChartData}
-          serviceKeys={effectiveDetailServiceKeys}
-          emphasizePoints={chartData.length === 0}
-        />
+        <div className="space-y-4">
+          <PerformanceHistoryCaption
+            source={chartData.length > 0 ? "container_metrics" : "docker_live"}
+            timeRangeLabel={rangeLabel}
+            rawPoints={totalRawServicePoints}
+            renderedPoints={effectiveDetailChartData.length}
+            note="Séries services ; rendu borné pour limiter le coût frontend"
+          />
+          <CpuMemoryServiceLinesChart
+            metric={activeView === "cpu" ? "cpu" : "memory"}
+            title={
+              activeView === "cpu"
+                ? "CPU détaillé par service"
+                : "Mémoire détaillée par service"
+            }
+            rangeLabel={rangeLabel}
+            chartXDomainMin={chartXDomainEffMin}
+            chartXDomainMax={chartXDomainEffMax}
+            axisShowDate={axisShowDate}
+            chartData={effectiveDetailChartData}
+            serviceKeys={effectiveDetailServiceKeys}
+            emphasizePoints={chartData.length === 0}
+          />
+        </div>
       )}
     </PerformancePageShell>
   );

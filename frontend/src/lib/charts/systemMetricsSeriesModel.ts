@@ -50,7 +50,7 @@ export type SystemNetworkMbRateRow = SystemNetworkMbRow & {
 };
 
 /**
- * Débit **Mo/min** à partir des **cumuls** RX/TX (Mo) entre points consécutifs — même idée que le débit Block I/O
+ * Débit observé **Mo/min** à partir des **cumuls** RX/TX (Mo) entre points consécutifs — même idée que le débit Block I/O
  * sur le détail service. Permet de repérer les **pics** d’activité réseau sans se limiter à une courbe monotone.
  */
 export function buildSystemNetworkMbRateRows(

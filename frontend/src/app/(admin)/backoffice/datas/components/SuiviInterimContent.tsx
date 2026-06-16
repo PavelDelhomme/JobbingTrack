@@ -152,7 +152,7 @@ export default function SuiviInterimContent() {
             Aucune boîte d&apos;intérim. Créez une entreprise avec le type
             &quot;Boîte d&apos;intérim&quot; depuis l&apos;onglet{" "}
             <Link
-              href="/b4ck0ff1ce/datas?tab=companies"
+              href="/backoffice/datas?tab=companies"
               className="text-amber-600 dark:text-amber-400 hover:underline"
             >
               Entreprises
@@ -160,7 +160,7 @@ export default function SuiviInterimContent() {
             (filtre Boîtes d&apos;intérim), ou générez des données de test
             depuis{" "}
             <Link
-              href="/b4ck0ff1ce/test-data"
+              href="/backoffice/test-data"
               className="text-amber-600 dark:text-amber-400 hover:underline"
             >
               Données de test
@@ -217,7 +217,7 @@ export default function SuiviInterimContent() {
                           {apps.map((app) => (
                             <li key={app.id}>
                               <Link
-                                href={`/b4ck0ff1ce/applications/${app.id}`}
+                                href={`/backoffice/applications/${app.id}`}
                                 className="block px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:border-amber-300 dark:hover:border-amber-600 transition-colors"
                               >
                                 <span className="font-medium text-gray-900 dark:text-gray-100">

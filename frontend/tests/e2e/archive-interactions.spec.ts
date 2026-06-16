@@ -263,7 +263,7 @@ test.describe("🗄️ Archivage & Corbeille (admin)", () => {
   test("la page Archives du backoffice charge sans erreur", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/archives", {
+    await page.goto("/backoffice/archives", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -276,7 +276,7 @@ test.describe("🗄️ Archivage & Corbeille (admin)", () => {
     page,
   }) => {
     test.setTimeout(90_000);
-    await page.goto("/b4ck0ff1ce/trash", {
+    await page.goto("/backoffice/trash", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -612,7 +612,7 @@ test.describe("🖥️ Pages Backoffice Archive/Corbeille", () => {
   test("la page Archives charge correctement avec les onglets", async ({
     page,
   }) => {
-    await page.goto("/b4ck0ff1ce/archives", {
+    await page.goto("/backoffice/archives", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -634,7 +634,7 @@ test.describe("🖥️ Pages Backoffice Archive/Corbeille", () => {
 
   test("la page Corbeille charge correctement", async ({ page }) => {
     test.setTimeout(90_000);
-    await page.goto("/b4ck0ff1ce/trash", {
+    await page.goto("/backoffice/trash", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -648,7 +648,7 @@ test.describe("🖥️ Pages Backoffice Archive/Corbeille", () => {
   });
 
   test("la page Données affiche les onglets entités", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/data-management", {
+    await page.goto("/backoffice/data-management", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -668,7 +668,7 @@ test.describe("🖥️ Pages Backoffice Archive/Corbeille", () => {
 test.describe("📋 CRUD Candidatures UI", () => {
   test.describe.configure({ timeout: 90_000 });
   test("la page candidatures charge et affiche une liste", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/applications", {
+    await page.goto("/backoffice/applications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -677,7 +677,7 @@ test.describe("📋 CRUD Candidatures UI", () => {
   });
 
   test("le formulaire de création candidature s'ouvre", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/applications", {
+    await page.goto("/backoffice/applications", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -694,7 +694,7 @@ test.describe("📋 CRUD Candidatures UI", () => {
   });
 
   test("la page entretiens charge correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/interviews", {
+    await page.goto("/backoffice/interviews", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -703,7 +703,7 @@ test.describe("📋 CRUD Candidatures UI", () => {
   });
 
   test("la page relances charge correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/followups", {
+    await page.goto("/backoffice/followups", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -712,7 +712,7 @@ test.describe("📋 CRUD Candidatures UI", () => {
   });
 
   test("la page appels charge correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/calls", {
+    await page.goto("/backoffice/calls", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
@@ -721,7 +721,7 @@ test.describe("📋 CRUD Candidatures UI", () => {
   });
 
   test("la page événements charge correctement", async ({ page }) => {
-    await page.goto("/b4ck0ff1ce/events", {
+    await page.goto("/backoffice/events", {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });

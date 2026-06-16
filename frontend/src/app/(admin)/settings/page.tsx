@@ -388,7 +388,7 @@ export default function SettingsPage() {
                 la page dédiée Sécurité.
               </p>
               <Link
-                href="/b4ck0ff1ce/security/alerts"
+                href="/backoffice/security/alerts"
                 className="mt-3 inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
                 Ouvrir Alertes email sécurité

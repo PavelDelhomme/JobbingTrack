@@ -39,13 +39,16 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import { pickSystemResponseTimeAvgMsFromRow } from "@/lib/metrics/pickSystemResponseTimeFromRow";
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceLoadingState,
   PerformancePageShell,
 } from "@/components/performances";
@@ -55,9 +58,11 @@ import {
   type SystemNetworkMbRow,
 } from "@/lib/charts/systemMetricsSeriesModel";
 import { SystemCpuNetworkCorrelationChart } from "@/components/charts/SystemCpuNetworkCorrelationChart";
+import { SeriesExportButtons } from "@/components/monitoring/SeriesExportButtons";
+import type { SeriesExportRow } from "@/lib/exports/seriesExport";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
-const TARGET_POINTS = 200;
+const TARGET_POINTS = 160;
 
 interface RawNetPoint {
   timestamp: string;
@@ -437,16 +442,24 @@ export default function NetworkPerformancePage() {
     [networkRateRows],
   );
 
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(series.length, 80);
+
+  const chartBottomMargin = 66;
+
   const hasNetworkData = useMemo(
     () => series.some((d) => d.rxMb != null || d.txMb != null),
     [series],
   );
 
-  const showCpuNetworkCorrelation = useMemo(() => {
+  const showResourceNetworkCorrelation = useMemo(() => {
     const hasCpu = series.some(
       (d) => d.cpu != null && Number.isFinite(Number(d.cpu)),
     );
-    return hasNetworkData && hasCpu;
+    const hasMemory = series.some(
+      (d) => d.memory != null && Number.isFinite(Number(d.memory)),
+    );
+    return hasNetworkData && (hasCpu || hasMemory);
   }, [hasNetworkData, series]);
 
   const showResponseTime = useMemo(
@@ -458,27 +471,52 @@ export default function NetworkPerformancePage() {
     [series],
   );
 
+  const exportRows = useMemo<SeriesExportRow[]>(
+    () =>
+      series.map((row, index) => {
+        const rate = networkRateRows[index];
+        return {
+          timestamp: row.timestamp,
+          datetime: row.datetime,
+          rx_mb_cumulative: row.rxMb,
+          tx_mb_cumulative: row.txMb,
+          rx_mb_per_min: rate?.networkRxMbPerMin,
+          tx_mb_per_min: rate?.networkTxMbPerMin,
+          cpu_percent: row.cpu,
+          memory_percent: row.memory,
+          response_time_ms: row.responseTimeMs,
+        };
+      }),
+    [series, networkRateRows],
+  );
+
   return (
     <PerformancePageShell
       title="Performances réseau"
-      description="Cumul RX/TX, débit estimé (Mo/min), corrélation avec la charge CPU et temps de réponse agrégé quand la persistance les fournit."
+      description="Cumul RX/TX, débit observé (Mo/min), corrélation avec CPU/mémoire et temps de réponse agrégé quand la persistance les fournit."
       actions={
-        <TimeRangeSelector
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          useCustomRange={useCustomRange}
-          setUseCustomRange={setUseCustomRange}
-          customStart={customStart}
-          setCustomStart={setCustomStart}
-          customEnd={customEnd}
-          setCustomEnd={setCustomEnd}
-          rangeLabel={rangeLabel}
-          goPrev={goPrev}
-          goNext={goNext}
-          canGoNext={canGoNext}
-          onPeriodNow={handlePeriodNow}
-          showNavigationHint={false}
-        />
+        <>
+          <TimeRangeSelector
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={handlePeriodNow}
+            showNavigationHint={false}
+          />
+          <SeriesExportButtons
+            rows={exportRows}
+            baseName="performances-network-series"
+          />
+        </>
       }
     >
       {loading && series.length === 0 ? (
@@ -496,6 +534,12 @@ export default function NetworkPerformancePage() {
         </PerformanceEmptyState>
       ) : (
         <div className="space-y-8">
+          <PerformanceHistoryCaption
+            source="system_metrics"
+            timeRangeLabel={rangeLabel}
+            renderedPoints={series.length}
+            note="RX/TX persistés ; débits observés et corrélation CPU/mémoire dérivés côté UI"
+          />
           <PerformanceChartCard
             title="Réception (RX) et émission (TX) — Mo (cumul)"
             periodLabel={rangeLabel}
@@ -504,7 +548,7 @@ export default function NetworkPerformancePage() {
               <ResponsiveContainer width="100%" height={360} minHeight={240}>
                 <LineChart
                   data={series}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -565,20 +609,33 @@ export default function NetworkPerformancePage() {
                     dot={false}
                     connectNulls={false}
                   />
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </PerformanceChartCard>
 
           <PerformanceChartCard
-            title="Débit estimé — Mo/min"
+            title="Débit observé — Mo/min"
             periodLabel={rangeLabel}
           >
             <div className="w-full min-h-[220px] sm:min-h-[300px]">
               <ResponsiveContainer width="100%" height={300} minHeight={220}>
                 <LineChart
                   data={networkRateRows}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                  margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis
@@ -644,6 +701,19 @@ export default function NetworkPerformancePage() {
                     dot={false}
                     connectNulls={false}
                   />
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: networkAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -658,7 +728,7 @@ export default function NetworkPerformancePage() {
                 <ResponsiveContainer width="100%" height={280} minHeight={220}>
                   <LineChart
                     data={series}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
+                    margin={{ top: 5, right: 30, left: 20, bottom: chartBottomMargin }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -712,15 +782,28 @@ export default function NetworkPerformancePage() {
                       dot={false}
                       connectNulls={false}
                     />
+                    <Brush
+                      dataKey="timeMs"
+                      height={18}
+                      travellerWidth={8}
+                      startIndex={brushStart}
+                      endIndex={brushEnd}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms as number, {
+                          withDate: networkAxisShowDate,
+                        })
+                      }
+                      onChange={onBrushChange}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </PerformanceChartCard>
           ) : null}
 
-          {showCpuNetworkCorrelation ? (
+          {showResourceNetworkCorrelation ? (
             <PerformanceChartCard
-              title="Corrélation CPU (%) vs débit réseau (Mo/min)"
+              title="Corrélation CPU & mémoire (%) vs débit réseau (Mo/min)"
               periodLabel={rangeLabel}
             >
               <SystemCpuNetworkCorrelationChart
@@ -730,14 +813,32 @@ export default function NetworkPerformancePage() {
                 axisShowDate={networkAxisShowDate}
                 rateMax={networkRateYMax}
                 height={320}
+                brushStartIndex={brushStart}
+                brushEndIndex={brushEnd}
+                onBrushChange={onBrushChange}
               />
             </PerformanceChartCard>
           ) : null}
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {series.length} points affichés après compression (max{" "}
-            {TARGET_POINTS}) pour lisibilité.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <p>
+              {series.length} points affichés après compression (max{" "}
+              {TARGET_POINTS}) pour lisibilité.
+            </p>
+            <p>
+              Glissez la barre sous un graphe pour zoomer la même fenêtre sur
+              tous les graphes de la page.
+            </p>
+            {hasCustomBrush ? (
+              <button
+                type="button"
+                onClick={resetBrush}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Réinitialiser le zoom
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
     </PerformancePageShell>

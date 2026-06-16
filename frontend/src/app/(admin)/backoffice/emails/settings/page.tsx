@@ -1,10 +1,7 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { EmailBackofficePageShell } from "../EmailBackofficeSubNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { EmailBackofficePageShell } from "../EmailBackofficeSubNav";
 import {
   Settings,
   CheckCircle,
@@ -13,14 +10,25 @@ import {
   XCircle,
 } from "lucide-react";
 import axios from "axios";
+import { useState, useEffect } from "react";
 
 const API_URL = FRONTEND_URLS.api;
+
+type SmtpStatusData = {
+  host?: string;
+  port?: string | number;
+  from?: string;
+  secure?: string | boolean;
+  user?: string;
+  replyTo?: string;
+  provider?: string;
+};
 
 export default function EmailSettingsPage() {
   const [smtpStatus, setSmtpStatus] = useState<{
     success: boolean;
     message: string;
-    data?: any;
+    data?: SmtpStatusData;
   } | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -42,9 +50,9 @@ export default function EmailSettingsPage() {
         success: false,
         message:
           status === 503
-            ? "Service SMTP indisponible (non configuré ou erreur). Vérifiez la configuration ou réessayez plus tard."
+            ? "Service SMTP indisponible (non configuré ou erreur)."
             : msg || "Erreur lors de la vérification SMTP",
-        data: error.response?.data?.details,
+        data: error.response?.data?.details || error.response?.data?.data,
       });
     } finally {
       setChecking(false);
@@ -55,6 +63,11 @@ export default function EmailSettingsPage() {
     checkSMTPStatus();
   }, []);
 
+  const smtpData = smtpStatus?.data;
+  const description = smtpData?.provider
+    ? `Provider actif : ${smtpData.provider}`
+    : "Valeurs lues depuis l'environnement du serveur (auth-service).";
+
   return (
     <EmailBackofficePageShell
       title={
@@ -63,7 +76,7 @@ export default function EmailSettingsPage() {
           Configuration SMTP
         </span>
       }
-      description="Configuration actuelle : OVH jobbingtrack.com (redacted@example.invalid)"
+      description={description}
       actions={
         <Button
           onClick={checkSMTPStatus}
@@ -80,7 +93,7 @@ export default function EmailSettingsPage() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Configuration Actuelle</CardTitle>
+          <CardTitle>Configuration actuelle</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {smtpStatus ? (
@@ -95,34 +108,52 @@ export default function EmailSettingsPage() {
                 )}
                 <span className="font-medium">{smtpStatus.message}</span>
               </div>
-              {smtpStatus.data && (
-                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+              {smtpData ? (
+                <div className="grid grid-cols-1 gap-4 text-sm mt-4 sm:grid-cols-2">
                   <div>
                     <p className="text-gray-600 dark:text-gray-400">Host</p>
-                    <p className="font-medium">
-                      {smtpStatus.data.host || "Non configuré"}
+                    <p className="font-medium break-all">
+                      {smtpData.host || "Non configuré"}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-400">Port</p>
                     <p className="font-medium">
-                      {smtpStatus.data.port || "Non configuré"}
+                      {smtpData.port || "Non configuré"}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-400">From</p>
-                    <p className="font-medium">
-                      {smtpStatus.data.from || "Non configuré"}
+                    <p className="font-medium break-all">
+                      {smtpData.from || "Non configuré"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400">Reply-To</p>
+                    <p className="font-medium break-all">
+                      {smtpData.replyTo || "Non configuré"}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-400">Secure</p>
                     <p className="font-medium">
-                      {smtpStatus.data.secure ? "Oui (SSL/TLS)" : "Non"}
+                      {typeof smtpData.secure === "string"
+                        ? smtpData.secure
+                        : smtpData.secure
+                          ? "Oui (SSL/TLS)"
+                          : "Non"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Utilisateur SMTP
+                    </p>
+                    <p className="font-medium break-all">
+                      {smtpData.user || "Non configuré"}
                     </p>
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
           ) : (
             <div className="flex items-center gap-2 text-gray-500">
@@ -130,34 +161,6 @@ export default function EmailSettingsPage() {
               <span className="font-medium">Statut non vérifié</span>
             </div>
           )}
-          {!smtpStatus?.data && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Host</p>
-                <p className="font-medium">ssl0.ovh.net</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Port</p>
-                <p className="font-medium">465</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">From</p>
-                <p className="font-medium">redacted@example.invalid</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Secure</p>
-                <p className="font-medium">Oui (SSL/TLS)</p>
-              </div>
-            </div>
-          )}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <AlertCircle className="w-4 h-4 inline mr-2" />
-              La configuration SMTP est gérée via les variables
-              d&apos;environnement. Modifiez les fichiers .env pour changer la
-              configuration.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </EmailBackofficePageShell>

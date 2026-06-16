@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { BarChart3 } from "lucide-react";
 import {
   Area,
@@ -22,6 +23,8 @@ import type {
   ServiceHistoryChartRow,
   ServiceHistoryIoRow,
 } from "@/lib/monitoring/serviceHistoryChartModel";
+import { SeriesExportButtons } from "@/components/monitoring/SeriesExportButtons";
+import type { SeriesExportRow } from "@/lib/exports/seriesExport";
 
 export type MonitoringServiceHistoryChartsProps = {
   serviceHistoryLength: number;
@@ -32,6 +35,7 @@ export type MonitoringServiceHistoryChartsProps = {
   historyAxisShowDate: boolean;
   historyBlockMbMax: number;
   historyIoRateMax: number;
+  exportBaseName?: string;
 };
 
 function historyTooltipLabel(_: unknown, payload: unknown) {
@@ -52,19 +56,51 @@ export function MonitoringServiceHistoryCharts({
   historyAxisShowDate,
   historyBlockMbMax,
   historyIoRateMax,
+  exportBaseName = "service-history-series",
 }: MonitoringServiceHistoryChartsProps) {
+  const exportRows = useMemo<SeriesExportRow[]>(() => {
+    const ioByTime = new Map(
+      historyChartRowsIo.map((row) => [
+        row.timeMs,
+        {
+          block_read_mb_per_min: row.block_read_mb_per_min,
+          block_write_mb_per_min: row.block_write_mb_per_min,
+        },
+      ]),
+    );
+
+    return historyChartRows.map((row) => {
+      const io = ioByTime.get(row.timeMs);
+      return {
+        timestamp: row.timestamp,
+        time_ms: row.timeMs,
+        cpu_percent: row.cpu_percent,
+        memory_percent: row.memory_percent,
+        network_rx_mb: row.network_rx_mb,
+        network_tx_mb: row.network_tx_mb,
+        block_read_mb: row.block_read_mb,
+        block_write_mb: row.block_write_mb,
+        block_read_mb_per_min: io?.block_read_mb_per_min,
+        block_write_mb_per_min: io?.block_write_mb_per_min,
+      };
+    });
+  }, [historyChartRows, historyChartRowsIo]);
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
           <BarChart3 className="h-6 w-6 mr-2" />
           Historique des Performances
         </h2>
-        <span className="text-sm text-gray-500 text-right max-w-md">
-          {serviceHistoryLength > 0
-            ? `${serviceHistoryLength} points (fichiers agrégateur + session courante)`
-            : "Aucune donnée — attendez quelques cycles ou activez l’auto-rafraîchissement"}
-        </span>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <span className="text-sm text-gray-500 text-left max-w-md sm:text-right">
+            {serviceHistoryLength > 0
+              ? `${serviceHistoryLength} points (fichiers agrégateur + session courante)`
+              : "Aucune donnée — attendez quelques cycles ou activez l’auto-rafraîchissement"}
+          </span>
+          <SeriesExportButtons rows={exportRows} baseName={exportBaseName} />
+        </div>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
         L’axe CPU est zoomé automatiquement quand la charge est faible. Les
@@ -294,12 +330,13 @@ export function MonitoringServiceHistoryCharts({
 
           <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
-              Block I/O — débit estimé
+              Block I/O — débit observé
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Δ cumul / Δ temps entre points consécutifs (Mo/min). Peut chuter à
-              0 si le conteneur est recréé (cumuls remis à zéro) ou si
-              l&apos;écart temporel est filtré (&gt; 1 h).
+              Débit dérivé des compteurs Docker persistés : Δ cumul / Δ temps
+              entre points consécutifs (Mo/min). Peut chuter à 0 si le
+              conteneur est recréé (cumuls remis à zéro) ou si l&apos;écart
+              temporel est filtré (&gt; 1 h).
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={historyChartRowsIo}>
@@ -338,7 +375,7 @@ export function MonitoringServiceHistoryCharts({
                   dataKey="block_read_mb_per_min"
                   stroke="#4F46E5"
                   strokeWidth={2}
-                  name="Lecture (estim.)"
+                  name="Lecture observée"
                   dot={false}
                 />
                 <Line
@@ -346,7 +383,7 @@ export function MonitoringServiceHistoryCharts({
                   dataKey="block_write_mb_per_min"
                   stroke="#7C3AED"
                   strokeWidth={2}
-                  name="Écriture (estim.)"
+                  name="Écriture observée"
                   dot={false}
                 />
               </LineChart>

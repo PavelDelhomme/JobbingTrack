@@ -7,7 +7,7 @@ const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('../services/securityService');
-const { lookupGeoIp } = require('../utils/geoipProvider');
+const { lookupGeoIp, enrichIpBatch } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
 const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
@@ -86,7 +86,12 @@ function enrichThreatForApi(threat) {
   return { ...threat, destIp };
 }
 
-function summarizeApplicationContext(logs, intrusionAttempts = [], ddosAttacks = []) {
+function summarizeApplicationContext(
+  logs,
+  intrusionAttempts = [],
+  ddosAttacks = [],
+  aggregatedLogs = []
+) {
   const endpoints = new Set();
   const methods = new Set();
   const services = new Set();
@@ -128,8 +133,21 @@ function summarizeApplicationContext(logs, intrusionAttempts = [], ddosAttacks =
     if (attack.targetEndpoint) endpoints.add(attack.targetEndpoint);
   }
 
+  for (const row of aggregatedLogs) {
+    correlationSources.add('aggregated_logs');
+    const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    const endpoint = meta.endpoint || meta.originalUrl || meta.url;
+    const method = meta.method || meta.httpMethod;
+    if (endpoint) endpoints.add(String(endpoint));
+    if (method) methods.add(String(method));
+    if (row.serviceName) services.add(String(row.serviceName));
+    if (meta.httpStatus >= 400 || meta.statusCode >= 400) blockedEvents += 1;
+    registerRisk(meta.riskScore, 'aggregated_logs');
+  }
+
   return {
     total: logs.length,
+    aggregatedLogs: aggregatedLogs.length,
     intrusionAttempts: intrusionAttempts.length,
     ddosAttacks: ddosAttacks.length,
     blockedEvents,
@@ -165,9 +183,11 @@ function mapNetworkConnectionToThreatConnection(conn) {
 }
 
 function enrichConnectionDetailForInvestigation(conn, detectedAtIso) {
+  const resolved = resolveConnectionSource(conn);
   return {
     ...conn,
-    serviceLabel: resolveContainerLabel(conn),
+    ...resolved,
+    serviceLabel: resolved.destination.label,
     observedAt: conn.observedAt || conn.createdAt || detectedAtIso || null
   };
 }
@@ -179,7 +199,8 @@ async function buildThreatInvestigation(threat, related) {
   const logsSummary = summarizeApplicationContext(
     related.securityLogs,
     related.intrusionAttempts,
-    related.ddosAttacks
+    related.ddosAttacks,
+    related.aggregatedLogs || []
   );
   const threatSeverityRiskScore = riskScoreFromThreatSeverity(enriched.severity);
   const effectiveRiskScore = Math.max(logsSummary.maxRiskScore, threatSeverityRiskScore);
@@ -240,6 +261,9 @@ async function buildThreatInvestigation(threat, related) {
   }
   if (connectionDetails.length === 0) missingTelemetry.push('Aucun détail de connexion réseau brut conservé');
   if (related.securityLogs.length === 0) missingTelemetry.push('Aucun log sécurité corrélé à cette IP ou menace');
+  if ((related.aggregatedLogs || []).length === 0) {
+    missingTelemetry.push('Aucun log agrégé gateway/service corrélé (requestId ou IP)');
+  }
 
   return {
     attacker: {
@@ -301,7 +325,16 @@ async function buildThreatInvestigation(threat, related) {
     },
     related: {
       intrusionAttempts: related.intrusionAttempts,
-      ddosAttacks: related.ddosAttacks
+      ddosAttacks: related.ddosAttacks,
+      aggregatedLogs: (related.aggregatedLogs || []).slice(0, 20).map((row) => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        level: row.level,
+        serviceName: row.serviceName,
+        message: row.message,
+        requestId: row.requestId,
+        metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : null,
+      })),
     },
     missingTelemetry
   };
@@ -426,42 +459,11 @@ function blockedIpsMetaSummary(entries) {
   return { byOrigin, count: entries.length };
 }
 
-const PORT_SERVICE_HINTS = {
-  3000: 'port-3000 (api-gateway)',
-  3001: 'port-3001 (auth)',
-  3002: 'port-3002 (applications)',
-  3003: 'port-3003 (companies)',
-  3004: 'port-3004 (contacts)',
-  3005: 'port-3005 (interviews)',
-  3006: 'port-3006 (notifications)',
-  3007: 'port-3007 (dashboard)',
-  3008: 'port-3008 (calls / notification — interne Docker)',
-  3009: 'port-3009 (profile)',
-  3011: 'port-3011 (events)',
-  3012: 'port-3012 (followups)',
-  3013: 'port-3013 (workflow)',
-  3014: 'port-3014 (metrics-aggregator)',
-  3017: 'port-3017 (security)',
-  5432: 'port-5432 (postgres)',
-  6379: 'port-6379 (redis)',
-};
-
-function resolveContainerLabel(conn = {}) {
-  const containerName = String(conn.containerName || '').trim();
-  const containerId = String(conn.containerId || '').trim();
-  if (containerName && containerName.toLowerCase() !== 'unknown') return containerName;
-  if (containerId) return `container:${containerId.slice(0, 12)}`;
-  const localIp = String(conn.localIp || '');
-  if (localIp.startsWith('127.') || localIp === '::1') return 'host-local';
-  if (localIp.startsWith('172.') || localIp.startsWith('10.') || localIp.startsWith('192.168.')) return 'host-network';
-  const rp = Number(conn.remotePort);
-  if (rp && PORT_SERVICE_HINTS[rp]) return PORT_SERVICE_HINTS[rp];
-  const lp = Number(conn.localPort);
-  if (lp && PORT_SERVICE_HINTS[lp]) return PORT_SERVICE_HINTS[lp];
-  if (rp) return `port distant ${rp} (non mappé)`;
-  if (lp) return `port local ${lp} (non mappé Docker)`;
-  return 'unmapped';
-}
+const {
+  resolveConnectionSource,
+  resolveContainerLabel,
+  bucketConnectionCorrelation
+} = require('../utils/connectionSource');
 
 function normalizeRulePayload(payload = {}) {
   const normalizedSourceIp = payload.sourceIp && String(payload.sourceIp).trim() !== ''
@@ -910,6 +912,8 @@ async function getNetworkStats(req, res) {
     const connections = metrics.connections || [];
     
     // Formater les données pour le frontend
+    const enrichedConnections = connections.map((conn) => resolveConnectionSource(conn));
+
     const stats = {
       totalConnections: connections.length || 0,
       tcpConnections: connections.filter(c => c.protocol === 'TCP').length || 0,
@@ -920,8 +924,8 @@ async function getNetworkStats(req, res) {
         acc[stateName] = (acc[stateName] || 0) + 1;
         return acc;
       }, {}) || {},
-      connectionsByContainer: connections.reduce((acc, conn) => {
-        const label = resolveContainerLabel(conn);
+      connectionsByContainer: enrichedConnections.reduce((acc, conn) => {
+        const label = conn.destination.label;
         acc[label] = (acc[label] || 0) + 1;
         return acc;
       }, {}) || {},
@@ -937,20 +941,17 @@ async function getNetworkStats(req, res) {
         acc[conn.localPort] = (acc[conn.localPort] || 0) + 1;
         return acc;
       }, {}) || {},
-      unmappedConnections: connections.filter((conn) => resolveContainerLabel(conn) === 'unmapped').length,
+      unmappedConnections: enrichedConnections.filter(
+        (conn) => conn.destination.kind === 'unmapped' || conn.destination.kind === 'port'
+      ).length,
       timestamp: new Date().toISOString()
     };
 
     const n = connections.length || 0;
     const correlation = { unmapped: 0, hostLayer: 0, dockerNamed: 0 };
     for (const conn of connections) {
-      const label = resolveContainerLabel(conn);
-      if (label === 'unmapped') correlation.unmapped += 1;
-      else if (label === 'host-local' || label === 'host-network' || label.startsWith('port:')) {
-        correlation.hostLayer += 1;
-      } else {
-        correlation.dockerNamed += 1;
-      }
+      const bucket = bucketConnectionCorrelation(conn);
+      correlation[bucket] += 1;
     }
     const denom = n || 1;
     stats.containerCorrelation = {
@@ -960,17 +961,34 @@ async function getNetworkStats(req, res) {
       hostLayerPercent: Math.round((correlation.hostLayer / denom) * 100),
       dockerNamedPercent: Math.round((correlation.dockerNamed / denom) * 100)
     };
-    stats.correlationHint =
-      correlation.unmapped > n * 0.45
-        ? 'Une grande part des sockets n’est pas rattachée à un conteneur nommé : le security-service lit souvent /proc/net du host. Les lignes « port:N » indiquent le service probable ; pour des noms Docker, mappez les ports publiés (docker ps) ou montez le socket Docker si autorisé.'
-        : '';
+
+    if (n === 0) {
+      stats.correlationHint =
+        'Aucune connexion observée sur cet hôte — vérifier que le security-service a accès au socket Docker ou que le monitoring réseau est actif.';
+    } else if (stats.containerCorrelation.unmappedPercent >= 40) {
+      stats.correlationHint =
+        `${stats.containerCorrelation.unmappedPercent}% des connexions ne sont pas mappées à un conteneur nommé — vérifier les labels Docker, le socket /var/run/docker.sock et les services arrêtés.`;
+    } else if (stats.containerCorrelation.hostLayerPercent >= 60) {
+      stats.correlationHint =
+        `${stats.containerCorrelation.hostLayerPercent}% des connexions sont au niveau hôte (host-network / ports éphémères) — filtrer par IP publique ou ouvrir la fiche menace pour la réputation.`;
+    } else if (stats.containerCorrelation.dockerNamedPercent < 20) {
+      stats.correlationHint =
+        'Peu de connexions sont corrélées à un service Docker nommé — la corrélation fine menace↔conteneur peut rester partielle.';
+    }
+
+    const ipsForEnrichment = [
+      ...Object.keys(stats.topSourceIps || {}),
+      ...connections.map((c) => c.remoteIp).filter(Boolean),
+    ];
+    const ipEnrichment = await enrichIpBatch(ipsForEnrichment, 12);
 
     res.json({
       success: true,
       data: {
         stats,
-        connections: metrics.connections || []
-      }
+        connections: enrichedConnections.slice(0, 50),
+        ipEnrichment,
+      },
     });
   } catch (error) {
     logger.error('Erreur récupération stats réseau:', error);
@@ -1258,7 +1276,8 @@ async function getThreatDetails(req, res) {
       securityLogs: [],
       intrusionAttempts: [],
       ddosAttacks: [],
-      networkConnections: []
+      networkConnections: [],
+      aggregatedLogs: [],
     };
 
     try {
@@ -1306,6 +1325,50 @@ async function getThreatDetails(req, res) {
       related.intrusionAttempts = intrusionAttempts.status === 'fulfilled' ? intrusionAttempts.value : [];
       related.ddosAttacks = ddosAttacks.status === 'fulfilled' ? ddosAttacks.value : [];
       related.networkConnections = networkConnections.status === 'fulfilled' ? networkConnections.value : [];
+
+      const requestIds = new Set();
+      for (const log of related.securityLogs) {
+        const meta = log.metadata && typeof log.metadata === 'object' ? log.metadata : {};
+        if (meta.requestId) requestIds.add(String(meta.requestId));
+        if (meta.correlationId) requestIds.add(String(meta.correlationId));
+        if (meta.xRequestId) requestIds.add(String(meta.xRequestId));
+      }
+
+      const aggregatedOr = [
+        {
+          metadata: {
+            path: ['clientIp'],
+            equals: threat.sourceIp,
+          },
+        },
+        {
+          metadata: {
+            path: ['ip'],
+            equals: threat.sourceIp,
+          },
+        },
+      ];
+      if (requestIds.size > 0) {
+        aggregatedOr.push({ requestId: { in: Array.from(requestIds) } });
+      }
+
+      try {
+        related.aggregatedLogs = await prisma.aggregatedLog.findMany({
+          where: {
+            timestamp: { gte: since },
+            level: { in: ['WARN', 'ERROR', 'FATAL'] },
+            OR: aggregatedOr,
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 40,
+        });
+      } catch (aggErr) {
+        if (aggErr.code !== 'P2021' && !String(aggErr.message || '').includes('does not exist')) {
+          logger.warn('Corrélation aggregated_logs partielle:', aggErr.message);
+        }
+        related.aggregatedLogs = [];
+      }
+
       const rejectedCorrelations = [securityLogs, intrusionAttempts, ddosAttacks, networkConnections]
         .filter((result) => result.status === 'rejected');
       if (rejectedCorrelations.length > 0) {
@@ -1362,10 +1425,22 @@ async function blockThreat(req, res) {
     const result = await firewallEngine.blockIp(threat.sourceIp, `Threat: ${threat.threatType}`);
 
     if (result.success) {
+      const prevMeta =
+        threat.metadata && typeof threat.metadata === 'object' && !Array.isArray(threat.metadata)
+          ? threat.metadata
+          : {};
       // Mettre à jour la menace
       await prisma.networkThreat.update({
         where: { id },
-        data: { blocked: true }
+        data: {
+          blocked: true,
+          metadata: {
+            ...prevMeta,
+            blockOrigin: 'manual_rule',
+            blockedAt: new Date().toISOString(),
+            blockedBy: req.user?.id || null
+          }
+        }
       });
 
       // Enregistrer dans les logs de sécurité
@@ -1689,6 +1764,23 @@ async function unblockIp(req, res) {
     const userAgent = req.get('User-Agent') || 'unknown';
     
     if (result.success) {
+      const auditService = require('../services/auditService');
+      await auditService.recordAuditEvent(
+        auditService.auditFromRequest(req, {
+          action: 'ip_unblock',
+          resource: 'firewall_ip',
+          resourceId: ipNorm,
+          outcome: 'success',
+          metadata: {
+            unblockedIp: ipNorm,
+            disabledRules: disabledRulesCount,
+            unblockedThreats: unblockedThreatsCount,
+          },
+        })
+      ).catch((err) => {
+        logger.warn('Audit déblocage IP non enregistré:', err.message);
+      });
+
       await securityService.createSecurityLog({
         level: 'warning',
         category: 'firewall',

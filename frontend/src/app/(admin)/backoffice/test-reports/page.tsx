@@ -1401,7 +1401,7 @@ export default function TestReportsPage() {
             <p className="text-xs text-gray-400 dark:text-gray-600 mt-2">
               Accès :{" "}
               <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">
-                http://localhost:5003/b4ck0ff1ce/test-reports
+                http://localhost:5003/backoffice/test-reports
               </code>
             </p>
           </div>

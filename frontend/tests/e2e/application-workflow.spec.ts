@@ -5,7 +5,7 @@ import { loginAsAdmin } from "./test-data-helper";
 test.describe("🔄 Workflow Complet - Gestion des Candidatures (admin)", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await page.waitForLoadState("domcontentloaded");
   });
 

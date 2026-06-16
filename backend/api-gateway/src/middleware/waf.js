@@ -308,6 +308,12 @@ function mapSeverityToRiskScore(severity) {
   }
 }
 
+function markSkipHttpForensicsAccessLog(res) {
+  if (!res) return;
+  if (!res.locals) res.locals = {};
+  res.locals.skipHttpForensicsAccessLog = true;
+}
+
 async function reportWafDetections(req, detections, clientIP, url, method, userAgent, blocked) {
   const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
   const maxSeverity = detections.reduce((max, detection) => {
@@ -326,11 +332,23 @@ async function reportWafDetections(req, detections, clientIP, url, method, userA
       sourceIP: clientIP,
       endpoint: url,
       method,
+      statusCode: blocked ? 403 : 200,
       userAgent,
       riskScore,
       isBlocked: blocked,
       metadata: {
         source: 'api-gateway-waf',
+        endpoint: url,
+        originalUrl: req?.originalUrl || url,
+        method,
+        httpMethod: method,
+        clientIp: clientIP,
+        ip: clientIP,
+        httpStatus: blocked ? 403 : 200,
+        statusCode: blocked ? 403 : 200,
+        protocol: req?.protocol || 'http',
+        port: req?.socket?.localPort || req?.connection?.localPort || null,
+        serviceName: 'api-gateway',
         detections: detections.map((detection) => ({
           rule: detection.rule,
           severity: detection.severity,
@@ -392,12 +410,20 @@ const wafCheck = async (req, res, next) => {
     // Vérification de la liste noire
     if (BLACKLISTED_IPS.includes(clientIP)) {
       logger.warn('IP blacklistée détectée', {
+        requestId: req.requestId,
+        correlationId: req.correlationId,
         ip: clientIP,
-        url: url,
-        userAgent: userAgent,
-        method: method
+        clientIp: clientIP,
+        endpoint: req.originalUrl || url,
+        method,
+        httpStatus: 403,
+        protocol: req.protocol || 'http',
+        port: req.socket?.localPort || req.connection?.localPort || null,
+        url,
+        userAgent,
       });
 
+      markSkipHttpForensicsAccessLog(res);
       return res.status(403).json({
         success: false,
         error: 'Accès refusé',
@@ -450,24 +476,35 @@ const wafCheck = async (req, res, next) => {
     const detections = [...urlDetections, ...headerDetections, ...userAgentDetections];
 
     if (detections.length > 0) {
-      // Log de l'incident de sécurité
-      logger.warn('Attaque détectée par WAF', {
-        ip: clientIP,
-        url: url,
-        method: method,
-        userAgent: userAgent,
-        detections: detections,
-        timestamp: new Date().toISOString()
-      });
-
-      // Réponse basée sur la sévérité
       const maxSeverity = detections.reduce((max, detection) => {
         const severityLevels = { low: 1, medium: 2, high: 3, critical: 4 };
         return Math.max(max, severityLevels[detection.severity]);
       }, 0);
+      const willBlock = maxSeverity >= 3;
+      // Log de l'incident de sécurité
+      logger.warn('Attaque détectée par WAF', {
+        requestId: req.requestId,
+        correlationId: req.correlationId,
+        ip: clientIP,
+        clientIp: clientIP,
+        endpoint: req.originalUrl || url,
+        originalUrl: req.originalUrl || url,
+        url,
+        method,
+        httpMethod: method,
+        httpStatus: willBlock ? 403 : 200,
+        statusCode: willBlock ? 403 : 200,
+        protocol: req.protocol || 'http',
+        port: req.socket?.localPort || req.connection?.localPort || null,
+        userAgent,
+        detections,
+        timestamp: new Date().toISOString(),
+      });
 
-      if (maxSeverity >= 3) { // high ou critical
+      // Réponse basée sur la sévérité
+      if (willBlock) { // high ou critical
         await reportWafDetections(req, detections, clientIP, url, method, userAgent, true);
+        markSkipHttpForensicsAccessLog(res);
         // Bloquer immédiatement les attaques graves
         return res.status(403).json({
           success: false,
@@ -596,11 +633,19 @@ const adminWAFMiddleware = async (req, res, next) => {
 
   if (ADMIN_WHITELIST.length > 0 && !ADMIN_WHITELIST.includes(clientIP)) {
     logger.warn('Tentative d\'accès admin depuis IP non autorisée', {
+      requestId: req.requestId,
+      correlationId: req.correlationId,
       ip: clientIP,
+      clientIp: clientIP,
+      endpoint: req.originalUrl || req.url,
+      method: req.method,
+      httpStatus: 403,
+      protocol: req.protocol || 'http',
+      port: req.socket?.localPort || req.connection?.localPort || null,
       url: req.url,
-      method: req.method
     });
 
+    markSkipHttpForensicsAccessLog(res);
     return res.status(403).json({
       success: false,
       error: 'Accès refusé',

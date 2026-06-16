@@ -10,9 +10,10 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
-  formatBlockOriginLabel,
+  formatBlockOriginLabelOrUnknown,
   formatFirewallActionLabel,
 } from "@/lib/security/securityLabels";
+import { SecurityNatureBadge } from "@/components/security/SecurityNatureBadge";
 import {
   Shield,
   Plus,
@@ -91,11 +92,17 @@ function formatBlockedIpsOriginsSubtitle(byOrigin: unknown): string {
   const o = byOrigin as Record<string, number>;
   const parts = Object.entries(o)
     .map(([origin, count]) => {
-      const label = formatBlockOriginLabel(origin);
-      return label && count ? `${label} ${count}` : null;
+      const label = formatBlockOriginLabelOrUnknown(origin);
+      return count ? `${label} ${count}` : null;
     })
     .filter(Boolean) as string[];
   return parts.join(" · ");
+}
+
+function firewallBlockedIpEventType(blockOrigin?: string | null): string {
+  if (blockOrigin === "manual_rule") return "ip_blocked_manually";
+  if (blockOrigin === "lab_simulation") return "ip_blocked_lab_simulation";
+  return "ip_blocked_automatically";
 }
 
 const BLOCKED_IPS_PAGE_SIZE = 25;
@@ -132,9 +139,9 @@ export default function FirewallPage() {
   });
   const SAFE_TEST_IP = "203.0.113.77";
 
-  const loadRules = useCallback(async () => {
+  const loadRules = useCallback(async (showInitialLoading = true) => {
     try {
-      setLoading(true);
+      if (showInitialLoading) setLoading(true);
       const response = await axios.get(
         `${API_GATEWAY_URL}/api/v1/security/firewall/rules`,
         {
@@ -149,7 +156,7 @@ export default function FirewallPage() {
         err.response?.data?.error || "Erreur lors du chargement des règles",
       );
     } finally {
-      setLoading(false);
+      if (showInitialLoading) setLoading(false);
     }
   }, []);
 
@@ -194,9 +201,9 @@ export default function FirewallPage() {
     loadRules();
     loadBlockedIps();
     const interval = setInterval(() => {
-      loadRules();
+      loadRules(false);
       loadBlockedIps();
-    }, 30000); // Rafraîchir toutes les 30 secondes
+    }, 30000); // Rafraîchir les blocs données sans remettre la page en skeleton.
     return () => clearInterval(interval);
   }, [loadRules, loadBlockedIps]);
 
@@ -404,13 +411,9 @@ export default function FirewallPage() {
 
           {showAddRule && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-4">
                 Nouvelle règle de firewall
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Créez une règle pour bloquer ou autoriser le trafic réseau. Les
-                règles sont appliquées via iptables.
-              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -493,10 +496,6 @@ export default function FirewallPage() {
                       {formatFirewallActionLabel("ALLOW")} explicitement
                     </option>
                   </select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Bloquer (DROP) : le paquet est supprimé sans réponse.
-                    Rejeter : le paquet est refusé avec un message ICMP.
-                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -864,13 +863,6 @@ export default function FirewallPage() {
               ) : null}
             </p>
           )}
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-            Astuce : pour tester sans risque, utilise l&apos;IP de documentation{" "}
-            <span className="font-mono">{SAFE_TEST_IP}</span> (RFC 5737). Le
-            serveur refuse de bloquer la même IP que celle de ta requête
-            (anti-verrouillage) ; le mode lab n&apos;accepte que cette IP de
-            test.
-          </p>
 
           {showAddBlockedIp && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -931,7 +923,6 @@ export default function FirewallPage() {
           ) : (
             <div className="min-w-0 space-y-2">
               {blockedIps.map((item, index) => {
-                const originLabel = formatBlockOriginLabel(item.blockOrigin);
                 return (
                   <div
                     key={index}
@@ -940,14 +931,16 @@ export default function FirewallPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-lg">{item.ip}</span>
-                        {originLabel && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-100">
-                            {originLabel}
-                          </span>
-                        )}
+                        <SecurityNatureBadge
+                          eventType={firewallBlockedIpEventType(
+                            item.blockOrigin,
+                          )}
+                          blockOrigin={item.blockOrigin}
+                          showOrigin
+                        />
                         {item.threatId && (
                           <Link
-                            href={`/b4ck0ff1ce/security/threats/${item.threatId}`}
+                            href={`/backoffice/security/threats/${item.threatId}`}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
                           >
                             Fiche menace

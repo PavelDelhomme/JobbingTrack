@@ -34,6 +34,26 @@ class DockerService {
   }
 
   /**
+   * Conteneurs JobbingTrack en cours d'exécution (préfixe jobbingtrack-).
+   */
+  async getJobbingTrackContainers() {
+    const containers = await this.listContainers();
+    return containers
+      .map((row) => {
+        const rawName = row.Names || row.names || row.name || '';
+        const name = String(rawName).replace(/^\//, '').trim();
+        return {
+          id: row.ID || row.Id || row.id,
+          name,
+          status: row.Status || row.status || 'running',
+          image: row.Image || row.image || null,
+          labels: row.Labels || row.labels || null,
+        };
+      })
+      .filter((container) => container.name && container.name.startsWith('jobbingtrack-'));
+  }
+
+  /**
    * Récupère les statistiques d'un conteneur spécifique
    * @param {string} containerName - Nom ou ID du conteneur
    * @returns {Promise<Object>} Statistiques du conteneur

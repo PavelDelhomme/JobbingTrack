@@ -3,6 +3,7 @@ applySafeDatabaseUrl()
 
 const express = require('express')
 const http = require('http')
+const crypto = require('crypto')
 const { Server } = require('socket.io')
 const cors = require('cors')
 const helmet = require('helmet')
@@ -13,6 +14,11 @@ const axios = require('axios')
 const Docker = require('dockerode')
 const jwt = require('jsonwebtoken')
 const { normalizeContainerMemoryMb } = require('./services/memoryBudget')
+const dockerService = require('./services/docker.service')
+const {
+  blockIoFromContainerPayload,
+  enrichContainersBlockIoFromDockerStats,
+} = require('./utils/blockIoEnrichment')
 
 // Réduction des logs : moins de bruit conteneurs/monitoring pour se concentrer sur données et tests API.
 // Mettre REDUCE_METRICS_LOGS=0 dans .env pour réactiver les logs verbeux ([PROC], [DISCOVERY], [CONTAINERS], etc.).
@@ -79,7 +85,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'X-Requested-With', 'Accept', 'X-Request-Id', 'X-Correlation-Id'],
+  exposedHeaders: ['X-Request-Id', 'X-Correlation-Id']
 }
 app.use(cors(corsOptions))
 // Middleware de sécurité - après CORS pour éviter les conflits
@@ -88,7 +95,19 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }))
-app.use(morgan('combined'))
+app.use((req, res, next) => {
+  const incomingRequestId = String(req.get('X-Request-Id') || '').trim()
+  const incomingCorrelationId = String(req.get('X-Correlation-Id') || '').trim()
+  const requestId = incomingRequestId || crypto.randomUUID()
+  const correlationId = incomingCorrelationId || requestId
+  req.requestId = requestId
+  req.correlationId = correlationId
+  res.setHeader('X-Request-Id', requestId)
+  res.setHeader('X-Correlation-Id', correlationId)
+  next()
+})
+morgan.token('request-id', (req) => req.requestId || '-')
+app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" requestId=:request-id'))
 app.use(express.json())
 
 // Middleware d'authentification pour les métriques (activé si ENABLE_METRICS_AUTH=true ou NODE_ENV=production)
@@ -769,28 +788,30 @@ async function collectAllMetrics() {
             containerMetrics[containerName] = {}
           }
           
-          containerMetrics[containerName] = {
-            ...containerMetrics[containerName],
-            cpu: {
-              percentage: container.cpu_percent || 0,
-              usage: container.cpu_percent || 0
-            },
-            memory: {
-              usage: container.memory_mb || 0,
-              limit: container.memory_limit_mb || 0,
-              percentage: container.memory_percent || 0,
-              usageMb: container.memory_mb || 0,
-              limitMb: container.memory_limit_mb || 0
-            },
-            network: {
-              rx: container.network_rx_bytes || 0,
-              tx: container.network_tx_bytes || 0,
-              rx_mb: container.network_rx_mb || (container.network_rx_bytes ? container.network_rx_bytes / (1024 * 1024) : 0),
-              tx_mb: container.network_tx_mb || (container.network_tx_bytes ? container.network_tx_bytes / (1024 * 1024) : 0)
-            },
-            responseTimeMs: container.response_time_ms || null,
-            httpStatus: container.http_status || 0
-          }
+            const blockIO = blockIoFromContainerPayload(container)
+            containerMetrics[containerName] = {
+              ...containerMetrics[containerName],
+              cpu: {
+                percentage: container.cpu_percent || 0,
+                usage: container.cpu_percent || 0
+              },
+              memory: {
+                usage: container.memory_mb || 0,
+                limit: container.memory_limit_mb || 0,
+                percentage: container.memory_percent || 0,
+                usageMb: container.memory_mb || 0,
+                limitMb: container.memory_limit_mb || 0
+              },
+              network: {
+                rx: container.network_rx_bytes || 0,
+                tx: container.network_tx_bytes || 0,
+                rx_mb: container.network_rx_mb || (container.network_rx_bytes ? container.network_rx_bytes / (1024 * 1024) : 0),
+                tx_mb: container.network_tx_mb || (container.network_tx_bytes ? container.network_tx_bytes / (1024 * 1024) : 0)
+              },
+              ...(blockIO ? { blockIO } : {}),
+              responseTimeMs: container.response_time_ms || null,
+              httpStatus: container.http_status || 0
+            }
         })
       }
       prof.step('merge_monitoring_c_container_rows')
@@ -1242,32 +1263,10 @@ async function collectAllMetrics() {
         const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
         logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis ${monitoringCData.source || 'monitoring'} pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         toSave.forEach(container => {
-          const asNum = (...vals) => {
-            for (const v of vals) {
-              const n = Number(v)
-              if (Number.isFinite(n)) return n
-            }
-            return 0
-          }
           const containerName = container.name || 'unknown'
           const memMb = Number(container.memory_mb) || 0
           const limitMb = Number(container.memory_limit_mb) || 0
-          const blockReadBytes = asNum(
-            container.block_read_bytes,
-            container.block_io_read_bytes,
-            container.blkio_read_bytes,
-            container.io_read_bytes,
-            container.block_read,
-            container.blkio_read
-          )
-          const blockWriteBytes = asNum(
-            container.block_write_bytes,
-            container.block_io_write_bytes,
-            container.blkio_write_bytes,
-            container.io_write_bytes,
-            container.block_write,
-            container.blkio_write
-          )
+          const blockIO = blockIoFromContainerPayload(container)
           containersForDb[containerName] = {
             cpu: {
               percentage: container.cpu_percent || 0,
@@ -1282,10 +1281,7 @@ async function collectAllMetrics() {
               rx: Math.round(Number(container.network_rx_bytes) || 0),
               tx: Math.round(Number(container.network_tx_bytes) || 0)
             },
-            blockIO: {
-              read: Math.round(blockReadBytes),
-              write: Math.round(blockWriteBytes)
-            },
+            ...(blockIO ? { blockIO } : {}),
             status: container.http_status === 200 ? 'running' : 'unknown'
           }
         })
@@ -1319,6 +1315,11 @@ async function collectAllMetrics() {
       })
       
       logIfVerbose(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
+      await enrichContainersBlockIoFromDockerStats(
+        containersForDb,
+        dockerService,
+        isJobbingTrackContainer,
+      )
       await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
       // Sauvegarder la disponibilité des services (silencieux si table absente)

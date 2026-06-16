@@ -3,7 +3,7 @@ import config from "./test-config.js";
 
 test.describe("👑 Fonctionnalités Administrateur Avancées", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/b4ck0ff1ce");
+    await page.goto("/backoffice");
     await page.waitForLoadState("domcontentloaded");
   });
 

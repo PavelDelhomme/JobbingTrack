@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const logger = require('./utils/logger');
 const { requestContextMiddleware } = require('./utils/requestContext');
 const workflowRoutes = require('./routes/workflowRoutes');
@@ -29,6 +30,7 @@ app.use(
   })
 );
 app.use(requestContextMiddleware);
+app.use(morgan('dev', { stream: { write: (msg) => logger.info(msg.trim()) } }));
 app.use(express.json());
 
 app.get('/health', (req, res) => {

@@ -4,6 +4,7 @@ import { useId, useMemo } from "react";
 import {
   Area,
   AreaChart,
+  Brush,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -31,6 +32,12 @@ export type SystemCpuMemoryAreaChartsProps = {
   chartHeight?: number;
   /** Rendu plus visible pour les snapshots/fallback live avec peu de points. */
   emphasizePoints?: boolean;
+  brushStartIndex?: number;
+  brushEndIndex?: number;
+  onBrushChange?: (range: {
+    startIndex?: number;
+    endIndex?: number;
+  }) => void;
 };
 
 function tooltipLabel(_: unknown, payload: unknown) {
@@ -50,6 +57,9 @@ export function SystemCpuMemoryAreaCharts({
   axisShowDate,
   chartHeight = 220,
   emphasizePoints = false,
+  brushStartIndex,
+  brushEndIndex,
+  onBrushChange,
 }: SystemCpuMemoryAreaChartsProps) {
   const uid = useId().replace(/:/g, "");
   const cpuFillId = `sysCpuGrad-${uid}`;
@@ -60,7 +70,17 @@ export function SystemCpuMemoryAreaCharts({
   const memMax = useMemo(() => systemMemoryAxisMax(rows), [rows]);
 
   const bottom = axisShowDate ? 72 : 60;
+  const memoryBottom =
+    onBrushChange != null &&
+    brushStartIndex != null &&
+    brushEndIndex != null
+      ? bottom + 24
+      : bottom;
   const angle = axisShowDate ? -40 : -35;
+  const showBrush =
+    onBrushChange != null &&
+    brushStartIndex != null &&
+    brushEndIndex != null;
 
   return (
     <div className="space-y-8">
@@ -134,7 +154,7 @@ export function SystemCpuMemoryAreaCharts({
         <ResponsiveContainer width="100%" height={chartHeight} minHeight={180}>
           <AreaChart
             data={rows}
-            margin={{ top: 8, right: 16, left: 4, bottom: bottom }}
+            margin={{ top: 8, right: 16, left: 4, bottom: memoryBottom }}
           >
             <defs>
               <linearGradient id={memFillId} x1="0" y1="0" x2="0" y2="1">
@@ -154,7 +174,7 @@ export function SystemCpuMemoryAreaCharts({
               stroke="#9CA3AF"
               angle={angle}
               textAnchor="end"
-              height={bottom}
+              height={memoryBottom}
               minTickGap={axisShowDate ? 32 : 22}
               tickFormatter={(ms) =>
                 formatLocalChartAxisTick(ms, { withDate: axisShowDate })
@@ -186,6 +206,21 @@ export function SystemCpuMemoryAreaCharts({
               dot={emphasizePoints ? { r: 3 } : false}
               activeDot={{ r: 5 }}
             />
+            {showBrush ? (
+              <Brush
+                dataKey="timeMs"
+                height={18}
+                travellerWidth={8}
+                startIndex={brushStartIndex}
+                endIndex={brushEndIndex}
+                tickFormatter={(ms) =>
+                  formatLocalChartAxisTick(ms as number, {
+                    withDate: axisShowDate,
+                  })
+                }
+                onChange={onBrushChange}
+              />
+            ) : null}
           </AreaChart>
         </ResponsiveContainer>
       </div>

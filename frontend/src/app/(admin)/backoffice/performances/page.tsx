@@ -48,6 +48,7 @@ import type { MetricsData } from "@/lib/interfaces";
 import {
   PerformanceChartCard,
   PerformanceEmptyState,
+  PerformanceHistoryCaption,
   PerformanceInfoNotice,
   PerformanceLoadingState,
   PerformancePageShell,
@@ -152,7 +153,7 @@ const METRIC_GAP_MS = 15 * 60 * 1000;
 
 /**
  * Performances système (CPU, mémoire, réseau) — entrée principale **Tableau de bord → Performances**.
- * Ancienne URL `/b4ck0ff1ce/analytics/performances` redirige ici (lot A, socle graphes).
+ * Ancienne URL `/backoffice/analytics/performances` redirige ici (lot A, socle graphes).
  */
 export default function PerformancesPage() {
   const [rawData, setRawData] = useState<SystemMetric[]>([]);
@@ -430,7 +431,7 @@ export default function PerformancesPage() {
     return windowEnd.getTime() < now.getTime();
   }, [useCustomRange, customEnd, timeRange, windowEnd]);
 
-  const targetPoints = 200;
+  const targetPoints = 160;
   const chartData = useMemo(() => {
     if (rawData.length === 0) return [];
     const keys: (keyof SystemMetric)[] = [
@@ -480,50 +481,8 @@ export default function PerformancesPage() {
       };
     });
   }, [rawData]);
-  const dataTimeBounds = useMemo(() => {
-    const points = chartData
-      .filter((d) => Number.isFinite(d.timeMs))
-      .filter(
-        (d) =>
-          d.cpu != null ||
-          d.memory != null ||
-          d.networkRxMb != null ||
-          d.networkTxMb != null ||
-          d.responseTimeMs != null,
-      );
-    if (points.length === 0) return null;
-    const first = points[0]?.timeMs;
-    const last = points[points.length - 1]?.timeMs;
-    if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
-    return { min: Number(first), max: Number(last) };
-  }, [chartData]);
-  const chartDomain = useMemo(() => {
-    if (!dataTimeBounds) {
-      return {
-        min: requestedDomainMin,
-        max: requestedDomainMax,
-        autoFitted: false,
-      };
-    }
-    const requestedSpan = Math.max(1, requestedDomainMax - requestedDomainMin);
-    const dataSpan = Math.max(1, dataTimeBounds.max - dataTimeBounds.min);
-    const coverageRatio = dataSpan / requestedSpan;
-    // Si la période demandée est largement vide (service démarré récemment), on cadre sur la vraie plage.
-    if (coverageRatio < 0.45) {
-      return {
-        min: dataTimeBounds.min,
-        max: dataTimeBounds.max,
-        autoFitted: true,
-      };
-    }
-    return {
-      min: requestedDomainMin,
-      max: requestedDomainMax,
-      autoFitted: false,
-    };
-  }, [dataTimeBounds, requestedDomainMin, requestedDomainMax]);
-  const chartXDomainMin = chartDomain.min;
-  const chartXDomainMax = chartDomain.max;
+  const chartXDomainMin = requestedDomainMin;
+  const chartXDomainMax = requestedDomainMax;
 
   const perfAxisShowDate =
     chartXDomainMax - chartXDomainMin > 24 * 60 * 60 * 1000;
@@ -589,7 +548,7 @@ export default function PerformancesPage() {
   return (
     <PerformancePageShell
       title="Performances"
-      backHref="/b4ck0ff1ce"
+      backHref="/backoffice"
       backLabel="Tableau de bord"
       topLinks={
         <>
@@ -597,7 +556,7 @@ export default function PerformancesPage() {
             |
           </span>
           <Link
-            href="/b4ck0ff1ce/analytics"
+            href="/backoffice/analytics"
             className="inline-flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             Analytics (appli &amp; utilisateurs)
@@ -637,6 +596,13 @@ export default function PerformancesPage() {
         </PerformanceEmptyState>
       ) : (
         <>
+          <PerformanceHistoryCaption
+            source="system_metrics"
+            timeRangeLabel={rangeLabel}
+            rawPoints={rawData.length}
+            renderedPoints={chartData.length}
+            note="Synthèse CPU, mémoire, latence et réseau ; débits réseau dérivés côté UI"
+          />
           <PerformanceChartCard title="CPU et mémoire (%)">
             <div className="w-full min-h-[240px] sm:min-h-[400px]">
               <SystemCpuMemoryAreaCharts
@@ -737,12 +703,6 @@ export default function PerformancesPage() {
             </PerformanceChartCard>
           )}
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-            <span className="block">
-              {rawData.length} points bruts → {chartData.length} points affichés
-              (compression pour lisibilité).
-            </span>
-          </p>
         </>
       )}
 

@@ -23,6 +23,7 @@ describe("performanceCorrelationModel", () => {
     expect(
       buildIncidentEmptyReason({
         requestId: null,
+        httpMethod: null,
         endpoint: null,
         ip: null,
         protocol: null,

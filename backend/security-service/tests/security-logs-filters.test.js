@@ -80,6 +80,27 @@ describe('securityService.getSecurityLogs', () => {
     );
   });
 
+  it('filtre explicitement par requestId et recherche les identifiants de corrélation', async () => {
+    await securityService.getSecurityLogs({
+      requestId: 'req-123',
+      q: 'corr-456'
+    });
+
+    expect(mockPrisma.securityLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          metadata: { path: ['requestId'], equals: 'req-123' },
+          OR: expect.arrayContaining([
+            { metadata: { path: ['requestId'], equals: 'corr-456' } },
+            { metadata: { path: ['correlationId'], equals: 'corr-456' } },
+            { metadata: { path: ['xRequestId'], equals: 'corr-456' } },
+            { metadata: { path: ['x-request-id'], equals: 'corr-456' } }
+          ])
+        })
+      })
+    );
+  });
+
   it('prépare les suggestions de filtres depuis les logs récents', async () => {
     mockPrisma.securityLog.findMany.mockResolvedValueOnce([
       {
@@ -89,7 +110,8 @@ describe('securityService.getSecurityLogs', () => {
         sourceIP: '198.51.100.42',
         endpoint: '/api/v1/auth/login',
         method: 'POST',
-        message: 'Échec de connexion lab'
+        message: 'Échec de connexion lab',
+        metadata: { requestId: 'req-auth-1' }
       },
       {
         level: 'critical',
@@ -98,7 +120,8 @@ describe('securityService.getSecurityLogs', () => {
         sourceIP: '203.0.113.77',
         endpoint: '/api/v1/admin',
         method: 'GET',
-        message: 'Payload SQLi bloqué'
+        message: 'Payload SQLi bloqué',
+        metadata: { correlationId: 'corr-waf-1' }
       },
       {
         level: 'warning',
@@ -107,7 +130,8 @@ describe('securityService.getSecurityLogs', () => {
         sourceIP: '198.51.100.42',
         endpoint: '/api/v1/auth/login',
         method: 'POST',
-        message: 'Échec de connexion lab'
+        message: 'Échec de connexion lab',
+        metadata: { requestId: 'req-auth-1' }
       }
     ]);
 
@@ -123,7 +147,8 @@ describe('securityService.getSecurityLogs', () => {
           category: true,
           eventType: true,
           sourceIP: true,
-          endpoint: true
+          endpoint: true,
+          metadata: true
         })
       })
     );
@@ -131,5 +156,7 @@ describe('securityService.getSecurityLogs', () => {
     expect(facets.categories[0]).toEqual({ value: 'auth', count: 2 });
     expect(facets.eventTypes[0]).toEqual({ value: 'login_failed', count: 2 });
     expect(facets.sourceIPs[0]).toEqual({ value: '198.51.100.42', count: 2 });
+    expect(facets.requestIds[0]).toEqual({ value: 'req-auth-1', count: 2 });
+    expect(facets.requestIds[1]).toEqual({ value: 'corr-waf-1', count: 1 });
   });
 });

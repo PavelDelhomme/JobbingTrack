@@ -15,4 +15,19 @@ class ApiConfigStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyBaseUrl, url.trim());
   }
+
+  static const _keyDeviceId = 'security_device_id';
+
+  /// Identifiant stable par appareil pour corrélation sécurité mobile (B9).
+  static Future<String> getOrCreateDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_keyDeviceId);
+    if (existing != null && existing.trim().isNotEmpty) {
+      return existing.trim();
+    }
+    final id =
+        'mob-${DateTime.now().millisecondsSinceEpoch}-${DateTime.now().microsecond}';
+    await prefs.setString(_keyDeviceId, id);
+    return id;
+  }
 }

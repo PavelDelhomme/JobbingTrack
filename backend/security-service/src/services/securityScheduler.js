@@ -415,6 +415,31 @@ class SecurityScheduler {
       });
       payload = response.data;
     } catch (error) {
+      try {
+        const healthResponse = await axios.get(`${baseUrl.replace(/\/$/, '')}/api/v1/health`, {
+          timeout: Math.min(timeout, 3000),
+          headers
+        });
+        const healthStatus = String(healthResponse.data?.status || '').toLowerCase();
+        if (healthResponse.status < 500 && ['online', 'healthy', 'ok'].includes(healthStatus)) {
+          logger.warn(
+            'metrics-aggregator répond au healthcheck mais pas à docker/services/all dans le délai imparti',
+            { error: error.message, metricsServiceUrl: baseUrl }
+          );
+          return {
+            checked: 0,
+            alerts: 0,
+            degraded: true,
+            error: error.message
+          };
+        }
+      } catch (healthError) {
+        logger.warn('Healthcheck metrics-aggregator échoué après timeout services/all', {
+          error: healthError.message,
+          metricsServiceUrl: baseUrl
+        });
+      }
+
       await this.createAvailabilityAlert({
         level: 'critical',
         title: 'Metrics aggregator indisponible',
