@@ -376,29 +376,12 @@ describe("ServiceDetailPage", () => {
       render(<ServiceDetailPage />);
 
       await waitFor(() => {
+        expect(screen.getByText(/^Utilisation CPU$/)).toBeInTheDocument();
+        expect(screen.getByText(/^Utilisation Mémoire$/)).toBeInTheDocument();
+        expect(screen.getByText(/^Traffic Réseau$/)).toBeInTheDocument();
+        expect(screen.getByText(/^Block I\/O \(cumul\)$/)).toBeInTheDocument();
         expect(
-          screen.getByRole("heading", { level: 3, name: /Utilisation CPU/ }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", {
-            level: 3,
-            name: /Utilisation Mémoire/,
-          }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", { level: 3, name: /Traffic Réseau/ }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", {
-            level: 3,
-            name: /Block I\/O \(cumul\)/,
-          }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", {
-            level: 3,
-            name: /Block I\/O — débit estimé/,
-          }),
+          screen.getByText(/^Block I\/O — débit observé$/),
         ).toBeInTheDocument();
       });
     });
