@@ -60,9 +60,19 @@ function devHttpsPort(): string {
   return /^\d+$/.test(String(raw).trim()) ? String(raw).trim() : "5443";
 }
 
-/** API gateway derrière Nginx TLS (`api.jobbingtrack.localhost:5443`). */
-function devHttpsApiOrigin(): string {
-  return `https://api.jobbingtrack.localhost:${devHttpsPort()}`;
+/** API gateway derrière Nginx TLS (`api.jobbingtrack.localhost`). */
+function devHttpsApiOrigin(browserPort?: string): string {
+  const configured = devHttpsPort();
+  const effectivePort =
+    browserPort === "" || browserPort === "443"
+      ? "443"
+      : browserPort && /^\d+$/.test(browserPort)
+        ? browserPort
+        : configured;
+  if (effectivePort === "443") {
+    return "https://api.jobbingtrack.localhost";
+  }
+  return `https://api.jobbingtrack.localhost:${effectivePort}`;
 }
 
 function isPrivateLanHostname(hostname: string): boolean {
@@ -73,38 +83,67 @@ function isPrivateLanHostname(hostname: string): boolean {
   );
 }
 
+/** Origine navigateur → API same-origin via Nginx dev (`/api/*` → gateway). */
+function devHttpsSameOrigin(
+  hostname: string,
+  port: string,
+  protocol: string,
+): string {
+  const portSuffix =
+    port && port !== "443" && port !== "" ? `:${port}` : "";
+  return `${protocol}//${hostname}${portSuffix}`;
+}
+
+function shouldUseDevHttpsSameOriginApi(
+  protocol: string,
+  hostname: string,
+  port: string,
+): boolean {
+  if (process.env.NODE_ENV === "production" || protocol !== "https:") {
+    return false;
+  }
+  const httpsDevPort = devHttpsPort();
+  const isJobbingtrackHost =
+    hostname === "jobbingtrack.localhost" ||
+    hostname.endsWith(".jobbingtrack.localhost");
+  if (
+    isJobbingtrackHost &&
+    (port === httpsDevPort || port === "443" || port === "")
+  ) {
+    return true;
+  }
+  // LAN mobile : pas de résolution `api.jobbingtrack.localhost`.
+  return port === httpsDevPort && isPrivateLanHostname(hostname);
+}
+
 const getApiUrl = () => {
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
-    const isJobbingtrackHost =
-      hostname === "jobbingtrack.localhost" ||
-      hostname.endsWith(".jobbingtrack.localhost");
     const httpsDevPort = devHttpsPort();
 
-    // Accès depuis un téléphone/tablette sur le réseau local :
-    // le device ne résout pas `api.jobbingtrack.localhost`, donc l'API passe
-    // par la même origine Nginx HTTPS (`/api/*` → api-gateway), en dev uniquement.
-    if (
-      process.env.NODE_ENV !== "production" &&
-      protocol === "https:" &&
-      port === httpsDevPort &&
-      isPrivateLanHostname(hostname)
-    ) {
-      return `${protocol}//${hostname}:${port}`;
+    // Dev HTTPS : API sur la même origine Nginx (évite CORS api.* et port 443).
+    if (shouldUseDevHttpsSameOriginApi(protocol, hostname, port)) {
+      return devHttpsSameOrigin(hostname, port, protocol);
     }
 
-    // Page servie en HTTPS (ex. https://jobbingtrack.localhost:5443) → API TLS sur sous-domaine api.*
+    // Autres pages HTTPS (sous-domaine api.* explicite, ports atypiques).
     if (
       protocol === "https:" &&
       (port === httpsDevPort ||
-        (isJobbingtrackHost && port !== String(EXTERNAL_PORTS.API_GATEWAY)))
+        port === "443" ||
+        (port === "" &&
+          (hostname === "jobbingtrack.localhost" ||
+            hostname.endsWith(".jobbingtrack.localhost"))) ||
+        ((hostname === "jobbingtrack.localhost" ||
+          hostname.endsWith(".jobbingtrack.localhost")) &&
+          port !== String(EXTERNAL_PORTS.API_GATEWAY)))
     ) {
-      return devHttpsApiOrigin();
+      return devHttpsApiOrigin(port);
     }
 
     // Ne jamais parler TLS au port gateway HTTP (5002) — provoque ERR_SSL_PROTOCOL_ERROR
     if (protocol === "https:" && port === String(EXTERNAL_PORTS.API_GATEWAY)) {
-      return devHttpsApiOrigin();
+      return devHttpsApiOrigin(port);
     }
 
     if (protocol === "http:") {
@@ -118,7 +157,7 @@ const getApiUrl = () => {
   if (fromEnv) return fromEnv.replace(/\/$/, "");
 
   // SSR / premier paint : défaut documenté (.env.example / docker-compose)
-  return devHttpsApiOrigin();
+  return devHttpsApiOrigin(devHttpsPort());
 };
 
 /** URLs résolues à l’usage (évite une inlining Turbopack incorrecte au chargement du module). */
