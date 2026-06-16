@@ -8,6 +8,7 @@ import {
   summarizeDockerServiceHealth,
 } from "../serviceHealthOverview";
 import {
+  averagePriorityResponseTimeMs,
   formatServiceResponseTime,
   isNonHttpDependency,
   isPriorityResponseService,
@@ -181,5 +182,21 @@ describe("serviceHealthOverview", () => {
     expect(formatServiceResponseTime(7.4, "notification-service")).toBe("7ms");
     expect(formatServiceResponseTime(0, "auth-service")).toBe("N/A");
     expect(formatServiceResponseTime(0, "postgres")).toBe("Santé Docker");
+  });
+
+  it("calcule la moyenne depuis les seuls endpoints P1B affichables", () => {
+    expect(
+      averagePriorityResponseTimeMs([
+        { name: "jobbingtrack-auth-service", responseTime: 10 },
+        { name: "jobbingtrack-notification-service", responseTime: 20 },
+        { name: "jobbingtrack-company-service", responseTime: 999 },
+        {
+          name: "jobbingtrack-postgres",
+          responseTime: 1,
+          nonHttpDependency: true,
+        },
+        { name: "jobbingtrack-call-service", responseTime: 0 },
+      ]),
+    ).toBe(15);
   });
 });

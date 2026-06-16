@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   PRIORITY_RESPONSE_SERVICES,
   RESPONSE_TIME_SOURCE_NOTE,
+  averagePriorityResponseTimeMs,
   isPriorityResponseService,
   normalizeServiceShortName,
 } from "@/lib/metrics/responseTimePresentation";
@@ -44,6 +45,7 @@ export function PriorityResponseServicesSummary({
   className = "",
 }: PriorityResponseServicesSummaryProps) {
   const priority = sortByPriority(services);
+  const averageMs = averagePriorityResponseTimeMs(priority);
 
   return (
     <div
@@ -65,6 +67,14 @@ export function PriorityResponseServicesSummary({
           Détail latence →
         </Link>
       </div>
+      {averageMs != null ? (
+        <p className="text-xs text-blue-900/80 dark:text-blue-100/80">
+          Moyenne des endpoints affichés :{" "}
+          <strong className="font-semibold tabular-nums">
+            {Math.round(averageMs)}ms
+          </strong>
+        </p>
+      ) : null}
 
       {priority.length === 0 ? (
         <p className="text-xs text-blue-900/70 dark:text-blue-100/70">

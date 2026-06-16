@@ -46,6 +46,7 @@ import {
   summarizeDockerServiceHealth,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
+import { averagePriorityResponseTimeMs } from "@/lib/metrics/responseTimePresentation";
 import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
 
 const API_URL = FRONTEND_URLS.api;
@@ -354,6 +355,10 @@ export default function BackofficePage() {
         filterMetricsListToActive(servicesWithMetrics),
       ),
     [dockerServicesSnapshot, servicesWithMetrics],
+  );
+  const priorityAverageResponseTimeMs = useMemo(
+    () => averagePriorityResponseTimeMs(priorityStatisticsServices),
+    [priorityStatisticsServices],
   );
 
   /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
@@ -1180,12 +1185,11 @@ export default function BackofficePage() {
             <MetricCard
               title="Temps de réponse"
               value={
-                stats.averageResponseTime != null &&
-                typeof stats.averageResponseTime === "number"
-                  ? `${Math.round(stats.averageResponseTime)}ms`
+                priorityAverageResponseTimeMs != null
+                  ? `${Math.round(priorityAverageResponseTimeMs)}ms`
                   : "N/A"
               }
-              subtitle="Moyenne agrégée"
+              subtitle="Moyenne endpoints affichés"
               icon={<Clock className="h-6 w-6" />}
               color="purple"
             />
@@ -1884,14 +1888,13 @@ export default function BackofficePage() {
               <div className="flex justify-between items-center">
                 <span
                   className="text-sm text-gray-600 dark:text-gray-400"
-                  title="Moyenne remontée par monitoring / metrics-aggregator (fenêtre courante)"
+                  title="Moyenne calculée depuis les services prioritaires affichés dans le panneau Temps de réponse P1B"
                 >
-                  Temps de réponse (moy.)
+                  Temps de réponse endpoints (moy.)
                 </span>
                 <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                  {typeof stats.averageResponseTime === "number" &&
-                  !Number.isNaN(stats.averageResponseTime)
-                    ? `${Math.round(stats.averageResponseTime)}ms`
+                  {priorityAverageResponseTimeMs != null
+                    ? `${Math.round(priorityAverageResponseTimeMs)}ms`
                     : "N/A"}
                 </span>
               </div>

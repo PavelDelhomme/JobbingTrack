@@ -82,6 +82,101 @@ function toIsoUtcString(ts) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+function mapRawSystemMetricsRows(rawResults) {
+  return rawResults
+    .map((row) => {
+      const iso = toIsoUtcString(row.timestamp);
+      if (!iso) return null;
+      const timestamp = new Date(iso);
+      const timestampMs = timestamp.getTime();
+      return {
+        id: `system_${timestamp.getTime()}`,
+        timestamp: iso,
+        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
+        cpuUsagePercent: row.cpu_usage_percent || 0,
+        cpu_percent: row.cpu_usage_percent || 0,
+        cpuCores: row.cpu_cores || 0,
+        cpuLoadAverage1m: row.cpu_load_1,
+        cpuLoadAverage5m: row.cpu_load_5,
+        cpuLoadAverage15m: row.cpu_load_15,
+        memoryUsagePercent: row.memory_usage_percent || 0,
+        memory_usage_percent: row.memory_usage_percent || 0,
+        memoryUsedBytes: row.memory_used_mb
+          ? Number(row.memory_used_mb) * 1024 * 1024
+          : 0,
+        memoryTotalBytes: row.memory_total_mb
+          ? Number(row.memory_total_mb) * 1024 * 1024
+          : 0,
+        memoryFreeBytes: row.memory_free_mb
+          ? Number(row.memory_free_mb) * 1024 * 1024
+          : 0,
+        diskUsagePercent: row.disk_usage_percent,
+        diskUsedBytes: row.disk_used_gb
+          ? Math.round(Number(row.disk_used_gb) * 1024 * 1024 * 1024)
+          : null,
+        diskTotalBytes: row.disk_total_gb
+          ? Math.round(Number(row.disk_total_gb) * 1024 * 1024 * 1024)
+          : null,
+        diskFreeBytes: row.disk_free_gb
+          ? Math.round(Number(row.disk_free_gb) * 1024 * 1024 * 1024)
+          : null,
+        networkRxBytes: row.total_network_rx_bytes
+          ? Number(row.total_network_rx_bytes)
+          : null,
+        networkTxBytes: row.total_network_tx_bytes
+          ? Number(row.total_network_tx_bytes)
+          : null,
+        total_network_rx_bytes: row.total_network_rx_bytes
+          ? Number(row.total_network_rx_bytes)
+          : null,
+        total_network_tx_bytes: row.total_network_tx_bytes
+          ? Number(row.total_network_tx_bytes)
+          : null,
+        availabilityPercent: row.availability_percent,
+        loadScore: row.load_score,
+        errorCount: null,
+        errorRate: null,
+        responseTimeAvg: row.avg_response_time_ms,
+        project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
+        project_memory_mb: row.project_memory_mb
+          ? Number(row.project_memory_mb)
+          : null,
+        createdAt: iso,
+        _historySource: 'system_metrics',
+      };
+    })
+    .filter(Boolean);
+}
+
+function mergeSystemMetricRows(rows, options = {}) {
+  const { startDate = null, endDate = null } = options;
+  const limit = clampMetricsHistoryLimit(options.limit, 100);
+  const offset = Number.parseInt(options.offset, 10) || 0;
+  const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+  const startEpoch = sqlEpochSeconds(startDate);
+  const byBucket = new Map();
+
+  for (const row of rows) {
+    const timestampMs = Number(row?.timestampMs ?? Date.parse(row?.timestamp || ''));
+    if (!Number.isFinite(timestampMs)) continue;
+    const bucketKey =
+      bucketSeconds && startEpoch != null
+        ? Math.floor((Math.floor(timestampMs / 1000) - startEpoch) / bucketSeconds)
+        : timestampMs;
+    const current = byBucket.get(bucketKey);
+    const rowIsRaw = row._historySource === 'system_metrics';
+    const currentIsRaw = current?._historySource === 'system_metrics';
+    if (!current || (rowIsRaw && !currentIsRaw)) {
+      byBucket.set(bucketKey, row);
+    }
+  }
+
+  return Array.from(byBucket.values())
+    .sort((a, b) => Number(b.timestampMs || 0) - Number(a.timestampMs || 0))
+    .slice(offset, offset + limit)
+    .map(({ _historySource, ...row }) => row);
+}
+
 function buildNearestContainerBlockIoLookup(rows, maxDistanceMs = 120000) {
   const points = Array.isArray(rows)
     ? rows
@@ -681,6 +776,7 @@ class PersistenceService {
       endDate = null,
     } = options;
     const limit = clampMetricsHistoryLimit(rawLimit, 100);
+    const offsetInt = Number.parseInt(offset, 10) || 0;
     const tsExpr = systemMetricsTimestampAtTzSql();
 
     const where = {};
@@ -777,7 +873,7 @@ class PersistenceService {
           FROM bucketed
           GROUP BY bucket
           ORDER BY "timestamp" DESC
-          LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          LIMIT ${limit + offsetInt} OFFSET 0
         `;
       } else {
         query = `
@@ -808,7 +904,7 @@ class PersistenceService {
             project_memory_mb
           FROM system_metrics
           ${whereSql}
-          ORDER BY ${tsExpr} DESC LIMIT ${limit} OFFSET ${Number.parseInt(offset, 10) || 0}
+          ORDER BY ${tsExpr} DESC LIMIT ${limit + offsetInt} OFFSET 0
         `;
       }
       
@@ -844,44 +940,27 @@ class PersistenceService {
         console.log('[PERSISTENCE] 🔍 Premier résultat:', JSON.stringify(firstRowForLog, null, 2));
       }
       
-      // Convertir les résultats en format compatible avec SystemMetricsSnapshot
-      return rawResults
-        .map((row) => {
-        const iso = toIsoUtcString(row.timestamp);
-        if (!iso) return null;
-        const timestamp = new Date(iso);
-        const timestampMs = timestamp.getTime();
-        return {
-        id: `system_${timestamp.getTime()}`,
-        timestamp: iso,
-        timestampMs: Number.isFinite(timestampMs) ? timestampMs : undefined,
-        cpuUsagePercent: row.cpu_usage_percent || 0,
-        cpuCores: row.cpu_cores || 0,
-        cpuLoadAverage1m: row.cpu_load_1,
-        cpuLoadAverage5m: row.cpu_load_5,
-        cpuLoadAverage15m: row.cpu_load_15,
-        memoryUsagePercent: row.memory_usage_percent || 0,
-        memoryUsedBytes: row.memory_used_mb ? Number(row.memory_used_mb) * 1024 * 1024 : 0,
-        memoryTotalBytes: row.memory_total_mb ? Number(row.memory_total_mb) * 1024 * 1024 : 0,
-        memoryFreeBytes: row.memory_free_mb ? Number(row.memory_free_mb) * 1024 * 1024 : 0,
-        diskUsagePercent: row.disk_usage_percent,
-        diskUsedBytes: row.disk_used_gb ? Math.round(Number(row.disk_used_gb) * 1024 * 1024 * 1024) : null,
-        diskTotalBytes: row.disk_total_gb ? Math.round(Number(row.disk_total_gb) * 1024 * 1024 * 1024) : null,
-        diskFreeBytes: row.disk_free_gb ? Math.round(Number(row.disk_free_gb) * 1024 * 1024 * 1024) : null,
-        networkRxBytes: row.total_network_rx_bytes ? Number(row.total_network_rx_bytes) : null,
-        networkTxBytes: row.total_network_tx_bytes ? Number(row.total_network_tx_bytes) : null,
-        availabilityPercent: row.availability_percent,
-        loadScore: row.load_score,
-        errorCount: null,
-        errorRate: null,
-        responseTimeAvg: row.avg_response_time_ms,
-        // ✅ NOUVEAU : Inclure project_cpu_avg et project_memory_mb depuis system_metrics
-        project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
-        project_memory_mb: row.project_memory_mb ? Number(row.project_memory_mb) : null,
-        createdAt: iso
-      };
-      })
-        .filter(Boolean);
+      const rawRows = mapRawSystemMetricsRows(rawResults);
+      let snapshotRows = [];
+      try {
+        snapshotRows = await this.getSystemMetricsHistoryFromSnapshot({
+          ...options,
+          offset: 0,
+          limit: limit + offsetInt,
+        });
+      } catch (snapshotError) {
+        console.warn(
+          '[PERSISTENCE] ⚠️ Fusion snapshots ignorée:',
+          snapshotError.message,
+        );
+      }
+
+      return mergeSystemMetricRows([...rawRows, ...snapshotRows], {
+        startDate,
+        endDate,
+        limit,
+        offset: offsetInt,
+      });
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('table')) {
@@ -905,6 +984,7 @@ class PersistenceService {
     if (!this.isDatabaseEnabled()) return [];
     const { offset = 0, startDate = null, endDate = null } = options;
     const limit = clampMetricsHistoryLimit(options.limit, 100);
+    const offsetInt = Number.parseInt(offset, 10) || 0;
     const where = {};
     if (startDate || endDate) {
       where.timestamp = {};
@@ -912,12 +992,89 @@ class PersistenceService {
       if (endDate) where.timestamp.lte = new Date(endDate);
     }
     try {
-      const rows = await prisma.systemMetricsSnapshot.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-        skip: offset,
-      });
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      let rows;
+
+      if (bucketSeconds && startEpoch != null) {
+        const conditions = [];
+        if (where.timestamp?.gte) {
+          conditions.push(`timestamp >= '${where.timestamp.gte.toISOString()}'::timestamptz`);
+        }
+        if (where.timestamp?.lte) {
+          conditions.push(`timestamp <= '${where.timestamp.lte.toISOString()}'::timestamptz`);
+        }
+        const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        rows = await prisma.$queryRawUnsafe(`
+          WITH source AS (
+            SELECT
+              timestamp AS ts,
+              "cpuUsagePercent",
+              "cpuCores",
+              "cpuLoadAverage1m",
+              "cpuLoadAverage5m",
+              "cpuLoadAverage15m",
+              "memoryUsagePercent",
+              "memoryUsedBytes",
+              "memoryTotalBytes",
+              "memoryFreeBytes",
+              "diskUsagePercent",
+              "diskUsedBytes",
+              "diskTotalBytes",
+              "diskFreeBytes",
+              "networkRxBytes",
+              "networkTxBytes",
+              "availabilityPercent",
+              "loadScore",
+              "errorCount",
+              "errorRate",
+              "responseTimeAvg"
+            FROM public.system_metrics_snapshots
+            ${whereSql}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            CONCAT('system_snapshot_', bucket::text) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS timestamp,
+            AVG("cpuUsagePercent") AS "cpuUsagePercent",
+            MAX("cpuCores") AS "cpuCores",
+            AVG("cpuLoadAverage1m") AS "cpuLoadAverage1m",
+            AVG("cpuLoadAverage5m") AS "cpuLoadAverage5m",
+            AVG("cpuLoadAverage15m") AS "cpuLoadAverage15m",
+            AVG("memoryUsagePercent") AS "memoryUsagePercent",
+            AVG("memoryUsedBytes") AS "memoryUsedBytes",
+            MAX("memoryTotalBytes") AS "memoryTotalBytes",
+            AVG("memoryFreeBytes") AS "memoryFreeBytes",
+            AVG("diskUsagePercent") AS "diskUsagePercent",
+            AVG("diskUsedBytes") AS "diskUsedBytes",
+            MAX("diskTotalBytes") AS "diskTotalBytes",
+            AVG("diskFreeBytes") AS "diskFreeBytes",
+            MAX("networkRxBytes") AS "networkRxBytes",
+            MAX("networkTxBytes") AS "networkTxBytes",
+            AVG("availabilityPercent") AS "availabilityPercent",
+            AVG("loadScore") AS "loadScore",
+            SUM("errorCount") AS "errorCount",
+            AVG("errorRate") AS "errorRate",
+            AVG("responseTimeAvg") AS "responseTimeAvg"
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY timestamp DESC
+          LIMIT ${limit + offsetInt} OFFSET 0
+        `);
+      } else {
+        rows = await prisma.systemMetricsSnapshot.findMany({
+          where,
+          orderBy: { timestamp: 'desc' },
+          take: limit + offsetInt,
+          skip: 0,
+        });
+      }
+
       return rows.map((row) => {
         const tsIso =
           toIsoUtcString(row.timestamp) ||
@@ -935,16 +1092,22 @@ class PersistenceService {
         memoryUsedBytes: row.memoryUsedBytes != null ? Number(row.memoryUsedBytes) : 0,
         memoryTotalBytes: row.memoryTotalBytes != null ? Number(row.memoryTotalBytes) : 0,
         memoryFreeBytes: row.memoryFreeBytes != null ? Number(row.memoryFreeBytes) : 0,
+        diskUsagePercent: row.diskUsagePercent ?? null,
+        diskUsedBytes: row.diskUsedBytes != null ? Number(row.diskUsedBytes) : null,
+        diskTotalBytes: row.diskTotalBytes != null ? Number(row.diskTotalBytes) : null,
+        diskFreeBytes: row.diskFreeBytes != null ? Number(row.diskFreeBytes) : null,
         networkRxBytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
         networkTxBytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
         total_network_rx_bytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
         total_network_tx_bytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
         availabilityPercent: row.availabilityPercent ?? null,
         loadScore: row.loadScore ?? null,
+        errorCount: row.errorCount != null ? Number(row.errorCount) : null,
+        errorRate: row.errorRate ?? null,
         responseTimeAvg: row.responseTimeAvg ?? null,
         createdAt: tsIso,
       };
-      });
+      }).slice(offsetInt, offsetInt + limit);
     } catch (e) {
       console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
       return [];

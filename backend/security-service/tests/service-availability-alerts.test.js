@@ -136,4 +136,31 @@ describe('SecurityScheduler - alertes disponibilité services', () => {
       })
     });
   });
+
+  test('n’alerte pas si seul le endpoint services/all timeout mais que le healthcheck répond', async () => {
+    axios.get
+      .mockRejectedValueOnce(new Error('timeout of 5000ms exceeded'))
+      .mockResolvedValueOnce({
+        status: 200,
+        data: { status: 'online' }
+      });
+
+    const result = await securityScheduler.checkServiceAvailabilityAlerts();
+
+    expect(result).toEqual({
+      checked: 0,
+      alerts: 0,
+      degraded: true,
+      error: 'timeout of 5000ms exceeded'
+    });
+    expect(axios.get).toHaveBeenNthCalledWith(
+      2,
+      'http://metrics.local/api/v1/health',
+      {
+        timeout: 3000,
+        headers: { 'X-API-Key': 'metrics-test-key' }
+      }
+    );
+    expect(securityService.createSecurityAlert).not.toHaveBeenCalled();
+  });
 });
