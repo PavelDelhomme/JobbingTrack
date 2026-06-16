@@ -177,6 +177,29 @@ function mergeSystemMetricRows(rows, options = {}) {
     .map(({ _historySource, ...row }) => row);
 }
 
+function mapServiceAvailabilityHistoryRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const tsIso = toIsoUtcString(row.timestamp);
+      if (!tsIso) return null;
+      return {
+        id: row.id,
+        timestamp: tsIso,
+        timestampMs: Date.parse(tsIso),
+        serviceName: row.serviceName,
+        isAvailable: Boolean(row.isAvailable),
+        responseTimeMs:
+          row.responseTimeMs != null ? Number(row.responseTimeMs) : null,
+        statusCode: row.statusCode != null ? Number(row.statusCode) : null,
+        errorMessage: row.errorMessage ?? null,
+        uptimePercent:
+          row.uptimePercent != null ? Number(row.uptimePercent) : null,
+        createdAt: toIsoUtcString(row.createdAt) || tsIso,
+      };
+    })
+    .filter(Boolean);
+}
+
 function buildNearestContainerBlockIoLookup(rows, maxDistanceMs = 120000) {
   const points = Array.isArray(rows)
     ? rows
@@ -1636,20 +1659,13 @@ class PersistenceService {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     let history;
     try {
-      for (const candidate of aliases) {
-        history = await prisma.serviceAvailabilityHistory.findMany({
-          where: {
-            serviceName: candidate,
-            timestamp: { gte: since },
-          },
-          orderBy: { timestamp: 'asc' },
-        });
-        if (history.length > 0) {
-          serviceName = candidate;
-          break;
-        }
-      }
-      history = history || [];
+      history = await prisma.serviceAvailabilityHistory.findMany({
+        where: {
+          serviceName: { in: aliases },
+          timestamp: { gte: since },
+        },
+        orderBy: { timestamp: 'asc' },
+      });
     } catch (error) {
       if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
         return defaultStats;
@@ -1675,7 +1691,7 @@ class PersistenceService {
       .map(h => h.responseTimeMs);
 
     return {
-      serviceName,
+      serviceName: normalizedServiceName || serviceName,
       uptimePercent: (availableChecks / history.length) * 100,
       totalChecks: history.length,
       availableChecks,
@@ -1719,20 +1735,70 @@ class PersistenceService {
       return where;
     };
     try {
-      for (const candidate of aliases) {
-        const rows = await prisma.serviceAvailabilityHistory.findMany({
-          where: buildWhere(candidate),
-          orderBy: { timestamp: 'desc' },
-          take: limit,
-        });
-        if (rows.length === 0) continue;
-        const chronological = rows.slice().reverse();
-        return chronological.map((row) => ({
-          ...row,
-          timestamp: toIsoUtcString(row.timestamp) || row.timestamp,
-        }));
+      const bucketSeconds = metricsHistoryBucketSeconds(startDate, endDate, limit);
+      const startEpoch = sqlEpochSeconds(startDate);
+      if (bucketSeconds && startEpoch != null) {
+        const escapedAliases = aliases
+          .map((candidate) => `'${String(candidate).replace(/'/g, "''")}'`)
+          .join(', ');
+        const conditions = [`"serviceName" IN (${escapedAliases})`];
+        if (startDate) {
+          conditions.push(`"timestamp" >= '${new Date(startDate).toISOString()}'::timestamptz`);
+        }
+        if (endDate) {
+          conditions.push(`"timestamp" <= '${new Date(endDate).toISOString()}'::timestamptz`);
+        }
+        const rows = await prisma.$queryRawUnsafe(`
+          WITH source AS (
+            SELECT
+              id,
+              timestamp AS ts,
+              "serviceName",
+              "isAvailable",
+              "responseTimeMs",
+              "statusCode",
+              "errorMessage",
+              "uptimePercent",
+              "createdAt"
+            FROM service_availability_history
+            WHERE ${conditions.join(' AND ')}
+          ),
+          bucketed AS (
+            SELECT
+              FLOOR((EXTRACT(EPOCH FROM ts) - ${startEpoch}) / ${bucketSeconds})::bigint AS bucket,
+              *
+            FROM source
+          )
+          SELECT
+            CONCAT('service_availability_', bucket::text) AS id,
+            to_timestamp(MIN(EXTRACT(EPOCH FROM ts))) AS timestamp,
+            MAX("serviceName") AS "serviceName",
+            BOOL_OR("isAvailable") AS "isAvailable",
+            AVG("responseTimeMs") AS "responseTimeMs",
+            MAX("statusCode") AS "statusCode",
+            MAX("errorMessage") AS "errorMessage",
+            AVG("uptimePercent") AS "uptimePercent",
+            MAX("createdAt") AS "createdAt"
+          FROM bucketed
+          GROUP BY bucket
+          ORDER BY timestamp DESC
+          LIMIT ${limit}
+        `);
+        return mapServiceAvailabilityHistoryRows(rows).sort(
+          (a, b) => Number(a.timestampMs || 0) - Number(b.timestampMs || 0)
+        );
       }
-      return [];
+
+      const rows = await prisma.serviceAvailabilityHistory.findMany({
+        where: {
+          ...buildWhere(aliases[0]),
+          serviceName: { in: aliases },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      });
+      return mapServiceAvailabilityHistoryRows(rows)
+        .sort((a, b) => Number(a.timestampMs || 0) - Number(b.timestampMs || 0));
     } catch (error) {
       if (this._isTableMissing(error, 'service_availability_history')) {
         this._warnOnceMissing('service_availability_history', 'service_availability_history');

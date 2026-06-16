@@ -36,6 +36,7 @@ describe("securityLogLinks", () => {
       linkReason: "lab_non_rattache",
     });
     expect(missing.href).toBeNull();
+    expect(missing.label).toBe("Log lab sans menace rattachée");
     expect(missing.title).toBe("Log lab sans menace rattachée");
   });
 
