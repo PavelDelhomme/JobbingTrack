@@ -9,6 +9,8 @@ mkdir -p "${OUT_DIR}"
 
 cd "${ROOT_DIR}"
 
+bash scripts/ops/ensure-dashboard-service-ready.sh
+
 SUMMARY_JSON="${OUT_DIR}/summary.json"
 SUMMARY_TXT="${OUT_DIR}/summary.txt"
 
@@ -34,111 +36,16 @@ PAGE_EXIT=0
 UNDEFINED_EXIT=0
 
 run_step "app_data_api_smoke" "${OUT_DIR}/app-data-api-smoke.json" \
-  python3 - "${ROOT_DIR}" <<'PY' || API_EXIT=$?
-import json
-import sys
-import urllib.request
-from pathlib import Path
-
-root = Path(sys.argv[1])
-env = {}
-for line in (root / ".env").read_text().splitlines():
-    line = line.strip()
-    if not line or line.startswith("#") or "=" not in line:
-        continue
-    key, value = line.split("=", 1)
-    env[key.strip()] = value.strip().strip('"').strip("'")
-
-api_base = f"http://localhost:{env.get('API_GATEWAY_PORT', '5002')}"
-email = env.get("ADMIN_EMAIL") or env.get("TEST_ADMIN_EMAIL") or "admin@jobbingtrack.test"
-password = env.get("ADMIN_PASSWORD") or env.get("TEST_ADMIN_PASSWORD") or "password123"
-
-login_req = urllib.request.Request(
-    f"{api_base}/api/v1/auth/login",
-    data=json.dumps({"email": email, "password": password}).encode(),
-    headers={"Content-Type": "application/json"},
-    method="POST",
-)
-with urllib.request.urlopen(login_req, timeout=30) as response:
-    login = json.loads(response.read().decode())
-token = login.get("token") or (login.get("data") or {}).get("token")
-if not token:
-    raise RuntimeError("JWT admin introuvable")
-
-headers = {"Authorization": f"Bearer {token}"}
-
-
-def get_json(path):
-    req = urllib.request.Request(f"{api_base}{path}", headers=headers)
-    with urllib.request.urlopen(req, timeout=60) as response:
-        return response.status, json.loads(response.read().decode())
-
-
-def find_undefined_values(obj, path=""):
-    hits = []
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            if str(key).lower() == "undefined":
-                hits.append(f"{path}.key:{key}")
-            hits.extend(find_undefined_values(value, f"{path}.{key}"))
-    elif isinstance(obj, list):
-        for index, value in enumerate(obj):
-            hits.extend(find_undefined_values(value, f"{path}[{index}]"))
-    elif isinstance(obj, str) and obj.strip().lower() == "undefined":
-        hits.append(f"{path}={obj}")
-    return hits
-
-
-status, stats_payload = get_json("/api/v1/statistics")
-statistics = stats_payload.get("statistics") or {}
-_, timeline_payload = get_json("/api/v1/statistics/timeline?time_range=7d&limit=500")
-timeline = timeline_payload.get("timeline") or []
-
-totals = {
-    key: (statistics.get(key) or {}).get("total")
-    for key in [
-        "applications",
-        "users",
-        "companies",
-        "contacts",
-        "interviews",
-        "calls",
-        "followups",
-        "events",
-    ]
-}
-
-undefined_hits = find_undefined_values(statistics)
-result = {
-    "success": stats_payload.get("success", True) and status == 200,
-    "statisticsStatus": status,
-    "totals": totals,
-    "timelinePoints": len(timeline),
-    "timelineNote": timeline_payload.get("note"),
-    "undefinedHits": undefined_hits,
-    "summary": statistics.get("summary") or {},
-}
-
-print(json.dumps(result, indent=2, ensure_ascii=False))
-if undefined_hits:
-    sys.exit(2)
-PY
+  /usr/bin/node scripts/ops/smoke-statistics-app-data-api.cjs || API_EXIT=$?
 
 run_step "app_data_db_counts" "${OUT_DIR}/app-data-db-counts.txt" \
   docker exec jobbingtrack-postgres sh -lc \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT '\''applications'\'', COUNT(*) FROM \"Application\" UNION ALL SELECT '\''users'\'', COUNT(*) FROM \"User\" UNION ALL SELECT '\''companies'\'', COUNT(*) FROM \"Company\" UNION ALL SELECT '\''contacts'\'', COUNT(*) FROM \"Contact\" UNION ALL SELECT '\''interviews'\'', COUNT(*) FROM \"Interview\" UNION ALL SELECT '\''calls'\'', COUNT(*) FROM \"Call\" UNION ALL SELECT '\''followups'\'', COUNT(*) FROM \"FollowUp\" UNION ALL SELECT '\''events'\'', COUNT(*) FROM \"Event\";"' || DB_EXIT=$?
 
 run_step "app_data_page_smoke" "${OUT_DIR}/app-data-page-smoke.txt" \
-  python3 - <<'PY' || PAGE_EXIT=$?
-import urllib.request
-
-for url in [
-    "http://localhost:5003/b4ck0ff1ce/statistics/app-data",
-    "http://localhost:5003/b4ck0ff1ce/statistics",
-]:
-    with urllib.request.urlopen(url, timeout=20) as response:
-        print(url, response.status)
-PY
+  /usr/bin/node scripts/ops/smoke-backoffice-page-urls.cjs \
+    /backoffice/statistics/app-data \
+    /backoffice/statistics || PAGE_EXIT=$?
 
 run_step "undefined_guard" "${OUT_DIR}/undefined-guard.txt" \
   python3 - "${OUT_DIR}/app-data-api-smoke.json" <<'PY' || UNDEFINED_EXIT=$?

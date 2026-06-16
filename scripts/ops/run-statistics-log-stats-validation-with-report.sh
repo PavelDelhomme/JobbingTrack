@@ -89,16 +89,9 @@ run_step "aggregated_logs_db" "${OUT_DIR}/aggregated-logs-db.txt" \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "SELECT COUNT(*), COUNT(DISTINCT \"serviceName\"), MAX(timestamp) FROM aggregated_logs;"' || DB_EXIT=$?
 
 run_step "log_stats_page_smoke" "${OUT_DIR}/log-stats-page-smoke.txt" \
-  python3 - <<'PY' || PAGE_EXIT=$?
-import urllib.request
-
-for url in [
-    "http://localhost:5003/b4ck0ff1ce/statistics/log-stats",
-    "http://localhost:5003/b4ck0ff1ce/statistics",
-]:
-    with urllib.request.urlopen(url, timeout=20) as response:
-        print(url, response.status)
-PY
+  /usr/bin/node scripts/ops/smoke-backoffice-page-urls.cjs \
+    /backoffice/statistics/log-stats \
+    /backoffice/statistics || PAGE_EXIT=$?
 
 node - "${OUT_DIR}" "${SUMMARY_JSON}" "${SUMMARY_TXT}" <<'NODE'
 const fs = require('fs');
